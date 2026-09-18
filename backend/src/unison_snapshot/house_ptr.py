@@ -16,8 +16,9 @@ from urllib.parse import urlsplit
 from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
-PARSER_VERSION = "house-electronic-ptr-2026-03"
+PARSER_VERSION = "house-ptr-2026-04"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
+LEGACY_DATE_RE = re.compile(r"\d{2}/\d{2}/\d{2}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.00)?$")
 AMOUNT_OVER_RE = re.compile(r"^(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?$", re.I)
@@ -35,6 +36,13 @@ OCR_MINIMUM_ROW_CONFIDENCE = 85.0
 CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
                      "transaction_date", "notification_date", "amount_low", "amount_high"}
 REVISION_ACTIONS = {"replace_prior", "standalone_correction"}
+LEGACY_AMOUNT_BUCKETS = (
+    (1001, 15000, "range"), (15001, 50000, "range"),
+    (50001, 100000, "range"), (100001, 250000, "range"),
+    (250001, 500000, "range"), (500001, 1000000, "range"),
+    (1000001, 5000000, "range"), (5000001, 25000000, "range"),
+    (25000001, 50000000, "range"), (50000001, None, "open_ended"),
+)
 
 
 def _clean(value: str) -> str:
@@ -63,6 +71,118 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
     return None
 
 
+def _is_mark(word: dict) -> bool:
+    return bool(re.fullmatch(r"[Xx×/\\]{1,3}", _clean(str(word.get("text", "")))))
+
+
+def _legacy_date(value: str) -> str | None:
+    try:
+        return datetime.strptime(value, "%m/%d/%y").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _legacy_filing_status(words: list[dict], width: float, height: float) -> str | None:
+    marks = [float(word["x0"]) / width for word in words if _is_mark(word)
+             and 0.31 * height <= float(word["top"]) <= 0.48 * height]
+    initial = any(0.43 <= value < 0.50 for value in marks)
+    amended = any(0.52 <= value < 0.59 for value in marks)
+    if initial == amended:
+        return None
+    return "New" if initial else "Amended"
+
+
+def _legacy_mark_column(words: list[dict], *, width: float, top: float,
+                        x0: float, x1: float, columns: int) -> int | None:
+    marks = [word for word in words if _is_mark(word)
+             and x0 * width <= float(word["x0"]) < x1 * width
+             and abs(float(word["top"]) - top) <= 7]
+    positions = {min(int(((float(word["x0"]) / width) - x0) / ((x1 - x0) / columns)),
+                     columns - 1) for word in marks}
+    return next(iter(positions)) if len(positions) == 1 else None
+
+
+def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
+                             copy_allowed: bool | None, ocr_engine: str | None) -> dict:
+    extracted: list[dict] = []
+    for page_index, page in enumerate(pages):
+        width, height = float(page.get("width", 0)), float(page.get("height", 0))
+        words = page.get("words")
+        if width <= 0 or height <= 0 or not isinstance(words, list):
+            raise HouseIndexError("House legacy PTR page geometry is invalid")
+        filing_status = _legacy_filing_status(words, width, height)
+        anchors = sorted({float(word["top"]) for word in words
+                          if 0.47 * width <= float(word["x0"]) < 0.55 * width
+                          and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                          and float(word["top"]) >= 0.58 * height})
+        for row_index, top in enumerate(anchors):
+            transaction_raw = _line(words, x0=0.47 * width, x1=0.55 * width,
+                                    top=top, tolerance=5)
+            notification_raw = _line(words, x0=0.55 * width, x1=0.607 * width,
+                                     top=top, tolerance=5)
+            transaction_date = _legacy_date(transaction_raw)
+            notification_date = _legacy_date(notification_raw)
+            if transaction_date is None:
+                continue
+            asset = _line(words, x0=0.14 * width, x1=0.405 * width, top=top, tolerance=7)
+            owner_raw = _line(words, x0=0.09 * width, x1=0.14 * width, top=top, tolerance=7)
+            owner_code = next((code for code in ("JT", "SP", "DC")
+                               if re.search(rf"\b{code}\b", owner_raw, re.I)), "")
+            type_column = _legacy_mark_column(words, width=width, top=top,
+                                              x0=0.405, x1=0.477, columns=3)
+            amount_column = _legacy_mark_column(words, width=width, top=top,
+                                                x0=0.607, x1=0.95, columns=10)
+            transaction_type = ("purchase", "sale", "exchange")[type_column] \
+                if type_column is not None else None
+            amount = LEGACY_AMOUNT_BUCKETS[amount_column] if amount_column is not None else (None, None, None)
+            ticker_match = re.search(r"\(([A-Z][A-Z0-9.\-^/]{0,15})\)\s*$", asset)
+            ticker = ticker_match.group(1) if ticker_match else None
+            asset_name = asset[:ticker_match.start()].strip() if ticker_match else asset
+            row_words = [word for word in words if abs(float(word["top"]) - top) <= 7]
+            confidences = [float(word["ocr_confidence"]) for word in row_words
+                           if word.get("ocr_confidence") is not None]
+            stable = "|".join((source_sha256, str(page_index + 1), f"{top:.2f}", asset,
+                               transaction_raw, notification_raw, str(type_column), str(amount_column)))
+            extracted.append({
+                "extraction_id": "house-ptr:" + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24],
+                "reported_transaction_id": None, "filing_status": filing_status,
+                "owner_code": owner_code or None, "owner": OWNER_CODES.get(owner_code),
+                "asset_name": asset_name, "ticker": ticker,
+                "ticker_mapping_basis": "filing_explicit" if ticker else None,
+                "asset_type_code": None, "instrument_type": "Unspecified",
+                "transaction_type_raw": ("P", "S", "E")[type_column] if type_column is not None else None,
+                "transaction_type": transaction_type, "transaction_date": transaction_date,
+                "notification_date": notification_date, "amount_low": amount[0],
+                "amount_high": amount[1], "amount_kind": amount[2], "amount_raw": None,
+                "ocr_confidence": (round(sum(confidences) / len(confidences), 2) if confidences else None),
+                "subholding_of": None, "location": None, "description": None,
+                "evidence": {"page": page_index + 1, "pages": [page_index + 1],
+                             "bbox_points": [round(0.09 * width, 2), round(top - 8, 2),
+                                             round(0.95 * width, 2), round(top + 8, 2)],
+                             "segments": [{"page": page_index + 1,
+                                           "bbox_points": [round(0.09 * width, 2), round(top - 8, 2),
+                                                           round(0.95 * width, 2), round(top + 8, 2)]}]},
+                "verification_status": "awaiting_automatic_qualification",
+                "review_reasons": ["automatic_qualification_required", "legacy_checkbox_form"],
+            })
+    if not extracted:
+        raise HouseIndexError("House legacy PTR contains no recognized transaction rows")
+    review_reasons = ["automatic_qualification_required", "source_use_clearance_required",
+                      "legacy_checkbox_form"]
+    if copy_allowed is False:
+        review_reasons.append("source_pdf_copy_permission_disabled")
+    return {
+        "schema_version": SCHEMA, "parser_version": PARSER_VERSION,
+        "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
+            "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
+        "source_sha256": source_sha256, "source_pdf_copy_allowed": copy_allowed,
+        "extraction_method": "tesseract_legacy_checkbox", "ocr_engine": ocr_engine,
+        "transactions": extracted,
+        "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
+                   "reasons": review_reasons},
+    }
+
+
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                      copy_allowed: bool | None, ocr_engine: str | None = None) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
@@ -79,6 +199,11 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     large_heading = [_clean(str(word["text"])) for word in pages[0].get("words", [])
                      if float(word.get("size", 0)) >= 18]
     title_matches = "Periodic Transaction Report" in first_text or large_heading[:3] == ["P", "T", "R"]
+    legacy_form = (title_matches and f"#{document_id}" not in first_text
+                   and "HOUSE" in first_text.upper() and "REPRESENTATIVES" in first_text.upper())
+    if legacy_form:
+        return _parse_legacy_word_pages(metadata, source_sha256, pages,
+                                        copy_allowed=copy_allowed, ocr_engine=ocr_engine)
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
 
@@ -304,10 +429,12 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             reasons.append("revision_relationship_unresolved")
         if row.get("amount_kind") == "open_ended" or row.get("amount_high") is None:
             reasons.append("open_ended_amount_not_representable")
-        if extraction.get("extraction_method") == "tesseract_ocr" and (
+        if str(extraction.get("extraction_method", "")).startswith("tesseract_") and (
                 not isinstance(row.get("ocr_confidence"), (int, float))
                 or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):
             reasons.append("ocr_confidence_below_threshold")
+        if not isinstance(row.get("asset_name"), str) or not row["asset_name"].strip():
+            reasons.append("asset_name_invalid")
         if row.get("owner") not in set(OWNER_CODES.values()):
             reasons.append("owner_not_normalized")
         if row.get("transaction_type") not in set(TYPE_CODES.values()):

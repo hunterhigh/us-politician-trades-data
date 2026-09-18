@@ -22,6 +22,7 @@ All notable changes follow Semantic Versioning.
 - Added bounded Tesseract OCR for image-only PTRs, including engine provenance, row confidence, conditional runner installation, and low-confidence quarantine.
 - Added a validated House candidate assembler that combines qualified transactions, stable people and live source health, then runs the production builder and supplied frontend renderer.
 - Added filing chronology quarantine and changed the remaining House backfill queue to newest filings first so 30/90-day frontend windows become useful earlier.
+- Added a fail-closed parser for legacy House checkbox PTR forms using OCR coordinates for owner, transaction direction and disclosed amount bucket; ambiguous or low-confidence marks remain quarantined.
 
 ## 0.1.0 - 2026-09-18
 

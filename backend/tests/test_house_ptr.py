@@ -13,6 +13,11 @@ def word(text, x0, top, size=9):
     return {"text": text, "x0": x0, "top": top, "size": size}
 
 
+def ocr_word(text, x0, top, size=9, confidence=96):
+    return {"text": text, "x0": x0, "top": top, "size": size,
+            "ocr_confidence": confidence}
+
+
 def fixture_pages():
     words = [
         word("Periodic", 40, 40), word("Transaction", 90, 40), word("Report", 160, 40),
@@ -87,6 +92,21 @@ def final_row_continuation_pages():
     ]
     return [{"width": 612, "height": 792, "words": first},
             {"width": 612, "height": 792, "words": second}]
+
+
+def legacy_checkbox_pages():
+    words = [
+        ocr_word("UNITED", 80, 35), ocr_word("STATES", 130, 35),
+        ocr_word("HOUSE", 180, 35), ocr_word("OF", 225, 35),
+        ocr_word("REPRESENTATIVES", 245, 35),
+        ocr_word("Periodic", 160, 55), ocr_word("Transaction", 215, 55),
+        ocr_word("Report", 285, 55), ocr_word("X", 360, 230, 14),
+        ocr_word("JT", 80, 450), ocr_word("Example", 120, 450),
+        ocr_word("Fund", 170, 450), ocr_word("(EXM)", 210, 450),
+        ocr_word("X", 330, 450, 14), ocr_word("01/28/26", 390, 450),
+        ocr_word("02/02/26", 450, 450), ocr_word("X", 490, 450, 14),
+    ]
+    return [{"width": 792, "height": 612, "words": words}]
 
 
 META = {"source_id": "house_clerk", "document_id": "20000001", "filing_type": "P",
@@ -217,6 +237,27 @@ class HousePtrTests(unittest.TestCase):
         impossible_row = next(row for row in impossible_result["quarantined"]
                               if row["extraction_id"] == impossible["transactions"][0]["extraction_id"])
         self.assertIn("date_sequence_invalid", impossible_row["reasons"])
+
+    def test_legacy_checkbox_form_uses_mark_columns_without_inference(self):
+        extraction = parse_word_pages(META, "f" * 64, legacy_checkbox_pages(), copy_allowed=True,
+                                      ocr_engine="tesseract 5.3.0")
+        row = extraction["transactions"][0]
+        self.assertEqual(extraction["extraction_method"], "tesseract_legacy_checkbox")
+        self.assertEqual((row["owner"], row["asset_name"], row["ticker"]),
+                         ("Joint", "Example Fund", "EXM"))
+        self.assertEqual((row["transaction_type"], row["amount_low"], row["amount_high"]),
+                         ("purchase", 1001, 15000))
+        self.assertEqual((row["transaction_date"], row["notification_date"]),
+                         ("2026-01-28", "2026-02-02"))
+        qualified = qualify_automatic(extraction, IDENTITY)
+        self.assertEqual(qualified["qualification"]["qualified_count"], 1)
+
+        ambiguous_pages = deepcopy(legacy_checkbox_pages())
+        ambiguous_pages[0]["words"].append(ocr_word("X", 520, 450, 14))
+        ambiguous = parse_word_pages(META, "e" * 64, ambiguous_pages, copy_allowed=True,
+                                     ocr_engine="tesseract 5.3.0")
+        isolated = qualify_automatic(ambiguous, IDENTITY)
+        self.assertIn("amount_invalid", isolated["quarantined"][0]["reasons"])
 
     def test_amended_row_requires_explicit_revision_resolution(self):
         extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)
