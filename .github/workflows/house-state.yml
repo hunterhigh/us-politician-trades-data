@@ -1,0 +1,103 @@
+name: House source state
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: house-source-state
+  cancel-in-progress: false
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set run coordinates
+        id: clock
+        run: |
+          echo "year=$(date -u +%Y)" >> "$GITHUB_OUTPUT"
+          echo "run_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - name: Load previous public checkpoint
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+        run: |
+          mkdir -p .local
+          if git ls-remote --exit-code --heads origin state >/dev/null 2>&1; then
+            git fetch --no-tags origin state
+            git show "FETCH_HEAD:checkpoints/house/${YEAR}.json" > .local/previous.json || true
+          fi
+      - name: Discover official House index
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot discover-house-index \
+            --year "$YEAR" --archive .local/archive --output .local/discovery.json
+      - name: Build recoverable checkpoint
+        env:
+          RUN_AT: ${{ steps.clock.outputs.run_at }}
+        run: |
+          previous=()
+          if [ -s .local/previous.json ]; then
+            previous+=(--checkpoint .local/previous.json)
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot plan-house-ptr-sync \
+            --discovery .local/discovery.json --archive .local/archive \
+            --planned-at "$RUN_AT" --output .local/checkpoint.json "${previous[@]}"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          checkpoint = json.loads(Path('.local/checkpoint.json').read_text(encoding='utf-8'))
+          status = {
+              'schema_version': 'house-source-run/v1',
+              'source_id': 'house_clerk',
+              'filing_year': checkpoint['filing_year'],
+              'index_sha256': checkpoint['index_sha256'],
+              'run_at': checkpoint['planned_at'],
+              'counts': checkpoint['counts'],
+              'queue_count': len(checkpoint['queue']),
+              'anomaly_count': len(checkpoint['anomalies']),
+              'status': 'attention' if checkpoint['anomalies'] else 'ok',
+          }
+          Path('.local/last-run.json').write_text(
+              json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+              encoding='utf-8')
+          PY
+      - name: Publish state branch
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+        run: |
+          state_root="$RUNNER_TEMP/house-state"
+          remote_state="$(git ls-remote --heads origin state | awk '{print $1}')"
+          if [ -n "$remote_state" ]; then
+            git fetch --no-tags origin state
+            git worktree add --detach "$state_root" "$remote_state"
+          else
+            git worktree add --detach "$state_root" HEAD
+            git -C "$state_root" switch --orphan state
+          fi
+          mkdir -p "$state_root/checkpoints/house" "$state_root/status"
+          cp .local/checkpoint.json "$state_root/checkpoints/house/${YEAR}.json"
+          cp .local/last-run.json "$state_root/status/last-run.json"
+          cat > "$state_root/README.md" <<'EOF'
+          # Production state
+
+          This branch contains public operational checkpoints and source health only.
+          It does not contain credentials, raw PDFs, unreviewed extracted rows, or production snapshot shards.
+          EOF
+          git -C "$state_root" add README.md checkpoints status
+          if git -C "$state_root" diff --cached --quiet; then
+            echo "State is unchanged." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git -C "$state_root" config user.name "github-actions[bot]"
+          git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$state_root" commit -m "state: House ${YEAR} ${{ steps.clock.outputs.run_at }}"
+          git -C "$state_root" push origin HEAD:refs/heads/state
+          printf 'Published House %s checkpoint to `state`.\n' "$YEAR" >> "$GITHUB_STEP_SUMMARY"
