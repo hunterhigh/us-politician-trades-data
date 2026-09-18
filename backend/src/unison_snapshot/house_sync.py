@@ -41,6 +41,13 @@ def _queued(state: dict, now: datetime) -> bool:
     return retry_at is None or _parsed_time(retry_at) <= now
 
 
+def _queue(documents: dict[str, dict], now: datetime) -> list[str]:
+    eligible = ((document_id, state) for document_id, state in documents.items()
+                if _queued(state, now))
+    return [document_id for document_id, _ in sorted(
+        eligible, key=lambda item: (item[1].get("filed_date") or "", item[0]), reverse=True)]
+
+
 def _signature(row: dict) -> str:
     payload = {field: row.get(field) for field in SIGNATURE_FIELDS}
     return hashlib.sha256(encode(payload)).hexdigest()
@@ -178,7 +185,7 @@ def plan_checkpoint(discovery: dict, archive_root: Path, previous: dict | None =
         "schema_version": SCHEMA, "source_id": "house_clerk", "filing_year": year,
         "index_sha256": index_sha, "index_retrieved_at": index_retrieved_at,
         "planned_at": planned_at, "documents": documents, "anomalies": anomalies,
-        "queue": [document_id for document_id, state in documents.items() if _queued(state, planned_time)],
+        "queue": _queue(documents, planned_time),
         "counts": counts,
     }
 
@@ -214,7 +221,7 @@ def record_result(checkpoint: dict, document_id: str, status: str, *, result_at:
         retry_at = (result_time + timedelta(minutes=delay_minutes)).isoformat()
         state.update(status="failed", archive_sha256=None, last_error=error.strip(),
                      next_retry_at=retry_at, last_result_at=result_at, attempts=attempts)
-    checkpoint["queue"] = [key for key, item in documents.items() if _queued(item, result_time)]
+    checkpoint["queue"] = _queue(documents, result_time)
     checkpoint["counts"] = {value: sum(item["status"] == value for item in documents.values())
                             for value in ("pending", "failed", "archived")}
     return checkpoint

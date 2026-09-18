@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       batch_size:
-        description: Maximum number of pending House PTR PDFs to archive in this run
+        description: Maximum number of pending House PTR PDFs to archive, newest filings first
         required: false
         default: '10'
 permissions:

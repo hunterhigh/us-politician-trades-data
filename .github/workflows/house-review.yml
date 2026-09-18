@@ -37,8 +37,11 @@ jobs:
         run: |
           evidence_root="$RUNNER_TEMP/house-evidence"
           review_root="$RUNNER_TEMP/house-review"
+          state_root="$RUNNER_TEMP/house-state"
           git fetch --no-tags origin evidence
           git worktree add --detach "$evidence_root" FETCH_HEAD
+          git fetch --no-tags origin state
+          git worktree add --detach "$state_root" FETCH_HEAD
           remote_review="$(git ls-remote --heads origin review | awk '{print $1}')"
           if [ -n "$remote_review" ]; then
             git fetch --no-tags origin review
@@ -58,6 +61,7 @@ jobs:
           EOF
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
       - name: Select unprocessed evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -256,11 +260,22 @@ jobs:
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')), encoding='utf-8')
           PY
+      - name: Build and validate frontend candidate
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/last-run.json" \
+            --base ingest/current.json \
+            --output "$REVIEW_ROOT/candidates/house-current.json" \
+            --html-output "$RUNNER_TEMP/house-current.html"
       - name: Publish qualification queue
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          git -C "$REVIEW_ROOT" add README.md house_clerk status
+          git -C "$REVIEW_ROOT" add README.md candidates house_clerk status
           if git -C "$REVIEW_ROOT" diff --cached --quiet; then
             echo "Review queue is unchanged." >> "$GITHUB_STEP_SUMMARY"
             exit 0

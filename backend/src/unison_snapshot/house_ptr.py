@@ -290,7 +290,7 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         and parsed_identity_url.hostname == "bioguide.congress.gov")
     filed_date = source.get("filed_date")
     try:
-        datetime.strptime(filed_date, "%Y-%m-%d")
+        filed_day = datetime.strptime(filed_date, "%Y-%m-%d").date()
     except (TypeError, ValueError):
         raise HouseIndexError("House PTR extraction has an invalid official filing date") from None
     filed_at = f"{filed_date}T00:00:00Z"
@@ -320,11 +320,15 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         if type(low) is not int or (high is not None and type(high) is not int) or \
                 (type(high) is int and not 0 <= low <= high):
             reasons.append("amount_invalid")
+        parsed_dates = {}
         for date_field in ("transaction_date", "notification_date"):
             try:
-                datetime.strptime(row[date_field], "%Y-%m-%d")
+                parsed_dates[date_field] = datetime.strptime(row[date_field], "%Y-%m-%d").date()
             except (KeyError, TypeError, ValueError):
                 reasons.append(f"{date_field}_invalid")
+        if len(parsed_dates) == 2 and not (
+                parsed_dates["transaction_date"] <= parsed_dates["notification_date"] <= filed_day):
+            reasons.append("date_sequence_invalid")
         if reasons:
             quarantined.append({
                 "extraction_id": row.get("extraction_id"),

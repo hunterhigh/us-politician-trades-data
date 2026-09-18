@@ -210,6 +210,14 @@ class HousePtrTests(unittest.TestCase):
         self.assertTrue(all("ocr_confidence_below_threshold" in row["reasons"]
                             for row in ocr_result["quarantined"]))
 
+        impossible = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        impossible["transactions"][0]["transaction_date"] = "2026-12-26"
+        impossible["transactions"][0]["notification_date"] = "2026-01-21"
+        impossible_result = qualify_automatic(impossible, IDENTITY)
+        impossible_row = next(row for row in impossible_result["quarantined"]
+                              if row["extraction_id"] == impossible["transactions"][0]["extraction_id"])
+        self.assertIn("date_sequence_invalid", impossible_row["reasons"])
+
     def test_amended_row_requires_explicit_revision_resolution(self):
         extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)
         amended = extraction["transactions"][0]

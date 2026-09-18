@@ -10,6 +10,8 @@ from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archi
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
+from .house_candidate import load_house_candidate
+from .legacy import load
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -81,6 +83,12 @@ def main() -> None:
     qualify_ptr.add_argument("--extraction", type=Path, required=True)
     qualify_ptr.add_argument("--identity", type=Path, required=True)
     qualify_ptr.add_argument("--output", type=Path, required=True)
+    candidate = sub.add_parser("build-house-candidate")
+    candidate.add_argument("--review-root", type=Path, required=True)
+    candidate.add_argument("--state-status", type=Path, required=True)
+    candidate.add_argument("--base", type=Path, required=True)
+    candidate.add_argument("--output", type=Path, required=True)
+    candidate.add_argument("--html-output", type=Path)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -193,6 +201,22 @@ def main() -> None:
                               "qualified": result["qualification"]["qualified_count"],
                               "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "build-house-candidate":
+            result = load_house_candidate(args.review_root, args.state_status, args.base)
+            generated_at = result["meta"]["data_cutoff_at"]
+            bundle = build(result, generated_at=generated_at, allow_production=True)
+            result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
+                                  generated_at=generated_at)
+            _write_atomic(args.output, result)
+            if args.html_output:
+                renderer = load("render_dashboard")
+                html = renderer.render_html(renderer.load_dashboard_data(args.output))
+                args.html_output.parent.mkdir(parents=True, exist_ok=True)
+                args.html_output.write_text(html, encoding="utf-8")
+            print(json.dumps({"people": len(result["people"]),
+                              "transactions": len(result["transactions"]),
+                              "output": str(args.output.resolve()),
+                              "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))
             args.output.parent.mkdir(parents=True, exist_ok=True)

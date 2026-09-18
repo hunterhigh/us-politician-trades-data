@@ -30,6 +30,16 @@ def discovery(*rows: HouseFilingCandidate) -> dict:
 
 
 class HouseSyncTests(unittest.TestCase):
+    def test_pending_queue_prioritizes_latest_filing_date(self):
+        older = candidate("20000001", filed_date="2026-01-03")
+        newer = candidate("20000002", filed_date="2026-09-17")
+        undated = candidate("20000003", filed_date="")
+        with tempfile.TemporaryDirectory() as temporary:
+            checkpoint = plan_checkpoint(discovery(older, newer, undated), Path(temporary),
+                                         planned_at="2026-09-18T01:00:00Z")
+            self.assertEqual(checkpoint["queue"], [newer.document_id, older.document_id,
+                                                   undated.document_id])
+
     def test_plan_preserves_failures_and_recovers_archives_from_disk(self):
         first, second = candidate("20000001"), candidate("20000002")
         with tempfile.TemporaryDirectory() as temporary:
