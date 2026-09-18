@@ -46,7 +46,8 @@ def required(row: dict, key: str) -> str:
     return value
 
 
-def normalize(payload: dict, *, allow_production: bool = False) -> dict:
+def normalize(payload: dict, *, allow_production: bool = False,
+              allow_empty_production: bool = False) -> dict:
     if not isinstance(payload, dict) or not isinstance(payload.get("meta"), dict):
         raise ValueError("Snapshot input must be an object with meta")
     data = deepcopy(payload)
@@ -121,15 +122,21 @@ def normalize(payload: dict, *, allow_production: bool = False) -> dict:
         seen.add(row["source_id"])
         timestamp(row.get("last_checked_at"))
     health.sort(key=lambda row: row["source_id"])
-    if not demo and (not data["people"] or not (data["transactions"] or data["reported_holdings"])):
-        raise ValueError("Production publication requires people and at least one verified disclosure")
+    if not demo:
+        empty = not data["people"] and not data["transactions"] and not data["reported_holdings"]
+        if empty and not allow_empty_production:
+            raise ValueError("Empty production publication requires the explicit bootstrap gate")
+        if not empty and (not data["people"] or not (data["transactions"] or data["reported_holdings"])):
+            raise ValueError("Production publication requires people and at least one verified disclosure")
     encode(data)  # Reject non-finite numbers even in optional fields.
     return data
 
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
-          max_blob_bytes: int = 8 * 1024 * 1024, allow_production: bool = False) -> Bundle:
-    data = normalize(payload, allow_production=allow_production)
+          max_blob_bytes: int = 8 * 1024 * 1024, allow_production: bool = False,
+          allow_empty_production: bool = False) -> Bundle:
+    data = normalize(payload, allow_production=allow_production,
+                     allow_empty_production=allow_empty_production)
     candidate = deepcopy(data)
     candidate["meta"].update(snapshot_id="prepublication-validation", generated_at=generated_at)
     load("process_snapshot").build_snapshot(candidate)
@@ -173,7 +180,8 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days")
                 if key in data["meta"]}
     coverage = {"scope": "all_input_records", "universe_complete": False,
-                "people_count": len(data["people"]), "market_enabled": False}
+                "people_count": len(data["people"]), "market_enabled": False,
+                "publication_state": "bootstrap_empty" if not data["people"] else "active"}
     identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": PROCESSOR_SHA256, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
                 "data_cutoff_at": data["meta"]["data_cutoff_at"], "settings": settings, "coverage": coverage}

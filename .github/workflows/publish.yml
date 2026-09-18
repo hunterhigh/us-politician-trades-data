@@ -6,6 +6,11 @@ on:
         description: Repository-relative reviewed input under ingest/
         required: true
         default: ingest/current.json
+      allow_empty_production:
+        description: Publish an explicit empty production bootstrap while no rows are approved
+        required: true
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -41,16 +46,26 @@ jobs:
       - name: Prepare complete snapshot tree
         env:
           INPUT_PATH: ${{ inputs.normalized_path }}
+          ALLOW_EMPTY_PRODUCTION: ${{ inputs.allow_empty_production }}
         run: |
           generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          extra_args=()
+          if [ "$ALLOW_EMPTY_PRODUCTION" = "true" ]; then
+            extra_args+=(--allow-empty-production)
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot prepare-publication \
-            --input "$INPUT_PATH" --root . --generated-at "$generated_at"
+            --input "$INPUT_PATH" --root . --generated-at "$generated_at" "${extra_args[@]}"
       - name: Commit and compare remote head
         id: commit
         env:
           BASE_SHA: ${{ github.sha }}
         run: |
-          git add -A -- manifest.json board people tickers
+          git add -A -- manifest.json board
+          for path in people tickers; do
+            if [ -e "$path" ]; then
+              git add -A -- "$path"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No snapshot or health change." >> "$GITHUB_STEP_SUMMARY"

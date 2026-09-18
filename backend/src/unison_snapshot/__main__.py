@@ -45,6 +45,7 @@ def main() -> None:
     prepare.add_argument("--input", type=Path, required=True)
     prepare.add_argument("--root", type=Path, required=True)
     prepare.add_argument("--generated-at", required=True)
+    prepare.add_argument("--allow-empty-production", action="store_true")
     fetch = sub.add_parser("fetch-public")
     fetch.add_argument("--owner", required=True)
     fetch.add_argument("--repo", required=True)
@@ -123,7 +124,8 @@ def main() -> None:
             payload = json.loads(args.input.read_text(encoding="utf-8"))
             if payload.get("meta", {}).get("is_demo") is not False:
                 raise ValueError("Public production publication requires is_demo=false")
-            bundle = build(payload, generated_at=args.generated_at, allow_production=True)
+            bundle = build(payload, generated_at=args.generated_at, allow_production=True,
+                           allow_empty_production=args.allow_empty_production)
             result = materialize(args.root, bundle)
             print(json.dumps({"changed": result.changed, "business_changed": result.business_changed,
                               "snapshot_id": bundle.manifest["snapshot_id"],

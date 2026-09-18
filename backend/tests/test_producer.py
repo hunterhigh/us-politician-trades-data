@@ -81,6 +81,19 @@ class ProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Shard size"):
             self.build(max_blob_bytes=20)
 
+    def test_empty_production_requires_explicit_bootstrap_gate(self):
+        data = deepcopy(self.data)
+        data["meta"]["is_demo"] = False
+        for key in ("people", "transactions", "reported_holdings"):
+            data[key] = []
+        for row in data["source_health"]:
+            row["status"] = "disabled"
+        with self.assertRaisesRegex(ValueError, "bootstrap gate"):
+            self.build(data, allow_production=True)
+        bundle = self.build(data, allow_production=True, allow_empty_production=True)
+        self.assertFalse(bundle.manifest["is_demo"])
+        self.assertEqual(bundle.manifest["coverage"]["publication_state"], "bootstrap_empty")
+
 
 class StoreTests(unittest.TestCase):
     def setUp(self):
