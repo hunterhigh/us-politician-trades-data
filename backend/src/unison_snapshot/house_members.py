@@ -165,7 +165,7 @@ def suggest_identity(extraction: dict, roster: dict) -> dict:
                 "filer_name": source.get("filer_name"), "state_district": source.get("state_district"),
                 "candidate_count": len(matches)}
     member = matches[0]
-    return {"status": "suggested_requires_review", "document_id": source.get("document_id"),
+    return {"status": "matched_automatically", "document_id": source.get("document_id"),
             "person_id": member["person_id"], "official_name": member["official_name"],
             "state": member["state"], "state_district": member["state_district"], "party": member["party"],
             "evidence_url": member["evidence_url"], "roster_sha256": roster.get("metadata", {}).get("sha256"),

@@ -1,4 +1,4 @@
-name: House review queue
+name: House automatic qualification
 on:
   workflow_run:
     workflows: ['House source state']
@@ -49,10 +49,11 @@ jobs:
             git -C "$review_root" rm -rf . >/dev/null 2>&1 || true
           fi
           cat > "$review_root/README.md" <<'EOF'
-          # House machine review queue
+          # House machine qualification queue
 
-          This branch contains unreviewed machine extractions, identity suggestions, review templates, and parse failures.
-          Nothing on this branch is a production fact. Only a named human review can promote accepted rows into `main`.
+          This branch contains machine extractions, deterministic identity matches, automatic qualification results,
+          quarantined exceptions, legacy review templates, and parse failures.
+          Qualification artifacts may feed a complete candidate snapshot; only the publication workflow writes `main`.
           Every artifact is keyed to an immutable PDF SHA-256 from the `evidence` branch and the parser code commit.
           EOF
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
@@ -100,7 +101,7 @@ jobs:
           Path('.local/parse-batch.txt').write_text(
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
           PY
-      - name: Parse and prepare human review artifacts
+      - name: Parse and prepare machine extraction artifacts
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -120,14 +121,11 @@ jobs:
           )"
             read -r year document_id sha <<< "$coordinates"
             extraction="$REVIEW_ROOT/house_clerk/extractions/$year/$document_id/$sha.json"
-            review="$REVIEW_ROOT/house_clerk/reviews/$year/$document_id/$sha.json"
             identity="$REVIEW_ROOT/house_clerk/identities/$year/$document_id/$sha.json"
             failure="$REVIEW_ROOT/house_clerk/failures/$year/$document_id/$sha.json"
-            mkdir -p "$(dirname "$extraction")" "$(dirname "$review")" "$(dirname "$identity")" "$(dirname "$failure")"
+            mkdir -p "$(dirname "$extraction")" "$(dirname "$identity")" "$(dirname "$failure")"
             if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-ptr \
                 --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
-              PYTHONPATH=backend/src python -m unison_snapshot create-house-ptr-review \
-                --extraction "$extraction" --output "$review"
               PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
                 --extraction "$extraction" --members "$roster" --output "$identity"
               rm -f "$failure"
@@ -162,7 +160,21 @@ jobs:
             fi
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
-      - name: Build review queue status
+      - name: Build automatic qualification artifacts
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          find "$REVIEW_ROOT/house_clerk/extractions" -name '*.json' -type f -print0 | sort -z | \
+          while IFS= read -r -d '' extraction; do
+            relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
+            identity="$REVIEW_ROOT/house_clerk/identities/$relative"
+            qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
+            test -f "$identity" || continue
+            mkdir -p "$(dirname "$qualification")"
+            PYTHONPATH=backend/src python -m unison_snapshot qualify-house-ptr \
+              --extraction "$extraction" --identity "$identity" --output "$qualification"
+          done
+      - name: Build qualification queue status
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -177,11 +189,24 @@ jobs:
           extractions = list(review.glob('house_clerk/extractions/*/*/*.json'))
           failures = list(review.glob('house_clerk/failures/*/*/*.json'))
           identities = list(review.glob('house_clerk/identities/*/*/*.json'))
+          qualifications = list(review.glob('house_clerk/qualifications/*/*/*.json'))
           identity_counts = {}
           for path in identities:
               value = json.loads(path.read_text(encoding='utf-8'))
               status = value.get('status', 'invalid')
               identity_counts[status] = identity_counts.get(status, 0) + 1
+          qualified_documents = 0
+          qualified_transactions = 0
+          quarantined_documents = 0
+          quarantined_rows = 0
+          for path in qualifications:
+              value = json.loads(path.read_text(encoding='utf-8'))
+              qualified = len(value.get('transactions', []))
+              quarantined = len(value.get('quarantined', []))
+              qualified_transactions += qualified
+              quarantined_rows += quarantined
+              qualified_documents += int(qualified > 0)
+              quarantined_documents += int(quarantined > 0)
           evidence_count = sum(1 for _ in evidence.glob('house_clerk/documents/*/*/*.json'))
           value = {
               'schema_version': 'house-review-run/v1',
@@ -192,13 +217,18 @@ jobs:
               'failure_count': len(failures),
               'pending_parse_count': max(evidence_count - len(extractions) - len(failures), 0),
               'identity_counts': dict(sorted(identity_counts.items())),
-              'status': 'attention' if failures else 'ok',
+              'qualification_count': len(qualifications),
+              'qualified_document_count': qualified_documents,
+              'qualified_transaction_count': qualified_transactions,
+              'quarantined_document_count': quarantined_documents,
+              'quarantined_row_count': quarantined_rows,
+              'status': 'attention' if failures or quarantined_rows else 'ok',
           }
           target = review / 'status' / 'summary.json'
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')), encoding='utf-8')
           PY
-      - name: Publish review queue
+      - name: Publish qualification queue
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
@@ -209,5 +239,5 @@ jobs:
           fi
           git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
           git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$REVIEW_ROOT" commit -m "review: House PTR queue ${{ github.run_id }}"
+          git -C "$REVIEW_ROOT" commit -m "qualify: House PTR queue ${{ github.run_id }}"
           git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review

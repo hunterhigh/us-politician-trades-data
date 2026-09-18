@@ -1,4 +1,4 @@
-"""Conservative House PTR extraction into a review queue, never directly into production."""
+"""Conservative House PTR extraction, automatic qualification, and exception isolation."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,9 +11,11 @@ from urllib.parse import urlsplit
 from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
-PARSER_VERSION = "house-electronic-ptr-2026-02"
+PARSER_VERSION = "house-electronic-ptr-2026-03"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
-AMOUNT_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
+AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
+AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.00)?$")
+AMOUNT_OVER_RE = re.compile(r"^(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?$", re.I)
 ASSET_RE = re.compile(r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,15})\))?\s*\[([A-Z0-9]{2})\]\s*$")
 OWNER_CODES = {"": "Self", "SP": "Spouse", "DC": "Dependent Child", "JT": "Joint"}
 TYPE_CODES = {"P": "purchase", "S": "sale", "E": "exchange"}
@@ -23,6 +25,7 @@ ASSET_TYPES = {
     "MF": "Mutual Fund", "OT": "Other",
 }
 REVIEW_SCHEMA = "house-ptr-review/v1"
+QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
 CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
                      "transaction_date", "notification_date", "amount_low", "amount_high"}
 REVISION_ACTIONS = {"replace_prior", "standalone_correction"}
@@ -38,6 +41,22 @@ def _line(words: list[dict], *, x0: float, x1: float, top: float, tolerance: flo
     return _clean(" ".join(str(word["text"]) for word in sorted(selected, key=lambda word: float(word["x0"]))))
 
 
+def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
+    matched = AMOUNT_RANGE_RE.fullmatch(value)
+    if matched:
+        return (int(matched.group(1).replace(",", "")),
+                int(matched.group(2).replace(",", "")), "range")
+    matched = AMOUNT_EXACT_RE.fullmatch(value)
+    if matched:
+        exact = int(matched.group(1).replace(",", ""))
+        return exact, exact, "exact"
+    matched = AMOUNT_OVER_RE.fullmatch(value)
+    if matched:
+        # Dollar values are integral in the frontend contract, so "over" starts at the next dollar.
+        return int(matched.group(1).replace(",", "")) + 1, None, "open_ended"
+    return None
+
+
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                      copy_allowed: bool | None) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
@@ -48,6 +67,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         raise HouseIndexError("House PTR metadata is invalid")
     if not pages:
         raise HouseIndexError("House PTR contains no pages")
+    if not any(page.get("words") for page in pages):
+        raise HouseIndexError("House PTR requires OCR because it contains no extractable text")
     first_text = _clean(" ".join(str(word["text"]) for word in pages[0].get("words", [])))
     large_heading = [_clean(str(word["text"])) for word in pages[0].get("words", [])
                      if float(word.get("size", 0)) >= 18]
@@ -77,6 +98,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         width, height, words = current["width"], current["height"], current["words"]
         following = anchors[position + 1] if position + 1 < len(anchors) else None
         last_page_index = following["page_index"] if following else page_index
+        if following is None and page_index + 1 < len(page_data) and top >= 0.85 * height:
+            # Some electronic PTRs split the final row after the amount dash. The next page repeats
+            # the table header and continues the asset type and amount upper bound without a date.
+            last_page_index = page_index + 1
         block: list[tuple[int, dict]] = []
         evidence_segments: list[dict] = []
         for segment_page_index in range(page_index, last_page_index + 1):
@@ -157,16 +182,17 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             notification_iso = datetime.strptime(notification_date, "%m/%d/%Y").date().isoformat()
         except ValueError:
             raise HouseIndexError("House PTR row has an invalid date") from None
-        amount_match = AMOUNT_RE.fullmatch(amount)
+        amount_value = _parse_amount(amount)
         asset_match = ASSET_RE.fullmatch(asset)
         type_code = raw_type[:1]
-        if not amount_match or not asset_match or type_code not in TYPE_CODES:
-            failures = ",".join(name for name, valid in (("amount", amount_match is not None),
+        if not amount_value or not asset_match or type_code not in TYPE_CODES:
+            failures = ",".join(name for name, valid in (("amount", amount_value is not None),
                 ("asset", asset_match is not None), ("transaction_type", type_code in TYPE_CODES)) if not valid)
             raise HouseIndexError(
                 f"House PTR page {page_number} row {position + 1} has unsupported {failures} layout")
         asset_name, ticker, asset_type_code = asset_match.groups()
-        reasons = ["manual_row_review_required"]
+        amount_low, amount_high, amount_kind = amount_value
+        reasons = ["automatic_qualification_required"]
         if raw_owner not in OWNER_CODES:
             reasons.append("unknown_owner_code")
         if asset_type_code not in ASSET_TYPES:
@@ -197,21 +223,23 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "transaction_type": TYPE_CODES[type_code],
             "transaction_date": transaction_iso,
             "notification_date": notification_iso,
-            "amount_low": int(amount_match.group(1).replace(",", "")),
-            "amount_high": int(amount_match.group(2).replace(",", "")),
+            "amount_low": amount_low,
+            "amount_high": amount_high,
+            "amount_kind": amount_kind,
+            "amount_raw": amount,
             "subholding_of": details.get("subholding_of"),
             "location": details.get("location"),
             "description": details.get("description"),
             "evidence": {"page": page_number, "pages": [segment["page"] for segment in evidence_segments],
                          "bbox_points": evidence_segments[0]["bbox_points"], "segments": evidence_segments},
-            "verification_status": "awaiting_manual_review",
+            "verification_status": "awaiting_automatic_qualification",
             "review_reasons": reasons,
         })
     if not extracted:
         raise HouseIndexError("House PTR contains no recognized transaction rows")
     if len({row["extraction_id"] for row in extracted}) != len(extracted):
         raise HouseIndexError("House PTR produced duplicate extraction IDs")
-    review_reasons = ["manual_row_review_required", "source_use_clearance_required"]
+    review_reasons = ["automatic_qualification_required", "source_use_clearance_required"]
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
     return {
@@ -222,8 +250,97 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         "source_sha256": source_sha256,
         "source_pdf_copy_allowed": copy_allowed,
         "transactions": extracted,
-        "review": {"status": "awaiting_manual_review", "production_eligible": False,
+        "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
+    }
+
+
+def qualify_automatic(extraction: dict, identity: dict) -> dict:
+    """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
+    if extraction.get("schema_version") != SCHEMA:
+        raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    source = extraction.get("source") or {}
+    document_id = source.get("document_id")
+    if identity.get("document_id") != document_id:
+        raise HouseIndexError("House PTR identity does not match its extraction")
+    identity_valid = (
+        identity.get("status") in {"matched_automatically", "suggested_requires_review"}
+        and identity.get("match_basis") == "official_roster_exact_district_first_last_name"
+        and isinstance(identity.get("roster_sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", identity["roster_sha256"])
+    )
+    person_id = identity.get("person_id")
+    evidence_url = identity.get("evidence_url")
+    parsed_identity_url = urlsplit(evidence_url) if isinstance(evidence_url, str) else None
+    identity_valid = bool(identity_valid and isinstance(person_id, str)
+        and re.fullmatch(r"house:[A-Z][0-9]{6}", person_id)
+        and parsed_identity_url and parsed_identity_url.scheme == "https"
+        and parsed_identity_url.hostname == "bioguide.congress.gov")
+    filed_date = source.get("filed_date")
+    try:
+        datetime.strptime(filed_date, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        raise HouseIndexError("House PTR extraction has an invalid official filing date") from None
+    filed_at = f"{filed_date}T00:00:00Z"
+    transactions: list[dict] = []
+    quarantined: list[dict] = []
+    for row in extraction.get("transactions", []):
+        reasons: list[str] = []
+        if not identity_valid:
+            reasons.append("identity_not_deterministic")
+        if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
+            reasons.append("revision_relationship_unresolved")
+        if row.get("amount_kind") == "open_ended" or row.get("amount_high") is None:
+            reasons.append("open_ended_amount_not_representable")
+        if row.get("owner") not in set(OWNER_CODES.values()):
+            reasons.append("owner_not_normalized")
+        if row.get("transaction_type") not in set(TYPE_CODES.values()):
+            reasons.append("transaction_type_not_normalized")
+        ticker = row.get("ticker")
+        if ticker is not None and (not isinstance(ticker, str) or not re.fullmatch(
+                r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
+            reasons.append("ticker_invalid")
+        low, high = row.get("amount_low"), row.get("amount_high")
+        if type(low) is not int or (high is not None and type(high) is not int) or \
+                (type(high) is int and not 0 <= low <= high):
+            reasons.append("amount_invalid")
+        for date_field in ("transaction_date", "notification_date"):
+            try:
+                datetime.strptime(row[date_field], "%Y-%m-%d")
+            except (KeyError, TypeError, ValueError):
+                reasons.append(f"{date_field}_invalid")
+        if reasons:
+            quarantined.append({
+                "extraction_id": row.get("extraction_id"),
+                "reasons": sorted(set(reasons)),
+                "source_sha256": extraction.get("source_sha256"),
+                "evidence": row.get("evidence"),
+            })
+            continue
+        transactions.append({
+            "id": row["extraction_id"], "filing_id": document_id, "person_id": person_id,
+            "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
+            "ticker_mapping_basis": "filing_explicit" if ticker else None,
+            "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
+            "transaction_date": row["transaction_date"], "filed_at": filed_at,
+            "amount_low": low, "amount_high": high, "position_effect": "unknown",
+            "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
+            "source_url": source["source_url"], "verification_status": "official_matched",
+        })
+    return {
+        "schema_version": QUALIFICATION_SCHEMA,
+        "source_sha256": extraction.get("source_sha256"),
+        "parser_version": extraction.get("parser_version"),
+        "document_id": document_id,
+        "identity": identity,
+        "transactions": transactions,
+        "quarantined": quarantined,
+        "qualification": {
+            "method": "deterministic_automatic_rules",
+            "qualified_count": len(transactions),
+            "quarantined_count": len(quarantined),
+            "production_eligible": bool(transactions),
+        },
     }
 
 

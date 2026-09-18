@@ -1,10 +1,11 @@
+from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house import HouseIndexError
-from unison_snapshot.house_ptr import make_review_template, parse_word_pages, promote_review
+from unison_snapshot.house_ptr import make_review_template, parse_word_pages, promote_review, qualify_automatic
 
 
 def word(text, x0, top, size=9):
@@ -70,14 +71,38 @@ def cross_page_fixture_pages():
             {"width": 612, "height": 792, "words": second}]
 
 
+def final_row_continuation_pages():
+    first = [
+        word("Periodic", 40, 40), word("Transaction", 90, 40), word("Report", 160, 40),
+        word("Filing", 480, 40), word("ID", 510, 40), word("#20000001", 530, 40),
+        word("Verizon", 105, 704), word("Communications", 145, 704), word("Inc.", 215, 704),
+        word("S", 262, 704), word("01/30/2026", 327, 704), word("01/30/2026", 382, 704),
+        word("$15,001", 446, 704), word("-", 481, 704),
+    ]
+    second = [
+        word("Common", 105, 116), word("Stock", 145, 116), word("(VZ)", 180, 116),
+        word("[ST]", 220, 116), word("$50,000", 486, 116),
+        word("Filing", 105, 134, 8.5), word("Status:", 135, 134, 8.5), word("New", 175, 134, 8.5),
+    ]
+    return [{"width": 612, "height": 792, "words": first},
+            {"width": 612, "height": 792, "words": second}]
+
+
 META = {"source_id": "house_clerk", "document_id": "20000001", "filing_type": "P",
         "source_url": "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/20000001.pdf",
         "filer_name": "Hon. Example", "state_district": "CA01", "filing_year": 2026,
         "filed_date": "2026-09-15", "archive_path": "house_clerk/documents/2026/20000001/a.pdf"}
 
+IDENTITY = {"status": "matched_automatically", "document_id": "20000001",
+            "person_id": "house:B000001", "official_name": "Example Person",
+            "state": "CA", "state_district": "CA01", "party": "D",
+            "evidence_url": "https://bioguide.congress.gov/search/bio/B000001",
+            "roster_sha256": "f" * 64,
+            "match_basis": "official_roster_exact_district_first_last_name"}
+
 
 class HousePtrTests(unittest.TestCase):
-    def test_rows_are_review_only_with_page_evidence(self):
+    def test_rows_wait_for_automatic_qualification_with_page_evidence(self):
         result = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
         self.assertEqual(len(result["transactions"]), 2)
         first = result["transactions"][0]
@@ -85,7 +110,7 @@ class HousePtrTests(unittest.TestCase):
                          ("Spouse", "EXM", "Stock"))
         self.assertEqual((first["amount_low"], first["amount_high"]), (1001, 15000))
         self.assertEqual(first["evidence"]["page"], 1)
-        self.assertEqual(first["verification_status"], "awaiting_manual_review")
+        self.assertEqual(first["verification_status"], "awaiting_automatic_qualification")
         self.assertFalse(result["review"]["production_eligible"])
         self.assertIn("source_pdf_copy_permission_disabled", result["review"]["reasons"])
 
@@ -98,6 +123,27 @@ class HousePtrTests(unittest.TestCase):
         next(word for word in bad_amount[0]["words"] if word["text"] == "$1,001")["text"] = "unknown"
         with self.assertRaises(HouseIndexError):
             parse_word_pages(META, "a" * 64, bad_amount, copy_allowed=True)
+        with self.assertRaisesRegex(HouseIndexError, "requires OCR"):
+            parse_word_pages(META, "a" * 64, [{"width": 612, "height": 792, "words": []}],
+                             copy_allowed=True)
+
+    def test_exact_and_open_ended_amounts_are_preserved(self):
+        exact_pages = deepcopy(fixture_pages())
+        exact_pages[0]["words"] = [item for item in exact_pages[0]["words"]
+                                    if not (item["top"] == 326 and item["x0"] >= 446)]
+        exact_pages[0]["words"].append(word("$15.00", 446, 326))
+        exact = parse_word_pages(META, "d" * 64, exact_pages, copy_allowed=True)["transactions"][0]
+        self.assertEqual((exact["amount_low"], exact["amount_high"], exact["amount_kind"]),
+                         (15, 15, "exact"))
+
+        open_pages = deepcopy(fixture_pages())
+        open_pages[0]["words"] = [item for item in open_pages[0]["words"]
+                                   if not (item["top"] == 326 and item["x0"] >= 446)]
+        open_pages[0]["words"].extend([word("Spouse/DC", 446, 326), word("Over", 492, 326),
+                                        word("$1,000,000", 520, 326)])
+        opened = parse_word_pages(META, "e" * 64, open_pages, copy_allowed=True)["transactions"][0]
+        self.assertEqual((opened["amount_low"], opened["amount_high"], opened["amount_kind"]),
+                         (1000001, None, "open_ended"))
 
     def test_pending_review_cannot_be_promoted(self):
         extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
@@ -111,6 +157,38 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual(first["evidence"]["pages"], [1, 2])
         self.assertEqual(first["description"], "continued")
         self.assertEqual(result["transactions"][1]["evidence"]["pages"], [2])
+
+    def test_final_row_can_continue_without_another_date_anchor(self):
+        result = parse_word_pages(META, "b" * 64, final_row_continuation_pages(), copy_allowed=True)
+        row = result["transactions"][0]
+        self.assertEqual((row["asset_name"], row["ticker"]),
+                         ("Verizon Communications Inc. Common Stock", "VZ"))
+        self.assertEqual((row["amount_low"], row["amount_high"]), (15001, 50000))
+        self.assertEqual(row["evidence"]["pages"], [1, 2])
+
+    def test_automatic_qualification_promotes_standard_rows_and_isolates_ambiguity(self):
+        extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
+        result = qualify_automatic(extraction, IDENTITY)
+        self.assertEqual(result["qualification"]["qualified_count"], 1)
+        self.assertEqual(result["qualification"]["quarantined_count"], 1)
+        self.assertEqual(result["transactions"][0]["verification_status"], "official_matched")
+        self.assertNotIn("reviewed_by", result)
+
+        unresolved = {"status": "unresolved", "document_id": "20000001"}
+        isolated = qualify_automatic(extraction, unresolved)
+        self.assertEqual(isolated["transactions"], [])
+        self.assertTrue(all("identity_not_deterministic" in row["reasons"]
+                            for row in isolated["quarantined"]))
+
+        open_pages = deepcopy(fixture_pages())
+        open_pages[0]["words"] = [item for item in open_pages[0]["words"]
+                                   if not (item["top"] == 326 and item["x0"] >= 446)]
+        open_pages[0]["words"].extend([word("Over", 446, 326), word("$1,000,000", 486, 326)])
+        open_extraction = parse_word_pages(META, "e" * 64, open_pages, copy_allowed=True)
+        open_result = qualify_automatic(open_extraction, IDENTITY)
+        first_quarantine = next(item for item in open_result["quarantined"]
+                                if item["extraction_id"] == open_extraction["transactions"][0]["extraction_id"])
+        self.assertIn("open_ended_amount_not_representable", first_quarantine["reasons"])
 
     def test_amended_row_requires_explicit_revision_resolution(self):
         extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)

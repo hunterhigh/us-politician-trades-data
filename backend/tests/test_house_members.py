@@ -34,7 +34,7 @@ class HouseMemberTests(unittest.TestCase):
                                   "state_district": "FL19"}}
         suggestion = suggest_identity(extraction, roster)
         self.assertEqual((suggestion["status"], suggestion["person_id"]),
-                         ("suggested_requires_review", "house:D000032"))
+                         ("matched_automatically", "house:D000032"))
         extraction["source"]["filer_name"] = "Hon. Different Person"
         self.assertEqual(suggest_identity(extraction, roster)["status"], "unresolved")
 

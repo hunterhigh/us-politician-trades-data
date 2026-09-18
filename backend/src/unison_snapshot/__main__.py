@@ -7,7 +7,7 @@ from .builder import build
 from .codec import encode
 from .materialize import materialize
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
-from .house_ptr import make_review_template, parse_archived_pdf, promote_review
+from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .public_repo import HTTPTransport, PublicSnapshotRepository
@@ -77,6 +77,10 @@ def main() -> None:
     promote_ptr.add_argument("--extraction", type=Path, required=True)
     promote_ptr.add_argument("--review", type=Path, required=True)
     promote_ptr.add_argument("--output", type=Path, required=True)
+    qualify_ptr = sub.add_parser("qualify-house-ptr")
+    qualify_ptr.add_argument("--extraction", type=Path, required=True)
+    qualify_ptr.add_argument("--identity", type=Path, required=True)
+    qualify_ptr.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -178,6 +182,16 @@ def main() -> None:
             args.output.write_bytes(encode(result))
             print(json.dumps({"document_id": result["audit"]["document_id"],
                               "transactions": len(result["transactions"]),
+                              "output": str(args.output.resolve())}))
+        elif args.command == "qualify-house-ptr":
+            extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
+            identity = json.loads(args.identity.read_text(encoding="utf-8"))
+            result = qualify_automatic(extraction, identity)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(encode(result))
+            print(json.dumps({"document_id": result["document_id"],
+                              "qualified": result["qualification"]["qualified_count"],
+                              "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))

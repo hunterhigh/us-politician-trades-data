@@ -8,16 +8,17 @@ All notable changes follow Semantic Versioning.
 - Added production-input validation, safe worktree materialization and an atomic manual publication workflow.
 - Made the Cloudflare gateway optional for a later private-repository phase.
 - Added House Clerk annual-index discovery with immutable SHA-256 source archiving; discovered filings remain explicitly unparsed.
-- Added index-confirmed PTR archiving, page-coordinate extraction into a review queue, official BioGuide identity suggestions, and a fail-closed human promotion gate.
+- Added index-confirmed PTR archiving, page-coordinate extraction, official BioGuide identity matching, and deterministic automatic qualification with row-level quarantine.
 - Expanded the House PTR parser against five official electronic filings covering options, wrapped amounts, cross-page rows and missing tickers.
 - Added explicit human resolution for amended filings so revisions cannot silently overwrite an earlier record.
 - Added recoverable House PTR checkpoints with failure retries, archive-state recovery, and fail-closed index-change anomalies.
 - Added a scheduled production evidence branch that archives official House index ZIPs and bounded batches of original PTR PDFs with SHA-256 metadata.
 - Added a GitHub production environment boundary for publication and source-archive workflows; external provider credentials remain environment secrets.
-- Added a production review-queue workflow that parses immutable House evidence into unreviewed extractions, identity suggestions, review templates, and bounded failure records.
+- Added a production qualification workflow that parses immutable House evidence into machine extractions, identity matches, qualified transactions, quarantined exceptions, and bounded failure records.
 - Added a history-preserving production rollback workflow and upgraded official GitHub actions to Node 24-compatible v7 releases.
 - Added a machine-readable review queue health summary for production monitoring.
-- Completed the public GitHub production control plane with scoped environment deployment, protected production refs, scheduled House backfill, and a zero-pending review queue for the first 105 archived filings.
+- Completed the public GitHub production control plane with scoped environment deployment, protected production refs, scheduled House backfill, and resumable qualification state.
+- Extended electronic PTR parsing for exact and open-ended amounts and final rows split across pages; image-only filings now report an explicit OCR requirement.
 
 ## 0.1.0 - 2026-09-18
 
