@@ -76,6 +76,8 @@ jobs:
             echo "batch_size must be between 1 and 25" >&2
             exit 2
           }
+          LEGACY_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import LEGACY_PARSER_VERSION; print(LEGACY_PARSER_VERSION)')"
+          export LEGACY_PARSER_VERSION
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -91,7 +93,14 @@ jobs:
               extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
               failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
               if extraction.is_file():
-                  continue
+                  try:
+                      value = json.loads(extraction.read_text(encoding='utf-8'))
+                      stale_legacy = (value.get('extraction_method') == 'tesseract_legacy_checkbox'
+                                      and value.get('parser_version') != os.environ['LEGACY_PARSER_VERSION'])
+                      if not stale_legacy:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
               if failure.is_file():
                   try:
                       if json.loads(failure.read_text(encoding='utf-8')).get('parser_commit') == parser_commit:

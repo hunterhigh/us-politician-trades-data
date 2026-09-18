@@ -17,6 +17,7 @@ from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-04"
+LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-02"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 LEGACY_DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/\d{2}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
@@ -141,15 +142,28 @@ def _legacy_mark_column(page: dict, words: list[dict], *, width: float, height: 
 def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                              copy_allowed: bool | None, ocr_engine: str | None) -> dict:
     extracted: list[dict] = []
+    first_page = pages[0]
+    first_width, first_height = float(first_page.get("width", 0)), float(first_page.get("height", 0))
+    first_words = first_page.get("words", [])
+    statuses = {_legacy_filing_status(first_page, first_words, first_width, first_height, compact)
+                for compact in (False, True)} - {None}
+    document_filing_status = next(iter(statuses)) if len(statuses) == 1 else None
     for page_index, page in enumerate(pages):
         width, height = float(page.get("width", 0)), float(page.get("height", 0))
         words = page.get("words")
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House legacy PTR page geometry is invalid")
-        compact = any(0.42 * width <= float(word["x0"]) < 0.47 * width
+        page_text = " ".join(_clean(str(word["text"])).upper() for word in words)
+        full_table = "CAPITAL" in page_text and "PARTIAL" in page_text
+        compact = not full_table and any(0.42 * width <= float(word["x0"]) < 0.47 * width
                       and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
                       for word in words)
-        if compact:
+        if full_table:
+            owner_bounds, asset_bounds = (0.057, 0.093), (0.093, 0.261)
+            type_bounds, type_values = (0.261, 0.35), ("purchase", "sale", "exchange")
+            transaction_bounds, notification_bounds = (0.409, 0.46), (0.46, 0.515)
+            amount_bounds = (0.515, 0.515 + (0.96 - 0.515) * 10 / 11)
+        elif compact:
             owner_bounds, asset_bounds = (0.139, 0.165), (0.165, 0.335)
             type_bounds, type_values = (0.335, 0.441), ("purchase", "sale", "sale", "exchange")
             transaction_bounds, notification_bounds = (0.441, 0.494), (0.494, 0.553)
@@ -159,7 +173,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
             type_bounds, type_values = (0.405, 0.477), ("purchase", "sale", "exchange")
             transaction_bounds, notification_bounds = (0.477, 0.55), (0.55, 0.607)
             amount_bounds = (0.607, 0.95)
-        filing_status = _legacy_filing_status(page, words, width, height, compact)
+        filing_status = document_filing_status
         anchors = sorted({float(word["top"]) for word in words
                           if transaction_bounds[0] * width <= float(word["x0"]) < transaction_bounds[1] * width
                           and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
@@ -228,7 +242,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
     return {
-        "schema_version": SCHEMA, "parser_version": PARSER_VERSION,
+        "schema_version": SCHEMA, "parser_version": LEGACY_PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
         "source_sha256": source_sha256, "source_pdf_copy_allowed": copy_allowed,
