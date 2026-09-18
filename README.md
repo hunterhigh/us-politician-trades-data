@@ -1,6 +1,6 @@
 # 政客交易数据后端
 
-当前为 **0.2.0 公开 GitHub 路线的生产骨架**，依据 [总体设计 v0.3](docs/政客交易数据服务-总体设计.md) 和对方提供的 `hash-sharded-v2` 契约实现。GitHub 是当前生产环境：`code`、`main`、`state`、`evidence`、`review` 五个分支及 Actions 已部署。House Clerk 年度索引、PTR 原件归档、电子 PTR 多版式抽取、官方人物身份建议和人工复核门禁已经可运行；扫描件、Senate/OGE 采集和对方未交付的新版消费端测试尚未完成。
+当前为 **0.2.0 公开 GitHub 路线的生产后台**。项目唯一当前目标是补齐对方前端要求的披露和行情数据，生成完整候选快照并由原前端完成端到端验收；详见[当前目标与优先级](docs/当前目标与优先级.md)。GitHub 的 `code`、`main`、`state`、`evidence`、`review` 五个分支及 Actions 已部署。逐条人工复核和具名人工批准不再作为标准记录的生产门禁，现有复核工具只保留为异常调查能力。
 
 ## 已能运行的链路
 
@@ -13,7 +13,7 @@
 - `docs/`：总体设计、契约审阅、实现状态和维护说明。
 - `.local/`：本机演示仓库与页面，不提交 Git。
 
-生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 保存明确标记为未复核的机器抽取、身份建议、复核模板和解析失败。密钥只存放于 GitHub Actions Secrets。
+生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 暂存机器抽取、身份建议、异常和隔离记录，后续将由自动晋级流程消费。密钥只存放于 GitHub Actions Secrets。
 
 ## 本地启动
 
@@ -32,9 +32,9 @@ Set-Location backend
 python scripts/verify.py
 ```
 
-公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现手动生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批原件，并更新公开来源检查点。正式事实发布仍由人工触发，避免未经复核的记录自动进入 `main`。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
+公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批原件，并更新公开来源检查点。下一步以自动资格校验、异常隔离和完整候选快照替代逐条人工批准。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
 
-生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：部署已经运行，但尚无通过人工复核的真实交易行。
+生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：后台部署已经运行，但自动晋级、完整披露回填、行情回填和原前端验收尚未完成。
 
 ## 命令行接口
 
@@ -71,10 +71,10 @@ python -m unison_snapshot suggest-house-identity --extraction .local/house-20035
 python -m unison_snapshot create-house-ptr-review --extraction .local/house-20035420-extraction.json --output .local/house-20035420-review.json
 ```
 
-当前黄金样本集包含 5 份官方电子 PTR、共 24 行，覆盖普通股票、期权、无 ticker、金额换行、跨页行和 amended 申报。`20035420` 的身份建议为 `house:D000032`。所有结果仍为 `awaiting_manual_review`；复核记录必须填写身份依据、来源使用批准、逐行决定和具名复核者。amended 行还必须明确关联待替换的内部旧记录，或注明为何只能作为独立更正保留，才能通过 `promote-house-ptr-review`。具体见 [House PTR 复核流程](docs/House-PTR-复核流程.md)。
+当前黄金样本集包含 5 份官方电子 PTR、共 24 行，覆盖普通股票、期权、无 ticker、金额换行、跨页行和 amended 申报。`20035420` 的身份建议为 `house:D000032`。现有输出仍使用旧状态 `awaiting_manual_review`，但该状态和 `promote-house-ptr-review` 不再是目标发布路径；后续由自动资格校验直接生成候选事实，只有无法确定的 amended、身份、OCR和金额语义进入隔离队列。旧工具说明见 [House PTR 复核流程](docs/House-PTR-复核流程.md)。
 
 增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-18 的生产检查点，真实 2026 索引规划得到 393 份 PTR，其中 105 份已归档、288 份待处理、0 个下载失败、0 个索引异常；已归档原件的解析积压为 0，95 份生成抽取/复核模板，10 份进入结构化解析失败队列。动态状态以 [`state/status/last-run.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/last-run.json) 和 [`review/status/summary.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/summary.json) 为准。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
-## 进入真实数据之前
+## 当前交付目标
 
-需要继续完成 House 原件与解析回填、扩充扫描件和撤回件等黄金样本、安排具名人工复核，再接入 Senate/OGE；同时取得对方新版消费代码，并验证无行情和覆盖不完整时的页面行为。详情见 [实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；基础档不需要外部 API 密钥，行情密钥尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
+继续完成 House 原件、OCR和解析回填，接入 Senate/OGE 与获准公开生产使用的行情源，构建完整候选快照，再用对方实际前端代码和全部测试完成验收。前端功能和数据含义不为后台现状降级。详情见[当前目标与优先级](docs/当前目标与优先级.md)和[实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；行情密钥和许可尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
