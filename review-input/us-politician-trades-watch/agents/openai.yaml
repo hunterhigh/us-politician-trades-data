@@ -1,0 +1,7 @@
+interface:
+  display_name: "US Politician Trades Watch"
+  short_description: "按需刷新、查询并生成美国政客财务披露互动看板"
+  default_prompt: "Use $us-politician-trades-watch to show the latest U.S. politician disclosure dashboard."
+
+policy:
+  allow_implicit_invocation: true

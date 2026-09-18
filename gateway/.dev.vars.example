@@ -1,0 +1,3 @@
+# Local placeholders ONLY. Generate fresh high entropy keys for any real environment.
+PROXY_TOKEN=local-placeholder-not-for-deployment
+GITHUB_READ_TOKEN=local-placeholder-not-for-deployment

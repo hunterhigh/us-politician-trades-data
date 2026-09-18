@@ -1,0 +1,20 @@
+{
+  "meta": {"is_demo": true, "data_cutoff_at": "2026-09-18T00:00:00Z", "title": "合成申报验收", "subtitle": "虚构人物与标的，仅用于联调", "timezone": "UTC", "default_window_days": 30},
+  "people": [
+    {"id": "house:DEMO001", "display_name": "Demo Person One", "short_name": "Demo One", "chamber": "House", "party": "—", "state": "—", "priority": true},
+    {"id": "senate:DEMO002", "display_name": "Demo Person Two", "short_name": "Demo Two", "chamber": "Senate", "party": "—", "state": "—", "priority": false}
+  ],
+  "transactions": [
+    {"id": "demo-tx-1", "filing_id": "demo-filing-1", "person_id": "house:DEMO001", "owner": "Self", "asset_name": "Fictional Company Alpha", "ticker": "ZZDEMO", "ticker_mapping_basis": "filing_explicit", "instrument_type": "Stock", "transaction_type": "purchase", "transaction_date": "2026-09-01", "filed_at": "2026-09-17T12:00:00Z", "amount_low": 1001, "amount_high": 15000, "position_effect": "unknown", "position_effect_basis": null, "source_id": "house_clerk", "source": "House Clerk · 模拟", "source_url": "https://example.invalid/demo-filing-1", "verification_status": "simulated"},
+    {"id": "demo-tx-2", "filing_id": "demo-filing-2", "person_id": "senate:DEMO002", "owner": "Spouse", "asset_name": "Fictional Company Alpha", "ticker": "ZZDEMO", "ticker_mapping_basis": "filing_explicit", "instrument_type": "Stock", "transaction_type": "sale", "transaction_date": "2026-09-03", "filed_at": "2026-09-16T12:00:00Z", "amount_low": 15001, "amount_high": 50000, "position_effect": "unknown", "position_effect_basis": null, "source_id": "senate_efd", "source": "Senate eFD · 模拟", "source_url": "https://example.invalid/demo-filing-2", "verification_status": "simulated"}
+  ],
+  "reported_holdings": [
+    {"id": "demo-holding-1", "filing_id": "demo-annual-1", "person_id": "house:DEMO001", "owner": "Self", "asset_name": "Fictional Company Alpha", "ticker": "ZZDEMO", "report_period_end": "2025-12-31", "filed_at": "2026-05-01T00:00:00Z", "value_low": 1001, "value_high": 15000, "change_from_prior": "unknown", "source_id": "house_clerk", "source": "House Clerk · 模拟", "source_url": "https://example.invalid/demo-annual-1", "verification_status": "simulated"}
+  ],
+  "security_market_data": [],
+  "source_health": [
+    {"source_id": "house_clerk", "source": "House Clerk · 模拟", "status": "simulated", "last_checked_at": "2026-09-18T00:00:00Z", "detail": "Synthetic fixture; no live synchronization"},
+    {"source_id": "senate_efd", "source": "Senate eFD · 模拟", "status": "simulated", "last_checked_at": "2026-09-18T00:00:00Z", "detail": "Synthetic fixture; no live synchronization"},
+    {"source_id": "alpaca_sip_eod", "source": "Market disabled", "status": "disabled", "last_checked_at": "2026-09-18T00:00:00Z", "detail": "No market data is supplied"}
+  ]
+}

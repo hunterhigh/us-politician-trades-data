@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "foundationVersion": "0.1.0",
+  "generatedAt": "2026-09-18T07:43:56.638950+00:00",
+  "status": "ready-with-followups",
+  "adapter": "python",
+  "checks": [
+    {
+      "id": "manifest",
+      "status": "pass",
+      "detail": "Manifest is valid."
+    },
+    {
+      "id": "shared-hash:.python-version",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "shared-hash:CHANGELOG.md",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "shared-hash:docs/project/architecture.md",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "shared-hash:docs/project/decisions/0001-initial-foundation.md",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "shared-hash:pyproject.toml",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "shared-hash:START-HERE.md",
+      "status": "warn",
+      "detail": "Shared file changed; review before a foundation update."
+    },
+    {
+      "id": "file-record",
+      "status": "pass",
+      "detail": "Generated file record was checked."
+    },
+    {
+      "id": "content-scan",
+      "status": "pass",
+      "detail": "No secrets or unfinished placeholders detected."
+    },
+    {
+      "id": "python-verify",
+      "status": "pass",
+      "detail": "test_help_documents_demo_only_publication (test_app.CliTests.test_help_documents_demo_only_publication) ... ok\ntest_real_input_fails_before_creating_repository (test_app.CliTests.test_real_input_fails_before_creating_repository) ... ok\ntest_business_cutoff_invalidates_report_not_shards (test_producer.ProducerTests.test_business_cutoff_invalidates_report_not_shards) ... ok\ntest_canonical_utf8_and_nonfinite (test_producer.ProducerTests.test_canonical_utf8_and_nonfinite) ... ok\ntest_capacity_fails_without_truncation (test_producer.ProducerTests.test_capacity_fails_without_truncation) ... ok\ntest_health_changes_no_content_address (test_producer.ProducerTests.test_health_changes_no_content_address) ... ok\ntest_invalid_inputs_rejected (test_producer.ProducerTests.test_invalid_inputs_rejected) ... ok\ntest_reordered_input_is_identical (test_producer.ProducerTests.test_reordered_input_is_identical) ... ok\ntest_invalid_hash_failure_preserves_release (test_producer.StoreTests.test_invalid_hash_failure_preserves_release) ... ok\ntest_paths_and_refs_rejected (test_producer.StoreTests.test_paths_and_refs_rejected) ... ok\ntest_publication_is_pinned_and_recoverable (test_producer.StoreTests.test_publication_is_pinned_and_recoverable) ... ok\ntest_removed_entity_index_not_resurrected (test_producer.StoreTests.test_removed_entity_index_not_resurrected) ... ok\ntest_restore_bundle_in_empty_repository (test_producer.StoreTests.test_restore_bundle_in_empty_repository) ... ok\ntest_scope_and_actual_supplied_processor_renderer (test_producer.StoreTests.test_scope_and_actual_supplied_processor_renderer) ... ok\ntest_stale_writer_does_not_move_current (test_producer.StoreTests.test_stale_writer_does_not_move_current) ... ok\ntest_immutable_collision_and_invalid_manifest_abort (test_public_repo.MaterializeTests.test_immutable_collision_and_invalid_manifest_abort) ... ok\ntest_manifest_written_last_and_noop_is_clean (test_public_repo.MaterializeTests.test_manifest_written_last_and_noop_is_clean) ... ok\ntest_old_blobs_remain_and_stale_index_is_removed (test_public_repo.MaterializeTests.test_old_blobs_remain_and_stale_index_is_removed) ... ok\ntest_bad_manifest_time_and_missing_person_fail_closed (test_public_repo.PublicRepositoryTests.test_bad_manifest_time_and_missing_person_fail_closed) ... ok\ntest_dashboard_pins_commit_and_uses_two_payload_reads (test_public_repo.PublicRepositoryTests.test_dashboard_pins_commit_and_uses_two_payload_reads) ... ok\ntest_hash_demo_and_reference_fail_closed (test_public_repo.PublicRepositoryTests.test_hash_demo_and_reference_fail_closed) ... ok\ntest_identity_and_path_inputs_are_fixed (test_public_repo.PublicRepositoryTests.test_identity_and_path_inputs_are_fixed) ... ok\ntest_scoped_person_and_ticker (test_public_repo.PublicRepositoryTests.test_scoped_person_and_ticker) ... ok\n\n----------------------------------------------------------------------\nRan 23 tests in 14.214s\n\nOK"
+    }
+  ]
+}
