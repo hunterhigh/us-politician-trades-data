@@ -73,7 +73,7 @@ python -m unison_snapshot create-house-ptr-review --extraction .local/house-2003
 
 当前黄金样本集包含 5 份官方电子 PTR、共 24 行，覆盖普通股票、期权、无 ticker、金额换行、跨页行和 amended 申报。`20035420` 的身份建议为 `house:D000032`。所有结果仍为 `awaiting_manual_review`；复核记录必须填写身份依据、来源使用批准、逐行决定和具名复核者。amended 行还必须明确关联待替换的内部旧记录，或注明为何只能作为独立更正保留，才能通过 `promote-house-ptr-review`。具体见 [House PTR 复核流程](docs/House-PTR-复核流程.md)。
 
-增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。当前真实 2026 索引规划得到 393 份 PTR，其中 105 份已归档、288 份待处理、0 个下载失败、0 个索引异常；`review` 已生成 33 份抽取/复核模板，并明确记录 2 份解析失败。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
+增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-18 的生产检查点，真实 2026 索引规划得到 393 份 PTR，其中 105 份已归档、288 份待处理、0 个下载失败、0 个索引异常；已归档原件的解析积压为 0，95 份生成抽取/复核模板，10 份进入结构化解析失败队列。动态状态以 [`state/status/last-run.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/last-run.json) 和 [`review/status/summary.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/summary.json) 为准。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
 ## 进入真实数据之前
 

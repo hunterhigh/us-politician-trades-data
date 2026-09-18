@@ -75,8 +75,8 @@
       "reviewByStage": "production"
     },
     {
-      "text": "真实来源取得使用与行情分发权限未确认，本轮仅合成数据",
-      "reviewByStage": "internal"
+      "text": "House 公开来源已进入受控证据归档和待复核处理；来源用途批准及行情分发权限仍未确认",
+      "reviewByStage": "production"
     }
   ],
   "decisions": [

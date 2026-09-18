@@ -17,6 +17,7 @@ All notable changes follow Semantic Versioning.
 - Added a production review-queue workflow that parses immutable House evidence into unreviewed extractions, identity suggestions, review templates, and bounded failure records.
 - Added a history-preserving production rollback workflow and upgraded official GitHub actions to Node 24-compatible v7 releases.
 - Added a machine-readable review queue health summary for production monitoring.
+- Completed the public GitHub production control plane with scoped environment deployment, protected production refs, scheduled House backfill, and a zero-pending review queue for the first 105 archived filings.
 
 ## 0.1.0 - 2026-09-18
 
