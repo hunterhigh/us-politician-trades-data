@@ -73,8 +73,8 @@ python -m unison_snapshot create-house-ptr-review --extraction .local/house-2003
 
 当前黄金样本集包含 5 份官方电子 PTR、共 24 行，覆盖普通股票、期权、无 ticker、金额换行、跨页行和 amended 申报。`20035420` 的身份建议为 `house:D000032`。所有结果仍为 `awaiting_manual_review`；复核记录必须填写身份依据、来源使用批准、逐行决定和具名复核者。amended 行还必须明确关联待替换的内部旧记录，或注明为何只能作为独立更正保留，才能通过 `promote-house-ptr-review`。具体见 [House PTR 复核流程](docs/House-PTR-复核流程.md)。
 
-增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。当前真实 2026 索引规划得到 393 份 PTR，其中 5 份已归档、388 份待处理、0 个索引异常。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
+增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。当前真实 2026 索引规划得到 393 份 PTR，其中 105 份已归档、288 份待处理、0 个下载失败、0 个索引异常；`review` 已生成 33 份抽取/复核模板，并明确记录 2 份解析失败。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
 ## 进入真实数据之前
 
-需要继续扩充 House 扫描件、撤回件等黄金样本，把现有增量计划器接成受控下载/解析批次，再接入 Senate/OGE；同时取得对方新版消费代码，并验证无行情和覆盖不完整时的页面行为。详情见 [实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；尚未配置生产密钥、购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
+需要继续完成 House 原件与解析回填、扩充扫描件和撤回件等黄金样本、安排具名人工复核，再接入 Senate/OGE；同时取得对方新版消费代码，并验证无行情和覆盖不完整时的页面行为。详情见 [实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；基础档不需要外部 API 密钥，行情密钥尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
