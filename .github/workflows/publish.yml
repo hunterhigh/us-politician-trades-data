@@ -21,8 +21,6 @@ jobs:
     if: github.ref == 'refs/heads/code'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      DATA_ROOT: ${{ runner.temp }}/production-main
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,6 +48,7 @@ jobs:
         env:
           INPUT_PATH: ${{ inputs.normalized_path }}
           ALLOW_EMPTY_PRODUCTION: ${{ inputs.allow_empty_production }}
+          DATA_ROOT: ${{ runner.temp }}/production-main
         run: |
           git fetch --no-tags origin main
           base_sha="$(git rev-parse origin/main)"
@@ -64,6 +63,8 @@ jobs:
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
       - name: Commit and compare remote head
         id: commit
+        env:
+          DATA_ROOT: ${{ runner.temp }}/production-main
         run: |
           git -C "$DATA_ROOT" add -A -- manifest.json board
           for path in people tickers; do
@@ -93,6 +94,7 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         env:
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
+          DATA_ROOT: ${{ runner.temp }}/production-main
         run: git -C "$DATA_ROOT" push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
       - name: Record result
         if: steps.commit.outputs.changed == 'true'
