@@ -1,0 +1,177 @@
+name: House review queue
+on:
+  workflow_run:
+    workflows: ['House source state']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Maximum number of archived PTRs to parse in this run
+        required: false
+        default: '10'
+permissions:
+  contents: write
+concurrency:
+  group: house-review-queue
+  cancel-in-progress: false
+jobs:
+  parse:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install pinned PDF extraction dependency
+        run: python -m pip install -e "backend[house-ingest]"
+      - name: Prepare evidence and review branches
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/house-evidence"
+          review_root="$RUNNER_TEMP/house-review"
+          git fetch --no-tags origin evidence
+          git worktree add --detach "$evidence_root" FETCH_HEAD
+          remote_review="$(git ls-remote --heads origin review | awk '{print $1}')"
+          if [ -n "$remote_review" ]; then
+            git fetch --no-tags origin review
+            git worktree add --detach "$review_root" "$remote_review"
+          else
+            git worktree add --detach "$review_root" HEAD
+            git -C "$review_root" switch --orphan review
+            git -C "$review_root" rm -rf . >/dev/null 2>&1 || true
+          fi
+          cat > "$review_root/README.md" <<'EOF'
+          # House machine review queue
+
+          This branch contains unreviewed machine extractions, identity suggestions, review templates, and parse failures.
+          Nothing on this branch is a production fact. Only a named human review can promote accepted rows into `main`.
+          Every artifact is keyed to an immutable PDF SHA-256 from the `evidence` branch and the parser code commit.
+          EOF
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+      - name: Select unprocessed evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '10' }}
+          PARSER_COMMIT: ${{ github.sha }}
+        run: |
+          case "$BATCH_SIZE" in
+            ''|*[!0-9]*) echo "batch_size must be an integer" >&2; exit 2 ;;
+          esac
+          test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 25 || {
+            echo "batch_size must be between 1 and 25" >&2
+            exit 2
+          }
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          evidence = Path(os.environ['EVIDENCE_ROOT'])
+          review = Path(os.environ['REVIEW_ROOT'])
+          parser_commit = os.environ['PARSER_COMMIT']
+          selected = []
+          for metadata_path in sorted(evidence.glob('house_clerk/documents/*/*/*.json')):
+              metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+              year = str(metadata['filing_year'])
+              document_id = metadata['document_id']
+              sha = metadata['sha256']
+              extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
+              failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
+              if extraction.is_file():
+                  continue
+              if failure.is_file():
+                  try:
+                      if json.loads(failure.read_text(encoding='utf-8')).get('parser_commit') == parser_commit:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
+              selected.append(metadata_path)
+              if len(selected) == int(os.environ['BATCH_SIZE']):
+                  break
+          Path('.local').mkdir(exist_ok=True)
+          Path('.local/parse-batch.txt').write_text(
+              ''.join(f'{path}\n' for path in selected), encoding='utf-8')
+          PY
+      - name: Parse and prepare human review artifacts
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PARSER_COMMIT: ${{ github.sha }}
+        run: |
+          roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
+          test -n "$roster" && test -f "$roster"
+          parsed=0
+          failed=0
+          while IFS= read -r metadata; do
+            [ -n "$metadata" ] || continue
+            coordinates="$(python - "$metadata" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          print(data['filing_year'], data['document_id'], data['sha256'])
+          PY
+          )"
+            read -r year document_id sha <<< "$coordinates"
+            extraction="$REVIEW_ROOT/house_clerk/extractions/$year/$document_id/$sha.json"
+            review="$REVIEW_ROOT/house_clerk/reviews/$year/$document_id/$sha.json"
+            identity="$REVIEW_ROOT/house_clerk/identities/$year/$document_id/$sha.json"
+            failure="$REVIEW_ROOT/house_clerk/failures/$year/$document_id/$sha.json"
+            mkdir -p "$(dirname "$extraction")" "$(dirname "$review")" "$(dirname "$identity")" "$(dirname "$failure")"
+            if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-ptr \
+                --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
+              PYTHONPATH=backend/src python -m unison_snapshot create-house-ptr-review \
+                --extraction "$extraction" --output "$review"
+              PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
+                --extraction "$extraction" --members "$roster" --output "$identity"
+              rm -f "$failure"
+              parsed=$((parsed + 1))
+            else
+              error="$(printf '%s' "$output" | tr '\n' ' ' | tail -c 480)"
+              ERROR="$error" YEAR="$year" DOCUMENT_ID="$document_id" SHA="$sha" \
+                PARSER_COMMIT="$PARSER_COMMIT" FAILURE="$failure" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          path = Path(os.environ['FAILURE'])
+          previous = {}
+          if path.is_file():
+              try:
+                  previous = json.loads(path.read_text(encoding='utf-8'))
+              except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                  pass
+          value = {
+              'schema_version': 'house-ptr-parse-failure/v1',
+              'filing_year': int(os.environ['YEAR']),
+              'document_id': os.environ['DOCUMENT_ID'],
+              'source_sha256': os.environ['SHA'],
+              'parser_commit': os.environ['PARSER_COMMIT'],
+              'attempts': int(previous.get('attempts', 0)) + 1,
+              'last_attempt_at': datetime.now(timezone.utc).isoformat(),
+              'error': os.environ['ERROR'],
+          }
+          path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')), encoding='utf-8')
+          PY
+              failed=$((failed + 1))
+            fi
+          done < .local/parse-batch.txt
+          printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish review queue
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          git -C "$REVIEW_ROOT" add README.md house_clerk
+          if git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            echo "Review queue is unchanged." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+          git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$REVIEW_ROOT" commit -m "review: House PTR queue ${{ github.run_id }}"
+          git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review

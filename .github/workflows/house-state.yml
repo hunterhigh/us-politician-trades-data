@@ -68,6 +68,14 @@ jobs:
         run: |
           PYTHONPATH=backend/src python -m unison_snapshot discover-house-index \
             --year "$YEAR" --archive "$EVIDENCE_ROOT" --output .local/discovery.json
+      - name: Discover official House member roster
+        env:
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot discover-house-members \
+            --archive "$EVIDENCE_ROOT" --output .local/house-members.json
+          roster_sha="$(python -c "import json; print(json.load(open('.local/house-members.json'))['metadata']['sha256'])")"
+          cp .local/house-members.json "$EVIDENCE_ROOT/house_clerk/members/${roster_sha}.roster.json"
       - name: Build recoverable checkpoint
         env:
           RUN_AT: ${{ steps.clock.outputs.run_at }}

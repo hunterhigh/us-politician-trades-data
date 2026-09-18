@@ -14,6 +14,7 @@ All notable changes follow Semantic Versioning.
 - Added recoverable House PTR checkpoints with failure retries, archive-state recovery, and fail-closed index-change anomalies.
 - Added a scheduled production evidence branch that archives official House index ZIPs and bounded batches of original PTR PDFs with SHA-256 metadata.
 - Added a GitHub production environment boundary for publication and source-archive workflows; external provider credentials remain environment secrets.
+- Added a production review-queue workflow that parses immutable House evidence into unreviewed extractions, identity suggestions, review templates, and bounded failure records.
 
 ## 0.1.0 - 2026-09-18
 

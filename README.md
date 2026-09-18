@@ -1,6 +1,6 @@
 # 政客交易数据后端
 
-当前为 **0.2.0 公开 GitHub 路线的生产骨架**，依据 [总体设计 v0.3](docs/政客交易数据服务-总体设计.md) 和对方提供的 `hash-sharded-v2` 契约实现。GitHub 是当前生产环境：`code`、`main`、`state`、`evidence` 四个分支及 Actions 已部署。House Clerk 年度索引、PTR 原件归档、电子 PTR 多版式抽取、官方人物身份建议和人工复核门禁已经可运行；扫描件、Senate/OGE 采集和对方未交付的新版消费端测试尚未完成。
+当前为 **0.2.0 公开 GitHub 路线的生产骨架**，依据 [总体设计 v0.3](docs/政客交易数据服务-总体设计.md) 和对方提供的 `hash-sharded-v2` 契约实现。GitHub 是当前生产环境：`code`、`main`、`state`、`evidence`、`review` 五个分支及 Actions 已部署。House Clerk 年度索引、PTR 原件归档、电子 PTR 多版式抽取、官方人物身份建议和人工复核门禁已经可运行；扫描件、Senate/OGE 采集和对方未交付的新版消费端测试尚未完成。
 
 ## 已能运行的链路
 
@@ -13,7 +13,7 @@
 - `docs/`：总体设计、契约审阅、实现状态和维护说明。
 - `.local/`：本机演示仓库与页面，不提交 Git。
 
-生产部署使用同一公开仓库的四个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存清洗后的来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、原始 PTR PDF 和获取元数据。待复核抽取结果不自动公开，密钥只存放于 GitHub Actions Secrets。
+生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 保存明确标记为未复核的机器抽取、身份建议、复核模板和解析失败。密钥只存放于 GitHub Actions Secrets。
 
 ## 本地启动
 

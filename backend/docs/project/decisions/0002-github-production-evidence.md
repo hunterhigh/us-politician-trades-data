@@ -8,7 +8,7 @@
 
 ## 决定
 
-同一公开仓库使用四个分支：`code` 保存实现，`main` 保存规范化快照，`state` 保存运行检查点，`evidence` 按 SHA-256 保存官方索引 ZIP、PTR PDF 和获取元数据。House 工作流先持久化 evidence，再推进 state。每轮只处理有界批次。
+同一公开仓库使用五个分支：`code` 保存实现，`main` 保存规范化快照，`state` 保存运行检查点，`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、PTR PDF 和获取元数据，`review` 保存未复核的抽取、身份建议、复核模板和解析失败。House 工作流先持久化 evidence，再推进 state；解析工作流只写 review。每轮只处理有界批次。
 
 生产 workflow 绑定 GitHub `production` environment。仓库写入只使用自动签发的 `GITHUB_TOKEN`；外部供应商凭证仅使用 environment secrets。
 

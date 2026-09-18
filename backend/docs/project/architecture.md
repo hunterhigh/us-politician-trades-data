@@ -8,7 +8,7 @@
 
 ## 选择理由
 
-Python标准库批处理，GitHub Actions 调度；公开GitHub固定提交读取。`main` 保存规范快照，`state` 保存检查点，`evidence` 保存官方原件；可选Worker留给以后私有分发；无在线数据库。
+Python批处理，GitHub Actions 调度；公开GitHub固定提交读取。`main` 保存规范快照，`state` 保存检查点，`evidence` 保存官方原件，`review` 保存未复核机器产物；可选Worker留给以后私有分发；无在线数据库。
 
 ## 边界
 
