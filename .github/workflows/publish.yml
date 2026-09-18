@@ -18,9 +18,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/code'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DATA_ROOT: ${{ runner.temp }}/production-main
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,41 +46,44 @@ jobs:
         run: python scripts/verify.py
         working-directory: backend
       - name: Prepare complete snapshot tree
+        id: prepare
         env:
           INPUT_PATH: ${{ inputs.normalized_path }}
           ALLOW_EMPTY_PRODUCTION: ${{ inputs.allow_empty_production }}
         run: |
+          git fetch --no-tags origin main
+          base_sha="$(git rev-parse origin/main)"
+          git worktree add --detach "$DATA_ROOT" "$base_sha"
           generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           extra_args=()
           if [ "$ALLOW_EMPTY_PRODUCTION" = "true" ]; then
             extra_args+=(--allow-empty-production)
           fi
           PYTHONPATH=backend/src python -m unison_snapshot prepare-publication \
-            --input "$INPUT_PATH" --root . --generated-at "$generated_at" "${extra_args[@]}"
+            --input "$INPUT_PATH" --root "$DATA_ROOT" --generated-at "$generated_at" "${extra_args[@]}"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
       - name: Commit and compare remote head
         id: commit
-        env:
-          BASE_SHA: ${{ github.sha }}
         run: |
-          git add -A -- manifest.json board
+          git -C "$DATA_ROOT" add -A -- manifest.json board
           for path in people tickers; do
-            if [ -e "$path" ]; then
-              git add -A -- "$path"
+            if [ -e "$DATA_ROOT/$path" ]; then
+              git -C "$DATA_ROOT" add -A -- "$path"
             fi
           done
-          if git diff --cached --quiet; then
+          if git -C "$DATA_ROOT" diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No snapshot or health change." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          snapshot_id="$(python -c "import json; print(json.load(open('manifest.json', encoding='utf-8'))['snapshot_id'])")"
-          git commit -m "snapshot ${snapshot_id}"
-          new_sha="$(git rev-parse HEAD)"
-          git tag "published/${new_sha}" "$new_sha"
+          git -C "$DATA_ROOT" config user.name "github-actions[bot]"
+          git -C "$DATA_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          snapshot_id="$(python -c "import json; print(json.load(open('$DATA_ROOT/manifest.json', encoding='utf-8'))['snapshot_id'])")"
+          git -C "$DATA_ROOT" commit -m "snapshot ${snapshot_id}"
+          new_sha="$(git -C "$DATA_ROOT" rev-parse HEAD)"
+          git -C "$DATA_ROOT" tag "published/${new_sha}" "$new_sha"
           git fetch --no-tags origin main
-          test "$(git rev-parse origin/main)" = "$BASE_SHA" || {
+          test "$(git rev-parse origin/main)" = "${{ steps.prepare.outputs.base_sha }}" || {
             echo "Remote main changed during publication; nothing was pushed." >&2
             exit 3
           }
@@ -88,7 +93,7 @@ jobs:
         if: steps.commit.outputs.changed == 'true'
         env:
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
-        run: git push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
+        run: git -C "$DATA_ROOT" push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
       - name: Record result
         if: steps.commit.outputs.changed == 'true'
         env:

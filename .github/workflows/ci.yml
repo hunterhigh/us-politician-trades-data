@@ -1,7 +1,7 @@
 name: Offline contract checks
 on:
   push:
-    branches: [main]
+    branches: [code]
     paths: ['backend/**', 'client/**', 'gateway/**', 'review-input/**', '.github/workflows/**']
   pull_request:
     paths: ['backend/**', 'client/**', 'gateway/**', 'review-input/**', '.github/workflows/**']
