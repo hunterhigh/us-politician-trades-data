@@ -15,6 +15,7 @@ All notable changes follow Semantic Versioning.
 - Added a scheduled production evidence branch that archives official House index ZIPs and bounded batches of original PTR PDFs with SHA-256 metadata.
 - Added a GitHub production environment boundary for publication and source-archive workflows; external provider credentials remain environment secrets.
 - Added a production review-queue workflow that parses immutable House evidence into unreviewed extractions, identity suggestions, review templates, and bounded failure records.
+- Added a history-preserving production rollback workflow and upgraded official GitHub actions to Node 24-compatible v7 releases.
 
 ## 0.1.0 - 2026-09-18
 

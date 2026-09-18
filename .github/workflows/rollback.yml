@@ -1,0 +1,84 @@
+name: Rollback production snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      target_commit:
+        description: Previously published 40-character main commit to restore
+        required: true
+      expected_head:
+        description: Current main commit observed before requesting rollback
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: publish-snapshot
+  cancel-in-progress: false
+jobs:
+  rollback:
+    if: github.ref == 'refs/heads/code'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Validate and resolve rollback target
+        id: resolve
+        env:
+          TARGET: ${{ inputs.target_commit }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          if [[ ! "$TARGET" =~ ^[0-9a-f]{40}$ || ! "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Both inputs must be 40-character lowercase commit IDs." >&2
+            exit 2
+          fi
+          git fetch --no-tags origin main
+          current="$(git rev-parse FETCH_HEAD)"
+          test "$current" = "$EXPECTED_HEAD" || {
+            echo "Remote main changed; rollback was not attempted." >&2
+            exit 3
+          }
+          git fetch --no-tags origin "refs/tags/published/${TARGET}:refs/tags/published/${TARGET}"
+          test "$(git rev-parse "refs/tags/published/${TARGET}^{commit}")" = "$TARGET" || {
+            echo "Target is not an authorized published snapshot." >&2
+            exit 4
+          }
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+      - name: Create history-preserving rollback commit
+        id: commit
+        env:
+          TARGET: ${{ inputs.target_commit }}
+          CURRENT: ${{ steps.resolve.outputs.current }}
+          DATA_ROOT: ${{ runner.temp }}/production-rollback
+        run: |
+          if test "$(git rev-parse "${TARGET}^{tree}")" = "$(git rev-parse "${CURRENT}^{tree}")"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Target tree already matches current production." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git worktree add --detach "$DATA_ROOT" "$CURRENT"
+          git -C "$DATA_ROOT" read-tree --reset -u "$TARGET"
+          git -C "$DATA_ROOT" config user.name "github-actions[bot]"
+          git -C "$DATA_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$DATA_ROOT" commit -m "rollback snapshot to ${TARGET}"
+          new_sha="$(git -C "$DATA_ROOT" rev-parse HEAD)"
+          git -C "$DATA_ROOT" tag "published/${new_sha}" "$new_sha"
+          git fetch --no-tags origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$CURRENT" || {
+            echo "Remote main changed during rollback; nothing was pushed." >&2
+            exit 3
+          }
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
+      - name: Publish rollback atomically
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
+          DATA_ROOT: ${{ runner.temp }}/production-rollback
+        run: git -C "$DATA_ROOT" push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
+      - name: Record rollback
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          printf 'Restored production tree from `%s` in new commit `%s`.\n' \
+            '${{ inputs.target_commit }}' '${{ steps.commit.outputs.new_sha }}' >> "$GITHUB_STEP_SUMMARY"
