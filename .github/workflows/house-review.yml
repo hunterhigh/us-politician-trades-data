@@ -131,8 +131,11 @@ jobs:
       - name: Install OCR engine only when required
         if: steps.ocr.outputs.needed == 'true'
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends tesseract-ocr
+          # The hosted image carries an unrelated Chrome apt source whose mirror can be
+          # mid-sync. OCR only needs Ubuntu packages, so exclude that source and retry.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
       - name: Parse and prepare machine extraction artifacts
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
