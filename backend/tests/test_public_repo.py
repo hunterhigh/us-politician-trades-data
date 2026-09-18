@@ -3,13 +3,14 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
 from unison_snapshot.codec import bucket, digest, encode
 from unison_snapshot.materialize import materialize
 from unison_snapshot.legacy import load
-from unison_snapshot.public_repo import PublicSnapshotError, PublicSnapshotRepository
+from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
 COMMIT = "1" * 40
@@ -117,6 +118,34 @@ class PublicRepositoryTests(unittest.TestCase):
         for owner, repo in [("x/y", "data"), ("example", "https://evil.test"), ("", "data")]:
             with self.subTest(owner=owner, repo=repo), self.assertRaises(ValueError):
                 PublicSnapshotRepository(owner, repo)
+
+    def test_http_transport_retries_transient_failure(self):
+        class Response:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, _limit):
+                return b"{}"
+
+        class FlakyOpener:
+            def __init__(self):
+                self.calls = 0
+
+            def open(self, _request, *, timeout):
+                self.calls += 1
+                if self.calls == 1:
+                    raise urllib.error.URLError("temporary")
+                return Response()
+
+        transport = HTTPTransport(retries=1, backoff=0)
+        transport.opener = FlakyOpener()
+        self.assertEqual(transport.get("https://example.test/data", 10), b"{}")
+        self.assertEqual(transport.opener.calls, 2)
 
 
 class MaterializeTests(unittest.TestCase):

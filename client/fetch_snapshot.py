@@ -4,7 +4,14 @@ import argparse
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
+
+# Allow this checked-in entry point to run directly from any working directory.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+BACKEND_SRC = PROJECT_ROOT / "backend" / "src"
+if str(BACKEND_SRC) not in sys.path:
+    sys.path.insert(0, str(BACKEND_SRC))
 
 from unison_snapshot.legacy import load
 from snapshot_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository

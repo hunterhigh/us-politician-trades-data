@@ -7,10 +7,11 @@
 项目根目录运行示例：
 
 ```powershell
-$env:PYTHONPATH = "$PWD/backend/src"
-python client/fetch_snapshot.py dashboard --owner <公开仓库所有者> --repo <公开数据仓库> --output .local/dashboard.json
+$env:GITHUB_TOKEN = gh auth token  # 可选，但建议设置以提高 GitHub API 限额
+python client/fetch_snapshot.py dashboard --owner hunterhigh --repo us-politician-trades-data --output .local/production-dashboard.json
+python review-input/us-politician-trades-watch/scripts/render_dashboard.py --input .local/production-dashboard.json --output .local/production-dashboard.html
 ```
 
-公开仓库不需要 Token。可选 `GITHUB_TOKEN` 只用于提高 GitHub API 限额，不会发送给 raw 内容主机。owner/repo 是固定标识，不接受任意基础 URL。
+脚本会自动定位仓库内的 `backend/src`，不要求用户设置 `PYTHONPATH`。公开仓库可以匿名读取；GitHub 的匿名 API 限额较低，在共享出口网络中可能出现 403，因此生产运行建议设置只读可用的 `GITHUB_TOKEN`。Token 只用于 GitHub API 的 commit 解析，不会发送给 raw 内容主机。owner/repo 是固定标识，不接受任意基础 URL。
 
 相较对方代理版“manifest + board”两个 HTTP 请求，公开 GitHub 直读多一次 commit 解析，所以 dashboard 首次为三个请求。它换来的结果是首版不需要 Cloudflare，也不会在一次报告中混合两个提交。

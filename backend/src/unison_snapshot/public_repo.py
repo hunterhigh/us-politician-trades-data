@@ -1,8 +1,10 @@
 """Read the hash-sharded contract directly from a public GitHub repository."""
 from dataclasses import dataclass
 import hashlib
+import http.client
 import json
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -27,8 +29,12 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class HTTPTransport:
-    def __init__(self, token: str | None = None, timeout: float = 20.0):
+    def __init__(self, token: str | None = None, timeout: float = 20.0,
+                 retries: int = 2, backoff: float = 0.5):
+        if retries < 0 or backoff < 0:
+            raise ValueError("Retry settings must be non-negative")
         self.token, self.timeout = token, timeout
+        self.retries, self.backoff = retries, backoff
         self.opener = urllib.request.build_opener(NoRedirect)
 
     def get(self, url: str, limit: int, *, api: bool = False) -> bytes:
@@ -38,15 +44,24 @@ class HTTPTransport:
             headers["Authorization"] = f"Bearer {self.token}"
             headers["X-GitHub-Api-Version"] = "2022-11-28"
         request = urllib.request.Request(url, headers=headers, method="GET")
-        try:
-            with self.opener.open(request, timeout=self.timeout) as response:
-                if response.status != 200:
-                    raise PublicSnapshotError(f"Repository returned HTTP {response.status}")
-                data = response.read(limit + 1)
-        except urllib.error.HTTPError as exc:
-            raise PublicSnapshotError(f"Repository returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
-            raise PublicSnapshotError("Public repository is unavailable") from None
+        retryable_http = {429, 500, 502, 503, 504}
+        network_errors = (urllib.error.URLError, TimeoutError, ConnectionError,
+                          http.client.HTTPException, OSError)
+        for attempt in range(self.retries + 1):
+            try:
+                with self.opener.open(request, timeout=self.timeout) as response:
+                    if response.status != 200:
+                        raise PublicSnapshotError(f"Repository returned HTTP {response.status}")
+                    data = response.read(limit + 1)
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in retryable_http or attempt == self.retries:
+                    raise PublicSnapshotError(f"Repository returned HTTP {exc.code}") from None
+            except network_errors:
+                if attempt == self.retries:
+                    raise PublicSnapshotError("Public repository is unavailable") from None
+            if self.backoff:
+                time.sleep(self.backoff * (2 ** attempt))
         if len(data) > limit:
             raise PublicSnapshotError("Repository object exceeds the contract size limit")
         return data

@@ -1,6 +1,6 @@
 # 政客交易数据后端
 
-当前为 **0.2.0 公开 GitHub 路线的可运行原型**，依据 [总体设计 v0.3](docs/政客交易数据服务-总体设计.md) 和对方提供的 `hash-sharded-v2` 契约实现。House Clerk 年度索引、PTR 原件归档、电子 PTR 多版式抽取、官方人物身份建议和人工复核门禁已经可运行；扫描件、Senate/OGE 采集和对方未交付的新版消费端测试尚未完成。
+当前为 **0.2.0 公开 GitHub 路线的生产骨架**，依据 [总体设计 v0.3](docs/政客交易数据服务-总体设计.md) 和对方提供的 `hash-sharded-v2` 契约实现。GitHub 是当前生产环境：`code`、`main`、`state` 三个分支及 Actions 已部署。House Clerk 年度索引、PTR 原件归档、电子 PTR 多版式抽取、官方人物身份建议和人工复核门禁已经可运行；扫描件、Senate/OGE 采集和对方未交付的新版消费端测试尚未完成。
 
 ## 已能运行的链路
 
@@ -32,7 +32,9 @@ Set-Location backend
 python scripts/verify.py
 ```
 
-公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现手动生产发布、远端基线比较以及分支和发布标签的原子推送；由于正式采集器还未完成，现在没有开启 schedule。
+公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现手动生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新一次公开来源检查点。正式事实发布仍由人工触发，避免未经复核的记录自动进入 `main`。
+
+生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：部署已经运行，但尚无通过人工复核的真实交易行。
 
 ## 命令行接口
 
