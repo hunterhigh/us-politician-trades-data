@@ -1,7 +1,7 @@
 {
   "meta": {
     "is_demo": false,
-    "data_cutoff_at": "2026-09-18T04:00:00Z",
+    "data_cutoff_at": "2026-09-18T10:06:40Z",
     "title": "美国政客交易披露",
     "subtitle": "生产端点已上线；尚无通过人工复核的交易记录",
     "timezone": "America/New_York",
@@ -18,9 +18,9 @@
       "source_type": "official_disclosure",
       "source_url": "https://disclosures-clerk.house.gov/FinancialDisclosure/ViewSearch",
       "status": "pending_review",
-      "last_checked_at": "2026-09-18T04:00:00Z",
-      "data_cutoff_at": "2026-09-18T04:00:00Z",
-      "detail": "393 PTR filings discovered; five archived samples remain outside production pending row review."
+      "last_checked_at": "2026-09-18T10:06:40Z",
+      "data_cutoff_at": "2026-09-18T10:06:40Z",
+      "detail": "393 PTR filings discovered; 105 official PDFs archived, 95 extracted for review, 10 recorded parser failures, and 288 pending archive. No rows are approved for main."
     },
     {
       "source_id": "senate_efd",
