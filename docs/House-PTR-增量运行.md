@@ -45,4 +45,4 @@ python -m unison_snapshot record-house-ptr-result `
 - `archive_metadata_mismatch`：本地归档与最新索引的姓名、日期、URL 等稳定字段不一致。
 - `archived_evidence_missing`：检查点声称已经归档，但原件或元数据已不存在。
 
-生产仓库通过 `House source state` workflow 每 6 小时重新发现官方年度索引，把不含原件和抽取行的检查点写到公开 `state` 分支。后续受控执行器应按队列逐个归档，并在每个文档完成后立即记录结果。任何异常都应阻止该文档继续解析，但不应删除上一版已经发布的快照。
+生产仓库通过 `House source state` workflow 每 6 小时重新发现官方年度索引，从队列顺序处理有界批次，把官方索引 ZIP、原始 PDF 和元数据写到公开 `evidence` 分支，再把检查点写到 `state` 分支。每份 PDF 完成后立即记录结果；失败按检查点退避。任何异常都应阻止该文档继续解析，但不应删除上一版已经发布的快照。

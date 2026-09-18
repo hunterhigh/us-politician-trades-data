@@ -12,6 +12,8 @@ All notable changes follow Semantic Versioning.
 - Expanded the House PTR parser against five official electronic filings covering options, wrapped amounts, cross-page rows and missing tickers.
 - Added explicit human resolution for amended filings so revisions cannot silently overwrite an earlier record.
 - Added recoverable House PTR checkpoints with failure retries, archive-state recovery, and fail-closed index-change anomalies.
+- Added a scheduled production evidence branch that archives official House index ZIPs and bounded batches of original PTR PDFs with SHA-256 metadata.
+- Added a GitHub production environment boundary for publication and source-archive workflows; external provider credentials remain environment secrets.
 
 ## 0.1.0 - 2026-09-18
 

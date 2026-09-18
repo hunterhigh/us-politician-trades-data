@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Maximum number of pending House PTR PDFs to archive in this run
+        required: false
+        default: '10'
 permissions:
   contents: write
 concurrency:
@@ -10,8 +15,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   checkpoint:
+    environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,23 +39,109 @@ jobs:
             git fetch --no-tags origin state
             git show "FETCH_HEAD:checkpoints/house/${YEAR}.json" > .local/previous.json || true
           fi
+      - name: Prepare immutable evidence branch
+        id: evidence
+        run: |
+          evidence_root="$RUNNER_TEMP/house-evidence"
+          remote_evidence="$(git ls-remote --heads origin evidence | awk '{print $1}')"
+          if [ -n "$remote_evidence" ]; then
+            git fetch --no-tags origin evidence
+            git worktree add --detach "$evidence_root" "$remote_evidence"
+          else
+            git worktree add --detach "$evidence_root" HEAD
+            git -C "$evidence_root" switch --orphan evidence
+            git -C "$evidence_root" rm -rf . >/dev/null 2>&1 || true
+          fi
+          cat > "$evidence_root/README.md" <<'EOF'
+          # Production source evidence
+
+          This branch is the immutable public evidence layer for official source files.
+          House index ZIPs and PTR PDFs are stored under `house_clerk/` by SHA-256 together with retrieval metadata.
+          Normalized frontend data remains on `main`; operational checkpoints remain on `state`.
+          Credentials and unreviewed extracted rows are never stored here.
+          EOF
+          echo "root=$evidence_root" >> "$GITHUB_OUTPUT"
       - name: Discover official House index
         env:
           YEAR: ${{ steps.clock.outputs.year }}
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
         run: |
           PYTHONPATH=backend/src python -m unison_snapshot discover-house-index \
-            --year "$YEAR" --archive .local/archive --output .local/discovery.json
+            --year "$YEAR" --archive "$EVIDENCE_ROOT" --output .local/discovery.json
       - name: Build recoverable checkpoint
         env:
           RUN_AT: ${{ steps.clock.outputs.run_at }}
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
         run: |
           previous=()
           if [ -s .local/previous.json ]; then
             previous+=(--checkpoint .local/previous.json)
           fi
           PYTHONPATH=backend/src python -m unison_snapshot plan-house-ptr-sync \
-            --discovery .local/discovery.json --archive .local/archive \
+            --discovery .local/discovery.json --archive "$EVIDENCE_ROOT" \
             --planned-at "$RUN_AT" --output .local/checkpoint.json "${previous[@]}"
+      - name: Archive bounded House PTR evidence batch
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+          BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_ARCHIVE_BATCH_SIZE || '10' }}
+        run: |
+          case "$BATCH_SIZE" in
+            ''|*[!0-9]*) echo "batch_size must be an integer" >&2; exit 2 ;;
+          esac
+          test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 25 || {
+            echo "batch_size must be between 1 and 25" >&2
+            exit 2
+          }
+          index_sha="$(python -c "import json; print(json.load(open('.local/checkpoint.json'))['index_sha256'])")"
+          python - "$BATCH_SIZE" > .local/batch.txt <<'PY'
+          import json, sys
+          checkpoint = json.load(open('.local/checkpoint.json', encoding='utf-8'))
+          for document_id in checkpoint['queue'][:int(sys.argv[1])]:
+              print(document_id)
+          PY
+          archived=0
+          failed=0
+          while IFS= read -r document_id; do
+            [ -n "$document_id" ] || continue
+            rm -f .local/archive-result.json .local/checkpoint.next.json
+            if output="$(PYTHONPATH=backend/src python -m unison_snapshot archive-house-ptr \
+                --year "$YEAR" --index-sha "$index_sha" --document-id "$document_id" \
+                --archive "$EVIDENCE_ROOT" --output .local/archive-result.json 2>&1)"; then
+              PYTHONPATH=backend/src python -m unison_snapshot record-house-ptr-result \
+                --checkpoint .local/checkpoint.json --document-id "$document_id" --status archived \
+                --metadata .local/archive-result.json --result-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                --output .local/checkpoint.next.json
+              archived=$((archived + 1))
+            else
+              error="$(printf '%s' "$output" | tr '\n' ' ' | tail -c 480)"
+              PYTHONPATH=backend/src python -m unison_snapshot record-house-ptr-result \
+                --checkpoint .local/checkpoint.json --document-id "$document_id" --status failed \
+                --error "$error" --result-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                --output .local/checkpoint.next.json
+              failed=$((failed + 1))
+            fi
+            mv .local/checkpoint.next.json .local/checkpoint.json
+            sleep 1
+          done < .local/batch.txt
+          printf 'Archived %s House PTR PDFs; %s downloads failed.\n' "$archived" "$failed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish immutable evidence branch
+        env:
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+        run: |
+          git -C "$EVIDENCE_ROOT" add README.md house_clerk
+          if git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            echo "Evidence is unchanged." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+          git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$EVIDENCE_ROOT" commit -m "evidence: House ${{ steps.clock.outputs.year }} ${{ steps.clock.outputs.run_at }}"
+          git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          evidence_sha="$(git -C "$EVIDENCE_ROOT" rev-parse HEAD)"
+          printf 'Published immutable evidence commit `%s`.\n' "$evidence_sha" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build public run status
+        run: |
           python - <<'PY'
           import json
           from pathlib import Path
@@ -89,7 +181,8 @@ jobs:
           # Production state
 
           This branch contains public operational checkpoints and source health only.
-          It does not contain credentials, raw PDFs, unreviewed extracted rows, or production snapshot shards.
+          Raw official evidence is stored on the `evidence` branch. Production snapshot shards are stored on `main`.
+          This branch does not contain credentials or unreviewed extracted rows.
           EOF
           git -C "$state_root" add README.md checkpoints status
           if git -C "$state_root" diff --cached --quiet; then

@@ -5,20 +5,20 @@
   "project": {
     "name": "Unison Snapshot Producer",
     "slug": "unison-snapshot",
-    "summary": "定时分片快照生产器，本地离线原型",
+    "summary": "公开 GitHub 定时快照生产与官方证据归档",
     "problem": "按对方契约提供可复现且低成本的数据发布",
     "users": [
       "Skill维护者",
       "读取快照的消费模块"
     ],
     "firstRelease": [
-      "合成数据端到端分片发布",
-      "确定性与完整性测试",
-      "只读代理本地验证"
+      "公开 GitHub 分片快照生产",
+      "官方原件内容寻址归档",
+      "确定性、完整性与恢复测试"
     ],
     "notInScope": [
-      "真实采集和生产部署",
       "购买行情许可",
+      "Senate 和 OGE 自动采集",
       "替代法律意见"
     ],
     "successCriteria": [
@@ -31,7 +31,7 @@
     "userShape": "owner-only",
     "runShape": "scheduled",
     "collaborationShape": "ai-assisted",
-    "stage": "prototype",
+    "stage": "production",
     "riskLevel": "critical",
     "riskDimensions": {
       "data": "critical",
@@ -45,8 +45,8 @@
   },
   "technology": {
     "adapter": "python",
-    "deploymentProfile": "generic",
-    "rationale": "Python标准库批处理，独立Worker读取；无在线数据库"
+    "deploymentProfile": "github-actions",
+    "rationale": "Python标准库批处理，GitHub Actions 调度，公开分支保存快照、状态和官方证据；无在线数据库"
   },
   "modules": [
     "project-brief",
@@ -81,10 +81,10 @@
   ],
   "decisions": [
     {
-      "title": "采用v0.3定时快照路线",
-      "context": "用户要求简化并授权开始本地实现",
-      "choice": "Python生产分片、Git本地原子发布、Worker只读分发",
-      "rationale": "减少常驻服务与数据库费用，保留证据和版本边界",
+      "title": "采用 GitHub 生产快照与证据分支路线",
+      "context": "用户明确 GitHub 仓库即生产部署，并要求原始 PDF 属于生产资产",
+      "choice": "Python生产分片，GitHub Actions 调度，main/state/evidence 分支分别保存事实、状态和官方证据",
+      "rationale": "减少常驻服务与数据库费用，同时保留可公开审计和恢复的原件",
       "alternatives": [
         "常驻API与PostgreSQL"
       ],
@@ -92,7 +92,7 @@
         "用户查询不触发采集",
         "新契约修订与许可仍需对齐"
       ],
-      "reviewWhen": "需要请求时采集或快照超出容量预算"
+      "reviewWhen": "需要请求时采集、限制原件访问或 Git 仓库超出容量预算"
     }
   ],
   "externalActions": {
@@ -100,6 +100,6 @@
     "configureRemote": false,
     "provisionCloud": false,
     "setSecrets": false,
-    "deploy": false
+    "deploy": true
   }
 }
