@@ -19,6 +19,7 @@ All notable changes follow Semantic Versioning.
 - Added a machine-readable review queue health summary for production monitoring.
 - Completed the public GitHub production control plane with scoped environment deployment, protected production refs, scheduled House backfill, and resumable qualification state.
 - Extended electronic PTR parsing for exact and open-ended amounts and final rows split across pages; image-only filings now report an explicit OCR requirement.
+- Added bounded Tesseract OCR for image-only PTRs, including engine provenance, row confidence, conditional runner installation, and low-confidence quarantine.
 
 ## 0.1.0 - 2026-09-18
 

@@ -2,10 +2,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
+import shutil
+import subprocess
+import tempfile
 from urllib.parse import urlsplit
 
 from .house import HouseIndexError
@@ -26,6 +31,7 @@ ASSET_TYPES = {
 }
 REVIEW_SCHEMA = "house-ptr-review/v1"
 QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
+OCR_MINIMUM_ROW_CONFIDENCE = 85.0
 CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
                      "transaction_date", "notification_date", "amount_low", "amount_high"}
 REVISION_ACTIONS = {"replace_prior", "standalone_correction"}
@@ -58,7 +64,7 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
 
 
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
-                     copy_allowed: bool | None) -> dict:
+                     copy_allowed: bool | None, ocr_engine: str | None = None) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
         raise HouseIndexError("House PTR source hash is invalid")
     document_id = str(metadata.get("document_id", ""))
@@ -192,6 +198,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                 f"House PTR page {page_number} row {position + 1} has unsupported {failures} layout")
         asset_name, ticker, asset_type_code = asset_match.groups()
         amount_low, amount_high, amount_kind = amount_value
+        ocr_confidences = [float(word["ocr_confidence"]) for _, word in block
+                           if word.get("ocr_confidence") is not None]
         reasons = ["automatic_qualification_required"]
         if raw_owner not in OWNER_CODES:
             reasons.append("unknown_owner_code")
@@ -227,6 +235,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "amount_high": amount_high,
             "amount_kind": amount_kind,
             "amount_raw": amount,
+            "ocr_confidence": (round(sum(ocr_confidences) / len(ocr_confidences), 2)
+                               if ocr_confidences else None),
             "subholding_of": details.get("subholding_of"),
             "location": details.get("location"),
             "description": details.get("description"),
@@ -249,6 +259,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
         "source_sha256": source_sha256,
         "source_pdf_copy_allowed": copy_allowed,
+        "extraction_method": "tesseract_ocr" if ocr_engine else "native_pdf_text",
+        "ocr_engine": ocr_engine,
         "transactions": extracted,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
@@ -292,6 +304,10 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             reasons.append("revision_relationship_unresolved")
         if row.get("amount_kind") == "open_ended" or row.get("amount_high") is None:
             reasons.append("open_ended_amount_not_representable")
+        if extraction.get("extraction_method") == "tesseract_ocr" and (
+                not isinstance(row.get("ocr_confidence"), (int, float))
+                or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):
+            reasons.append("ocr_confidence_below_threshold")
         if row.get("owner") not in set(OWNER_CODES.values()):
             reasons.append("owner_not_normalized")
         if row.get("transaction_type") not in set(TYPE_CODES.values()):
@@ -344,6 +360,54 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
     }
 
 
+def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:
+    words: list[dict] = []
+    try:
+        rows = csv.DictReader(io.StringIO(value), delimiter="\t")
+        for row in rows:
+            text = _clean(row.get("text") or "")
+            if row.get("level") != "5" or not text:
+                continue
+            confidence = float(row["conf"])
+            if confidence < 0:
+                continue
+            words.append({
+                "text": text,
+                "x0": float(row["left"]) * points_per_pixel,
+                "top": float(row["top"]) * points_per_pixel,
+                "size": max(float(row["height"]) * points_per_pixel, 1.0),
+                "ocr_confidence": confidence,
+            })
+    except (KeyError, TypeError, ValueError):
+        raise HouseIndexError("House PTR OCR returned invalid word geometry") from None
+    return words
+
+
+def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]:
+    executable = shutil.which("tesseract")
+    if not executable:
+        raise HouseIndexError("House PTR requires OCR but the OCR engine is unavailable")
+    version = subprocess.run([executable, "--version"], stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, timeout=15, check=False)
+    engine = (version.stdout.splitlines() or [""])[0].strip()
+    if version.returncode or not engine.lower().startswith("tesseract "):
+        raise HouseIndexError("House PTR OCR engine version is unavailable")
+    pages: list[dict] = []
+    with tempfile.TemporaryDirectory(prefix="house-ptr-ocr-") as folder:
+        for index, page in enumerate(document.pages):
+            image_path = Path(folder) / f"page-{index + 1}.png"
+            page.to_image(resolution=resolution, antialias=True).original.save(image_path, format="PNG")
+            completed = subprocess.run(
+                [executable, str(image_path), "stdout", "--dpi", str(resolution), "-l", "eng", "tsv"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120, check=False)
+            if completed.returncode:
+                raise HouseIndexError(f"House PTR OCR failed on page {index + 1}")
+            pages.append({"width": page.width, "height": page.height,
+                          "words": _words_from_tesseract_tsv(
+                              completed.stdout, points_per_pixel=72.0 / resolution)})
+    return pages, engine
+
+
 def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
     try:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -373,9 +437,15 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
             pages = [{"width": page.width, "height": page.height,
                       "words": page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=["size"])}
                      for page in document.pages]
+            ocr_engine = None
+            if not any(page["words"] for page in pages):
+                pages, ocr_engine = _ocr_pdf_pages(document)
+    except HouseIndexError:
+        raise
     except Exception as exc:
         raise HouseIndexError(f"House PTR extraction failed: {type(exc).__name__}") from None
-    return parse_word_pages(metadata, source_sha, pages, copy_allowed=copy_allowed)
+    return parse_word_pages(metadata, source_sha, pages, copy_allowed=copy_allowed,
+                            ocr_engine=ocr_engine)
 
 
 def make_review_template(extraction: dict) -> dict:

@@ -101,6 +101,34 @@ jobs:
           Path('.local/parse-batch.txt').write_text(
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
           PY
+      - name: Detect image-only PDFs in this batch
+        id: ocr
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pdfplumber
+          evidence = Path(os.environ['EVIDENCE_ROOT']).resolve()
+          needs_ocr = False
+          for line in Path('.local/parse-batch.txt').read_text(encoding='utf-8').splitlines():
+              metadata = json.loads(Path(line).read_text(encoding='utf-8'))
+              pdf = (evidence / metadata['archive_path']).resolve()
+              if evidence not in pdf.parents:
+                  raise SystemExit('Evidence path escapes its root')
+              with pdfplumber.open(pdf) as document:
+                  if not any(page.extract_words(x_tolerance=2, y_tolerance=2) for page in document.pages):
+                      needs_ocr = True
+                      break
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'needed={str(needs_ocr).lower()}\n')
+          PY
+      - name: Install OCR engine only when required
+        if: steps.ocr.outputs.needed == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends tesseract-ocr
       - name: Parse and prepare machine extraction artifacts
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}

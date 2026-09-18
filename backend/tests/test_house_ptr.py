@@ -5,7 +5,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house import HouseIndexError
-from unison_snapshot.house_ptr import make_review_template, parse_word_pages, promote_review, qualify_automatic
+from unison_snapshot.house_ptr import (_words_from_tesseract_tsv, make_review_template,
+                                      parse_word_pages, promote_review, qualify_automatic)
 
 
 def word(text, x0, top, size=9):
@@ -102,6 +103,17 @@ IDENTITY = {"status": "matched_automatically", "document_id": "20000001",
 
 
 class HousePtrTests(unittest.TestCase):
+    def test_tesseract_tsv_is_converted_to_pdf_word_geometry(self):
+        tsv = ("level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+               "5\t1\t1\t1\t1\t1\t100\t200\t40\t20\t96.5\tPeriodic\n"
+               "5\t1\t1\t1\t1\t2\t145\t200\t30\t20\t-1\tignored\n")
+        words = _words_from_tesseract_tsv(tsv, points_per_pixel=0.36)
+        self.assertEqual(len(words), 1)
+        self.assertEqual((words[0]["text"], words[0]["x0"], words[0]["top"]),
+                         ("Periodic", 36.0, 72.0))
+        self.assertAlmostEqual(words[0]["size"], 7.2)
+        self.assertEqual(words[0]["ocr_confidence"], 96.5)
+
     def test_rows_wait_for_automatic_qualification_with_page_evidence(self):
         result = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
         self.assertEqual(len(result["transactions"]), 2)
@@ -189,6 +201,14 @@ class HousePtrTests(unittest.TestCase):
         first_quarantine = next(item for item in open_result["quarantined"]
                                 if item["extraction_id"] == open_extraction["transactions"][0]["extraction_id"])
         self.assertIn("open_ended_amount_not_representable", first_quarantine["reasons"])
+
+        ocr_extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False,
+                                          ocr_engine="tesseract 5.3.0")
+        for row in ocr_extraction["transactions"]:
+            row["ocr_confidence"] = 84.9
+        ocr_result = qualify_automatic(ocr_extraction, IDENTITY)
+        self.assertTrue(all("ocr_confidence_below_threshold" in row["reasons"]
+                            for row in ocr_result["quarantined"]))
 
     def test_amended_row_requires_explicit_revision_resolution(self):
         extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)
