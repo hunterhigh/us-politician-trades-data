@@ -13,7 +13,7 @@
 - `docs/`：总体设计、契约审阅、实现状态和维护说明。
 - `.local/`：本机演示仓库与页面，不提交 Git。
 
-生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 暂存机器抽取、身份建议、异常和隔离记录，后续将由自动晋级流程消费。密钥只存放于 GitHub Actions Secrets。
+生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 保存机器抽取、确定性身份、自动资格结果、异常和隔离记录。密钥只存放于 GitHub Actions Secrets。
 
 ## 本地启动
 
@@ -68,12 +68,12 @@ python -m unison_snapshot archive-house-ptr --year 2026 --index-sha 39770b82d967
 python -m unison_snapshot parse-house-ptr --archive .local/official-archive --metadata .local/house-20035420-archive.json --output .local/house-20035420-extraction.json
 python -m unison_snapshot discover-house-members --archive .local/official-archive --output .local/house-members.json
 python -m unison_snapshot suggest-house-identity --extraction .local/house-20035420-extraction.json --members .local/house-members.json --output .local/house-20035420-identity.json
-python -m unison_snapshot create-house-ptr-review --extraction .local/house-20035420-extraction.json --output .local/house-20035420-review.json
+python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-extraction.json --identity .local/house-20035420-identity.json --output .local/house-20035420-qualification.json
 ```
 
-当前黄金样本集包含 5 份官方电子 PTR、共 24 行，覆盖普通股票、期权、无 ticker、金额换行、跨页行和 amended 申报。`20035420` 的身份建议为 `house:D000032`。现有输出仍使用旧状态 `awaiting_manual_review`，但该状态和 `promote-house-ptr-review` 不再是目标发布路径；后续由自动资格校验直接生成候选事实，只有无法确定的 amended、身份、OCR和金额语义进入隔离队列。旧工具说明见 [House PTR 复核流程](docs/House-PTR-复核流程.md)。
+电子PTR解析覆盖普通股票、期权、无ticker、金额换行、精确金额、开放金额、末行跨页和amended申报。`20035420` 的身份可确定为 `house:D000032`。自动资格校验直接生成候选事实，无法确定的修订、身份、OCR和金额语义进入隔离队列；旧人工工具仅用于异常调查。流程见 [House PTR 自动资格与异常调查](docs/House-PTR-复核流程.md)。
 
-增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-18 的生产检查点，真实 2026 索引规划得到 393 份 PTR，其中 105 份已归档、288 份待处理、0 个下载失败、0 个索引异常；已归档原件的解析积压为 0，95 份生成抽取/复核模板，10 份进入结构化解析失败队列。动态状态以 [`state/status/last-run.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/last-run.json) 和 [`review/status/summary.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/summary.json) 为准。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
+增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-18 的生产检查点，真实2026索引规划得到393份PTR，其中130份已归档、263份待处理、0个下载失败、0个索引异常。已归档原件中121份抽取成功，110份产生1248条候选交易，29条异常记录被隔离；9份旧式纸面勾选表等待专用表格解析器。动态状态以 [`state/status/last-run.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/last-run.json) 和 [`review/status/summary.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/summary.json) 为准。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
 ## 当前交付目标
 

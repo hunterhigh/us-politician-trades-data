@@ -3,7 +3,7 @@
     "is_demo": false,
     "data_cutoff_at": "2026-09-18T10:06:40Z",
     "title": "美国政客交易披露",
-    "subtitle": "生产端点已上线；尚无通过人工复核的交易记录",
+    "subtitle": "生产端点已上线；真实候选数据尚未完成前端验收和正式发布",
     "timezone": "America/New_York",
     "default_window_days": 30
   },
