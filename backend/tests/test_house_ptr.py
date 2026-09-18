@@ -109,6 +109,25 @@ def legacy_checkbox_pages():
     return [{"width": 792, "height": 612, "words": words}]
 
 
+def compact_legacy_checkbox_pages():
+    words = [
+        ocr_word("UNITED", 220, 70), ocr_word("STATES", 270, 70),
+        ocr_word("HOUSE", 320, 70), ocr_word("OF", 365, 70),
+        ocr_word("REPRESENTATIVES", 385, 70),
+        ocr_word("Periodic", 285, 90), ocr_word("Transaction", 340, 90),
+        ocr_word("Report", 410, 90), ocr_word("X", 388, 240, 14),
+        # Printed example row must never become a disclosure fact.
+        ocr_word("Example", 140, 405), ocr_word("Stock", 190, 405),
+        ocr_word("X", 300, 405), ocr_word("02/05/20", 350, 405),
+        ocr_word("03/07/20", 395, 405), ocr_word("X", 467, 405),
+        ocr_word("JT", 112, 450), ocr_word("Treasury", 140, 450),
+        ocr_word("ETF", 200, 450), ocr_word("X", 270, 450, 14),
+        ocr_word("08/14/26", 350, 450), ocr_word("09/02/26", 395, 450),
+        ocr_word("X", 467, 450, 14),
+    ]
+    return [{"width": 792, "height": 610.56, "words": words}]
+
+
 META = {"source_id": "house_clerk", "document_id": "20000001", "filing_type": "P",
         "source_url": "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/20000001.pdf",
         "filer_name": "Hon. Example", "state_district": "CA01", "filing_year": 2026,
@@ -258,6 +277,15 @@ class HousePtrTests(unittest.TestCase):
                                      ocr_engine="tesseract 5.3.0")
         isolated = qualify_automatic(ambiguous, IDENTITY)
         self.assertIn("amount_invalid", isolated["quarantined"][0]["reasons"])
+
+    def test_compact_legacy_form_excludes_its_printed_example_row(self):
+        extraction = parse_word_pages(META, "d" * 64, compact_legacy_checkbox_pages(),
+                                      copy_allowed=True, ocr_engine="tesseract 5.3.0")
+        self.assertEqual(len(extraction["transactions"]), 1)
+        row = extraction["transactions"][0]
+        self.assertEqual((row["asset_name"], row["transaction_type"]),
+                         ("Treasury ETF", "purchase"))
+        self.assertEqual((row["amount_low"], row["amount_high"]), (15001, 50000))
 
     def test_amended_row_requires_explicit_revision_resolution(self):
         extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)

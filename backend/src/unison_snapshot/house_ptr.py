@@ -18,7 +18,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-04"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
-LEGACY_DATE_RE = re.compile(r"\d{2}/\d{2}/\d{2}")
+LEGACY_DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/\d{2}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.00)?$")
 AMOUNT_OVER_RE = re.compile(r"^(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?$", re.I)
@@ -82,24 +82,60 @@ def _legacy_date(value: str) -> str | None:
         return None
 
 
-def _legacy_filing_status(words: list[dict], width: float, height: float) -> str | None:
+def _raster_ink(page: dict, *, x0: float, x1: float, y0: float, y1: float) -> float:
+    image = page.get("_image")
+    if image is None:
+        return 0.0
+    left = max(int(x0 * image.width), 0)
+    right = min(int(x1 * image.width), image.width)
+    top = max(int(y0 * image.height), 0)
+    bottom = min(int(y1 * image.height), image.height)
+    if right <= left or bottom <= top:
+        return 0.0
+    pixels = image.crop((left, top, right, bottom)).getdata()
+    return sum(value < 96 for value in pixels) / ((right - left) * (bottom - top))
+
+
+def _legacy_filing_status(page: dict, words: list[dict], width: float, height: float,
+                          compact: bool) -> str | None:
     marks = [float(word["x0"]) / width for word in words if _is_mark(word)
              and 0.31 * height <= float(word["top"]) <= 0.48 * height]
-    initial = any(0.43 <= value < 0.50 for value in marks)
-    amended = any(0.52 <= value < 0.59 for value in marks)
+    centers = (0.49, 0.585) if compact else (0.46, 0.55)
+    initial = any(abs(value - centers[0]) <= 0.035 for value in marks)
+    amended = any(abs(value - centers[1]) <= 0.035 for value in marks)
+    if not initial and not amended and page.get("_image") is not None:
+        scores = [_raster_ink(page, x0=center - 0.009, x1=center + 0.009,
+                              y0=0.39, y1=0.43) for center in centers]
+        if max(scores) >= 0.035 and max(scores) >= min(scores) * 1.35:
+            initial, amended = scores[0] > scores[1], scores[1] > scores[0]
     if initial == amended:
         return None
     return "New" if initial else "Amended"
 
 
-def _legacy_mark_column(words: list[dict], *, width: float, top: float,
+def _legacy_mark_column(page: dict, words: list[dict], *, width: float, height: float, top: float,
                         x0: float, x1: float, columns: int) -> int | None:
     marks = [word for word in words if _is_mark(word)
              and x0 * width <= float(word["x0"]) < x1 * width
              and abs(float(word["top"]) - top) <= 7]
     positions = {min(int(((float(word["x0"]) / width) - x0) / ((x1 - x0) / columns)),
                      columns - 1) for word in marks}
-    return next(iter(positions)) if len(positions) == 1 else None
+    if len(positions) == 1:
+        return next(iter(positions))
+    if page.get("_image") is None:
+        return None
+    cell = (x1 - x0) / columns
+    # The OCR top belongs to the date text near the row's upper edge. Sampling the inner
+    # checkbox area removes printed cell borders and compares only handwritten ink.
+    y0 = max((top + 5) / height, 0)
+    y1 = min((top + 19) / height, 1)
+    scores = [_raster_ink(page, x0=x0 + index * cell + cell * 0.35,
+                          x1=x0 + (index + 1) * cell - cell * 0.35,
+                          y0=y0, y1=y1) for index in range(columns)]
+    ranked = sorted(enumerate(scores), key=lambda item: item[1], reverse=True)
+    if ranked[0][1] >= 0.025 and ranked[0][1] >= ranked[1][1] * 1.45:
+        return ranked[0][0]
+    return None
 
 
 def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
@@ -110,29 +146,49 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
         words = page.get("words")
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House legacy PTR page geometry is invalid")
-        filing_status = _legacy_filing_status(words, width, height)
+        compact = any(0.42 * width <= float(word["x0"]) < 0.47 * width
+                      and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                      for word in words)
+        if compact:
+            owner_bounds, asset_bounds = (0.139, 0.165), (0.165, 0.335)
+            type_bounds, type_values = (0.335, 0.441), ("purchase", "sale", "sale", "exchange")
+            transaction_bounds, notification_bounds = (0.441, 0.494), (0.494, 0.553)
+            amount_bounds = (0.553, 0.553 + (0.907 - 0.553) * 10 / 11)
+        else:
+            owner_bounds, asset_bounds = (0.09, 0.14), (0.14, 0.405)
+            type_bounds, type_values = (0.405, 0.477), ("purchase", "sale", "exchange")
+            transaction_bounds, notification_bounds = (0.477, 0.55), (0.55, 0.607)
+            amount_bounds = (0.607, 0.95)
+        filing_status = _legacy_filing_status(page, words, width, height, compact)
         anchors = sorted({float(word["top"]) for word in words
-                          if 0.47 * width <= float(word["x0"]) < 0.55 * width
+                          if transaction_bounds[0] * width <= float(word["x0"]) < transaction_bounds[1] * width
                           and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
                           and float(word["top"]) >= 0.58 * height})
         for row_index, top in enumerate(anchors):
-            transaction_raw = _line(words, x0=0.47 * width, x1=0.55 * width,
+            transaction_raw = _line(words, x0=transaction_bounds[0] * width,
+                                    x1=transaction_bounds[1] * width,
                                     top=top, tolerance=5)
-            notification_raw = _line(words, x0=0.55 * width, x1=0.607 * width,
+            notification_raw = _line(words, x0=notification_bounds[0] * width,
+                                     x1=notification_bounds[1] * width,
                                      top=top, tolerance=5)
             transaction_date = _legacy_date(transaction_raw)
             notification_date = _legacy_date(notification_raw)
-            if transaction_date is None:
+            filing_year = int(metadata["filing_year"])
+            if transaction_date is None or datetime.fromisoformat(transaction_date).year not in {
+                    filing_year, filing_year - 1}:
                 continue
-            asset = _line(words, x0=0.14 * width, x1=0.405 * width, top=top, tolerance=7)
-            owner_raw = _line(words, x0=0.09 * width, x1=0.14 * width, top=top, tolerance=7)
+            asset = _line(words, x0=asset_bounds[0] * width, x1=asset_bounds[1] * width,
+                          top=top, tolerance=7)
+            owner_raw = _line(words, x0=owner_bounds[0] * width, x1=owner_bounds[1] * width,
+                              top=top, tolerance=7)
             owner_code = next((code for code in ("JT", "SP", "DC")
                                if re.search(rf"\b{code}\b", owner_raw, re.I)), "")
-            type_column = _legacy_mark_column(words, width=width, top=top,
-                                              x0=0.405, x1=0.477, columns=3)
-            amount_column = _legacy_mark_column(words, width=width, top=top,
-                                                x0=0.607, x1=0.95, columns=10)
-            transaction_type = ("purchase", "sale", "exchange")[type_column] \
+            type_column = _legacy_mark_column(page, words, width=width, height=height, top=top,
+                                              x0=type_bounds[0], x1=type_bounds[1],
+                                              columns=len(type_values))
+            amount_column = _legacy_mark_column(page, words, width=width, height=height, top=top,
+                                                x0=amount_bounds[0], x1=amount_bounds[1], columns=10)
+            transaction_type = type_values[type_column] \
                 if type_column is not None else None
             amount = LEGACY_AMOUNT_BUCKETS[amount_column] if amount_column is not None else (None, None, None)
             ticker_match = re.search(r"\(([A-Z][A-Z0-9.\-^/]{0,15})\)\s*$", asset)
@@ -150,7 +206,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
                 "asset_name": asset_name, "ticker": ticker,
                 "ticker_mapping_basis": "filing_explicit" if ticker else None,
                 "asset_type_code": None, "instrument_type": "Unspecified",
-                "transaction_type_raw": ("P", "S", "E")[type_column] if type_column is not None else None,
+                "transaction_type_raw": transaction_type[:1].upper() if transaction_type else None,
                 "transaction_type": transaction_type, "transaction_date": transaction_date,
                 "notification_date": notification_date, "amount_low": amount[0],
                 "amount_high": amount[1], "amount_kind": amount[2], "amount_raw": None,
@@ -199,8 +255,12 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     large_heading = [_clean(str(word["text"])) for word in pages[0].get("words", [])
                      if float(word.get("size", 0)) >= 18]
     title_matches = "Periodic Transaction Report" in first_text or large_heading[:3] == ["P", "T", "R"]
-    legacy_form = (title_matches and f"#{document_id}" not in first_text
-                   and "HOUSE" in first_text.upper() and "REPRESENTATIVES" in first_text.upper())
+    uppercase_text = first_text.upper()
+    has_legacy_table = ("AMOUNT" in uppercase_text and "TRANSACTION" in uppercase_text
+                        and any(LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                                for page in pages for word in page.get("words", [])))
+    legacy_form = (f"#{document_id}" not in first_text and ocr_engine is not None
+                   and ((title_matches and "HOUSE" in uppercase_text) or has_legacy_table))
     if legacy_form:
         return _parse_legacy_word_pages(metadata, source_sha256, pages,
                                         copy_allowed=copy_allowed, ocr_engine=ocr_engine)
@@ -527,13 +587,15 @@ def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]
     with tempfile.TemporaryDirectory(prefix="house-ptr-ocr-") as folder:
         for index, page in enumerate(document.pages):
             image_path = Path(folder) / f"page-{index + 1}.png"
-            page.to_image(resolution=resolution, antialias=True).original.save(image_path, format="PNG")
+            image = page.to_image(resolution=resolution, antialias=True).original.convert("L")
+            image.save(image_path, format="PNG")
             completed = subprocess.run(
                 [executable, str(image_path), "stdout", "--dpi", str(resolution), "-l", "eng", "tsv"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120, check=False)
             if completed.returncode:
                 raise HouseIndexError(f"House PTR OCR failed on page {index + 1}")
             pages.append({"width": page.width, "height": page.height,
+                          "_image": image,
                           "words": _words_from_tesseract_tsv(
                               completed.stdout, points_per_pixel=72.0 / resolution)})
     return pages, engine
