@@ -162,11 +162,47 @@ jobs:
             fi
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build review queue status
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PARSER_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          evidence = Path(os.environ['EVIDENCE_ROOT'])
+          review = Path(os.environ['REVIEW_ROOT'])
+          extractions = list(review.glob('house_clerk/extractions/*/*/*.json'))
+          failures = list(review.glob('house_clerk/failures/*/*/*.json'))
+          identities = list(review.glob('house_clerk/identities/*/*/*.json'))
+          identity_counts = {}
+          for path in identities:
+              value = json.loads(path.read_text(encoding='utf-8'))
+              status = value.get('status', 'invalid')
+              identity_counts[status] = identity_counts.get(status, 0) + 1
+          evidence_count = sum(1 for _ in evidence.glob('house_clerk/documents/*/*/*.json'))
+          value = {
+              'schema_version': 'house-review-run/v1',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'parser_commit': os.environ['PARSER_COMMIT'],
+              'evidence_count': evidence_count,
+              'extracted_count': len(extractions),
+              'failure_count': len(failures),
+              'pending_parse_count': max(evidence_count - len(extractions) - len(failures), 0),
+              'identity_counts': dict(sorted(identity_counts.items())),
+              'status': 'attention' if failures else 'ok',
+          }
+          target = review / 'status' / 'summary.json'
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')), encoding='utf-8')
+          PY
       - name: Publish review queue
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          git -C "$REVIEW_ROOT" add README.md house_clerk
+          git -C "$REVIEW_ROOT" add README.md house_clerk status
           if git -C "$REVIEW_ROOT" diff --cached --quiet; then
             echo "Review queue is unchanged." >> "$GITHUB_STEP_SUMMARY"
             exit 0

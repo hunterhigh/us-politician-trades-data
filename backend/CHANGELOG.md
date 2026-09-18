@@ -16,6 +16,7 @@ All notable changes follow Semantic Versioning.
 - Added a GitHub production environment boundary for publication and source-archive workflows; external provider credentials remain environment secrets.
 - Added a production review-queue workflow that parses immutable House evidence into unreviewed extractions, identity suggestions, review templates, and bounded failure records.
 - Added a history-preserving production rollback workflow and upgraded official GitHub actions to Node 24-compatible v7 releases.
+- Added a machine-readable review queue health summary for production monitoring.
 
 ## 0.1.0 - 2026-09-18
 
