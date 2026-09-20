@@ -209,6 +209,9 @@ class SenateHistoryTests(unittest.TestCase):
                 "transactions": [transaction(amount=amount)],
             }
 
+        matching_extraction = historical(matching, amount="$1,001 - $15,000")
+        other_extraction = historical(other, amount="$15,001 - $50,000")
+        other_extraction["transactions"].append({**transaction(), "row_number": 2})
         batch = {
             "schema_version": "senate-efd-report-extraction-batch/v1",
             "source_id": "senate_efd",
@@ -218,8 +221,7 @@ class SenateHistoryTests(unittest.TestCase):
             "extraction_count": 2,
             "inspection_count": 0,
             "failure_count": 0,
-            "extractions": [historical(matching, amount="$1,001 - $15,000"),
-                            historical(other, amount="$15,001 - $50,000")],
+            "extractions": [matching_extraction, other_extraction],
         }
         result = resolve_amendment_predecessors(plan, batch, extractions)
         self.assertEqual(result["status"], "ready")

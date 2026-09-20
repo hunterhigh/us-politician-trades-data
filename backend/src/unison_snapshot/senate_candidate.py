@@ -16,7 +16,7 @@ from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
 CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
-AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v1"
+AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v2"
 AMOUNT_RANGES = {
     "$1,001 - $15,000": (1001, 15000),
     "$15,001 - $50,000": (15001, 50000),
@@ -114,10 +114,50 @@ def _filed_timestamp(raw: object) -> datetime | None:
         return None
 
 
+def _limited_correction_changes(previous: dict, amended: dict) -> list[dict] | None:
+    """Allow one strongly anchored row correction in an otherwise identical report."""
+
+    previous_rows = previous.get("transactions")
+    amended_rows = amended.get("transactions")
+    if (not isinstance(previous_rows, list) or not isinstance(amended_rows, list) or
+            not previous_rows or len(previous_rows) != len(amended_rows)):
+        return None
+    expected_rows = list(range(1, len(previous_rows) + 1))
+    previous_numbers = [row.get("row_number") for row in previous_rows if isinstance(row, dict)]
+    amended_numbers = [row.get("row_number") for row in amended_rows if isinstance(row, dict)]
+    if (previous_numbers != expected_rows or amended_numbers != expected_rows or
+            len(previous_numbers) != len(previous_rows) or len(amended_numbers) != len(amended_rows)):
+        return None
+    changed_rows = []
+    raw_fields = (
+        "transaction_date", "owner_raw", "ticker_raw", "asset_name_raw", "asset_type_raw",
+        "transaction_type_raw", "transaction_type", "amount_raw", "comment_raw",
+    )
+    for old, new in zip(previous_rows, amended_rows):
+        changed_fields = [field for field in raw_fields if old.get(field) != new.get(field)]
+        if not changed_fields:
+            continue
+        anchors = (
+            old.get("transaction_date") == new.get("transaction_date"),
+            old.get("owner_raw") == new.get("owner_raw"),
+            _canonical_asset(old) == _canonical_asset(new),
+            old.get("asset_type_raw") == new.get("asset_type_raw"),
+            old.get("transaction_type") == new.get("transaction_type"),
+            old.get("amount_raw") == new.get("amount_raw"),
+            old.get("comment_raw") == new.get("comment_raw"),
+        )
+        if sum(anchors) < 3:
+            return None
+        changed_rows.append({"row_number": old["row_number"], "fields": changed_fields})
+    return changed_rows if len(changed_rows) == 1 else None
+
+
 def compare_amendment_pair(previous: dict, amended: dict) -> dict | None:
     """Return the exact allowed differences for one ordered amendment pair."""
 
     changes = _amendment_pair_changes(previous, amended)
+    if changes is None:
+        changes = _limited_correction_changes(previous, amended)
     previous_filed_at = _filed_timestamp(previous.get("filed_at_raw"))
     amended_filed_at = _filed_timestamp(amended.get("filed_at_raw"))
     if (changes is None or previous_filed_at is None or amended_filed_at is None or
@@ -623,6 +663,7 @@ def build_senate_candidate(
     audit = {
         "schema_version": CANDIDATE_AUDIT_SCHEMA,
         "builder_version": CANDIDATE_BUILDER_VERSION,
+        "amendment_compare_rule_version": AMENDMENT_COMPARE_RULE_VERSION,
         "source_id": "senate_efd",
         "catalog_sha256": catalog_sha,
         "roster_sha256": roster_sha,

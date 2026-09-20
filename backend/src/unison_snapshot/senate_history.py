@@ -282,6 +282,7 @@ def resolve_amendment_predecessors(
 
     if (not isinstance(plan, dict) or plan.get("schema_version") != PLAN_SCHEMA or
             plan.get("source_id") != "senate_efd" or
+            plan.get("compare_rule_version") != AMENDMENT_COMPARE_RULE_VERSION or
             not isinstance(plan.get("targets"), list) or
             not isinstance(plan.get("candidate_document_ids"), list) or
             plan.get("plan_sha256") != _plan_sha256(plan)):

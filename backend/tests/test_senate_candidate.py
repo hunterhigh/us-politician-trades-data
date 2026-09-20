@@ -282,7 +282,7 @@ class SenateCandidateTests(unittest.TestCase):
             with self.assertRaisesRegex(SenateEfdError, "Congress.gov roster"):
                 build_senate_candidate(root, state, deepcopy(BASE))
 
-    def test_amendment_must_match_one_unique_predecessor(self):
+    def test_amendment_allows_one_strongly_anchored_row_correction(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             base_id = "22111111-1111-4111-8111-111111111111"
@@ -291,14 +291,34 @@ class SenateCandidateTests(unittest.TestCase):
             state = self.fixture(
                 root,
                 [identity(base_id), identity(amendment_id)],
-                [extraction(base_id, [row("senate-ptr:221111111111111111111111")]),
+                [extraction(base_id, [row("senate-ptr:221111111111111111111111")],
+                            filed_at_raw="Filed 09/16/2026 @ 8:55 AM"),
                  extraction(amendment_id, [amended], report_amendment_number=1)],
             )
             candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual([item["filing_id"] for item in candidate["transactions"]],
+                             [amendment_id])
+            self.assertEqual(audit["resolved_amendment_chain_count"], 1)
+
+    def test_amendment_rejects_an_unanchored_row_rewrite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            base_id = "23111111-1111-4111-8111-111111111111"
+            amendment_id = "33111111-1111-4111-8111-111111111111"
+            rewritten = row(
+                "senate-ptr:331111111111111111111111",
+                transaction_date="2026-08-01", owner_raw="Spouse", ticker_raw="OTHER",
+                asset_name_raw="Other Asset", asset_type_raw="Other",
+                transaction_type="sale", amount_raw="$50,001 - $100,000", comment_raw="Changed",
+            )
+            state = self.fixture(
+                root,
+                [identity(base_id), identity(amendment_id)],
+                [extraction(base_id, [row("senate-ptr:231111111111111111111111")]),
+                 extraction(amendment_id, [rewritten], report_amendment_number=1)],
+            )
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
             self.assertEqual(candidate["transactions"], [])
-            self.assertEqual(audit["quarantined_report_reasons"], {
-                "amendment_relationship_pending": 2,
-            })
             self.assertEqual(audit["resolved_amendment_chain_count"], 0)
 
     def test_amendment_group_quarantines_unlinked_duplicate_predecessor(self):
@@ -312,7 +332,12 @@ class SenateCandidateTests(unittest.TestCase):
                            filed_at_raw="Filed 09/15/2026 @ 8:00 AM",
                            portal_listed_date="2026-09-15"),
                 extraction(base_ids[1], [row("senate-ptr:271111111111111111111111",
-                                             amount_raw="$15,001 - $50,000")],
+                                             transaction_date="2026-08-01",
+                                             owner_raw="Spouse", ticker_raw="OTHER",
+                                             asset_name_raw="Other Asset", asset_type_raw="Other",
+                                             transaction_type="sale",
+                                             amount_raw="$15,001 - $50,000",
+                                             comment_raw="Different report")],
                            filed_at_raw="Filed 09/15/2026 @ 9:00 AM",
                            portal_listed_date="2026-09-15"),
                 extraction(amendment_id, [row("senate-ptr:361111111111111111111111")],
