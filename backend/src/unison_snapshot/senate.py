@@ -112,7 +112,7 @@ class SenatePtrDiscovery:
     document_url: str
     portal_listed_date: str
     report_label_date: str | None
-    report_amendment_number: int | None
+    report_amendment_number: int | str | None
     source_id: str = "senate_efd"
 
 
@@ -277,7 +277,7 @@ def _portal_date(value: str) -> str:
     raise SenateEfdError("Senate eFD row has invalid portal date")
 
 
-def _canonical_report_link(markup: str) -> tuple[str, str, str, str | None, int | None]:
+def _canonical_report_link(markup: str) -> tuple[str, str, str, str | None, int | str | None]:
     parser = _AnchorParser()
     try:
         parser.feed(markup)
@@ -291,12 +291,13 @@ def _canonical_report_link(markup: str) -> tuple[str, str, str, str | None, int 
     href, label = parser.links[0]
     label_match = re.fullmatch(
         r"Periodic Transaction Report(?: for (\d{2}/\d{2}/\d{4}))?"
-        r"(?: \(Amendment ([1-9][0-9]*)\))?", label)
+        r"(?:( \(Amendment(?: ([1-9][0-9]*))?\)))?", label)
     if not label_match:
         raise SenateEfdError(f"Senate eFD report link is not a PTR: label={label!r}")
     report_label_date = (_portal_date(label_match.group(1))
                          if label_match.group(1) else None)
-    amendment_number = int(label_match.group(2)) if label_match.group(2) else None
+    amendment_number = (int(label_match.group(3)) if label_match.group(3) else
+                        "unspecified" if label_match.group(2) else None)
 
     # Only an absolute official HTTPS URL or a root-relative portal path is
     # accepted.  urljoin would otherwise turn network-path references into an

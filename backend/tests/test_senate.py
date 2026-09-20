@@ -162,6 +162,13 @@ class SenateDiscoveryTests(unittest.TestCase):
         self.assertEqual(discovery["reports"][0]["report_amendment_number"], 1)
         self.assertNotIn("filed_at", discovery["reports"][0])
 
+    def test_preserves_official_amendment_label_without_inventing_a_number(self):
+        unnumbered = row()
+        unnumbered[3] = unnumbered[3].replace(" (Amendment 1)", " (Amendment)")
+        page = parse_search_page(payload([unnumbered]), start=0, length=1)
+        discovery = build_discovery([page])
+        self.assertEqual(discovery["reports"][0]["report_amendment_number"], "unspecified")
+
     def test_field_drift_fails_closed(self):
         cases = [payload([row() + ["new column"]]), payload([row()[:-1]])]
         response_extra = payload([row()])

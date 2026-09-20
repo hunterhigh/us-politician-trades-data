@@ -94,6 +94,10 @@ def _canonical_discovery(value: object) -> dict:
     for field in ("filer_name", "office", "portal_listed_date"):
         if not isinstance(value.get(field), str) or not value[field].strip():
             raise SenateEfdError(f"Senate eFD report discovery has invalid {field}")
+    amendment = value.get("report_amendment_number")
+    if (amendment is not None and amendment != "unspecified" and
+            (type(amendment) is not int or amendment < 1)):
+        raise SenateEfdError("Senate eFD report discovery has invalid amendment number")
     return dict(value)
 
 
@@ -471,13 +475,15 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
     if len(titles) != 1:
         raise SenateEfdError("Senate eFD electronic PTR has no unique report title")
     title_match = re.fullmatch(
-        r"Periodic Transaction Report for (\d{2}/\d{2}/\d{4})(?: \(Amendment ([1-9][0-9]*)\))?",
+        r"Periodic Transaction Report for (\d{2}/\d{2}/\d{4})"
+        r"(?:( \(Amendment(?: ([1-9][0-9]*))?\)))?",
         titles[0],
     )
     if title_match is None:
         raise SenateEfdError("Senate eFD electronic PTR title changed")
     title_date = _iso_date(title_match.group(1))
-    title_amendment = int(title_match.group(2)) if title_match.group(2) else None
+    title_amendment = (int(title_match.group(3)) if title_match.group(3) else
+                       "unspecified" if title_match.group(2) else None)
     if title_amendment != metadata.get("report_amendment_number"):
         raise SenateEfdError("Senate eFD report amendment number does not match its catalog")
     totals = []

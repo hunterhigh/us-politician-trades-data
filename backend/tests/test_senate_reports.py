@@ -182,6 +182,19 @@ class SenateReportsTest(unittest.TestCase):
         self.assertEqual(result["report_amendment_number"], 1)
         self.assertFalse(result["catalog_title_date_matches"])
 
+    def test_unnumbered_official_amendment_remains_explicit(self):
+        content = html(rows=[[
+            "1", "09/01/2026", "Self", "ACME", "Acme", "Stock", "Purchase",
+            "$1,001 - $15,000", "",
+        ]]).replace(
+            b"Periodic Transaction Report for 09/17/2026",
+            b"Periodic Transaction Report for 09/17/2026 (Amendment)",
+        )
+        metadata = metadata_for(content)
+        metadata["report_amendment_number"] = "unspecified"
+        result = parse_electronic_ptr(metadata, content)
+        self.assertEqual(result["report_amendment_number"], "unspecified")
+
     def test_parser_fails_closed_on_table_or_row_drift(self):
         bad_header = html(headers=["#", "Date"])
         bad_width = html(rows=[["1", "09/01/2026"]])
