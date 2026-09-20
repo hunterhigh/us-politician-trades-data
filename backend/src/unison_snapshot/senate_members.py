@@ -98,7 +98,9 @@ def parse_members(content: bytes) -> list[SenateMember]:
     seen_ids: set[str] = set()
     for node in list(root):
         if node.tag != "member" or node.attrib:
-            raise SenateRosterError("Senate member roster has an unexpected entry")
+            raise SenateRosterError(
+                f"Senate member roster has an unexpected entry: tag={node.tag!r}; "
+                f"attributes={sorted(node.attrib)}")
         children = list(node)
         if any(child.attrib or list(child) for child in children):
             raise SenateRosterError("Senate member roster field structure changed")
