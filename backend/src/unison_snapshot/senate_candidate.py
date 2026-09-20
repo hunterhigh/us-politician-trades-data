@@ -125,7 +125,8 @@ def _limited_correction_changes(previous: dict, amended: dict) -> list[dict] | N
     expected_rows = list(range(1, len(previous_rows) + 1))
     previous_numbers = [row.get("row_number") for row in previous_rows if isinstance(row, dict)]
     amended_numbers = [row.get("row_number") for row in amended_rows if isinstance(row, dict)]
-    if (previous_numbers != expected_rows or amended_numbers != expected_rows or
+    if (sorted(previous_numbers) != expected_rows or sorted(amended_numbers) != expected_rows or
+            previous_numbers != amended_numbers or
             len(previous_numbers) != len(previous_rows) or len(amended_numbers) != len(amended_rows)):
         return None
     changed_rows = []
