@@ -79,7 +79,7 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 
 OGE多来源接入已从官方目录发现层开始：`backend/src/unison_snapshot/oge.py` 严格校验官方分页响应和链接，把278-T条目分成可直接下载PDF与需要Form 201请求两类，并将`docDate`仅保留为目录加入日期。该模块尚未连接生产工作流，也不会自动提交Form 201、猜测申报编号或把目录日期当作申报时间。
 
-Senate 接入已完成默认关闭的数据地基：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，保留门户展示日期而不冒充正式申报时间，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已成功归档100人官方名册、原始XML、规范名单与元数据，并每日更新 `state/status/senate_efd.json`。`senate-efd.yml` 只有在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 同时成立后，才会建立会话并每6小时归档完整PTR目录；当前两个开关均未设置，因此没有访问门户、接受声明或下载报告。此入口无需 API token。
+Senate 接入已通过显式授权进入目录生产阶段：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，分别保留门户列表日期、报告标题日期及修订编号，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已归档100人官方名册；`senate-efd.yml` 在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 双重门禁下，每6小时归档完整PTR目录。2026-01-01至今首次生产运行发现130份PTR，包含121份电子报告、9份纸面报告、29名申报人和17份修订报告；原始分页进入 `evidence`，规范目录进入 `review`。单份报告和交易事实尚未采集。此入口无需 API token。
 
 增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中364份抽取成功、31份保留明确失败状态，另有4份可靠识别为无交易申报；339份文件产生3225条候选交易，39份文件中的392条异常记录被隔离。当前House候选包含93人，按冻结前端实际窗口语义近30天80笔，交易日期范围为2023-10-31至2026-09-08；19笔完整披露条款的期权保留类型、行权价和到期日，3笔条款不完整的期权不使用猜测值。动态状态以 [`state/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/house_clerk.json) 和 [`review/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_clerk.json) 为准；旧文件名暂作兼容别名。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
