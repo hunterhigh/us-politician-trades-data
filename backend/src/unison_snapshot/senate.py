@@ -111,6 +111,7 @@ class SenatePtrDiscovery:
     document_id: str
     document_url: str
     portal_listed_date: str
+    report_label_date: str | None
     source_id: str = "senate_efd"
 
 
@@ -272,7 +273,7 @@ def _portal_date(value: str) -> str:
     raise SenateEfdError("Senate eFD row has invalid portal date")
 
 
-def _canonical_report_link(markup: str, portal_date: str) -> tuple[str, str, str]:
+def _canonical_report_link(markup: str) -> tuple[str, str, str, str | None]:
     parser = _AnchorParser()
     try:
         parser.feed(markup)
@@ -284,12 +285,12 @@ def _canonical_report_link(markup: str, portal_date: str) -> tuple[str, str, str
     if len(parser.links) != 1 or "".join(parser.outside_text).strip():
         raise SenateEfdError("Senate eFD report cell must contain exactly one link")
     href, label = parser.links[0]
-    displayed_date = datetime.fromisoformat(portal_date).strftime("%m/%d/%Y")
-    if label not in {
-            "Periodic Transaction Report",
-            f"Periodic Transaction Report for {displayed_date}",
-    }:
+    label_match = re.fullmatch(
+        r"Periodic Transaction Report(?: for (\d{2}/\d{2}/\d{4}))?", label)
+    if not label_match:
         raise SenateEfdError(f"Senate eFD report link is not a PTR: label={label!r}")
+    report_label_date = (_portal_date(label_match.group(1))
+                         if label_match.group(1) else None)
 
     # Only an absolute official HTTPS URL or a root-relative portal path is
     # accepted.  urljoin would otherwise turn network-path references into an
@@ -313,7 +314,8 @@ def _canonical_report_link(markup: str, portal_date: str) -> tuple[str, str, str
         raise SenateEfdError("Senate eFD report link has an invalid document id") from None
     if raw_id.lower() != document_id:
         raise SenateEfdError("Senate eFD report document id is not canonical")
-    return ("electronic_ptr" if access_kind == "ptr" else "paper_ptr", document_id, url)
+    return ("electronic_ptr" if access_kind == "ptr" else "paper_ptr",
+            document_id, url, report_label_date)
 
 
 def parse_search_page(payload: object, *, start: int, length: int) -> SenateSearchPage:
@@ -361,8 +363,8 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
         office = _nonempty_string(row[2], "office")
         report_markup = _nonempty_string(row[3], "report_type")
         portal_date = _portal_date(_nonempty_string(row[4], "portal_date"))
-        access_method, document_id, document_url = _canonical_report_link(
-            report_markup, portal_date)
+        access_method, document_id, document_url, report_label_date = _canonical_report_link(
+            report_markup)
         reports.append(SenatePtrDiscovery(
             catalog_index=start + offset,
             filer_name=f"{first} {last}",
@@ -372,6 +374,7 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
             document_id=document_id,
             document_url=document_url,
             portal_listed_date=portal_date,
+            report_label_date=report_label_date,
         ))
     return SenateSearchPage(start, length, total, len(rows), tuple(reports))
 

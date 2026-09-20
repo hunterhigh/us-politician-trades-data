@@ -158,6 +158,7 @@ class SenateDiscoveryTests(unittest.TestCase):
         self.assertEqual([report["access_method"] for report in discovery["reports"]],
                          ["electronic_ptr", "paper_ptr"])
         self.assertEqual(discovery["reports"][0]["portal_listed_date"], "2026-09-19")
+        self.assertEqual(discovery["reports"][0]["report_label_date"], "2026-09-19")
         self.assertNotIn("filed_at", discovery["reports"][0])
 
     def test_field_drift_fails_closed(self):
