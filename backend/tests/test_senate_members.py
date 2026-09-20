@@ -18,8 +18,10 @@ def member(full: str, first: str, last: str, state: str, bioguide: str, party: s
 <bioguide_id>{bioguide}</bioguide_id></member>""".encode()
 
 
-def xml(*members: bytes) -> bytes:
-    return b'<?xml version="1.0"?><contact_information>' + b"".join(members) + b"</contact_information>"
+def xml(*members: bytes, last_updated: bytes = b"") -> bytes:
+    metadata = b"<last_updated>September 20, 2026</last_updated>" if last_updated else b""
+    return (b'<?xml version="1.0"?><contact_information>' + metadata +
+            b"".join(members) + b"</contact_information>")
 
 
 ADA_CA = member("Example, Ada A.", "Ada", "Example", "CA", "E000001")
@@ -82,7 +84,7 @@ class SenateMemberTests(unittest.TestCase):
             b"</member>",
             b"<leadership_position>Committee Chair</leadership_position></member>",
         )
-        roster = build_roster(xml(with_leadership))
+        roster = build_roster(xml(with_leadership, last_updated=b"yes"))
         person = roster["members"][0]
         self.assertEqual((person["person_id"], person["state"]), ("senate:E000001", "CA"))
         self.assertEqual(roster["metadata"]["source_id"], "senate_members")

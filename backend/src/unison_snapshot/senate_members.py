@@ -96,7 +96,14 @@ def parse_members(content: bytes) -> list[SenateMember]:
 
     members: list[SenateMember] = []
     seen_ids: set[str] = set()
+    seen_last_updated = False
     for node in list(root):
+        if node.tag == "last_updated":
+            value = (node.text or "").strip()
+            if seen_last_updated or node.attrib or list(node) or not value or len(value) > 100:
+                raise SenateRosterError("Senate member roster has invalid last_updated metadata")
+            seen_last_updated = True
+            continue
         if node.tag != "member" or node.attrib:
             raise SenateRosterError(
                 f"Senate member roster has an unexpected entry: tag={node.tag!r}; "
