@@ -52,6 +52,28 @@ python -m unison_snapshot assemble --store ../.local/manual.git --commit <上一
 
 `client/snapshot_repo.py` 是本项目给出的公开 GitHub 读取实现，仍不是对方声称已经完成但尚未提供的那份文件。只有本项目测试及原包处理器和渲染器获得实际验证；不宣称对方新版 57 项测试已通过。
 
+## Alpaca Basic 本地行情验证
+
+开发验证命令使用免费 Alpaca Basic 账户的历史 SIP 数据，固定请求 `feed=sip`、`timeframe=1Day`、`adjustment=split`，按 ticker 分批并跟完 `next_page_token`。它只在 `.local/` 生成候选、冻结处理器输出、机器审计和 HTML，不解锁生产发布器，也不修改只读的 `review-input/`。
+
+先把免费账户密钥放入当前 PowerShell 进程，再从 `backend/` 运行：
+
+```powershell
+$env:ALPACA_API_KEY_ID = "<本地 key id>"
+$env:ALPACA_API_SECRET_KEY = "<本地 secret>"
+$env:PYTHONPATH = "$PWD/src"
+python -m unison_snapshot build-alpaca-market-validation `
+  --input ../.local/disclosure-current.json `
+  --output ../.local/alpaca-validation/candidate.json `
+  --processed-output ../.local/alpaca-validation/processed.json `
+  --audit-output ../.local/alpaca-validation/audit.json `
+  --html-output ../.local/alpaca-validation/dashboard.html
+```
+
+未显式给 `--as-of-date` 时，命令在纽约时间 16:30 后才把当日视为可用，并始终让请求结束时间至少落后当前时间 16 分钟；周末回退到周五。它取 24 个月加 21 个日历日缓冲，只保留候选披露截止时间以内、请求窗口以内的正数日收盘价。无行情、越过快照截止日、重复分页令牌、冲突日线或非法价格都会失败关闭；部分 ticker 缺失则写入 `audit.json` 并把行情来源状态标为 `partial`。
+
+当前工作树没有配置这两个环境变量，因此确定性模拟响应已完成端到端契约验证，真实 Alpaca HTTP 冒烟需在本机放入免费账户密钥后执行。密钥不会进入候选、审计、HTML或普通日志。
+
 ## House 官方索引发现
 
 下面的命令读取 House Clerk 当年公开的年度 ZIP 索引，把原始 ZIP 按 SHA-256 不可变归档，并输出待解析文件清单。清单只是官方文件发现结果，`official_raw_unparsed` 不代表已经识别出交易或持仓。

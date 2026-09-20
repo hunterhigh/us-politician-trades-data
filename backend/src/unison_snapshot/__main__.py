@@ -1,10 +1,13 @@
 import argparse
+from copy import deepcopy
 from dataclasses import asdict
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
 import tempfile
 
+from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_validation
 from .builder import build
 from .codec import digest, encode
 from .materialize import materialize
@@ -136,6 +139,20 @@ def main() -> None:
     disclosure_candidate.add_argument(
         "--harmonize-cutoffs", action="store_true",
         help="Align source candidates to their earliest cutoff and exclude later-filed facts")
+    market_validation = sub.add_parser(
+        "build-alpaca-market-validation",
+        help="Build a local Alpaca Basic candidate without enabling production publication")
+    market_validation.add_argument("--input", type=Path, required=True)
+    market_validation.add_argument("--output", type=Path, required=True)
+    market_validation.add_argument("--audit-output", type=Path, required=True)
+    market_validation.add_argument("--processed-output", type=Path)
+    market_validation.add_argument("--html-output", type=Path)
+    market_validation.add_argument("--checked-at")
+    market_validation.add_argument("--as-of-date")
+    market_validation.add_argument("--batch-size", type=int, default=50)
+    market_validation.add_argument("--timeout", type=float, default=30.0)
+    market_validation.add_argument("--key-id-env", default="ALPACA_API_KEY_ID")
+    market_validation.add_argument("--secret-key-env", default="ALPACA_API_SECRET_KEY")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -289,7 +306,6 @@ def main() -> None:
                               "snapshot_id": bundle.manifest["snapshot_id"],
                               "written": result.written, "removed": result.removed}))
         elif args.command == "fetch-public":
-            import os
             token = os.environ.get(args.token_env) if args.token_env else None
             selection = PublicSnapshotRepository(args.owner, args.repo, ref=args.ref,
                 transport=HTTPTransport(token=token)).fetch(args.mode, args.key)
@@ -417,6 +433,45 @@ def main() -> None:
                               "transactions": len(result["transactions"]),
                               "reported_holdings": len(result["reported_holdings"]),
                               "output": str(args.output.resolve()),
+                              "html": str(args.html_output.resolve()) if args.html_output else None}))
+        elif args.command == "build-alpaca-market-validation":
+            checked_at = args.checked_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            payload = json.loads(args.input.read_text(encoding="utf-8"))
+            client = AlpacaMarketClient(
+                os.environ.get(args.key_id_env, ""),
+                os.environ.get(args.secret_key_env, ""),
+                timeout=args.timeout,
+            )
+            validation = build_market_validation(
+                payload, client=client, checked_at=checked_at,
+                as_of_date=args.as_of_date, batch_size=args.batch_size)
+            result = validation.snapshot
+            result["meta"]["generated_at"] = checked_at
+            result["meta"]["snapshot_id"] = "prepublication-validation"
+            processor = load("process_snapshot")
+            processor.build_snapshot(result)
+            identity = deepcopy(result)
+            identity["meta"].pop("snapshot_id", None)
+            result["meta"]["snapshot_id"] = digest(encode(identity))
+            processed = processor.build_snapshot(result)
+            audit = dict(validation.audit, candidate_snapshot_id=result["meta"]["snapshot_id"],
+                         candidate_sha256=digest(encode(result)))
+            _write_atomic(args.output, result)
+            _write_atomic(args.audit_output, audit)
+            if args.processed_output:
+                _write_atomic(args.processed_output, processed)
+            if args.html_output:
+                renderer = load("render_dashboard")
+                html = renderer.render_html(renderer.load_dashboard_data(args.output))
+                args.html_output.parent.mkdir(parents=True, exist_ok=True)
+                args.html_output.write_text(html, encoding="utf-8")
+            print(json.dumps({"symbols": audit["symbol_count"],
+                              "market_rows": audit["market_row_count"],
+                              "missing_tickers": audit["missing_ticker_count"],
+                              "output": str(args.output.resolve()),
+                              "audit": str(args.audit_output.resolve()),
+                              "processed": (str(args.processed_output.resolve())
+                                            if args.processed_output else None),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "parse-senate-members":
             result = build_roster(args.input.read_bytes())
@@ -667,7 +722,7 @@ def main() -> None:
             print(json.dumps({"document_id": args.document_id, "status": args.status,
                               "counts": result["counts"], "queue": len(result["queue"]),
                               "output": str(args.output.resolve())}))
-    except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
+    except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError, AlpacaMarketError,
             SenateEfdError, SenateRosterError, SenateIdentityError, SenateHistoryError,
             CongressMemberError, OgeCatalogError,
             KeyError, OSError,

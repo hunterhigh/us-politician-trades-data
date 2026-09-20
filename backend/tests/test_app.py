@@ -34,6 +34,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("build-house-candidate", result.stdout)
         self.assertIn("build-senate-candidate", result.stdout)
         self.assertIn("build-disclosure-candidate", result.stdout)
+        self.assertIn("build-alpaca-market-validation", result.stdout)
         self.assertIn("parse-senate-members", result.stdout)
         self.assertIn("discover-senate-members", result.stdout)
         self.assertIn("parse-senate-search-page", result.stdout)
@@ -67,6 +68,21 @@ class CliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("Production admission", result.stderr)
             self.assertFalse((folder / "repo.git").exists())
+
+    def test_alpaca_validation_requires_environment_credentials(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            result = self.invoke(
+                "build-alpaca-market-validation",
+                "--input", str(BACKEND / "examples/synthetic.json"),
+                "--output", str(folder / "candidate.json"),
+                "--audit-output", str(folder / "audit.json"),
+                environment={"ALPACA_API_KEY_ID": "", "ALPACA_API_SECRET_KEY": ""},
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY are required", result.stderr)
+            self.assertFalse((folder / "candidate.json").exists())
+            self.assertFalse((folder / "audit.json").exists())
 
     def test_senate_gate_cli_is_disabled_by_default_and_requires_exact_flags(self):
         with tempfile.TemporaryDirectory() as temp:
