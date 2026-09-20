@@ -8,7 +8,7 @@ on:
       batch_size:
         description: Maximum number of archived PTRs to parse in this run
         required: false
-        default: '10'
+        default: '25'
 permissions:
   contents: write
 concurrency:
@@ -66,7 +66,7 @@ jobs:
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-          BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '10' }}
+          BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '25' }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
           case "$BATCH_SIZE" in
