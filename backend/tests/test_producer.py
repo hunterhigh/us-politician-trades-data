@@ -81,6 +81,16 @@ class ProducerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Shard size"):
             self.build(max_blob_bytes=20)
 
+    def test_option_contract_requires_complete_explicit_terms(self):
+        data = deepcopy(self.data)
+        data["transactions"][0].update(
+            instrument_type="Option", option_type="Call", strike_price=150,
+            expiration_date="2027-01-15")
+        self.build(data)
+        del data["transactions"][0]["strike_price"]
+        with self.assertRaisesRegex(ValueError, "Option transactions require"):
+            self.build(data)
+
     def test_empty_production_requires_explicit_bootstrap_gate(self):
         data = deepcopy(self.data)
         data["meta"]["is_demo"] = False

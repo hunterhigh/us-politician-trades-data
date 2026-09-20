@@ -36,7 +36,8 @@ REVIEW_SCHEMA = "house-ptr-review/v1"
 QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
 OCR_MINIMUM_ROW_CONFIDENCE = 85.0
 CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
-                     "transaction_date", "notification_date", "amount_low", "amount_high"}
+                     "option_type", "strike_price", "expiration_date", "transaction_date",
+                     "notification_date", "amount_low", "amount_high"}
 REVISION_ACTIONS = {"replace_prior", "standalone_correction"}
 LEGACY_AMOUNT_BUCKETS = (
     (1001, 15000, "range"), (15001, 50000, "range"),
@@ -71,6 +72,31 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
         # Dollar values are integral in the frontend contract, so "over" starts at the next dollar.
         return int(matched.group(1).replace(",", "")) + 1, None, "open_ended"
     return None
+
+
+def _parse_option_details(value: object) -> tuple[str | None, int | float | None, str | None]:
+    """Read only explicitly disclosed option facts from the filing description."""
+    if not isinstance(value, str):
+        return None, None, None
+    option_match = re.search(r"\b(call|put)\s+options?\b", value, re.I)
+    strike_match = re.search(r"\bstrike\s+price(?:\s+of)?\s*\$([0-9][0-9,]*(?:\.[0-9]+)?)", value, re.I)
+    expiry_match = re.search(
+        r"\b(?:an\s+expiration\s+date\s+of|expiration\s+date\s+of|expires)\s+"
+        r"(\d{1,2}/\d{1,2}/\d{2,4})\b", value, re.I)
+    option_type = option_match.group(1).title() if option_match else None
+    strike_price: int | float | None = None
+    if strike_match:
+        parsed = float(strike_match.group(1).replace(",", ""))
+        strike_price = int(parsed) if parsed.is_integer() else parsed
+    expiration_date = None
+    if expiry_match:
+        raw = expiry_match.group(1)
+        try:
+            expiration_date = datetime.strptime(raw, "%m/%d/%Y" if len(raw.rsplit("/", 1)[-1]) == 4
+                                                else "%m/%d/%y").date().isoformat()
+        except ValueError:
+            pass
+    return option_type, strike_price, expiration_date
 
 
 def _is_mark(word: dict) -> bool:
@@ -398,6 +424,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                 f"House PTR page {page_number} row {position + 1} has unsupported {failures} layout")
         asset_name, ticker, asset_type_code = asset_match.groups()
         amount_low, amount_high, amount_kind = amount_value
+        option_type, strike_price, expiration_date = _parse_option_details(details.get("description")) \
+            if ASSET_TYPES.get(asset_type_code) == "Option" else (None, None, None)
         ocr_confidences = [float(word["ocr_confidence"]) for _, word in block
                            if word.get("ocr_confidence") is not None]
         reasons = ["automatic_qualification_required"]
@@ -427,6 +455,9 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "asset_type_code": asset_type_code,
             "instrument_type": ASSET_TYPES.get(asset_type_code),
+            "option_type": option_type,
+            "strike_price": strike_price,
+            "expiration_date": expiration_date,
             "transaction_type_raw": raw_type,
             "transaction_type": TYPE_CODES[type_code],
             "transaction_date": transaction_iso,
@@ -531,6 +562,21 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         if len(parsed_dates) == 2 and not (
                 parsed_dates["transaction_date"] <= parsed_dates["notification_date"] <= filed_day):
             reasons.append("date_sequence_invalid")
+        option_type, strike_price, expiration_date = _parse_option_details(row.get("description"))
+        if row.get("instrument_type") == "Option":
+            option_type = row.get("option_type") or option_type
+            strike_price = row.get("strike_price") if row.get("strike_price") is not None else strike_price
+            expiration_date = row.get("expiration_date") or expiration_date
+            if option_type not in {"Call", "Put"} or type(strike_price) not in {int, float} \
+                    or strike_price <= 0 or expiration_date is None:
+                reasons.append("option_details_incomplete")
+            else:
+                try:
+                    expiry_day = datetime.strptime(expiration_date, "%Y-%m-%d").date()
+                    if parsed_dates.get("transaction_date") and expiry_day < parsed_dates["transaction_date"]:
+                        reasons.append("option_expiration_invalid")
+                except (TypeError, ValueError):
+                    reasons.append("option_expiration_invalid")
         if reasons:
             quarantined.append({
                 "extraction_id": row.get("extraction_id"),
@@ -544,6 +590,8 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
+            **({"option_type": option_type, "strike_price": strike_price,
+                "expiration_date": expiration_date} if row.get("instrument_type") == "Option" else {}),
             "transaction_date": row["transaction_date"], "filed_at": filed_at,
             "amount_low": low, "amount_high": high, "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",

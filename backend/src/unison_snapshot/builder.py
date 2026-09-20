@@ -19,7 +19,7 @@ SOURCE_HOSTS = {
 }
 FIELDS = {
     "people": set("id display_name short_name role office_type chamber party state disclosure_authority priority priority_reason portrait_url".split()),
-    "transactions": set("id filing_id person_id owner asset_name ticker ticker_mapping_basis instrument_type transaction_type transaction_date filed_at amount_low amount_high position_effect position_effect_basis source_id source source_url verification_status".split()),
+    "transactions": set("id filing_id person_id owner asset_name ticker ticker_mapping_basis instrument_type option_type strike_price expiration_date transaction_type transaction_date filed_at amount_low amount_high position_effect position_effect_basis source_id source source_url verification_status".split()),
     "reported_holdings": set("id filing_id person_id owner asset_name ticker ticker_mapping_basis instrument_type report_period_end filed_at value_low value_high change_from_prior source_id source source_url verification_status".split()),
 }
 
@@ -103,6 +103,17 @@ def normalize(payload: dict, *, allow_production: bool = False,
             lo, hi = row.get(prefix + "_low"), row.get(prefix + "_high")
             if type(lo) is not int or type(hi) is not int or not 0 <= lo <= hi:
                 raise ValueError("Disclosure ranges must be explicit nonnegative integers")
+            if kind == "transactions":
+                option_fields = (row.get("option_type"), row.get("strike_price"),
+                                 row.get("expiration_date"))
+                if row.get("instrument_type") == "Option":
+                    if option_fields[0] not in {"Call", "Put"} or \
+                            type(option_fields[1]) not in {int, float} or option_fields[1] <= 0:
+                        raise ValueError("Option transactions require a valid type and strike price")
+                    if date.fromisoformat(required(row, "expiration_date")) < event_date:
+                        raise ValueError("Option expiration precedes its transaction")
+                elif any(value is not None for value in option_fields):
+                    raise ValueError("Option details require an Option instrument")
             ticker = row.get("ticker")
             if ticker:
                 ticker = ticker.upper() if isinstance(ticker, str) else ""

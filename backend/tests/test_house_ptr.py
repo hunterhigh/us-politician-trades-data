@@ -277,6 +277,21 @@ class HousePtrTests(unittest.TestCase):
                               if row["extraction_id"] == impossible["transactions"][0]["extraction_id"])
         self.assertIn("date_sequence_invalid", impossible_row["reasons"])
 
+        option = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        option_row = option["transactions"][0]
+        option_row["instrument_type"] = "Option"
+        option_row["description"] = (
+            "Purchased 20 call options with a strike price of $150 and an expiration date of 1/15/27.")
+        qualified_option = qualify_automatic(option, IDENTITY)["transactions"][0]
+        self.assertEqual((qualified_option["option_type"], qualified_option["strike_price"],
+                          qualified_option["expiration_date"]), ("Call", 150, "2027-01-15"))
+
+        option_row["description"] = "Put Option"
+        incomplete_option = qualify_automatic(option, IDENTITY)
+        isolated_option = next(row for row in incomplete_option["quarantined"]
+                               if row["extraction_id"] == option_row["extraction_id"])
+        self.assertIn("option_details_incomplete", isolated_option["reasons"])
+
     def test_legacy_checkbox_form_uses_mark_columns_without_inference(self):
         extraction = parse_word_pages(META, "f" * 64, legacy_checkbox_pages(), copy_allowed=True,
                                       ocr_engine="tesseract 5.3.0")
