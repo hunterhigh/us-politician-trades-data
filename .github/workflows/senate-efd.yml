@@ -420,7 +420,8 @@ jobs:
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')
           PY
-          git -C "$REVIEW_ROOT" add candidates senate_efd status/senate_efd.json status/disclosure_candidate.json
+          git -C "$REVIEW_ROOT" add candidates senate_efd status/senate_efd.json \
+            status/disclosure_candidate.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
