@@ -97,6 +97,7 @@ jobs:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
       SENATE_EFD_START_DATE: ${{ vars.SENATE_EFD_START_DATE }}
+      SENATE_EFD_REPORT_BATCH_SIZE: ${{ vars.SENATE_EFD_REPORT_BATCH_SIZE }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -144,11 +145,23 @@ jobs:
             --discovery .local/senate-efd-discovery.json \
             --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
             --output .local/senate-efd-identities.json
+          report_batch_size="$SENATE_EFD_REPORT_BATCH_SIZE"
+          if [ -z "$report_batch_size" ]; then
+            report_batch_size=2
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot archive-senate-report-entrypoints \
+            --discovery .local/senate-efd-discovery.json \
+            --archive "$EVIDENCE_ROOT" \
+            --limit "$report_batch_size" \
+            --output .local/senate-efd-report-batch.json
       - name: Publish immutable catalog evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
         run: |
           git -C "$EVIDENCE_ROOT" add senate_efd/catalog
+          if [ -d "$EVIDENCE_ROOT/senate_efd/reports" ]; then
+            git -C "$EVIDENCE_ROOT" add senate_efd/reports
+          fi
           if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
             git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
             git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -165,6 +178,7 @@ jobs:
           from pathlib import Path
           gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
           discovery = json.loads(Path('.local/senate-efd-discovery.json').read_text(encoding='utf-8'))
+          report_batch = json.loads(Path('.local/senate-efd-report-batch.json').read_text(encoding='utf-8'))
           target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
           prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
           value = {
@@ -183,9 +197,17 @@ jobs:
                   'sha256': discovery['metadata']['sha256'],
                   'retrieved_at': discovery['metadata']['retrieved_at'],
               },
-              'reports': {'status': 'not_collected', 'record_count': 0},
-              'detail': ('Authorized eFD PTR catalog archived for review. Individual report pages '
-                         'and transaction facts have not been collected or published.'),
+              'reports': {
+                  'status': ('entrypoints_archived' if report_batch['archived_total'] else
+                             'entrypoint_collection_failed' if report_batch['failure_count'] else
+                             'not_collected'),
+                  'entrypoint_count': report_batch['archived_total'],
+                  'pending_count': report_batch['pending_count'],
+                  'last_batch_archived': report_batch['archived_count'],
+                  'last_batch_failures': report_batch['failure_count'],
+              },
+              'detail': ('Authorized eFD PTR catalog and a bounded batch of report entrypoint '
+                         'responses were archived. Transaction facts remain unpublished.'),
           }
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
@@ -204,6 +226,8 @@ jobs:
           path: |
             .local/senate-efd-discovery.json
             .local/senate-efd-identities.json
+            .local/senate-efd-report-batch.json
+          include-hidden-files: true
           retention-days: 1
 
   publish-review-catalog:
@@ -235,15 +259,27 @@ jobs:
           source = Path('.local/senate-efd-discovery.json')
           discovery = json.loads(source.read_text(encoding='utf-8'))
           identities = json.loads(Path('.local/senate-efd-identities.json').read_text(encoding='utf-8'))
+          report_batch = json.loads(Path('.local/senate-efd-report-batch.json').read_text(encoding='utf-8'))
           review = Path(os.environ['REVIEW_ROOT'])
           sha = discovery['metadata']['sha256']
+          if (identities.get('schema_version') != 'senate-efd-identities/v1' or
+                  identities.get('source_id') != 'senate_efd' or
+                  identities.get('catalog_sha256') != sha or
+                  identities.get('report_count') != discovery['records_total'] or
+                  sum(identities.get('identity_counts', {}).values()) != discovery['records_total'] or
+                  {item.get('document_id') for item in identities.get('identities', [])} !=
+                  {item.get('document_id') for item in discovery['reports']}):
+              raise SystemExit('Senate eFD identity batch does not match its discovery catalog')
+          roster_sha = identities.get('roster_sha256')
+          if not isinstance(roster_sha, str) or len(roster_sha) != 64:
+              raise SystemExit('Senate eFD identity batch has no valid roster hash')
           target = review / 'senate_efd' / 'discoveries' / f'{sha}.json'
           target.parent.mkdir(parents=True, exist_ok=True)
           content = json.dumps(discovery, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
           if target.is_file() and target.read_text(encoding='utf-8') != content:
               raise SystemExit('Senate eFD discovery conflicts with its content hash')
           target.write_text(content, encoding='utf-8')
-          identity_target = review / 'senate_efd' / 'identities' / f'{sha}.json'
+          identity_target = review / 'senate_efd' / 'identities' / sha / f'{roster_sha}.json'
           identity_target.parent.mkdir(parents=True, exist_ok=True)
           identity_content = json.dumps(
               identities, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
@@ -258,10 +294,14 @@ jobs:
               'catalog_sha256': sha,
               'catalog_record_count': discovery['records_total'],
               'identity_counts': identities['identity_counts'],
+              'identity_roster_sha256': roster_sha,
+              'report_entrypoint_count': report_batch['archived_total'],
+              'report_entrypoint_pending_count': report_batch['pending_count'],
+              'report_entrypoint_failure_count': report_batch['failure_count'],
               'report_evidence_count': 0,
               'extracted_transaction_count': 0,
-              'detail': ('PTR catalog is available for review; individual reports and transaction '
-                         'facts remain uncollected.'),
+              'detail': ('PTR catalog, identities, and bounded report entrypoint responses are '
+                         'available; report evidence completeness and transaction facts remain pending.'),
           }
           status_path = review / 'status' / 'senate_efd.json'
           status_path.parent.mkdir(parents=True, exist_ok=True)

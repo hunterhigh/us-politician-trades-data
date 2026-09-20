@@ -19,6 +19,7 @@ from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
 from .senate_identity import SenateIdentityError, build_catalog_identities
+from .senate_reports import archive_catalog_report_entrypoints
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -130,6 +131,13 @@ def main() -> None:
     senate_identities.add_argument("--discovery", type=Path, required=True)
     senate_identities.add_argument("--roster", type=Path, required=True)
     senate_identities.add_argument("--output", type=Path, required=True)
+    senate_reports = sub.add_parser("archive-senate-report-entrypoints")
+    senate_reports.add_argument("--discovery", type=Path, required=True)
+    senate_reports.add_argument("--archive", type=Path, required=True)
+    senate_reports.add_argument("--output", type=Path, required=True)
+    senate_reports.add_argument("--limit", type=int, default=2)
+    senate_reports.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
+    senate_reports.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -330,6 +338,19 @@ def main() -> None:
             _write_atomic(args.output, result)
             print(json.dumps({"reports": result["report_count"],
                               "identity_counts": result["identity_counts"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "archive-senate-report-entrypoints":
+            discovery = json.loads(args.discovery.read_text(encoding="utf-8"))
+            config = source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = archive_catalog_report_entrypoints(
+                args.archive, discovery, limit=args.limit, config=config)
+            _write_atomic(args.output, result)
+            print(json.dumps({"attempted": result["attempted_count"],
+                              "archived": result["archived_count"],
+                              "failures": result["failure_count"],
+                              "archived_total": result["archived_total"],
+                              "pending": result["pending_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))
