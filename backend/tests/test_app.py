@@ -46,6 +46,11 @@ class CliTests(unittest.TestCase):
         self.assertIn("resolve-senate-amendment-backfill", result.stdout)
         self.assertIn("activate-senate-amendment-supplement", result.stdout)
         self.assertIn("archive-senate-paper-pages", result.stdout)
+        self.assertIn("oge-gate", result.stdout)
+        self.assertIn("discover-oge", result.stdout)
+        self.assertIn("archive-oge-direct-pdfs", result.stdout)
+        self.assertIn("extract-oge-direct-pdfs", result.stdout)
+        self.assertIn("build-oge-candidate", result.stdout)
         self.assertIn("discover-house-members", result.stdout)
         self.assertIn("suggest-house-identity", result.stdout)
         self.assertIn("plan-house-ptr-sync", result.stdout)
@@ -86,3 +91,15 @@ class CliTests(unittest.TestCase):
             })
             self.assertEqual(result.returncode, 2)
             self.assertIn("exactly true or false", result.stderr)
+
+    def test_oge_gate_cli_is_default_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "gate.json"
+            result = self.invoke("oge-gate", "--output", str(output), environment={
+                "OGE_COLLECTION_ENABLED": "", "OGE_TERMS_ACKNOWLEDGED": ""})
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "disabled")
+            result = self.invoke("oge-gate", "--output", str(output), environment={
+                "OGE_COLLECTION_ENABLED": "true", "OGE_TERMS_ACKNOWLEDGED": "false"})
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "blocked")

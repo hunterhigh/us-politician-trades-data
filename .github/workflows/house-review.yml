@@ -329,6 +329,9 @@ jobs:
           if [ -f "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" ]; then
             source_args+=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
           fi
+          if [ -f "$REVIEW_ROOT/candidates/sources/oge-current.json" ]; then
+            source_args+=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
             --base ingest/current.json \
             --harmonize-cutoffs \

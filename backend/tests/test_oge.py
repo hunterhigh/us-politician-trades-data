@@ -1,10 +1,17 @@
 from copy import deepcopy
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from urllib.parse import parse_qs, urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from unison_snapshot.oge import OgeCatalogError, build_catalog, parse_catalog_page
+from unison_snapshot.oge import (
+    OgeCatalogClient, OgeCatalogError, OgeSourceConfig, build_catalog, collection_gate_status,
+    discover_catalog, parse_catalog_page, require_collection_enabled,
+    source_config_from_environment,
+)
 
 
 DIRECT = (
@@ -45,6 +52,9 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual(catalog["transactions"][0]["catalog_added_date"], "2026-09-19")
         self.assertNotIn("filed_at", catalog["transactions"][0])
         self.assertNotIn("filing_id", catalog["transactions"][0])
+        self.assertEqual(catalog["transactions"][0]["source_document_id"],
+                         "42300720a4227e9e85258e77002dd1b3")
+        self.assertIsNone(catalog["transactions"][1]["source_document_id"])
 
     def test_duplicate_request_rows_are_preserved_as_catalog_occurrences(self):
         duplicate = row(REQUEST)
@@ -111,6 +121,78 @@ class OgeCatalogTests(unittest.TestCase):
         second = parse_catalog_page(payload([row()], total=3), start=1, length=1)
         with self.assertRaises(OgeCatalogError):
             build_catalog([first, second])
+
+    def test_collection_gate_is_default_closed_and_exact(self):
+        self.assertEqual(collection_gate_status(OgeSourceConfig())["status"], "disabled")
+        self.assertEqual(collection_gate_status(OgeSourceConfig(enabled=True))["status"], "blocked")
+        with self.assertRaises(OgeCatalogError):
+            require_collection_enabled(OgeSourceConfig(enabled=True))
+        config = source_config_from_environment({
+            "OGE_COLLECTION_ENABLED": "true", "OGE_TERMS_ACKNOWLEDGED": "true"})
+        require_collection_enabled(config)
+        self.assertEqual(collection_gate_status(config)["status"], "enabled")
+        with self.assertRaises(OgeCatalogError):
+            source_config_from_environment({"OGE_COLLECTION_ENABLED": "TRUE"})
+
+    def test_discovery_paginates_and_archives_without_form_201(self):
+        class Client:
+            def __init__(self):
+                self.calls = []
+
+            def download_page(self, *, start, length, draw):
+                self.calls.append((start, length, draw))
+                markup = DIRECT if start == 0 else REQUEST
+                content = json.dumps(payload([row(markup)], total=2), separators=(",", ":")).encode()
+                return content, {"content-type": "application/json"}
+
+        with tempfile.TemporaryDirectory() as folder:
+            client = Client()
+            result = discover_catalog(
+                Path(folder), OgeSourceConfig(True, True), page_size=1, client=client)
+            self.assertEqual(client.calls, [(0, 1, 1), (1, 1, 2)])
+            self.assertEqual(result["metadata"]["direct_pdf_count"], 1)
+            self.assertEqual(result["metadata"]["request_required_count"], 1)
+            self.assertTrue((Path(folder) / result["metadata"]["archive_path"]).is_file())
+            self.assertEqual(len(list((Path(folder) / "oge/catalog/pages").glob("*.json"))), 2)
+
+    def test_http_client_uses_bounded_unfiltered_datatables_get(self):
+        body = json.dumps(payload([row(DIRECT)])).encode()
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json", "ETag": "example"}
+
+            def __init__(self, request):
+                self.request = request
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def geturl(self):
+                return self.request.full_url
+
+            def read(self, _):
+                return body
+
+        class Opener:
+            request = None
+
+            def open(self, request, timeout):
+                self.request = request
+                self.timeout = timeout
+                return Response(request)
+
+        opener = Opener()
+        content, headers = OgeCatalogClient(timeout=7, opener=opener).download_page(
+            start=0, length=100, draw=1)
+        query = parse_qs(urlsplit(opener.request.full_url).query, keep_blank_values=True)
+        self.assertEqual(content, body)
+        self.assertEqual((query["start"], query["length"], query["search[value]"]),
+                         (["0"], ["100"], [""]))
+        self.assertEqual(headers["etag"], "example")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Strict, offline parsing for the official OGE disclosure catalog.
+"""Fail-closed collection and parsing for the official OGE disclosure catalog.
 
 The catalog is discovery metadata, not a financial disclosure report.  In
 particular, its ``docDate`` field is the date an entry was added to the
@@ -7,10 +7,18 @@ catalog.  It must never be treated as a filing date.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import tempfile
 from typing import Iterable
-from urllib.parse import parse_qs, unquote, urlsplit
+import urllib.error
+from urllib.parse import parse_qs, unquote, urlencode, urlsplit
+import urllib.request
 
 
 API_URL = "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v2/rest"
@@ -19,13 +27,73 @@ CATALOG_URL = (
     "Officials%20Individual%20Disclosures%20Search%20Collection?OpenForm"
 )
 SCHEMA = "oge-disclosure-catalog/v1"
+GATE_SCHEMA = "oge-source-gate/v1"
 _RESPONSE_FIELDS = {"draw", "recordsTotal", "recordsFiltered", "data"}
 _ROW_FIELDS = {"type", "name", "agency", "title", "level", "docDate", "amended"}
 _ALLOWED_HOSTS = {"oge.gov", "www.oge.gov", "extapps2.oge.gov"}
+MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+MAX_CATALOG_ROWS = 25_000
 
 
 class OgeCatalogError(RuntimeError):
     """The official catalog response did not satisfy the expected contract."""
+
+
+@dataclass(frozen=True)
+class OgeSourceConfig:
+    """Collection gate; absent settings can never access the official catalog."""
+
+    enabled: bool = False
+    terms_acknowledged: bool = False
+
+
+def _environment_flag(value: object, name: str) -> bool:
+    if value in {None, ""}:
+        return False
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise OgeCatalogError(f"{name} must be exactly true or false")
+
+
+def source_config_from_environment(
+        environment: dict[str, str] | None = None, *,
+        enabled_name: str = "OGE_COLLECTION_ENABLED",
+        terms_name: str = "OGE_TERMS_ACKNOWLEDGED") -> OgeSourceConfig:
+    values = os.environ if environment is None else environment
+    return OgeSourceConfig(
+        enabled=_environment_flag(values.get(enabled_name), enabled_name),
+        terms_acknowledged=_environment_flag(values.get(terms_name), terms_name),
+    )
+
+
+def require_collection_enabled(config: OgeSourceConfig | None = None) -> None:
+    selected = config or OgeSourceConfig()
+    if not isinstance(selected, OgeSourceConfig):
+        raise OgeCatalogError("OGE source configuration is invalid")
+    if not selected.enabled:
+        raise OgeCatalogError("OGE collection is disabled")
+    if not selected.terms_acknowledged:
+        raise OgeCatalogError("OGE terms acknowledgement is required")
+
+
+def collection_gate_status(config: OgeSourceConfig) -> dict:
+    if not isinstance(config, OgeSourceConfig):
+        raise OgeCatalogError("OGE source configuration is invalid")
+    status = ("enabled" if config.enabled and config.terms_acknowledged else
+              "blocked" if config.enabled else "disabled")
+    reasons = ([] if status == "enabled" else
+               ["terms_acknowledgement_missing"] if status == "blocked" else
+               ["collection_not_enabled"])
+    return {
+        "schema_version": GATE_SCHEMA,
+        "source_id": "oge",
+        "status": status,
+        "collection_enabled": config.enabled,
+        "terms_acknowledged": config.terms_acknowledged,
+        "reasons": reasons,
+    }
 
 
 @dataclass(frozen=True)
@@ -42,6 +110,7 @@ class OgeCatalogRecord:
     amended_label: str | None
     pending_final_oge_disposition: bool
     access_method: str
+    source_document_id: str | None
     document_url: str
     source_id: str = "oge"
 
@@ -134,7 +203,7 @@ def _type_fragment(value: str) -> tuple[str, list[tuple[str, str]]]:
     return " ".join("".join(parser.text).split()), anchors
 
 
-def _classify_278(type_markup: str) -> tuple[str, str, bool] | None:
+def _classify_278(type_markup: str) -> tuple[str, str, str | None, bool] | None:
     text, anchors = _type_fragment(type_markup)
     if not text.startswith("278 Transaction"):
         return None
@@ -145,18 +214,19 @@ def _classify_278(type_markup: str) -> tuple[str, str, bool] | None:
     decoded_path = unquote(parsed.path)
     pending = "Pending Final OGE Disposition" in text
     if label == "278 Transaction":
-        if (parsed.hostname != "extapps2.oge.gov" or "/PAS+Index/" not in decoded_path or
-                "/$FILE/" not in decoded_path or not decoded_path.lower().endswith(".pdf") or
-                parsed.query):
+        match = re.fullmatch(
+            r"/201/Presiden\.nsf/PAS\+Index/([0-9A-F]{32})/\$FILE/([^/]+\.pdf)",
+            decoded_path, flags=re.IGNORECASE)
+        if parsed.hostname != "extapps2.oge.gov" or match is None or parsed.query:
             raise OgeCatalogError("OGE direct 278-T link has an unexpected shape")
-        return "direct_pdf", url, pending
+        return "direct_pdf", url, match.group(1).lower(), pending
     if label == "Request this Document":
         query = parse_qs(parsed.query, keep_blank_values=True)
         if (parsed.hostname != "extapps2.oge.gov" or not decoded_path.endswith("/201 Request") or
                 set(query) != {"OpenForm", "Filer"} or query["OpenForm"] != [""] or
                 len(query["Filer"]) != 1 or not query["Filer"][0].strip()):
             raise OgeCatalogError("OGE request 278-T link has an unexpected shape")
-        return "request_required", url, pending
+        return "request_required", url, None, pending
     raise OgeCatalogError("OGE 278 Transaction link has an unexpected label")
 
 
@@ -187,7 +257,7 @@ def parse_catalog_page(payload: object, *, start: int, length: int) -> OgeCatalo
         # Validate every row's catalog link even when it is not a 278-T.
         if classification is None:
             continue
-        access_method, document_url, pending = classification
+        access_method, document_url, source_document_id, pending = classification
         amended = _string(row, "amended", allow_empty=True).strip() or None
         transactions.append(OgeCatalogRecord(
             catalog_index=start + offset,
@@ -200,6 +270,7 @@ def parse_catalog_page(payload: object, *, start: int, length: int) -> OgeCatalo
             amended_label=amended,
             pending_final_oge_disposition=pending,
             access_method=access_method,
+            source_document_id=source_document_id,
             document_url=document_url,
         ))
     return OgeCatalogPage(start, length, total, len(rows), tuple(transactions))
@@ -234,3 +305,155 @@ def build_catalog(pages: Iterable[OgeCatalogPage]) -> dict:
         "catalog_rows_covered": expected_start,
         "transactions": transactions,
     }
+
+
+class OgeCatalogClient:
+    """Bounded client for the public DataTables endpoint.
+
+    It never submits Form 201.  A caller must explicitly satisfy both source
+    gates before this client is reachable.
+    """
+
+    _COLUMNS = ("docDate", "title", "type", "name", "agency", "level")
+
+    def __init__(self, timeout: float = 30.0, opener=None):
+        self.timeout = timeout
+        self.opener = opener or urllib.request.build_opener()
+
+    def download_page(self, *, start: int, length: int, draw: int) -> tuple[bytes, dict[str, str]]:
+        if type(start) is not int or start < 0 or type(length) is not int or not 1 <= length <= 100:
+            raise OgeCatalogError("OGE catalog request bounds are invalid")
+        if type(draw) is not int or draw <= 0:
+            raise OgeCatalogError("OGE catalog request draw is invalid")
+        parameters: list[tuple[str, str]] = [
+            ("draw", str(draw)), ("start", str(start)), ("length", str(length)),
+            ("search[value]", ""), ("search[regex]", "false"),
+            ("order[0][column]", "0"), ("order[0][dir]", "desc"),
+        ]
+        for index, name in enumerate(self._COLUMNS):
+            parameters.extend([
+                (f"columns[{index}][data]", name),
+                (f"columns[{index}][name]", ""),
+                (f"columns[{index}][searchable]", "true"),
+                (f"columns[{index}][orderable]", "true"),
+                (f"columns[{index}][search][value]", ""),
+                (f"columns[{index}][search][regex]", "false"),
+            ])
+        url = f"{API_URL}?{urlencode(parameters)}"
+        request = urllib.request.Request(url, headers={
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Referer": CATALOG_URL,
+            "User-Agent": (
+                "unison-oge-evidence/0.1 "
+                "(+https://github.com/hunterhigh/us-politician-trades-data)"
+            ),
+            "X-Requested-With": "XMLHttpRequest",
+        }, method="GET")
+        try:
+            with self.opener.open(request, timeout=self.timeout) as response:
+                if response.status != 200 or response.geturl() != url:
+                    raise OgeCatalogError("OGE catalog returned an unexpected response")
+                content = response.read(MAX_RESPONSE_BYTES + 1)
+                headers = {name.lower(): value for name, value in response.headers.items()
+                           if name.lower() in {"etag", "last-modified", "content-type"}}
+        except urllib.error.HTTPError as exc:
+            raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
+        except (urllib.error.URLError, TimeoutError):
+            raise OgeCatalogError("OGE catalog is unavailable") from None
+        if len(content) > MAX_RESPONSE_BYTES:
+            raise OgeCatalogError("OGE catalog response exceeds its size limit")
+        if "json" not in headers.get("content-type", "").lower():
+            raise OgeCatalogError("OGE catalog returned a non-JSON response")
+        return content, headers
+
+
+def _write_once(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise OgeCatalogError("Archived OGE content conflicts with its hash")
+        return
+    with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+        handle.write(payload)
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def archive_catalog(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str, str]]],
+                    catalog: dict, retrieved_at: str | None = None) -> dict:
+    if not raw_pages or catalog.get("schema_version") != SCHEMA:
+        raise OgeCatalogError("OGE catalog archive input is invalid")
+    base = root.resolve()
+    folder = base / "oge" / "catalog"
+    page_metadata = []
+    for start, length, content, headers in raw_pages:
+        sha = hashlib.sha256(content).hexdigest()
+        path = folder / "pages" / f"{sha}.json"
+        _write_once(path, content)
+        page_metadata.append({
+            "start": start, "length": length, "sha256": sha, "byte_length": len(content),
+            "headers": headers, "archive_path": path.relative_to(base).as_posix(),
+        })
+    normalized = json.dumps(catalog, ensure_ascii=False, sort_keys=True,
+                            separators=(",", ":")).encode("utf-8")
+    sha = hashlib.sha256(normalized).hexdigest()
+    path = folder / f"{sha}.json"
+    metadata = {
+        "schema_version": "oge-catalog-archive/v1",
+        "source_id": "oge", "source_url": API_URL,
+        "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "sha256": sha, "record_count": catalog["records_total"],
+        "transaction_report_count": len(catalog["transactions"]),
+        "direct_pdf_count": sum(item["access_method"] == "direct_pdf"
+                                for item in catalog["transactions"]),
+        "request_required_count": sum(item["access_method"] == "request_required"
+                                      for item in catalog["transactions"]),
+        "page_count": len(page_metadata), "pages": page_metadata,
+        "archive_path": path.relative_to(base).as_posix(),
+    }
+    encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise OgeCatalogError("Archived OGE catalog metadata is invalid") from None
+        stable = set(metadata) - {"retrieved_at"}
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise OgeCatalogError("Archived OGE catalog metadata conflicts with its content")
+        return existing
+    _write_once(path, encoded)
+    return metadata
+
+
+def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = 100,
+                     client: OgeCatalogClient | None = None) -> dict:
+    require_collection_enabled(config)
+    if type(page_size) is not int or not 1 <= page_size <= 100:
+        raise OgeCatalogError("OGE catalog page size must be between 1 and 100")
+    selected = client or OgeCatalogClient()
+    pages: list[OgeCatalogPage] = []
+    raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []
+    start = 0
+    draw = 1
+    while True:
+        content, headers = selected.download_page(start=start, length=page_size, draw=draw)
+        try:
+            payload = json.loads(content)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise OgeCatalogError("OGE catalog response is invalid JSON") from None
+        page = parse_catalog_page(payload, start=start, length=page_size)
+        if page.records_total > MAX_CATALOG_ROWS:
+            raise OgeCatalogError("OGE catalog exceeds its safety limit")
+        pages.append(page)
+        raw_pages.append((start, page_size, content, headers))
+        start += page.row_count
+        if start == page.records_total:
+            break
+        if page.row_count == 0:
+            raise OgeCatalogError("OGE catalog pagination made no progress")
+        draw += 1
+    catalog = build_catalog(pages)
+    metadata = archive_catalog(root, raw_pages, catalog)
+    return {"metadata": metadata, **catalog}

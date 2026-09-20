@@ -33,6 +33,14 @@ from .senate_history import (
     SenateHistoryError, activate_amendment_supplement,
     load_amendment_predecessor_plan, load_amendment_supplement,
 )
+from .oge import (
+    OgeCatalogError, collection_gate_status as oge_collection_gate_status,
+    discover_catalog as discover_oge_catalog,
+    source_config_from_environment as oge_source_config_from_environment,
+)
+from .oge_reports import archive_direct_batch as archive_oge_direct_batch, \
+    parse_archived_pdf as parse_oge_archived_pdf
+from .oge_candidate import build_oge_candidate
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -198,6 +206,35 @@ def main() -> None:
     senate_history_activate.add_argument("--supplement", type=Path, required=True)
     senate_history_activate.add_argument("--historical-extractions", type=Path, required=True)
     senate_history_activate.add_argument("--output", type=Path, required=True)
+    oge_gate = sub.add_parser("oge-gate")
+    oge_gate.add_argument("--output", type=Path, required=True)
+    oge_gate.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
+    oge_gate.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
+    oge_discovery = sub.add_parser("discover-oge")
+    oge_discovery.add_argument("--archive", type=Path, required=True)
+    oge_discovery.add_argument("--output", type=Path, required=True)
+    oge_discovery.add_argument("--page-size", type=int, default=100)
+    oge_discovery.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
+    oge_discovery.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
+    oge_reports = sub.add_parser("archive-oge-direct-pdfs")
+    oge_reports.add_argument("--catalog", type=Path, required=True)
+    oge_reports.add_argument("--archive", type=Path, required=True)
+    oge_reports.add_argument("--output", type=Path, required=True)
+    oge_reports.add_argument("--limit", type=int, default=2)
+    oge_reports.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
+    oge_reports.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
+    oge_extract = sub.add_parser("extract-oge-direct-pdfs")
+    oge_extract.add_argument("--batch", type=Path, required=True)
+    oge_extract.add_argument("--archive", type=Path, required=True)
+    oge_extract.add_argument("--output-dir", type=Path, required=True)
+    oge_extract.add_argument("--output", type=Path, required=True)
+    oge_candidate = sub.add_parser("build-oge-candidate")
+    oge_candidate.add_argument("--catalog", type=Path, required=True)
+    oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
+    oge_candidate.add_argument("--base", type=Path, required=True)
+    oge_candidate.add_argument("--data-cutoff-at", required=True)
+    oge_candidate.add_argument("--output", type=Path, required=True)
+    oge_candidate.add_argument("--audit-output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -510,6 +547,90 @@ def main() -> None:
                               "pages": result["page_count"],
                               "evidence_complete": result["evidence_complete"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "oge-gate":
+            config = oge_source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = oge_collection_gate_status(config)
+            _write_atomic(args.output, result)
+            print(json.dumps({"status": result["status"],
+                              "collection_enabled": result["collection_enabled"],
+                              "terms_acknowledged": result["terms_acknowledged"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "discover-oge":
+            config = oge_source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = discover_oge_catalog(
+                args.archive, config, page_size=args.page_size)
+            _write_atomic(args.output, result)
+            print(json.dumps({"records": result["records_total"],
+                              "transaction_reports": len(result["transactions"]),
+                              "direct_pdfs": result["metadata"]["direct_pdf_count"],
+                              "request_required": result["metadata"]["request_required_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "archive-oge-direct-pdfs":
+            catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
+            config = oge_source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = archive_oge_direct_batch(
+                args.archive, catalog, config, limit=args.limit)
+            _write_atomic(args.output, result)
+            print(json.dumps({"attempted": result["attempted_count"],
+                              "archived": result["archived_count"],
+                              "failures": result["failure_count"],
+                              "request_required": result["request_required_count"],
+                              "pending": result["pending_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "extract-oge-direct-pdfs":
+            batch = json.loads(args.batch.read_text(encoding="utf-8"))
+            reports = batch.get("reports") if isinstance(batch, dict) else None
+            if not isinstance(reports, list):
+                raise OgeCatalogError("OGE archive batch has no report metadata")
+            args.output_dir.mkdir(parents=True, exist_ok=True)
+            extracted = []
+            failures = []
+            for metadata in reports:
+                if not isinstance(metadata, dict) or not isinstance(metadata.get("document_id"), str):
+                    raise OgeCatalogError("OGE archive batch report is invalid")
+                metadata_path = args.archive / "oge" / "reports" / metadata["document_id"] / \
+                    f"{metadata.get('sha256')}.json"
+                try:
+                    result = parse_oge_archived_pdf(args.archive, metadata_path)
+                    _write_atomic(args.output_dir / f"{metadata['document_id']}.json", result)
+                    extracted.append(result)
+                except (OgeCatalogError, OSError, json.JSONDecodeError) as exc:
+                    failures.append({"document_id": metadata["document_id"], "error": str(exc)})
+            summary = {
+                "schema_version": "oge-278t-extraction-batch/v1", "source_id": "oge",
+                "report_count": len(reports), "extraction_count": len(extracted),
+                "failure_count": len(failures),
+                "transaction_count": sum(len(row["transactions"]) for row in extracted),
+                "quarantined_row_count": sum(len(row["quarantined"]) for row in extracted),
+                "failures": failures,
+            }
+            _write_atomic(args.output, summary)
+            print(json.dumps({**{key: summary[key] for key in (
+                "report_count", "extraction_count", "failure_count", "transaction_count",
+                "quarantined_row_count")}, "output": str(args.output.resolve())}))
+        elif args.command == "build-oge-candidate":
+            catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
+            extractions = [json.loads(path.read_text(encoding="utf-8"))
+                           for path in sorted(args.extractions_dir.rglob("*.json"))]
+            base = json.loads(args.base.read_text(encoding="utf-8"))
+            result, audit = build_oge_candidate(
+                catalog, extractions, base, data_cutoff_at=args.data_cutoff_at)
+            bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
+                           allow_empty_production=True)
+            result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
+                                  generated_at=args.data_cutoff_at)
+            audit["candidate_snapshot_id"] = bundle.manifest["snapshot_id"]
+            audit["candidate_sha256"] = digest(encode(result))
+            _write_atomic(args.output, result)
+            _write_atomic(args.audit_output, audit)
+            print(json.dumps({"people": len(result["people"]),
+                              "transactions": len(result["transactions"]),
+                              "quarantined_rows": audit["quarantined_row_count"],
+                              "output": str(args.output.resolve()),
+                              "audit": str(args.audit_output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -548,7 +669,7 @@ def main() -> None:
                               "output": str(args.output.resolve())}))
     except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
             SenateEfdError, SenateRosterError, SenateIdentityError, SenateHistoryError,
-            CongressMemberError,
+            CongressMemberError, OgeCatalogError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
