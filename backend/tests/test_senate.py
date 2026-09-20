@@ -29,7 +29,7 @@ def row(kind: str = "ptr", document_id: str = PTR_ID) -> list[str]:
         "Ada",
         "Example",
         "United States Senator from California",
-        f'<a href="/search/view/{kind}/{document_id}/">Periodic Transaction Report</a>',
+        f'<a href="/search/view/{kind}/{document_id}/" target="_blank">Periodic Transaction Report</a>',
         "09/19/2026",
     ]
 
@@ -174,8 +174,8 @@ class SenateDiscoveryTests(unittest.TestCase):
             official[3].replace("/search/view/", "https://evil.example/search/view/"),
             official[3].replace("/search/view/", "//evil.example/search/view/"),
             official[3].replace("/search/view/", "https://efdsearch.senate.gov@evil.example/search/view/"),
-            official[3].replace("/\">", "/?download=1\">"),
-            official[3].replace("/\">", "/#fragment\">"),
+            official[3].replace("/\" target", "/?download=1\" target"),
+            official[3].replace("/\" target", "/#fragment\" target"),
         ]
         for markup in malicious:
             bad = deepcopy(official)

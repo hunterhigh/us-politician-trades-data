@@ -135,7 +135,9 @@ class _AnchorParser(HTMLParser):
         if tag.lower() != "a" or self.label is not None:
             raise SenateEfdError("Senate eFD report cell contains unexpected markup")
         values = dict(attrs)
-        if set(values) != {"href"} or not isinstance(values["href"], str):
+        if (set(values) not in ({"href"}, {"href", "target"}) or
+                not isinstance(values.get("href"), str) or
+                ("target" in values and values["target"] != "_blank")):
             raise SenateEfdError(
                 f"Senate eFD report link has unexpected attributes: {sorted(values)}")
         self.href = values["href"]
