@@ -92,7 +92,10 @@ def parse_members(content: bytes) -> list[SenateMember]:
         names = [child.tag for child in children]
         if (len(names) != len(set(names)) or not _REQUIRED_FIELDS.issubset(names) or
                 not set(names).issubset(_REQUIRED_FIELDS | _OPTIONAL_FIELDS)):
-            raise SenateRosterError("Senate member roster fields changed")
+            missing = sorted(_REQUIRED_FIELDS - set(names))
+            unexpected = sorted(set(names) - (_REQUIRED_FIELDS | _OPTIONAL_FIELDS))
+            raise SenateRosterError(
+                f"Senate member roster fields changed; missing={missing}; unexpected={unexpected}")
         fields = {child.tag: child for child in children}
         bioguide = _text(fields, "bioguide_id")
         official_name = _text(fields, "member_full")
