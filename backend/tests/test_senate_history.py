@@ -5,13 +5,30 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from unison_snapshot.senate_history import SenateHistoryError, plan_amendment_predecessors
+from unison_snapshot.senate_history import (
+    SenateHistoryError, plan_amendment_predecessors, resolve_amendment_predecessors,
+)
 
 
 SHA = "a" * 64
 ROSTER_SHA = "c" * 64
 IDENTITY_BINDING = "d" * 64
 SOURCE_SHA = "e" * 64
+
+
+def transaction(*, amount="$1,001 - $15,000") -> dict:
+    return {
+        "row_number": 1,
+        "transaction_date": "2025-05-01",
+        "owner_raw": "Self",
+        "ticker_raw": "ACME",
+        "asset_name_raw": "Acme Inc",
+        "asset_type_raw": "Stock",
+        "transaction_type_raw": "Purchase",
+        "transaction_type": "purchase",
+        "amount_raw": amount,
+        "comment_raw": None,
+    }
 
 
 def report(document_id: str, *, filer="Sample Senator", label="2025-05-15",
@@ -100,12 +117,16 @@ def inputs(history_reports: list[dict]):
         }],
     }
     extractions = [{
+        "schema_version": "senate-efd-electronic-ptr-extraction/v1",
+        "parser_version": "parser-v1",
         "document_id": amendment_id,
         "report_amendment_number": 1,
         "report_title_date": "2025-05-15",
         "portal_listed_date": "2026-08-05",
         "source_sha256": SOURCE_SHA,
-        "transactions": [{}],
+        "filed_at_raw": "Filed 08/05/2026 @ 9:00 AM",
+        "evidence_complete": True,
+        "transactions": [transaction()],
     }]
     return history, historical_identities, status, audit, identities, extractions
 
@@ -163,6 +184,58 @@ class SenateHistoryTests(unittest.TestCase):
             plan_amendment_predecessors(
                 history, historical_identities, status, audit, identities, extractions,
                 expected_target_count=1)
+
+    def test_report_contents_resolve_ambiguous_catalog_candidates(self):
+        matching = report("21111111-1111-4111-8111-111111111111")
+        other = report("31111111-1111-4111-8111-111111111111")
+        history, historical_identities, status, audit, identities, extractions = inputs(
+            [matching, other])
+        plan = plan_amendment_predecessors(
+            history, historical_identities, status, audit, identities, extractions,
+            expected_target_count=1)
+        self.assertEqual(plan["status"], "attention")
+
+        def historical(item: dict, *, amount: str) -> dict:
+            return {
+                "schema_version": "senate-efd-electronic-ptr-extraction/v1",
+                "parser_version": "parser-v1",
+                "document_id": item["document_id"],
+                "source_sha256": hashlib.sha256(item["document_id"].encode()).hexdigest(),
+                "report_amendment_number": None,
+                "report_title_date": item["report_label_date"],
+                "report_label_date": item["report_label_date"],
+                "filed_at_raw": "Filed 05/15/2025 @ 8:00 AM",
+                "evidence_complete": True,
+                "transactions": [transaction(amount=amount)],
+            }
+
+        batch = {
+            "schema_version": "senate-efd-report-extraction-batch/v1",
+            "source_id": "senate_efd",
+            "catalog_sha256": plan["historical_catalog_sha256"],
+            "parser_version": "parser-v1",
+            "entrypoint_count": 2,
+            "extraction_count": 2,
+            "inspection_count": 0,
+            "failure_count": 0,
+            "extractions": [historical(matching, amount="$1,001 - $15,000"),
+                            historical(other, amount="$15,001 - $50,000")],
+        }
+        result = resolve_amendment_predecessors(plan, batch, extractions)
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["selected_document_ids"], [matching["document_id"]])
+        self.assertEqual(result["targets"][0]["content_match_count"], 1)
+
+    def test_resolution_fails_closed_on_tampered_plan(self):
+        predecessor = report("21111111-1111-4111-8111-111111111111")
+        history, historical_identities, status, audit, identities, extractions = inputs(
+            [predecessor])
+        plan = plan_amendment_predecessors(
+            history, historical_identities, status, audit, identities, extractions,
+            expected_target_count=1)
+        plan["candidate_document_ids"] = []
+        with self.assertRaisesRegex(SenateHistoryError, "plan.*invalid"):
+            resolve_amendment_predecessors(plan, {}, extractions)
 
 
 if __name__ == "__main__":

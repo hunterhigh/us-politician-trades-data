@@ -7,9 +7,19 @@ import json
 from pathlib import Path
 import re
 
+from .senate_candidate import AMENDMENT_COMPARE_RULE_VERSION, compare_amendment_pair
+from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, REPORT_EXTRACTION_BATCH_SCHEMA
+
 
 PLAN_SCHEMA = "senate-amendment-backfill-plan/v1"
+SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+_PLAN_FINGERPRINT_FIELDS = (
+    "historical_catalog_sha256", "historical_discovery_sha256",
+    "historical_identities_sha256", "current_catalog_sha256", "current_audit_sha256",
+    "candidate_snapshot_id", "identity_binding_sha256", "parser_version", "builder_version",
+    "compare_rule_version", "expected_target_count", "targets",
+)
 
 
 class SenateHistoryError(ValueError):
@@ -24,6 +34,20 @@ def _date(value: object) -> datetime | None:
     except ValueError:
         return None
     return parsed if parsed.strftime("%Y-%m-%d") == value else None
+
+
+def _canonical_sha256(value: object) -> str:
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _plan_sha256(plan: dict) -> str:
+    try:
+        value = {field: plan[field] for field in _PLAN_FINGERPRINT_FIELDS}
+    except KeyError:
+        raise SenateHistoryError("Senate amendment plan fingerprint is incomplete") from None
+    return _canonical_sha256(value)
 
 
 def plan_amendment_predecessors(
@@ -177,6 +201,7 @@ def plan_amendment_predecessors(
         candidates.sort(key=lambda item: (item["portal_listed_date"], item["document_id"]))
         targets.append({
             "amendment_document_id": document_id,
+            "amendment_source_sha256": extraction.get("source_sha256"),
             "person_id": person_id,
             "filer_name": filer_name,
             "report_title_date": title_date,
@@ -195,6 +220,10 @@ def plan_amendment_predecessors(
     if len(selected_ids) != len(set(selected_ids)):
         reasons.append("predecessor_reused")
     status = "ready" if not reasons else "attention"
+    candidate_ids = sorted({
+        report["document_id"]
+        for target in targets for report in target["candidate_predecessors"]
+    })
     historical_discovery_content_sha = hashlib.sha256(json.dumps(
         historical_discovery, ensure_ascii=False, sort_keys=True,
         separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -204,7 +233,7 @@ def plan_amendment_predecessors(
     current_audit_sha = hashlib.sha256(json.dumps(
         current_audit, ensure_ascii=False, sort_keys=True,
         separators=(",", ":")).encode("utf-8")).hexdigest()
-    fingerprint = json.dumps({
+    fingerprint_value = {
         "historical_catalog_sha256": historical_sha,
         "historical_discovery_sha256": historical_discovery_content_sha,
         "historical_identities_sha256": historical_identities_sha,
@@ -214,10 +243,11 @@ def plan_amendment_predecessors(
         "identity_binding_sha256": current_audit["identity_binding_sha256"],
         "parser_version": current_audit["parser_version"],
         "builder_version": current_audit["builder_version"],
+        "compare_rule_version": AMENDMENT_COMPARE_RULE_VERSION,
         "expected_target_count": expected_target_count,
         "targets": targets,
-    }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return {
+    }
+    result = {
         "schema_version": PLAN_SCHEMA,
         "source_id": "senate_efd",
         "status": status,
@@ -233,13 +263,136 @@ def plan_amendment_predecessors(
         "congress_roster_sha256": current_audit.get("congress_roster_sha256"),
         "parser_version": current_audit["parser_version"],
         "builder_version": current_audit["builder_version"],
+        "compare_rule_version": AMENDMENT_COMPARE_RULE_VERSION,
         "expected_target_count": expected_target_count,
         "target_count": len(targets),
         "unique_predecessor_count": len(selected_ids),
         "selected_document_ids": sorted(selected_ids),
+        "candidate_document_ids": candidate_ids,
         "targets": targets,
-        "plan_sha256": hashlib.sha256(fingerprint).hexdigest(),
     }
+    result["plan_sha256"] = _canonical_sha256(fingerprint_value)
+    return result
+
+
+def resolve_amendment_predecessors(
+        plan: object, historical_extraction_batch: object,
+        current_extractions: list[dict]) -> dict:
+    """Resolve catalog candidates by comparing their official report contents."""
+
+    if (not isinstance(plan, dict) or plan.get("schema_version") != PLAN_SCHEMA or
+            plan.get("source_id") != "senate_efd" or
+            not isinstance(plan.get("targets"), list) or
+            not isinstance(plan.get("candidate_document_ids"), list) or
+            plan.get("plan_sha256") != _plan_sha256(plan)):
+        raise SenateHistoryError("Senate amendment plan is invalid")
+    derived_candidate_ids = sorted({
+        report.get("document_id")
+        for target in plan["targets"] if isinstance(target, dict)
+        for report in target.get("candidate_predecessors", []) if isinstance(report, dict)
+    })
+    candidate_ids = plan["candidate_document_ids"]
+    if (candidate_ids != derived_candidate_ids or len(candidate_ids) != len(set(candidate_ids)) or
+            any(not isinstance(value, str) for value in candidate_ids)):
+        raise SenateHistoryError("Senate amendment plan candidate selection is invalid")
+    batch = historical_extraction_batch
+    if (not isinstance(batch, dict) or
+            batch.get("schema_version") != REPORT_EXTRACTION_BATCH_SCHEMA or
+            batch.get("source_id") != "senate_efd" or
+            batch.get("catalog_sha256") != plan.get("historical_catalog_sha256") or
+            batch.get("parser_version") != plan.get("parser_version") or
+            batch.get("failure_count") != 0 or batch.get("inspection_count") != 0 or
+            batch.get("entrypoint_count") != len(candidate_ids) or
+            batch.get("extraction_count") != len(candidate_ids) or
+            not isinstance(batch.get("extractions"), list)):
+        raise SenateHistoryError("Historical Senate report extraction batch is incomplete")
+    historical_by_document = {}
+    for extraction in batch["extractions"]:
+        document_id = extraction.get("document_id") if isinstance(extraction, dict) else None
+        if (not isinstance(document_id, str) or document_id in historical_by_document or
+                extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+                extraction.get("parser_version") != plan.get("parser_version") or
+                extraction.get("evidence_complete") is not True or
+                not isinstance(extraction.get("source_sha256"), str) or
+                not _SHA256.fullmatch(extraction["source_sha256"])):
+            raise SenateHistoryError("Historical Senate report extraction is invalid")
+        historical_by_document[document_id] = extraction
+    if sorted(historical_by_document) != candidate_ids:
+        raise SenateHistoryError("Historical Senate report extractions do not match the plan")
+    current_by_document = {}
+    for extraction in current_extractions:
+        document_id = extraction.get("document_id") if isinstance(extraction, dict) else None
+        if not isinstance(document_id, str) or document_id in current_by_document:
+            raise SenateHistoryError("Current Senate amendment extractions are invalid")
+        current_by_document[document_id] = extraction
+
+    resolved_targets = []
+    reasons = []
+    for target in plan["targets"]:
+        amendment_id = target.get("amendment_document_id") if isinstance(target, dict) else None
+        amendment = current_by_document.get(amendment_id)
+        if (not isinstance(amendment, dict) or
+                amendment.get("source_sha256") != target.get("amendment_source_sha256") or
+                amendment.get("parser_version") != plan.get("parser_version") or
+                amendment.get("report_amendment_number") != 1 or
+                amendment.get("report_title_date") != target.get("report_title_date")):
+            raise SenateHistoryError("Current Senate amendment does not match the plan")
+        matches = []
+        for catalog_report in target.get("candidate_predecessors", []):
+            candidate = historical_by_document.get(catalog_report.get("document_id"))
+            if (not isinstance(candidate, dict) or
+                    candidate.get("report_amendment_number") is not None or
+                    candidate.get("report_title_date") != target.get("report_title_date") or
+                    candidate.get("report_label_date") != catalog_report.get("report_label_date")):
+                raise SenateHistoryError("Historical Senate predecessor does not match its catalog")
+            comparison = compare_amendment_pair(candidate, amendment)
+            if comparison is not None:
+                matches.append({
+                    "document_id": candidate["document_id"],
+                    "source_sha256": candidate["source_sha256"],
+                    "filed_at_raw": candidate.get("filed_at_raw"),
+                    "changed_rows": comparison["changed_rows"],
+                })
+        if len(matches) != 1:
+            reasons.append("content_match_not_unique")
+        resolved_targets.append({
+            "amendment_document_id": amendment_id,
+            "amendment_source_sha256": amendment["source_sha256"],
+            "amendment_filed_at_raw": amendment.get("filed_at_raw"),
+            "person_id": target.get("person_id"),
+            "report_title_date": target.get("report_title_date"),
+            "catalog_candidate_count": target.get("candidate_count"),
+            "content_match_count": len(matches),
+            "content_matches": matches,
+        })
+    selected_ids = [target["content_matches"][0]["document_id"]
+                    for target in resolved_targets if target["content_match_count"] == 1]
+    if len(selected_ids) != len(set(selected_ids)):
+        reasons.append("predecessor_reused")
+    status = "ready" if not reasons and len(resolved_targets) == plan.get("expected_target_count") \
+        else "attention"
+    result = {
+        "schema_version": SUPPLEMENT_SCHEMA,
+        "source_id": "senate_efd",
+        "status": status,
+        "reasons": sorted(set(reasons)),
+        "plan_sha256": plan["plan_sha256"],
+        "historical_catalog_sha256": plan["historical_catalog_sha256"],
+        "historical_extraction_batch_sha256": _canonical_sha256(batch),
+        "current_catalog_sha256": plan["current_catalog_sha256"],
+        "current_audit_sha256": plan["current_audit_sha256"],
+        "candidate_snapshot_id": plan["candidate_snapshot_id"],
+        "identity_binding_sha256": plan["identity_binding_sha256"],
+        "parser_version": plan["parser_version"],
+        "builder_version": plan["builder_version"],
+        "compare_rule_version": plan["compare_rule_version"],
+        "target_count": len(resolved_targets),
+        "selected_predecessor_count": len(selected_ids),
+        "selected_document_ids": sorted(selected_ids),
+        "targets": resolved_targets,
+    }
+    result["supplement_sha256"] = _canonical_sha256(result)
+    return result
 
 
 def load_amendment_predecessor_plan(
@@ -276,3 +429,28 @@ def load_amendment_predecessor_plan(
         discovery, historical_identities, status, audit, identities, extractions,
         expected_target_count=expected_target_count,
     )
+
+
+def load_amendment_supplement(
+        review_root: Path, plan_path: Path, historical_extraction_batch_path: Path) -> dict:
+    """Load content-bound reports and resolve the historical supplement plan."""
+
+    try:
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        batch = json.loads(historical_extraction_batch_path.read_text(encoding="utf-8"))
+        parser_version = plan["parser_version"]
+        paths = sorted((review_root / "senate_efd" / "extractions").glob(
+            f"*/*/{parser_version}.json"))
+        current_extractions = []
+        for path in paths:
+            extraction = json.loads(path.read_text(encoding="utf-8"))
+            if (path.parent.parent.name != extraction.get("document_id") or
+                    path.parent.name != extraction.get("source_sha256") or
+                    path.stem != extraction.get("parser_version") or
+                    extraction.get("parser_version") != parser_version or
+                    extraction.get("evidence_complete") is not True):
+                raise SenateHistoryError("Senate amendment extraction path is not content bound")
+            current_extractions.append(extraction)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError):
+        raise SenateHistoryError("Senate amendment resolution inputs are incomplete") from None
+    return resolve_amendment_predecessors(plan, batch, current_extractions)

@@ -272,6 +272,44 @@ class SenateReportsTest(unittest.TestCase):
                           extracted["transaction_count"]), (1, 0, 2))
         self.assertTrue(extracted["extractions"][0]["evidence_complete"])
 
+    def test_selected_batch_counts_only_its_catalog_scope(self):
+        selected_id = "a1111111-1111-4111-8111-111111111111"
+        outside_id = "c1111111-1111-4111-8111-111111111111"
+        reports = [discovery(document_id=selected_id), discovery(document_id=outside_id)]
+        reports[1]["catalog_index"] = 1
+        batch = {
+            "schema_version": "senate-efd-discovery/v1",
+            "metadata": {"sha256": "a" * 64},
+            "reports": reports,
+        }
+        config = SenateSourceConfig(enabled=True, terms_acknowledged=True)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive_report(root, discovery(document_id=outside_id), html(),
+                           {"content-type": "text/html"}, "2026-09-20T00:00:00+00:00")
+            collected = archive_catalog_report_entrypoints(
+                root, batch, limit=1, config=config, client=FakeSession(html()),
+                selected_document_ids=[selected_id])
+        self.assertEqual(collected["catalog_record_count"], 2)
+        self.assertEqual(collected["selected_record_count"], 1)
+        self.assertEqual((collected["archived_total"], collected["pending_count"]), (1, 0))
+        self.assertEqual([item["document_id"] for item in collected["replay"]], [selected_id])
+
+    def test_selected_batch_rejects_unknown_or_duplicate_documents(self):
+        batch = {
+            "schema_version": "senate-efd-discovery/v1",
+            "metadata": {"sha256": "a" * 64},
+            "reports": [discovery()],
+        }
+        config = SenateSourceConfig(enabled=True, terms_acknowledged=True)
+        for selected in ([DOCUMENT_ID, DOCUMENT_ID],
+                         ["a1111111-1111-4111-8111-111111111111"]):
+            with self.subTest(selected=selected), tempfile.TemporaryDirectory() as temporary:
+                with self.assertRaises(SenateEfdError):
+                    archive_catalog_report_entrypoints(
+                        Path(temporary), batch, limit=1, config=config,
+                        client=FakeSession(html()), selected_document_ids=selected)
+
     def test_archive_timestamp_requires_timezone(self):
         with tempfile.TemporaryDirectory() as temporary, self.assertRaises(SenateEfdError):
             archive_report(Path(temporary), discovery(), html(),

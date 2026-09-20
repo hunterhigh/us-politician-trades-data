@@ -26,7 +26,9 @@ from .senate_members import SenateMemberClient, SenateRosterError, build_roster,
 from .senate_identity import SenateIdentityError, build_catalog_identities
 from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
 from .senate_candidate import load_senate_candidate
-from .senate_history import SenateHistoryError, load_amendment_predecessor_plan
+from .senate_history import (
+    SenateHistoryError, load_amendment_predecessor_plan, load_amendment_supplement,
+)
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -161,6 +163,7 @@ def main() -> None:
     senate_reports.add_argument("--archive", type=Path, required=True)
     senate_reports.add_argument("--output", type=Path, required=True)
     senate_reports.add_argument("--limit", type=int, default=2)
+    senate_reports.add_argument("--document-ids", type=Path)
     senate_reports.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
     senate_reports.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
     senate_extract = sub.add_parser("extract-senate-report-entrypoints")
@@ -173,6 +176,11 @@ def main() -> None:
     senate_history.add_argument("--historical-identities", type=Path, required=True)
     senate_history.add_argument("--expected-target-count", type=int, required=True)
     senate_history.add_argument("--output", type=Path, required=True)
+    senate_history_resolve = sub.add_parser("resolve-senate-amendment-backfill")
+    senate_history_resolve.add_argument("--review-root", type=Path, required=True)
+    senate_history_resolve.add_argument("--plan", type=Path, required=True)
+    senate_history_resolve.add_argument("--historical-extractions", type=Path, required=True)
+    senate_history_resolve.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -422,10 +430,13 @@ def main() -> None:
                               "output": str(args.output.resolve())}))
         elif args.command == "archive-senate-report-entrypoints":
             discovery = json.loads(args.discovery.read_text(encoding="utf-8"))
+            selected_document_ids = (json.loads(args.document_ids.read_text(encoding="utf-8"))
+                                     if args.document_ids else None)
             config = source_config_from_environment(
                 enabled_name=args.enabled_env, terms_name=args.terms_env)
             result = archive_catalog_report_entrypoints(
-                args.archive, discovery, limit=args.limit, config=config)
+                args.archive, discovery, limit=args.limit, config=config,
+                selected_document_ids=selected_document_ids)
             _write_atomic(args.output, result)
             print(json.dumps({"attempted": result["attempted_count"],
                               "archived": result["archived_count"],
@@ -441,6 +452,14 @@ def main() -> None:
             print(json.dumps({"status": result["status"],
                               "targets": result["target_count"],
                               "unique_predecessors": result["unique_predecessor_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "resolve-senate-amendment-backfill":
+            result = load_amendment_supplement(
+                args.review_root, args.plan, args.historical_extractions)
+            _write_atomic(args.output, result)
+            print(json.dumps({"status": result["status"],
+                              "targets": result["target_count"],
+                              "selected_predecessors": result["selected_predecessor_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-report-entrypoints":
             batch = json.loads(args.batch.read_text(encoding="utf-8"))

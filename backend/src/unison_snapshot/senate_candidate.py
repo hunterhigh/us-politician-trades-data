@@ -16,6 +16,7 @@ from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
 CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
+AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v1"
 AMOUNT_RANGES = {
     "$1,001 - $15,000": (1001, 15000),
     "$15,001 - $50,000": (15001, 50000),
@@ -113,6 +114,23 @@ def _filed_timestamp(raw: object) -> datetime | None:
         return None
 
 
+def compare_amendment_pair(previous: dict, amended: dict) -> dict | None:
+    """Return the exact allowed differences for one ordered amendment pair."""
+
+    changes = _amendment_pair_changes(previous, amended)
+    previous_filed_at = _filed_timestamp(previous.get("filed_at_raw"))
+    amended_filed_at = _filed_timestamp(amended.get("filed_at_raw"))
+    if (changes is None or previous_filed_at is None or amended_filed_at is None or
+            amended_filed_at <= previous_filed_at):
+        return None
+    return {
+        "rule_version": AMENDMENT_COMPARE_RULE_VERSION,
+        "previous_filed_at_raw": previous.get("filed_at_raw"),
+        "current_filed_at_raw": amended.get("filed_at_raw"),
+        "changed_rows": changes,
+    }
+
+
 def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str, dict]) -> dict:
     """Resolve only uniquely comparable amendment tails; leave all other groups quarantined."""
 
@@ -149,7 +167,6 @@ def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str,
         while current.get("report_amendment_number") is not None:
             current_number = current["report_amendment_number"]
             previous_number = None if current_number == 1 else current_number - 1
-            current_filed_at = _filed_timestamp(current.get("filed_at_raw"))
             predecessors = [report for report in reports
                             if report.get("report_amendment_number") == previous_number]
             if not predecessors and current_number == 1 and links:
@@ -159,11 +176,10 @@ def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str,
                 break
             matches = []
             for predecessor in predecessors:
-                changes = _amendment_pair_changes(predecessor, current)
-                predecessor_filed_at = _filed_timestamp(predecessor.get("filed_at_raw"))
-                if (changes is not None and current_filed_at is not None and
-                        predecessor_filed_at is not None and current_filed_at > predecessor_filed_at):
-                    matches.append((predecessor, changes, predecessor_filed_at))
+                comparison = compare_amendment_pair(predecessor, current)
+                if comparison is not None:
+                    matches.append((predecessor, comparison["changed_rows"],
+                                    _filed_timestamp(predecessor.get("filed_at_raw"))))
             if len(matches) != 1:
                 chain_failed = True
                 break

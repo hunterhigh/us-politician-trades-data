@@ -1,0 +1,212 @@
+name: Senate amendment history resolve
+on:
+  workflow_dispatch:
+    inputs:
+      submitted_start_date:
+        description: Earliest official catalog submission date to inspect
+        required: true
+        default: '2024-01-01'
+        type: string
+permissions:
+  contents: write
+jobs:
+  collect:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      HISTORY_START_DATE: ${{ inputs.submitted_start_date }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare immutable evidence and current review inputs
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-history-evidence"
+          review_root="$RUNNER_TEMP/senate-history-review"
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+      - name: Rebuild and verify the bounded 16-document whitelist
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-history-gate.json
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
+            --archive "$EVIDENCE_ROOT" \
+            --submitted-start-date "$HISTORY_START_DATE" \
+            --output .local/senate-history-discovery.json
+          roster_sha="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          status = json.loads((Path(os.environ['REVIEW_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(status['identity_roster_sha256'])
+          PY
+          )"
+          congress_roster_sha="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          status = json.loads((Path(os.environ['REVIEW_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(status.get('identity_congress_roster_sha256', ''))
+          PY
+          )"
+          identity_args=()
+          if [ -n "$congress_roster_sha" ]; then
+            congress_roster="$EVIDENCE_ROOT/senate_efd/congress_members/$congress_roster_sha/roster.json"
+            test -f "$congress_roster"
+            identity_args+=(--congress-roster "$congress_roster")
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot match-senate-catalog \
+            --discovery .local/senate-history-discovery.json \
+            --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
+            "${identity_args[@]}" \
+            --output .local/senate-history-identities.json
+          PYTHONPATH=backend/src python -m unison_snapshot plan-senate-amendment-backfill \
+            --review-root "$REVIEW_ROOT" \
+            --historical-discovery .local/senate-history-discovery.json \
+            --historical-identities .local/senate-history-identities.json \
+            --expected-target-count 12 \
+            --output .local/senate-amendment-history-plan.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path('.local/senate-amendment-history-plan.json').read_text(encoding='utf-8'))
+          counts = [target['candidate_count'] for target in plan['targets']]
+          expected_shape = (
+              plan['status'] == 'attention' and
+              plan['reasons'] == ['predecessor_not_unique'] and
+              plan['target_count'] == 12 and
+              counts.count(1) == 8 and counts.count(2) == 4 and
+              len(plan['candidate_document_ids']) == 16 and
+              len(set(plan['candidate_document_ids'])) == 16
+          )
+          if not expected_shape:
+              raise SystemExit('Historical amendment whitelist shape changed; refusing download')
+          Path('.local/senate-history-candidate-ids.json').write_text(
+              json.dumps(plan['candidate_document_ids'], separators=(',', ':')), encoding='utf-8')
+          PY
+      - name: Archive only the 16 plan-bound official entrypoints
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot archive-senate-report-entrypoints \
+            --discovery .local/senate-history-discovery.json \
+            --document-ids .local/senate-history-candidate-ids.json \
+            --archive "$EVIDENCE_ROOT" \
+            --limit 16 \
+            --output .local/senate-history-report-batch.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          batch = json.loads(Path('.local/senate-history-report-batch.json').read_text(encoding='utf-8'))
+          if (batch['selected_record_count'], batch['archived_total'], batch['pending_count'],
+                  batch['failure_count']) != (16, 16, 0, 0):
+              raise SystemExit('Historical report whitelist was not archived completely')
+          PY
+      - name: Publish immutable historical catalog and report evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          git -C "$EVIDENCE_ROOT" add senate_efd/catalog senate_efd/reports
+          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate amendment predecessors ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Parse the archived whitelist offline
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-report-entrypoints \
+            --batch .local/senate-history-report-batch.json \
+            --archive "$EVIDENCE_ROOT" \
+            --output .local/senate-history-extraction-batch.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          batch = json.loads(Path('.local/senate-history-extraction-batch.json').read_text(encoding='utf-8'))
+          if (batch['entrypoint_count'], batch['extraction_count'], batch['inspection_count'],
+                  batch['failure_count']) != (16, 16, 0, 0):
+              raise SystemExit('Historical report whitelist did not parse completely')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-amendment-history-inputs-${{ github.run_id }}
+          path: |
+            .local/senate-history-discovery.json
+            .local/senate-history-identities.json
+            .local/senate-amendment-history-plan.json
+            .local/senate-history-candidate-ids.json
+            .local/senate-history-report-batch.json
+            .local/senate-history-extraction-batch.json
+          retention-days: 1
+  resolve:
+    needs: collect
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: disclosure-review-writer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: senate-amendment-history-inputs-${{ github.run_id }}
+          path: .local
+      - name: Prepare immutable current review inputs
+        id: review
+        run: |
+          review_root="$RUNNER_TEMP/senate-history-review"
+          git fetch --no-tags origin review:refs/remotes/origin/review
+          git worktree add --detach "$review_root" origin/review
+          echo "root=$review_root" >> "$GITHUB_OUTPUT"
+      - name: Resolve every predecessor by official report contents
+        env:
+          REVIEW_ROOT: ${{ steps.review.outputs.root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot resolve-senate-amendment-backfill \
+            --review-root "$REVIEW_ROOT" \
+            --plan .local/senate-amendment-history-plan.json \
+            --historical-extractions .local/senate-history-extraction-batch.json \
+            --output .local/senate-amendment-supplement.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-amendment-supplement-${{ github.run_id }}
+          path: .local/senate-amendment-supplement.json
+          retention-days: 1
+      - name: Require one content-matched predecessor per amendment
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          supplement = json.loads(Path('.local/senate-amendment-supplement.json').read_text(encoding='utf-8'))
+          if (supplement['status'], supplement['target_count'],
+                  supplement['selected_predecessor_count']) != ('ready', 12, 12):
+              raise SystemExit(f"Historical amendment supplement needs attention: {supplement['reasons']}")
+          print('Resolved 12 amendment predecessors from 16 bounded official reports.')
+          PY

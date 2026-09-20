@@ -270,7 +270,8 @@ def _archived_entrypoints(root: Path) -> list[dict]:
 
 def archive_catalog_report_entrypoints(
         root: Path, discovery: object, *, limit: int,
-        config: SenateSourceConfig | None = None, client=None) -> dict:
+        config: SenateSourceConfig | None = None, client=None,
+        selected_document_ids: object = None) -> dict:
     """Archive a bounded, resumable batch of catalog-approved entrypoints."""
 
     selected_config = config or SenateSourceConfig()
@@ -286,17 +287,30 @@ def archive_catalog_report_entrypoints(
     if not isinstance(catalog_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", catalog_sha):
         raise SenateEfdError("Senate eFD report discovery batch has no valid catalog hash")
 
-    reports: list[dict] = []
+    all_reports: list[dict] = []
     seen: set[str] = set()
     for value in discovery["reports"]:
         report = _canonical_discovery(value)
         if report["document_id"] in seen:
             raise SenateEfdError("Senate eFD report discovery batch contains a duplicate document")
         seen.add(report["document_id"])
-        reports.append(report)
+        all_reports.append(report)
+    if selected_document_ids is None:
+        selected_ids = set(seen)
+    else:
+        if (not isinstance(selected_document_ids, list) or not selected_document_ids or
+                any(not isinstance(value, str) for value in selected_document_ids) or
+                len(selected_document_ids) != len(set(selected_document_ids))):
+            raise SenateEfdError("Senate eFD report selection is invalid")
+        selected_ids = set(selected_document_ids)
+        if not selected_ids <= seen:
+            raise SenateEfdError("Senate eFD report selection is outside the bound catalog")
+    reports = [report for report in all_reports if report["document_id"] in selected_ids]
     reports.sort(key=lambda item: (item["catalog_index"], item["document_id"]))
 
-    archived_before_items = _archived_entrypoints(root)
+    archived_before_items = [
+        item for item in _archived_entrypoints(root) if item["document_id"] in selected_ids
+    ]
     archived_before = {item["document_id"] for item in archived_before_items}
     pending = [report for report in reports if report["document_id"] not in archived_before]
     wrapper = SenateReportClient(selected_config, client=client)
@@ -320,14 +334,16 @@ def archive_catalog_report_entrypoints(
                 "access_method": report["access_method"],
                 "reason": str(exc),
             })
-    replay = _archived_entrypoints(root)
+    replay = [item for item in _archived_entrypoints(root)
+              if item["document_id"] in selected_ids]
     archived_ids = {item["document_id"] for item in replay}
     return {
         "schema_version": REPORT_BATCH_SCHEMA,
         "source_id": "senate_efd",
         "catalog_sha256": catalog_sha,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "catalog_record_count": len(reports),
+        "catalog_record_count": len(all_reports),
+        "selected_record_count": len(reports),
         "batch_limit": limit,
         "attempted_count": len(archived) + len(failures),
         "archived_count": len(archived),

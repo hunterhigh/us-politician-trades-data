@@ -68,6 +68,16 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertNotIn("HEAD:refs/heads/state", content)
         self.assertNotIn("HEAD:refs/heads/review", content)
 
+    def test_history_resolution_is_bounded_and_keeps_review_unchanged(self):
+        content = (ROOT / ".github/workflows/senate-amendment-history-resolve.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("--document-ids .local/senate-history-candidate-ids.json", content)
+        self.assertIn("--limit 16", content)
+        self.assertIn("counts.count(1) == 8 and counts.count(2) == 4", content)
+        self.assertIn("resolve-senate-amendment-backfill", content)
+        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog senate_efd/reports", content)
+        self.assertNotIn("HEAD:refs/heads/review", content)
+
 
 if __name__ == "__main__":
     unittest.main()
