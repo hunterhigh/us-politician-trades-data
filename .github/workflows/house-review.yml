@@ -77,14 +77,16 @@ jobs:
             exit 2
           }
           LEGACY_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import LEGACY_PARSER_VERSION; print(LEGACY_PARSER_VERSION)')"
-          export LEGACY_PARSER_VERSION
+          PARSER_RETRY_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import PARSER_RETRY_VERSION; print(PARSER_RETRY_VERSION)')"
+          export LEGACY_PARSER_VERSION PARSER_RETRY_VERSION
           python - <<'PY'
           import json, os
           from pathlib import Path
           evidence = Path(os.environ['EVIDENCE_ROOT'])
           review = Path(os.environ['REVIEW_ROOT'])
           parser_commit = os.environ['PARSER_COMMIT']
-          selected = []
+          pending = []
+          retries = []
           for metadata_path in sorted(evidence.glob('house_clerk/documents/*/*/*.json')):
               metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
               year = str(metadata['filing_year'])
@@ -99,17 +101,21 @@ jobs:
                                       and value.get('parser_version') != os.environ['LEGACY_PARSER_VERSION'])
                       if not stale_legacy:
                           continue
+                      retries.append(metadata_path)
+                      continue
                   except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                      pass
+                      retries.append(metadata_path)
+                      continue
               if failure.is_file():
                   try:
-                      if json.loads(failure.read_text(encoding='utf-8')).get('parser_commit') == parser_commit:
+                      if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == os.environ['PARSER_RETRY_VERSION']:
                           continue
                   except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                       pass
-              selected.append(metadata_path)
-              if len(selected) == int(os.environ['BATCH_SIZE']):
-                  break
+                  retries.append(metadata_path)
+              else:
+                  pending.append(metadata_path)
+          selected = (pending + retries)[:int(os.environ['BATCH_SIZE'])]
           Path('.local').mkdir(exist_ok=True)
           Path('.local/parse-batch.txt').write_text(
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
@@ -151,6 +157,7 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
+          export PARSER_RETRY_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import PARSER_RETRY_VERSION; print(PARSER_RETRY_VERSION)')"
           roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
           test -n "$roster" && test -f "$roster"
           parsed=0
@@ -194,6 +201,7 @@ jobs:
               'document_id': os.environ['DOCUMENT_ID'],
               'source_sha256': os.environ['SHA'],
               'parser_commit': os.environ['PARSER_COMMIT'],
+              'parser_version': os.environ['PARSER_RETRY_VERSION'],
               'attempts': int(previous.get('attempts', 0)) + 1,
               'last_attempt_at': datetime.now(timezone.utc).isoformat(),
               'error': os.environ['ERROR'],

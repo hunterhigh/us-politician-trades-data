@@ -18,6 +18,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-04"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-02"
+PARSER_RETRY_VERSION = "house-parser-suite-2026-05"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 LEGACY_DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/\d{2}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
