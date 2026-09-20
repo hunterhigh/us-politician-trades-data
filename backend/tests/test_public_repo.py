@@ -74,6 +74,14 @@ class PublicRepositoryTests(unittest.TestCase):
         self.assertEqual(len(ticker["transactions"]), 2)
         self.assertEqual(ticker["meta"]["selection_scope"]["key"], "ZZDEMO")
 
+    def test_person_name_resolves_within_the_frozen_board(self):
+        person = self.repo.fetch("person", "  demo   person ONE ").snapshot
+        self.assertEqual([row["id"] for row in person["people"]], ["house:DEMO001"])
+        self.assertEqual(person["meta"]["selection_scope"]["key"], "house:DEMO001")
+        self.assertTrue(all(f"/{COMMIT}/" in call[0] for call in self.transport.calls[1:]))
+        with self.assertRaisesRegex(PublicSnapshotError, "not found"):
+            self.repo.fetch("person", "No Such Person")
+
     def test_hash_demo_and_reference_fail_closed(self):
         board = json.loads(self.files["manifest.json"])["board"]
         corrupt = dict(self.files)

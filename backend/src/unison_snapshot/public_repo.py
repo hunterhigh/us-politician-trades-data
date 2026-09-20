@@ -170,12 +170,42 @@ class PublicSnapshotRepository:
             rows.append(row)
         return rows
 
+    @staticmethod
+    def _normalized_person_name(value: object) -> str:
+        return " ".join(value.split()).casefold() if isinstance(value, str) else ""
+
+    def _resolve_person_key(self, commit: str, manifest: dict, value: str) -> str:
+        """Resolve an exact display/short name inside the same frozen snapshot commit."""
+        if ":" in value:
+            return value
+        requested = self._normalized_person_name(value)
+        if not requested:
+            raise PublicSnapshotError("Person name is empty")
+        board = self._content(commit, "board", manifest["board"])
+        people = board.get("people")
+        if not isinstance(people, list):
+            raise PublicSnapshotError("Board has no people array for name resolution")
+        matches = []
+        for person in people:
+            if not isinstance(person, dict) or not isinstance(person.get("id"), str):
+                raise PublicSnapshotError("Board contains an invalid person")
+            aliases = {self._normalized_person_name(person.get("display_name")),
+                       self._normalized_person_name(person.get("short_name"))}
+            if requested in aliases:
+                matches.append(person["id"])
+        matches = sorted(set(matches))
+        if len(matches) != 1:
+            reason = "ambiguous" if matches else "not found"
+            raise PublicSnapshotError(f"Person name is {reason} in the frozen snapshot")
+        return matches[0]
+
     def fetch(self, mode: str = "dashboard", key: str | None = None) -> SnapshotSelection:
         commit = self.resolve()
         manifest = self.manifest(commit)
         if mode in {"dashboard", "search"}:
             board = self._content(commit, "board", manifest["board"])
         elif mode == "person" and key:
+            key = self._resolve_person_key(commit, manifest, key)
             entity = self._entity(commit, "people", key)
             person = entity.get("person")
             if person is None and isinstance(entity.get("people"), list) and len(entity["people"]) == 1:

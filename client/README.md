@@ -9,9 +9,12 @@
 ```powershell
 $env:GITHUB_TOKEN = gh auth token  # 可选，但建议设置以提高 GitHub API 限额
 python client/fetch_snapshot.py dashboard --owner hunterhigh --repo us-politician-trades-data --output .local/production-dashboard.json
+python client/fetch_snapshot.py person --value "Nancy Pelosi" --owner hunterhigh --repo us-politician-trades-data --output .local/production-person.json
 python review-input/us-politician-trades-watch/scripts/render_dashboard.py --input .local/production-dashboard.json --output .local/production-dashboard.html
 ```
 
 脚本会自动定位仓库内的 `backend/src`，不要求用户设置 `PYTHONPATH`。公开仓库可以匿名读取；GitHub 的匿名 API 限额较低，在共享出口网络中可能出现 403，因此生产运行建议设置只读可用的 `GITHUB_TOKEN`。Token 只用于 GitHub API 的 commit 解析，不会发送给 raw 内容主机。owner/repo 是固定标识，不接受任意基础 URL。
 
 相较对方代理版“manifest + board”两个 HTTP 请求，公开 GitHub 直读多一次 commit 解析，所以 dashboard 首次为三个请求。它换来的结果是首版不需要 Cloudflare，也不会在一次报告中混合两个提交。
+
+`person` 接受稳定ID或人物全名/短名。姓名会在同一个固定commit的完整board中做大小写与空白规范化后的唯一精确匹配，再读取人物分片；无匹配和重名会明确失败，不使用模糊猜测。
