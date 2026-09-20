@@ -58,6 +58,16 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("'collection_enabled': gate['collection_enabled']", content)
         self.assertIn("'terms_acknowledged': gate['terms_acknowledged']", content)
 
+    def test_history_plan_archives_only_catalog_and_does_not_mutate_candidate_state(self):
+        content = (ROOT / ".github/workflows/senate-amendment-history-plan.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("python -m unison_snapshot plan-senate-amendment-backfill", content)
+        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog", content)
+        self.assertIn("Require a unique predecessor for every planned target", content)
+        self.assertNotIn("archive-senate-report-entrypoints", content)
+        self.assertNotIn("HEAD:refs/heads/state", content)
+        self.assertNotIn("HEAD:refs/heads/review", content)
+
 
 if __name__ == "__main__":
     unittest.main()

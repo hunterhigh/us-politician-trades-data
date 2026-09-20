@@ -1,0 +1,121 @@
+name: Senate amendment history plan
+on:
+  workflow_dispatch:
+    inputs:
+      submitted_start_date:
+        description: Earliest official catalog submission date to inspect
+        required: true
+        default: '2024-01-01'
+        type: string
+      expected_target_count:
+        description: Number of current Amendment 1 reports that need predecessors
+        required: true
+        default: '12'
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: disclosure-source-writer
+  cancel-in-progress: false
+jobs:
+  plan:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      HISTORY_START_DATE: ${{ inputs.submitted_start_date }}
+      EXPECTED_TARGET_COUNT: ${{ inputs.expected_target_count }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare immutable evidence and current review inputs
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-history-evidence"
+          review_root="$RUNNER_TEMP/senate-history-review"
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+      - name: Discover the bounded historical catalog and plan exact predecessors
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-history-gate.json
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
+            --archive "$EVIDENCE_ROOT" \
+            --submitted-start-date "$HISTORY_START_DATE" \
+            --output .local/senate-history-discovery.json
+          roster_sha="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          status = json.loads((Path(os.environ['REVIEW_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(status['identity_roster_sha256'])
+          PY
+          )"
+          congress_roster_sha="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          status = json.loads((Path(os.environ['REVIEW_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(status.get('identity_congress_roster_sha256', ''))
+          PY
+          )"
+          identity_args=()
+          if [ -n "$congress_roster_sha" ]; then
+            congress_roster="$EVIDENCE_ROOT/senate_efd/congress_members/$congress_roster_sha/roster.json"
+            test -f "$congress_roster"
+            identity_args+=(--congress-roster "$congress_roster")
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot match-senate-catalog \
+            --discovery .local/senate-history-discovery.json \
+            --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
+            "${identity_args[@]}" \
+            --output .local/senate-history-identities.json
+          PYTHONPATH=backend/src python -m unison_snapshot plan-senate-amendment-backfill \
+            --review-root "$REVIEW_ROOT" \
+            --historical-discovery .local/senate-history-discovery.json \
+            --historical-identities .local/senate-history-identities.json \
+            --expected-target-count "$EXPECTED_TARGET_COUNT" \
+            --output .local/senate-amendment-history-plan.json
+      - name: Publish immutable historical catalog evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          git -C "$EVIDENCE_ROOT" add senate_efd/catalog
+          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate amendment history plan ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-amendment-history-plan-${{ github.run_id }}
+          path: |
+            .local/senate-history-discovery.json
+            .local/senate-history-identities.json
+            .local/senate-amendment-history-plan.json
+          retention-days: 1
+      - name: Require a unique predecessor for every planned target
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path('.local/senate-amendment-history-plan.json').read_text(encoding='utf-8'))
+          if plan['status'] != 'ready':
+              raise SystemExit(f"Historical amendment plan needs attention: {plan['reasons']}")
+          print(f"Ready to backfill {plan['unique_predecessor_count']} exact predecessor reports.")
+          PY

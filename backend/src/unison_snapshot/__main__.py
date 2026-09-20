@@ -26,6 +26,7 @@ from .senate_members import SenateMemberClient, SenateRosterError, build_roster,
 from .senate_identity import SenateIdentityError, build_catalog_identities
 from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
 from .senate_candidate import load_senate_candidate
+from .senate_history import SenateHistoryError, load_amendment_predecessor_plan
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -166,6 +167,12 @@ def main() -> None:
     senate_extract.add_argument("--batch", type=Path, required=True)
     senate_extract.add_argument("--archive", type=Path, required=True)
     senate_extract.add_argument("--output", type=Path, required=True)
+    senate_history = sub.add_parser("plan-senate-amendment-backfill")
+    senate_history.add_argument("--review-root", type=Path, required=True)
+    senate_history.add_argument("--historical-discovery", type=Path, required=True)
+    senate_history.add_argument("--historical-identities", type=Path, required=True)
+    senate_history.add_argument("--expected-target-count", type=int, required=True)
+    senate_history.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -426,6 +433,15 @@ def main() -> None:
                               "archived_total": result["archived_total"],
                               "pending": result["pending_count"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "plan-senate-amendment-backfill":
+            result = load_amendment_predecessor_plan(
+                args.review_root, args.historical_discovery, args.historical_identities,
+                expected_target_count=args.expected_target_count)
+            _write_atomic(args.output, result)
+            print(json.dumps({"status": result["status"],
+                              "targets": result["target_count"],
+                              "unique_predecessors": result["unique_predecessor_count"],
+                              "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-report-entrypoints":
             batch = json.loads(args.batch.read_text(encoding="utf-8"))
             result = extract_archived_report_batch(args.archive, batch)
@@ -473,7 +489,8 @@ def main() -> None:
                               "counts": result["counts"], "queue": len(result["queue"]),
                               "output": str(args.output.resolve())}))
     except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
-            SenateEfdError, SenateRosterError, SenateIdentityError, CongressMemberError,
+            SenateEfdError, SenateRosterError, SenateIdentityError, SenateHistoryError,
+            CongressMemberError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
