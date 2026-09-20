@@ -1,6 +1,6 @@
-# House machine qualification queue
+# Machine qualification and candidate data
 
-This branch contains machine extractions, deterministic identity matches, automatic qualification results,
-quarantined exceptions, legacy review templates, and parse failures.
-Qualification artifacts may feed a complete candidate snapshot; only the publication workflow writes `main`.
-Every artifact is keyed to an immutable PDF SHA-256 from the `evidence` branch and the parser code commit.
+This branch contains source-scoped machine extractions, deterministic identity matches, automatic
+qualification results, quarantined exceptions, parse failures, and unified frontend candidates.
+Only the publication workflow writes `main`. Every source artifact is keyed to immutable evidence and the
+parser code commit.
