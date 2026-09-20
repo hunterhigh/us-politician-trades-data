@@ -10,12 +10,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+from datetime import datetime, time, timedelta, timezone
 
 from .builder import timestamp
+from .codec import digest, encode
 
 
 READY_SOURCE_STATUSES = frozenset({"ok", "partial"})
 DISCLOSURE_ARRAYS = ("people", "transactions", "reported_holdings")
+SOURCE_LABELS = {"house_clerk": "House", "senate_efd": "Senate", "oge": "OGE"}
+MAX_HARMONIZATION_LAG = timedelta(days=2)
 
 
 class DisclosureCandidateError(ValueError):
@@ -60,6 +64,16 @@ def project_source_candidate(source_id: str, candidate: dict) -> dict:
     holdings = _objects(candidate.get("reported_holdings"), f"{source_id} reported_holdings")
     selected_transactions = [row for row in transactions if row.get("source_id") == source_id]
     selected_holdings = [row for row in holdings if row.get("source_id") == source_id]
+    cutoff_time = timestamp(cutoff)
+    for row in selected_transactions + selected_holdings:
+        try:
+            filed_at = timestamp(row.get("filed_at"))
+        except (TypeError, ValueError):
+            raise DisclosureCandidateError(
+                f"{source_id} disclosure has an invalid filed_at") from None
+        if filed_at > cutoff_time:
+            raise DisclosureCandidateError(
+                f"{source_id} disclosure exceeds its native cutoff")
     referenced_ids = {
         _identifier(row, "person_id", f"{source_id} disclosure")
         for row in selected_transactions + selected_holdings
@@ -102,7 +116,66 @@ def project_source_candidate(source_id: str, candidate: dict) -> dict:
     }
 
 
-def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict]) -> dict:
+def _harmonize_projections(projections: list[dict], source_hashes: dict[str, str]) -> tuple[str, dict]:
+    """Align date-precision disclosures to the last complete shared UTC day."""
+    native_times = [timestamp(item["data_cutoff_at"]) for item in projections]
+    if max(native_times) - min(native_times) > MAX_HARMONIZATION_LAG:
+        raise DisclosureCandidateError("Source candidate cutoffs are too stale to harmonize")
+    earliest = min(native_times).astimezone(timezone.utc)
+    complete_day = earliest.date() - timedelta(days=1)
+    cutoff_time = datetime.combine(complete_day, time(23, 59, 59), tzinfo=timezone.utc)
+    cutoff = cutoff_time.isoformat().replace("+00:00", "Z")
+    audit_sources = {}
+    for projection in projections:
+        before = {kind: len(projection[kind])
+                  for kind in ("people", "transactions", "reported_holdings")}
+        referenced_ids: set[str] = set()
+        for kind in ("transactions", "reported_holdings"):
+            retained = []
+            for row in projection[kind]:
+                try:
+                    filed_at = timestamp(row.get("filed_at"))
+                except (TypeError, ValueError):
+                    raise DisclosureCandidateError(
+                        f"{projection['source_id']} disclosure has an invalid filed_at"
+                    ) from None
+                if filed_at <= cutoff_time:
+                    retained.append(row)
+                    referenced_ids.add(_identifier(
+                        row, "person_id", f"{projection['source_id']} disclosure"))
+            projection[kind] = retained
+        projection["people"] = [row for row in projection["people"]
+                                if row.get("id") in referenced_ids]
+        original_cutoff = projection["data_cutoff_at"]
+        projection["data_cutoff_at"] = cutoff
+        projection["source_health"]["data_cutoff_at"] = cutoff
+        after = {kind: len(projection[kind])
+                 for kind in ("people", "transactions", "reported_holdings")}
+        projection["source_health"]["detail"] = (
+            f"Unified candidate uses complete-day cutoff {cutoff}; retained "
+            f"{after['transactions']} of {before['transactions']} transactions and "
+            f"{after['reported_holdings']} of {before['reported_holdings']} holdings from "
+            f"native source cutoff {original_cutoff}."
+        )
+        audit_sources[projection["source_id"]] = {
+            "candidate_sha256": source_hashes[projection["source_id"]],
+            "native_cutoff_at": original_cutoff,
+            "input_counts": before,
+            "retained_counts": after,
+            "filtered_transaction_count": before["transactions"] - after["transactions"],
+            "filtered_holding_count": before["reported_holdings"] - after["reported_holdings"],
+        }
+    return cutoff, {
+        "schema_version": "disclosure-cutoff-audit/v1",
+        "mode": "last_complete_shared_utc_day",
+        "common_cutoff_at": cutoff,
+        "sources": audit_sources,
+    }
+
+
+def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict], *,
+                               harmonize_cutoffs: bool = False,
+                               harmonization_audit: dict | None = None) -> dict:
     """Merge complete source candidates into one production candidate.
 
     ``base`` owns presentation settings and market data.  Its disclosure arrays
@@ -123,17 +196,26 @@ def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict]
         rows = _objects(base.get(name), f"Base {name}")
         if rows:
             raise DisclosureCandidateError(f"Base {name} must be empty")
-    _objects(base.get("security_market_data"), "Base security_market_data")
+    market_rows = _objects(base.get("security_market_data"), "Base security_market_data")
+    if harmonize_cutoffs and len(source_candidates) > 1 and market_rows:
+        raise DisclosureCandidateError(
+            "Market data cannot be harmonized without an explicit market cutoff policy")
     base_health = _objects(base.get("source_health"), "Base source_health")
 
+    source_hashes = {source_id: digest(encode(source_candidates[source_id]))
+                     for source_id in sorted(source_candidates)}
     projections = [
         project_source_candidate(source_id, source_candidates[source_id])
         for source_id in sorted(source_candidates)
     ]
     cutoffs = {projection["data_cutoff_at"] for projection in projections}
-    if len(cutoffs) != 1:
+    if len(cutoffs) != 1 and not harmonize_cutoffs:
         raise DisclosureCandidateError("Source candidate cutoffs do not match")
-    cutoff = next(iter(cutoffs))
+    cutoff_audit = None
+    if harmonize_cutoffs and len(projections) > 1:
+        cutoff, cutoff_audit = _harmonize_projections(projections, source_hashes)
+    else:
+        cutoff = next(iter(cutoffs))
 
     people_by_id: dict[str, dict] = {}
     facts_by_id: dict[str, str] = {}
@@ -183,9 +265,30 @@ def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict]
 
     result = deepcopy(base)
     result["meta"]["data_cutoff_at"] = cutoff
+    included = "、".join(SOURCE_LABELS.get(item["source_id"], item["source_id"])
+                         for item in projections)
+    result["meta"]["subtitle"] = f"{included}真实披露候选；其他披露来源和行情仍在回填"
     result["people"] = [deepcopy(people_by_id[key]) for key in sorted(people_by_id)]
     result["transactions"] = sorted(deepcopy(merged_transactions), key=lambda row: row["id"])
     result["reported_holdings"] = sorted(deepcopy(merged_holdings), key=lambda row: row["id"])
     result["source_health"] = [deepcopy(base_health_by_id[key])
                                for key in base_health_order + appended]
+    if harmonization_audit is not None:
+        harmonization_audit.clear()
+        harmonization_audit.update(cutoff_audit or {
+            "schema_version": "disclosure-cutoff-audit/v1",
+            "mode": "strict_equal_cutoff",
+            "common_cutoff_at": cutoff,
+            "sources": {
+                projection["source_id"]: {
+                    "candidate_sha256": source_hashes[projection["source_id"]],
+                    "native_cutoff_at": projection["data_cutoff_at"],
+                    "input_counts": {
+                        kind: len(projection[kind])
+                        for kind in ("people", "transactions", "reported_holdings")
+                    },
+                }
+                for projection in projections
+            },
+        })
     return result

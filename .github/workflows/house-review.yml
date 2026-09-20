@@ -325,26 +325,37 @@ jobs:
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"
+          source_args=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
+          if [ -f "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" ]; then
+            source_args+=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
             --base ingest/current.json \
-            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            --harmonize-cutoffs \
+            "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
           CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
             PARSER_COMMIT="${{ github.sha }}" python - <<'PY'
           import json, os
           from pathlib import Path
           candidate = json.loads(Path(os.environ['CANDIDATE']).read_text(encoding='utf-8'))
+          disclosure_sources = {'house_clerk', 'senate_efd', 'oge'}
+          included = sorted(row['source_id'] for row in candidate['source_health']
+                            if row.get('source_id') in disclosure_sources
+                            and row.get('status') in {'ok', 'partial'})
           value = {
               'schema_version': 'disclosure-candidate-run/v1',
               'builder_commit': os.environ['PARSER_COMMIT'],
               'data_cutoff_at': candidate['meta']['data_cutoff_at'],
-              'included_sources': ['house_clerk'],
-              'pending_sources': ['oge', 'senate_efd'],
+              'included_sources': included,
+              'pending_sources': sorted(disclosure_sources - set(included)),
               'people_count': len(candidate['people']),
               'transaction_count': len(candidate['transactions']),
               'reported_holding_count': len(candidate['reported_holdings']),
               'status': 'partial',
+              'cutoff_audit': 'status/disclosure_cutoff.json',
           }
           target = Path(os.environ['REVIEW_ROOT']) / 'status' / 'disclosure_candidate.json'
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),

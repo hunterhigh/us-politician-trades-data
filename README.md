@@ -83,6 +83,8 @@ Senate 接入已通过显式授权进入报告生产阶段：严格解析 eFD �
 
 增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中364份抽取成功、31份保留明确失败状态，另有4份可靠识别为无交易申报；339份文件产生3225条候选交易，39份文件中的392条异常记录被隔离。当前House候选包含93人，按冻结前端实际窗口语义近30天80笔，交易日期范围为2023-10-31至2026-09-08；19笔完整披露条款的期权保留类型、行权价和到期日，3笔条款不完整的期权不使用猜测值。动态状态以 [`state/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/house_clerk.json) 和 [`review/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_clerk.json) 为准；旧文件名暂作兼容别名。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
+House与Senate来源候选通过显式共同截止模式合并。由于两源申报时间目前都只有日期精度，统一候选使用最早来源运行日之前的最后完整UTC日，过滤该水位之后的申报，并裁剪无事实引用的人物；来源相差超过两天、源候选自身越过原生截止时间或行情数据缺少独立截止策略时失败关闭。当前生产来源回放合并为116人、4,461笔交易，未额外裁掉交易；每源原生截止时间、输入哈希和过滤前后数量写入独立机器审计。
+
 ## 当前交付目标
 
 继续收敛 House OCR和解析异常，接入 Senate/OGE 与获准公开生产使用的行情源，构建完整候选快照，再用对方实际前端代码和全部测试完成验收。前端功能和数据含义不为后台现状降级。详情见[当前目标与优先级](docs/当前目标与优先级.md)和[实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；行情密钥和许可尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。

@@ -111,7 +111,11 @@ def main() -> None:
         "--source", action="append", required=True, metavar="SOURCE_ID=PATH",
         help="Repeat once per source candidate, for example house_clerk=house-current.json")
     disclosure_candidate.add_argument("--output", type=Path, required=True)
+    disclosure_candidate.add_argument("--audit-output", type=Path)
     disclosure_candidate.add_argument("--html-output", type=Path)
+    disclosure_candidate.add_argument(
+        "--harmonize-cutoffs", action="store_true",
+        help="Align source candidates to their earliest cutoff and exclude later-filed facts")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -310,12 +314,19 @@ def main() -> None:
                         "Each --source must be a unique SOURCE_ID=PATH value")
                 sources[source_id] = json.loads(Path(source_path).read_text(encoding="utf-8"))
             base = json.loads(args.base.read_text(encoding="utf-8"))
-            result = build_disclosure_candidate(base, sources)
+            cutoff_audit = {} if args.audit_output else None
+            result = build_disclosure_candidate(
+                base, sources, harmonize_cutoffs=args.harmonize_cutoffs,
+                harmonization_audit=cutoff_audit)
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
                                   generated_at=generated_at)
             _write_atomic(args.output, result)
+            if args.audit_output:
+                cutoff_audit["candidate_snapshot_id"] = bundle.manifest["snapshot_id"]
+                cutoff_audit["candidate_sha256"] = digest(encode(result))
+                _write_atomic(args.audit_output, cutoff_audit)
             if args.html_output:
                 renderer = load("render_dashboard")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))

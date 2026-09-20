@@ -37,7 +37,19 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("python -m unison_snapshot build-senate-candidate", content)
         self.assertIn("candidates/sources/senate_efd-current.json", content)
         self.assertIn("senate_efd/qualifications/", content)
+        self.assertIn("python -m unison_snapshot build-disclosure-candidate", content)
+        self.assertIn("--harmonize-cutoffs", content)
+        self.assertIn("candidates/disclosure-current.json", content)
         self.assertIn("--html-output", content)
+
+    def test_house_and_senate_runs_both_rebuild_the_unified_candidate(self):
+        senate = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
+        house = (ROOT / ".github/workflows/house-review.yml").read_text(encoding="utf-8")
+        for content in (house, senate):
+            self.assertIn("candidates/sources/house_clerk-current.json", content)
+            self.assertIn("candidates/sources/senate_efd-current.json", content)
+            self.assertIn("--harmonize-cutoffs", content)
+            self.assertIn("disclosure_candidate.json", content)
 
     def test_roster_refresh_preserves_catalog_gate_and_status(self):
         content = (ROOT / ".github/workflows/senate-roster.yml").read_text(encoding="utf-8")
