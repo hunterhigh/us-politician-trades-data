@@ -56,18 +56,18 @@ python -m unison_snapshot assemble --store ../.local/manual.git --commit <上一
 
 开发验证命令使用免费 Alpaca Basic 账户的历史 SIP 数据，固定请求 `feed=sip`、`timeframe=1Day`、`adjustment=split`，按 ticker 分批并跟完 `next_page_token`。它只在 `.local/` 生成候选、冻结处理器输出、机器审计和 HTML，不解锁生产发布器，也不修改只读的 `review-input/`。
 
-先把免费账户密钥放入当前 PowerShell 进程，再从 `backend/` 运行：
+当前 worktree 可在项目根目录运行安全提示脚本。脚本会遮蔽两项输入，只把密钥临时放入当前进程环境，任务结束后恢复或清除，不写入磁盘：
 
 ```powershell
-$env:ALPACA_API_KEY_ID = "<本地 key id>"
-$env:ALPACA_API_SECRET_KEY = "<本地 secret>"
-$env:PYTHONPATH = "$PWD/src"
-python -m unison_snapshot build-alpaca-market-validation `
-  --input ../.local/disclosure-current.json `
-  --output ../.local/alpaca-validation/candidate.json `
-  --processed-output ../.local/alpaca-validation/processed.json `
-  --audit-output ../.local/alpaca-validation/audit.json `
-  --html-output ../.local/alpaca-validation/dashboard.html
+.\backend\scripts\run_alpaca_validation.ps1
+```
+
+默认输入为 `.local/alpaca-validation/disclosure-input.json`。也可显式指定候选和输出目录：
+
+```powershell
+.\backend\scripts\run_alpaca_validation.ps1 `
+  -InputPath C:\path\to\disclosure-current.json `
+  -OutputDirectory .local\alpaca-validation
 ```
 
 未显式给 `--as-of-date` 时，命令在纽约时间 16:30 后才把当日视为可用，并始终让请求结束时间至少落后当前时间 16 分钟；周末回退到周五。它取 24 个月加 21 个日历日缓冲，只保留候选披露截止时间以内、请求窗口以内的正数日收盘价。无行情、越过快照截止日、重复分页令牌、冲突日线或非法价格都会失败关闭；部分 ticker 缺失则写入 `audit.json` 并把行情来源状态标为 `partial`。
