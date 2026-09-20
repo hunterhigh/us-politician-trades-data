@@ -319,8 +319,14 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
 
     if type(start) is not int or start < 0 or type(length) is not int or length <= 0:
         raise SenateEfdError("Senate eFD search page bounds are invalid")
-    if not isinstance(payload, dict) or set(payload) != _RESPONSE_FIELDS:
-        raise SenateEfdError("Senate eFD search response fields changed")
+    if not isinstance(payload, dict):
+        raise SenateEfdError("Senate eFD search response is not an object")
+    if set(payload) != _RESPONSE_FIELDS:
+        missing = sorted(_RESPONSE_FIELDS - set(payload))
+        unexpected = sorted(set(payload) - _RESPONSE_FIELDS)
+        raise SenateEfdError(
+            f"Senate eFD search response fields changed; missing={missing}; "
+            f"unexpected={unexpected}")
     draw = payload.get("draw")
     total = payload.get("recordsTotal")
     filtered = payload.get("recordsFiltered")
