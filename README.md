@@ -75,7 +75,7 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 
 电子PTR解析覆盖普通股票、期权、无ticker、金额换行、精确金额、开放金额、末行跨页和amended申报。`20035420` 的身份可确定为 `house:D000032`。自动资格校验直接生成候选事实，无法确定的修订、身份、OCR和金额语义进入隔离队列；旧人工工具仅用于异常调查。流程见 [House PTR 自动资格与异常调查](docs/House-PTR-复核流程.md)。
 
-增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中357份抽取成功、38份保留明确失败状态；309份文件产生3086条候选交易，59份文件中的523条异常记录被隔离。当前House候选包含81人，按交易日期计算近30天86笔、近90天583笔，交易日期范围为2023-10-31至2026-09-08。动态状态以 [`state/status/last-run.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/last-run.json) 和 [`review/status/summary.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/summary.json) 为准。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
+增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中357份抽取成功、38份保留明确失败状态；309份文件产生3083条候选交易，60份文件中的526条异常记录被隔离。当前House候选包含81人，按交易日期计算近30天86笔、近90天581笔，交易日期范围为2023-10-31至2026-09-08；19笔完整披露条款的期权保留类型、行权价和到期日，3笔条款不完整的期权不使用猜测值。动态状态以 [`state/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/house_clerk.json) 和 [`review/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_clerk.json) 为准；旧文件名暂作兼容别名。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
 ## 当前交付目标
 

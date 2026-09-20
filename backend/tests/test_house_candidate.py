@@ -81,6 +81,19 @@ class HouseCandidateTests(unittest.TestCase):
             with self.assertRaises(HouseIndexError):
                 build_house_candidate(root, state, deepcopy(BASE))
 
+    def test_source_scoped_summary_takes_precedence(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            scoped = root / "status/house_clerk.json"
+            summary = json.loads((root / "status/summary.json").read_text())
+            summary["pending_parse_count"] = 1
+            scoped.write_text(json.dumps(summary))
+            state = {"status": "ok", "run_at": "2026-09-18T12:00:00Z",
+                     "counts": {"archived": 1, "pending": 0, "failed": 0}}
+            with self.assertRaises(HouseIndexError):
+                build_house_candidate(root, state, deepcopy(BASE))
+
 
 if __name__ == "__main__":
     unittest.main()

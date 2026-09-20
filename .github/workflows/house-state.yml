@@ -11,7 +11,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: house-source-state
+  group: disclosure-source-writer
   cancel-in-progress: false
 jobs:
   checkpoint:
@@ -184,6 +184,7 @@ jobs:
           fi
           mkdir -p "$state_root/checkpoints/house" "$state_root/status"
           cp .local/checkpoint.json "$state_root/checkpoints/house/${YEAR}.json"
+          cp .local/last-run.json "$state_root/status/house_clerk.json"
           cp .local/last-run.json "$state_root/status/last-run.json"
           cat > "$state_root/README.md" <<'EOF'
           # Production state

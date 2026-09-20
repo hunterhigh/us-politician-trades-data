@@ -12,7 +12,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: house-review-queue
+  group: disclosure-review-writer
   cancel-in-progress: false
 jobs:
   parse:
@@ -290,9 +290,11 @@ jobs:
               'quarantined_row_count': quarantined_rows,
               'status': 'attention' if failures or quarantined_rows else 'ok',
           }
-          target = review / 'status' / 'summary.json'
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')), encoding='utf-8')
+          content = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+          status_root = review / 'status'
+          status_root.mkdir(parents=True, exist_ok=True)
+          (status_root / 'house_clerk.json').write_text(content, encoding='utf-8')
+          (status_root / 'summary.json').write_text(content, encoding='utf-8')
           PY
       - name: Build and validate frontend candidate
         env:
@@ -301,7 +303,7 @@ jobs:
         run: |
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
-            --state-status "$STATE_ROOT/status/last-run.json" \
+            --state-status "$STATE_ROOT/status/house_clerk.json" \
             --base ingest/current.json \
             --output "$REVIEW_ROOT/candidates/house-current.json" \
             --html-output "$RUNNER_TEMP/house-current.html"
