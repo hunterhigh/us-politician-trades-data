@@ -1,6 +1,7 @@
 import argparse
 from dataclasses import asdict
 import json
+import os
 from pathlib import Path
 import tempfile
 
@@ -13,6 +14,10 @@ from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
 from .disclosure_candidate import DisclosureCandidateError, build_disclosure_candidate
+from .congress_members import (
+    CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
+    discover_congress_senate_members,
+)
 from .legacy import load
 from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
@@ -123,6 +128,12 @@ def main() -> None:
     senate_roster_live.add_argument("--archive", type=Path, required=True)
     senate_roster_live.add_argument("--output", type=Path, required=True)
     senate_roster_live.add_argument("--timeout", type=float, default=30.0)
+    congress_roster_live = sub.add_parser("discover-congress-senate-members")
+    congress_roster_live.add_argument("--archive", type=Path, required=True)
+    congress_roster_live.add_argument("--output", type=Path, required=True)
+    congress_roster_live.add_argument("--congress", type=int, default=DEFAULT_CONGRESS)
+    congress_roster_live.add_argument("--api-key-env", default="CONGRESS_GOV_API_KEY")
+    congress_roster_live.add_argument("--timeout", type=float, default=30.0)
     senate_search = sub.add_parser("parse-senate-search-page")
     senate_search.add_argument("--input", type=Path, required=True)
     senate_search.add_argument("--start", type=int, required=True)
@@ -142,6 +153,7 @@ def main() -> None:
     senate_identities = sub.add_parser("match-senate-catalog")
     senate_identities.add_argument("--discovery", type=Path, required=True)
     senate_identities.add_argument("--roster", type=Path, required=True)
+    senate_identities.add_argument("--congress-roster", type=Path)
     senate_identities.add_argument("--output", type=Path, required=True)
     senate_reports = sub.add_parser("archive-senate-report-entrypoints")
     senate_reports.add_argument("--discovery", type=Path, required=True)
@@ -350,6 +362,20 @@ def main() -> None:
             print(json.dumps({"members": len(result["members"]),
                               "sha256": result["metadata"]["sha256"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "discover-congress-senate-members":
+            api_key = os.environ.get(args.api_key_env)
+            if not api_key:
+                raise CongressMemberError(
+                    f"Congress.gov API key environment variable {args.api_key_env} is required")
+            result = discover_congress_senate_members(
+                args.archive, api_key, congress=args.congress,
+                client=CongressMemberClient(api_key, args.timeout))
+            _write_atomic(args.output, result)
+            print(json.dumps({"members": len(result["members"]),
+                              "congress": result["metadata"]["congress"],
+                              "sha256": result["metadata"]["sha256"],
+                              "credential_mode": "configured",
+                              "output": str(args.output.resolve())}))
         elif args.command == "parse-senate-search-page":
             payload = json.loads(args.input.read_text(encoding="utf-8"))
             result = asdict(parse_search_page(payload, start=args.start, length=args.length))
@@ -380,7 +406,9 @@ def main() -> None:
         elif args.command == "match-senate-catalog":
             discovery = json.loads(args.discovery.read_text(encoding="utf-8"))
             roster = json.loads(args.roster.read_text(encoding="utf-8"))
-            result = build_catalog_identities(discovery, roster)
+            congress_roster = (json.loads(args.congress_roster.read_text(encoding="utf-8"))
+                               if args.congress_roster else None)
+            result = build_catalog_identities(discovery, roster, congress_roster)
             _write_atomic(args.output, result)
             print(json.dumps({"reports": result["report_count"],
                               "identity_counts": result["identity_counts"],
@@ -445,7 +473,8 @@ def main() -> None:
                               "counts": result["counts"], "queue": len(result["queue"]),
                               "output": str(args.output.resolve())}))
     except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
-            SenateEfdError, SenateRosterError, SenateIdentityError, KeyError, OSError,
+            SenateEfdError, SenateRosterError, SenateIdentityError, CongressMemberError,
+            KeyError, OSError,
             json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
 

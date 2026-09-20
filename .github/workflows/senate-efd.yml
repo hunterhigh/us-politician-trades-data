@@ -67,6 +67,8 @@ jobs:
                   'authorization variables were not true.'
               ),
           }
+          if 'historical_roster' in prior:
+              value['historical_roster'] = prior['historical_roster']
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')
@@ -141,9 +143,24 @@ jobs:
           print(state['roster']['sha256'])
           PY
           )"
+          congress_roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          state = json.loads((Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          history = state.get('historical_roster', {})
+          print(history.get('sha256', '') if history.get('status') == 'ok' else '')
+          PY
+          )"
+          identity_args=()
+          if [ -n "$congress_roster_sha" ]; then
+            congress_roster="$EVIDENCE_ROOT/senate_efd/congress_members/$congress_roster_sha/roster.json"
+            test -f "$congress_roster"
+            identity_args+=(--congress-roster "$congress_roster")
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot match-senate-catalog \
             --discovery .local/senate-efd-discovery.json \
             --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
+            "${identity_args[@]}" \
             --output .local/senate-efd-identities.json
           report_batch_size="$SENATE_EFD_REPORT_BATCH_SIZE"
           if [ -z "$report_batch_size" ]; then
@@ -218,6 +235,8 @@ jobs:
               'detail': ('Authorized eFD PTR catalog and a bounded batch of report entrypoint '
                          'responses were archived. Transaction facts remain unpublished.'),
           }
+          if 'historical_roster' in prior:
+              value['historical_roster'] = prior['historical_roster']
           target.parent.mkdir(parents=True, exist_ok=True)
           content = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
           target.write_text(content, encoding='utf-8')
@@ -268,7 +287,7 @@ jobs:
           git fetch --no-tags origin review
           git worktree add --detach "$review_root" FETCH_HEAD
           REVIEW_ROOT="$review_root" python - <<'PY'
-          import json, os
+          import hashlib, json, os
           from datetime import datetime, timezone
           from pathlib import Path
           source = Path('.local/senate-efd-discovery.json')
@@ -289,13 +308,19 @@ jobs:
           roster_sha = identities.get('roster_sha256')
           if not isinstance(roster_sha, str) or len(roster_sha) != 64:
               raise SystemExit('Senate eFD identity batch has no valid roster hash')
+          congress_roster_sha = identities.get('congress_roster_sha256')
+          if congress_roster_sha is not None and (
+                  not isinstance(congress_roster_sha, str) or len(congress_roster_sha) != 64):
+              raise SystemExit('Senate eFD identity batch has no valid Congress.gov roster hash')
           target = review / 'senate_efd' / 'discoveries' / f'{sha}.json'
           target.parent.mkdir(parents=True, exist_ok=True)
           content = json.dumps(discovery, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
           if target.is_file() and target.read_text(encoding='utf-8') != content:
               raise SystemExit('Senate eFD discovery conflicts with its content hash')
           target.write_text(content, encoding='utf-8')
-          identity_target = review / 'senate_efd' / 'identities' / sha / f'{roster_sha}.json'
+          identity_binding = hashlib.sha256(
+              f"{roster_sha}:{congress_roster_sha or ''}".encode('ascii')).hexdigest()
+          identity_target = review / 'senate_efd' / 'identities' / sha / f'{identity_binding}.json'
           identity_target.parent.mkdir(parents=True, exist_ok=True)
           identity_content = json.dumps(
               identities, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
@@ -341,6 +366,7 @@ jobs:
               'catalog_record_count': discovery['records_total'],
               'identity_counts': identities['identity_counts'],
               'identity_roster_sha256': roster_sha,
+              'identity_binding_sha256': identity_binding,
               'report_parser_version': parser_version,
               'report_entrypoint_count': report_batch['archived_total'],
               'report_entrypoint_pending_count': report_batch['pending_count'],
@@ -352,6 +378,8 @@ jobs:
                          f"{evidence_count} electronic reports parsed into {transaction_count} transactions; "
                          f"{report_failure_count} current-parser failures remain."),
           }
+          if congress_roster_sha:
+              status['identity_congress_roster_sha256'] = congress_roster_sha
           status_path = review / 'status' / 'senate_efd.json'
           status_path.parent.mkdir(parents=True, exist_ok=True)
           status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
@@ -364,6 +392,8 @@ jobs:
           status="$REVIEW_ROOT/status/senate_efd.json"
           catalog_sha="$(python -c "import json; print(json.load(open('$status'))['catalog_sha256'])")"
           roster_sha="$(python -c "import json; print(json.load(open('$status'))['identity_roster_sha256'])")"
+          congress_roster_sha="$(python -c "import json; print(json.load(open('$status')).get('identity_congress_roster_sha256', ''))")"
+          identity_binding="$(python -c "import json; print(json.load(open('$status'))['identity_binding_sha256'])")"
           parser_version="$(python -c "import json; print(json.load(open('$status'))['report_parser_version'])")"
           audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
           mkdir -p "$REVIEW_ROOT/candidates/sources"
@@ -376,7 +406,7 @@ jobs:
             --html-output "$RUNNER_TEMP/senate-efd-current.html"
           builder_version="$(python -c "import json; print(json.load(open('$audit_temp'))['builder_version'])")"
           candidate_snapshot="$(python -c "import json; print(json.load(open('$audit_temp'))['candidate_snapshot_id'])")"
-          audit="$REVIEW_ROOT/senate_efd/qualifications/$catalog_sha/$roster_sha/$parser_version/$builder_version/$candidate_snapshot.json"
+          audit="$REVIEW_ROOT/senate_efd/qualifications/$catalog_sha/$identity_binding/$parser_version/$builder_version/$candidate_snapshot.json"
           mkdir -p "$(dirname "$audit")"
           if [ -e "$audit" ] && ! cmp -s "$audit_temp" "$audit"; then
             echo "Immutable Senate qualification audit collision: $audit" >&2

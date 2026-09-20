@@ -28,6 +28,23 @@ def roster(*members: dict) -> dict:
     return {"metadata": {"sha256": SHA}, "members": list(members)}
 
 
+def congress_roster(*members: dict) -> dict:
+    enriched = []
+    for person in members:
+        enriched.append({
+            **person,
+            "senate_terms": [{"start_year": 2025, "end_year": None}],
+            "congress": 119,
+        })
+    return {
+        "schema_version": "congress-senate-members/v1",
+        "metadata": {
+            "source_id": "congress_gov_members", "congress": 119, "sha256": "c" * 64,
+        },
+        "members": enriched,
+    }
+
+
 class SenateIdentityTests(unittest.TestCase):
     def test_catalog_identity_build_preserves_matched_and_unresolved_reports(self):
         members = roster(member("A000001", "Ada", "Example"))
@@ -115,6 +132,43 @@ class SenateIdentityTests(unittest.TestCase):
         self.assertEqual(
             (result["status"], result["candidate_count"]), ("unresolved", 0),
         )
+
+    def test_congress_roster_recovers_departed_members_and_official_name_aliases(self):
+        current = roster(
+            member("A000383", "Alan", "Armstrong", "OK"),
+            member("B001299", "Jim", "Banks", "IN"),
+            member("G000608", "Darline", "Graham", "SC"),
+            member("M000355", "Mitch", "McConnell", "KY"),
+        )
+        historical = congress_roster(
+            member("A000383", "Alan", "Armstrong", "OK"),
+            member("B001299", "Jim", "Banks", "IN"),
+            member("G000359", "Lindsey", "Graham", "SC"),
+            member("G000608", "Darline", "Graham", "SC"),
+            member("M000355", "Mitch", "McConnell", "KY"),
+            member("M001190", "Markwayne", "Mullin", "OK"),
+        )
+        cases = [
+            ("Markwayne Mullin", "Mullin, Markwayne (Senator)", "senate:M001190", "exact"),
+            ("Lindsey Graham", "Graham, Lindsey (Senator)", "senate:G000359", "exact"),
+        ]
+        for filer, office, person_id, match_class in cases:
+            with self.subTest(filer=filer):
+                result = match_report_identity(
+                    {"filer_name": filer, "office": office}, current, historical)
+                self.assertEqual(
+                    (result["person_id"], result["match_class"],
+                     result["congress_roster_sha256"]),
+                    (person_id, match_class, "c" * 64),
+                )
+
+    def test_congress_roster_does_not_infer_unrecorded_nickname_aliases(self):
+        current = roster(member("B001299", "Jim", "Banks", "IN"))
+        historical = congress_roster(member("B001299", "Jim", "Banks", "IN"))
+        result = match_report_identity({
+            "filer_name": "James Banks", "office": "Banks, James E. (Senator)",
+        }, current, historical)
+        self.assertEqual((result["status"], result["candidate_count"]), ("unresolved", 0))
 
     def test_malformed_or_duplicated_roster_fails_closed(self):
         person = member("A000001", "Ada", "Example")

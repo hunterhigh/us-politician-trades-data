@@ -35,10 +35,18 @@ jobs:
       - name: Archive official Senate roster
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
         run: |
           mkdir -p .local
           PYTHONPATH=backend/src python -m unison_snapshot discover-senate-members \
             --archive "$EVIDENCE_ROOT" --output .local/senate-members.json
+          if [ -n "$CONGRESS_GOV_API_KEY" ]; then
+            PYTHONPATH=backend/src python -m unison_snapshot discover-congress-senate-members \
+              --archive "$EVIDENCE_ROOT" --congress 119 \
+              --output .local/congress-senate-members.json
+          else
+            echo "CONGRESS_GOV_API_KEY is unset; historical identity enrichment remains unchanged."
+          fi
       - name: Publish immutable roster evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -53,6 +61,9 @@ jobs:
           Credentials and unreviewed extracted rows are never stored here.
           EOF
           git -C "$EVIDENCE_ROOT" add README.md senate_efd/members
+          if [ -d "$EVIDENCE_ROOT/senate_efd/congress_members" ]; then
+            git -C "$EVIDENCE_ROOT" add senate_efd/congress_members
+          fi
           if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
             git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
             git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -68,6 +79,9 @@ jobs:
           from datetime import datetime, timezone
           from pathlib import Path
           roster = json.loads(Path('.local/senate-members.json').read_text(encoding='utf-8'))
+          congress_path = Path('.local/congress-senate-members.json')
+          congress_roster = (json.loads(congress_path.read_text(encoding='utf-8'))
+                             if congress_path.is_file() else None)
           run_at = datetime.now(timezone.utc).isoformat()
           target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
           prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
@@ -96,6 +110,17 @@ jobs:
               'detail': prior.get('detail',
                   'Official Senate identity roster archived. eFD report collection remains disabled.'),
           }
+          if congress_roster is not None:
+              value['historical_roster'] = {
+                  'status': 'ok',
+                  'source_id': 'congress_gov_members',
+                  'congress': congress_roster['metadata']['congress'],
+                  'record_count': len(congress_roster['members']),
+                  'sha256': congress_roster['metadata']['sha256'],
+                  'retrieved_at': congress_roster['metadata']['retrieved_at'],
+              }
+          elif 'historical_roster' in prior:
+              value['historical_roster'] = prior['historical_roster']
           for key in ('catalog', 'reports'):
               if key in prior:
                   value[key] = prior[key]

@@ -1,4 +1,5 @@
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -12,6 +13,9 @@ from unison_snapshot.senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 CATALOG_SHA = "a" * 64
 ROSTER_SHA = "b" * 64
+CONGRESS_ROSTER_SHA = "d" * 64
+IDENTITY_BINDING = hashlib.sha256(
+    f"{ROSTER_SHA}:{CONGRESS_ROSTER_SHA}".encode("ascii")).hexdigest()
 PARSER = "senate-efd-report-parser-test"
 BASE = {
     "meta": {
@@ -47,6 +51,7 @@ def identity(document_id: str, *, person_id="senate:S000001", match_class="exact
         "party": "I",
         "person_id": person_id,
         "roster_sha256": ROSTER_SHA,
+        "congress_roster_sha256": CONGRESS_ROSTER_SHA,
         "state": "DC",
         "status": "matched_automatically",
     }
@@ -61,6 +66,7 @@ def row(row_id="senate-ptr:111111111111111111111111", **updates):
         "owner_raw": "Child",
         "qualification_status": "eligible",
         "quarantine_reasons": [],
+        "row_number": 1,
         "ticker_raw": "ACME",
         "transaction_date": "2026-09-01",
         "transaction_type": "purchase",
@@ -91,13 +97,15 @@ def extraction(document_id: str, rows=None, **updates):
 
 class SenateCandidateTests(unittest.TestCase):
     def fixture(self, root: Path, identities: list[dict], extractions: list[dict]):
-        identity_path = root / "senate_efd" / "identities" / CATALOG_SHA / f"{ROSTER_SHA}.json"
+        identity_path = (root / "senate_efd" / "identities" / CATALOG_SHA /
+                         f"{IDENTITY_BINDING}.json")
         identity_path.parent.mkdir(parents=True)
         identity_path.write_text(json.dumps({
             "schema_version": "senate-efd-identities/v1",
             "source_id": "senate_efd",
             "catalog_sha256": CATALOG_SHA,
             "roster_sha256": ROSTER_SHA,
+            "congress_roster_sha256": CONGRESS_ROSTER_SHA,
             "report_count": len(identities),
             "identities": identities,
         }), encoding="utf-8")
@@ -113,6 +121,8 @@ class SenateCandidateTests(unittest.TestCase):
             "catalog_sha256": CATALOG_SHA,
             "catalog_record_count": len(identities),
             "identity_roster_sha256": ROSTER_SHA,
+            "identity_congress_roster_sha256": CONGRESS_ROSTER_SHA,
+            "identity_binding_sha256": IDENTITY_BINDING,
             "report_parser_version": PARSER,
             "report_entrypoint_count": len(identities),
             "report_entrypoint_pending_count": 0,
@@ -166,7 +176,7 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertEqual(audit["fully_qualified_report_count"], 1)
             self.assertEqual(audit["qualified_rows"][0]["source_sha256"], "c" * 64)
 
-    def test_quarantines_amendment_chain_unresolved_identity_and_invalid_rows(self):
+    def test_resolves_unique_amendment_and_quarantines_other_invalid_records(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             base_id = "21111111-1111-4111-8111-111111111111"
@@ -186,10 +196,10 @@ class SenateCandidateTests(unittest.TestCase):
             state = self.fixture(root, identities, extractions)
             candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
 
-            self.assertEqual(candidate["transactions"], [])
-            self.assertEqual(audit["quarantined_report_count"], 3)
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(candidate["transactions"][0]["filing_id"], amendment_id)
+            self.assertEqual(audit["quarantined_report_count"], 1)
             self.assertEqual(audit["quarantined_report_reasons"], {
-                "amendment_relationship_pending": 2,
                 "identity_unresolved": 1,
             })
             self.assertEqual(audit["quarantined_row_count"], 2)
@@ -197,8 +207,30 @@ class SenateCandidateTests(unittest.TestCase):
                 "ticker_invalid": 1,
                 "transaction_type_not_supported": 1,
             })
-            self.assertEqual(audit["report_quarantined_transaction_count"], 3)
-            self.assertEqual(audit["quarantined_transaction_count"], 5)
+            self.assertEqual(audit["report_quarantined_transaction_count"], 1)
+            self.assertEqual(audit["quarantined_transaction_count"], 3)
+            self.assertEqual(audit["resolved_amendment_chain_count"], 1)
+            self.assertEqual(audit["superseded_report_count"], 1)
+            self.assertEqual(audit["superseded_report_transaction_count"], 1)
+
+    def test_amendment_must_match_one_unique_predecessor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            base_id = "22111111-1111-4111-8111-111111111111"
+            amendment_id = "32111111-1111-4111-8111-111111111111"
+            amended = row("senate-ptr:321111111111111111111111", amount_raw="$15,001 - $50,000")
+            state = self.fixture(
+                root,
+                [identity(base_id), identity(amendment_id)],
+                [extraction(base_id, [row("senate-ptr:221111111111111111111111")]),
+                 extraction(amendment_id, [amended], report_amendment_number=1)],
+            )
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(candidate["transactions"], [])
+            self.assertEqual(audit["quarantined_report_reasons"], {
+                "amendment_relationship_pending": 2,
+            })
+            self.assertEqual(audit["resolved_amendment_chain_count"], 0)
 
     def test_state_and_review_count_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:

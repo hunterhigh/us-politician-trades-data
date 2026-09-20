@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -14,7 +15,7 @@ from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v1"
-CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v1"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v2"
 AMOUNT_RANGES = {
     "$1,001 - $15,000": (1001, 15000),
     "$15,001 - $50,000": (15001, 50000),
@@ -41,6 +42,115 @@ _OPTION = re.compile(
     r"\bOption Type: (Call|Put)\s+Strike price:\s*\$([0-9][0-9,]*(?:\.[0-9]+)?)\s+"
     r"Expires:\s*(\d{4}-\d{2}-\d{2})\b"
 )
+
+
+def _canonical_asset(row: dict) -> tuple[str | None, str] | None:
+    name = row.get("asset_name_raw")
+    ticker = row.get("ticker_raw")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    normalized_name = " ".join(name.split())
+    normalized_ticker = ticker if isinstance(ticker, str) and _TICKER.fullmatch(ticker) else None
+    if normalized_ticker:
+        prefix = f"{normalized_ticker} - "
+        if normalized_name.startswith(prefix):
+            normalized_name = normalized_name[len(prefix):].strip()
+        return normalized_ticker, normalized_name
+    prefix_match = re.fullmatch(r"([A-Z0-9][A-Z0-9.\-^/]{0,31})\s+-\s+(.+)", normalized_name)
+    if prefix_match:
+        return prefix_match.group(1), prefix_match.group(2).strip()
+    return None, normalized_name
+
+
+def _amendment_pair_changes(previous: dict, amended: dict) -> list[dict] | None:
+    previous_rows = previous.get("transactions")
+    amended_rows = amended.get("transactions")
+    if (not isinstance(previous_rows, list) or not isinstance(amended_rows, list) or
+            not previous_rows or len(previous_rows) != len(amended_rows)):
+        return None
+    expected_rows = list(range(1, len(previous_rows) + 1))
+    previous_numbers = [row.get("row_number") for row in previous_rows if isinstance(row, dict)]
+    amended_numbers = [row.get("row_number") for row in amended_rows if isinstance(row, dict)]
+    if (sorted(previous_numbers) != expected_rows or sorted(amended_numbers) != expected_rows or
+            previous_numbers != amended_numbers):
+        return None
+    changes = []
+    stable_fields = (
+        "row_number", "transaction_date", "owner_raw", "amount_raw", "asset_type_raw",
+        "comment_raw", "transaction_type",
+    )
+    for old, new in zip(previous_rows, amended_rows):
+        if (not isinstance(old, dict) or not isinstance(new, dict) or
+                any(old.get(field) != new.get(field) for field in stable_fields) or
+                _canonical_asset(old) != _canonical_asset(new)):
+            return None
+        if (old.get("transaction_type_raw") != new.get("transaction_type_raw") and
+                (old.get("transaction_type") != "sale" or
+                 {old.get("transaction_type_raw"), new.get("transaction_type_raw")} -
+                 {"Sale (Full)", "Sale (Partial)"})):
+            return None
+        changed_fields = [
+            field for field in ("asset_name_raw", "ticker_raw", "transaction_type_raw")
+            if old.get(field) != new.get(field)
+        ]
+        if changed_fields:
+            changes.append({"row_number": old.get("row_number"), "fields": changed_fields})
+    return changes
+
+
+def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str, dict]) -> dict:
+    """Resolve only uniquely comparable amendment tails; leave all other groups quarantined."""
+
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for extraction in extractions:
+        identity = identity_by_document.get(extraction.get("document_id"))
+        if (isinstance(identity, dict) and identity.get("match_class") in {"exact", "alias"} and
+                extraction.get("report_amendment_number") is not None):
+            key = (identity.get("person_id"), extraction.get("report_title_date"))
+            groups.setdefault(key, [])
+    for extraction in extractions:
+        identity = identity_by_document.get(extraction.get("document_id"))
+        key = (identity.get("person_id"), extraction.get("report_title_date")) \
+            if isinstance(identity, dict) else None
+        if key in groups:
+            groups[key].append(extraction)
+
+    superseded: set[str] = set()
+    unresolved: set[str] = set()
+    chains = []
+    for (person_id, title_date), reports in sorted(groups.items()):
+        amendments = [report for report in reports
+                      if isinstance(report.get("report_amendment_number"), int)]
+        highest = max((report["report_amendment_number"] for report in amendments), default=None)
+        latest = [report for report in amendments
+                  if report.get("report_amendment_number") == highest]
+        if highest is None or len(latest) != 1:
+            unresolved.update(report["document_id"] for report in reports)
+            continue
+        current = latest[0]
+        previous_number = None if highest == 1 else highest - 1
+        predecessors = [report for report in reports
+                        if report.get("report_amendment_number") == previous_number]
+        matches = []
+        for predecessor in predecessors:
+            changes = _amendment_pair_changes(predecessor, current)
+            if changes is not None:
+                matches.append((predecessor, changes))
+        if len(matches) != 1:
+            unresolved.update(report["document_id"] for report in reports)
+            continue
+        predecessor, changes = matches[0]
+        superseded.add(predecessor["document_id"])
+        chains.append({
+            "person_id": person_id,
+            "report_title_date": title_date,
+            "current_document_id": current["document_id"],
+            "current_amendment_number": highest,
+            "superseded_document_ids": [predecessor["document_id"]],
+            "row_count": len(current["transactions"]),
+            "changed_rows": changes,
+        })
+    return {"superseded": superseded, "unresolved": unresolved, "chains": chains}
 
 
 def _read_json(path: Path, description: str) -> dict:
@@ -216,9 +326,18 @@ def build_senate_candidate(
         raise SenateEfdError("Senate review queue is not ready for a candidate")
     catalog_sha = status.get("catalog_sha256")
     roster_sha = status.get("identity_roster_sha256")
+    congress_roster_sha = status.get("identity_congress_roster_sha256")
     parser_version = status.get("report_parser_version")
+    identity_binding = hashlib.sha256(
+        f"{roster_sha}:{congress_roster_sha or ''}".encode("ascii")).hexdigest()
+    identity_path = (review_root / "senate_efd" / "identities" /
+                     str(catalog_sha) / f"{identity_binding}.json")
+    legacy_identity_path = (review_root / "senate_efd" / "identities" /
+                            str(catalog_sha) / f"{roster_sha}.json")
+    if congress_roster_sha is None and not identity_path.is_file() and legacy_identity_path.is_file():
+        identity_path = legacy_identity_path
     identities_doc = _read_json(
-        review_root / "senate_efd" / "identities" / str(catalog_sha) / f"{roster_sha}.json",
+        identity_path,
         "Senate identity batch",
     )
     identities = identities_doc.get("identities")
@@ -226,6 +345,10 @@ def build_senate_candidate(
             identities_doc.get("source_id") != "senate_efd" or
             identities_doc.get("catalog_sha256") != catalog_sha or
             identities_doc.get("roster_sha256") != roster_sha or
+            identities_doc.get("congress_roster_sha256") != congress_roster_sha or
+            (congress_roster_sha is not None and
+             (not isinstance(congress_roster_sha, str) or
+              not re.fullmatch(r"[0-9a-f]{64}", congress_roster_sha))) or
             not isinstance(identities, list) or
             identities_doc.get("report_count") != status.get("catalog_record_count")):
         raise SenateEfdError("Senate identity batch does not match review status")
@@ -261,12 +384,9 @@ def build_senate_candidate(
         raise SenateEfdError("Senate extractions do not map uniquely to the identity batch")
     if sum(len(item["transactions"]) for item in extraction_values) != status.get("extracted_transaction_count"):
         raise SenateEfdError("Senate extracted transaction count does not match review status")
-    amendment_keys = set()
-    for extraction in extraction_values:
-        identity = identity_by_document.get(extraction.get("document_id"))
-        if (isinstance(identity, dict) and identity.get("match_class") != "unresolved" and
-                extraction.get("report_amendment_number") is not None):
-            amendment_keys.add((identity.get("person_id"), extraction.get("report_title_date")))
+    amendment_resolution = _resolve_amendments(extraction_values, identity_by_document)
+    superseded_documents = amendment_resolution["superseded"]
+    unresolved_amendment_documents = amendment_resolution["unresolved"]
 
     transactions = []
     people: dict[str, dict] = {}
@@ -282,6 +402,7 @@ def build_senate_candidate(
     partially_qualified_reports = 0
     row_only_quarantined_reports = 0
     empty_eligible_reports = 0
+    superseded_report_transaction_count = 0
     for extraction in extraction_values:
         document_id = extraction.get("document_id")
         identity = identity_by_document.get(document_id)
@@ -291,7 +412,9 @@ def build_senate_candidate(
         if (not isinstance(identity, dict) or
                 identity.get("match_class") not in {"exact", "alias"} or
                 identity.get("status") != "matched_automatically" or
-                identity.get("roster_sha256") != roster_sha):
+                identity.get("roster_sha256") != roster_sha or
+                (congress_roster_sha is not None and
+                 identity.get("congress_roster_sha256") != congress_roster_sha)):
             reason = ("identity_unresolved" if isinstance(identity, dict) and
                       identity.get("match_class") == "unresolved" else
                       "identity_not_automatically_matched")
@@ -302,7 +425,10 @@ def build_senate_candidate(
                 "source_sha256": extraction.get("source_sha256"),
             })
             continue
-        if (identity.get("person_id"), extraction.get("report_title_date")) in amendment_keys:
+        if document_id in superseded_documents:
+            superseded_report_transaction_count += len(extraction.get("transactions", []))
+            continue
+        if document_id in unresolved_amendment_documents:
             report_reasons["amendment_relationship_pending"] += 1
             report_quarantined_transaction_count += len(extraction.get("transactions", []))
             quarantined_reports.append({
@@ -377,7 +503,8 @@ def build_senate_candidate(
             raise ValueError
     except ValueError:
         raise SenateEfdError("Senate source state has no valid data cutoff") from None
-    disposition_total = (len(quarantined_reports) + fully_qualified_reports +
+    disposition_total = (len(quarantined_reports) + len(superseded_documents) +
+                         fully_qualified_reports +
                          partially_qualified_reports + row_only_quarantined_reports +
                          empty_eligible_reports)
     if disposition_total != len(extraction_paths):
@@ -420,6 +547,8 @@ def build_senate_candidate(
         "source_id": "senate_efd",
         "catalog_sha256": catalog_sha,
         "roster_sha256": roster_sha,
+        "congress_roster_sha256": congress_roster_sha,
+        "identity_binding_sha256": identity_binding,
         "parser_version": parser_version,
         "data_cutoff_at": cutoff,
         "catalog_record_count": status["catalog_record_count"],
@@ -429,6 +558,10 @@ def build_senate_candidate(
         "partially_qualified_report_count": partially_qualified_reports,
         "row_only_quarantined_report_count": row_only_quarantined_reports,
         "empty_eligible_report_count": empty_eligible_reports,
+        "resolved_amendment_chain_count": len(amendment_resolution["chains"]),
+        "resolved_amendment_chains": amendment_resolution["chains"],
+        "superseded_report_count": len(superseded_documents),
+        "superseded_report_transaction_count": superseded_report_transaction_count,
         "candidate_person_count": len(people),
         "candidate_transaction_count": len(transactions),
         "qualified_rows": qualified_rows,
