@@ -56,7 +56,8 @@ def _person(identity: dict) -> dict:
 def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> dict:
     review_root = review_root.resolve()
     summary = _read_json(review_root / "status" / "summary.json", "House qualification summary")
-    if summary.get("parser_commit") is None or summary.get("pending_parse_count") != 0:
+    if (summary.get("parser_commit") is None or summary.get("pending_parse_count") != 0
+            or summary.get("status_conflict_count", 0) != 0):
         raise HouseIndexError("House qualification queue is not ready for a candidate")
     paths = sorted((review_root / "house_clerk" / "qualifications").glob("*/*/*.json"))
     if len(paths) != summary.get("qualification_count"):

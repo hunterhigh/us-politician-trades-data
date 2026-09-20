@@ -68,6 +68,19 @@ class HouseCandidateTests(unittest.TestCase):
             with self.assertRaises(HouseIndexError):
                 build_house_candidate(root, state, deepcopy(BASE))
 
+    def test_parse_status_conflict_fails_closed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            summary_path = root / "status/summary.json"
+            summary = json.loads(summary_path.read_text())
+            summary["status_conflict_count"] = 1
+            summary_path.write_text(json.dumps(summary))
+            state = {"status": "ok", "run_at": "2026-09-18T12:00:00Z",
+                     "counts": {"archived": 1, "pending": 0, "failed": 0}}
+            with self.assertRaises(HouseIndexError):
+                build_house_candidate(root, state, deepcopy(BASE))
+
 
 if __name__ == "__main__":
     unittest.main()

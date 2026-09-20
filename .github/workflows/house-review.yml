@@ -94,6 +94,9 @@ jobs:
               sha = metadata['sha256']
               extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
               failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
+              if extraction.is_file() and failure.is_file():
+                  retries.append(metadata_path)
+                  continue
               if extraction.is_file():
                   try:
                       value = json.loads(extraction.read_text(encoding='utf-8'))
@@ -174,6 +177,7 @@ jobs:
             extraction="$REVIEW_ROOT/house_clerk/extractions/$year/$document_id/$sha.json"
             identity="$REVIEW_ROOT/house_clerk/identities/$year/$document_id/$sha.json"
             failure="$REVIEW_ROOT/house_clerk/failures/$year/$document_id/$sha.json"
+            qualification="$REVIEW_ROOT/house_clerk/qualifications/$year/$document_id/$sha.json"
             mkdir -p "$(dirname "$extraction")" "$(dirname "$identity")" "$(dirname "$failure")"
             if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-ptr \
                 --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
@@ -182,6 +186,9 @@ jobs:
               rm -f "$failure"
               parsed=$((parsed + 1))
             else
+              # A parser retry supersedes the old extraction. Fail closed so a stale
+              # extraction, identity, or qualification cannot remain in the candidate.
+              rm -f "$extraction" "$identity" "$qualification"
               error="$(printf '%s' "$output" | tr '\n' ' ' | tail -c 480)"
               ERROR="$error" YEAR="$year" DOCUMENT_ID="$document_id" SHA="$sha" \
                 PARSER_COMMIT="$PARSER_COMMIT" FAILURE="$failure" python - <<'PY'
@@ -242,6 +249,12 @@ jobs:
           failures = list(review.glob('house_clerk/failures/*/*/*.json'))
           identities = list(review.glob('house_clerk/identities/*/*/*.json'))
           qualifications = list(review.glob('house_clerk/qualifications/*/*/*.json'))
+          def keys(paths, bucket):
+              root = review / 'house_clerk' / bucket
+              return {path.relative_to(root).as_posix() for path in paths}
+          extraction_keys = keys(extractions, 'extractions')
+          failure_keys = keys(failures, 'failures')
+          status_conflicts = extraction_keys & failure_keys
           identity_counts = {}
           for path in identities:
               value = json.loads(path.read_text(encoding='utf-8'))
@@ -267,7 +280,8 @@ jobs:
               'evidence_count': evidence_count,
               'extracted_count': len(extractions),
               'failure_count': len(failures),
-              'pending_parse_count': max(evidence_count - len(extractions) - len(failures), 0),
+              'status_conflict_count': len(status_conflicts),
+              'pending_parse_count': max(evidence_count - len(extraction_keys | failure_keys), 0),
               'identity_counts': dict(sorted(identity_counts.items())),
               'qualification_count': len(qualifications),
               'qualified_document_count': qualified_documents,
