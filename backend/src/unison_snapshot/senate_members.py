@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import tempfile
+import time
 import unicodedata
 import urllib.error
 import urllib.request
@@ -27,25 +28,35 @@ class SenateRosterError(RuntimeError):
 
 
 class SenateMemberClient:
-    def __init__(self, timeout: float = 30.0):
+    def __init__(self, timeout: float = 30.0, retry_delays: tuple[float, ...] = (3, 12, 30),
+                 opener=None, sleeper=None):
         self.timeout = timeout
+        self.retry_delays = retry_delays
+        self.opener = opener or urllib.request.urlopen
+        self.sleeper = sleeper or time.sleep
 
     def download(self) -> tuple[bytes, dict[str, str]]:
         request = urllib.request.Request(MEMBERS_URL, headers={
             "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
             "User-Agent": "unison-senate-identity/0.2 (+https://github.com/hunterhigh/us-politician-trades-data)",
         }, method="GET")
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                if response.status != 200 or response.geturl() != MEMBERS_URL:
-                    raise SenateRosterError("Senate member roster returned an unexpected response")
-                content = response.read(MAX_MEMBERS_BYTES + 1)
-                headers = {name.lower(): value for name, value in response.headers.items()
-                           if name.lower() in {"etag", "last-modified", "content-type"}}
-        except urllib.error.HTTPError as exc:
-            raise SenateRosterError(f"Senate member roster returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
-            raise SenateRosterError("Senate member roster is unavailable") from None
+        attempts = len(self.retry_delays) + 1
+        for attempt in range(attempts):
+            try:
+                with self.opener(request, timeout=self.timeout) as response:
+                    if response.status != 200 or response.geturl() != MEMBERS_URL:
+                        raise SenateRosterError("Senate member roster returned an unexpected response")
+                    content = response.read(MAX_MEMBERS_BYTES + 1)
+                    headers = {name.lower(): value for name, value in response.headers.items()
+                               if name.lower() in {"etag", "last-modified", "content-type"}}
+                    break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in {403, 429, 500, 502, 503, 504} or attempt == attempts - 1:
+                    raise SenateRosterError(f"Senate member roster returned HTTP {exc.code}") from None
+            except (urllib.error.URLError, TimeoutError):
+                if attempt == attempts - 1:
+                    raise SenateRosterError("Senate member roster is unavailable") from None
+            self.sleeper(self.retry_delays[attempt])
         if len(content) > MAX_MEMBERS_BYTES:
             raise SenateRosterError("Senate member roster exceeds its size limit")
         return content, headers

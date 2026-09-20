@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import urllib.error
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.senate_members import (
@@ -25,6 +26,38 @@ ADA_CA = member("Example, Ada A.", "Ada", "Example", "CA", "E000001")
 
 
 class SenateMemberTests(unittest.TestCase):
+    def test_member_client_retries_transient_official_source_rejection(self):
+        calls = []
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/xml"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return None
+
+            def geturl(self):
+                return "https://www.senate.gov/general/contact_information/senators_cfm.xml"
+
+            def read(self, _limit):
+                return xml(ADA_CA)
+
+        def opener(request, timeout):
+            calls.append((request.full_url, timeout))
+            if len(calls) == 1:
+                raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, None)
+            return Response()
+
+        from unison_snapshot.senate_members import SenateMemberClient
+        body, headers = SenateMemberClient(
+            retry_delays=(0,), opener=opener, sleeper=lambda _: None,
+        ).download()
+        self.assertEqual((body, headers["content-type"], len(calls)),
+                         (xml(ADA_CA), "application/xml", 2))
+
     def test_discovery_archives_raw_and_normalized_roster_by_hash(self):
         content = xml(ADA_CA)
 
