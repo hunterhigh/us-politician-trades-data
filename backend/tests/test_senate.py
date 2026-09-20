@@ -30,7 +30,7 @@ def row(kind: str = "ptr", document_id: str = PTR_ID) -> list[str]:
         "Example",
         "United States Senator from California",
         (f'<a href="/search/view/{kind}/{document_id}/" target="_blank">'
-         'Periodic Transaction Report for 09/19/2026</a>'),
+         'Periodic Transaction Report for 09/19/2026 (Amendment 1)</a>'),
         "09/19/2026",
     ]
 
@@ -159,6 +159,7 @@ class SenateDiscoveryTests(unittest.TestCase):
                          ["electronic_ptr", "paper_ptr"])
         self.assertEqual(discovery["reports"][0]["portal_listed_date"], "2026-09-19")
         self.assertEqual(discovery["reports"][0]["report_label_date"], "2026-09-19")
+        self.assertEqual(discovery["reports"][0]["report_amendment_number"], 1)
         self.assertNotIn("filed_at", discovery["reports"][0])
 
     def test_field_drift_fails_closed(self):
