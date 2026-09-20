@@ -18,6 +18,7 @@ from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
+from .senate_identity import SenateIdentityError, build_catalog_identities
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -125,6 +126,10 @@ def main() -> None:
     senate_discovery.add_argument("--page-size", type=int, default=100)
     senate_discovery.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
     senate_discovery.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
+    senate_identities = sub.add_parser("match-senate-catalog")
+    senate_identities.add_argument("--discovery", type=Path, required=True)
+    senate_identities.add_argument("--roster", type=Path, required=True)
+    senate_identities.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -318,6 +323,14 @@ def main() -> None:
                               "pages": result["metadata"]["page_count"],
                               "sha256": result["metadata"]["sha256"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "match-senate-catalog":
+            discovery = json.loads(args.discovery.read_text(encoding="utf-8"))
+            roster = json.loads(args.roster.read_text(encoding="utf-8"))
+            result = build_catalog_identities(discovery, roster)
+            _write_atomic(args.output, result)
+            print(json.dumps({"reports": result["report_count"],
+                              "identity_counts": result["identity_counts"],
+                              "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -355,7 +368,8 @@ def main() -> None:
                               "counts": result["counts"], "queue": len(result["queue"]),
                               "output": str(args.output.resolve())}))
     except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
-            SenateEfdError, SenateRosterError, KeyError, OSError, json.JSONDecodeError) as exc:
+            SenateEfdError, SenateRosterError, SenateIdentityError, KeyError, OSError,
+            json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
 
 

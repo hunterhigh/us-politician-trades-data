@@ -120,6 +120,7 @@ jobs:
       - name: Verify authorization gate and collect PTR catalog
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
           mkdir -p .local
           PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
@@ -132,6 +133,17 @@ jobs:
             --archive "$EVIDENCE_ROOT" \
             --submitted-start-date "$start_date" \
             --output .local/senate-efd-discovery.json
+          roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          state = json.loads((Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(state['roster']['sha256'])
+          PY
+          )"
+          PYTHONPATH=backend/src python -m unison_snapshot match-senate-catalog \
+            --discovery .local/senate-efd-discovery.json \
+            --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
+            --output .local/senate-efd-identities.json
       - name: Publish immutable catalog evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -189,7 +201,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: senate-efd-discovery-${{ github.run_id }}
-          path: .local/senate-efd-discovery.json
+          path: |
+            .local/senate-efd-discovery.json
+            .local/senate-efd-identities.json
           retention-days: 1
 
   publish-review-catalog:
@@ -220,6 +234,7 @@ jobs:
           from pathlib import Path
           source = Path('.local/senate-efd-discovery.json')
           discovery = json.loads(source.read_text(encoding='utf-8'))
+          identities = json.loads(Path('.local/senate-efd-identities.json').read_text(encoding='utf-8'))
           review = Path(os.environ['REVIEW_ROOT'])
           sha = discovery['metadata']['sha256']
           target = review / 'senate_efd' / 'discoveries' / f'{sha}.json'
@@ -228,6 +243,13 @@ jobs:
           if target.is_file() and target.read_text(encoding='utf-8') != content:
               raise SystemExit('Senate eFD discovery conflicts with its content hash')
           target.write_text(content, encoding='utf-8')
+          identity_target = review / 'senate_efd' / 'identities' / f'{sha}.json'
+          identity_target.parent.mkdir(parents=True, exist_ok=True)
+          identity_content = json.dumps(
+              identities, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+          if identity_target.is_file() and identity_target.read_text(encoding='utf-8') != identity_content:
+              raise SystemExit('Senate eFD identities conflict with their catalog hash')
+          identity_target.write_text(identity_content, encoding='utf-8')
           status = {
               'schema_version': 'senate-review-run/v1',
               'source_id': 'senate_efd',
@@ -235,6 +257,7 @@ jobs:
               'status': 'catalog_ready_for_review',
               'catalog_sha256': sha,
               'catalog_record_count': discovery['records_total'],
+              'identity_counts': identities['identity_counts'],
               'report_evidence_count': 0,
               'extracted_transaction_count': 0,
               'detail': ('PTR catalog is available for review; individual reports and transaction '
@@ -245,7 +268,7 @@ jobs:
           status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                                  encoding='utf-8')
           PY
-          git -C "$review_root" add senate_efd/discoveries status/senate_efd.json
+          git -C "$review_root" add senate_efd/discoveries senate_efd/identities status/senate_efd.json
           if ! git -C "$review_root" diff --cached --quiet; then
             git -C "$review_root" config user.name "github-actions[bot]"
             git -C "$review_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -21,6 +21,8 @@ class SenateWorkflowTests(unittest.TestCase):
         content = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
         self.assertIn("senate_efd/catalog", content)
         self.assertIn("senate_efd/discoveries", content)
+        self.assertIn("senate_efd/identities", content)
+        self.assertIn("python -m unison_snapshot match-senate-catalog", content)
         self.assertIn("status/senate_efd.json", content)
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("group: disclosure-review-writer", content)
