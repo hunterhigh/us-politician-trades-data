@@ -26,7 +26,7 @@ PAPER_ID = "87654321-4321-4321-8321-ba0987654321"
 
 def row(kind: str = "ptr", document_id: str = PTR_ID) -> list[str]:
     return [
-        "Ada",
+        "Ada ",
         "Example",
         "United States Senator from California",
         (f'<a href="/search/view/{kind}/{document_id}/" target="_blank">'

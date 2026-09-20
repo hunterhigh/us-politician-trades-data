@@ -259,12 +259,12 @@ class SenateEfdClient:
 
 
 def _nonempty_string(value: object, field: str) -> str:
-    if not isinstance(value, str) or not value.strip() or value != value.strip():
+    if not isinstance(value, str) or not value.strip():
         preview = repr(value)
         if len(preview) > 120:
             preview = preview[:117] + "..."
         raise SenateEfdError(f"Senate eFD row has invalid {field}: value={preview}")
-    return value
+    return value.strip()
 
 
 def _portal_date(value: str) -> str:
