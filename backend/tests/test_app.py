@@ -44,6 +44,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("extract-senate-report-entrypoints", result.stdout)
         self.assertIn("plan-senate-amendment-backfill", result.stdout)
         self.assertIn("resolve-senate-amendment-backfill", result.stdout)
+        self.assertIn("activate-senate-amendment-supplement", result.stdout)
         self.assertIn("discover-house-members", result.stdout)
         self.assertIn("suggest-house-identity", result.stdout)
         self.assertIn("plan-house-ptr-sync", result.stdout)

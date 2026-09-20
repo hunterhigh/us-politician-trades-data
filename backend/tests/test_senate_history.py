@@ -2,11 +2,13 @@ from pathlib import Path
 import hashlib
 import json
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.senate_history import (
-    SenateHistoryError, plan_amendment_predecessors, resolve_amendment_predecessors,
+    SenateHistoryError, activate_amendment_supplement,
+    plan_amendment_predecessors, resolve_amendment_predecessors,
 )
 
 
@@ -227,6 +229,16 @@ class SenateHistoryTests(unittest.TestCase):
         self.assertEqual(result["status"], "ready")
         self.assertEqual(result["selected_document_ids"], [matching["document_id"]])
         self.assertEqual(result["targets"][0]["content_match_count"], 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            pointer = activate_amendment_supplement(Path(temporary), result, batch)
+            root = Path(temporary) / "senate_efd" / "amendment_supplements"
+            self.assertEqual(pointer["status"], "active")
+            self.assertTrue((root / "current.json").is_file())
+            self.assertTrue((root / "manifests" /
+                             f"{result['supplement_sha256']}.json").is_file())
+            self.assertEqual(pointer["selected_predecessor_count"], 1)
+            self.assertFalse(any(other["document_id"] in str(path)
+                                 for path in root.rglob("*.json")))
 
     def test_resolution_fails_closed_on_tampered_plan(self):
         predecessor = report("21111111-1111-4111-8111-111111111111")

@@ -7,7 +7,9 @@ import unittest
 
 from unison_snapshot.builder import normalize
 from unison_snapshot.senate import SenateEfdError
-from unison_snapshot.senate_candidate import build_senate_candidate
+from unison_snapshot.senate_candidate import (
+    AMENDMENT_COMPARE_RULE_VERSION, build_senate_candidate,
+)
 from unison_snapshot.senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 
@@ -252,6 +254,76 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertEqual(audit["resolved_amendment_chains"][0]["superseded_document_ids"],
                              [document_ids[1], document_ids[0]])
             self.assertEqual(len(audit["resolved_amendment_chains"][0]["links"]), 2)
+
+    def test_active_historical_supplement_only_supplies_amendment_relationship(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            predecessor_id = "24111111-1111-4111-8111-111111111111"
+            amendment_id = "34111111-1111-4111-8111-111111111111"
+            current = extraction(
+                amendment_id, [row("senate-ptr:341111111111111111111111")],
+                report_amendment_number=1,
+                filed_at_raw="Filed 09/17/2026 @ 8:55 AM",
+            )
+            state = self.fixture(root, [identity(amendment_id)], [current])
+            predecessor = extraction(
+                predecessor_id, [row("senate-ptr:241111111111111111111111")],
+                source_sha256="e" * 64,
+                filed_at_raw="Filed 09/16/2026 @ 8:55 AM",
+            )
+            manifest = {
+                "schema_version": "senate-amendment-supplement/v1",
+                "source_id": "senate_efd",
+                "status": "ready",
+                "reasons": [],
+                "parser_version": PARSER,
+                "compare_rule_version": AMENDMENT_COMPARE_RULE_VERSION,
+                "target_count": 1,
+                "selected_predecessor_count": 1,
+                "selected_document_ids": [predecessor_id],
+                "targets": [{
+                    "amendment_document_id": amendment_id,
+                    "amendment_source_sha256": "c" * 64,
+                    "person_id": "senate:S000001",
+                    "report_title_date": "2026-09-17",
+                    "content_match_count": 1,
+                    "content_matches": [{
+                        "document_id": predecessor_id,
+                        "source_sha256": "e" * 64,
+                    }],
+                }],
+            }
+            supplement_sha = hashlib.sha256(json.dumps(
+                manifest, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":")).encode("utf-8")).hexdigest()
+            manifest["supplement_sha256"] = supplement_sha
+            supplement_root = root / "senate_efd" / "amendment_supplements"
+            manifest_path = supplement_root / "manifests" / f"{supplement_sha}.json"
+            extraction_key = hashlib.sha256(
+                f"{predecessor_id}:{'e' * 64}:{PARSER}".encode("ascii")).hexdigest()
+            extraction_path = supplement_root / "extractions" / f"{extraction_key}.json"
+            extraction_path.parent.mkdir(parents=True)
+            manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            extraction_path.write_text(json.dumps(predecessor), encoding="utf-8")
+            (supplement_root / "current.json").write_text(json.dumps({
+                "schema_version": "senate-amendment-supplement-pointer/v1",
+                "source_id": "senate_efd",
+                "status": "active",
+                "supplement_sha256": supplement_sha,
+                "manifest_path": manifest_path.relative_to(root).as_posix(),
+                "parser_version": PARSER,
+                "compare_rule_version": AMENDMENT_COMPARE_RULE_VERSION,
+                "selected_predecessor_count": 1,
+            }), encoding="utf-8")
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual([item["filing_id"] for item in candidate["transactions"]],
+                             [amendment_id])
+            self.assertNotIn(predecessor_id,
+                             [item["filing_id"] for item in candidate["transactions"]])
+            self.assertEqual(audit["input_transaction_count"], 1)
+            self.assertEqual(audit["amendment_supplement_report_count"], 1)
+            self.assertEqual(audit["amendment_supplement_transaction_count"], 1)
 
     def test_amendment_filed_before_predecessor_is_quarantined(self):
         with tempfile.TemporaryDirectory() as folder:

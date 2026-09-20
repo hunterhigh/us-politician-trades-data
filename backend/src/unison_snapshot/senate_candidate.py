@@ -17,6 +17,8 @@ from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
 CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
 AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v2"
+AMENDMENT_SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
+AMENDMENT_SUPPLEMENT_POINTER_SCHEMA = "senate-amendment-supplement-pointer/v1"
 AMOUNT_RANGES = {
     "$1,001 - $15,000": (1001, 15000),
     "$15,001 - $50,000": (15001, 50000),
@@ -268,6 +270,78 @@ def _read_json(path: Path, description: str) -> dict:
     return value
 
 
+def _canonical_sha256(value: object) -> str:
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _load_active_amendment_supplement(review_root: Path, parser_version: str) -> dict:
+    pointer_path = review_root / "senate_efd" / "amendment_supplements" / "current.json"
+    if not pointer_path.is_file():
+        return {"manifest": None, "extractions": []}
+    pointer = _read_json(pointer_path, "Senate amendment supplement pointer")
+    supplement_sha = pointer.get("supplement_sha256")
+    expected_manifest = (
+        f"senate_efd/amendment_supplements/manifests/{supplement_sha}.json"
+        if isinstance(supplement_sha, str) else None
+    )
+    if (set(pointer) != {
+            "schema_version", "source_id", "status", "supplement_sha256", "manifest_path",
+            "parser_version", "compare_rule_version", "selected_predecessor_count",
+            } or
+            pointer.get("schema_version") != AMENDMENT_SUPPLEMENT_POINTER_SCHEMA or
+            pointer.get("source_id") != "senate_efd" or pointer.get("status") != "active" or
+            not isinstance(supplement_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", supplement_sha) or
+            pointer.get("manifest_path") != expected_manifest or
+            pointer.get("parser_version") != parser_version or
+            pointer.get("compare_rule_version") != AMENDMENT_COMPARE_RULE_VERSION):
+        raise SenateEfdError("Senate amendment supplement pointer is invalid")
+    manifest = _read_json(review_root / expected_manifest, "Senate amendment supplement manifest")
+    unhashed = {key: value for key, value in manifest.items() if key != "supplement_sha256"}
+    targets = manifest.get("targets")
+    selected_ids = manifest.get("selected_document_ids")
+    if (manifest.get("schema_version") != AMENDMENT_SUPPLEMENT_SCHEMA or
+            manifest.get("source_id") != "senate_efd" or manifest.get("status") != "ready" or
+            manifest.get("reasons") != [] or manifest.get("supplement_sha256") != supplement_sha or
+            _canonical_sha256(unhashed) != supplement_sha or
+            manifest.get("parser_version") != parser_version or
+            manifest.get("compare_rule_version") != AMENDMENT_COMPARE_RULE_VERSION or
+            not isinstance(targets, list) or not isinstance(selected_ids, list) or
+            manifest.get("target_count") != len(targets) or
+            manifest.get("selected_predecessor_count") != len(selected_ids) or
+            pointer.get("selected_predecessor_count") != len(selected_ids) or
+            any(not isinstance(document_id, str) for document_id in selected_ids) or
+            len(selected_ids) != len(set(selected_ids))):
+        raise SenateEfdError("Senate amendment supplement manifest is invalid")
+    extractions = []
+    for document_id in selected_ids:
+        matches = [target["content_matches"][0] for target in targets
+                   if (isinstance(target, dict) and target.get("content_match_count") == 1 and
+                       isinstance(target.get("content_matches"), list) and
+                       len(target["content_matches"]) == 1 and
+                       target["content_matches"][0].get("document_id") == document_id)]
+        if len(matches) != 1:
+            raise SenateEfdError("Senate amendment supplement selection is not unique")
+        source_sha = matches[0].get("source_sha256")
+        extraction_key = hashlib.sha256(
+            f"{document_id}:{source_sha}:{parser_version}".encode("ascii")).hexdigest()
+        path = (review_root / "senate_efd" / "amendment_supplements" /
+                "extractions" / f"{extraction_key}.json")
+        extraction = _read_json(path, "Senate amendment supplement extraction")
+        if (extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+                extraction.get("source_id") != "senate_efd" or
+                extraction.get("document_id") != document_id or
+                extraction.get("source_sha256") != source_sha or
+                extraction.get("parser_version") != parser_version or
+                extraction.get("report_amendment_number") is not None or
+                extraction.get("evidence_complete") is not True or
+                not isinstance(extraction.get("transactions"), list)):
+            raise SenateEfdError("Senate amendment supplement extraction is invalid")
+        extractions.append(extraction)
+    return {"manifest": manifest, "extractions": extractions}
+
+
 def _filed_date(raw: object) -> str:
     match = _FILED.fullmatch(raw) if isinstance(raw, str) else None
     if match is None:
@@ -496,9 +570,58 @@ def build_senate_candidate(
         raise SenateEfdError("Senate extractions do not map uniquely to the identity batch")
     if sum(len(item["transactions"]) for item in extraction_values) != status.get("extracted_transaction_count"):
         raise SenateEfdError("Senate extracted transaction count does not match review status")
-    amendment_resolution = _resolve_amendments(extraction_values, identity_by_document)
+    primary_by_document = {item["document_id"]: item for item in extraction_values}
+    supplement = _load_active_amendment_supplement(review_root, parser_version)
+    supplement_extractions = supplement["extractions"]
+    supplement_manifest = supplement["manifest"]
+    supplement_ids = {item["document_id"] for item in supplement_extractions}
+    if supplement_ids & set(primary_by_document):
+        raise SenateEfdError("Senate amendment supplement duplicates a primary extraction")
+    resolution_identities = dict(identity_by_document)
+    expected_supplement_links = set()
+    if supplement_manifest is not None:
+        for target in supplement_manifest["targets"]:
+            amendment_id = target.get("amendment_document_id")
+            amendment = primary_by_document.get(amendment_id)
+            identity = identity_by_document.get(amendment_id)
+            match = target["content_matches"][0]
+            predecessor = next((item for item in supplement_extractions
+                                if item["document_id"] == match.get("document_id")), None)
+            if (not isinstance(amendment, dict) or not isinstance(identity, dict) or
+                    amendment.get("source_sha256") != target.get("amendment_source_sha256") or
+                    amendment.get("report_title_date") != target.get("report_title_date") or
+                    identity.get("person_id") != target.get("person_id") or
+                    not isinstance(predecessor, dict) or
+                    predecessor.get("source_sha256") != match.get("source_sha256") or
+                    predecessor.get("report_title_date") != target.get("report_title_date")):
+                raise SenateEfdError("Senate amendment supplement no longer matches current review")
+            resolution_identities[predecessor["document_id"]] = {
+                "document_id": predecessor["document_id"],
+                "person_id": target["person_id"],
+                "match_class": "exact",
+                "status": "matched_automatically",
+            }
+            expected_supplement_links.add((
+                predecessor["document_id"], predecessor["source_sha256"],
+                amendment_id, amendment["source_sha256"],
+            ))
+    amendment_resolution = _resolve_amendments(
+        [*extraction_values, *supplement_extractions], resolution_identities)
     superseded_documents = amendment_resolution["superseded"]
     unresolved_amendment_documents = amendment_resolution["unresolved"]
+    if supplement_ids & unresolved_amendment_documents or not supplement_ids <= superseded_documents:
+        raise SenateEfdError("Senate amendment supplement did not resolve every predecessor")
+    actual_supplement_links = {
+        (link.get("previous_document_id"), link.get("previous_source_sha256"),
+         link.get("current_document_id"), link.get("current_source_sha256"))
+        for chain in amendment_resolution["chains"] for link in chain["links"]
+        if link.get("previous_document_id") in supplement_ids
+    }
+    if actual_supplement_links != expected_supplement_links:
+        raise SenateEfdError("Senate amendment supplement links differ from the active manifest")
+    primary_superseded_documents = superseded_documents - supplement_ids
+    if not primary_superseded_documents <= set(primary_by_document):
+        raise SenateEfdError("Senate amendment resolver superseded an unknown report")
 
     transactions = []
     people: dict[str, dict] = {}
@@ -537,7 +660,7 @@ def build_senate_candidate(
                 "source_sha256": extraction.get("source_sha256"),
             })
             continue
-        if document_id in superseded_documents:
+        if document_id in primary_superseded_documents:
             superseded_report_transaction_count += len(extraction.get("transactions", []))
             continue
         if document_id in unresolved_amendment_documents:
@@ -615,7 +738,7 @@ def build_senate_candidate(
             raise ValueError
     except ValueError:
         raise SenateEfdError("Senate source state has no valid data cutoff") from None
-    disposition_total = (len(quarantined_reports) + len(superseded_documents) +
+    disposition_total = (len(quarantined_reports) + len(primary_superseded_documents) +
                          fully_qualified_reports +
                          partially_qualified_reports + row_only_quarantined_reports +
                          empty_eligible_reports)
@@ -682,8 +805,14 @@ def build_senate_candidate(
         "empty_eligible_report_count": empty_eligible_reports,
         "resolved_amendment_chain_count": len(amendment_resolution["chains"]),
         "resolved_amendment_chains": amendment_resolution["chains"],
-        "superseded_report_count": len(superseded_documents),
+        "superseded_report_count": len(primary_superseded_documents),
         "superseded_report_transaction_count": superseded_report_transaction_count,
+        "amendment_supplement_sha256": (
+            supplement_manifest.get("supplement_sha256")
+            if supplement_manifest is not None else None),
+        "amendment_supplement_report_count": len(supplement_extractions),
+        "amendment_supplement_transaction_count": sum(
+            len(item["transactions"]) for item in supplement_extractions),
         "candidate_person_count": len(people),
         "candidate_transaction_count": len(transactions),
         "qualified_rows": qualified_rows,

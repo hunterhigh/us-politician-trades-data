@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import tempfile
 
 from .senate_candidate import AMENDMENT_COMPARE_RULE_VERSION, compare_amendment_pair
 from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, REPORT_EXTRACTION_BATCH_SCHEMA
@@ -13,6 +14,7 @@ from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, REPORT_EXTRACTION_BATC
 
 PLAN_SCHEMA = "senate-amendment-backfill-plan/v1"
 SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
+SUPPLEMENT_POINTER_SCHEMA = "senate-amendment-supplement-pointer/v1"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _PLAN_FINGERPRINT_FIELDS = (
     "historical_catalog_sha256", "historical_discovery_sha256",
@@ -394,6 +396,110 @@ def resolve_amendment_predecessors(
     }
     result["supplement_sha256"] = _canonical_sha256(result)
     return result
+
+
+def activate_amendment_supplement(
+        review_root: Path, supplement: object, historical_extraction_batch: object) -> dict:
+    """Persist only selected predecessor extractions behind one active pointer."""
+
+    if not isinstance(supplement, dict):
+        raise SenateHistoryError("Senate amendment supplement is invalid")
+    supplement_sha = supplement.get("supplement_sha256")
+    unhashed = {key: value for key, value in supplement.items() if key != "supplement_sha256"}
+    if (supplement.get("schema_version") != SUPPLEMENT_SCHEMA or
+            supplement.get("source_id") != "senate_efd" or
+            supplement.get("status") != "ready" or supplement.get("reasons") != [] or
+            supplement.get("parser_version") is None or
+            supplement.get("compare_rule_version") != AMENDMENT_COMPARE_RULE_VERSION or
+            not isinstance(supplement_sha, str) or not _SHA256.fullmatch(supplement_sha) or
+            _canonical_sha256(unhashed) != supplement_sha or
+            supplement.get("target_count") != supplement.get("selected_predecessor_count") or
+            not isinstance(supplement.get("targets"), list) or
+            supplement.get("target_count") != len(supplement["targets"])):
+        raise SenateHistoryError("Senate amendment supplement is not activation ready")
+    batch = historical_extraction_batch
+    if (not isinstance(batch, dict) or
+            batch.get("schema_version") != REPORT_EXTRACTION_BATCH_SCHEMA or
+            batch.get("source_id") != "senate_efd" or
+            batch.get("catalog_sha256") != supplement.get("historical_catalog_sha256") or
+            batch.get("parser_version") != supplement.get("parser_version") or
+            supplement.get("historical_extraction_batch_sha256") != _canonical_sha256(batch) or
+            not isinstance(batch.get("extractions"), list)):
+        raise SenateHistoryError("Senate amendment activation batch is invalid")
+    extraction_by_document = {}
+    for extraction in batch["extractions"]:
+        document_id = extraction.get("document_id") if isinstance(extraction, dict) else None
+        if not isinstance(document_id, str) or document_id in extraction_by_document:
+            raise SenateHistoryError("Senate amendment activation batch has duplicate documents")
+        extraction_by_document[document_id] = extraction
+    selected = []
+    for target in supplement["targets"]:
+        if not isinstance(target, dict):
+            raise SenateHistoryError("Senate amendment supplement has an invalid target")
+        matches = target.get("content_matches")
+        if (target.get("content_match_count") != 1 or not isinstance(matches, list) or
+                len(matches) != 1):
+            raise SenateHistoryError("Senate amendment supplement has an unresolved target")
+        match = matches[0]
+        extraction = extraction_by_document.get(match.get("document_id"))
+        if (not isinstance(extraction, dict) or
+                extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+                extraction.get("parser_version") != supplement.get("parser_version") or
+                extraction.get("source_sha256") != match.get("source_sha256") or
+                extraction.get("evidence_complete") is not True or
+                extraction.get("report_amendment_number") is not None):
+            raise SenateHistoryError("Selected Senate amendment predecessor is not content bound")
+        selected.append(extraction)
+    selected_ids = sorted(item["document_id"] for item in selected)
+    if (selected_ids != supplement.get("selected_document_ids") or
+            len(selected_ids) != len(set(selected_ids))):
+        raise SenateHistoryError("Senate amendment supplement selection is inconsistent")
+
+    root = review_root.resolve() / "senate_efd" / "amendment_supplements"
+    folder = root / "manifests"
+
+    def write_once(path: Path, value: dict) -> None:
+        encoded = (json.dumps(value, ensure_ascii=False, sort_keys=True,
+                              separators=(",", ":")) + "\n").encode("utf-8")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            if path.read_bytes() != encoded:
+                raise SenateHistoryError("Senate amendment supplement conflicts with immutable review data")
+            return
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
+                                         suffix=".tmp", delete=False) as handle:
+            handle.write(encoded)
+            temporary = Path(handle.name)
+        temporary.replace(path)
+
+    manifest_path = folder / f"{supplement_sha}.json"
+    write_once(manifest_path, supplement)
+    for extraction in selected:
+        key = hashlib.sha256(
+            f"{extraction['document_id']}:{extraction['source_sha256']}:{extraction['parser_version']}"
+            .encode("ascii")).hexdigest()
+        path = root / "extractions" / f"{key}.json"
+        write_once(path, extraction)
+    pointer = {
+        "schema_version": SUPPLEMENT_POINTER_SCHEMA,
+        "source_id": "senate_efd",
+        "status": "active",
+        "supplement_sha256": supplement_sha,
+        "manifest_path": manifest_path.relative_to(review_root.resolve()).as_posix(),
+        "parser_version": supplement["parser_version"],
+        "compare_rule_version": supplement["compare_rule_version"],
+        "selected_predecessor_count": len(selected_ids),
+    }
+    pointer_path = root / "current.json"
+    pointer_path.parent.mkdir(parents=True, exist_ok=True)
+    encoded = (json.dumps(pointer, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":")) + "\n").encode("utf-8")
+    with tempfile.NamedTemporaryFile(dir=pointer_path.parent, prefix=".current.",
+                                     suffix=".tmp", delete=False) as handle:
+        handle.write(encoded)
+        temporary = Path(handle.name)
+    temporary.replace(pointer_path)
+    return pointer
 
 
 def load_amendment_predecessor_plan(

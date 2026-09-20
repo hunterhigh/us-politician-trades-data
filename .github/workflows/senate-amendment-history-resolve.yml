@@ -210,3 +210,143 @@ jobs:
               raise SystemExit(f"Historical amendment supplement needs attention: {supplement['reasons']}")
           print('Resolved 12 amendment predecessors from 16 bounded official reports.')
           PY
+  activate:
+    needs: resolve
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: disclosure-review-writer
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: senate-amendment-history-inputs-${{ github.run_id }}
+          path: .local
+      - uses: actions/download-artifact@v4
+        with:
+          name: senate-amendment-supplement-${{ github.run_id }}
+          path: .local
+      - name: Prepare review and state snapshots
+        id: trees
+        run: |
+          review_root="$RUNNER_TEMP/senate-history-review"
+          state_root="$RUNNER_TEMP/senate-history-state"
+          git fetch --no-tags origin \
+            review:refs/remotes/origin/review \
+            state:refs/remotes/origin/state
+          git worktree add --detach "$review_root" origin/review
+          git worktree add --detach "$state_root" origin/state
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+      - name: Activate the immutable supplement and rebuild candidates
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot activate-senate-amendment-supplement \
+            --review-root "$REVIEW_ROOT" \
+            --supplement .local/senate-amendment-supplement.json \
+            --historical-extractions .local/senate-history-extraction-batch.json \
+            --output .local/senate-amendment-supplement-pointer.json
+          status="$REVIEW_ROOT/status/senate_efd.json"
+          catalog_sha="$(python -c "import json; print(json.load(open('$status'))['catalog_sha256'])")"
+          identity_binding="$(python -c "import json; print(json.load(open('$status'))['identity_binding_sha256'])")"
+          parser_version="$(python -c "import json; print(json.load(open('$status'))['report_parser_version'])")"
+          audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/senate_efd.json" \
+            --base ingest/current.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$audit_temp" \
+            --html-output "$RUNNER_TEMP/senate-efd-current.html"
+          AUDIT="$audit_temp" CANDIDATE="$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            SUPPLEMENT=".local/senate-amendment-supplement.json" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          audit = json.loads(Path(os.environ['AUDIT']).read_text(encoding='utf-8'))
+          candidate = json.loads(Path(os.environ['CANDIDATE']).read_text(encoding='utf-8'))
+          supplement = json.loads(Path(os.environ['SUPPLEMENT']).read_text(encoding='utf-8'))
+          if (audit['input_transaction_count'] != 1646 or
+                  audit['amendment_supplement_sha256'] != supplement['supplement_sha256'] or
+                  audit['amendment_supplement_report_count'] != 12 or
+                  audit['candidate_transaction_count'] + audit['quarantined_transaction_count'] +
+                  audit['superseded_report_transaction_count'] != 1646):
+              raise SystemExit('Activated Senate amendment supplement failed primary conservation')
+          predecessor_ids = set(supplement['selected_document_ids'])
+          if any(item.get('filing_id') in predecessor_ids for item in candidate['transactions']):
+              raise SystemExit('Historical predecessor escaped into the candidate transaction set')
+          PY
+          builder_version="$(python -c "import json; print(json.load(open('$audit_temp'))['builder_version'])")"
+          candidate_snapshot="$(python -c "import json; print(json.load(open('$audit_temp'))['candidate_snapshot_id'])")"
+          audit="$REVIEW_ROOT/senate_efd/qualifications/$catalog_sha/$identity_binding/$parser_version/$builder_version/$candidate_snapshot.json"
+          mkdir -p "$(dirname "$audit")"
+          if [ -e "$audit" ] && ! cmp -s "$audit_temp" "$audit"; then
+            echo "Immutable Senate qualification audit collision: $audit" >&2
+            exit 1
+          fi
+          cp "$audit_temp" "$audit"
+          cp "$audit_temp" "$REVIEW_ROOT/senate_efd/qualifications/current.json"
+          source_args=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
+          if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
+            source_args+=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json \
+            --harmonize-cutoffs \
+            "${source_args[@]}" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
+            --html-output "$RUNNER_TEMP/disclosure-current.html"
+          CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
+            BUILDER_COMMIT="${{ github.sha }}" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          candidate = json.loads(Path(os.environ['CANDIDATE']).read_text(encoding='utf-8'))
+          disclosure_sources = {'house_clerk', 'senate_efd', 'oge'}
+          included = sorted(row['source_id'] for row in candidate['source_health']
+                            if row.get('source_id') in disclosure_sources
+                            and row.get('status') in {'ok', 'partial'})
+          value = {
+              'schema_version': 'disclosure-candidate-run/v1',
+              'builder_commit': os.environ['BUILDER_COMMIT'],
+              'data_cutoff_at': candidate['meta']['data_cutoff_at'],
+              'included_sources': included,
+              'pending_sources': sorted(disclosure_sources - set(included)),
+              'people_count': len(candidate['people']),
+              'transaction_count': len(candidate['transactions']),
+              'reported_holding_count': len(candidate['reported_holdings']),
+              'status': 'partial',
+              'cutoff_audit': 'status/disclosure_cutoff.json',
+          }
+          target = Path(os.environ['REVIEW_ROOT']) / 'status' / 'disclosure_candidate.json'
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                       separators=(',', ':')), encoding='utf-8')
+          PY
+      - name: Publish the validated review supplement and candidates
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          git -C "$REVIEW_ROOT" add \
+            senate_efd/amendment_supplements \
+            senate_efd/qualifications \
+            candidates \
+            status/disclosure_candidate.json \
+            status/disclosure_cutoff.json
+          if git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            echo "Activated supplement produced no review change" >&2
+            exit 1
+          fi
+          git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+          git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$REVIEW_ROOT" commit -m "review: activate Senate amendment supplement ${{ github.run_id }}"
+          git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review

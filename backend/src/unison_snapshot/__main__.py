@@ -27,7 +27,8 @@ from .senate_identity import SenateIdentityError, build_catalog_identities
 from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
 from .senate_candidate import load_senate_candidate
 from .senate_history import (
-    SenateHistoryError, load_amendment_predecessor_plan, load_amendment_supplement,
+    SenateHistoryError, activate_amendment_supplement,
+    load_amendment_predecessor_plan, load_amendment_supplement,
 )
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
@@ -181,6 +182,11 @@ def main() -> None:
     senate_history_resolve.add_argument("--plan", type=Path, required=True)
     senate_history_resolve.add_argument("--historical-extractions", type=Path, required=True)
     senate_history_resolve.add_argument("--output", type=Path, required=True)
+    senate_history_activate = sub.add_parser("activate-senate-amendment-supplement")
+    senate_history_activate.add_argument("--review-root", type=Path, required=True)
+    senate_history_activate.add_argument("--supplement", type=Path, required=True)
+    senate_history_activate.add_argument("--historical-extractions", type=Path, required=True)
+    senate_history_activate.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -459,6 +465,16 @@ def main() -> None:
             _write_atomic(args.output, result)
             print(json.dumps({"status": result["status"],
                               "targets": result["target_count"],
+                              "selected_predecessors": result["selected_predecessor_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "activate-senate-amendment-supplement":
+            supplement = json.loads(args.supplement.read_text(encoding="utf-8"))
+            historical_extractions = json.loads(
+                args.historical_extractions.read_text(encoding="utf-8"))
+            result = activate_amendment_supplement(
+                args.review_root, supplement, historical_extractions)
+            _write_atomic(args.output, result)
+            print(json.dumps({"status": result["status"],
                               "selected_predecessors": result["selected_predecessor_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-report-entrypoints":

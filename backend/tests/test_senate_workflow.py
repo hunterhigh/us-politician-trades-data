@@ -68,15 +68,18 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertNotIn("HEAD:refs/heads/state", content)
         self.assertNotIn("HEAD:refs/heads/review", content)
 
-    def test_history_resolution_is_bounded_and_keeps_review_unchanged(self):
+    def test_history_resolution_is_bounded_and_activates_only_after_validation(self):
         content = (ROOT / ".github/workflows/senate-amendment-history-resolve.yml").read_text(
             encoding="utf-8")
         self.assertIn("--document-ids .local/senate-history-candidate-ids.json", content)
         self.assertIn("--limit 16", content)
         self.assertIn("counts.count(1) == 8 and counts.count(2) == 4", content)
         self.assertIn("resolve-senate-amendment-backfill", content)
+        self.assertIn("activate-senate-amendment-supplement", content)
+        self.assertIn("audit['input_transaction_count'] != 1646", content)
+        self.assertIn("Historical predecessor escaped into the candidate", content)
         self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog senate_efd/reports", content)
-        self.assertNotIn("HEAD:refs/heads/review", content)
+        self.assertIn("HEAD:refs/heads/review", content)
 
 
 if __name__ == "__main__":
