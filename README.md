@@ -50,7 +50,7 @@ python -m unison_snapshot publish-demo --input examples/synthetic.json --store .
 python -m unison_snapshot assemble --store ../.local/manual.git --commit <上一步返回的40位提交值> --mode people --key house:DEMO001 --output ../.local/person.json
 ```
 
-`client/snapshot_repo.py` 是本项目给出的公开 GitHub 读取实现，仍不是对方声称已经完成但尚未提供的那份文件。只有本项目测试及原包处理器和渲染器获得实际验证；不宣称对方新版 57 项测试已通过。
+`client/snapshot_repo.py` 是本项目按照交接说明实现的公开 GitHub 读取器。交接包与交接说明共同构成唯一消费基线；本项目已经实际验证自身测试、交接包处理器和渲染器。交接说明自述的 57 项测试不是本项目运行结果，也不是等待另一套前端交付的发布门槛。
 
 ## Alpaca Basic 本地行情验证
 
@@ -99,7 +99,7 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 
 电子PTR解析覆盖普通股票、期权、无ticker、金额换行、精确金额、开放金额、末行跨页和amended申报。`20035420` 的身份可确定为 `house:D000032`。自动资格校验直接生成候选事实，无法确定的修订、身份、OCR和金额语义进入隔离队列；旧人工工具仅用于异常调查。流程见 [House PTR 自动资格与异常调查](docs/House-PTR-复核流程.md)。
 
-OGE直链278-T链路已经集成：严格分页目录、内容寻址目录与PDF归档、278-T离线解析、保守身份、资格隔离、来源候选和三源重建均已进入`code`。`.github/workflows/oge.yml`受`OGE_COLLECTION_ENABLED`与`OGE_TERMS_ACKNOWLEDGED`双开关保护；未同时启用时定时任务不会占用runner，手动触发仍可只检查门禁。当前尚未运行真实生产小批次。Form 201请求型报告只计数并保留`request_required`，不会自动提交、猜测申报编号或把目录日期冒充申报时间。
+OGE直链278-T链路已经集成：严格分页目录、内容寻址目录与PDF归档、278-T离线解析、保守身份、资格隔离、来源候选和三源重建均已进入`code`。`.github/workflows/oge.yml`受`OGE_COLLECTION_ENABLED`与`OGE_TERMS_ACKNOWLEDGED`双开关保护；两个生产开关已于2026-09-20启用。门禁运行成功，但官方`extapps2.oge.gov`目录主机从本机及GitHub Linux、macOS、Windows runner均连接超时，尚未取得目录、原件或真实版式样本；工作流保持有界重试并写入失败状态。Form 201请求型报告只计数并保留`request_required`，不会自动提交、猜测申报编号或把目录日期冒充申报时间。
 
 Senate 接入已通过显式授权进入报告生产阶段：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，分别保留门户列表日期、报告标题日期及修订编号，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已归档100人官方名册；`senate-efd.yml` 在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 双重门禁下，每6小时刷新目录并归档有界报告批次。2026-01-01至今130份PTR入口已全部内容寻址归档：121份电子报告严格解析出1,646条交易，当前入口归档和解析失败均为0；9份纸面报告的官方扫描查看器及52张GIF原页也已完整归档并逐页绑定哈希，但纸面交易的OCR和结构化提取尚未完成，因此没有把扫描页直接计入候选交易。身份结果为104份精确、15份官方目录别名、11份未解析。历史补充工作流另从2024年至今目录白名单归档16份官方电子原件，以同一正文比较规则为12份 Amendment 1 报告唯一确定前件；补充报告只作为修订关系证据，不进入主交易输入。当前16条链已闭合，主目录内41笔旧版标记为 superseded。生产候选现为23人、1,435笔，170笔因身份、仍未闭合的独立报告、exchange、期权条款或异常ticker隔离；审计守恒为`1,435 + 170 + 41 = 1,646`。原始响应和扫描页进入 `evidence`，身份、解析、资格和候选进入 `review`。eFD入口本身无需API token；可选的Congress.gov历史身份补充需要免费的`CONGRESS_GOV_API_KEY`，当前尚未配置。
 
