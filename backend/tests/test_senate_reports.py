@@ -11,6 +11,7 @@ from unison_snapshot.senate_reports import (
     SenateReportClient,
     archive_catalog_report_entrypoints,
     archive_report,
+    extract_archived_report_batch,
     inspect_paper_entrypoint,
     inspect_paper_ptr,
     inspect_report_content,
@@ -52,7 +53,15 @@ def html(rows=None, headers=None):
     ]]
     head = "".join(f"<th>{cell}</th>" for cell in headers)
     body = "".join("<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in rows)
-    return f"<!doctype html><html><body><table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></body></html>".encode()
+    count = len(rows)
+    unit = "transaction" if count == 1 else "transactions"
+    return (f"<!doctype html><html><body>"
+            f"<h1>Periodic Transaction Report for 09/17/2026</h1>"
+            f"<h2>Sample Senator (Sample, Senator)</h2>"
+            f"<p>Filed 09/17/2026 @ 8:55 AM</p>"
+            f"<div>({count} {unit} total)</div>"
+            f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+            f"</body></html>").encode()
 
 
 def metadata_for(content, method="electronic_ptr", media_kind="html"):
@@ -142,6 +151,8 @@ class SenateReportsTest(unittest.TestCase):
         result = parse_electronic_ptr(metadata_for(content), content)
         self.assertEqual(result["schema_version"], ELECTRONIC_EXTRACTION_SCHEMA)
         self.assertEqual(result["document_disposition"], "transactions_parsed")
+        self.assertTrue(result["evidence_complete"])
+        self.assertEqual(result["filed_at_raw"], "Filed 09/17/2026 @ 8:55 AM")
         self.assertEqual(len(result["transactions"]), 2)
         first, second = result["transactions"]
         self.assertEqual(first["transaction_date"], "2026-09-01")
@@ -214,6 +225,22 @@ class SenateReportsTest(unittest.TestCase):
         self.assertEqual((second["archived_count"], second["archived_total"], second["pending_count"]),
                          (1, 2, 0))
         self.assertEqual(len(fake.calls), 2)
+
+    def test_archived_batch_extracts_electronic_entrypoint_offline(self):
+        batch = {
+            "schema_version": "senate-efd-discovery/v1",
+            "metadata": {"sha256": "a" * 64},
+            "reports": [discovery()],
+        }
+        config = SenateSourceConfig(enabled=True, terms_acknowledged=True)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            collected = archive_catalog_report_entrypoints(
+                root, batch, limit=1, config=config, client=FakeSession(html()))
+            extracted = extract_archived_report_batch(root, collected)
+        self.assertEqual((extracted["extraction_count"], extracted["failure_count"],
+                          extracted["transaction_count"]), (1, 0, 2))
+        self.assertTrue(extracted["extractions"][0]["evidence_complete"])
 
     def test_archive_timestamp_requires_timezone(self):
         with tempfile.TemporaryDirectory() as temporary, self.assertRaises(SenateEfdError):

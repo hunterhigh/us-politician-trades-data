@@ -19,7 +19,7 @@ from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
 from .senate_identity import SenateIdentityError, build_catalog_identities
-from .senate_reports import archive_catalog_report_entrypoints
+from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -138,6 +138,10 @@ def main() -> None:
     senate_reports.add_argument("--limit", type=int, default=2)
     senate_reports.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
     senate_reports.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
+    senate_extract = sub.add_parser("extract-senate-report-entrypoints")
+    senate_extract.add_argument("--batch", type=Path, required=True)
+    senate_extract.add_argument("--archive", type=Path, required=True)
+    senate_extract.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -351,6 +355,16 @@ def main() -> None:
                               "failures": result["failure_count"],
                               "archived_total": result["archived_total"],
                               "pending": result["pending_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "extract-senate-report-entrypoints":
+            batch = json.loads(args.batch.read_text(encoding="utf-8"))
+            result = extract_archived_report_batch(args.archive, batch)
+            _write_atomic(args.output, result)
+            print(json.dumps({"entrypoints": result["entrypoint_count"],
+                              "extractions": result["extraction_count"],
+                              "inspections": result["inspection_count"],
+                              "failures": result["failure_count"],
+                              "transactions": result["transaction_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))

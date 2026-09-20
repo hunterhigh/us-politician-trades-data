@@ -20,10 +20,11 @@ class SenateWorkflowTests(unittest.TestCase):
     def test_catalog_respects_evidence_review_and_state_boundaries(self):
         content = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
         self.assertIn("senate_efd/catalog", content)
-        self.assertIn("senate_efd/discoveries", content)
-        self.assertIn("senate_efd/identities", content)
+        self.assertIn("/ 'discoveries' /", content)
+        self.assertIn("/ 'identities' /", content)
         self.assertIn("python -m unison_snapshot match-senate-catalog", content)
         self.assertIn("python -m unison_snapshot archive-senate-report-entrypoints", content)
+        self.assertIn("python -m unison_snapshot extract-senate-report-entrypoints", content)
         self.assertIn("senate_efd/reports", content)
         self.assertIn("include-hidden-files: true", content)
         self.assertIn("identity_roster_sha256", content)
@@ -31,7 +32,7 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("group: disclosure-review-writer", content)
         self.assertIn("'entrypoint_count': report_batch['archived_total']", content)
-        self.assertIn("'report_evidence_count': 0", content)
+        self.assertIn("'report_evidence_count': evidence_count", content)
 
     def test_roster_refresh_preserves_catalog_gate_and_status(self):
         content = (ROOT / ".github/workflows/senate-roster.yml").read_text(encoding="utf-8")

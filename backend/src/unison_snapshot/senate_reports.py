@@ -32,6 +32,7 @@ from .senate import (
 
 REPORT_ARCHIVE_SCHEMA = "senate-efd-report-entrypoint-archive/v1"
 REPORT_BATCH_SCHEMA = "senate-efd-report-entrypoint-batch/v1"
+REPORT_EXTRACTION_BATCH_SCHEMA = "senate-efd-report-extraction-batch/v1"
 ELECTRONIC_EXTRACTION_SCHEMA = "senate-efd-electronic-ptr-extraction/v1"
 PAPER_INSPECTION_SCHEMA = "senate-efd-paper-ptr-inspection/v1"
 PARSER_VERSION = "senate-efd-report-parser-2026-09"
@@ -232,11 +233,12 @@ def archive_report(root: Path, discovery: dict, content: bytes, headers: dict[st
     return metadata
 
 
-def _archived_document_ids(root: Path) -> set[str]:
+def _archived_entrypoints(root: Path) -> list[dict]:
     reports_root = root.resolve() / "senate_efd" / "reports"
     if not reports_root.exists():
-        return set()
-    archived: set[str] = set()
+        return []
+    archived: list[dict] = []
+    seen: set[str] = set()
     for path in reports_root.glob("*/*.metadata.json"):
         try:
             metadata = json.loads(path.read_text(encoding="utf-8"))
@@ -247,7 +249,18 @@ def _archived_document_ids(root: Path) -> set[str]:
                 metadata.get("document_id") != document_id or
                 metadata.get("artifact_role") != "entrypoint_response"):
             raise SenateEfdError("Archived Senate eFD report metadata is inconsistent")
-        archived.add(document_id)
+        if document_id in seen:
+            raise SenateEfdError("Multiple Senate eFD entrypoints exist for one catalog document")
+        archived.append({
+            "document_id": document_id,
+            "access_method": metadata.get("access_method"),
+            "sha256": metadata.get("sha256"),
+            "media_kind": metadata.get("media_kind"),
+            "archive_path": metadata.get("archive_path"),
+            "evidence_complete": False,
+        })
+        seen.add(document_id)
+    archived.sort(key=lambda item: item["document_id"])
     return archived
 
 
@@ -279,7 +292,8 @@ def archive_catalog_report_entrypoints(
         reports.append(report)
     reports.sort(key=lambda item: (item["catalog_index"], item["document_id"]))
 
-    archived_before = _archived_document_ids(root)
+    archived_before_items = _archived_entrypoints(root)
+    archived_before = {item["document_id"] for item in archived_before_items}
     pending = [report for report in reports if report["document_id"] not in archived_before]
     wrapper = SenateReportClient(selected_config, client=client)
     archived = []
@@ -302,7 +316,8 @@ def archive_catalog_report_entrypoints(
                 "access_method": report["access_method"],
                 "reason": str(exc),
             })
-    archived_ids = archived_before | {item["document_id"] for item in archived}
+    replay = _archived_entrypoints(root)
+    archived_ids = {item["document_id"] for item in replay}
     return {
         "schema_version": REPORT_BATCH_SCHEMA,
         "source_id": "senate_efd",
@@ -316,6 +331,8 @@ def archive_catalog_report_entrypoints(
         "archived_total": len(archived_ids),
         "pending_count": len(reports) - len(archived_ids),
         "archived": archived,
+        "replay_count": len(replay),
+        "replay": replay,
         "failures": failures,
     }
 
@@ -336,6 +353,10 @@ class _TableParser(HTMLParser):
         self._row: list[str] | None = None
         self._cell: list[str] | None = None
         self._cell_kind: str | None = None
+        self._capture_tag: str | None = None
+        self._capture_text: list[str] = []
+        self.headings: list[tuple[str, str]] = []
+        self.text_segments: list[str] = []
 
     def handle_starttag(self, tag: str, attrs) -> None:
         tag = tag.lower()
@@ -353,10 +374,18 @@ class _TableParser(HTMLParser):
             self._cell, self._cell_kind = [], tag
         elif self._cell is not None and tag == "br":
             self._cell.append(" ")
+        if tag in {"h1", "h2", "p"} and self._capture_tag is None:
+            self._capture_tag = tag
+            self._capture_text = []
 
     def handle_data(self, data: str) -> None:
         if self._cell is not None:
             self._cell.append(data)
+        if self._capture_tag is not None:
+            self._capture_text.append(data)
+        normalized = " ".join(data.replace("\xa0", " ").split())
+        if normalized:
+            self.text_segments.append(normalized)
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
@@ -381,10 +410,17 @@ class _TableParser(HTMLParser):
             self.tables.append(_HtmlTable(tuple(self._headers), tuple(self._rows)))
             self._headers, self._rows = [], []
             self._depth = 0
+        if tag == self._capture_tag:
+            captured = " ".join("".join(self._capture_text).replace("\xa0", " ").split())
+            if tag in {"h1", "h2"}:
+                self.headings.append((tag, captured))
+            self._capture_tag = None
+            self._capture_text = []
 
     def close(self) -> None:
         super().close()
-        if self._depth or self._row is not None or self._cell is not None:
+        if (self._depth or self._row is not None or self._cell is not None or
+                self._capture_tag is not None):
             raise SenateEfdError("Senate eFD report HTML is incomplete")
 
 
@@ -395,7 +431,7 @@ def _iso_date(raw: str) -> str:
         raise SenateEfdError(f"Senate eFD transaction date is invalid: {raw!r}") from None
 
 
-def _transaction_rows(content: bytes) -> Iterable[tuple[str, ...]]:
+def _report_parser(content: bytes) -> _TableParser:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
@@ -408,6 +444,10 @@ def _transaction_rows(content: bytes) -> Iterable[tuple[str, ...]]:
         raise
     except Exception:
         raise SenateEfdError("Senate eFD report HTML is malformed") from None
+    return parser
+
+
+def _transaction_rows(parser: _TableParser) -> Iterable[tuple[str, ...]]:
     matches = [table for table in parser.tables if table.headers == _EXPECTED_COLUMNS]
     if len(matches) != 1:
         observed = [list(table.headers) for table in parser.tables]
@@ -426,9 +466,30 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
         raise SenateEfdError("Senate eFD report bytes do not match archive metadata")
+    parser = _report_parser(content)
+    titles = [text for tag, text in parser.headings if tag == "h1"]
+    if len(titles) != 1:
+        raise SenateEfdError("Senate eFD electronic PTR has no unique report title")
+    title_match = re.fullmatch(r"Periodic Transaction Report for (\d{2}/\d{2}/\d{4})", titles[0])
+    if title_match is None:
+        raise SenateEfdError("Senate eFD electronic PTR title changed")
+    title_date = _iso_date(title_match.group(1))
+    if title_date != metadata.get("report_label_date"):
+        raise SenateEfdError("Senate eFD report title date does not match its catalog")
+    totals = []
+    for text in parser.text_segments:
+        match = re.fullmatch(r"\(([0-9]+) transactions? total\)", text)
+        if match:
+            totals.append(int(match.group(1)))
+    if len(totals) != 1:
+        raise SenateEfdError("Senate eFD electronic PTR has no unique transaction count")
+    filed_values = [text for text in parser.text_segments
+                    if re.fullmatch(r"Filed \d{2}/\d{2}/\d{4} @ .+", text)]
+    if len(filed_values) > 1:
+        raise SenateEfdError("Senate eFD electronic PTR has multiple filing timestamps")
     transactions = []
     seen_numbers: set[int] = set()
-    for position, cells in enumerate(_transaction_rows(content), start=1):
+    for position, cells in enumerate(_transaction_rows(parser), start=1):
         if len(cells) != len(_EXPECTED_COLUMNS):
             raise SenateEfdError("Senate eFD transaction row width changed")
         (raw_number, raw_date, owner, ticker, asset_name, asset_type, raw_type,
@@ -457,6 +518,8 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
             "amount_raw": amount,
             "comment_raw": None if comment in {"", "--"} else comment,
         })
+    if totals[0] != len(transactions):
+        raise SenateEfdError("Senate eFD transaction count does not match the table")
     disposition = "transactions_parsed" if transactions else "empty_table_requires_review"
     return {
         "schema_version": ELECTRONIC_EXTRACTION_SCHEMA,
@@ -469,7 +532,9 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
         "portal_listed_date": metadata["portal_listed_date"],
         "report_label_date": metadata.get("report_label_date"),
         "report_amendment_number": metadata.get("report_amendment_number"),
+        "filed_at_raw": filed_values[0] if filed_values else None,
         "document_disposition": disposition,
+        "evidence_complete": bool(transactions),
         "transactions": transactions,
     }
 
@@ -510,3 +575,70 @@ def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:
 # foundation.  It now has entrypoint semantics and never implies that viewer
 # page evidence is complete.
 inspect_paper_ptr = inspect_paper_entrypoint
+
+
+def extract_archived_report_batch(root: Path, batch: object) -> dict:
+    """Parse a collected entrypoint batch entirely from archived bytes."""
+
+    if (not isinstance(batch, dict) or batch.get("schema_version") != REPORT_BATCH_SCHEMA or
+            batch.get("source_id") != "senate_efd" or
+            not isinstance(batch.get("archived"), list) or
+            not isinstance(batch.get("replay", batch.get("archived")), list)):
+        raise SenateEfdError("Senate eFD report entrypoint batch is invalid")
+    catalog_sha = batch.get("catalog_sha256")
+    if not isinstance(catalog_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", catalog_sha):
+        raise SenateEfdError("Senate eFD report entrypoint batch has no valid catalog hash")
+
+    root = root.resolve()
+    extractions = []
+    inspections = []
+    failures = []
+    seen: set[str] = set()
+    replay = batch.get("replay", batch["archived"])
+    for item in replay:
+        if not isinstance(item, dict):
+            raise SenateEfdError("Senate eFD report entrypoint batch contains an invalid item")
+        document_id = item.get("document_id")
+        source_sha = item.get("sha256")
+        extension = {"html": "html", "pdf": "pdf"}.get(item.get("media_kind"))
+        expected = (f"senate_efd/reports/{document_id}/{source_sha}.{extension}"
+                    if extension else None)
+        if (not isinstance(document_id, str) or document_id in seen or
+                not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha) or
+                item.get("archive_path") != expected):
+            raise SenateEfdError("Senate eFD report entrypoint batch item is inconsistent")
+        seen.add(document_id)
+        content_path = root / expected
+        metadata_path = content_path.with_name(content_path.stem + ".metadata.json")
+        try:
+            content = content_path.read_bytes()
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata.get("document_id") != document_id or metadata.get("sha256") != source_sha:
+                raise SenateEfdError("Senate eFD report entrypoint metadata does not match its batch")
+            if item.get("access_method") == "electronic_ptr":
+                extractions.append(parse_electronic_ptr(metadata, content))
+            elif item.get("access_method") == "paper_ptr":
+                inspections.append(inspect_paper_entrypoint(metadata, content))
+            else:
+                raise SenateEfdError("Senate eFD report entrypoint method is unsupported")
+        except (OSError, json.JSONDecodeError, SenateEfdError) as exc:
+            failures.append({
+                "document_id": document_id,
+                "source_sha256": source_sha,
+                "reason": str(exc),
+            })
+    return {
+        "schema_version": REPORT_EXTRACTION_BATCH_SCHEMA,
+        "source_id": "senate_efd",
+        "catalog_sha256": catalog_sha,
+        "parser_version": PARSER_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "entrypoint_count": len(replay),
+        "extraction_count": len(extractions),
+        "inspection_count": len(inspections),
+        "failure_count": len(failures),
+        "transaction_count": sum(len(item["transactions"]) for item in extractions),
+        "extractions": extractions,
+        "inspections": inspections,
+        "failures": failures,
+    }

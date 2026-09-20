@@ -154,6 +154,10 @@ jobs:
             --archive "$EVIDENCE_ROOT" \
             --limit "$report_batch_size" \
             --output .local/senate-efd-report-batch.json
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-report-entrypoints \
+            --batch .local/senate-efd-report-batch.json \
+            --archive "$EVIDENCE_ROOT" \
+            --output .local/senate-efd-extraction-batch.json
       - name: Publish immutable catalog evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -179,6 +183,7 @@ jobs:
           gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
           discovery = json.loads(Path('.local/senate-efd-discovery.json').read_text(encoding='utf-8'))
           report_batch = json.loads(Path('.local/senate-efd-report-batch.json').read_text(encoding='utf-8'))
+          extraction_batch = json.loads(Path('.local/senate-efd-extraction-batch.json').read_text(encoding='utf-8'))
           target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
           prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
           value = {
@@ -205,6 +210,10 @@ jobs:
                   'pending_count': report_batch['pending_count'],
                   'last_batch_archived': report_batch['archived_count'],
                   'last_batch_failures': report_batch['failure_count'],
+                  'evidence_count': extraction_batch['extraction_count'],
+                  'last_batch_extractions': extraction_batch['extraction_count'],
+                  'last_batch_extraction_failures': extraction_batch['failure_count'],
+                  'last_batch_transactions': extraction_batch['transaction_count'],
               },
               'detail': ('Authorized eFD PTR catalog and a bounded batch of report entrypoint '
                          'responses were archived. Transaction facts remain unpublished.'),
@@ -227,6 +236,7 @@ jobs:
             .local/senate-efd-discovery.json
             .local/senate-efd-identities.json
             .local/senate-efd-report-batch.json
+            .local/senate-efd-extraction-batch.json
           include-hidden-files: true
           retention-days: 1
 
@@ -260,6 +270,7 @@ jobs:
           discovery = json.loads(source.read_text(encoding='utf-8'))
           identities = json.loads(Path('.local/senate-efd-identities.json').read_text(encoding='utf-8'))
           report_batch = json.loads(Path('.local/senate-efd-report-batch.json').read_text(encoding='utf-8'))
+          extraction_batch = json.loads(Path('.local/senate-efd-extraction-batch.json').read_text(encoding='utf-8'))
           review = Path(os.environ['REVIEW_ROOT'])
           sha = discovery['metadata']['sha256']
           if (identities.get('schema_version') != 'senate-efd-identities/v1' or
@@ -286,6 +297,33 @@ jobs:
           if identity_target.is_file() and identity_target.read_text(encoding='utf-8') != identity_content:
               raise SystemExit('Senate eFD identities conflict with their catalog hash')
           identity_target.write_text(identity_content, encoding='utf-8')
+          for collection, folder in (
+                  (extraction_batch['extractions'], 'extractions'),
+                  (extraction_batch['inspections'], 'paper_inspections')):
+              for item in collection:
+                  item_target = (review / 'senate_efd' / folder / item['document_id'] /
+                                 f"{item['source_sha256']}.json")
+                  item_target.parent.mkdir(parents=True, exist_ok=True)
+                  item_content = json.dumps(
+                      item, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+                  if item_target.is_file() and item_target.read_text(encoding='utf-8') != item_content:
+                      raise SystemExit('Senate eFD report result conflicts with its source hash')
+                  item_target.write_text(item_content, encoding='utf-8')
+          for item in extraction_batch['failures']:
+              item_target = (review / 'senate_efd' / 'report_failures' / item['document_id'] /
+                             f"{item['source_sha256']}.json")
+              item_target.parent.mkdir(parents=True, exist_ok=True)
+              item_content = json.dumps(
+                  item, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+              if item_target.is_file() and item_target.read_text(encoding='utf-8') != item_content:
+                  raise SystemExit('Senate eFD report failure conflicts with its source hash')
+              item_target.write_text(item_content, encoding='utf-8')
+          extraction_paths = list(review.glob('senate_efd/extractions/*/*.json'))
+          extraction_values = [json.loads(path.read_text(encoding='utf-8'))
+                               for path in extraction_paths]
+          evidence_count = sum(bool(item.get('evidence_complete')) for item in extraction_values)
+          transaction_count = sum(len(item.get('transactions', [])) for item in extraction_values)
+          report_failure_count = len(list(review.glob('senate_efd/report_failures/*/*.json')))
           status = {
               'schema_version': 'senate-review-run/v1',
               'source_id': 'senate_efd',
@@ -298,8 +336,9 @@ jobs:
               'report_entrypoint_count': report_batch['archived_total'],
               'report_entrypoint_pending_count': report_batch['pending_count'],
               'report_entrypoint_failure_count': report_batch['failure_count'],
-              'report_evidence_count': 0,
-              'extracted_transaction_count': 0,
+              'report_evidence_count': evidence_count,
+              'report_extraction_failure_count': report_failure_count,
+              'extracted_transaction_count': transaction_count,
               'detail': ('PTR catalog, identities, and bounded report entrypoint responses are '
                          'available; report evidence completeness and transaction facts remain pending.'),
           }
@@ -308,7 +347,7 @@ jobs:
           status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                                  encoding='utf-8')
           PY
-          git -C "$review_root" add senate_efd/discoveries senate_efd/identities status/senate_efd.json
+          git -C "$review_root" add senate_efd status/senate_efd.json
           if ! git -C "$review_root" diff --cached --quiet; then
             git -C "$review_root" config user.name "github-actions[bot]"
             git -C "$review_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
