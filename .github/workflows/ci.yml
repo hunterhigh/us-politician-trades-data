@@ -6,6 +6,22 @@ on:
   pull_request:
     paths: ['backend/**', 'client/**', 'gateway/**', 'review-input/**', '.github/workflows/**']
   workflow_dispatch:
+    inputs:
+      oge_evidence_validation:
+        description: Collect a bounded OGE direct-PDF evidence batch from this ref
+        required: true
+        type: boolean
+        default: false
+      oge_terms_acknowledged:
+        description: I acknowledge the OGE disclosure-use restrictions
+        required: true
+        type: boolean
+        default: false
+      oge_report_batch_size:
+        description: Maximum new direct PDFs to archive
+        required: true
+        type: string
+        default: '25'
 permissions:
   contents: read
 concurrency:
@@ -37,3 +53,66 @@ jobs:
         working-directory: gateway
       - run: npm run types:check
         working-directory: gateway
+
+  collect-oge-validation-evidence:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.oge_evidence_validation && inputs.oge_terms_acknowledged }}
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OGE_COLLECTION_ENABLED: 'true'
+      OGE_TERMS_ACKNOWLEDGED: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare temporary validation evidence directory
+        id: evidence
+        run: |
+          evidence_root="$RUNNER_TEMP/oge-validation-evidence"
+          mkdir -p "$evidence_root"
+          echo "root=$evidence_root" >> "$GITHUB_OUTPUT"
+      - name: Collect catalog and bounded direct-PDF batch
+        env:
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+          BATCH_SIZE: ${{ inputs.oge_report_batch_size }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from unison_snapshot.codec import encode
+          from unison_snapshot.oge import discover_catalog, source_config_from_environment
+          from unison_snapshot.oge_reports import archive_direct_batch
+          root = Path(os.environ['EVIDENCE_ROOT'])
+          config = source_config_from_environment()
+          catalog = discover_catalog(root, config)
+          Path('.local/oge-catalog.json').write_bytes(encode(catalog))
+          batch = archive_direct_batch(root, catalog, config, limit=int(os.environ['BATCH_SIZE']))
+          Path('.local/oge-report-batch.json').write_bytes(encode(batch))
+          print(json.dumps({
+              'records': catalog['records_total'],
+              'direct_pdfs': catalog['metadata']['direct_pdf_count'],
+              'request_required': catalog['metadata']['request_required_count'],
+              'archived': len(batch['reports']), 'pending': batch['pending_count'],
+              'failures': batch['failure_count'],
+          }))
+          PY
+      - name: Stage short-lived validation artifact
+        env:
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+        run: |
+          mkdir -p .local/evidence
+          cp -R "$EVIDENCE_ROOT/oge" .local/evidence/oge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oge-validation-${{ github.run_id }}
+          path: |
+            .local/oge-catalog.json
+            .local/oge-report-batch.json
+            .local/evidence
+          include-hidden-files: true
+          retention-days: 1
