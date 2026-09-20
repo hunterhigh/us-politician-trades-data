@@ -111,6 +111,7 @@ jobs:
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
           echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
       - name: Discover, archive and parse direct PDFs
+        id: collect
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
         run: |
@@ -125,6 +126,8 @@ jobs:
             --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
             --output-dir .local/oge-extractions --output .local/oge-extraction-batch.json
       - name: Publish immutable official evidence
+        id: publish_evidence
+        if: ${{ steps.collect.outcome == 'success' }}
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
         run: |
@@ -136,33 +139,52 @@ jobs:
             git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
           fi
       - name: Record source state
+        if: ${{ always() }}
         env:
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          EVIDENCE_OUTCOME: ${{ steps.publish_evidence.outcome }}
+          WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           STATE_ROOT="$STATE_ROOT" python - <<'PY'
           import json, os
           from datetime import datetime, timezone
           from pathlib import Path
-          catalog = json.loads(Path('.local/oge-catalog.json').read_text(encoding='utf-8'))
-          reports = json.loads(Path('.local/oge-report-batch.json').read_text(encoding='utf-8'))
-          extraction = json.loads(Path('.local/oge-extraction-batch.json').read_text(encoding='utf-8'))
+          def load(path):
+              return (json.loads(path.read_text(encoding='utf-8'))
+                      if path.is_file() else None)
+          catalog = load(Path('.local/oge-catalog.json'))
+          reports = load(Path('.local/oge-report-batch.json'))
+          extraction = load(Path('.local/oge-extraction-batch.json'))
+          succeeded = (
+              os.environ['COLLECT_OUTCOME'] == 'success'
+              and os.environ['EVIDENCE_OUTCOME'] == 'success'
+              and catalog is not None and reports is not None and extraction is not None
+          )
           value = {
               'schema_version': 'oge-source-run/v1', 'source_id': 'oge',
-              'run_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
+              'run_at': datetime.now(timezone.utc).isoformat(),
+              'status': 'partial' if succeeded else 'failed',
               'collection_enabled': True, 'terms_acknowledged': True,
-              'catalog': catalog['metadata'],
+              'catalog': catalog['metadata'] if catalog is not None else None,
               'reports': {
-                  'direct_count': reports['catalog_direct_count'],
-                  'archived_count': len(reports['reports']), 'pending_count': reports['pending_count'],
-                  'failure_count': reports['failure_count'],
-                  'request_required_count': reports['request_required_count'],
-                  'extraction_count': extraction['extraction_count'],
-                  'extraction_failure_count': extraction['failure_count'],
-                  'transaction_count': extraction['transaction_count'],
-                  'quarantined_row_count': extraction['quarantined_row_count'],
+                  'direct_count': reports['catalog_direct_count'] if reports else None,
+                  'archived_count': len(reports['reports']) if reports else None,
+                  'pending_count': reports['pending_count'] if reports else None,
+                  'failure_count': reports['failure_count'] if reports else None,
+                  'request_required_count': reports['request_required_count'] if reports else None,
+                  'extraction_count': extraction['extraction_count'] if extraction else None,
+                  'extraction_failure_count': extraction['failure_count'] if extraction else None,
+                  'transaction_count': extraction['transaction_count'] if extraction else None,
+                  'quarantined_row_count': extraction['quarantined_row_count'] if extraction else None,
               },
-              'detail': ('Only catalog-listed direct PDFs were collected. Form 201 request-required '
-                         'documents were counted but not requested.'),
+              'workflow_run_url': os.environ['WORKFLOW_RUN_URL'],
+              'detail': (
+                  'Only catalog-listed direct PDFs were collected. Form 201 request-required '
+                  'documents were counted but not requested.' if succeeded else
+                  'OGE collection failed before a complete evidence batch was published; inspect '
+                  'workflow_run_url for the failing source operation.'
+              ),
           }
           target = Path(os.environ['STATE_ROOT']) / 'status/oge.json'
           target.parent.mkdir(parents=True, exist_ok=True)

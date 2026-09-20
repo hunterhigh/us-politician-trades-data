@@ -32,6 +32,16 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("--harmonize-cutoffs", content)
         self.assertIn("candidates/disclosure-current.json", content)
 
+    def test_collection_failure_is_written_to_source_state(self):
+        content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
+        self.assertIn("id: collect", content)
+        self.assertIn("id: publish_evidence", content)
+        self.assertIn("if: ${{ always() }}", content)
+        self.assertIn("COLLECT_OUTCOME: ${{ steps.collect.outcome }}", content)
+        self.assertIn("EVIDENCE_OUTCOME: ${{ steps.publish_evidence.outcome }}", content)
+        self.assertIn("'status': 'partial' if succeeded else 'failed'", content)
+        self.assertIn("'workflow_run_url': os.environ['WORKFLOW_RUN_URL']", content)
+
     def test_all_source_workflows_include_oge_when_available(self):
         for name in ("house-review.yml", "senate-efd.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
