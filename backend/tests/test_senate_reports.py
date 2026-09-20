@@ -165,6 +165,23 @@ class SenateReportsTest(unittest.TestCase):
         self.assertEqual(second["transaction_type"], "exchange")
         self.assertEqual(second["qualification_status"], "quarantined")
 
+    def test_amendment_and_catalog_title_date_difference_are_preserved(self):
+        content = html(rows=[[
+            "1", "09/01/2026", "Self", "ACME", "Acme", "Stock", "Purchase",
+            "$1,001 - $15,000", "",
+        ]]).replace(
+            b"Periodic Transaction Report for 09/17/2026",
+            b"Periodic Transaction Report for 09/17/2026 (Amendment 1)",
+        )
+        metadata = metadata_for(content)
+        metadata["report_label_date"] = "2026-09-18"
+        metadata["report_amendment_number"] = 1
+        result = parse_electronic_ptr(metadata, content)
+        self.assertEqual(result["report_title_date"], "2026-09-17")
+        self.assertEqual(result["report_label_date"], "2026-09-18")
+        self.assertEqual(result["report_amendment_number"], 1)
+        self.assertFalse(result["catalog_title_date_matches"])
+
     def test_parser_fails_closed_on_table_or_row_drift(self):
         bad_header = html(headers=["#", "Date"])
         bad_width = html(rows=[["1", "09/01/2026"]])

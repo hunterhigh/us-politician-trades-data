@@ -35,7 +35,7 @@ REPORT_BATCH_SCHEMA = "senate-efd-report-entrypoint-batch/v1"
 REPORT_EXTRACTION_BATCH_SCHEMA = "senate-efd-report-extraction-batch/v1"
 ELECTRONIC_EXTRACTION_SCHEMA = "senate-efd-electronic-ptr-extraction/v1"
 PAPER_INSPECTION_SCHEMA = "senate-efd-paper-ptr-inspection/v1"
-PARSER_VERSION = "senate-efd-report-parser-2026-09"
+PARSER_VERSION = "senate-efd-report-parser-2026-09-v2"
 MAX_ENTRYPOINT_BYTES = 25 * 1024 * 1024
 _OFFICIAL_HOST = "efdsearch.senate.gov"
 _DISCOVERY_FIELDS = {
@@ -470,12 +470,16 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
     titles = [text for tag, text in parser.headings if tag == "h1"]
     if len(titles) != 1:
         raise SenateEfdError("Senate eFD electronic PTR has no unique report title")
-    title_match = re.fullmatch(r"Periodic Transaction Report for (\d{2}/\d{2}/\d{4})", titles[0])
+    title_match = re.fullmatch(
+        r"Periodic Transaction Report for (\d{2}/\d{2}/\d{4})(?: \(Amendment ([1-9][0-9]*)\))?",
+        titles[0],
+    )
     if title_match is None:
         raise SenateEfdError("Senate eFD electronic PTR title changed")
     title_date = _iso_date(title_match.group(1))
-    if title_date != metadata.get("report_label_date"):
-        raise SenateEfdError("Senate eFD report title date does not match its catalog")
+    title_amendment = int(title_match.group(2)) if title_match.group(2) else None
+    if title_amendment != metadata.get("report_amendment_number"):
+        raise SenateEfdError("Senate eFD report amendment number does not match its catalog")
     totals = []
     for text in parser.text_segments:
         match = re.fullmatch(r"\(([0-9]+) transactions? total\)", text)
@@ -532,6 +536,8 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
         "portal_listed_date": metadata["portal_listed_date"],
         "report_label_date": metadata.get("report_label_date"),
         "report_amendment_number": metadata.get("report_amendment_number"),
+        "report_title_date": title_date,
+        "catalog_title_date_matches": title_date == metadata.get("report_label_date"),
         "filed_at_raw": filed_values[0] if filed_values else None,
         "document_disposition": disposition,
         "evidence_complete": bool(transactions),
@@ -625,6 +631,7 @@ def extract_archived_report_batch(root: Path, batch: object) -> dict:
             failures.append({
                 "document_id": document_id,
                 "source_sha256": source_sha,
+                "parser_version": PARSER_VERSION,
                 "reason": str(exc),
             })
     return {
