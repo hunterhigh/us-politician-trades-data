@@ -1,0 +1,76 @@
+name: Senate paper PTR pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  archive-pages:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare immutable evidence and review inputs
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-paper-evidence"
+          review_root="$RUNNER_TEMP/senate-paper-review"
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+      - name: Archive the complete current paper page set
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-paper-gate.json
+          PYTHONPATH=backend/src python -m unison_snapshot archive-senate-paper-pages \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --review-root "$REVIEW_ROOT" \
+            --expected-documents 9 \
+            --expected-pages 52 \
+            --output .local/senate-paper-page-batch.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          batch = json.loads(Path('.local/senate-paper-page-batch.json').read_text(encoding='utf-8'))
+          if (batch['document_count'], batch['page_count'],
+                  batch['evidence_complete']) != (9, 52, True):
+              raise SystemExit('Senate paper PTR page evidence is incomplete')
+          PY
+      - name: Publish immutable paper page evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          git -C "$EVIDENCE_ROOT" add senate_efd/paper_pages
+          if git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            echo "All 52 Senate paper pages were already archived."
+          else
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate paper PTR pages ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-paper-page-batch-${{ github.run_id }}
+          path: .local/senate-paper-page-batch.json
+          retention-days: 1

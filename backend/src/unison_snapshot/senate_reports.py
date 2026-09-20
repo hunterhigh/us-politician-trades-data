@@ -35,9 +35,13 @@ REPORT_BATCH_SCHEMA = "senate-efd-report-entrypoint-batch/v1"
 REPORT_EXTRACTION_BATCH_SCHEMA = "senate-efd-report-extraction-batch/v1"
 ELECTRONIC_EXTRACTION_SCHEMA = "senate-efd-electronic-ptr-extraction/v1"
 PAPER_INSPECTION_SCHEMA = "senate-efd-paper-ptr-inspection/v1"
+PAPER_PAGE_MANIFEST_SCHEMA = "senate-efd-paper-page-manifest/v1"
+PAPER_PAGE_BATCH_SCHEMA = "senate-efd-paper-page-batch/v1"
 PARSER_VERSION = "senate-efd-report-parser-2026-09-v2"
 MAX_ENTRYPOINT_BYTES = 25 * 1024 * 1024
+MAX_PAPER_PAGE_BYTES = 25 * 1024 * 1024
 _OFFICIAL_HOST = "efdsearch.senate.gov"
+_PAPER_MEDIA_HOST = "efd-media-public.senate.gov"
 _DISCOVERY_FIELDS = {
     "access_method", "catalog_index", "document_id", "document_url", "filer_name",
     "office", "portal_listed_date", "report_amendment_number", "report_label_date",
@@ -363,6 +367,43 @@ class _HtmlTable:
     rows: tuple[tuple[str, ...], ...]
 
 
+class _PaperViewerParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.image_urls: list[str] = []
+        self.page_labels: list[tuple[int, int]] = []
+        self._strong_depth = 0
+        self._strong_text: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        values = dict(attrs)
+        if tag.lower() == "img":
+            classes = str(values.get("class", "")).split()
+            if "filingImage" in classes:
+                source = values.get("src")
+                if not isinstance(source, str):
+                    raise SenateEfdError("Senate paper viewer page image has no source URL")
+                self.image_urls.append(source)
+        if tag.lower() == "strong":
+            self._strong_depth += 1
+            if self._strong_depth == 1:
+                self._strong_text = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() != "strong" or self._strong_depth == 0:
+            return
+        self._strong_depth -= 1
+        if self._strong_depth == 0:
+            text = " ".join("".join(self._strong_text).split())
+            match = re.fullmatch(r"Page ([1-9][0-9]*) of ([1-9][0-9]*)", text)
+            if match:
+                self.page_labels.append((int(match.group(1)), int(match.group(2))))
+
+    def handle_data(self, data: str) -> None:
+        if self._strong_depth:
+            self._strong_text.append(data)
+
+
 class _TableParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -564,6 +605,205 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
         "document_disposition": disposition,
         "evidence_complete": bool(transactions),
         "transactions": transactions,
+    }
+
+
+def parse_paper_viewer_manifest(metadata: dict, content: bytes) -> dict:
+    """Extract and strictly bind every official page image exposed by a paper viewer."""
+
+    if (not isinstance(metadata, dict) or metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA or
+            metadata.get("source_id") != "senate_efd" or
+            metadata.get("access_method") != "paper_ptr" or
+            metadata.get("media_kind") != "html"):
+        raise SenateEfdError("Senate paper viewer metadata is invalid")
+    source_sha = hashlib.sha256(content).hexdigest()
+    if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
+        raise SenateEfdError("Senate paper viewer bytes do not match archive metadata")
+    try:
+        text = content.decode("utf-8")
+        parser = _PaperViewerParser()
+        parser.feed(text)
+        parser.close()
+    except UnicodeDecodeError:
+        raise SenateEfdError("Senate paper viewer HTML is not UTF-8") from None
+    except SenateEfdError:
+        raise
+    except Exception:
+        raise SenateEfdError("Senate paper viewer HTML is malformed") from None
+    if (not parser.image_urls or len(parser.image_urls) != len(set(parser.image_urls)) or
+            len(parser.page_labels) != len(parser.image_urls)):
+        raise SenateEfdError("Senate paper viewer has an incomplete page list")
+    total = len(parser.image_urls)
+    if parser.page_labels != [(number, total) for number in range(1, total + 1)]:
+        raise SenateEfdError("Senate paper viewer page numbering is inconsistent")
+    pages = []
+    for number, raw_url in enumerate(parser.image_urls, start=1):
+        parsed = urlsplit(raw_url)
+        if (parsed.scheme != "https" or parsed.hostname != _PAPER_MEDIA_HOST or
+                parsed.username is not None or parsed.password is not None or parsed.port is not None or
+                parsed.query or parsed.fragment or
+                not re.fullmatch(r"/media/[0-9]{4}/[0-9]+(?:/[0-9]+)+/[0-9]+\.gif", parsed.path)):
+            raise SenateEfdError("Senate paper viewer page URL is not an allowed official image")
+        pages.append({"page_number": number, "source_url": raw_url})
+    return {
+        "schema_version": PAPER_PAGE_MANIFEST_SCHEMA,
+        "source_id": "senate_efd",
+        "document_id": metadata.get("document_id"),
+        "entrypoint_source_sha256": source_sha,
+        "parser_version": PARSER_VERSION,
+        "page_count": total,
+        "pages": pages,
+    }
+
+
+def _inspect_gif_page(content: bytes, headers: dict[str, str]) -> dict:
+    media_type = headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if media_type not in {"image/gif", "application/octet-stream"}:
+        raise SenateEfdError("Senate paper page has an unexpected content type")
+    if len(content) < 14 or content[:6] not in {b"GIF87a", b"GIF89a"}:
+        raise SenateEfdError("Senate paper page is not a valid GIF image")
+    width = int.from_bytes(content[6:8], "little")
+    height = int.from_bytes(content[8:10], "little")
+    if not 1 <= width <= 20000 or not 1 <= height <= 20000:
+        raise SenateEfdError("Senate paper page has invalid image dimensions")
+    return {
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "byte_length": len(content),
+        "media_type": media_type,
+        "width": width,
+        "height": height,
+    }
+
+
+def archive_paper_viewer_pages(
+        root: Path, viewer_metadata: dict, viewer_content: bytes, *,
+        config: SenateSourceConfig | None = None, client=None) -> dict:
+    """Archive every page from one already archived official paper viewer."""
+
+    require_collection_enabled(config or SenateSourceConfig())
+    manifest = parse_paper_viewer_manifest(viewer_metadata, viewer_content)
+    wrapper = client or SenateEfdClient()
+    archived_pages = []
+    for page in manifest["pages"]:
+        page_number = page["page_number"]
+        source_url = page["source_url"]
+        folder = (root.resolve() / "senate_efd" / "paper_pages" /
+                  manifest["document_id"] / str(page_number))
+        existing_metadata = sorted(folder.glob("*.metadata.json")) if folder.exists() else []
+        if existing_metadata:
+            if len(existing_metadata) != 1:
+                raise SenateEfdError("Senate paper page has multiple archived versions")
+            try:
+                metadata = json.loads(existing_metadata[0].read_text(encoding="utf-8"))
+                image_path = root.resolve() / metadata["archive_path"]
+                archived_content = image_path.read_bytes()
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError):
+                raise SenateEfdError("Archived Senate paper page is incomplete") from None
+            if (metadata.get("schema_version") != "senate-efd-paper-page-archive/v1" or
+                    metadata.get("document_id") != manifest["document_id"] or
+                    metadata.get("entrypoint_source_sha256") != manifest["entrypoint_source_sha256"] or
+                    metadata.get("page_number") != page_number or
+                    metadata.get("page_count") != manifest["page_count"] or
+                    metadata.get("source_url") != source_url or
+                    metadata.get("sha256") != hashlib.sha256(archived_content).hexdigest()):
+                raise SenateEfdError("Archived Senate paper page does not match its viewer")
+            _inspect_gif_page(archived_content, {"content-type": metadata.get("media_type", "")})
+            archived_pages.append(metadata)
+            continue
+        request = urllib.request.Request(source_url, headers={
+            "Accept": "image/gif,image/*",
+            "Referer": viewer_metadata["document_url"],
+            "User-Agent": (
+                "unison-senate-evidence/0.1 "
+                "(+https://github.com/hunterhigh/us-politician-trades-data)"
+            ),
+        }, method="GET")
+        content, headers = wrapper._open(
+            request, expected_urls={source_url}, maximum=MAX_PAPER_PAGE_BYTES)
+        inspection = _inspect_gif_page(content, headers)
+        image_path = folder / f"{inspection['sha256']}.gif"
+        metadata_path = folder / f"{inspection['sha256']}.metadata.json"
+        _write_once(image_path, content)
+        metadata = {
+            "schema_version": "senate-efd-paper-page-archive/v1",
+            "source_id": "senate_efd",
+            "document_id": manifest["document_id"],
+            "entrypoint_source_sha256": manifest["entrypoint_source_sha256"],
+            "page_number": page_number,
+            "page_count": manifest["page_count"],
+            "source_url": source_url,
+            **inspection,
+            "archive_path": image_path.relative_to(root.resolve()).as_posix(),
+        }
+        _write_once(metadata_path, (json.dumps(
+            metadata, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":")) + "\n").encode("utf-8"))
+        archived_pages.append(metadata)
+    completed = {
+        **manifest,
+        "evidence_complete": len(archived_pages) == manifest["page_count"],
+        "pages": archived_pages,
+    }
+    encoded = (json.dumps(completed, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":")) + "\n").encode("utf-8")
+    completed["manifest_sha256"] = hashlib.sha256(encoded).hexdigest()
+    manifest_path = (root.resolve() / "senate_efd" / "paper_pages" /
+                     manifest["document_id"] / "manifest.json")
+    _write_once(manifest_path, (json.dumps(completed, ensure_ascii=False, sort_keys=True,
+                                          separators=(",", ":")) + "\n").encode("utf-8"))
+    return completed
+
+
+def archive_review_paper_pages(
+        evidence_root: Path, review_root: Path, *, expected_documents: int,
+        expected_pages: int, config: SenateSourceConfig | None = None, client=None) -> dict:
+    """Archive the complete current-parser paper viewer set from immutable review inputs."""
+
+    try:
+        status = json.loads((review_root / "status" / "senate_efd.json").read_text(encoding="utf-8"))
+        parser_version = status["report_parser_version"]
+        inspections = []
+        for path in sorted((review_root / "senate_efd" / "paper_inspections").glob(
+                f"*/*/{parser_version}.json")):
+            item = json.loads(path.read_text(encoding="utf-8"))
+            if (item.get("schema_version") != PAPER_INSPECTION_SCHEMA or
+                    item.get("document_disposition") != "paper_viewer_requires_page_collection" or
+                    item.get("parser_version") != parser_version or
+                    path.parent.parent.name != item.get("document_id") or
+                    path.parent.name != item.get("source_sha256")):
+                raise SenateEfdError("Senate paper inspection does not match its review path")
+            inspections.append(item)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError):
+        raise SenateEfdError("Senate paper review inputs are incomplete") from None
+    if (len(inspections) != expected_documents or expected_documents < 1 or expected_pages < 1 or
+            len({item["document_id"] for item in inspections}) != len(inspections)):
+        raise SenateEfdError("Senate paper viewer document count changed")
+    manifests = []
+    for item in inspections:
+        folder = evidence_root / "senate_efd" / "reports" / item["document_id"]
+        metadata_path = folder / f"{item['source_sha256']}.metadata.json"
+        content_path = folder / f"{item['source_sha256']}.html"
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            content = content_path.read_bytes()
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise SenateEfdError("Senate paper viewer evidence is incomplete") from None
+        if (metadata.get("document_id") != item["document_id"] or
+                metadata.get("sha256") != item["source_sha256"]):
+            raise SenateEfdError("Senate paper viewer review and evidence inputs differ")
+        manifests.append(archive_paper_viewer_pages(
+            evidence_root, metadata, content, config=config, client=client))
+    page_count = sum(item["page_count"] for item in manifests)
+    if page_count != expected_pages or not all(item["evidence_complete"] for item in manifests):
+        raise SenateEfdError("Senate paper viewer page count changed")
+    return {
+        "schema_version": PAPER_PAGE_BATCH_SCHEMA,
+        "source_id": "senate_efd",
+        "parser_version": parser_version,
+        "document_count": len(manifests),
+        "page_count": page_count,
+        "evidence_complete": True,
+        "documents": manifests,
     }
 
 

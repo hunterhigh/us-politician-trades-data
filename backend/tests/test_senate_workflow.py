@@ -81,6 +81,15 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog senate_efd/reports", content)
         self.assertIn("HEAD:refs/heads/review", content)
 
+    def test_paper_page_workflow_is_bounded_to_current_official_viewers(self):
+        content = (ROOT / ".github/workflows/senate-paper-pages.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("archive-senate-paper-pages", content)
+        self.assertIn("--expected-documents 9", content)
+        self.assertIn("--expected-pages 52", content)
+        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/paper_pages", content)
+        self.assertNotIn("HEAD:refs/heads/review", content)
+
 
 if __name__ == "__main__":
     unittest.main()

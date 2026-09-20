@@ -24,7 +24,10 @@ from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
 from .senate_identity import SenateIdentityError, build_catalog_identities
-from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
+from .senate_reports import (
+    archive_catalog_report_entrypoints, archive_review_paper_pages,
+    extract_archived_report_batch,
+)
 from .senate_candidate import load_senate_candidate
 from .senate_history import (
     SenateHistoryError, activate_amendment_supplement,
@@ -171,6 +174,14 @@ def main() -> None:
     senate_extract.add_argument("--batch", type=Path, required=True)
     senate_extract.add_argument("--archive", type=Path, required=True)
     senate_extract.add_argument("--output", type=Path, required=True)
+    senate_paper = sub.add_parser("archive-senate-paper-pages")
+    senate_paper.add_argument("--evidence-root", type=Path, required=True)
+    senate_paper.add_argument("--review-root", type=Path, required=True)
+    senate_paper.add_argument("--expected-documents", type=int, default=9)
+    senate_paper.add_argument("--expected-pages", type=int, default=52)
+    senate_paper.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
+    senate_paper.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
+    senate_paper.add_argument("--output", type=Path, required=True)
     senate_history = sub.add_parser("plan-senate-amendment-backfill")
     senate_history.add_argument("--review-root", type=Path, required=True)
     senate_history.add_argument("--historical-discovery", type=Path, required=True)
@@ -486,6 +497,18 @@ def main() -> None:
                               "inspections": result["inspection_count"],
                               "failures": result["failure_count"],
                               "transactions": result["transaction_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "archive-senate-paper-pages":
+            config = source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = archive_review_paper_pages(
+                args.evidence_root, args.review_root,
+                expected_documents=args.expected_documents,
+                expected_pages=args.expected_pages, config=config)
+            _write_atomic(args.output, result)
+            print(json.dumps({"documents": result["document_count"],
+                              "pages": result["page_count"],
+                              "evidence_complete": result["evidence_complete"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))

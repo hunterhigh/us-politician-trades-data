@@ -10,12 +10,14 @@ from unison_snapshot.senate_reports import (
     REPORT_ARCHIVE_SCHEMA,
     SenateReportClient,
     archive_catalog_report_entrypoints,
+    archive_paper_viewer_pages,
     archive_report,
     extract_archived_report_batch,
     inspect_paper_entrypoint,
     inspect_paper_ptr,
     inspect_report_content,
     parse_electronic_ptr,
+    parse_paper_viewer_manifest,
 )
 
 
@@ -83,9 +85,10 @@ def metadata_for(content, method="electronic_ptr", media_kind="html"):
 
 
 class FakeSession:
-    def __init__(self, payload):
+    def __init__(self, payload, content_type="text/html; charset=utf-8"):
         self.csrf_token = None
         self.payload = payload
+        self.content_type = content_type
         self.calls = []
 
     def begin_authorized_session(self):
@@ -93,7 +96,7 @@ class FakeSession:
 
     def _open(self, request, *, expected_urls, maximum):
         self.calls.append((request.full_url, expected_urls, maximum))
-        return self.payload, {"content-type": "text/html; charset=utf-8"}
+        return self.payload, {"content-type": self.content_type}
 
 
 class SenateReportsTest(unittest.TestCase):
@@ -232,6 +235,46 @@ class SenateReportsTest(unittest.TestCase):
         self.assertEqual(result["document_disposition"],
                          "paper_viewer_requires_page_collection")
         self.assertFalse(result["evidence_complete"])
+
+    def test_paper_viewer_archives_every_strict_official_gif_page(self):
+        viewer = ("<!doctype html><html><body>"
+                  '<img class="filingImage" src="https://efd-media-public.senate.gov/media/2026/2/000/000/000000001.gif">'
+                  "<strong>Page 1 of 2</strong>"
+                  '<img class="filingImage" src="https://efd-media-public.senate.gov/media/2026/2/000/000/000000002.gif">'
+                  "<strong>Page 2 of 2</strong>"
+                  "</body></html>").encode()
+        metadata = metadata_for(viewer, "paper_ptr", "html")
+        manifest = parse_paper_viewer_manifest(metadata, viewer)
+        self.assertEqual(manifest["page_count"], 2)
+        gif = b"GIF89a\x01\x00\x01\x00\x00\x00\x00\x00"
+        config = SenateSourceConfig(enabled=True, terms_acknowledged=True)
+        with tempfile.TemporaryDirectory() as temporary:
+            fake = FakeSession(gif, "image/gif")
+            result = archive_paper_viewer_pages(
+                Path(temporary), metadata, viewer, config=config,
+                client=fake)
+            replay = archive_paper_viewer_pages(
+                Path(temporary), metadata, viewer, config=config,
+                client=fake)
+            self.assertTrue(result["evidence_complete"])
+            self.assertEqual(result["page_count"], 2)
+            self.assertEqual(replay["manifest_sha256"], result["manifest_sha256"])
+            self.assertEqual(len(fake.calls), 2)
+            self.assertTrue(all((Path(temporary) / page["archive_path"]).is_file()
+                                for page in result["pages"]))
+
+    def test_paper_viewer_rejects_external_or_incomplete_page_lists(self):
+        cases = [
+            ('<img class="filingImage" src="https://evil.example/media/2026/1/1.gif">'
+             "<strong>Page 1 of 1</strong>"),
+            ('<img class="filingImage" src="https://efd-media-public.senate.gov/media/2026/2/000/000/000000001.gif">'
+             "<strong>Page 1 of 2</strong>"),
+        ]
+        for body in cases:
+            with self.subTest(body=body):
+                content = f"<!doctype html><html><body>{body}</body></html>".encode()
+                with self.assertRaises(SenateEfdError):
+                    parse_paper_viewer_manifest(metadata_for(content, "paper_ptr", "html"), content)
 
     def test_bounded_batch_reuses_session_and_resumes_archived_documents(self):
         second_id = "a1111111-1111-4111-8111-111111111111"
