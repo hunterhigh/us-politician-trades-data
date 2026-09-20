@@ -13,7 +13,7 @@
 - `docs/`：总体设计、契约审阅、实现状态和维护说明。
 - `.local/`：本机演示仓库与页面，不提交 Git。
 
-生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、原始 PTR PDF 和获取元数据；`review` 保存机器抽取、确定性身份、自动资格结果、异常和隔离记录。密钥只存放于 GitHub Actions Secrets。
+生产部署使用同一公开仓库的五个持久面：默认分支 `code` 保存源代码、Actions 和文档；`main` 只追加正式 `manifest/board/people/tickers` 快照；`state` 保存来源检查点和运行状态；`evidence` 按 SHA-256 保存官方索引 ZIP、议员名册、PTR PDF/HTML/扫描页和获取元数据；`review` 保存机器抽取、确定性身份、自动资格结果、异常和隔离记录。密钥只存放于 GitHub Actions Secrets。
 
 ## 本地启动
 
@@ -79,7 +79,7 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 
 OGE多来源接入已从官方目录发现层开始：`backend/src/unison_snapshot/oge.py` 严格校验官方分页响应和链接，把278-T条目分成可直接下载PDF与需要Form 201请求两类，并将`docDate`仅保留为目录加入日期。该模块尚未连接生产工作流，也不会自动提交Form 201、猜测申报编号或把目录日期当作申报时间。
 
-Senate 接入已通过显式授权进入报告生产阶段：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，分别保留门户列表日期、报告标题日期及修订编号，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已归档100人官方名册；`senate-efd.yml` 在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 双重门禁下，每6小时刷新目录并归档有界报告批次。2026-01-01至今130份PTR入口已全部内容寻址归档：121份电子报告严格解析出1,646条交易，当前入口归档和解析失败均为0；9份纸面报告确认是HTML扫描查看器，仍需闭合逐页原件。身份结果为104份精确、15份官方目录别名、11份未解析。历史补充工作流另从2024年至今目录白名单归档16份官方电子原件，以同一正文比较规则为12份 Amendment 1 报告唯一确定前件；补充报告只作为修订关系证据，不进入主交易输入。当前16条链已闭合，主目录内41笔旧版标记为 superseded。生产候选现为23人、1,435笔，170笔因身份、仍未闭合的独立报告、exchange、期权条款或异常ticker隔离；审计守恒为`1,435 + 170 + 41 = 1,646`。原始响应进入 `evidence`，身份、解析、资格和候选进入 `review`。eFD入口本身无需API token；可选的Congress.gov历史身份补充需要免费的`CONGRESS_GOV_API_KEY`，当前尚未配置。
+Senate 接入已通过显式授权进入报告生产阶段：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，分别保留门户列表日期、报告标题日期及修订编号，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已归档100人官方名册；`senate-efd.yml` 在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 双重门禁下，每6小时刷新目录并归档有界报告批次。2026-01-01至今130份PTR入口已全部内容寻址归档：121份电子报告严格解析出1,646条交易，当前入口归档和解析失败均为0；9份纸面报告的官方扫描查看器及52张GIF原页也已完整归档并逐页绑定哈希，但纸面交易的OCR和结构化提取尚未完成，因此没有把扫描页直接计入候选交易。身份结果为104份精确、15份官方目录别名、11份未解析。历史补充工作流另从2024年至今目录白名单归档16份官方电子原件，以同一正文比较规则为12份 Amendment 1 报告唯一确定前件；补充报告只作为修订关系证据，不进入主交易输入。当前16条链已闭合，主目录内41笔旧版标记为 superseded。生产候选现为23人、1,435笔，170笔因身份、仍未闭合的独立报告、exchange、期权条款或异常ticker隔离；审计守恒为`1,435 + 170 + 41 = 1,646`。原始响应和扫描页进入 `evidence`，身份、解析、资格和候选进入 `review`。eFD入口本身无需API token；可选的Congress.gov历史身份补充需要免费的`CONGRESS_GOV_API_KEY`，当前尚未配置。
 
 增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中364份抽取成功、31份保留明确失败状态，另有4份可靠识别为无交易申报；339份文件产生3225条候选交易，39份文件中的392条异常记录被隔离。当前House候选包含93人，按冻结前端实际窗口语义近30天80笔，交易日期范围为2023-10-31至2026-09-08；19笔完整披露条款的期权保留类型、行权价和到期日，3笔条款不完整的期权不使用猜测值。动态状态以 [`state/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/house_clerk.json) 和 [`review/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_clerk.json) 为准；旧文件名暂作兼容别名。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 
