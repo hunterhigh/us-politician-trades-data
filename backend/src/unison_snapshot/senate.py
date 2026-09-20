@@ -324,9 +324,13 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
     if set(payload) != _RESPONSE_FIELDS:
         missing = sorted(_RESPONSE_FIELDS - set(payload))
         unexpected = sorted(set(payload) - _RESPONSE_FIELDS)
+        scalar_details = {
+            name: payload[name] for name in unexpected
+            if isinstance(payload[name], (str, int, float, bool, type(None)))
+        }
         raise SenateEfdError(
             f"Senate eFD search response fields changed; missing={missing}; "
-            f"unexpected={unexpected}")
+            f"unexpected={unexpected}; scalar_details={scalar_details!r}")
     draw = payload.get("draw")
     total = payload.get("recordsTotal")
     filtered = payload.get("recordsFiltered")
