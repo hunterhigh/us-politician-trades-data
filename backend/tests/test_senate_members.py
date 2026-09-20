@@ -45,7 +45,11 @@ class SenateMemberTests(unittest.TestCase):
             self.assertTrue((root / f"senate_efd/members/{sha}.roster.json").is_file())
 
     def test_official_roster_builds_stable_bioguide_identity(self):
-        roster = build_roster(xml(ADA_CA))
+        with_leadership = ADA_CA.replace(
+            b"</member>",
+            b"<leadership_position>Committee Chair</leadership_position></member>",
+        )
+        roster = build_roster(xml(with_leadership))
         person = roster["members"][0]
         self.assertEqual((person["person_id"], person["state"]), ("senate:E000001", "CA"))
         self.assertEqual(roster["metadata"]["source_id"], "senate_members")

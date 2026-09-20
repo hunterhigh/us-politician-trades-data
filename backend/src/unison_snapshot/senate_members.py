@@ -17,7 +17,9 @@ import xml.etree.ElementTree as ET
 MEMBERS_URL = "https://www.senate.gov/general/contact_information/senators_cfm.xml"
 MAX_MEMBERS_BYTES = 5 * 1024 * 1024
 _REQUIRED_FIELDS = {"member_full", "first_name", "last_name", "party", "state", "bioguide_id"}
-_OPTIONAL_FIELDS = {"address", "phone", "email", "website", "class"}
+_OPTIONAL_FIELDS = {
+    "address", "phone", "email", "website", "class", "leadership_position",
+}
 
 
 class SenateRosterError(RuntimeError):
