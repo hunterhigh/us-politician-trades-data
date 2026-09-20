@@ -285,7 +285,7 @@ def _canonical_report_link(markup: str) -> tuple[str, str, str]:
         raise SenateEfdError("Senate eFD report cell must contain exactly one link")
     href, label = parser.links[0]
     if label != "Periodic Transaction Report":
-        raise SenateEfdError("Senate eFD report link is not a PTR")
+        raise SenateEfdError(f"Senate eFD report link is not a PTR: label={label!r}")
 
     # Only an absolute official HTTPS URL or a root-relative portal path is
     # accepted.  urljoin would otherwise turn network-path references into an
