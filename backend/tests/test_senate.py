@@ -36,7 +36,8 @@ def row(kind: str = "ptr", document_id: str = PTR_ID) -> list[str]:
 
 def payload(rows: list[list[str]], total: int | None = None) -> dict:
     count = len(rows) if total is None else total
-    return {"draw": 1, "recordsTotal": count, "recordsFiltered": count, "data": rows}
+    return {"draw": 1, "recordsTotal": count, "recordsFiltered": count,
+            "data": rows, "result": "ok"}
 
 
 class SenateDiscoveryTests(unittest.TestCase):

@@ -31,7 +31,7 @@ SEARCH_PAGE_URL = "https://efdsearch.senate.gov/search/"
 SCHEMA = "senate-efd-discovery/v1"
 GATE_SCHEMA = "senate-efd-source-gate/v1"
 _ALLOWED_HOST = "efdsearch.senate.gov"
-_RESPONSE_FIELDS = {"draw", "recordsTotal", "recordsFiltered", "data"}
+_RESPONSE_FIELDS = {"draw", "recordsTotal", "recordsFiltered", "data", "result"}
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_REPORTS = 10_000
 
@@ -332,9 +332,12 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
             f"Senate eFD search response fields changed; missing={missing}; "
             f"unexpected={unexpected}; scalar_details={scalar_details!r}")
     draw = payload.get("draw")
+    result = payload.get("result")
     total = payload.get("recordsTotal")
     filtered = payload.get("recordsFiltered")
     rows = payload.get("data")
+    if result != "ok":
+        raise SenateEfdError("Senate eFD search response result is not ok")
     if type(draw) is not int or draw < 0:
         raise SenateEfdError("Senate eFD search response has invalid draw")
     if type(total) is not int or total < 0 or filtered != total:
