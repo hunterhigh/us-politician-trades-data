@@ -52,12 +52,12 @@ jobs:
             git -C "$review_root" rm -rf . >/dev/null 2>&1 || true
           fi
           cat > "$review_root/README.md" <<'EOF'
-          # House machine qualification queue
+          # Machine qualification and candidate data
 
-          This branch contains machine extractions, deterministic identity matches, automatic qualification results,
-          quarantined exceptions, legacy review templates, and parse failures.
-          Qualification artifacts may feed a complete candidate snapshot; only the publication workflow writes `main`.
-          Every artifact is keyed to an immutable PDF SHA-256 from the `evidence` branch and the parser code commit.
+          This branch contains source-scoped machine extractions, deterministic identity matches, automatic
+          qualification results, quarantined exceptions, parse failures, and unified frontend candidates.
+          Only the publication workflow writes `main`. Every source artifact is keyed to immutable evidence and the
+          parser code commit.
           EOF
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
@@ -161,8 +161,6 @@ jobs:
           PARSER_COMMIT: ${{ github.sha }}
         run: |
           export PARSER_RETRY_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import PARSER_RETRY_VERSION; print(PARSER_RETRY_VERSION)')"
-          roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
-          test -n "$roster" && test -f "$roster"
           parsed=0
           failed=0
           while IFS= read -r metadata; do
@@ -181,8 +179,6 @@ jobs:
             mkdir -p "$(dirname "$extraction")" "$(dirname "$identity")" "$(dirname "$failure")"
             if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-ptr \
                 --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
-              PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
-                --extraction "$extraction" --members "$roster" --output "$identity"
               rm -f "$failure"
               parsed=$((parsed + 1))
             else
@@ -219,6 +215,21 @@ jobs:
             fi
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
+      - name: Refresh deterministic House identities
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
+          test -n "$roster" && test -f "$roster"
+          find "$REVIEW_ROOT/house_clerk/extractions" -name '*.json' -type f -print0 | sort -z | \
+          while IFS= read -r -d '' extraction; do
+            relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
+            identity="$REVIEW_ROOT/house_clerk/identities/$relative"
+            mkdir -p "$(dirname "$identity")"
+            PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
+              --extraction "$extraction" --members "$roster" --output "$identity"
+          done
       - name: Build automatic qualification artifacts
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -262,15 +273,19 @@ jobs:
               identity_counts[status] = identity_counts.get(status, 0) + 1
           qualified_documents = 0
           qualified_transactions = 0
+          zero_transaction_documents = 0
           quarantined_documents = 0
           quarantined_rows = 0
           for path in qualifications:
               value = json.loads(path.read_text(encoding='utf-8'))
               qualified = len(value.get('transactions', []))
               quarantined = len(value.get('quarantined', []))
+              zero_transaction = int(
+                  value.get('qualification', {}).get('zero_transaction_document_count', 0))
               qualified_transactions += qualified
+              zero_transaction_documents += zero_transaction
               quarantined_rows += quarantined
-              qualified_documents += int(qualified > 0)
+              qualified_documents += int(qualified > 0 or zero_transaction == 1)
               quarantined_documents += int(quarantined > 0)
           evidence_count = sum(1 for _ in evidence.glob('house_clerk/documents/*/*/*.json'))
           value = {
@@ -286,6 +301,7 @@ jobs:
               'qualification_count': len(qualifications),
               'qualified_document_count': qualified_documents,
               'qualified_transaction_count': qualified_transactions,
+              'zero_transaction_document_count': zero_transaction_documents,
               'quarantined_document_count': quarantined_documents,
               'quarantined_row_count': quarantined_rows,
               'status': 'attention' if failures or quarantined_rows else 'ok',
@@ -301,12 +317,39 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/house_clerk.json" \
             --base ingest/current.json \
-            --output "$REVIEW_ROOT/candidates/house-current.json" \
-            --html-output "$RUNNER_TEMP/house-current.html"
+            --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            "$REVIEW_ROOT/candidates/house-current.json"
+          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json \
+            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --html-output "$RUNNER_TEMP/disclosure-current.html"
+          CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
+            PARSER_COMMIT="${{ github.sha }}" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          candidate = json.loads(Path(os.environ['CANDIDATE']).read_text(encoding='utf-8'))
+          value = {
+              'schema_version': 'disclosure-candidate-run/v1',
+              'builder_commit': os.environ['PARSER_COMMIT'],
+              'data_cutoff_at': candidate['meta']['data_cutoff_at'],
+              'included_sources': ['house_clerk'],
+              'pending_sources': ['oge', 'senate_efd'],
+              'people_count': len(candidate['people']),
+              'transaction_count': len(candidate['transactions']),
+              'reported_holding_count': len(candidate['reported_holdings']),
+              'status': 'partial',
+          }
+          target = Path(os.environ['REVIEW_ROOT']) / 'status' / 'disclosure_candidate.json'
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                            encoding='utf-8')
+          PY
       - name: Publish qualification queue
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}

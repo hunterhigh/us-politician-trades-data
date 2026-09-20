@@ -38,6 +38,8 @@ python scripts/verify.py
 
 House联调候选可直接读取：[raw review/candidates/house-current.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/review/candidates/house-current.json)。该文件由自动资格结果构建并在每次运行中通过生产构建器和原前端渲染器；它是增量验收输入，不是正式 `main` 发布物。
 
+统一披露候选位于 [`review/candidates/disclosure-current.json`](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/review/candidates/disclosure-current.json)。各来源先写入 `review/candidates/sources/<source_id>-current.json`，统一构建器再检查身份冲突、事实ID重复、外键、来源归属和截止时间后合并。`house-current.json` 继续作为兼容入口；正式 `main` 仍须等完整来源和前端验收完成后发布。
+
 ## 命令行接口
 
 在 `backend/` 下设置模块路径后可发布输入文件和重建某个版本：
@@ -76,6 +78,8 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 电子PTR解析覆盖普通股票、期权、无ticker、金额换行、精确金额、开放金额、末行跨页和amended申报。`20035420` 的身份可确定为 `house:D000032`。自动资格校验直接生成候选事实，无法确定的修订、身份、OCR和金额语义进入隔离队列；旧人工工具仅用于异常调查。流程见 [House PTR 自动资格与异常调查](docs/House-PTR-复核流程.md)。
 
 OGE多来源接入已从官方目录发现层开始：`backend/src/unison_snapshot/oge.py` 严格校验官方分页响应和链接，把278-T条目分成可直接下载PDF与需要Form 201请求两类，并将`docDate`仅保留为目录加入日期。该模块尚未连接生产工作流，也不会自动提交Form 201、猜测申报编号或把目录日期当作申报时间。
+
+Senate 接入已完成禁用态数据地基：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，保留门户展示日期而不冒充正式申报时间，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 每日归档官方名册并更新 `state/status/senate_efd.json`；它不访问 eFD 报告门户，也不接受门户声明。eFD 报告采集只有在项目运营主体确认用途并明确授权自动化接受声明后才会启用，无需 API token。
 
 增量规划器会保留失败重试、发现官方索引字段变化或消失，并从已有内容寻址归档恢复完成状态。截至 2026-09-20 的生产检查点，真实2026索引当前发现395份PTR，395份已全部归档，待处理、下载失败和索引异常均为0；定时任务继续发现后续新增申报。已归档原件中357份抽取成功、38份保留明确失败状态；309份文件产生3083条候选交易，60份文件中的526条异常记录被隔离。当前House候选包含81人，按交易日期计算近30天86笔、近90天581笔，交易日期范围为2023-10-31至2026-09-08；19笔完整披露条款的期权保留类型、行权价和到期日，3笔条款不完整的期权不使用猜测值。动态状态以 [`state/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/state/status/house_clerk.json) 和 [`review/status/house_clerk.json`](https://github.com/hunterhigh/us-politician-trades-data/blob/review/status/house_clerk.json) 为准；旧文件名暂作兼容别名。运行和故障处理见 [House PTR 增量运行](docs/House-PTR-增量运行.md)。
 

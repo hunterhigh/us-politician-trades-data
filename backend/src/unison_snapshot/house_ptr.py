@@ -18,11 +18,11 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-04"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-02"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-05"
+PARSER_RETRY_VERSION = "house-parser-suite-2026-07"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 LEGACY_DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/\d{2}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
-AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.00)?$")
+AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
 AMOUNT_OVER_RE = re.compile(r"^(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?$", re.I)
 ASSET_RE = re.compile(r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,15})\))?\s*\[([A-Z0-9]{2})\]\s*$")
 OWNER_CODES = {"": "Self", "SP": "Spouse", "DC": "Dependent Child", "JT": "Joint"}
@@ -34,6 +34,11 @@ ASSET_TYPES = {
 }
 REVIEW_SCHEMA = "house-ptr-review/v1"
 QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
+DETERMINISTIC_IDENTITY_BASES = {
+    "official_roster_exact_district_first_last_name",
+    "official_roster_exact_district_unique_surname",
+    "official_roster_same_state_unique_first_last_name_redistricted",
+}
 OCR_MINIMUM_ROW_CONFIDENCE = 85.0
 CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
                      "option_type", "strike_price", "expiration_date", "transaction_date",
@@ -46,10 +51,89 @@ LEGACY_AMOUNT_BUCKETS = (
     (1000001, 5000000, "range"), (5000001, 25000000, "range"),
     (25000001, 50000000, "range"), (50000001, None, "open_ended"),
 )
+ZERO_TRANSACTION_STATEMENTS = {
+    "nothingtoreport": "Nothing to report",
+    "notransactiontoreport": "No transaction to report",
+    "notransactionstoreport": "No transactions to report",
+}
 
 
 def _clean(value: str) -> str:
     return " ".join(value.replace("\x00", "").split())
+
+
+def _explicit_zero_transaction_declaration(pages: list[dict]) -> dict | None:
+    """Return evidence only for an explicit empty filing with no row-like content."""
+    candidate: dict | None = None
+    row_evidence = False
+    for page_index, page in enumerate(pages):
+        width, height = float(page.get("width", 0)), float(page.get("height", 0))
+        words = page.get("words")
+        if width <= 0 or height <= 0 or not isinstance(words, list):
+            continue
+        lines: list[list[dict]] = []
+        for word in sorted(words, key=lambda item: (float(item["top"]), float(item["x0"]))):
+            if not lines or abs(float(word["top"]) - float(lines[-1][0]["top"])) > 3:
+                lines.append([word])
+            else:
+                lines[-1].append(word)
+        for line_words in lines:
+            ordered = sorted(line_words, key=lambda item: float(item["x0"]))
+            text = _clean(" ".join(str(word["text"]) for word in ordered))
+            compact = re.sub(r"[^a-z]", "", text.lower())
+            statement = next((display for key, display in ZERO_TRANSACTION_STATEMENTS.items()
+                              if key in compact), None)
+            top = min(float(word["top"]) for word in ordered)
+            bottom = max(float(word["top"]) + float(word.get("size", 9)) for word in ordered)
+            if statement and top >= 0.12 * height:
+                candidate = {
+                    "status": "explicit_no_transactions",
+                    "basis": "official_document_statement",
+                    "statement": statement,
+                    "evidence": {
+                        "page": page_index + 1,
+                        "bbox_points": [round(min(float(word["x0"]) for word in ordered), 2),
+                                        round(top, 2), round(width, 2), round(bottom, 2)],
+                    },
+                }
+            dates = [word for word in ordered if DATE_RE.fullmatch(_clean(str(word["text"])))
+                     or LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))]
+            lower_form_line = top >= 0.45 * height
+            has_amount = any("$" in str(word.get("text", "")) for word in ordered)
+            has_asset_code = any(re.fullmatch(r"[\[{][A-Z0-9]{2}[\]}]",
+                                              _clean(str(word.get("text", ""))))
+                                 for word in ordered)
+            # A statement printed near a populated or damaged table must never override the row.
+            if lower_form_line and (len(dates) >= 2 or (dates and (has_amount or has_asset_code))
+                                    or (has_amount and has_asset_code)):
+                row_evidence = True
+    return candidate if candidate is not None and not row_evidence else None
+
+
+def _zero_transaction_extraction(metadata: dict, source_sha256: str, declaration: dict, *,
+                                 copy_allowed: bool | None, ocr_engine: str | None,
+                                 legacy_form: bool) -> dict:
+    review_reasons = ["automatic_qualification_required", "source_use_clearance_required",
+                      "explicit_no_transactions_declaration"]
+    if legacy_form:
+        review_reasons.append("legacy_checkbox_form")
+    if copy_allowed is False:
+        review_reasons.append("source_pdf_copy_permission_disabled")
+    return {
+        "schema_version": SCHEMA,
+        "parser_version": LEGACY_PARSER_VERSION if legacy_form else PARSER_VERSION,
+        "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
+            "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
+        "source_sha256": source_sha256,
+        "source_pdf_copy_allowed": copy_allowed,
+        "extraction_method": ("tesseract_legacy_checkbox" if legacy_form else
+                              "tesseract_ocr" if ocr_engine else "native_pdf_text"),
+        "ocr_engine": ocr_engine,
+        "document_disposition": declaration,
+        "transactions": [],
+        "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
+                   "reasons": review_reasons},
+    }
 
 
 def _line(words: list[dict], *, x0: float, x1: float, top: float, tolerance: float = 2.0) -> str:
@@ -66,12 +150,68 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
     matched = AMOUNT_EXACT_RE.fullmatch(value)
     if matched:
         exact = int(matched.group(1).replace(",", ""))
-        return exact, exact, "exact"
+        # The consumer contract exposes integral bounds.  Preserve the source spelling in
+        # amount_raw and use an enclosing interval so a disclosed cent value is never rounded
+        # outside the published range.
+        cents = matched.group(2)
+        return exact, exact + (1 if cents and cents != "00" else 0), "exact"
     matched = AMOUNT_OVER_RE.fullmatch(value)
     if matched:
         # Dollar values are integral in the frontend contract, so "over" starts at the next dollar.
         return int(matched.group(1).replace(",", "")) + 1, None, "open_ended"
     return None
+
+
+def _modern_date_anchors(words: list[dict], width: float) -> list[float]:
+    """Find transaction-date rows without treating a notification date as an anchor."""
+    dates = [word for word in words if DATE_RE.fullmatch(_clean(str(word.get("text", ""))))]
+    anchors: list[float] = []
+    # pdfplumber can place a glyph fractionally left of the drawn cell border.  One point is
+    # intentionally smaller than the gap between the transaction and notification columns.
+    left = 0.53 * width - 1.0
+    split = 0.62 * width
+    right = 0.725 * width + 1.0
+    transactions = sorted((word for word in dates
+                           if left <= float(word["x0"]) < split),
+                          key=lambda word: float(word["top"]))
+    for transaction in transactions:
+        top = float(transaction["top"])
+        same_line = [word for word in dates
+                     if abs(float(word["top"]) - top) <= 2.0
+                     and left <= float(word["x0"]) < right]
+        # Requiring the second, rightward date prevents a slightly left-shifted notification
+        # date from being promoted to a transaction anchor by the boundary tolerance.
+        if not any(float(word["x0"]) >= split for word in same_line):
+            continue
+        anchors.append(top)
+    return anchors
+
+
+def _has_leading_row_detail(page: dict) -> bool:
+    """Return whether a new page starts with details belonging to the prior final row."""
+    width, height = float(page["width"]), float(page["height"])
+    words = page["words"]
+    date_tops = _modern_date_anchors(words, width)
+    first_row_top = min(date_tops) if date_tops else height
+    detail_words = [word for word in words
+                    if 0.12 * height <= float(word["top"]) < min(first_row_top - 2, 0.35 * height)
+                    and 0.165 * width <= float(word["x0"]) < 0.90 * width]
+    lines: dict[float, list[dict]] = {}
+    for word in detail_words:
+        lines.setdefault(round(float(word["top"]), 1), []).append(word)
+    for line in lines.values():
+        text = _clean(" ".join(
+            str(word["text"]) for word in sorted(line, key=lambda item: float(item["x0"]))))
+        if re.match(r"^(?:F|Filing)\s+(?:S|Status):", text, re.I):
+            return True
+    return False
+
+
+def _canonical_filing_status(value: str | None) -> str | None:
+    if not value:
+        return None
+    matched = re.match(r"^(New|Amended)\b", value.strip(), re.I)
+    return matched.group(1).title() if matched else value.strip()
 
 
 def _parse_option_details(value: object) -> tuple[str | None, int | float | None, str | None]:
@@ -303,10 +443,20 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     legacy_form = (f"#{document_id}" not in first_text and ocr_engine is not None
                    and ((title_matches and "HOUSE" in uppercase_text) or has_legacy_table))
     if legacy_form:
+        declaration = _explicit_zero_transaction_declaration(pages)
+        if declaration is not None:
+            return _zero_transaction_extraction(
+                metadata, source_sha256, declaration, copy_allowed=copy_allowed,
+                ocr_engine=ocr_engine, legacy_form=True)
         return _parse_legacy_word_pages(metadata, source_sha256, pages,
                                         copy_allowed=copy_allowed, ocr_engine=ocr_engine)
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
+    declaration = _explicit_zero_transaction_declaration(pages)
+    if declaration is not None:
+        return _zero_transaction_extraction(
+            metadata, source_sha256, declaration, copy_allowed=copy_allowed,
+            ocr_engine=ocr_engine, legacy_form=False)
 
     page_data: list[dict] = []
     anchors: list[dict] = []
@@ -317,9 +467,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House PTR page geometry is invalid")
         page_data.append({"width": width, "height": height, "words": words})
-        for top in sorted({float(word["top"]) for word in words
-                           if 0.53 * width <= float(word["x0"]) < 0.62 * width
-                           and DATE_RE.fullmatch(_clean(str(word["text"])))}):
+        for top in _modern_date_anchors(words, width):
             anchors.append({"page_index": page_index, "top": top})
 
     extracted: list[dict] = []
@@ -330,7 +478,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         width, height, words = current["width"], current["height"], current["words"]
         following = anchors[position + 1] if position + 1 < len(anchors) else None
         last_page_index = following["page_index"] if following else page_index
-        if following is None and page_index + 1 < len(page_data) and top >= 0.85 * height:
+        if (following is None and page_index + 1 < len(page_data)
+                and (top >= 0.85 * height or _has_leading_row_detail(page_data[page_index + 1]))):
             # Some electronic PTRs split the final row after the amount dash. The next page repeats
             # the table header and continues the asset type and amount upper bound without a date.
             last_page_index = page_index + 1
@@ -361,14 +510,14 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             evidence_segments.append({"page": segment_page_index + 1,
                                       "bbox_points": [round(0.04 * segment["width"], 2), round(start, 2),
                                                        round(0.90 * segment["width"], 2), round(end, 2)]})
-        transaction_date = _line(words, x0=0.53 * width, x1=0.62 * width, top=top)
+        transaction_date = _line(words, x0=0.53 * width - 1.0, x1=0.62 * width, top=top)
         notification_date = _line(words, x0=0.62 * width, x1=0.725 * width, top=top)
         raw_type = _line(words, x0=0.42 * width, x1=0.53 * width, top=top)
         reported_transaction_id = _line(words, x0=0.04 * width, x1=0.105 * width, top=top)
         raw_owner = _line(words, x0=0.105 * width, x1=0.165 * width, top=top)
         date_size = max((float(word.get("size", 0)) for word in words
                          if abs(float(word["top"]) - top) <= 2 and
-                         0.53 * width <= float(word["x0"]) < 0.62 * width), default=0)
+                         0.53 * width - 1.0 <= float(word["x0"]) < 0.62 * width), default=0)
         asset_words = [(segment_page_index, word) for segment_page_index, word in block
                        if 0.165 * page_data[segment_page_index]["width"] <= float(word["x0"]) <
                        0.42 * page_data[segment_page_index]["width"]
@@ -409,6 +558,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                     break
             if not matched and last_detail and line:
                 details[last_detail] = (details[last_detail] + " " + line).strip()
+        if "filing_status" in details:
+            details["filing_status"] = _canonical_filing_status(details["filing_status"])
         try:
             transaction_iso = datetime.strptime(transaction_date, "%m/%d/%Y").date().isoformat()
             notification_iso = datetime.strptime(notification_date, "%m/%d/%Y").date().isoformat()
@@ -508,7 +659,7 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         raise HouseIndexError("House PTR identity does not match its extraction")
     identity_valid = (
         identity.get("status") in {"matched_automatically", "suggested_requires_review"}
-        and identity.get("match_basis") == "official_roster_exact_district_first_last_name"
+        and identity.get("match_basis") in DETERMINISTIC_IDENTITY_BASES
         and isinstance(identity.get("roster_sha256"), str)
         and re.fullmatch(r"[0-9a-f]{64}", identity["roster_sha256"])
     )
@@ -597,19 +748,31 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": source["source_url"], "verification_status": "official_matched",
         })
+    disposition = extraction.get("document_disposition")
+    explicit_zero = (isinstance(disposition, dict)
+                     and disposition.get("status") == "explicit_no_transactions"
+                     and extraction.get("transactions") == [])
+    document_reasons = [] if identity_valid else ["identity_not_deterministic"]
+    document_status = ("qualified_no_transactions" if explicit_zero and identity_valid else
+                       "quarantined_document" if explicit_zero else
+                       "qualified_rows" if transactions else "quarantined_rows")
     return {
         "schema_version": QUALIFICATION_SCHEMA,
         "source_sha256": extraction.get("source_sha256"),
         "parser_version": extraction.get("parser_version"),
         "document_id": document_id,
         "identity": identity,
+        "document_disposition": disposition,
         "transactions": transactions,
         "quarantined": quarantined,
         "qualification": {
             "method": "deterministic_automatic_rules",
+            "status": document_status,
             "qualified_count": len(transactions),
             "quarantined_count": len(quarantined),
-            "production_eligible": bool(transactions),
+            "zero_transaction_document_count": 1 if explicit_zero and identity_valid else 0,
+            "document_reasons": document_reasons if explicit_zero else [],
+            "production_eligible": bool(transactions) or (explicit_zero and identity_valid),
         },
     }
 

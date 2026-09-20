@@ -35,6 +35,15 @@ def fixture_pages():
     return [{"width": 612, "height": 792, "words": words}]
 
 
+def zero_transaction_pages(statement="Nothing to report"):
+    words = [
+        word("Periodic", 40, 40), word("Transaction", 90, 40), word("Report", 160, 40),
+        word("Filing", 480, 40), word("ID", 510, 40), word("#20000001", 530, 40),
+    ]
+    words.extend(word(part, 180 + index * 18, 326) for index, part in enumerate(statement.split()))
+    return [{"width": 612, "height": 792, "words": words}]
+
+
 def amended_fixture_pages():
     words = [
         word("Periodic", 40, 40), word("Transaction", 90, 40), word("Report", 160, 40),
@@ -185,6 +194,40 @@ class HousePtrTests(unittest.TestCase):
         self.assertFalse(result["review"]["production_eligible"])
         self.assertIn("source_pdf_copy_permission_disabled", result["review"]["reasons"])
 
+    def test_explicit_zero_transaction_statement_is_a_qualified_document(self):
+        extraction = parse_word_pages(
+            META, "0" * 64, zero_transaction_pages("N o T h I n g to Re port"), copy_allowed=True)
+        self.assertEqual(extraction["transactions"], [])
+        self.assertEqual(extraction["document_disposition"]["status"],
+                         "explicit_no_transactions")
+        self.assertEqual(extraction["document_disposition"]["statement"], "Nothing to report")
+        self.assertEqual(extraction["review"]["status"], "awaiting_automatic_qualification")
+        self.assertIn("explicit_no_transactions_declaration", extraction["review"]["reasons"])
+
+        qualified = qualify_automatic(extraction, IDENTITY)
+        self.assertEqual(qualified["transactions"], [])
+        self.assertEqual(qualified["quarantined"], [])
+        self.assertEqual(qualified["qualification"]["status"], "qualified_no_transactions")
+        self.assertEqual(qualified["qualification"]["zero_transaction_document_count"], 1)
+        self.assertTrue(qualified["qualification"]["production_eligible"])
+
+    def test_no_transactions_variant_is_recognized_but_blank_is_not(self):
+        result = parse_word_pages(
+            META, "1" * 64, zero_transaction_pages("NO TRANSACTIONS TO REPORT"), copy_allowed=True)
+        self.assertEqual(result["document_disposition"]["statement"],
+                         "No transactions to report")
+        with self.assertRaisesRegex(HouseIndexError, "no recognized transaction rows"):
+            parse_word_pages(META, "2" * 64, zero_transaction_pages(""), copy_allowed=True)
+
+    def test_zero_statement_cannot_hide_an_unrecognized_transaction_row(self):
+        pages = fixture_pages()
+        pages[0]["words"].extend([
+            word("Nothing", 180, 250), word("to", 235, 250), word("report", 250, 250),
+        ])
+        next(item for item in pages[0]["words"] if item["text"] == "$1,001")["text"] = "unknown"
+        with self.assertRaisesRegex(HouseIndexError, "unsupported amount layout"):
+            parse_word_pages(META, "3" * 64, pages, copy_allowed=True)
+
     def test_bad_identity_and_unknown_layout_fail_closed(self):
         bad_header = fixture_pages()
         bad_header[0]["words"] = [word for word in bad_header[0]["words"] if word["text"] != "#20000001"]
@@ -216,6 +259,68 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual((opened["amount_low"], opened["amount_high"], opened["amount_kind"]),
                          (1000001, None, "open_ended"))
 
+    def test_exact_cent_amount_uses_enclosing_integer_bounds_without_losing_source(self):
+        pages = deepcopy(fixture_pages())
+        pages[0]["words"] = [item for item in pages[0]["words"]
+                              if not (item["top"] == 326 and item["x0"] >= 446)]
+        pages[0]["words"].append(word("$318.74", 446, 326))
+        row = parse_word_pages(META, "7" * 64, pages, copy_allowed=True)["transactions"][0]
+        self.assertEqual((row["amount_low"], row["amount_high"], row["amount_kind"]),
+                         (318, 319, "exact"))
+        self.assertEqual(row["amount_raw"], "$318.74")
+
+        integer_pages = deepcopy(pages)
+        next(item for item in integer_pages[0]["words"]
+             if item["text"] == "$318.74")["text"] = "$318.00"
+        integer_row = parse_word_pages(
+            META, "8" * 64, integer_pages, copy_allowed=True)["transactions"][0]
+        self.assertEqual((integer_row["amount_low"], integer_row["amount_high"]),
+                         (318, 318))
+
+    def test_transaction_date_accepts_small_left_shift_but_not_notification_only(self):
+        shifted = deepcopy(fixture_pages())
+        transaction = next(item for item in shifted[0]["words"]
+                           if item["text"] == "08/12/2026")
+        transaction["x0"] = 0.53 * shifted[0]["width"] - 0.66
+        parsed = parse_word_pages(META, "9" * 64, shifted, copy_allowed=True)
+        self.assertEqual(parsed["transactions"][0]["transaction_date"], "2026-08-12")
+
+        notification_only = deepcopy(fixture_pages())
+        notification_only[0]["words"] = [
+            item for item in notification_only[0]["words"]
+            if item["top"] < 326 or item["top"] >= 393 or item["text"] != "08/12/2026"]
+        next(item for item in notification_only[0]["words"]
+             if item["text"] == "09/01/2026")["x0"] = 0.62 * notification_only[0]["width"] - 0.66
+        notification_only[0]["words"] = [
+            item for item in notification_only[0]["words"] if item["top"] < 393]
+        with self.assertRaisesRegex(HouseIndexError, "no recognized transaction rows"):
+            parse_word_pages(META, "0" * 64, notification_only, copy_allowed=True)
+
+    def test_filing_status_ignores_path_note_and_final_row_details_can_cross_page(self):
+        polluted = deepcopy(fixture_pages())
+        polluted[0]["words"].extend([
+            word("C:/exports/report.pdf", 105, 367, 8.5),
+        ])
+        first = parse_word_pages(
+            META, "1" * 64, polluted, copy_allowed=True)["transactions"][0]
+        self.assertEqual(first["filing_status"], "New")
+        self.assertNotIn("non_new_filing_requires_revision_resolution", first["review_reasons"])
+
+        continued = final_row_continuation_pages()
+        for item in continued[0]["words"]:
+            if item["top"] == 704:
+                item["top"] = 620
+        row = parse_word_pages(
+            META, "2" * 64, continued, copy_allowed=True)["transactions"][0]
+        self.assertEqual(row["filing_status"], "New")
+        self.assertEqual(row["evidence"]["pages"], [1, 2])
+
+        no_detail = deepcopy(continued)
+        no_detail[1]["words"] = [item for item in no_detail[1]["words"]
+                                  if item["text"] not in {"Filing", "Status:", "New"}]
+        with self.assertRaisesRegex(HouseIndexError, "unsupported .*amount.* layout"):
+            parse_word_pages(META, "3" * 64, no_detail, copy_allowed=True)
+
     def test_pending_review_cannot_be_promoted(self):
         extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
         review = make_review_template(extraction)
@@ -244,6 +349,13 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual(result["qualification"]["quarantined_count"], 1)
         self.assertEqual(result["transactions"][0]["verification_status"], "official_matched")
         self.assertNotIn("reviewed_by", result)
+
+        for basis in ("official_roster_exact_district_unique_surname",
+                      "official_roster_same_state_unique_first_last_name_redistricted"):
+            with self.subTest(match_basis=basis):
+                recovered_identity = dict(IDENTITY, match_basis=basis)
+                recovered = qualify_automatic(extraction, recovered_identity)
+                self.assertEqual(recovered["qualification"]["qualified_count"], 1)
 
         unresolved = {"status": "unresolved", "document_id": "20000001"}
         isolated = qualify_automatic(extraction, unresolved)

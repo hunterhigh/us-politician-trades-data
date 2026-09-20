@@ -146,7 +146,22 @@ def discover_members(root: Path, *, client: HouseMemberClient | None = None) -> 
 
 def _name_key(value: str) -> tuple[str, str] | None:
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    # The Clerk roster and disclosure headers do not always use the same display order.
+    # Treat ``Surname, Given`` as the same name as ``Given Surname`` without broadening
+    # the comparison beyond the first and last name tokens.
+    if "," in normalized:
+        surname_text, given_text = normalized.split(",", 1)
+        surname_words = re.findall(r"[a-z]+", surname_text)
+        given_words = re.findall(r"[a-z]+", given_text)
+        while given_words and given_words[-1] in {"jr", "sr", "ii", "iii", "iv"}:
+            given_words.pop()
+        # A single token before the comma is the Clerk's conventional surname-first
+        # display. Longer prefixes can instead be names followed by credentials, as in
+        # ``Neal Patrick MD, FACS Dunn``; keep their natural order below.
+        if len(surname_words) == 1 and given_words:
+            return given_words[0], surname_words[-1]
     words = re.findall(r"[a-z]+", normalized)
+    words = [word for word in words if word not in {"md", "facs", "do", "dds", "phd", "esq"}]
     while words and words[0] in {"hon", "honorable", "mr", "mrs", "ms", "miss", "dr"}:
         words.pop(0)
     while words and words[-1] in {"jr", "sr", "ii", "iii", "iv"}:
@@ -154,19 +169,67 @@ def _name_key(value: str) -> tuple[str, str] | None:
     return (words[0], words[-1]) if len(words) >= 2 else None
 
 
-def suggest_identity(extraction: dict, roster: dict) -> dict:
-    source = extraction.get("source") or {}
-    candidates = [member for member in roster.get("members", [])
-                  if member.get("state_district") == source.get("state_district")]
-    filer_key = _name_key(str(source.get("filer_name", "")))
-    matches = [member for member in candidates if _name_key(str(member.get("official_name", ""))) == filer_key]
-    if len(matches) != 1:
-        return {"status": "unresolved", "document_id": source.get("document_id"),
-                "filer_name": source.get("filer_name"), "state_district": source.get("state_district"),
-                "candidate_count": len(matches)}
-    member = matches[0]
+def _identity_result(source: dict, member: dict, roster: dict, match_basis: str) -> dict:
     return {"status": "matched_automatically", "document_id": source.get("document_id"),
             "person_id": member["person_id"], "official_name": member["official_name"],
-            "state": member["state"], "state_district": member["state_district"], "party": member["party"],
-            "evidence_url": member["evidence_url"], "roster_sha256": roster.get("metadata", {}).get("sha256"),
-            "match_basis": "official_roster_exact_district_first_last_name"}
+            "state": member["state"], "state_district": member["state_district"],
+            "party": member["party"], "evidence_url": member["evidence_url"],
+            "roster_sha256": roster.get("metadata", {}).get("sha256"),
+            "match_basis": match_basis}
+
+
+def _unresolved_result(source: dict, candidate_count: int) -> dict:
+    return {"status": "unresolved", "document_id": source.get("document_id"),
+            "filer_name": source.get("filer_name"), "state_district": source.get("state_district"),
+            "candidate_count": candidate_count}
+
+
+def suggest_identity(extraction: dict, roster: dict) -> dict:
+    source = extraction.get("source") or {}
+    district = str(source.get("state_district", "")).strip().upper()
+    filer_key = _name_key(str(source.get("filer_name", "")))
+    members = roster.get("members", [])
+    if (not re.fullmatch(r"[A-Z]{2}[0-9]{2}", district) or filer_key is None
+            or not isinstance(members, list)):
+        return _unresolved_result(source, 0)
+
+    # Ignore incomplete rows, then explicitly reject duplicate person or district records at
+    # each fallback boundary. parse_members already rejects these, but suggest_identity also
+    # consumes persisted JSON and must fail closed if that artifact has been changed.
+    eligible = [member for member in members if isinstance(member, dict)
+                and re.fullmatch(r"house:[A-Z][0-9]{6}", str(member.get("person_id", "")))
+                and re.fullmatch(r"[A-Z]{2}[0-9]{2}", str(member.get("state_district", "")))
+                and member.get("state") == str(member.get("state_district", ""))[:2]
+                and _name_key(str(member.get("official_name", ""))) is not None]
+    if len({member["person_id"] for member in eligible}) != len(eligible):
+        return _unresolved_result(source, 0)
+
+    district_members = [member for member in eligible if member["state_district"] == district]
+    exact = [member for member in district_members
+             if _name_key(str(member["official_name"])) == filer_key]
+    if len(exact) == 1 and len(district_members) == 1:
+        return _identity_result(source, exact[0], roster,
+                                "official_roster_exact_district_first_last_name")
+    if len(exact) > 1:
+        return _unresolved_result(source, len(exact))
+
+    same_district_surname = [member for member in district_members
+                             if _name_key(str(member["official_name"]))[1] == filer_key[1]]
+    if len(same_district_surname) == 1 and len(district_members) == 1:
+        return _identity_result(source, same_district_surname[0], roster,
+                                "official_roster_exact_district_unique_surname")
+    if len(same_district_surname) > 1:
+        return _unresolved_result(source, len(same_district_surname))
+
+    state = district[:2]
+    statewide = [member for member in eligible if member["state"] == state
+                 and _name_key(str(member["official_name"])) == filer_key]
+    if len(statewide) != 1:
+        return _unresolved_result(source, len(statewide))
+    member = statewide[0]
+    target_district_members = [candidate for candidate in eligible
+                               if candidate["state_district"] == member["state_district"]]
+    if len(target_district_members) != 1:
+        return _unresolved_result(source, len(target_district_members))
+    return _identity_result(source, member, roster,
+                            "official_roster_same_state_unique_first_last_name_redistricted")

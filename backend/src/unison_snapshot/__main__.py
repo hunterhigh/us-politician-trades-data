@@ -1,4 +1,5 @@
 import argparse
+from dataclasses import asdict
 import json
 from pathlib import Path
 import tempfile
@@ -11,7 +12,11 @@ from .house_ptr import make_review_template, parse_archived_pdf, promote_review,
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
+from .disclosure_candidate import DisclosureCandidateError, build_disclosure_candidate
 from .legacy import load
+from .senate import SenateEfdError, parse_search_page
+from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
+    discover_members as discover_senate_members
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -89,6 +94,25 @@ def main() -> None:
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
     candidate.add_argument("--html-output", type=Path)
+    disclosure_candidate = sub.add_parser("build-disclosure-candidate")
+    disclosure_candidate.add_argument("--base", type=Path, required=True)
+    disclosure_candidate.add_argument(
+        "--source", action="append", required=True, metavar="SOURCE_ID=PATH",
+        help="Repeat once per source candidate, for example house_clerk=house-current.json")
+    disclosure_candidate.add_argument("--output", type=Path, required=True)
+    disclosure_candidate.add_argument("--html-output", type=Path)
+    senate_roster = sub.add_parser("parse-senate-members")
+    senate_roster.add_argument("--input", type=Path, required=True)
+    senate_roster.add_argument("--output", type=Path, required=True)
+    senate_roster_live = sub.add_parser("discover-senate-members")
+    senate_roster_live.add_argument("--archive", type=Path, required=True)
+    senate_roster_live.add_argument("--output", type=Path, required=True)
+    senate_roster_live.add_argument("--timeout", type=float, default=30.0)
+    senate_search = sub.add_parser("parse-senate-search-page")
+    senate_search.add_argument("--input", type=Path, required=True)
+    senate_search.add_argument("--start", type=int, required=True)
+    senate_search.add_argument("--length", type=int, required=True)
+    senate_search.add_argument("--output", type=Path, required=True)
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -217,6 +241,51 @@ def main() -> None:
                               "transactions": len(result["transactions"]),
                               "output": str(args.output.resolve()),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
+        elif args.command == "build-disclosure-candidate":
+            sources: dict[str, dict] = {}
+            for item in args.source:
+                source_id, separator, source_path = item.partition("=")
+                if not separator or not source_id or not source_path or source_id in sources:
+                    raise DisclosureCandidateError(
+                        "Each --source must be a unique SOURCE_ID=PATH value")
+                sources[source_id] = json.loads(Path(source_path).read_text(encoding="utf-8"))
+            base = json.loads(args.base.read_text(encoding="utf-8"))
+            result = build_disclosure_candidate(base, sources)
+            generated_at = result["meta"]["data_cutoff_at"]
+            bundle = build(result, generated_at=generated_at, allow_production=True)
+            result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
+                                  generated_at=generated_at)
+            _write_atomic(args.output, result)
+            if args.html_output:
+                renderer = load("render_dashboard")
+                html = renderer.render_html(renderer.load_dashboard_data(args.output))
+                args.html_output.parent.mkdir(parents=True, exist_ok=True)
+                args.html_output.write_text(html, encoding="utf-8")
+            print(json.dumps({"sources": sorted(sources), "people": len(result["people"]),
+                              "transactions": len(result["transactions"]),
+                              "reported_holdings": len(result["reported_holdings"]),
+                              "output": str(args.output.resolve()),
+                              "html": str(args.html_output.resolve()) if args.html_output else None}))
+        elif args.command == "parse-senate-members":
+            result = build_roster(args.input.read_bytes())
+            _write_atomic(args.output, result)
+            print(json.dumps({"members": len(result["members"]),
+                              "sha256": result["metadata"]["sha256"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "discover-senate-members":
+            result = discover_senate_members(
+                args.archive, client=SenateMemberClient(args.timeout))
+            _write_atomic(args.output, result)
+            print(json.dumps({"members": len(result["members"]),
+                              "sha256": result["metadata"]["sha256"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "parse-senate-search-page":
+            payload = json.loads(args.input.read_text(encoding="utf-8"))
+            result = asdict(parse_search_page(payload, start=args.start, length=args.length))
+            _write_atomic(args.output, result)
+            print(json.dumps({"start": result["start"], "rows": result["row_count"],
+                              "records_total": result["records_total"],
+                              "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -253,7 +322,8 @@ def main() -> None:
             print(json.dumps({"document_id": args.document_id, "status": args.status,
                               "counts": result["counts"], "queue": len(result["queue"]),
                               "output": str(args.output.resolve())}))
-    except (ValueError, RuntimeError, HouseIndexError, KeyError, OSError) as exc:
+    except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError,
+            SenateEfdError, SenateRosterError, KeyError, OSError, json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
 
 

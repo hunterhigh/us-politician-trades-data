@@ -1,0 +1,99 @@
+name: Senate identity roster
+on:
+  schedule:
+    - cron: '43 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: disclosure-source-writer
+  cancel-in-progress: false
+jobs:
+  roster:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare production branches
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-evidence"
+          state_root="$RUNNER_TEMP/senate-state"
+          git fetch --no-tags origin evidence
+          git worktree add --detach "$evidence_root" FETCH_HEAD
+          git fetch --no-tags origin state
+          git worktree add --detach "$state_root" FETCH_HEAD
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+      - name: Archive official Senate roster
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-members \
+            --archive "$EVIDENCE_ROOT" --output .local/senate-members.json
+      - name: Publish immutable roster evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          cat > "$EVIDENCE_ROOT/README.md" <<'EOF'
+          # Production source evidence
+
+          This branch is the immutable public evidence layer for official source files.
+          House source files are stored under `house_clerk/`; Senate source files are stored under `senate_efd/`.
+          Original bytes are addressed by SHA-256 together with retrieval metadata.
+          Normalized frontend data remains on `main`; operational checkpoints remain on `state`.
+          Credentials and unreviewed extracted rows are never stored here.
+          EOF
+          git -C "$EVIDENCE_ROOT" add README.md senate_efd/members
+          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate roster ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Record Senate source state
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          roster = json.loads(Path('.local/senate-members.json').read_text(encoding='utf-8'))
+          run_at = datetime.now(timezone.utc).isoformat()
+          value = {
+              'schema_version': 'senate-source-run/v1',
+              'source_id': 'senate_efd',
+              'run_at': run_at,
+              'status': 'disabled',
+              'collection_enabled': False,
+              'terms_acknowledged': False,
+              'roster': {
+                  'status': 'ok',
+                  'record_count': len(roster['members']),
+                  'sha256': roster['metadata']['sha256'],
+                  'retrieved_at': roster['metadata']['retrieved_at'],
+              },
+              'detail': ('Official Senate identity roster archived. eFD report collection remains '
+                         'disabled until the project owner authorizes the portal acknowledgement.'),
+          }
+          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                            encoding='utf-8')
+          PY
+          git -C "$STATE_ROOT" add status/senate_efd.json
+          if ! git -C "$STATE_ROOT" diff --cached --quiet; then
+            git -C "$STATE_ROOT" config user.name "github-actions[bot]"
+            git -C "$STATE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$STATE_ROOT" commit -m "state: Senate roster ${{ github.run_id }}"
+            git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
+          fi

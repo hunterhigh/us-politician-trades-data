@@ -133,6 +133,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
         "data_cutoff_at": cutoff,
         "detail": (f"{summary['evidence_count']} PTR PDFs archived; {summary['extracted_count']} extracted; "
                    f"{len(transactions)} transactions automatically qualified; "
+                   f"{summary.get('zero_transaction_document_count', 0)} explicit zero-transaction filings; "
                    f"{quarantined_count} rows quarantined; {summary['failure_count']} parser failures; "
                    f"{state_status['counts']['pending']} filings pending archive."),
     }
