@@ -14,7 +14,8 @@ from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
 from .disclosure_candidate import DisclosureCandidateError, build_disclosure_candidate
 from .legacy import load
-from .senate import SenateEfdError, parse_search_page
+from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse_search_page, \
+    source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
 from .public_repo import HTTPTransport, PublicSnapshotRepository
@@ -113,6 +114,17 @@ def main() -> None:
     senate_search.add_argument("--start", type=int, required=True)
     senate_search.add_argument("--length", type=int, required=True)
     senate_search.add_argument("--output", type=Path, required=True)
+    senate_gate = sub.add_parser("senate-efd-gate")
+    senate_gate.add_argument("--output", type=Path, required=True)
+    senate_gate.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
+    senate_gate.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
+    senate_discovery = sub.add_parser("discover-senate-efd")
+    senate_discovery.add_argument("--archive", type=Path, required=True)
+    senate_discovery.add_argument("--output", type=Path, required=True)
+    senate_discovery.add_argument("--submitted-start-date", required=True)
+    senate_discovery.add_argument("--page-size", type=int, default=100)
+    senate_discovery.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
+    senate_discovery.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
     members = sub.add_parser("discover-house-members")
     members.add_argument("--archive", type=Path, required=True)
     members.add_argument("--output", type=Path, required=True)
@@ -285,6 +297,26 @@ def main() -> None:
             _write_atomic(args.output, result)
             print(json.dumps({"start": result["start"], "rows": result["row_count"],
                               "records_total": result["records_total"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "senate-efd-gate":
+            config = source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = collection_gate_status(config)
+            _write_atomic(args.output, result)
+            print(json.dumps({"status": result["status"],
+                              "collection_enabled": result["collection_enabled"],
+                              "terms_acknowledged": result["terms_acknowledged"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "discover-senate-efd":
+            config = source_config_from_environment(
+                enabled_name=args.enabled_env, terms_name=args.terms_env)
+            result = discover_ptrs(
+                args.archive, config, submitted_start_date=args.submitted_start_date,
+                page_size=args.page_size)
+            _write_atomic(args.output, result)
+            print(json.dumps({"records": result["records_total"],
+                              "pages": result["metadata"]["page_count"],
+                              "sha256": result["metadata"]["sha256"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-house-members":
             result = discover_members(args.archive, client=HouseMemberClient(args.timeout))

@@ -69,23 +69,36 @@ jobs:
           from pathlib import Path
           roster = json.loads(Path('.local/senate-members.json').read_text(encoding='utf-8'))
           run_at = datetime.now(timezone.utc).isoformat()
+          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          gate = prior.get('gate', {
+              'schema_version': 'senate-efd-source-gate/v1',
+              'source_id': 'senate_efd',
+              'status': 'disabled',
+              'collection_enabled': False,
+              'terms_acknowledged': False,
+              'reasons': ['collection_not_enabled'],
+          })
           value = {
               'schema_version': 'senate-source-run/v1',
               'source_id': 'senate_efd',
               'run_at': run_at,
-              'status': 'disabled',
-              'collection_enabled': False,
-              'terms_acknowledged': False,
+              'status': prior.get('status', gate['status']),
+              'collection_enabled': gate['collection_enabled'],
+              'terms_acknowledged': gate['terms_acknowledged'],
+              'gate': gate,
               'roster': {
                   'status': 'ok',
                   'record_count': len(roster['members']),
                   'sha256': roster['metadata']['sha256'],
                   'retrieved_at': roster['metadata']['retrieved_at'],
               },
-              'detail': ('Official Senate identity roster archived. eFD report collection remains '
-                         'disabled until the project owner authorizes the portal acknowledgement.'),
+              'detail': prior.get('detail',
+                  'Official Senate identity roster archived. eFD report collection remains disabled.'),
           }
-          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          for key in ('catalog', 'reports'):
+              if key in prior:
+                  value[key] = prior[key]
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')

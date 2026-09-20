@@ -9,19 +9,31 @@ it is not evidence of the report's filing date.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
+import hashlib
+import http.cookiejar
+import json
+import os
+from pathlib import Path
 import re
+import tempfile
 from typing import Iterable
-from urllib.parse import urljoin, urlsplit
+import urllib.error
+from urllib.parse import urlencode, urljoin, urlsplit
+import urllib.request
 import uuid
 
 
 HOME_URL = "https://efdsearch.senate.gov/search/home/"
 SEARCH_URL = "https://efdsearch.senate.gov/search/report/data/"
+SEARCH_PAGE_URL = "https://efdsearch.senate.gov/search/"
 SCHEMA = "senate-efd-discovery/v1"
+GATE_SCHEMA = "senate-efd-source-gate/v1"
 _ALLOWED_HOST = "efdsearch.senate.gov"
 _RESPONSE_FIELDS = {"draw", "recordsTotal", "recordsFiltered", "data"}
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_REPORTS = 10_000
 
 
 class SenateEfdError(RuntimeError):
@@ -46,6 +58,47 @@ def require_collection_enabled(config: SenateSourceConfig | None = None) -> None
         raise SenateEfdError("Senate eFD collection is disabled")
     if not selected.terms_acknowledged:
         raise SenateEfdError("Senate eFD terms acknowledgement is required")
+
+
+def _environment_flag(value: object, name: str) -> bool:
+    if value in {None, ""}:
+        return False
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise SenateEfdError(f"{name} must be exactly true or false")
+
+
+def source_config_from_environment(
+        environment: dict[str, str] | None = None, *,
+        enabled_name: str = "SENATE_EFD_COLLECTION_ENABLED",
+        terms_name: str = "SENATE_EFD_TERMS_ACKNOWLEDGED") -> SenateSourceConfig:
+    """Read exact, auditable flags; an absent flag never enables collection."""
+
+    values = os.environ if environment is None else environment
+    return SenateSourceConfig(
+        enabled=_environment_flag(values.get(enabled_name), enabled_name),
+        terms_acknowledged=_environment_flag(values.get(terms_name), terms_name),
+    )
+
+
+def collection_gate_status(config: SenateSourceConfig) -> dict:
+    if not isinstance(config, SenateSourceConfig):
+        raise SenateEfdError("Senate eFD source configuration is invalid")
+    status = ("enabled" if config.enabled and config.terms_acknowledged else
+              "blocked" if config.enabled else "disabled")
+    reasons = ([] if status == "enabled" else
+               ["terms_acknowledgement_missing"] if status == "blocked" else
+               ["collection_not_enabled"])
+    return {
+        "schema_version": GATE_SCHEMA,
+        "source_id": "senate_efd",
+        "status": status,
+        "collection_enabled": config.enabled,
+        "terms_acknowledged": config.terms_acknowledged,
+        "reasons": reasons,
+    }
 
 
 @dataclass(frozen=True)
@@ -104,6 +157,101 @@ class _AnchorParser(HTMLParser):
         super().close()
         if self.label is not None:
             raise SenateEfdError("Senate eFD report cell contains an unclosed link")
+
+
+class _CsrfParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tokens: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "input":
+            return
+        values = dict(attrs)
+        if values.get("name") == "csrfmiddlewaretoken" and isinstance(values.get("value"), str):
+            self.tokens.append(values["value"])
+
+
+def _csrf_token(content: bytes) -> str:
+    try:
+        text = content.decode("utf-8")
+        parser = _CsrfParser()
+        parser.feed(text)
+        parser.close()
+    except UnicodeDecodeError:
+        raise SenateEfdError("Senate eFD agreement page is invalid") from None
+    if len(parser.tokens) != 1 or not re.fullmatch(r"[A-Za-z0-9_-]{16,256}", parser.tokens[0]):
+        raise SenateEfdError("Senate eFD agreement page has no unique CSRF token")
+    return parser.tokens[0]
+
+
+class SenateEfdClient:
+    """Session client whose agreement POST is reachable only after the external gate."""
+
+    def __init__(self, timeout: float = 30.0, opener=None):
+        self.timeout = timeout
+        self.cookies = http.cookiejar.CookieJar()
+        self.opener = opener or urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(self.cookies))
+        self.csrf_token: str | None = None
+
+    def _open(self, request: urllib.request.Request, *, expected_urls: set[str],
+              maximum: int = MAX_RESPONSE_BYTES) -> tuple[bytes, dict[str, str]]:
+        try:
+            with self.opener.open(request, timeout=self.timeout) as response:
+                if response.status != 200 or response.geturl() not in expected_urls:
+                    raise SenateEfdError("Senate eFD returned an unexpected response")
+                content = response.read(maximum + 1)
+                headers = {name.lower(): value for name, value in response.headers.items()
+                           if name.lower() in {"etag", "last-modified", "content-type"}}
+        except urllib.error.HTTPError as exc:
+            raise SenateEfdError(f"Senate eFD returned HTTP {exc.code}") from None
+        except (urllib.error.URLError, TimeoutError):
+            raise SenateEfdError("Senate eFD is unavailable") from None
+        if len(content) > maximum:
+            raise SenateEfdError("Senate eFD response exceeds its size limit")
+        return content, headers
+
+    def begin_authorized_session(self) -> None:
+        request = urllib.request.Request(HOME_URL, headers={
+            "Accept": "text/html,application/xhtml+xml",
+            "User-Agent": "unison-senate-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
+        }, method="GET")
+        content, _ = self._open(request, expected_urls={HOME_URL})
+        form_token = _csrf_token(content)
+        payload = urlencode({"csrfmiddlewaretoken": form_token,
+                             "prohibition_agreement": "1"}).encode("ascii")
+        agreement = urllib.request.Request(HOME_URL, data=payload, headers={
+            "Accept": "text/html,application/xhtml+xml",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Referer": HOME_URL,
+            "User-Agent": "unison-senate-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
+        }, method="POST")
+        response, _ = self._open(agreement, expected_urls={HOME_URL, SEARCH_PAGE_URL})
+        cookie_token = next((cookie.value for cookie in self.cookies
+                             if cookie.name in {"csrftoken", "csrf"}), None)
+        self.csrf_token = cookie_token or _csrf_token(response)
+
+    def download_search_page(self, *, start: int, length: int, draw: int,
+                             submitted_start_date: str) -> tuple[bytes, dict[str, str]]:
+        if self.csrf_token is None:
+            raise SenateEfdError("Senate eFD authorized session is not initialized")
+        payload = urlencode({
+            "draw": str(draw), "start": str(start), "length": str(length),
+            "report_types": "[11]", "submitted_start_date": submitted_start_date,
+            "csrfmiddlewaretoken": self.csrf_token,
+        }).encode("ascii")
+        request = urllib.request.Request(SEARCH_URL, data=payload, headers={
+            "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded",
+            "Referer": SEARCH_PAGE_URL, "X-CSRFToken": self.csrf_token,
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "unison-senate-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
+        }, method="POST")
+        content, headers = self._open(request, expected_urls={SEARCH_URL})
+        content_type = headers.get("content-type", "").lower()
+        if "json" not in content_type:
+            raise SenateEfdError("Senate eFD search returned a non-JSON response")
+        return content, headers
 
 
 def _nonempty_string(value: object, field: str) -> str:
@@ -236,6 +384,105 @@ def build_discovery(pages: Iterable[SenateSearchPage]) -> dict:
         "catalog_rows_covered": expected_start,
         "reports": reports,
     }
+
+
+def _write_once(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise SenateEfdError("Archived Senate eFD catalog content conflicts with its hash")
+        return
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp",
+                                     delete=False) as handle:
+        handle.write(payload)
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def archive_discovery(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str, str]]],
+                      discovery: dict, retrieved_at: str | None = None) -> dict:
+    """Archive raw catalog responses and their deterministic normalized result."""
+
+    if not raw_pages or discovery.get("schema_version") != SCHEMA:
+        raise SenateEfdError("Senate eFD discovery archive input is invalid")
+    folder = root.resolve() / "senate_efd" / "catalog"
+    page_metadata = []
+    for start, length, content, headers in raw_pages:
+        sha = hashlib.sha256(content).hexdigest()
+        path = folder / "pages" / f"{sha}.json"
+        _write_once(path, content)
+        page_metadata.append({
+            "start": start, "length": length, "sha256": sha, "byte_length": len(content),
+            "headers": headers, "archive_path": path.relative_to(root.resolve()).as_posix(),
+        })
+    normalized = json.dumps(discovery, ensure_ascii=False, sort_keys=True,
+                            separators=(",", ":")).encode("utf-8")
+    sha = hashlib.sha256(normalized).hexdigest()
+    metadata_path = folder / f"{sha}.json"
+    metadata = {
+        "schema_version": "senate-efd-catalog-archive/v1",
+        "source_id": "senate_efd", "source_url": SEARCH_URL,
+        "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "sha256": sha, "record_count": discovery["records_total"],
+        "page_count": len(page_metadata), "pages": page_metadata,
+        "archive_path": metadata_path.relative_to(root.resolve()).as_posix(),
+    }
+    if metadata_path.exists():
+        try:
+            existing = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise SenateEfdError("Archived Senate eFD catalog metadata is invalid") from None
+        stable = ("schema_version", "source_id", "source_url", "sha256", "record_count",
+                  "page_count", "pages", "archive_path")
+        if any(existing.get(field) != metadata[field] for field in stable):
+            raise SenateEfdError("Archived Senate eFD catalog metadata conflicts with its content")
+        return existing
+    _write_once(metadata_path, json.dumps(metadata, ensure_ascii=False, sort_keys=True,
+                                          separators=(",", ":")).encode("utf-8"))
+    return metadata
+
+
+def discover_ptrs(root: Path, config: SenateSourceConfig, *, submitted_start_date: str,
+                  page_size: int = 100, client: SenateEfdClient | None = None) -> dict:
+    """Collect the PTR catalog after, and only after, both production gates pass."""
+
+    require_collection_enabled(config)
+    if type(page_size) is not int or not 1 <= page_size <= 100:
+        raise SenateEfdError("Senate eFD page size must be between 1 and 100")
+    try:
+        start_day = datetime.strptime(submitted_start_date, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        raise SenateEfdError("Senate eFD submitted start date must be YYYY-MM-DD") from None
+    if not datetime(2012, 1, 1).date() <= start_day <= datetime.now(timezone.utc).date():
+        raise SenateEfdError("Senate eFD submitted start date is outside the supported range")
+    selected = client or SenateEfdClient()
+    selected.begin_authorized_session()
+    pages: list[SenateSearchPage] = []
+    raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []
+    start = 0
+    draw = 1
+    portal_date = start_day.strftime("%m/%d/%Y") + " 00:00:00"
+    while True:
+        content, headers = selected.download_search_page(
+            start=start, length=page_size, draw=draw, submitted_start_date=portal_date)
+        try:
+            payload = json.loads(content)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise SenateEfdError("Senate eFD search response is invalid JSON") from None
+        page = parse_search_page(payload, start=start, length=page_size)
+        if page.records_total > MAX_REPORTS:
+            raise SenateEfdError("Senate eFD search result exceeds its safety limit")
+        pages.append(page)
+        raw_pages.append((start, page_size, content, headers))
+        start += page.row_count
+        if start == page.records_total:
+            break
+        if page.row_count == 0:
+            raise SenateEfdError("Senate eFD pagination made no progress")
+        draw += 1
+    discovery = build_discovery(pages)
+    metadata = archive_discovery(root, raw_pages, discovery)
+    return {"metadata": metadata, **discovery}
 
 
 def normalize_transaction_type(value: object) -> dict[str, object]:

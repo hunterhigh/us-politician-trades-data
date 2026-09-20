@@ -11,9 +11,12 @@ BACKEND = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
-    def invoke(self, *args):
+    def invoke(self, *args, environment=None):
+        process_environment = dict(os.environ, PYTHONPATH=str(BACKEND / "src"))
+        if environment:
+            process_environment.update(environment)
         return subprocess.run([sys.executable, "-m", "unison_snapshot", *args],
-                              env=dict(os.environ, PYTHONPATH=str(BACKEND / "src")),
+                              env=process_environment,
                               capture_output=True, text=True)
 
     def test_help_documents_demo_only_publication(self):
@@ -33,6 +36,8 @@ class CliTests(unittest.TestCase):
         self.assertIn("parse-senate-members", result.stdout)
         self.assertIn("discover-senate-members", result.stdout)
         self.assertIn("parse-senate-search-page", result.stdout)
+        self.assertIn("senate-efd-gate", result.stdout)
+        self.assertIn("discover-senate-efd", result.stdout)
         self.assertIn("discover-house-members", result.stdout)
         self.assertIn("suggest-house-identity", result.stdout)
         self.assertIn("plan-house-ptr-sync", result.stdout)
@@ -49,3 +54,27 @@ class CliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("Production admission", result.stderr)
             self.assertFalse((folder / "repo.git").exists())
+
+    def test_senate_gate_cli_is_disabled_by_default_and_requires_exact_flags(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "gate.json"
+            result = self.invoke("senate-efd-gate", "--output", str(output), environment={
+                "SENATE_EFD_COLLECTION_ENABLED": "",
+                "SENATE_EFD_TERMS_ACKNOWLEDGED": "",
+            })
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "disabled")
+
+            result = self.invoke("senate-efd-gate", "--output", str(output), environment={
+                "SENATE_EFD_COLLECTION_ENABLED": "true",
+                "SENATE_EFD_TERMS_ACKNOWLEDGED": "false",
+            })
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "blocked")
+
+            result = self.invoke("senate-efd-gate", "--output", str(output), environment={
+                "SENATE_EFD_COLLECTION_ENABLED": "TRUE",
+                "SENATE_EFD_TERMS_ACKNOWLEDGED": "false",
+            })
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("exactly true or false", result.stderr)

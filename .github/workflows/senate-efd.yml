@@ -1,0 +1,241 @@
+name: Senate eFD PTR catalog
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  record-disabled-gate:
+    if: ${{ github.event_name == 'workflow_dispatch' && (vars.SENATE_EFD_COLLECTION_ENABLED != 'true' || vars.SENATE_EFD_TERMS_ACKNOWLEDGED != 'true') }}
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Evaluate default-closed source gate
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-efd-gate.json
+      - name: Record disabled or blocked state
+        run: |
+          state_root="$RUNNER_TEMP/senate-state"
+          git fetch --no-tags origin state
+          git worktree add --detach "$state_root" FETCH_HEAD
+          STATE_ROOT="$state_root" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
+          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          value = {
+              'schema_version': 'senate-source-run/v1',
+              'source_id': 'senate_efd',
+              'run_at': datetime.now(timezone.utc).isoformat(),
+              'status': gate['status'],
+              'collection_enabled': gate['collection_enabled'],
+              'terms_acknowledged': gate['terms_acknowledged'],
+              'gate': gate,
+              'roster': prior.get('roster', {'status': 'unknown'}),
+              'detail': ('eFD catalog collection did not run because both explicit production '
+                         'authorization variables were not true.'),
+          }
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                            encoding='utf-8')
+          PY
+          git -C "$state_root" add status/senate_efd.json
+          if ! git -C "$state_root" diff --cached --quiet; then
+            git -C "$state_root" config user.name "github-actions[bot]"
+            git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$state_root" commit -m "state: Senate eFD gate ${{ github.run_id }}"
+            git -C "$state_root" push origin HEAD:refs/heads/state
+          fi
+      - name: Fail a partially enabled gate
+        if: ${{ vars.SENATE_EFD_COLLECTION_ENABLED == 'true' && vars.SENATE_EFD_TERMS_ACKNOWLEDGED != 'true' }}
+        run: |
+          echo "Senate eFD collection was enabled without the required terms acknowledgement." >&2
+          exit 2
+
+  collect-catalog:
+    if: ${{ vars.SENATE_EFD_COLLECTION_ENABLED == 'true' && vars.SENATE_EFD_TERMS_ACKNOWLEDGED == 'true' }}
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      SENATE_EFD_START_DATE: ${{ vars.SENATE_EFD_START_DATE }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare production evidence and state branches
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-evidence"
+          state_root="$RUNNER_TEMP/senate-state"
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            state:refs/remotes/origin/state
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$state_root" origin/state
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+      - name: Verify authorization gate and collect PTR catalog
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-efd-gate.json
+          start_date="$SENATE_EFD_START_DATE"
+          if [ -z "$start_date" ]; then
+            start_date="$(date -u -d '6 years ago' +%F)"
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
+            --archive "$EVIDENCE_ROOT" \
+            --submitted-start-date "$start_date" \
+            --output .local/senate-efd-discovery.json
+      - name: Publish immutable catalog evidence
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          git -C "$EVIDENCE_ROOT" add senate_efd/catalog
+          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate eFD catalog ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Record catalog source state
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
+          discovery = json.loads(Path('.local/senate-efd-discovery.json').read_text(encoding='utf-8'))
+          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          value = {
+              'schema_version': 'senate-source-run/v1',
+              'source_id': 'senate_efd',
+              'run_at': datetime.now(timezone.utc).isoformat(),
+              'status': 'catalog_ready_for_review',
+              'collection_enabled': True,
+              'terms_acknowledged': True,
+              'gate': gate,
+              'roster': prior.get('roster', {'status': 'unknown'}),
+              'catalog': {
+                  'status': 'ok',
+                  'record_count': discovery['records_total'],
+                  'page_count': discovery['metadata']['page_count'],
+                  'sha256': discovery['metadata']['sha256'],
+                  'retrieved_at': discovery['metadata']['retrieved_at'],
+              },
+              'reports': {'status': 'not_collected', 'record_count': 0},
+              'detail': ('Authorized eFD PTR catalog archived for review. Individual report pages '
+                         'and transaction facts have not been collected or published.'),
+          }
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                            encoding='utf-8')
+          PY
+          git -C "$STATE_ROOT" add status/senate_efd.json
+          if ! git -C "$STATE_ROOT" diff --cached --quiet; then
+            git -C "$STATE_ROOT" config user.name "github-actions[bot]"
+            git -C "$STATE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$STATE_ROOT" commit -m "state: Senate eFD catalog ${{ github.run_id }}"
+            git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-efd-discovery-${{ github.run_id }}
+          path: .local/senate-efd-discovery.json
+          retention-days: 1
+
+  publish-review-catalog:
+    needs: collect-catalog
+    concurrency:
+      group: disclosure-review-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: senate-efd-discovery-${{ github.run_id }}
+          path: .local
+      - name: Publish normalized catalog to review branch
+        run: |
+          review_root="$RUNNER_TEMP/senate-review"
+          git fetch --no-tags origin review
+          git worktree add --detach "$review_root" FETCH_HEAD
+          REVIEW_ROOT="$review_root" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          source = Path('.local/senate-efd-discovery.json')
+          discovery = json.loads(source.read_text(encoding='utf-8'))
+          review = Path(os.environ['REVIEW_ROOT'])
+          sha = discovery['metadata']['sha256']
+          target = review / 'senate_efd' / 'discoveries' / f'{sha}.json'
+          target.parent.mkdir(parents=True, exist_ok=True)
+          content = json.dumps(discovery, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+          if target.is_file() and target.read_text(encoding='utf-8') != content:
+              raise SystemExit('Senate eFD discovery conflicts with its content hash')
+          target.write_text(content, encoding='utf-8')
+          status = {
+              'schema_version': 'senate-review-run/v1',
+              'source_id': 'senate_efd',
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'status': 'catalog_ready_for_review',
+              'catalog_sha256': sha,
+              'catalog_record_count': discovery['records_total'],
+              'report_evidence_count': 0,
+              'extracted_transaction_count': 0,
+              'detail': ('PTR catalog is available for review; individual reports and transaction '
+                         'facts remain uncollected.'),
+          }
+          status_path = review / 'status' / 'senate_efd.json'
+          status_path.parent.mkdir(parents=True, exist_ok=True)
+          status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                                 encoding='utf-8')
+          PY
+          git -C "$review_root" add senate_efd/discoveries status/senate_efd.json
+          if ! git -C "$review_root" diff --cached --quiet; then
+            git -C "$review_root" config user.name "github-actions[bot]"
+            git -C "$review_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$review_root" commit -m "review: Senate eFD catalog ${{ github.run_id }}"
+            git -C "$review_root" push origin HEAD:refs/heads/review
+          fi
