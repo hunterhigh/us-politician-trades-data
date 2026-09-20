@@ -33,6 +33,11 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("group: disclosure-review-writer", content)
         self.assertIn("'entrypoint_count': report_batch['archived_total']", content)
         self.assertIn("'report_evidence_count': evidence_count", content)
+        self.assertIn(".local/senate-efd-state.json", content)
+        self.assertIn("python -m unison_snapshot build-senate-candidate", content)
+        self.assertIn("candidates/sources/senate_efd-current.json", content)
+        self.assertIn("senate_efd/qualifications/", content)
+        self.assertIn("--html-output", content)
 
     def test_roster_refresh_preserves_catalog_gate_and_status(self):
         content = (ROOT / ".github/workflows/senate-roster.yml").read_text(encoding="utf-8")

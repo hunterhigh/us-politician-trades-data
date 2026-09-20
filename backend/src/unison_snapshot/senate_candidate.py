@@ -1,0 +1,454 @@
+"""Build a frontend-compatible Senate candidate from production review artifacts."""
+from __future__ import annotations
+
+from collections import Counter
+from copy import deepcopy
+from datetime import datetime
+import json
+from pathlib import Path
+import re
+from urllib.parse import urlsplit
+
+from .senate import SenateEfdError
+from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+
+
+CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v1"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v1"
+AMOUNT_RANGES = {
+    "$1,001 - $15,000": (1001, 15000),
+    "$15,001 - $50,000": (15001, 50000),
+    "$50,001 - $100,000": (50001, 100000),
+    "$100,001 - $250,000": (100001, 250000),
+    "$250,001 - $500,000": (250001, 500000),
+    "$500,001 - $1,000,000": (500001, 1000000),
+    "$1,000,001 - $5,000,000": (1000001, 5000000),
+    "$5,000,001 - $25,000,000": (5000001, 25000000),
+}
+INSTRUMENT_TYPES = {
+    "Stock": "Stock",
+    "Stock Option": "Option",
+    "Corporate Bond": "Bond",
+    "Municipal Security": "Municipal Security",
+    "Non-Public Stock": "Non-Public Stock",
+    "Other": "Other",
+}
+_TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+_FILED = re.compile(
+    r"Filed (\d{2}/\d{2}/\d{4}) @ (?:0?[1-9]|1[0-2])(?::[0-5][0-9])? (?:AM|PM)"
+)
+_OPTION = re.compile(
+    r"\bOption Type: (Call|Put)\s+Strike price:\s*\$([0-9][0-9,]*(?:\.[0-9]+)?)\s+"
+    r"Expires:\s*(\d{4}-\d{2}-\d{2})\b"
+)
+
+
+def _read_json(path: Path, description: str) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        raise SenateEfdError(f"{description} is invalid") from None
+    if not isinstance(value, dict):
+        raise SenateEfdError(f"{description} must be an object")
+    return value
+
+
+def _filed_date(raw: object) -> str:
+    match = _FILED.fullmatch(raw) if isinstance(raw, str) else None
+    if match is None:
+        raise SenateEfdError("Senate PTR has no valid official filing timestamp")
+    try:
+        return datetime.strptime(match.group(1), "%m/%d/%Y").date().isoformat()
+    except ValueError:
+        raise SenateEfdError("Senate PTR has an invalid official filing date") from None
+
+
+def _person(identity: dict) -> dict:
+    person_id = identity.get("person_id")
+    display_name = identity.get("filer_name")
+    official_name = identity.get("official_name")
+    evidence_url = identity.get("evidence_url")
+    parsed = urlsplit(evidence_url) if isinstance(evidence_url, str) else None
+    if (not isinstance(person_id, str) or not re.fullmatch(r"senate:[A-Z][0-9]{6}", person_id) or
+            not isinstance(display_name, str) or not display_name.strip() or
+            not isinstance(official_name, str) or not parsed or parsed.scheme != "https" or
+            parsed.hostname != "bioguide.congress.gov"):
+        raise SenateEfdError("Senate candidate identity is incomplete")
+    short_name = official_name.split(" (", 1)[0].strip()
+    return {
+        "id": person_id,
+        "display_name": display_name,
+        "short_name": short_name,
+        "role": "U.S. Senator",
+        "office_type": "Congress",
+        "chamber": "Senate",
+        "party": identity.get("party"),
+        "state": identity.get("state"),
+        "disclosure_authority": "senate_efd",
+        "priority": False,
+        "priority_reason": None,
+        "portrait_url": None,
+    }
+
+
+def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | None, list[str]]:
+    reasons: list[str] = []
+    qualification_status = row.get("qualification_status")
+    raw_reasons = row.get("quarantine_reasons")
+    valid_reasons = (isinstance(raw_reasons, list) and
+                     all(isinstance(reason, str) and reason for reason in raw_reasons))
+    if not valid_reasons:
+        reasons.append("qualification_reasons_invalid")
+        raw_reasons = []
+    if qualification_status == "eligible":
+        if raw_reasons:
+            reasons.extend(["qualification_state_inconsistent", *raw_reasons])
+    elif qualification_status == "quarantined":
+        reasons.extend(raw_reasons or ["qualification_state_inconsistent"])
+    else:
+        reasons.append("qualification_state_inconsistent")
+    extraction_id = row.get("extraction_id")
+    if not isinstance(extraction_id, str) or not re.fullmatch(r"senate-ptr:[0-9a-f]{24}", extraction_id):
+        reasons.append("extraction_id_invalid")
+    amount = AMOUNT_RANGES.get(row.get("amount_raw"))
+    if amount is None:
+        reasons.append("amount_range_not_supported")
+    transaction_type = row.get("transaction_type")
+    if transaction_type not in {"purchase", "sale"}:
+        reasons.append("transaction_type_not_supported")
+    owner_raw = row.get("owner_raw")
+    if owner_raw not in {"Self", "Joint", "Spouse", "Child"}:
+        reasons.append("owner_not_supported")
+    owner = "Dependent Child" if owner_raw == "Child" else owner_raw
+    asset_name = row.get("asset_name_raw")
+    if not isinstance(asset_name, str) or not asset_name.strip():
+        reasons.append("asset_name_invalid")
+    instrument = INSTRUMENT_TYPES.get(row.get("asset_type_raw"))
+    if instrument is None:
+        reasons.append("instrument_type_not_supported")
+    ticker = row.get("ticker_raw")
+    if ticker is not None and (not isinstance(ticker, str) or not _TICKER.fullmatch(ticker)):
+        reasons.append("ticker_invalid")
+    transaction_date = row.get("transaction_date")
+    transaction_day = None
+    filed_date = None
+    try:
+        transaction_day = datetime.strptime(transaction_date, "%Y-%m-%d").date()
+        filed_date = _filed_date(extraction.get("filed_at_raw"))
+        filed_day = datetime.strptime(filed_date, "%Y-%m-%d").date()
+        if transaction_day > filed_day:
+            reasons.append("date_sequence_invalid")
+    except (TypeError, ValueError):
+        reasons.append("transaction_date_invalid")
+
+    option_fields = {}
+    if instrument == "Option":
+        option = _OPTION.search(asset_name or "")
+        if option is None:
+            reasons.append("option_details_incomplete")
+        else:
+            option_type, strike, expiration = option.groups()
+            strike_value = float(strike.replace(",", ""))
+            try:
+                if transaction_day is None or datetime.strptime(expiration, "%Y-%m-%d").date() < transaction_day:
+                    reasons.append("option_expiration_invalid")
+            except ValueError:
+                reasons.append("option_expiration_invalid")
+            option_fields = {
+                "option_type": option_type,
+                "strike_price": int(strike_value) if strike_value.is_integer() else strike_value,
+                "expiration_date": expiration,
+            }
+            asset_name = (asset_name[:option.start()] + asset_name[option.end():]).strip()
+    if reasons:
+        return None, sorted(set(reasons))
+
+    return {
+        "id": extraction_id,
+        "filing_id": extraction["document_id"],
+        "person_id": identity["person_id"],
+        "owner": owner,
+        "asset_name": asset_name,
+        "ticker": ticker,
+        "ticker_mapping_basis": "filing_explicit" if ticker else None,
+        "instrument_type": instrument,
+        "transaction_type": transaction_type,
+        **option_fields,
+        "transaction_date": transaction_date,
+        "filed_at": f"{filed_date}T00:00:00Z",
+        "amount_low": amount[0],
+        "amount_high": amount[1],
+        "position_effect": "unknown",
+        "position_effect_basis": None,
+        "source_id": "senate_efd",
+        "source": "U.S. Senate eFD",
+        "source_url": extraction["source_url"],
+        "verification_status": "official_matched",
+    }, []
+
+
+def build_senate_candidate(
+        review_root: Path, state_status: dict, base: dict) -> tuple[dict, dict]:
+    """Build a conservative Senate source candidate and its machine audit."""
+
+    review_root = review_root.resolve()
+    status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
+    state_catalog = state_status.get("catalog")
+    state_reports = state_status.get("reports")
+    if (status.get("schema_version") != "senate-review-run/v1" or
+            status.get("source_id") != "senate_efd" or
+            status.get("status") != "catalog_ready_for_review" or
+            state_status.get("schema_version") != "senate-source-run/v1" or
+            state_status.get("source_id") != "senate_efd" or
+            state_status.get("status") != "catalog_ready_for_review" or
+            state_status.get("collection_enabled") is not True or
+            state_status.get("terms_acknowledged") is not True or
+            not isinstance(state_catalog, dict) or not isinstance(state_reports, dict) or
+            status.get("catalog_record_count") != state_catalog.get("record_count") or
+            status.get("catalog_sha256") != state_catalog.get("sha256") or
+            status.get("report_entrypoint_count") != state_reports.get("entrypoint_count") or
+            status.get("report_entrypoint_pending_count") != state_reports.get("pending_count") or
+            status.get("report_evidence_count") != state_reports.get("evidence_count") or
+            status.get("extracted_transaction_count") != state_reports.get("last_batch_transactions") or
+            status.get("report_entrypoint_pending_count") != 0 or
+            status.get("report_entrypoint_failure_count") != 0 or
+            status.get("report_extraction_failure_count") != 0):
+        raise SenateEfdError("Senate review queue is not ready for a candidate")
+    catalog_sha = status.get("catalog_sha256")
+    roster_sha = status.get("identity_roster_sha256")
+    parser_version = status.get("report_parser_version")
+    identities_doc = _read_json(
+        review_root / "senate_efd" / "identities" / str(catalog_sha) / f"{roster_sha}.json",
+        "Senate identity batch",
+    )
+    identities = identities_doc.get("identities")
+    if (identities_doc.get("schema_version") != "senate-efd-identities/v1" or
+            identities_doc.get("source_id") != "senate_efd" or
+            identities_doc.get("catalog_sha256") != catalog_sha or
+            identities_doc.get("roster_sha256") != roster_sha or
+            not isinstance(identities, list) or
+            identities_doc.get("report_count") != status.get("catalog_record_count")):
+        raise SenateEfdError("Senate identity batch does not match review status")
+    identity_by_document = {item.get("document_id"): item for item in identities
+                            if isinstance(item, dict)}
+    if len(identity_by_document) != len(identities):
+        raise SenateEfdError("Senate identity batch contains duplicate documents")
+
+    extraction_paths = sorted((review_root / "senate_efd" / "extractions").glob(
+        f"*/*/{parser_version}.json"))
+    if len(extraction_paths) != status.get("report_evidence_count"):
+        raise SenateEfdError("Senate extraction count does not match review status")
+
+    extraction_values = []
+    for path in extraction_paths:
+        extraction = _read_json(path, "Senate extraction artifact")
+        document_id = extraction.get("document_id")
+        source_sha = extraction.get("source_sha256")
+        expected_url = f"https://efdsearch.senate.gov/search/view/ptr/{document_id}/"
+        if (extraction.get("source_id") != "senate_efd" or
+                path.parent.parent.name != document_id or
+                path.parent.name != source_sha or
+                path.stem != extraction.get("parser_version") or
+                not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha) or
+                extraction.get("source_url") != expected_url):
+            raise SenateEfdError("Senate extraction artifact does not match its evidence path")
+        extraction_values.append(extraction)
+    if any(not isinstance(item.get("transactions"), list) for item in extraction_values):
+        raise SenateEfdError("Senate extraction artifact has no transaction array")
+    extraction_document_ids = [item.get("document_id") for item in extraction_values]
+    if (len(set(extraction_document_ids)) != len(extraction_document_ids) or
+            any(document_id not in identity_by_document for document_id in extraction_document_ids)):
+        raise SenateEfdError("Senate extractions do not map uniquely to the identity batch")
+    if sum(len(item["transactions"]) for item in extraction_values) != status.get("extracted_transaction_count"):
+        raise SenateEfdError("Senate extracted transaction count does not match review status")
+    amendment_keys = set()
+    for extraction in extraction_values:
+        identity = identity_by_document.get(extraction.get("document_id"))
+        if (isinstance(identity, dict) and identity.get("match_class") != "unresolved" and
+                extraction.get("report_amendment_number") is not None):
+            amendment_keys.add((identity.get("person_id"), extraction.get("report_title_date")))
+
+    transactions = []
+    people: dict[str, dict] = {}
+    seen_transactions: set[str] = set()
+    report_reasons: Counter[str] = Counter()
+    row_reasons: Counter[str] = Counter()
+    quarantined_reports = []
+    quarantined_rows = []
+    qualified_rows = []
+    report_quarantined_transaction_count = 0
+    qualified_reports = 0
+    fully_qualified_reports = 0
+    partially_qualified_reports = 0
+    row_only_quarantined_reports = 0
+    empty_eligible_reports = 0
+    for extraction in extraction_values:
+        document_id = extraction.get("document_id")
+        identity = identity_by_document.get(document_id)
+        if (extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+                extraction.get("parser_version") != parser_version or not extraction.get("evidence_complete")):
+            raise SenateEfdError("Senate extraction artifact has an unsupported schema or state")
+        if (not isinstance(identity, dict) or
+                identity.get("match_class") not in {"exact", "alias"} or
+                identity.get("status") != "matched_automatically" or
+                identity.get("roster_sha256") != roster_sha):
+            reason = ("identity_unresolved" if isinstance(identity, dict) and
+                      identity.get("match_class") == "unresolved" else
+                      "identity_not_automatically_matched")
+            report_reasons[reason] += 1
+            report_quarantined_transaction_count += len(extraction.get("transactions", []))
+            quarantined_reports.append({
+                "document_id": document_id, "reasons": [reason],
+                "source_sha256": extraction.get("source_sha256"),
+            })
+            continue
+        if (identity.get("person_id"), extraction.get("report_title_date")) in amendment_keys:
+            report_reasons["amendment_relationship_pending"] += 1
+            report_quarantined_transaction_count += len(extraction.get("transactions", []))
+            quarantined_reports.append({
+                "document_id": document_id, "reasons": ["amendment_relationship_pending"],
+                "source_sha256": extraction.get("source_sha256"),
+            })
+            continue
+        try:
+            filed_date = _filed_date(extraction.get("filed_at_raw"))
+        except SenateEfdError:
+            filed_date = None
+        if filed_date != extraction.get("portal_listed_date"):
+            report_reasons["filed_date_conflicts_catalog"] += 1
+            report_quarantined_transaction_count += len(extraction.get("transactions", []))
+            quarantined_reports.append({
+                "document_id": document_id, "reasons": ["filed_date_conflicts_catalog"],
+                "source_sha256": extraction.get("source_sha256"),
+            })
+            continue
+        person = _person(identity)
+        person_id = person["id"]
+        if person_id in people and people[person_id] != person:
+            raise SenateEfdError("Senate identity changed across report artifacts")
+        report_rows = 0
+        report_quarantined_rows = 0
+        for row in extraction.get("transactions", []):
+            if not isinstance(row, dict):
+                raise SenateEfdError("Senate extraction contains an invalid transaction")
+            transaction, reasons = _transaction(row, extraction, identity)
+            if reasons:
+                row_reasons.update(reasons)
+                quarantined_rows.append({
+                    "document_id": document_id,
+                    "extraction_id": row.get("extraction_id"),
+                    "reasons": reasons,
+                    "source_sha256": extraction.get("source_sha256"),
+                    "filed_at_raw": extraction.get("filed_at_raw"),
+                    "filed_at_precision": "date",
+                })
+                report_quarantined_rows += 1
+                continue
+            transaction_id = transaction["id"]
+            if transaction_id in seen_transactions:
+                raise SenateEfdError("Senate candidate transaction ID is duplicated")
+            seen_transactions.add(transaction_id)
+            transactions.append(transaction)
+            qualified_rows.append({
+                "transaction_id": transaction_id,
+                "document_id": document_id,
+                "source_sha256": extraction.get("source_sha256"),
+                "source_url": extraction.get("source_url"),
+                "filed_at_raw": extraction.get("filed_at_raw"),
+                "filed_at_precision": "date",
+            })
+            report_rows += 1
+        if report_rows:
+            people[person_id] = person
+            qualified_reports += 1
+            if report_quarantined_rows:
+                partially_qualified_reports += 1
+            else:
+                fully_qualified_reports += 1
+        elif report_quarantined_rows:
+            row_only_quarantined_reports += 1
+        else:
+            empty_eligible_reports += 1
+
+    cutoff = state_status.get("run_at")
+    try:
+        parsed_cutoff = datetime.fromisoformat(str(cutoff).replace("Z", "+00:00"))
+        if parsed_cutoff.tzinfo is None:
+            raise ValueError
+    except ValueError:
+        raise SenateEfdError("Senate source state has no valid data cutoff") from None
+    disposition_total = (len(quarantined_reports) + fully_qualified_reports +
+                         partially_qualified_reports + row_only_quarantined_reports +
+                         empty_eligible_reports)
+    if disposition_total != len(extraction_paths):
+        raise SenateEfdError("Senate report dispositions do not cover every extraction")
+    candidate = deepcopy(base)
+    if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
+        raise SenateEfdError("Senate candidate base must be a production input")
+    candidate["meta"]["data_cutoff_at"] = cutoff
+    candidate["meta"]["subtitle"] = "Senate电子PTR真实候选；纸面报告、其他来源和行情仍在回填"
+    candidate["people"] = [people[key] for key in sorted(people)]
+    candidate["transactions"] = sorted(transactions, key=lambda item: item["id"])
+    candidate["reported_holdings"] = []
+    candidate["security_market_data"] = []
+    source_health = {
+        "source_id": "senate_efd",
+        "source": "U.S. Senate eFD",
+        "source_type": "official_disclosure",
+        "source_url": "https://efdsearch.senate.gov/search/home/",
+        "status": "partial",
+        "last_checked_at": cutoff,
+        "last_successful_sync_at": cutoff,
+        "data_cutoff_at": cutoff,
+        "detail": (f"{status['catalog_record_count']} PTR catalog records and entrypoints archived; "
+                   f"{status['report_evidence_count']} electronic reports parsed; "
+                   f"{len(transactions)} transactions automatically qualified; "
+                   f"{report_quarantined_transaction_count + len(quarantined_rows)} transactions quarantined "
+                   f"across {len(quarantined_reports) + partially_qualified_reports + row_only_quarantined_reports} affected reports; "
+                   f"{status['catalog_record_count'] - status['report_evidence_count']} paper viewers pending pages."),
+    }
+    health = candidate.get("source_health")
+    if not isinstance(health, list):
+        raise SenateEfdError("Senate candidate base has no source health array")
+    candidate["source_health"] = [source_health if item.get("source_id") == "senate_efd" else item
+                                  for item in health]
+    if not any(item.get("source_id") == "senate_efd" for item in health):
+        candidate["source_health"].append(source_health)
+    audit = {
+        "schema_version": CANDIDATE_AUDIT_SCHEMA,
+        "builder_version": CANDIDATE_BUILDER_VERSION,
+        "source_id": "senate_efd",
+        "catalog_sha256": catalog_sha,
+        "roster_sha256": roster_sha,
+        "parser_version": parser_version,
+        "data_cutoff_at": cutoff,
+        "catalog_record_count": status["catalog_record_count"],
+        "electronic_report_count": len(extraction_paths),
+        "qualified_report_count": qualified_reports,
+        "fully_qualified_report_count": fully_qualified_reports,
+        "partially_qualified_report_count": partially_qualified_reports,
+        "row_only_quarantined_report_count": row_only_quarantined_reports,
+        "empty_eligible_report_count": empty_eligible_reports,
+        "candidate_person_count": len(people),
+        "candidate_transaction_count": len(transactions),
+        "qualified_rows": qualified_rows,
+        "quarantined_report_count": len(quarantined_reports),
+        "quarantined_report_reasons": dict(sorted(report_reasons.items())),
+        "quarantined_reports": quarantined_reports,
+        "report_quarantined_transaction_count": report_quarantined_transaction_count,
+        "quarantined_row_count": len(quarantined_rows),
+        "quarantined_row_reasons": dict(sorted(row_reasons.items())),
+        "quarantined_rows": quarantined_rows,
+        "quarantined_transaction_count": report_quarantined_transaction_count + len(quarantined_rows),
+        "paper_viewer_count": status["catalog_record_count"] - status["report_evidence_count"],
+    }
+    return candidate, audit
+
+
+def load_senate_candidate(
+        review_root: Path, state_status_path: Path, base_path: Path) -> tuple[dict, dict]:
+    return build_senate_candidate(
+        review_root,
+        _read_json(state_status_path, "Senate source state"),
+        _read_json(base_path, "Senate candidate base"),
+    )

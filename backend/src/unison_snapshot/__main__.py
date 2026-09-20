@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 
 from .builder import build
-from .codec import encode
+from .codec import digest, encode
 from .materialize import materialize
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
@@ -20,6 +20,7 @@ from .senate_members import SenateMemberClient, SenateRosterError, build_roster,
     discover_members as discover_senate_members
 from .senate_identity import SenateIdentityError, build_catalog_identities
 from .senate_reports import archive_catalog_report_entrypoints, extract_archived_report_batch
+from .senate_candidate import load_senate_candidate
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .store import GitStore, assemble
 
@@ -97,6 +98,13 @@ def main() -> None:
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
     candidate.add_argument("--html-output", type=Path)
+    senate_candidate = sub.add_parser("build-senate-candidate")
+    senate_candidate.add_argument("--review-root", type=Path, required=True)
+    senate_candidate.add_argument("--state-status", type=Path, required=True)
+    senate_candidate.add_argument("--base", type=Path, required=True)
+    senate_candidate.add_argument("--output", type=Path, required=True)
+    senate_candidate.add_argument("--audit-output", type=Path, required=True)
+    senate_candidate.add_argument("--html-output", type=Path)
     disclosure_candidate = sub.add_parser("build-disclosure-candidate")
     disclosure_candidate.add_argument("--base", type=Path, required=True)
     disclosure_candidate.add_argument(
@@ -269,6 +277,29 @@ def main() -> None:
             print(json.dumps({"people": len(result["people"]),
                               "transactions": len(result["transactions"]),
                               "output": str(args.output.resolve()),
+                              "html": str(args.html_output.resolve()) if args.html_output else None}))
+        elif args.command == "build-senate-candidate":
+            result, audit = load_senate_candidate(
+                args.review_root, args.state_status, args.base)
+            generated_at = result["meta"]["data_cutoff_at"]
+            bundle = build(result, generated_at=generated_at, allow_production=True)
+            result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
+                                  generated_at=generated_at)
+            audit["candidate_snapshot_id"] = bundle.manifest["snapshot_id"]
+            audit["candidate_sha256"] = digest(encode(result))
+            _write_atomic(args.output, result)
+            _write_atomic(args.audit_output, audit)
+            if args.html_output:
+                renderer = load("render_dashboard")
+                html = renderer.render_html(renderer.load_dashboard_data(args.output))
+                args.html_output.parent.mkdir(parents=True, exist_ok=True)
+                args.html_output.write_text(html, encoding="utf-8")
+            print(json.dumps({"people": len(result["people"]),
+                              "transactions": len(result["transactions"]),
+                              "quarantined_reports": audit["quarantined_report_count"],
+                              "quarantined_rows": audit["quarantined_row_count"],
+                              "output": str(args.output.resolve()),
+                              "audit": str(args.audit_output.resolve()),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "build-disclosure-candidate":
             sources: dict[str, dict] = {}

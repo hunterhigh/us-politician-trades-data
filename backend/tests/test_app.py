@@ -32,6 +32,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("promote-house-ptr-review", result.stdout)
         self.assertIn("qualify-house-ptr", result.stdout)
         self.assertIn("build-house-candidate", result.stdout)
+        self.assertIn("build-senate-candidate", result.stdout)
         self.assertIn("build-disclosure-candidate", result.stdout)
         self.assertIn("parse-senate-members", result.stdout)
         self.assertIn("discover-senate-members", result.stdout)

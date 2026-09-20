@@ -219,8 +219,9 @@ jobs:
                          'responses were archived. Transaction facts remain unpublished.'),
           }
           target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
-                            encoding='utf-8')
+          content = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+          target.write_text(content, encoding='utf-8')
+          Path('.local/senate-efd-state.json').write_text(content, encoding='utf-8')
           PY
           git -C "$STATE_ROOT" add status/senate_efd.json
           if ! git -C "$STATE_ROOT" diff --cached --quiet; then
@@ -237,6 +238,7 @@ jobs:
             .local/senate-efd-identities.json
             .local/senate-efd-report-batch.json
             .local/senate-efd-extraction-batch.json
+            .local/senate-efd-state.json
           include-hidden-files: true
           retention-days: 1
 
@@ -257,6 +259,9 @@ jobs:
         with:
           name: senate-efd-discovery-${{ github.run_id }}
           path: .local
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
       - name: Publish normalized catalog to review branch
         run: |
           review_root="$RUNNER_TEMP/senate-review"
@@ -343,18 +348,46 @@ jobs:
               'report_evidence_count': evidence_count,
               'report_extraction_failure_count': report_failure_count,
               'extracted_transaction_count': transaction_count,
-              'detail': ('PTR catalog, identities, and bounded report entrypoint responses are '
-                         'available; report evidence completeness and transaction facts remain pending.'),
+              'detail': (f"{report_batch['archived_total']} PTR entrypoints archived; "
+                         f"{evidence_count} electronic reports parsed into {transaction_count} transactions; "
+                         f"{report_failure_count} current-parser failures remain."),
           }
           status_path = review / 'status' / 'senate_efd.json'
           status_path.parent.mkdir(parents=True, exist_ok=True)
           status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                                  encoding='utf-8')
           PY
-          git -C "$review_root" add senate_efd status/senate_efd.json
-          if ! git -C "$review_root" diff --cached --quiet; then
-            git -C "$review_root" config user.name "github-actions[bot]"
-            git -C "$review_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$review_root" commit -m "review: Senate eFD catalog ${{ github.run_id }}"
-            git -C "$review_root" push origin HEAD:refs/heads/review
+      - name: Build and validate frontend candidate
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/senate-review
+        run: |
+          status="$REVIEW_ROOT/status/senate_efd.json"
+          catalog_sha="$(python -c "import json; print(json.load(open('$status'))['catalog_sha256'])")"
+          roster_sha="$(python -c "import json; print(json.load(open('$status'))['identity_roster_sha256'])")"
+          parser_version="$(python -c "import json; print(json.load(open('$status'))['report_parser_version'])")"
+          audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --state-status .local/senate-efd-state.json \
+            --base ingest/current.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$audit_temp" \
+            --html-output "$RUNNER_TEMP/senate-efd-current.html"
+          builder_version="$(python -c "import json; print(json.load(open('$audit_temp'))['builder_version'])")"
+          candidate_snapshot="$(python -c "import json; print(json.load(open('$audit_temp'))['candidate_snapshot_id'])")"
+          audit="$REVIEW_ROOT/senate_efd/qualifications/$catalog_sha/$roster_sha/$parser_version/$builder_version/$candidate_snapshot.json"
+          mkdir -p "$(dirname "$audit")"
+          if [ -e "$audit" ] && ! cmp -s "$audit_temp" "$audit"; then
+            echo "Immutable Senate qualification audit collision: $audit" >&2
+            exit 1
+          fi
+          cp "$audit_temp" "$audit"
+          cp "$audit_temp" "$REVIEW_ROOT/senate_efd/qualifications/current.json"
+          git -C "$REVIEW_ROOT" add candidates/sources/senate_efd-current.json senate_efd status/senate_efd.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: Senate eFD catalog ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
           fi
