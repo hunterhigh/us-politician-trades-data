@@ -153,6 +153,9 @@ class OgeCatalogTests(unittest.TestCase):
             self.assertEqual(result["metadata"]["direct_pdf_count"], 1)
             self.assertEqual(result["metadata"]["request_required_count"], 1)
             self.assertTrue((Path(folder) / result["metadata"]["archive_path"]).is_file())
+            normalized = Path(folder) / result["metadata"]["normalized_archive_path"]
+            self.assertEqual(json.loads(normalized.read_text(encoding="utf-8"))["transactions"],
+                             result["transactions"])
             self.assertEqual(len(list((Path(folder) / "oge/catalog/pages").glob("*.json"))), 2)
 
     def test_http_client_uses_bounded_unfiltered_datatables_get(self):

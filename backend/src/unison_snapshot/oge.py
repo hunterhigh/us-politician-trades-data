@@ -398,6 +398,8 @@ def archive_catalog(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str,
     normalized = json.dumps(catalog, ensure_ascii=False, sort_keys=True,
                             separators=(",", ":")).encode("utf-8")
     sha = hashlib.sha256(normalized).hexdigest()
+    normalized_path = folder / "normalized" / f"{sha}.json"
+    _write_once(normalized_path, normalized)
     path = folder / f"{sha}.json"
     metadata = {
         "schema_version": "oge-catalog-archive/v1",
@@ -410,6 +412,7 @@ def archive_catalog(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str,
         "request_required_count": sum(item["access_method"] == "request_required"
                                       for item in catalog["transactions"]),
         "page_count": len(page_metadata), "pages": page_metadata,
+        "normalized_archive_path": normalized_path.relative_to(base).as_posix(),
         "archive_path": path.relative_to(base).as_posix(),
     }
     encoded = json.dumps(metadata, ensure_ascii=False, sort_keys=True,
