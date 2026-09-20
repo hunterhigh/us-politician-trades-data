@@ -29,7 +29,8 @@ def row(kind: str = "ptr", document_id: str = PTR_ID) -> list[str]:
         "Ada",
         "Example",
         "United States Senator from California",
-        f'<a href="/search/view/{kind}/{document_id}/" target="_blank">Periodic Transaction Report</a>',
+        (f'<a href="/search/view/{kind}/{document_id}/" target="_blank">'
+         'Periodic Transaction Report for 09/19/2026</a>'),
         "09/19/2026",
     ]
 

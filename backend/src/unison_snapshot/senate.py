@@ -272,7 +272,7 @@ def _portal_date(value: str) -> str:
     raise SenateEfdError("Senate eFD row has invalid portal date")
 
 
-def _canonical_report_link(markup: str) -> tuple[str, str, str]:
+def _canonical_report_link(markup: str, portal_date: str) -> tuple[str, str, str]:
     parser = _AnchorParser()
     try:
         parser.feed(markup)
@@ -284,7 +284,11 @@ def _canonical_report_link(markup: str) -> tuple[str, str, str]:
     if len(parser.links) != 1 or "".join(parser.outside_text).strip():
         raise SenateEfdError("Senate eFD report cell must contain exactly one link")
     href, label = parser.links[0]
-    if label != "Periodic Transaction Report":
+    displayed_date = datetime.fromisoformat(portal_date).strftime("%m/%d/%Y")
+    if label not in {
+            "Periodic Transaction Report",
+            f"Periodic Transaction Report for {displayed_date}",
+    }:
         raise SenateEfdError(f"Senate eFD report link is not a PTR: label={label!r}")
 
     # Only an absolute official HTTPS URL or a root-relative portal path is
@@ -357,7 +361,8 @@ def parse_search_page(payload: object, *, start: int, length: int) -> SenateSear
         office = _nonempty_string(row[2], "office")
         report_markup = _nonempty_string(row[3], "report_type")
         portal_date = _portal_date(_nonempty_string(row[4], "portal_date"))
-        access_method, document_id, document_url = _canonical_report_link(report_markup)
+        access_method, document_id, document_url = _canonical_report_link(
+            report_markup, portal_date)
         reports.append(SenatePtrDiscovery(
             catalog_index=start + offset,
             filer_name=f"{first} {last}",
