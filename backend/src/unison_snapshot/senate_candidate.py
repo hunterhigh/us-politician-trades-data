@@ -14,8 +14,8 @@ from .senate import SenateEfdError
 from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
 
 
-CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v1"
-CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v2"
+CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
 AMOUNT_RANGES = {
     "$1,001 - $15,000": (1001, 15000),
     "$15,001 - $50,000": (15001, 50000),
@@ -37,6 +37,9 @@ INSTRUMENT_TYPES = {
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 _FILED = re.compile(
     r"Filed (\d{2}/\d{2}/\d{4}) @ (?:0?[1-9]|1[0-2])(?::[0-5][0-9])? (?:AM|PM)"
+)
+_FILED_TIMESTAMP = re.compile(
+    r"Filed (\d{2}/\d{2}/\d{4}) @ (0?[1-9]|1[0-2])(?::([0-5][0-9]))? (AM|PM)"
 )
 _OPTION = re.compile(
     r"\bOption Type: (Call|Put)\s+Strike price:\s*\$([0-9][0-9,]*(?:\.[0-9]+)?)\s+"
@@ -98,6 +101,18 @@ def _amendment_pair_changes(previous: dict, amended: dict) -> list[dict] | None:
     return changes
 
 
+def _filed_timestamp(raw: object) -> datetime | None:
+    match = _FILED_TIMESTAMP.fullmatch(raw) if isinstance(raw, str) else None
+    if match is None:
+        return None
+    date_value, hour, minute, meridiem = match.groups()
+    try:
+        return datetime.strptime(
+            f"{date_value} {hour}:{minute or '00'} {meridiem}", "%m/%d/%Y %I:%M %p")
+    except ValueError:
+        return None
+
+
 def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str, dict]) -> dict:
     """Resolve only uniquely comparable amendment tails; leave all other groups quarantined."""
 
@@ -128,27 +143,60 @@ def _resolve_amendments(extractions: list[dict], identity_by_document: dict[str,
             unresolved.update(report["document_id"] for report in reports)
             continue
         current = latest[0]
-        previous_number = None if highest == 1 else highest - 1
-        predecessors = [report for report in reports
-                        if report.get("report_amendment_number") == previous_number]
-        matches = []
-        for predecessor in predecessors:
-            changes = _amendment_pair_changes(predecessor, current)
-            if changes is not None:
-                matches.append((predecessor, changes))
-        if len(matches) != 1:
+        latest_report = current
+        links = []
+        chain_failed = False
+        while current.get("report_amendment_number") is not None:
+            current_number = current["report_amendment_number"]
+            previous_number = None if current_number == 1 else current_number - 1
+            current_filed_at = _filed_timestamp(current.get("filed_at_raw"))
+            predecessors = [report for report in reports
+                            if report.get("report_amendment_number") == previous_number]
+            if not predecessors and current_number == 1 and links:
+                # A later amendment can establish that the immediately preceding
+                # published amendment was superseded even if the original report
+                # predates the bounded catalog window.
+                break
+            matches = []
+            for predecessor in predecessors:
+                changes = _amendment_pair_changes(predecessor, current)
+                predecessor_filed_at = _filed_timestamp(predecessor.get("filed_at_raw"))
+                if (changes is not None and current_filed_at is not None and
+                        predecessor_filed_at is not None and current_filed_at > predecessor_filed_at):
+                    matches.append((predecessor, changes, predecessor_filed_at))
+            if len(matches) != 1:
+                chain_failed = True
+                break
+            predecessor, changes, predecessor_filed_at = matches[0]
+            unresolved.update(
+                item["document_id"] for item in predecessors
+                if item["document_id"] != predecessor["document_id"]
+            )
+            links.append({
+                "previous_document_id": predecessor["document_id"],
+                "previous_source_sha256": predecessor.get("source_sha256"),
+                "previous_filed_at_raw": predecessor.get("filed_at_raw"),
+                "current_document_id": current["document_id"],
+                "current_source_sha256": current.get("source_sha256"),
+                "current_filed_at_raw": current.get("filed_at_raw"),
+                "changed_rows": changes,
+            })
+            current = predecessor
+        if chain_failed or not links:
             unresolved.update(report["document_id"] for report in reports)
             continue
-        predecessor, changes = matches[0]
-        superseded.add(predecessor["document_id"])
+        chain_superseded = [link["previous_document_id"] for link in links]
+        superseded.update(chain_superseded)
         chains.append({
             "person_id": person_id,
             "report_title_date": title_date,
-            "current_document_id": current["document_id"],
+            "current_document_id": latest_report["document_id"],
+            "current_source_sha256": latest_report.get("source_sha256"),
+            "current_filed_at_raw": latest_report.get("filed_at_raw"),
             "current_amendment_number": highest,
-            "superseded_document_ids": [predecessor["document_id"]],
-            "row_count": len(current["transactions"]),
-            "changed_rows": changes,
+            "superseded_document_ids": chain_superseded,
+            "row_count": len(latest_report["transactions"]),
+            "links": links,
         })
     return {"superseded": superseded, "unresolved": unresolved, "chains": chains}
 
@@ -327,6 +375,13 @@ def build_senate_candidate(
     catalog_sha = status.get("catalog_sha256")
     roster_sha = status.get("identity_roster_sha256")
     congress_roster_sha = status.get("identity_congress_roster_sha256")
+    state_historical_roster = state_status.get("historical_roster")
+    if congress_roster_sha is not None and (
+            not isinstance(state_historical_roster, dict) or
+            state_historical_roster.get("status") != "ok" or
+            state_historical_roster.get("source_id") != "congress_gov_members" or
+            state_historical_roster.get("sha256") != congress_roster_sha):
+        raise SenateEfdError("Senate Congress.gov roster does not match source state")
     parser_version = status.get("report_parser_version")
     identity_binding = hashlib.sha256(
         f"{roster_sha}:{congress_roster_sha or ''}".encode("ascii")).hexdigest()
@@ -509,6 +564,13 @@ def build_senate_candidate(
                          empty_eligible_reports)
     if disposition_total != len(extraction_paths):
         raise SenateEfdError("Senate report dispositions do not cover every extraction")
+    input_transaction_count = sum(len(item["transactions"]) for item in extraction_values)
+    transaction_disposition_total = (
+        len(transactions) + report_quarantined_transaction_count +
+        len(quarantined_rows) + superseded_report_transaction_count
+    )
+    if transaction_disposition_total != input_transaction_count:
+        raise SenateEfdError("Senate transaction dispositions do not cover every extracted row")
     candidate = deepcopy(base)
     if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
         raise SenateEfdError("Senate candidate base must be a production input")
@@ -532,6 +594,7 @@ def build_senate_candidate(
                    f"{len(transactions)} transactions automatically qualified; "
                    f"{report_quarantined_transaction_count + len(quarantined_rows)} transactions quarantined "
                    f"across {len(quarantined_reports) + partially_qualified_reports + row_only_quarantined_reports} affected reports; "
+                   f"{superseded_report_transaction_count} transactions superseded by verified amendments; "
                    f"{status['catalog_record_count'] - status['report_evidence_count']} paper viewers pending pages."),
     }
     health = candidate.get("source_health")
@@ -553,6 +616,7 @@ def build_senate_candidate(
         "data_cutoff_at": cutoff,
         "catalog_record_count": status["catalog_record_count"],
         "electronic_report_count": len(extraction_paths),
+        "input_transaction_count": input_transaction_count,
         "qualified_report_count": qualified_reports,
         "fully_qualified_report_count": fully_qualified_reports,
         "partially_qualified_report_count": partially_qualified_reports,

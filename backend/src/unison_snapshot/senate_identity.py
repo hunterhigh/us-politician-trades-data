@@ -9,6 +9,7 @@ inputs identify exactly one member.
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date, datetime
 import re
 import unicodedata
 
@@ -78,6 +79,10 @@ def _congress_member_rows(roster: object | None) -> tuple[list[dict], str | None
             metadata.get("source_id") != "congress_gov_members" or
             not isinstance(metadata.get("congress"), int)):
         raise SenateIdentityError("Congress.gov identity roster has invalid metadata")
+    congress = metadata["congress"]
+    congress_start_year = 1789 + (congress - 1) * 2
+    if congress < 1:
+        raise SenateIdentityError("Congress.gov identity roster has invalid Congress number")
     members: list[dict] = []
     seen_person_ids: set[str] = set()
     for member in roster["members"]:
@@ -85,19 +90,77 @@ def _congress_member_rows(roster: object | None) -> tuple[list[dict], str | None
             raise SenateIdentityError("Congress.gov identity roster contains an invalid member")
         bioguide = member.get("bioguide_id")
         person_id = member.get("person_id")
+        senate_terms = member.get("senate_terms")
         if (not isinstance(bioguide, str) or not _BIOGUIDE_ID.fullmatch(bioguide) or
                 person_id != f"senate:{bioguide}" or person_id in seen_person_ids or
                 not _words(member.get("first_name")) or not _words(member.get("last_name")) or
                 not isinstance(member.get("official_name"), str) or
                 not isinstance(member.get("evidence_url"), str) or
-                not isinstance(member.get("senate_terms"), list) or
-                not member["senate_terms"]):
+                member.get("congress") != congress or
+                not isinstance(senate_terms, list) or not senate_terms):
             raise SenateIdentityError("Congress.gov identity roster contains an invalid member")
-        members.append(member)
+        for term in senate_terms:
+            if (not isinstance(term, dict) or
+                    not isinstance(term.get("start_year"), int) or
+                    (term.get("end_year") is not None and
+                     (not isinstance(term.get("end_year"), int) or
+                      term["end_year"] < term["start_year"]))):
+                raise SenateIdentityError("Congress.gov identity roster has an invalid Senate term")
+        members.append({
+            **member,
+            "_congress_start_date": date(congress_start_year, 1, 3),
+            "_congress_end_date": date(congress_start_year + 2, 1, 2),
+        })
         seen_person_ids.add(person_id)
     if not members:
         raise SenateIdentityError("Congress.gov identity roster contains no members")
     return members, sha
+
+
+def _report_date(report: dict) -> date | None:
+    for field in ("portal_listed_date", "report_label_date"):
+        raw = report.get(field)
+        if raw is None:
+            continue
+        if not isinstance(raw, str):
+            return None
+        try:
+            parsed = datetime.strptime(raw, "%Y-%m-%d")
+        except ValueError:
+            return None
+        if parsed.strftime("%Y-%m-%d") != raw:
+            return None
+        return parsed.date()
+    return None
+
+
+def _historical_member_covered(member: dict, report_date: date | None) -> bool:
+    if report_date is None or not (
+            member["_congress_start_date"] <= report_date <= member["_congress_end_date"]):
+        return False
+    report_year = report_date.year
+    return any(
+        term["start_year"] <= report_year and
+        (term["end_year"] is None or report_year <= term["end_year"])
+        for term in member["senate_terms"]
+    )
+
+
+def _validate_roster_agreement(current: list[dict], historical: list[dict]) -> None:
+    current_by_person = {member["person_id"]: member for member in current}
+    for member in historical:
+        current_member = current_by_person.get(member["person_id"])
+        if current_member is None:
+            continue
+        if (current_member.get("state") != member.get("state") or
+                current_member.get("party") != member.get("party") or
+                _words(current_member.get("last_name")) != _words(member.get("last_name"))):
+            raise SenateIdentityError("Current and Congress.gov identity rosters conflict")
+
+
+def _unique_people(members: list[dict], canonical_by_person: dict[str, dict]) -> list[dict]:
+    return [canonical_by_person[person_id] for person_id in
+            sorted({member["person_id"] for member in members})]
 
 
 def _name_matches_member(filer_words: tuple[str, ...], member: dict) -> bool:
@@ -156,11 +219,15 @@ def match_report_identity(report: object, roster: object,
 
     members, roster_sha = _member_rows(roster)
     congress_members, congress_roster_sha = _congress_member_rows(congress_roster)
-    all_by_person = {member["person_id"]: member for member in congress_members}
-    all_by_person.update({member["person_id"]: member for member in members})
-    all_members = list(all_by_person.values())
     if not isinstance(report, dict):
         raise SenateIdentityError("Senate eFD identity input is not an object")
+    _validate_roster_agreement(members, congress_members)
+    report_date = _report_date(report)
+    eligible_historical = [member for member in congress_members
+                           if _historical_member_covered(member, report_date)]
+    canonical_by_person = {member["person_id"]: member for member in eligible_historical}
+    canonical_by_person.update({member["person_id"]: member for member in members})
+    all_members = [*members, *eligible_historical]
     filer_words = _without_suffix(_words(report.get("filer_name")))
     if len(filer_words) < 2:
         return {
@@ -170,7 +237,10 @@ def match_report_identity(report: object, roster: object,
             "candidate_count": 0, "roster_sha256": roster_sha,
         }
 
-    exact = [member for member in all_members if _name_matches_member(filer_words, member)]
+    exact = _unique_people(
+        [member for member in all_members if _name_matches_member(filer_words, member)],
+        canonical_by_person,
+    )
     if len(exact) == 1:
         return _result(
             report, exact[0], roster_sha, match_class="exact",
@@ -180,11 +250,11 @@ def match_report_identity(report: object, roster: object,
         )
 
     office_surname, office_given = _named_office_name(report.get("office"))
-    named_candidates = [
+    named_candidates = _unique_people([
         member for member in all_members
         if (_words(member["last_name"]) == office_surname and office_given and
             _words(member["first_name"])[0] == office_given[0])
-    ]
+    ], canonical_by_person)
     filer_agrees = bool(
         office_surname and len(filer_words) > len(office_surname) and
         filer_words[-len(office_surname):] == office_surname

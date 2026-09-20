@@ -155,20 +155,76 @@ class SenateIdentityTests(unittest.TestCase):
         for filer, office, person_id, match_class in cases:
             with self.subTest(filer=filer):
                 result = match_report_identity(
-                    {"filer_name": filer, "office": office}, current, historical)
+                    {"filer_name": filer, "office": office,
+                     "portal_listed_date": "2026-09-17"}, current, historical)
                 self.assertEqual(
                     (result["person_id"], result["match_class"],
                      result["congress_roster_sha256"]),
                     (person_id, match_class, "c" * 64),
                 )
 
+        result = match_report_identity({
+            "filer_name": "Markwayne Mullin",
+            "office": "Mullin, Markwayne (Senator)",
+            "portal_listed_date": "2026-09-17",
+            "report_label_date": "2025-12-31",
+        }, current, historical)
+        self.assertEqual(result["person_id"], "senate:M001190")
+
     def test_congress_roster_does_not_infer_unrecorded_nickname_aliases(self):
         current = roster(member("B001299", "Jim", "Banks", "IN"))
         historical = congress_roster(member("B001299", "Jim", "Banks", "IN"))
         result = match_report_identity({
             "filer_name": "James Banks", "office": "Banks, James E. (Senator)",
+            "portal_listed_date": "2026-09-17",
         }, current, historical)
         self.assertEqual((result["status"], result["candidate_count"]), ("unresolved", 0))
+
+    def test_congress_roster_requires_report_year_inside_congress_and_senate_term(self):
+        current = roster(member("A000383", "Alan", "Armstrong", "OK"))
+        historical_member = member("M001190", "Markwayne", "Mullin", "OK")
+        historical = congress_roster(historical_member)
+        cases = [
+            ({"portal_listed_date": "2024-12-31"}, "outside_congress"),
+            ({"portal_listed_date": "2025-01-02"}, "before_congress"),
+            ({"portal_listed_date": "invalid"}, "invalid_date"),
+            ({}, "missing_date"),
+        ]
+        for dates, label in cases:
+            with self.subTest(label=label):
+                result = match_report_identity({
+                    "filer_name": "Markwayne Mullin",
+                    "office": "Mullin, Markwayne (Senator)",
+                    **dates,
+                }, current, historical)
+                self.assertEqual((result["status"], result["candidate_count"]),
+                                 ("unresolved", 0))
+        historical["members"][0]["senate_terms"] = [{"start_year": 2027, "end_year": None}]
+        result = match_report_identity({
+            "filer_name": "Markwayne Mullin",
+            "office": "Mullin, Markwayne (Senator)",
+            "portal_listed_date": "2026-09-17",
+        }, current, historical)
+        self.assertEqual((result["status"], result["candidate_count"]), ("unresolved", 0))
+
+        historical["members"][0]["senate_terms"] = [{"start_year": 2025, "end_year": 2027}]
+        result = match_report_identity({
+            "filer_name": "Markwayne Mullin",
+            "office": "Mullin, Markwayne (Senator)",
+            "portal_listed_date": "2027-01-02",
+        }, current, historical)
+        self.assertEqual(result["person_id"], "senate:M001190")
+
+    def test_current_and_congress_roster_conflict_fails_closed(self):
+        current = roster(member("M000001", "Mitch", "McConnell", "KY"))
+        historical_member = member("M000001", "Addison", "McConnell", "TN")
+        historical = congress_roster(historical_member)
+        with self.assertRaisesRegex(SenateIdentityError, "rosters conflict"):
+            match_report_identity({
+                "filer_name": "Mitch McConnell",
+                "office": "McConnell, Mitch (Senator)",
+                "portal_listed_date": "2026-09-17",
+            }, current, historical)
 
     def test_malformed_or_duplicated_roster_fails_closed(self):
         person = member("A000001", "Ada", "Example")

@@ -141,6 +141,13 @@ class SenateCandidateTests(unittest.TestCase):
             "collection_enabled": True,
             "terms_acknowledged": True,
             "run_at": "2026-09-20T12:00:00Z",
+            "historical_roster": {
+                "status": "ok",
+                "source_id": "congress_gov_members",
+                "congress": 119,
+                "record_count": 100,
+                "sha256": CONGRESS_ROSTER_SHA,
+            },
             "catalog": {"record_count": len(identities), "sha256": CATALOG_SHA},
             "reports": {
                 "entrypoint_count": len(identities),
@@ -173,6 +180,7 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertNotIn("portrait_source_url", candidate["people"][0])
             normalize(candidate, allow_production=True)
             self.assertEqual(audit["candidate_transaction_count"], 1)
+            self.assertEqual(audit["input_transaction_count"], 1)
             self.assertEqual(audit["fully_qualified_report_count"], 1)
             self.assertEqual(audit["qualified_rows"][0]["source_sha256"], "c" * 64)
 
@@ -186,8 +194,11 @@ class SenateCandidateTests(unittest.TestCase):
             identities = [identity(base_id), identity(amendment_id),
                           identity(unresolved_id, match_class="unresolved"), identity(normal_id)]
             extractions = [
-                extraction(base_id, [row("senate-ptr:211111111111111111111111")]),
-                extraction(amendment_id, [row("senate-ptr:311111111111111111111111")], report_amendment_number=1),
+                extraction(base_id, [row("senate-ptr:211111111111111111111111")],
+                           filed_at_raw="Filed 09/16/2026 @ 8:55 AM",
+                           portal_listed_date="2026-09-16"),
+                extraction(amendment_id, [row("senate-ptr:311111111111111111111111")],
+                           report_amendment_number=1),
                 extraction(unresolved_id, [row("senate-ptr:411111111111111111111111")]),
                 extraction(normal_id, [row("senate-ptr:511111111111111111111111", transaction_type="exchange"),
                                        row("senate-ptr:611111111111111111111111", ticker_raw="-- AMCR")],
@@ -212,6 +223,64 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertEqual(audit["resolved_amendment_chain_count"], 1)
             self.assertEqual(audit["superseded_report_count"], 1)
             self.assertEqual(audit["superseded_report_transaction_count"], 1)
+            self.assertEqual(audit["input_transaction_count"], 5)
+            self.assertIn("1 transactions superseded", candidate["source_health"][0]["detail"])
+
+    def test_resolves_complete_three_version_amendment_chain(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_ids = [f"{prefix}1111111-1111-4111-8111-111111111111"
+                            for prefix in ("2", "3", "4")]
+            extractions = [
+                extraction(document_ids[0], [row("senate-ptr:211111111111111111111111")],
+                           filed_at_raw="Filed 09/15/2026 @ 8:00 AM",
+                           portal_listed_date="2026-09-15"),
+                extraction(document_ids[1], [row("senate-ptr:311111111111111111111111")],
+                           report_amendment_number=1,
+                           filed_at_raw="Filed 09/16/2026 @ 8:00 AM",
+                           portal_listed_date="2026-09-16"),
+                extraction(document_ids[2], [row("senate-ptr:411111111111111111111111")],
+                           report_amendment_number=2,
+                           filed_at_raw="Filed 09/17/2026 @ 8:00 AM"),
+            ]
+            state = self.fixture(root, [identity(value) for value in document_ids], extractions)
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual([item["filing_id"] for item in candidate["transactions"]],
+                             [document_ids[2]])
+            self.assertEqual(audit["superseded_report_count"], 2)
+            self.assertEqual(audit["superseded_report_transaction_count"], 2)
+            self.assertEqual(audit["resolved_amendment_chains"][0]["superseded_document_ids"],
+                             [document_ids[1], document_ids[0]])
+            self.assertEqual(len(audit["resolved_amendment_chains"][0]["links"]), 2)
+
+    def test_amendment_filed_before_predecessor_is_quarantined(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            base_id = "25111111-1111-4111-8111-111111111111"
+            amendment_id = "35111111-1111-4111-8111-111111111111"
+            state = self.fixture(
+                root,
+                [identity(base_id), identity(amendment_id)],
+                [extraction(base_id, [row("senate-ptr:251111111111111111111111")],
+                            filed_at_raw="Filed 09/17/2026 @ 9:00 AM"),
+                 extraction(amendment_id, [row("senate-ptr:351111111111111111111111")],
+                            report_amendment_number=1,
+                            filed_at_raw="Filed 09/17/2026 @ 8:00 AM")],
+            )
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(candidate["transactions"], [])
+            self.assertEqual(audit["quarantined_report_reasons"], {
+                "amendment_relationship_pending": 2,
+            })
+
+    def test_congress_roster_state_must_match_review_identity_binding(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "65111111-1111-4111-8111-111111111111"
+            state = self.fixture(root, [identity(document_id)], [extraction(document_id)])
+            state["historical_roster"]["sha256"] = "e" * 64
+            with self.assertRaisesRegex(SenateEfdError, "Congress.gov roster"):
+                build_senate_candidate(root, state, deepcopy(BASE))
 
     def test_amendment_must_match_one_unique_predecessor(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -231,6 +300,39 @@ class SenateCandidateTests(unittest.TestCase):
                 "amendment_relationship_pending": 2,
             })
             self.assertEqual(audit["resolved_amendment_chain_count"], 0)
+
+    def test_amendment_group_quarantines_unlinked_duplicate_predecessor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            base_ids = ["26111111-1111-4111-8111-111111111111",
+                        "27111111-1111-4111-8111-111111111111"]
+            amendment_id = "36111111-1111-4111-8111-111111111111"
+            extractions = [
+                extraction(base_ids[0], [row("senate-ptr:261111111111111111111111")],
+                           filed_at_raw="Filed 09/15/2026 @ 8:00 AM",
+                           portal_listed_date="2026-09-15"),
+                extraction(base_ids[1], [row("senate-ptr:271111111111111111111111",
+                                             amount_raw="$15,001 - $50,000")],
+                           filed_at_raw="Filed 09/15/2026 @ 9:00 AM",
+                           portal_listed_date="2026-09-15"),
+                extraction(amendment_id, [row("senate-ptr:361111111111111111111111")],
+                           report_amendment_number=1,
+                           filed_at_raw="Filed 09/17/2026 @ 8:00 AM"),
+            ]
+            identities = [identity(value) for value in [*base_ids, amendment_id]]
+            state = self.fixture(root, identities, extractions)
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual([item["filing_id"] for item in candidate["transactions"]],
+                             [amendment_id])
+            self.assertEqual(audit["quarantined_report_count"], 1)
+            self.assertEqual(audit["quarantined_report_reasons"], {
+                "amendment_relationship_pending": 1,
+            })
+            self.assertEqual(audit["superseded_report_count"], 1)
+            self.assertEqual(audit["input_transaction_count"], 3)
+            self.assertEqual(audit["candidate_transaction_count"] +
+                             audit["quarantined_transaction_count"] +
+                             audit["superseded_report_transaction_count"], 3)
 
     def test_state_and_review_count_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
