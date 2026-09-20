@@ -7,14 +7,15 @@ permissions:
   contents: write
 
 jobs:
-  record-disabled-gate:
-    if: ${{ github.event_name == 'workflow_dispatch' && (vars.SENATE_EFD_COLLECTION_ENABLED != 'true' || vars.SENATE_EFD_TERMS_ACKNOWLEDGED != 'true') }}
+  evaluate-gate:
     concurrency:
       group: disclosure-source-writer
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      status: ${{ steps.gate.outputs.status }}
     env:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
@@ -27,11 +28,18 @@ jobs:
         with:
           python-version: '3.11'
       - name: Evaluate default-closed source gate
+        id: gate
         run: |
           mkdir -p .local
           PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
             --output .local/senate-efd-gate.json
-      - name: Record disabled or blocked state
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
+          print(f"status={gate['status']}")
+          PY
+      - name: Record authorization gate state
         run: |
           state_root="$RUNNER_TEMP/senate-state"
           git fetch --no-tags origin state
@@ -52,8 +60,12 @@ jobs:
               'terms_acknowledged': gate['terms_acknowledged'],
               'gate': gate,
               'roster': prior.get('roster', {'status': 'unknown'}),
-              'detail': ('eFD catalog collection did not run because both explicit production '
-                         'authorization variables were not true.'),
+              'detail': (
+                  'eFD authorization gate is enabled; catalog collection is pending.'
+                  if gate['status'] == 'enabled' else
+                  'eFD catalog collection did not run because both explicit production '
+                  'authorization variables were not true.'
+              ),
           }
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
@@ -73,7 +85,8 @@ jobs:
           exit 2
 
   collect-catalog:
-    if: ${{ vars.SENATE_EFD_COLLECTION_ENABLED == 'true' && vars.SENATE_EFD_TERMS_ACKNOWLEDGED == 'true' }}
+    needs: evaluate-gate
+    if: ${{ needs.evaluate-gate.outputs.status == 'enabled' }}
     concurrency:
       group: disclosure-source-writer
       cancel-in-progress: false

@@ -8,9 +8,10 @@ ROOT = Path(__file__).resolve().parents[2]
 class SenateWorkflowTests(unittest.TestCase):
     def test_catalog_collection_is_double_gated_and_default_closed(self):
         content = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
-        both = ("vars.SENATE_EFD_COLLECTION_ENABLED == 'true' && "
-                "vars.SENATE_EFD_TERMS_ACKNOWLEDGED == 'true'")
-        self.assertIn(both, content)
+        self.assertIn("SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}", content)
+        self.assertIn("SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}", content)
+        self.assertIn("needs: evaluate-gate", content)
+        self.assertIn("needs.evaluate-gate.outputs.status == 'enabled'", content)
         self.assertIn("python -m unison_snapshot senate-efd-gate", content)
         self.assertIn("python -m unison_snapshot discover-senate-efd", content)
         self.assertNotIn("curl ", content)
