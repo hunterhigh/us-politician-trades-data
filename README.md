@@ -56,7 +56,7 @@ python -m unison_snapshot assemble --store ../.local/manual.git --commit <上一
 
 开发验证命令使用免费 Alpaca Basic 账户的历史 SIP 数据，固定请求 `feed=sip`、`timeframe=1Day`、`adjustment=split`，按 ticker 分批并跟完 `next_page_token`。它只在 `.local/` 生成候选、冻结处理器输出、机器审计和 HTML，不解锁生产发布器，也不修改只读的 `review-input/`。
 
-当前 worktree 可在项目根目录运行安全提示脚本。脚本会遮蔽两项输入，只把密钥临时放入当前进程环境，任务结束后恢复或清除，不写入磁盘：
+可在项目根目录运行安全提示脚本。脚本会遮蔽两项输入，只把密钥临时放入当前进程环境，任务结束后恢复或清除，不写入磁盘：
 
 ```powershell
 .\backend\scripts\run_alpaca_validation.ps1
@@ -99,7 +99,7 @@ python -m unison_snapshot qualify-house-ptr --extraction .local/house-20035420-e
 
 电子PTR解析覆盖普通股票、期权、无ticker、金额换行、精确金额、开放金额、末行跨页和amended申报。`20035420` 的身份可确定为 `house:D000032`。自动资格校验直接生成候选事实，无法确定的修订、身份、OCR和金额语义进入隔离队列；旧人工工具仅用于异常调查。流程见 [House PTR 自动资格与异常调查](docs/House-PTR-复核流程.md)。
 
-OGE多来源接入已从官方目录发现层开始：`backend/src/unison_snapshot/oge.py` 严格校验官方分页响应和链接，把278-T条目分成可直接下载PDF与需要Form 201请求两类，并将`docDate`仅保留为目录加入日期。该模块尚未连接生产工作流，也不会自动提交Form 201、猜测申报编号或把目录日期当作申报时间。
+OGE直链278-T链路已经集成：严格分页目录、内容寻址目录与PDF归档、278-T离线解析、保守身份、资格隔离、来源候选和三源重建均已进入`code`。`.github/workflows/oge.yml`受`OGE_COLLECTION_ENABLED`与`OGE_TERMS_ACKNOWLEDGED`双开关保护；未同时启用时定时任务不会占用runner，手动触发仍可只检查门禁。当前尚未运行真实生产小批次。Form 201请求型报告只计数并保留`request_required`，不会自动提交、猜测申报编号或把目录日期冒充申报时间。
 
 Senate 接入已通过显式授权进入报告生产阶段：严格解析 eFD 五列分页结果，区分电子 PTR 与纸面 PTR，分别保留门户列表日期、报告标题日期及修订编号，并将官方参议员 XML 名册映射为 `senate:<bioguide>`。`senate-roster.yml` 已归档100人官方名册；`senate-efd.yml` 在 `SENATE_EFD_COLLECTION_ENABLED=true` 与 `SENATE_EFD_TERMS_ACKNOWLEDGED=true` 双重门禁下，每6小时刷新目录并归档有界报告批次。2026-01-01至今130份PTR入口已全部内容寻址归档：121份电子报告严格解析出1,646条交易，当前入口归档和解析失败均为0；9份纸面报告的官方扫描查看器及52张GIF原页也已完整归档并逐页绑定哈希，但纸面交易的OCR和结构化提取尚未完成，因此没有把扫描页直接计入候选交易。身份结果为104份精确、15份官方目录别名、11份未解析。历史补充工作流另从2024年至今目录白名单归档16份官方电子原件，以同一正文比较规则为12份 Amendment 1 报告唯一确定前件；补充报告只作为修订关系证据，不进入主交易输入。当前16条链已闭合，主目录内41笔旧版标记为 superseded。生产候选现为23人、1,435笔，170笔因身份、仍未闭合的独立报告、exchange、期权条款或异常ticker隔离；审计守恒为`1,435 + 170 + 41 = 1,646`。原始响应和扫描页进入 `evidence`，身份、解析、资格和候选进入 `review`。eFD入口本身无需API token；可选的Congress.gov历史身份补充需要免费的`CONGRESS_GOV_API_KEY`，当前尚未配置。
 
@@ -109,4 +109,4 @@ House与Senate来源候选通过显式共同截止模式合并。由于两源申
 
 ## 当前交付目标
 
-继续收敛 House OCR和解析异常，接入 Senate/OGE 与获准公开生产使用的行情源，构建完整候选快照，再用对方实际前端代码和全部测试完成验收。前端功能和数据含义不为后台现状降级。详情见[当前目标与优先级](docs/当前目标与优先级.md)和[实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；行情密钥和许可尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
+继续收敛 House OCR和解析异常，验证并启用OGE直链小批次，接入获准公开生产使用的行情源，构建完整候选快照，再用对方实际前端代码和全部测试完成验收。前端功能和数据含义不为后台现状降级。详情见[当前目标与优先级](docs/当前目标与优先级.md)和[实现状态](docs/实现状态与下一步.md)。代码公开在 [hunterhigh/us-politician-trades-data](https://github.com/hunterhigh/us-politician-trades-data)；Alpaca只完成本地技术验证，生产Secrets和公开再分发许可尚未配置，未购买 API、部署 Cloudflare 或修改现有 10 大 V 仓库。
