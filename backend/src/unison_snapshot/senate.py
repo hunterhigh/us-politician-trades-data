@@ -260,7 +260,10 @@ class SenateEfdClient:
 
 def _nonempty_string(value: object, field: str) -> str:
     if not isinstance(value, str) or not value.strip() or value != value.strip():
-        raise SenateEfdError(f"Senate eFD row has invalid {field}")
+        preview = repr(value)
+        if len(preview) > 120:
+            preview = preview[:117] + "..."
+        raise SenateEfdError(f"Senate eFD row has invalid {field}: value={preview}")
     return value
 
 
