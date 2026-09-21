@@ -30,6 +30,7 @@ ASSET_TYPES = {
     "AB": "Asset-Backed Security", "ET": "Exchange Traded Note", "RP": "Real Property",
     "OL": "Other", "OT": "Other", "FN": "Annuity",
 }
+REPORT_PERIOD_BASIS = "annual_member_pdf_filing_year_end"
 
 
 def _clean(value: object) -> str:
@@ -144,6 +145,43 @@ def _value(value: str) -> tuple[int, int] | None:
         exact = int(match.group(1).replace(",", ""))
         return exact, exact
     return None
+
+
+def annual_report_period_from_pdf(full_text: str, metadata: dict) -> tuple[str, str]:
+    """Return a period only when the PDF itself closes the annual-member semantics.
+
+    House Ethics guidance defines the reporting period for annual filers as the preceding
+    calendar year and Schedule A values at December 31.  This initial parser therefore requires
+    the PDF to say Member, Annual Report, a filing year, and a filing date in the next calendar
+    year.  The index is only a cross-check; it is not the source of the period end.
+    """
+    text = _clean(full_text)
+    patterns = {
+        "document_id": r"Filing ID\s*#\s*([0-9]{1,20})\b",
+        "status": r"Status:\s*([^:]+?)\s+State/District:",
+        "report_type": r"Filing Type:\s*([^:]+?)\s+Filing Year:",
+        "filing_year": r"Filing Year:\s*([0-9]{4})\b",
+        "filed_date": r"Filing Date:\s*([0-9]{1,2}/[0-9]{1,2}/[0-9]{4})\b",
+    }
+    values = {}
+    for name, pattern in patterns.items():
+        match = re.search(pattern, text)
+        if match is None:
+            raise HouseIndexError(f"House annual report PDF does not expose {name}")
+        values[name] = _clean(match.group(1))
+    try:
+        pdf_filed = datetime.strptime(values["filed_date"], "%m/%d/%Y").date()
+        metadata_filed = datetime.strptime(str(metadata.get("filed_date")), "%Y-%m-%d").date()
+        pdf_year = int(values["filing_year"])
+    except (TypeError, ValueError):
+        raise HouseIndexError("House annual report PDF has invalid filing fields") from None
+    if (values["document_id"] != str(metadata.get("document_id")) or
+            values["status"] != "Member" or values["report_type"] != "Annual Report" or
+            pdf_year != metadata.get("filing_year") or pdf_filed != metadata_filed):
+        raise HouseIndexError("House annual report PDF fields conflict with official index metadata")
+    if pdf_filed.year != pdf_year + 1:
+        raise HouseIndexError("House annual report PDF does not establish a preceding-calendar-year period")
+    return f"{pdf_year}-12-31", REPORT_PERIOD_BASIS
 
 
 def _lines(words: list[dict]) -> list[tuple[float, list[dict]]]:
@@ -306,17 +344,15 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
     except Exception as exc:
         raise HouseIndexError(f"House holding PDF could not be read: {type(exc).__name__}") from None
     full_text = " ".join(texts)
-    for label, expected_value in (("Filing ID", str(document_id)), ("Filing Year", str(year)),
-                                  ("Filing Type", "Annual Report")):
-        if not re.search(rf"{re.escape(label)}\s*(?:#|:)\s*{re.escape(expected_value)}\b", full_text):
-            raise HouseIndexError(f"House annual report does not confirm {label}")
+    report_period_end, report_period_basis = annual_report_period_from_pdf(full_text, metadata)
     rows, explicit_none = extract_schedule_a_pages(page_objects, source_sha256=sha)
     return {
         "schema_version": EXTRACTION_SCHEMA, "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filing_type", "report_type", "filer_name", "state_district", "filing_year",
             "filed_date", "archive_path")},
-        "source_sha256": sha, "report_period_end": f"{year}-12-31",
+        "source_sha256": sha, "report_period_end": report_period_end,
+        "report_period_basis": report_period_basis,
         "extraction_method": "native_pdf_geometry", "schedule_a_complete": True,
         "explicit_no_holdings": explicit_none, "rows": rows,
     }
@@ -325,6 +361,8 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
 def qualify_financial_report(extraction: dict, identity: dict) -> dict:
     if extraction.get("schema_version") != EXTRACTION_SCHEMA or not extraction.get("schedule_a_complete"):
         raise HouseIndexError("House holding extraction is not complete")
+    if extraction.get("report_period_basis") != REPORT_PERIOD_BASIS:
+        raise HouseIndexError("House holding extraction has no supported report-period evidence")
     source = extraction.get("source") or {}
     document_id = source.get("document_id")
     if identity.get("document_id") != document_id:
@@ -383,6 +421,7 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
         "schema_version": QUALIFICATION_SCHEMA,
         "source": source, "source_sha256": extraction.get("source_sha256"),
         "report_period_end": extraction["report_period_end"],
+        "report_period_basis": extraction["report_period_basis"],
         "identity": identity, "report_complete": True, "production_eligible": eligible,
         "holdings": holdings, "excluded": excluded, "quarantined": quarantined,
         "qualification_reasons": sorted(set(report_reasons)),

@@ -8,6 +8,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house import HouseFilingCandidate, HouseIndexError
 from unison_snapshot.house_holdings import (EXTRACTION_SCHEMA, archive_financial_document,
+                                            annual_report_period_from_pdf,
                                             extract_schedule_a_pages,
                                             qualify_financial_report)
 
@@ -51,6 +52,7 @@ def extraction(rows):
     return {
         "schema_version": EXTRACTION_SCHEMA, "schedule_a_complete": True,
         "source_sha256": SHA, "report_period_end": "2025-12-31",
+        "report_period_basis": "annual_member_pdf_filing_year_end",
         "source": {"source_id": "house_clerk", "source_url":
                    "https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/10000001.pdf",
                    "document_id": "10000001", "filing_type": "O", "report_type": "Annual Report",
@@ -71,6 +73,27 @@ IDENTITY = {
 
 
 class HouseHoldingTests(unittest.TestCase):
+    def test_period_comes_from_explicit_pdf_member_annual_fields(self):
+        text = ("Filing ID #10000001 Filer Information Name: Hon. Ada Example Status: Member "
+                "State/District: CA01 Filing Information Filing Type: Annual Report "
+                "Filing Year: 2025 Filing Date: 05/01/2026 Schedule A")
+        period, basis = annual_report_period_from_pdf(text, extraction([])["source"])
+        self.assertEqual(period, "2025-12-31")
+        self.assertEqual(basis, "annual_member_pdf_filing_year_end")
+
+    def test_period_rejects_index_only_or_non_preceding_year_inference(self):
+        source = extraction([])["source"]
+        cases = [
+            "Filing ID #10000001 Filing Type: Annual Report Filing Year: 2025 Filing Date: 05/01/2026",
+            ("Filing ID #10000001 Status: Member State/District: CA01 Filing Type: Annual Report "
+             "Filing Year: 2025 Filing Date: 05/01/2025"),
+            ("Filing ID #10000001 Status: Candidate State/District: CA01 Filing Type: Annual Report "
+             "Filing Year: 2025 Filing Date: 05/01/2026"),
+        ]
+        for text in cases:
+            with self.subTest(text=text), self.assertRaises(HouseIndexError):
+                annual_report_period_from_pdf(text, source)
+
     def test_geometry_extracts_explicit_value_and_accounts_for_none(self):
         rows, explicit_none = extract_schedule_a_pages([page()], source_sha256=SHA)
         self.assertFalse(explicit_none)
