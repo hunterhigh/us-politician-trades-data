@@ -31,6 +31,11 @@ jobs:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: backend/pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend-e2e/package-lock.json
       - name: Install producer
         run: python -m pip install -e backend
       - name: Enforce licensed production gate
@@ -63,6 +68,8 @@ jobs:
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
           echo "market_root=$market_root" >> "$GITHUB_OUTPUT"
           echo "main_root=$main_root" >> "$GITHUB_OUTPUT"
+          echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Build licensed five-array candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -80,6 +87,13 @@ jobs:
             --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
             --distribution-authorized
+      - name: Verify complete candidate in the frozen browser frontend
+        env:
+          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
+        run: |
+          npm ci
+          npm run test:production
+        working-directory: frontend-e2e
       - name: Prepare and commit market branch
         id: market
         env:
@@ -101,8 +115,14 @@ jobs:
         env:
           MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
           MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
         run: |
           if ! git ls-remote --exit-code origin "refs/tags/published-market/$MARKET_SHA" >/dev/null 2>&1; then
+            remote_market="$(git ls-remote origin refs/heads/market | cut -f1)"
+            test "$remote_market" = "$MARKET_BASE" || {
+              echo "market moved after the candidate was built; refusing stale publication" >&2
+              exit 1
+            }
             git -C "$MARKET_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
             git -C "$MARKET_ROOT" push --atomic origin \
               HEAD:refs/heads/market "refs/tags/published-market/$MARKET_SHA"
@@ -137,7 +157,13 @@ jobs:
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
           MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
         run: |
+          remote_main="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$remote_main" = "$MAIN_BASE" || {
+            echo "main moved after the candidate was built; refusing stale publication" >&2
+            exit 1
+          }
           git -C "$MAIN_ROOT" push --atomic origin \
             HEAD:refs/heads/main "refs/tags/published/$MAIN_SHA"
       - name: Record auditable coverage

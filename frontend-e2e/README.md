@@ -24,3 +24,7 @@ npm test
 ```
 
 Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` when the browser is installed outside the known system paths.
+
+For a complete real candidate that has already passed the frozen processor and renderer, set
+`PRODUCTION_DASHBOARD_HTML` to the generated HTML and run `npm run test:production`. This path
+checks the real five-array page without changing the frozen handoff files.

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/dashboard.e2e.mjs"
+    "test": "node tests/dashboard.e2e.mjs",
+    "test:production": "node tests/production.e2e.mjs"
   },
   "engines": {
     "node": ">=24 <25"
