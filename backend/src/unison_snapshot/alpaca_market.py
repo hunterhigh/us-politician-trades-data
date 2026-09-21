@@ -15,20 +15,30 @@ import re
 import time as time_module
 from typing import Callable
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+
+from .market_store import MARKET_COVERAGE_SCHEMA, UNSUPPORTED_REASONS
 
 
 SOURCE_ID = "alpaca_sip_eod"
 SOURCE_NAME = "Alpaca SIP EOD"
 SOURCE_URL = "https://docs.alpaca.markets/docs/market-data"
 API_URL = "https://data.alpaca.markets/v2/stocks/bars"
+ASSETS_URL = "https://paper-api.alpaca.markets/v2/assets"
 FEED = "sip"
 TIMEFRAME = "1Day"
 ADJUSTMENT = "split"
-AUDIT_SCHEMA = "alpaca-market-validation/v1"
+MAX_ACTIVE_STALENESS_DAYS = 7
+AUDIT_SCHEMA = "alpaca-market-validation/v2"
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+EXPLICIT_NAME_TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)\s*$")
+SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA"}
+# Official filings occasionally place a foreign-exchange code in the ticker field.
+# Keep this exception explicit: symbol length alone is not enough to classify a
+# security as foreign and must never turn an unresolved code into a silent skip.
+KNOWN_OUTSIDE_SIP_SYMBOLS = {"COLPAL": "outside_sip_foreign_exchange"}
 
 
 class AlpacaMarketError(ValueError):
@@ -87,7 +97,8 @@ class AlpacaMarketClient:
 
     def __init__(self, key_id: str, secret_key: str, *, timeout: float = 30.0,
                  retries: int = 3, opener: Callable = urlopen,
-                 sleeper: Callable[[float], None] = time_module.sleep):
+                 sleeper: Callable[[float], None] = time_module.sleep,
+                 assets_url: str = ASSETS_URL):
         if not key_id or not secret_key:
             raise AlpacaMarketError(
                 "ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY are required")
@@ -100,11 +111,18 @@ class AlpacaMarketClient:
         self.retries = retries
         self._opener = opener
         self._sleeper = sleeper
+        parsed_assets_url = urlsplit(assets_url)
+        if parsed_assets_url.scheme != "https" or parsed_assets_url.username \
+                or parsed_assets_url.password or parsed_assets_url.hostname not in {
+                    "api.alpaca.markets", "paper-api.alpaca.markets"} \
+                or parsed_assets_url.path.rstrip("/") != "/v2/assets":
+            raise AlpacaMarketError("assets_url must be an allowlisted Alpaca assets endpoint")
+        self.assets_url = assets_url.rstrip("/")
         self.page_count = 0
         self.request_count = 0
 
-    def _page(self, parameters: dict[str, str]) -> dict:
-        request = Request(f"{API_URL}?{urlencode(parameters)}", headers=self._headers)
+    def _json(self, url: str) -> object:
+        request = Request(url, headers=self._headers)
         if not 0 <= self.retries <= 8:
             raise AlpacaMarketError("retries must be between 0 and 8")
         for attempt in range(self.retries + 1):
@@ -112,7 +130,6 @@ class AlpacaMarketClient:
                 self.request_count += 1
                 with self._opener(request, timeout=self.timeout) as response:
                     payload = json.loads(response.read().decode("utf-8"))
-                self.page_count += 1
                 break
             except HTTPError as error:
                 if error.code in {429, 500, 502, 503, 504} and attempt < self.retries:
@@ -127,8 +144,20 @@ class AlpacaMarketClient:
                 raise AlpacaMarketError(f"Alpaca request failed: {error}") from None
             except (json.JSONDecodeError, UnicodeDecodeError) as error:
                 raise AlpacaMarketError(f"Alpaca response decoding failed: {error}") from None
+        return payload
+
+    def _page(self, parameters: dict[str, str]) -> dict:
+        payload = self._json(f"{API_URL}?{urlencode(parameters)}")
         if not isinstance(payload, dict) or not isinstance(payload.get("bars"), dict):
             raise AlpacaMarketError("Alpaca response requires an object-valued bars field")
+        self.page_count += 1
+        return payload
+
+    def assets(self) -> list[dict]:
+        """Return Alpaca's authoritative US-equity data universe."""
+        payload = self._json(f"{self.assets_url}?{urlencode({'asset_class': 'us_equity'})}")
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise AlpacaMarketError("Alpaca assets response must be an array of objects")
         return payload
 
     def daily_bars(self, symbols: list[str], *, start: datetime, end: datetime,
@@ -164,8 +193,34 @@ class AlpacaMarketClient:
         raise AlpacaMarketError("Alpaca pagination exceeded the safety limit")
 
 
-def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str]]:
+def _recover_explicit_name_tickers(snapshot: dict) -> tuple[dict, list[dict]]:
+    """Recover a ticker only when the official asset label states it explicitly."""
+    result = deepcopy(snapshot)
+    recovered: list[dict] = []
+    for kind in ("transactions", "reported_holdings"):
+        rows = result.get(kind)
+        if not isinstance(rows, list):
+            raise AlpacaMarketError(f"{kind} must be an array")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise AlpacaMarketError(f"{kind} must contain objects")
+            if str(row.get("ticker") or "").strip():
+                continue
+            if str(row.get("instrument_type") or "").strip().casefold() != "stock":
+                continue
+            match = EXPLICIT_NAME_TICKER.search(str(row.get("asset_name") or "").strip())
+            if not match:
+                continue
+            ticker = match.group(1)
+            row["ticker"] = ticker
+            row["ticker_mapping_basis"] = "filing_explicit_asset_name"
+            recovered.append({"record_id": row.get("id"), "ticker": ticker, "array": kind})
+    return result, recovered
+
+
+def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str], dict[str, list[dict]]]:
     names: dict[str, Counter] = defaultdict(Counter)
+    contexts: dict[str, list[dict]] = defaultdict(list)
     for kind in ("transactions", "reported_holdings"):
         rows = snapshot.get(kind)
         if not isinstance(rows, list):
@@ -179,6 +234,7 @@ def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str]]:
             if not TICKER.fullmatch(ticker):
                 raise AlpacaMarketError(f"Invalid ticker in disclosure candidate: {ticker}")
             names[ticker]
+            contexts[ticker].append(row)
             name = str(row.get("asset_name") or "").strip()
             if name:
                 names[ticker][name] += 1
@@ -188,7 +244,113 @@ def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str]]:
                  if counts else ticker)
         for ticker, counts in names.items()
     }
-    return symbols, display_names
+    return symbols, display_names, contexts
+
+
+def _asset_registry(rows: object) -> dict[str, dict]:
+    if not isinstance(rows, list):
+        raise AlpacaMarketError("Alpaca assets response must be an array")
+    result: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise AlpacaMarketError("Alpaca assets response must contain objects")
+        symbol = str(row.get("symbol") or "").strip().upper()
+        asset_class = str(row.get("class") or "").strip().casefold()
+        exchange = str(row.get("exchange") or "").strip().upper()
+        status = str(row.get("status") or "").strip().casefold()
+        if not symbol or not TICKER.fullmatch(symbol) or asset_class != "us_equity" \
+                or not exchange or status not in {"active", "inactive"}:
+            raise AlpacaMarketError("Alpaca assets response contains an invalid US equity")
+        if symbol in result:
+            raise AlpacaMarketError(f"Alpaca assets response contains duplicate symbol {symbol}")
+        result[symbol] = dict(row, symbol=symbol, exchange=exchange, status=status)
+    if not result:
+        raise AlpacaMarketError("Alpaca assets response is empty")
+    return result
+
+
+def _compact_symbol(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", value.upper())
+
+
+def _preferred_share_key(value: str) -> str | None:
+    normalized = value.upper()
+    provider = re.fullmatch(r"([A-Z]+)[.\-]?PR[.\-]?([A-Z])", normalized)
+    if provider:
+        return provider.group(1) + provider.group(2)
+    disclosure = re.fullmatch(r"([A-Z]+)-([A-Z])", normalized)
+    return disclosure.group(1) + disclosure.group(2) if disclosure else None
+
+
+def _unsupported_reason(ticker: str, rows: list[dict]) -> str | None:
+    instruments = {str(row.get("instrument_type") or "").strip().casefold() for row in rows}
+    names = " ".join(str(row.get("asset_name") or "") for row in rows).casefold()
+    if instruments and all("bond" in value or "debt" in value for value in instruments):
+        return "non_equity_debt"
+    if ticker.endswith("X") and (
+            any("mutual fund" in value for value in instruments)
+            or re.search(r"\b(fund|portfolio|money market|trust)\b", names)):
+        return "outside_sip_fund"
+    if "private equity" in names or ("private" in names and "llc" in names):
+        return "private_entity"
+    if ticker in KNOWN_OUTSIDE_SIP_SYMBOLS:
+        return KNOWN_OUTSIDE_SIP_SYMBOLS[ticker]
+    if (ticker.endswith(("Y", "F")) and len(ticker) == 5
+            and any("adr" in str(row.get("asset_name") or "").casefold() for row in rows)):
+        return "outside_sip_otc"
+    return None
+
+
+def _market_universe(symbols: list[str], contexts: dict[str, list[dict]],
+                     assets: object) -> tuple[list[dict], list[dict], list[dict]]:
+    registry = _asset_registry(assets)
+    compact: dict[str, list[str]] = defaultdict(list)
+    preferred: dict[str, list[str]] = defaultdict(list)
+    for symbol in registry:
+        compact[_compact_symbol(symbol)].append(symbol)
+        preferred_key = _preferred_share_key(symbol)
+        if preferred_key:
+            preferred[preferred_key].append(symbol)
+    supported: list[dict] = []
+    unsupported: list[dict] = []
+    unresolved: list[dict] = []
+    for ticker in symbols:
+        provider_symbol = ticker if ticker in registry else None
+        mapping_basis = "exact_symbol"
+        if provider_symbol is None:
+            reason = _unsupported_reason(ticker, contexts[ticker])
+            if reason in UNSUPPORTED_REASONS:
+                unsupported.append({"ticker": ticker, "reason": reason})
+                continue
+        if provider_symbol is None and re.search(r"[.\-^/]", ticker):
+            alternatives = compact.get(_compact_symbol(ticker), [])
+            if len(alternatives) == 1 and re.search(r"[.\-^/]", alternatives[0]):
+                provider_symbol = alternatives[0]
+                mapping_basis = "unique_punctuation_variant"
+        if provider_symbol is None and _preferred_share_key(ticker):
+            alternatives = preferred.get(_preferred_share_key(ticker) or "", [])
+            if len(alternatives) == 1:
+                provider_symbol = alternatives[0]
+                mapping_basis = "preferred_share_symbol_variant"
+        if provider_symbol is not None:
+            asset = registry[provider_symbol]
+            if asset["exchange"] == "OTC":
+                unsupported.append({"ticker": ticker, "reason": "outside_sip_otc",
+                                    "provider_symbol": provider_symbol,
+                                    "asset_status": asset["status"], "exchange": "OTC"})
+            elif asset["exchange"] in SIP_EXCHANGES:
+                supported.append({"ticker": ticker, "provider_symbol": provider_symbol,
+                                  "mapping_basis": mapping_basis,
+                                  "asset_status": asset["status"],
+                                  "exchange": asset["exchange"]})
+            else:
+                unresolved.append({"ticker": ticker, "reason": "unknown_asset_exchange",
+                                   "provider_symbol": provider_symbol,
+                                   "asset_status": asset["status"],
+                                   "exchange": asset["exchange"]})
+            continue
+        unresolved.append({"ticker": ticker, "reason": "not_in_alpaca_asset_master"})
+    return supported, unsupported, unresolved
 
 
 def _market_row(ticker: str, name: str, bars: list[dict], start_day: date,
@@ -258,29 +420,63 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     if not 1 <= batch_size <= 200:
         raise AlpacaMarketError("batch_size must be between 1 and 200")
 
-    symbols, names = _symbols_and_names(snapshot)
+    normalized_snapshot, recovered = _recover_explicit_name_tickers(snapshot)
+    symbols, names, contexts = _symbols_and_names(normalized_snapshot)
     if not symbols:
         raise AlpacaMarketError("Disclosure candidate has no ticker-qualified records")
-    start_day = _lookback_start(requested_as_of)
+    supported, unsupported, unresolved = _market_universe(
+        symbols, contexts, client.assets())
+    if distribution_authorized and unresolved:
+        raise AlpacaMarketError(
+            "Production market universe has unresolved disclosure tickers: "
+            + ", ".join(row["ticker"] for row in unresolved))
+    disclosure_days = []
+    supported_tickers = {row["ticker"] for row in supported}
+    for row in normalized_snapshot.get("transactions", []):
+        if row.get("ticker") not in supported_tickers:
+            continue
+        for field in ("transaction_date", "filed_at"):
+            try:
+                disclosure_days.append(date.fromisoformat(str(row.get(field) or "")[:10]))
+            except ValueError:
+                raise AlpacaMarketError(f"Invalid {field}: {row.get(field)}") from None
+    start_day = min([_lookback_start(requested_as_of), *disclosure_days]) - timedelta(days=7)
     start = datetime.combine(start_day, time(), timezone.utc)
     end = _request_end(requested_as_of, checked)
     rows: list[dict] = []
     missing: list[dict] = []
-    for offset in range(0, len(symbols), batch_size):
-        batch = symbols[offset:offset + batch_size]
+    for offset in range(0, len(supported), batch_size):
+        batch_entries = supported[offset:offset + batch_size]
+        batch = [row["provider_symbol"] for row in batch_entries]
         received = client.daily_bars(batch, start=start, end=end)
-        for ticker in batch:
-            bars = received.get(ticker, [])
+        for entry in batch_entries:
+            ticker = entry["ticker"]
+            bars = received.get(entry["provider_symbol"], [])
             if not bars:
-                missing.append({"ticker": ticker, "reason": "no_bars_returned"})
+                missing.append({"ticker": ticker, "provider_symbol": entry["provider_symbol"],
+                                "asset_status": entry["asset_status"],
+                                "exchange": entry["exchange"], "reason": "no_bars_returned"})
                 continue
-            rows.append(_market_row(
-                ticker, names[ticker], bars, start_day, requested_as_of))
+            market_row = _market_row(ticker, names[ticker], bars, start_day, requested_as_of)
+            last_day = date.fromisoformat(market_row["price_history"][-1]["date"])
+            if entry["asset_status"] == "active" \
+                    and last_day < requested_as_of - timedelta(days=MAX_ACTIVE_STALENESS_DAYS):
+                missing.append({"ticker": ticker, "provider_symbol": entry["provider_symbol"],
+                                "asset_status": entry["asset_status"],
+                                "exchange": entry["exchange"],
+                                "reason": "stale_active_market_series",
+                                "last_bar_date": last_day.isoformat()})
+                continue
+            rows.append(market_row)
 
+    if distribution_authorized and missing:
+        raise AlpacaMarketError(
+            "Production market coverage is incomplete for supported tickers: "
+            + ", ".join(row["ticker"] for row in missing))
     if not rows:
         raise AlpacaMarketError("Alpaca returned no usable market rows")
 
-    result = deepcopy(snapshot)
+    result = normalized_snapshot
     result["meta"]["subtitle"] = (
         "House、Senate与OGE真实披露；Alpaca SIP拆股调整日线"
         if distribution_authorized else
@@ -293,15 +489,24 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "source": SOURCE_NAME,
         "source_type": "market_data",
         "source_url": SOURCE_URL,
-        "status": "ok" if not missing else "partial",
+        "status": "ok" if not missing and not unresolved else "partial",
         "last_checked_at": checked_at,
         "last_successful_sync_at": checked_at,
         "data_cutoff_at": max(
             (row["price_history"][-1]["date"] for row in rows)) + "T23:59:59Z",
         "detail": (("licensed_production" if distribution_authorized else "local_basic_validation")
-                   + f":{len(rows)}/{len(symbols)}_tickers"),
+                   + f":{len(rows)}/{len(supported)}_supported_tickers"
+                   + f":{len(unsupported)}_outside_sip"),
     })
     result["source_health"] = sorted(health, key=lambda row: row["source_id"])
+    result["meta"]["market_coverage"] = {
+        "schema_version": MARKET_COVERAGE_SCHEMA,
+        "source_id": SOURCE_ID,
+        "covered_tickers": sorted(row["ticker"] for row in rows),
+        "unsupported_tickers": sorted(
+            ({"ticker": row["ticker"], "reason": row["reason"]} for row in unsupported),
+            key=lambda row: row["ticker"]),
+    }
 
     audit = {
         "schema_version": AUDIT_SCHEMA,
@@ -315,6 +520,14 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "adjustment": ADJUSTMENT,
         "symbol_count": len(symbols),
         "requested_tickers": symbols,
+        "supported_ticker_count": len(supported),
+        "supported_tickers": supported,
+        "unsupported_ticker_count": len(unsupported),
+        "unsupported_tickers": unsupported,
+        "unresolved_ticker_count": len(unresolved),
+        "unresolved_tickers": unresolved,
+        "recovered_ticker_count": len(recovered),
+        "recovered_tickers": recovered,
         "market_row_count": len(rows),
         "covered_tickers": [row["ticker"] for row in sorted(rows, key=lambda row: row["ticker"])],
         "price_point_count": sum(len(row["price_history"]) for row in rows),

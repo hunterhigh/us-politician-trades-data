@@ -1,9 +1,9 @@
-name: Publish normalized snapshot
+name: Publish bootstrap snapshot (pre-launch only)
 on:
   workflow_dispatch:
     inputs:
       normalized_path:
-        description: Repository-relative reviewed input under ingest/
+        description: Fixed empty bootstrap input; complete production uses publish-complete.yml
         required: true
         default: ingest/current.json
       allow_empty_production:
@@ -53,6 +53,19 @@ jobs:
         run: |
           git fetch --no-tags origin main
           base_sha="$(git rev-parse origin/main)"
+          test "$INPUT_PATH" = "ingest/current.json" || {
+            echo "Legacy publisher only accepts the fixed empty bootstrap input." >&2
+            exit 2
+          }
+          test "$ALLOW_EMPTY_PRODUCTION" = "true" || {
+            echo "Legacy publisher only exists for the explicit pre-launch bootstrap." >&2
+            exit 2
+          }
+          current_snapshot="$(git show "$base_sha:manifest.json" | python -c 'import json,sys; print(json.load(sys.stdin).get("snapshot_id", ""))')"
+          test "$current_snapshot" = "bootstrap_empty" || {
+            echo "A complete snapshot has already launched; refusing to downgrade main." >&2
+            exit 2
+          }
           git worktree add --detach "$DATA_ROOT" "$base_sha"
           generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           extra_args=()

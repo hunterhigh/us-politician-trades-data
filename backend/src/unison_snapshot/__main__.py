@@ -34,6 +34,7 @@ from .senate_reports import (
     archive_catalog_report_entrypoints, archive_review_paper_pages,
     extract_archived_report_batch,
 )
+from .senate_paper import extract_archived_paper_reports
 from .senate_candidate import load_senate_candidate
 from .senate_history import (
     SenateHistoryError, activate_amendment_supplement,
@@ -48,6 +49,7 @@ from .oge_reports import archive_direct_batch as archive_oge_direct_batch, \
     parse_archived_pdf as parse_oge_archived_pdf
 from .oge_candidate import build_oge_candidate
 from .public_repo import HTTPTransport, PublicSnapshotRepository
+from .release_readiness import ReleaseReadinessError, validate_first_launch
 from .store import GitStore, assemble
 
 
@@ -98,6 +100,12 @@ def main() -> None:
     fetch.add_argument("--key")
     fetch.add_argument("--token-env", default="GITHUB_TOKEN")
     fetch.add_argument("--output", type=Path, required=True)
+    readiness = sub.add_parser(
+        "verify-first-launch",
+        help="Fail closed unless every in-scope disclosure source is fully accounted for")
+    readiness.add_argument("--review-root", type=Path, required=True)
+    readiness.add_argument("--input", type=Path, required=True)
+    readiness.add_argument("--output", type=Path)
     house = sub.add_parser("discover-house-index")
     house.add_argument("--year", type=int, required=True)
     house.add_argument("--archive", type=Path, required=True)
@@ -178,6 +186,9 @@ def main() -> None:
     market_validation.add_argument("--timeout", type=float, default=30.0)
     market_validation.add_argument("--key-id-env", default="ALPACA_API_KEY_ID")
     market_validation.add_argument("--secret-key-env", default="ALPACA_API_SECRET_KEY")
+    market_validation.add_argument(
+        "--assets-url", default="https://paper-api.alpaca.markets/v2/assets",
+        help="Allowlisted Alpaca paper or live Assets API endpoint")
     market_validation.add_argument("--distribution-authorized", action="store_true")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
@@ -233,6 +244,11 @@ def main() -> None:
     senate_paper.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
     senate_paper.add_argument("--terms-env", default="SENATE_EFD_TERMS_ACKNOWLEDGED")
     senate_paper.add_argument("--output", type=Path, required=True)
+    senate_paper_extract = sub.add_parser("extract-senate-paper-pages")
+    senate_paper_extract.add_argument("--evidence-root", type=Path, required=True)
+    senate_paper_extract.add_argument("--review-root", type=Path, required=True)
+    senate_paper_extract.add_argument("--tesseract", default="tesseract")
+    senate_paper_extract.add_argument("--output", type=Path, required=True)
     senate_history = sub.add_parser("plan-senate-amendment-backfill")
     senate_history.add_argument("--review-root", type=Path, required=True)
     senate_history.add_argument("--historical-discovery", type=Path, required=True)
@@ -358,6 +374,12 @@ def main() -> None:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_bytes(encode(selection.snapshot))
             print(json.dumps({"commit": selection.commit, "output": str(args.output.resolve())}))
+        elif args.command == "verify-first-launch":
+            result = validate_first_launch(args.review_root, args.input)
+            if args.output:
+                _write_atomic(args.output, result)
+            print(json.dumps({**result, "status": "ready",
+                              "output": str(args.output.resolve()) if args.output else None}))
         elif args.command == "discover-house-index":
             result = discover(args.year, args.archive, client=HouseIndexClient(args.timeout))
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -514,6 +536,7 @@ def main() -> None:
                 os.environ.get(args.key_id_env, ""),
                 os.environ.get(args.secret_key_env, ""),
                 timeout=args.timeout,
+                assets_url=args.assets_url,
             )
             validation = build_market_validation(
                 payload, client=client, checked_at=checked_at,
@@ -542,6 +565,9 @@ def main() -> None:
             print(json.dumps({"symbols": audit["symbol_count"],
                               "market_rows": audit["market_row_count"],
                               "missing_tickers": audit["missing_ticker_count"],
+                              "unsupported_tickers": audit["unsupported_ticker_count"],
+                              "unresolved_tickers": audit["unresolved_ticker_count"],
+                              "recovered_tickers": audit["recovered_ticker_count"],
                               "output": str(args.output.resolve()),
                               "audit": str(args.audit_output.resolve()),
                               "processed": (str(args.processed_output.resolve())
@@ -676,6 +702,17 @@ def main() -> None:
                               "pages": result["page_count"],
                               "evidence_complete": result["evidence_complete"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "extract-senate-paper-pages":
+            result = extract_archived_paper_reports(
+                args.evidence_root, args.review_root, executable=args.tesseract)
+            _write_atomic(args.output, result)
+            print(json.dumps({"reports": result["report_count"],
+                              "extractions": result["extraction_count"],
+                              "failures": result["failure_count"],
+                              "transactions": result["transaction_count"],
+                              "eligible": result["eligible_transaction_count"],
+                              "quarantined": result["quarantined_transaction_count"],
+                              "output": str(args.output.resolve())}))
         elif args.command == "oge-gate":
             config = oge_source_config_from_environment(
                 enabled_name=args.enabled_env, terms_name=args.terms_env)
@@ -798,7 +835,7 @@ def main() -> None:
                               "output": str(args.output.resolve())}))
     except (ValueError, RuntimeError, HouseIndexError, DisclosureCandidateError, AlpacaMarketError,
             SenateEfdError, SenateRosterError, SenateIdentityError, SenateHistoryError,
-            CongressMemberError, OgeCatalogError,
+            CongressMemberError, OgeCatalogError, ReleaseReadinessError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
         parser.exit(2, f"Snapshot operation failed: {exc}\n")

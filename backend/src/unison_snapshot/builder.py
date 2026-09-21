@@ -7,7 +7,8 @@ from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
 from .legacy import PROCESSOR_SHA256, load
-from .market_store import validate_market_rows
+from .market_store import (MARKET_COVERAGE_SCHEMA, SOURCE_ID as MARKET_SOURCE_ID,
+                           UNSUPPORTED_REASONS, validate_market_rows)
 
 SCHEMA = "politician-dashboard/v1"
 LAYOUT = "hash-sharded-v2"
@@ -166,6 +167,30 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 or any(not re.fullmatch(r"[0-9a-f]{64}", str(item)) for item in market_pages) \
                 or len(set(market_pages)) != len(market_pages):
             raise ValueError("Licensed market publication requires unique content-addressed market pages")
+        disclosed_tickers = {row["ticker"] for kind in ("transactions", "reported_holdings")
+                             for row in data[kind] if row.get("ticker")}
+        market_tickers = {row["ticker"] for row in data["security_market_data"]}
+        market_coverage = data["meta"].get("market_coverage")
+        if not isinstance(market_coverage, dict) \
+                or market_coverage.get("schema_version") != MARKET_COVERAGE_SCHEMA \
+                or market_coverage.get("source_id") != MARKET_SOURCE_ID:
+            raise ValueError("Licensed market publication requires deterministic market coverage")
+        covered = market_coverage.get("covered_tickers")
+        unsupported_rows = market_coverage.get("unsupported_tickers")
+        if not isinstance(covered, list) or any(not isinstance(item, str) for item in covered) \
+                or covered != sorted(set(covered)) or set(covered) != market_tickers:
+            raise ValueError("Market coverage covered_tickers must exactly match market rows")
+        if not isinstance(unsupported_rows, list) or any(not isinstance(item, dict)
+                                                         for item in unsupported_rows):
+            raise ValueError("Market coverage unsupported_tickers must be an array of objects")
+        unsupported: set[str] = set()
+        for item in unsupported_rows:
+            if set(item) != {"ticker", "reason"} or not isinstance(item["ticker"], str) \
+                    or item["reason"] not in UNSUPPORTED_REASONS or item["ticker"] in unsupported:
+                raise ValueError("Market coverage contains an invalid unsupported ticker")
+            unsupported.add(item["ticker"])
+        if unsupported & market_tickers or disclosed_tickers != market_tickers | unsupported:
+            raise ValueError("Market coverage must classify every disclosed ticker exactly once")
     elif market_commit is not None or market_pages is not None:
         raise ValueError("market commit and pages require licensed market publication")
     candidate = deepcopy(data)
@@ -217,13 +242,15 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # Include business time and presentation configuration: both affect processor output.
     settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days")
                 if key in data["meta"]}
-    disclosed_tickers = set(tickers)
     coverage = {"scope": "all_input_records", "universe_complete": False,
                 "people_count": len(data["people"]), "market_enabled": allow_market,
                 "publication_state": "bootstrap_empty" if not data["people"] else "active"}
     if allow_market:
         coverage.update(market_ticker_count=len(market_tickers),
-                        market_missing_ticker_count=len(disclosed_tickers - market_tickers))
+                        market_missing_ticker_count=0,
+                        market_unsupported_ticker_count=len(unsupported),
+                        market_supported_complete=True,
+                        market_coverage_sha256=digest(encode(market_coverage)))
     identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": PROCESSOR_SHA256, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
                 "data_cutoff_at": data["meta"]["data_cutoff_at"], "settings": settings,

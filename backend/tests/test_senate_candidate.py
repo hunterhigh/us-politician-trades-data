@@ -11,6 +11,7 @@ from unison_snapshot.senate_candidate import (
     AMENDMENT_COMPARE_RULE_VERSION, build_senate_candidate,
 )
 from unison_snapshot.senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+from unison_snapshot.senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
 CATALOG_SHA = "a" * 64
@@ -185,6 +186,54 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertEqual(audit["input_transaction_count"], 1)
             self.assertEqual(audit["fully_qualified_report_count"], 1)
             self.assertEqual(audit["qualified_rows"][0]["source_sha256"], "c" * 64)
+
+    def test_accepts_qualified_paper_extraction_without_inventing_filing_time(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "11111111-1111-4111-8111-111111111111"
+            paper = extraction(
+                document_id,
+                [row(owner_raw="Spouse")],
+                schema_version=PAPER_EXTRACTION_SCHEMA,
+                source_url=f"https://efdsearch.senate.gov/search/view/paper/{document_id}/",
+                filed_at_raw="Filed 09/17/2026",
+            )
+            state = self.fixture(root, [identity(document_id)], [paper])
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(candidate["transactions"][0]["filed_at"], "2026-09-17T00:00:00Z")
+            self.assertEqual((audit["electronic_report_count"], audit["paper_report_count"]),
+                             (0, 1))
+
+    def test_same_parser_version_loads_electronic_and_paper_reports_together(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            electronic_id = "11111111-1111-4111-8111-111111111111"
+            paper_id = "22222222-2222-4222-8222-222222222222"
+            electronic = extraction(
+                electronic_id, [row("senate-ptr:111111111111111111111111")])
+            paper = extraction(
+                paper_id, [row("senate-ptr:222222222222222222222222", owner_raw="Spouse")],
+                schema_version=PAPER_EXTRACTION_SCHEMA,
+                source_url=f"https://efdsearch.senate.gov/search/view/paper/{paper_id}/",
+                source_sha256="e" * 64,
+                filed_at_raw="Filed 09/16/2026",
+                portal_listed_date="2026-09-16",
+                report_label_date="2026-09-16",
+                report_title_date="2026-09-16",
+            )
+            state = self.fixture(
+                root,
+                [identity(electronic_id), identity(paper_id)],
+                [electronic, paper],
+            )
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+
+            self.assertEqual(len(candidate["transactions"]), 2)
+            self.assertEqual((audit["extracted_report_count"],
+                              audit["electronic_report_count"],
+                              audit["paper_report_count"]), (2, 1, 1))
 
     def test_resolves_unique_amendment_and_quarantines_other_invalid_records(self):
         with tempfile.TemporaryDirectory() as folder:

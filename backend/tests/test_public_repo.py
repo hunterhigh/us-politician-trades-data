@@ -95,6 +95,12 @@ class PublicRepositoryTests(unittest.TestCase):
                               {"date": "2026-09-18", "close": 101}],
         }
         data["security_market_data"] = [market]
+        data["meta"]["market_coverage"] = {
+            "schema_version": "alpaca-market-coverage/v1",
+            "source_id": "alpaca_sip_eod",
+            "covered_tickers": ["ZZDEMO"],
+            "unsupported_tickers": [],
+        }
         data["source_health"][-1].update(status="ok", source="Alpaca SIP EOD")
         market_bundle = build_market_bundle(
             [market], data_cutoff_at=data["meta"]["data_cutoff_at"])

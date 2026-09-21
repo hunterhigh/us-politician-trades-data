@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 import json
+import math
 import re
 import tempfile
 from urllib.parse import urlsplit
@@ -13,6 +14,14 @@ from .codec import bucket, digest, encode
 
 
 SOURCE_ID = "alpaca_sip_eod"
+MARKET_COVERAGE_SCHEMA = "alpaca-market-coverage/v1"
+UNSUPPORTED_REASONS = frozenset({
+    "non_equity_debt",
+    "outside_sip_foreign_exchange",
+    "outside_sip_fund",
+    "outside_sip_otc",
+    "private_entity",
+})
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 MUTABLE = re.compile(r"market/[0-9a-f]{2}/index\.json")
 IMMUTABLE = re.compile(r"(?:market/[0-9a-f]{2}|market-pages)/[0-9a-f]{64}\.json")
@@ -74,7 +83,7 @@ def validate_market_rows(rows: object, *, data_cutoff_at: str) -> list[dict]:
             if previous is not None and day <= previous:
                 raise ValueError(f"Market row {ticker} history must be unique and ascending")
             if day > cutoff or isinstance(close, bool) or not isinstance(close, (int, float)) \
-                    or close <= 0:
+                    or not math.isfinite(close) or close <= 0:
                 raise ValueError(f"Market row {ticker} contains an invalid completed close")
             previous = day
             normalized_history.append({"date": day.isoformat(), "close": round(float(close), 4)})

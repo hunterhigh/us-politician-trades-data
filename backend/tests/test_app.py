@@ -47,6 +47,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("resolve-senate-amendment-backfill", result.stdout)
         self.assertIn("activate-senate-amendment-supplement", result.stdout)
         self.assertIn("archive-senate-paper-pages", result.stdout)
+        self.assertIn("extract-senate-paper-pages", result.stdout)
         self.assertIn("oge-gate", result.stdout)
         self.assertIn("discover-oge", result.stdout)
         self.assertIn("archive-oge-direct-pdfs", result.stdout)

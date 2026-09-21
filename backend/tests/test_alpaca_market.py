@@ -43,13 +43,22 @@ def production_candidate() -> dict:
 
 
 class FakeMarketClient:
-    def __init__(self, response: dict[str, list[dict]]):
+    def __init__(self, response: dict[str, list[dict]], assets: list[dict] | None = None):
         self.response = response
+        self.asset_response = assets if assets is not None else [asset("ZZDEMO")]
         self.calls = []
+
+    def assets(self):
+        return self.asset_response
 
     def daily_bars(self, symbols, *, start, end):
         self.calls.append((symbols, start, end))
         return {symbol: self.response[symbol] for symbol in symbols if symbol in self.response}
+
+
+def asset(symbol: str, *, exchange: str = "NASDAQ", status: str = "active") -> dict:
+    return {"symbol": symbol, "class": "us_equity", "exchange": exchange,
+            "status": status, "name": symbol}
 
 
 class Response:
@@ -122,7 +131,22 @@ class AlpacaMarketTests(unittest.TestCase):
         self.assertEqual(client.page_count, 1)
         self.assertEqual(client.request_count, 2)
 
-    def test_builds_partial_candidate_accepted_by_frozen_frontend(self):
+    def test_http_client_loads_asset_master_and_rejects_secret_exfiltration_url(self):
+        requests = []
+
+        def opener(request, timeout):
+            requests.append(request)
+            return Response([asset("AAPL")])
+
+        client = AlpacaMarketClient("key", "secret", opener=opener)
+        self.assertEqual(client.assets()[0]["symbol"], "AAPL")
+        self.assertEqual(
+            parse_qs(urlsplit(requests[0].full_url).query)["asset_class"], ["us_equity"])
+        with self.assertRaisesRegex(AlpacaMarketError, "allowlisted"):
+            AlpacaMarketClient(
+                "key", "secret", assets_url="https://example.com/v2/assets")
+
+    def test_builds_local_partial_candidate_without_fabricating_missing_prices(self):
         snapshot = production_candidate()
         snapshot["transactions"][1]["ticker"] = "MISSING"
         client = FakeMarketClient({
@@ -133,25 +157,107 @@ class AlpacaMarketTests(unittest.TestCase):
                 {"t": "2026-09-18T04:00:00Z", "c": 110},
                 {"t": "2026-09-21T04:00:00Z", "c": 999},
             ]
-        })
+        }, assets=[asset("ZZDEMO"), asset("MISSING")])
         validation = build_market_validation(
-            snapshot, client=client, checked_at="2026-09-20T21:00:00Z", batch_size=1,
-            distribution_authorized=True)
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z", batch_size=1)
         self.assertEqual(validation.audit["symbol_count"], 2)
         self.assertEqual(validation.audit["market_row_count"], 1)
         self.assertEqual(validation.audit["missing_ticker_count"], 1)
-        self.assertTrue(validation.audit["distribution_authorized"])
+        self.assertFalse(validation.audit["distribution_authorized"])
         self.assertEqual(validation.snapshot["security_market_data"][0]["ticker"], "ZZDEMO")
         market_health = next(row for row in validation.snapshot["source_health"]
                              if row["source_id"] == "alpaca_sip_eod")
         self.assertEqual(market_health["status"], "partial")
-        self.assertIn("licensed_production", market_health["detail"])
+        self.assertIn("local_basic_validation", market_health["detail"])
         processed = load("process_snapshot").build_snapshot(validation.snapshot)
         market = processed["security_market_data"][0]
         self.assertEqual(market["as_of_date"], "2026-09-18")
         self.assertEqual(market["current_price"], 110.0)
         self.assertEqual(market["previous_quarter_end_price"], 100.0)
         self.assertEqual(len(market["price_history"]), 3)
+
+    def test_production_rejects_supported_ticker_without_bars(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][1]["ticker"] = "MISSING"
+        client = FakeMarketClient({
+            "ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}],
+        }, assets=[asset("ZZDEMO"), asset("MISSING")])
+        with self.assertRaisesRegex(AlpacaMarketError, "coverage is incomplete.*MISSING"):
+            build_market_validation(
+                snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+                distribution_authorized=True)
+
+    def test_production_rejects_stale_active_series_but_keeps_inactive_history(self):
+        snapshot = production_candidate()
+        stale = [{"t": "2026-08-01T04:00:00Z", "c": 110}]
+        with self.assertRaisesRegex(AlpacaMarketError, "coverage is incomplete.*ZZDEMO"):
+            build_market_validation(
+                snapshot, client=FakeMarketClient({"ZZDEMO": stale}),
+                checked_at="2026-09-20T21:00:00Z", distribution_authorized=True)
+        validation = build_market_validation(
+            snapshot,
+            client=FakeMarketClient({"ZZDEMO": stale}, assets=[asset("ZZDEMO", status="inactive")]),
+            checked_at="2026-09-20T21:00:00Z", distribution_authorized=True)
+        self.assertEqual(validation.audit["market_row_count"], 1)
+
+    def test_history_request_covers_earliest_supported_disclosure(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][0].update(
+            transaction_date="2020-01-03", filed_at="2020-02-11T00:00:00Z")
+        client = FakeMarketClient({
+            "ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}],
+        })
+        build_market_validation(
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z")
+        self.assertEqual(client.calls[0][1].date().isoformat(), "2019-12-27")
+
+    def test_recovers_explicit_name_ticker_and_classifies_sip_scope(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][0].update(
+            ticker=None, ticker_mapping_basis=None,
+            asset_name="Berkshire Hathaway Class B (BRK.B)")
+        snapshot["transactions"][1].update(
+            ticker="BOND12345", instrument_type="Bond", asset_name="Issuer Bond")
+        snapshot["reported_holdings"][0].update(
+            ticker="ADRNY", asset_name="Ahold Delhaize Sponsored ADR (ADRNY)")
+        fund = deepcopy(snapshot["transactions"][1])
+        fund.update(id="fund-row", ticker="FXAIX", instrument_type="Mutual Fund",
+                    asset_name="Fidelity 500 Index Fund")
+        snapshot["transactions"].append(fund)
+        preferred = deepcopy(snapshot["transactions"][1])
+        preferred.update(id="preferred-row", ticker="SNV-D", instrument_type="Stock",
+                         asset_name="Synovus Financial Corp. 6.3%")
+        snapshot["transactions"].append(preferred)
+        client = FakeMarketClient({
+            "BRK.B": [{"t": "2026-09-18T04:00:00Z", "c": 500}],
+            "SNV.PR.D": [{"t": "2026-09-18T04:00:00Z", "c": 25}],
+        }, assets=[asset("BRK.B"), asset("SNV.PR.D"), asset("ADRNY", exchange="OTC")])
+        validation = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(validation.audit["recovered_ticker_count"], 1)
+        self.assertEqual(validation.audit["supported_ticker_count"], 2)
+        self.assertEqual(validation.audit["unsupported_ticker_count"], 3)
+        self.assertEqual(validation.audit["unresolved_ticker_count"], 0)
+        first = validation.snapshot["transactions"][0]
+        self.assertEqual((first["ticker"], first["ticker_mapping_basis"]),
+                         ("BRK.B", "filing_explicit_asset_name"))
+        preferred_mapping = next(row for row in validation.audit["supported_tickers"]
+                                 if row["ticker"] == "SNV-D")
+        self.assertEqual(preferred_mapping["provider_symbol"], "SNV.PR.D")
+        self.assertEqual(
+            validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"],
+            [{"ticker": "ADRNY", "reason": "outside_sip_otc"},
+             {"ticker": "BOND12345", "reason": "non_equity_debt"},
+             {"ticker": "FXAIX", "reason": "outside_sip_fund"}])
+
+    def test_production_rejects_symbol_absent_from_asset_master(self):
+        snapshot = production_candidate()
+        client = FakeMarketClient({}, assets=[asset("OTHER")])
+        with self.assertRaisesRegex(AlpacaMarketError, "unresolved.*ZZDEMO"):
+            build_market_validation(
+                snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+                distribution_authorized=True)
 
     def test_future_as_of_and_empty_response_fail_closed(self):
         snapshot = production_candidate()

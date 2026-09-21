@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 from .senate import SenateEfdError
 from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+from .senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
@@ -39,7 +40,7 @@ INSTRUMENT_TYPES = {
 }
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 _FILED = re.compile(
-    r"Filed (\d{2}/\d{2}/\d{4}) @ (?:0?[1-9]|1[0-2])(?::[0-5][0-9])? (?:AM|PM)"
+    r"Filed (\d{2}/\d{2}/\d{4})(?: @ (?:0?[1-9]|1[0-2])(?::[0-5][0-9])? (?:AM|PM))?"
 )
 _FILED_TIMESTAMP = re.compile(
     r"Filed (\d{2}/\d{2}/\d{4}) @ (0?[1-9]|1[0-2])(?::([0-5][0-9]))? (AM|PM)"
@@ -553,7 +554,9 @@ def build_senate_candidate(
         extraction = _read_json(path, "Senate extraction artifact")
         document_id = extraction.get("document_id")
         source_sha = extraction.get("source_sha256")
-        expected_url = f"https://efdsearch.senate.gov/search/view/ptr/{document_id}/"
+        expected_kind = ("paper" if extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA
+                         else "ptr")
+        expected_url = f"https://efdsearch.senate.gov/search/view/{expected_kind}/{document_id}/"
         if (extraction.get("source_id") != "senate_efd" or
                 path.parent.parent.name != document_id or
                 path.parent.name != source_sha or
@@ -641,7 +644,8 @@ def build_senate_candidate(
     for extraction in extraction_values:
         document_id = extraction.get("document_id")
         identity = identity_by_document.get(document_id)
-        if (extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+        if (extraction.get("schema_version") not in {
+                    ELECTRONIC_EXTRACTION_SCHEMA, PAPER_EXTRACTION_SCHEMA} or
                 extraction.get("parser_version") != parser_version or not extraction.get("evidence_complete")):
             raise SenateEfdError("Senate extraction artifact has an unsupported schema or state")
         if (not isinstance(identity, dict) or
@@ -755,7 +759,7 @@ def build_senate_candidate(
     if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
         raise SenateEfdError("Senate candidate base must be a production input")
     candidate["meta"]["data_cutoff_at"] = cutoff
-    candidate["meta"]["subtitle"] = "Senate电子PTR真实候选；纸面报告、其他来源和行情仍在回填"
+    candidate["meta"]["subtitle"] = "Senate PTR真实候选；其他来源和行情仍在回填"
     candidate["people"] = [people[key] for key in sorted(people)]
     candidate["transactions"] = sorted(transactions, key=lambda item: item["id"])
     candidate["reported_holdings"] = []
@@ -770,12 +774,12 @@ def build_senate_candidate(
         "last_successful_sync_at": cutoff,
         "data_cutoff_at": cutoff,
         "detail": (f"{status['catalog_record_count']} PTR catalog records and entrypoints archived; "
-                   f"{status['report_evidence_count']} electronic reports parsed; "
+                   f"{status['report_evidence_count']} reports parsed; "
                    f"{len(transactions)} transactions automatically qualified; "
                    f"{report_quarantined_transaction_count + len(quarantined_rows)} transactions quarantined "
                    f"across {len(quarantined_reports) + partially_qualified_reports + row_only_quarantined_reports} affected reports; "
                    f"{superseded_report_transaction_count} transactions superseded by verified amendments; "
-                   f"{status['catalog_record_count'] - status['report_evidence_count']} paper viewers pending pages."),
+                   f"{status['catalog_record_count'] - status['report_evidence_count']} reports pending extraction."),
     }
     health = candidate.get("source_health")
     if not isinstance(health, list):
@@ -796,7 +800,13 @@ def build_senate_candidate(
         "parser_version": parser_version,
         "data_cutoff_at": cutoff,
         "catalog_record_count": status["catalog_record_count"],
-        "electronic_report_count": len(extraction_paths),
+        "extracted_report_count": len(extraction_paths),
+        "electronic_report_count": sum(
+            item.get("schema_version") == ELECTRONIC_EXTRACTION_SCHEMA
+            for item in extraction_values),
+        "paper_report_count": sum(
+            item.get("schema_version") == PAPER_EXTRACTION_SCHEMA
+            for item in extraction_values),
         "input_transaction_count": input_transaction_count,
         "qualified_report_count": qualified_reports,
         "fully_qualified_report_count": fully_qualified_reports,

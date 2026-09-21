@@ -88,7 +88,15 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("--expected-documents 9", content)
         self.assertIn("--expected-pages 52", content)
         self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/paper_pages", content)
-        self.assertNotIn("HEAD:refs/heads/review", content)
+        self.assertIn("extract-senate-paper-pages", content)
+        self.assertIn("tesseract-ocr", content)
+        self.assertIn("extraction_count'] + batch['failure_count'] != 9", content)
+        self.assertIn("paper_report_failures", content)
+        self.assertIn("paper_failures = len(batch['failures'])", content)
+        self.assertIn("HEAD:refs/heads/review", content)
+        self.assertIn("HEAD:refs/heads/state", content)
+        self.assertIn("build-senate-candidate", content)
+        self.assertIn("build-disclosure-candidate", content)
 
 
 if __name__ == "__main__":

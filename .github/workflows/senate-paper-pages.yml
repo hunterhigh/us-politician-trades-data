@@ -7,7 +7,7 @@ jobs:
   archive-pages:
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     concurrency:
       group: disclosure-source-writer
       cancel-in-progress: false
@@ -27,13 +27,17 @@ jobs:
         run: |
           evidence_root="$RUNNER_TEMP/senate-paper-evidence"
           review_root="$RUNNER_TEMP/senate-paper-review"
+          state_root="$RUNNER_TEMP/senate-paper-state"
           git fetch --no-tags origin \
             evidence:refs/remotes/origin/evidence \
-            review:refs/remotes/origin/review
+            review:refs/remotes/origin/review \
+            state:refs/remotes/origin/state
           git worktree add --detach "$evidence_root" origin/evidence
           git worktree add --detach "$review_root" origin/review
+          git worktree add --detach "$state_root" origin/state
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
       - name: Archive the complete current paper page set
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -56,6 +60,28 @@ jobs:
                   batch['evidence_complete']) != (9, 52, True):
               raise SystemExit('Senate paper PTR page evidence is incomplete')
           PY
+      - name: Install bounded OCR engine
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          tesseract --version | head -1
+      - name: Extract all archived paper reports
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-paper-pages \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --review-root "$REVIEW_ROOT" \
+            --output .local/senate-paper-extraction-batch.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          batch = json.loads(Path('.local/senate-paper-extraction-batch.json').read_text(encoding='utf-8'))
+          if batch['report_count'] != 9 or batch['extraction_count'] + batch['failure_count'] != 9:
+              raise SystemExit('Every Senate paper report must have an extraction or explicit failure')
+          PY
       - name: Publish immutable paper page evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -69,8 +95,123 @@ jobs:
             git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate paper PTR pages ${{ github.run_id }}"
             git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
           fi
+      - name: Publish paper extraction dispositions
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          batch = json.loads(Path('.local/senate-paper-extraction-batch.json').read_text(encoding='utf-8'))
+          review = Path(os.environ['REVIEW_ROOT'])
+          state = Path(os.environ['STATE_ROOT'])
+          parser = batch['parser_version']
+          for item in batch['extractions']:
+              target = (review / 'senate_efd' / 'extractions' / item['document_id'] /
+                        item['source_sha256'] / f'{parser}.json')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              content = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+              if target.is_file() and target.read_text(encoding='utf-8') != content:
+                  raise SystemExit(f'Immutable Senate paper extraction collision: {target}')
+              target.write_text(content, encoding='utf-8')
+          failure_root = review / 'senate_efd' / 'paper_report_failures'
+          for item in batch['failures']:
+              target = failure_root / item['document_id'] / item['source_sha256'] / f'{parser}.json'
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(json.dumps(item, ensure_ascii=False, sort_keys=True,
+                                           separators=(',', ':')), encoding='utf-8')
+          extraction_paths = list((review / 'senate_efd' / 'extractions').glob(f'*/*/{parser}.json'))
+          extractions = [json.loads(path.read_text(encoding='utf-8')) for path in extraction_paths]
+          transaction_count = sum(len(item.get('transactions', [])) for item in extractions)
+          electronic_failures = len(list((review / 'senate_efd' / 'report_failures').glob(
+              f'*/*/{parser}.json')))
+          paper_failures = len(batch['failures'])
+          status_path = review / 'status' / 'senate_efd.json'
+          status = json.loads(status_path.read_text(encoding='utf-8'))
+          status.update({
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'report_evidence_count': len(extractions),
+              'report_extraction_failure_count': electronic_failures + paper_failures,
+              'extracted_transaction_count': transaction_count,
+              'paper_report_count': batch['report_count'],
+              'paper_extraction_count': batch['extraction_count'],
+              'paper_extraction_failure_count': paper_failures,
+              'paper_eligible_transaction_count': batch['eligible_transaction_count'],
+              'paper_quarantined_transaction_count': batch['quarantined_transaction_count'],
+              'detail': (f"{status['report_entrypoint_count']} PTR entrypoints archived; "
+                         f"{len(extractions)} reports parsed into {transaction_count} transactions; "
+                         f"{paper_failures + electronic_failures} current-parser failures remain."),
+          })
+          status_path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True,
+                                            separators=(',', ':')), encoding='utf-8')
+          state_path = state / 'status' / 'senate_efd.json'
+          state_status = json.loads(state_path.read_text(encoding='utf-8'))
+          state_status['run_at'] = datetime.now(timezone.utc).isoformat()
+          state_status['reports'].update({
+              'evidence_count': len(extractions),
+              'last_batch_extractions': batch['extraction_count'],
+              'last_batch_extraction_failures': electronic_failures + paper_failures,
+              'last_batch_transactions': transaction_count,
+              'paper_report_count': batch['report_count'],
+              'paper_extraction_count': batch['extraction_count'],
+              'paper_quarantined_transaction_count': batch['quarantined_transaction_count'],
+          })
+          state_path.write_text(json.dumps(state_status, ensure_ascii=False, sort_keys=True,
+                                           separators=(',', ':')), encoding='utf-8')
+          PY
+          git -C "$STATE_ROOT" add status/senate_efd.json
+          git -C "$STATE_ROOT" config user.name "github-actions[bot]"
+          git -C "$STATE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git -C "$STATE_ROOT" diff --cached --quiet; then
+            git -C "$STATE_ROOT" commit -m "state: Senate paper extraction ${{ github.run_id }}"
+            git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
+          fi
+          git -C "$REVIEW_ROOT" add senate_efd/extractions senate_efd/paper_report_failures status/senate_efd.json
+          git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+          git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" commit -m "review: Senate paper extraction ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
+          failures="$(python -c "import json; print(json.load(open('.local/senate-paper-extraction-batch.json'))['failure_count'])")"
+          if [ "$failures" != "0" ]; then
+            echo "$failures Senate paper reports remain in explicit failure isolation." >&2
+            exit 1
+          fi
+      - name: Rebuild Senate and unified disclosure candidates
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/senate_efd.json" \
+            --base ingest/current.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$REVIEW_ROOT/senate_efd/qualifications/current.json" \
+            --html-output "$RUNNER_TEMP/senate-paper-current.html"
+          source_args=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
+          for source in house_clerk oge; do
+            path="$REVIEW_ROOT/candidates/sources/$source-current.json"
+            if [ -f "$path" ]; then source_args+=(--source "$source=$path"); fi
+          done
+          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
+            --html-output "$RUNNER_TEMP/disclosure-current.html"
+          git -C "$REVIEW_ROOT" add candidates senate_efd/qualifications status/disclosure_cutoff.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" commit -m "review: rebuild candidates with Senate paper PTRs ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: senate-paper-page-batch-${{ github.run_id }}
-          path: .local/senate-paper-page-batch.json
+          path: |
+            .local/senate-paper-page-batch.json
+            .local/senate-paper-extraction-batch.json
           retention-days: 1

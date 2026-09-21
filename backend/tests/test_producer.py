@@ -122,18 +122,31 @@ class ProducerTests(unittest.TestCase):
             "price_history": [{"date": "2026-09-17", "close": 100},
                               {"date": "2026-09-18", "close": 101}],
         }]
+        data["meta"]["market_coverage"] = {
+            "schema_version": "alpaca-market-coverage/v1",
+            "source_id": "alpaca_sip_eod",
+            "covered_tickers": ["ZZDEMO"],
+            "unsupported_tickers": [],
+        }
         with self.assertRaisesRegex(ValueError, "frozen market commit"):
             build(data, generated_at=NOW, allow_production=True, allow_market=True)
         bundle = build(data, generated_at=NOW, allow_production=True, allow_market=True,
                        market_commit="1" * 40, market_pages=["2" * 64])
         self.assertEqual(bundle.manifest["market_commit"], "1" * 40)
         self.assertTrue(bundle.manifest["coverage"]["market_enabled"])
+        self.assertTrue(bundle.manifest["coverage"]["market_supported_complete"])
+        self.assertEqual(bundle.manifest["coverage"]["market_missing_ticker_count"], 0)
         person_index = json.loads(bundle.files[
             f"people/{bucket('people', 'house:DEMO001')}/index.json"])
         person_sha = person_index["shards"]["house:DEMO001"]
         person = json.loads(bundle.files[
             f"people/{bucket('people', 'house:DEMO001')}/{person_sha}.json"])
         self.assertEqual(person["requires"], ["market:ZZDEMO"])
+        incomplete = deepcopy(data)
+        incomplete["meta"]["market_coverage"]["covered_tickers"] = []
+        with self.assertRaisesRegex(ValueError, "exactly match market rows"):
+            build(incomplete, generated_at=NOW, allow_production=True, allow_market=True,
+                  market_commit="1" * 40, market_pages=["2" * 64])
 
 
 class StoreTests(unittest.TestCase):

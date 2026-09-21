@@ -1,6 +1,8 @@
 name: Publish complete production snapshot
 
 on:
+  schedule:
+    - cron: '30 22 * * 1-5'
   workflow_dispatch:
     inputs:
       batch_size:
@@ -17,7 +19,9 @@ concurrency:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/code'
+    if: >-
+      github.ref == 'refs/heads/code' &&
+      (github.event_name == 'workflow_dispatch' || vars.COMPLETE_PUBLICATION_ENABLED == 'true')
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -43,7 +47,7 @@ jobs:
           AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
           KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
-          BATCH_SIZE: ${{ inputs.batch_size }}
+          BATCH_SIZE: ${{ inputs.batch_size || vars.MARKET_BATCH_SIZE || '100' }}
         run: |
           test "$AUTHORIZED" = "true" || {
             echo "MARKET_DISTRIBUTION_AUTHORIZED must be true in production." >&2
@@ -70,15 +74,26 @@ jobs:
           echo "main_root=$main_root" >> "$GITHUB_OUTPUT"
           echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Verify first-launch disclosure completeness
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot verify-first-launch \
+            --review-root "$REVIEW_ROOT" \
+            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/release-readiness.json"
       - name: Build licensed five-array candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
-          BATCH_SIZE: ${{ inputs.batch_size }}
+          ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
+          BATCH_SIZE: ${{ inputs.batch_size || vars.MARKET_BATCH_SIZE || '100' }}
           PYTHONPATH: backend/src
         run: |
           checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
           python -m unison_snapshot build-alpaca-market-validation \
             --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --output "$RUNNER_TEMP/complete-candidate.json" \
@@ -86,7 +101,22 @@ jobs:
             --processed-output "$RUNNER_TEMP/complete-processed.json" \
             --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
+            --assets-url "$assets_url" \
             --distribution-authorized
+      - name: Select fixed published readback probes
+        id: probes
+        run: |
+          python - <<'PY'
+          import json, os
+          candidate = json.load(open(os.environ['RUNNER_TEMP'] + '/complete-candidate.json'))
+          covered = {row['ticker'] for row in candidate['security_market_data']}
+          transaction = next(
+              row for row in candidate['transactions']
+              if row.get('ticker') in covered)
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f"person_id={transaction['person_id']}\n")
+              output.write(f"ticker={transaction['ticker']}\n")
+          PY
       - name: Verify complete candidate in the frozen browser frontend
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
@@ -166,6 +196,72 @@ jobs:
           }
           git -C "$MAIN_ROOT" push --atomic origin \
             HEAD:refs/heads/main "refs/tags/published/$MAIN_SHA"
+      - name: Read back the published main and market commits
+        env:
+          EXPECTED_MAIN: ${{ steps.main.outputs.main_sha || steps.trees.outputs.main_base }}
+          PERSON_ID: ${{ steps.probes.outputs.person_id }}
+          TICKER: ${{ steps.probes.outputs.ticker }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONPATH: backend/src
+        run: |
+          fetch_selection() {
+            mode="$1"
+            key="$2"
+            output="$3"
+            for attempt in 1 2 3 4; do
+              args=(--owner hunterhigh --repo us-politician-trades-data --ref main \
+                    --mode "$mode" --output "$output")
+              if [ -n "$key" ]; then args+=(--key "$key"); fi
+              if python -m unison_snapshot fetch-public "${args[@]}"; then return 0; fi
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
+          fetch_selection dashboard '' "$RUNNER_TEMP/readback-dashboard.json"
+          fetch_selection search '' "$RUNNER_TEMP/readback-search.json"
+          fetch_selection person "$PERSON_ID" "$RUNNER_TEMP/readback-person.json"
+          fetch_selection ticker "$TICKER" "$RUNNER_TEMP/readback-ticker.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from unison_snapshot.legacy import load
+
+          root = Path(os.environ['RUNNER_TEMP'])
+          expected = os.environ['EXPECTED_MAIN']
+          person_id = os.environ['PERSON_ID']
+          ticker = os.environ['TICKER']
+          values = {
+              mode: json.loads((root / f'readback-{mode}.json').read_text(encoding='utf-8'))
+              for mode in ('dashboard', 'search', 'person', 'ticker')
+          }
+          for mode, value in values.items():
+              if value['meta']['snapshot_commit'] != expected:
+                  raise SystemExit(f'{mode} resolved an unexpected main commit')
+              if value['meta']['selection_scope']['mode'] != mode:
+                  raise SystemExit(f'{mode} returned an unexpected selection scope')
+          for mode in ('dashboard', 'search'):
+              for key in ('people', 'transactions', 'reported_holdings',
+                          'security_market_data', 'source_health'):
+                  if not values[mode].get(key):
+                      raise SystemExit(f'{mode} returned an empty {key} array')
+          if values['person']['meta']['selection_scope']['key'] != person_id \
+                  or not values['person']['transactions']:
+              raise SystemExit('Published person readback is incomplete')
+          if values['ticker']['meta']['selection_scope']['key'] != ticker \
+                  or not values['ticker']['transactions'] \
+                  or not values['ticker']['security_market_data']:
+              raise SystemExit('Published ticker readback is incomplete')
+
+          renderer = load('render_dashboard')
+          html = renderer.render_html(renderer.load_dashboard_data(
+              root / 'readback-dashboard.json'))
+          (root / 'readback-dashboard.html').write_text(html, encoding='utf-8')
+          PY
+      - name: Verify the published result in the frozen browser frontend
+        env:
+          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/readback-dashboard.html
+        run: npm run test:production
+        working-directory: frontend-e2e
       - name: Record auditable coverage
         env:
           MARKET_SHA: ${{ steps.market.outputs.market_sha }}
@@ -174,18 +270,28 @@ jobs:
           python - <<'PY'
           import json, os
           audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
+          readiness=json.load(open(os.environ['RUNNER_TEMP']+'/release-readiness.json'))
           print(f"Market commit: `{os.environ['MARKET_SHA']}`")
           print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
+          print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
           print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
           print(f"Price points: {audit['price_point_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
+          print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
+          print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
+          print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
           PY
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, os
           audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
+          readiness=json.load(open(os.environ['RUNNER_TEMP']+'/release-readiness.json'))
           print(f"Market commit: `{os.environ['MARKET_SHA']}`")
           print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
+          print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
           print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
           print(f"Price points: {audit['price_point_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
+          print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
+          print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
+          print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
           PY
