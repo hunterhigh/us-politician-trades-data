@@ -286,6 +286,37 @@ class AlpacaMarketTests(unittest.TestCase):
                 distribution_authorized=True,
             )
 
+    def test_duplicate_asset_symbol_prefers_active_when_market_scope_is_unambiguous(self):
+        snapshot = production_candidate()
+        validation = build_market_validation(
+            snapshot,
+            client=FakeMarketClient(
+                {"ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}]},
+                assets=[
+                    asset("ZZDEMO", exchange="OTC", status="inactive"),
+                    asset("ZZDEMO", exchange="NASDAQ", status="active"),
+                    asset("ZZDEMO", exchange="NYSE", status="active"),
+                ],
+            ),
+            checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True,
+        )
+        self.assertEqual(validation.audit["market_row_count"], 1)
+
+        with self.assertRaisesRegex(AlpacaMarketError, "conflicting market scope.*ZZDEMO"):
+            build_market_validation(
+                snapshot,
+                client=FakeMarketClient(
+                    {},
+                    assets=[
+                        asset("ZZDEMO", exchange="OTC", status="active"),
+                        asset("ZZDEMO", exchange="NASDAQ", status="active"),
+                    ],
+                ),
+                checked_at="2026-09-20T21:00:00Z",
+                distribution_authorized=True,
+            )
+
     def test_future_as_of_and_empty_response_fail_closed(self):
         snapshot = production_candidate()
         client = FakeMarketClient({})

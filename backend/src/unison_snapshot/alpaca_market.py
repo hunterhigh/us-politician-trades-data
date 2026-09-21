@@ -250,7 +250,7 @@ def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str], dict[
 def _asset_registry(rows: object) -> dict[str, dict]:
     if not isinstance(rows, list):
         raise AlpacaMarketError("Alpaca assets response must be an array")
-    result: dict[str, dict] = {}
+    candidates: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
         if not isinstance(row, dict):
             raise AlpacaMarketError("Alpaca assets response must contain objects")
@@ -266,11 +266,36 @@ def _asset_registry(rows: object) -> dict[str, dict]:
             # an ignored row remains unresolved and is rejected by the production
             # coverage gate below, so this cannot silently create market coverage.
             continue
-        if symbol in result:
-            raise AlpacaMarketError(f"Alpaca assets response contains duplicate symbol {symbol}")
-        result[symbol] = dict(row, symbol=symbol, exchange=exchange, status=status)
-    if not result:
+        candidates[symbol].append(
+            dict(row, symbol=symbol, exchange=exchange, status=status))
+    if not candidates:
         raise AlpacaMarketError("Alpaca assets response is empty")
+
+    result: dict[str, dict] = {}
+    for symbol, matches in candidates.items():
+        # Alpaca may retain more than one asset identity for a reused symbol.
+        # Current records supersede inactive identities.  Within the selected
+        # status, exchange values are equivalent only when they lead to the same
+        # SIP/OTC support decision; a conflict remains unsafe and fails closed.
+        active = [row for row in matches if row["status"] == "active"]
+        preferred = active or matches
+        scopes = {
+            "sip" if row["exchange"] in SIP_EXCHANGES
+            else "otc" if row["exchange"] == "OTC"
+            else "unknown"
+            for row in preferred
+        }
+        if len(scopes) != 1:
+            raise AlpacaMarketError(
+                f"Alpaca assets response has conflicting market scope for {symbol}")
+        result[symbol] = min(
+            preferred,
+            key=lambda row: (
+                row["exchange"],
+                str(row.get("id") or ""),
+                json.dumps(row, sort_keys=True, ensure_ascii=True, separators=(",", ":")),
+            ),
+        )
     return result
 
 
