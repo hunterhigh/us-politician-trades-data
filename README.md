@@ -32,7 +32,7 @@ Set-Location backend
 python scripts/verify.py
 ```
 
-公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批原件，并更新公开来源检查点。下一步以自动资格校验、异常隔离和完整候选快照替代逐条人工批准。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
+公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批PTR原件，并更新公开来源检查点。`house-holdings.yml`提供受控的手动小批次年度报告持仓回填，原件只进`evidence`，机器结果与候选只进`review`。下一步以自动资格校验、异常隔离和完整候选快照替代逐条人工批准。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
 
 生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：后台部署已经运行，但自动晋级、完整披露回填、行情回填和原前端验收尚未完成。
 

@@ -16,6 +16,8 @@ from .house_ptr import make_review_template, parse_archived_pdf, promote_review,
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
+from .house_holdings import (HouseFinancialDocumentClient, archive_indexed_financial_report,
+                             parse_archived_financial_report, qualify_financial_report)
 from .disclosure_candidate import DisclosureCandidateError, build_disclosure_candidate
 from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
@@ -100,6 +102,21 @@ def main() -> None:
     ptr.add_argument("--archive", type=Path, required=True)
     ptr.add_argument("--output", type=Path, required=True)
     ptr.add_argument("--timeout", type=float, default=30.0)
+    holding_archive = sub.add_parser("archive-house-holding-report")
+    holding_archive.add_argument("--year", type=int, required=True)
+    holding_archive.add_argument("--index-sha", required=True)
+    holding_archive.add_argument("--document-id", required=True)
+    holding_archive.add_argument("--archive", type=Path, required=True)
+    holding_archive.add_argument("--output", type=Path, required=True)
+    holding_archive.add_argument("--timeout", type=float, default=30.0)
+    holding_parse = sub.add_parser("parse-house-holding-report")
+    holding_parse.add_argument("--archive", type=Path, required=True)
+    holding_parse.add_argument("--metadata", type=Path, required=True)
+    holding_parse.add_argument("--output", type=Path, required=True)
+    holding_qualify = sub.add_parser("qualify-house-holding-report")
+    holding_qualify.add_argument("--extraction", type=Path, required=True)
+    holding_qualify.add_argument("--identity", type=Path, required=True)
+    holding_qualify.add_argument("--output", type=Path, required=True)
     parse_ptr = sub.add_parser("parse-house-ptr")
     parse_ptr.add_argument("--archive", type=Path, required=True)
     parse_ptr.add_argument("--metadata", type=Path, required=True)
@@ -327,6 +344,32 @@ def main() -> None:
             print(json.dumps({"year": args.year, "document_id": args.document_id,
                               "sha256": result["sha256"], "bytes": result["byte_length"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "archive-house-holding-report":
+            result = archive_indexed_financial_report(
+                args.archive, args.year, args.index_sha, args.document_id,
+                client=HouseFinancialDocumentClient(args.timeout))
+            _write_atomic(args.output, result)
+            print(json.dumps({"year": args.year, "document_id": args.document_id,
+                              "sha256": result["sha256"], "bytes": result["byte_length"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "parse-house-holding-report":
+            metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
+            result = parse_archived_financial_report(args.archive, metadata)
+            _write_atomic(args.output, result)
+            print(json.dumps({"document_id": result["source"]["document_id"],
+                              "rows": len(result["rows"]),
+                              "report_period_end": result["report_period_end"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "qualify-house-holding-report":
+            extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
+            identity = json.loads(args.identity.read_text(encoding="utf-8"))
+            result = qualify_financial_report(extraction, identity)
+            _write_atomic(args.output, result)
+            print(json.dumps({"document_id": result["source"]["document_id"],
+                              "eligible": result["production_eligible"],
+                              "holdings": len(result["holdings"]),
+                              "quarantined": len(result["quarantined"]),
+                              "output": str(args.output.resolve())}))
         elif args.command == "parse-house-ptr":
             result = parse_archived_pdf(args.archive, args.metadata)
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -377,6 +420,7 @@ def main() -> None:
                 args.html_output.write_text(html, encoding="utf-8")
             print(json.dumps({"people": len(result["people"]),
                               "transactions": len(result["transactions"]),
+                              "reported_holdings": len(result["reported_holdings"]),
                               "output": str(args.output.resolve()),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "build-senate-candidate":

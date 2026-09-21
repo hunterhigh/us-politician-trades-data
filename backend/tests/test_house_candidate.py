@@ -94,6 +94,76 @@ class HouseCandidateTests(unittest.TestCase):
             with self.assertRaises(HouseIndexError):
                 build_house_candidate(root, state, deepcopy(BASE))
 
+    def test_latest_complete_annual_report_adds_holdings_and_person(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            identity = {**IDENTITY, "roster_sha256": "b" * 64,
+                        "status": "matched_automatically",
+                        "match_basis": "official_roster_exact_district_first_last_name"}
+            holding = {"id": "house-holding:one", "filing_id": "10000002",
+                       "person_id": "house:P000197", "owner": "Self",
+                       "asset_name": "Example Corp", "ticker": "EXM",
+                       "ticker_mapping_basis": "filing_explicit", "instrument_type": "Stock",
+                       "report_period_end": "2025-12-31", "filed_at": "2026-05-01T00:00:00Z",
+                       "value_low": 1001, "value_high": 15000, "change_from_prior": "unknown",
+                       "source_id": "house_clerk", "source": "U.S. House Clerk",
+                       "source_url": "https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/10000002.pdf",
+                       "verification_status": "official_matched"}
+            artifact = {"schema_version": "house-holding-qualification/v1",
+                        "source": {"document_id": "10000002", "filed_date": "2026-05-01"},
+                        "report_period_end": "2025-12-31", "identity": identity,
+                        "production_eligible": True, "holdings": [holding],
+                        "excluded": [], "quarantined": []}
+            target = root / "house_clerk/holding_qualifications/2025/10000002/a.json"
+            target.parent.mkdir(parents=True)
+            target.write_text(json.dumps(artifact), encoding="utf-8")
+            status = {"qualification_count": 1, "qualified_holding_count": 1,
+                      "quarantined_row_count": 0}
+            (root / "status/house_holdings.json").write_text(json.dumps(status), encoding="utf-8")
+            state = {"status": "ok", "run_at": "2026-09-18T12:00:00Z",
+                     "counts": {"archived": 1, "pending": 0, "failed": 0}}
+            result = build_house_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(result["reported_holdings"], [holding])
+
+    def test_does_not_fall_back_when_latest_annual_report_is_ineligible(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            identity = {**IDENTITY, "roster_sha256": "b" * 64,
+                        "status": "matched_automatically",
+                        "match_basis": "official_roster_exact_district_first_last_name"}
+            holding = {"id": "house-holding:old", "filing_id": "10000001",
+                       "person_id": "house:P000197", "owner": "Self", "asset_name": "Old",
+                       "ticker": None, "ticker_mapping_basis": None, "instrument_type": "Other",
+                       "report_period_end": "2024-12-31", "filed_at": "2025-05-01T00:00:00Z",
+                       "value_low": 1001, "value_high": 15000, "change_from_prior": "unknown",
+                       "source_id": "house_clerk", "source": "U.S. House Clerk",
+                       "source_url": "https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2024/10000001.pdf",
+                       "verification_status": "official_matched"}
+            artifacts = [
+                ("2024", "10000001", {"schema_version": "house-holding-qualification/v1",
+                    "source": {"document_id": "10000001", "filed_date": "2025-05-01"},
+                    "report_period_end": "2024-12-31", "identity": identity,
+                    "production_eligible": True, "holdings": [holding], "excluded": [], "quarantined": []}),
+                ("2025", "10000002", {"schema_version": "house-holding-qualification/v1",
+                    "source": {"document_id": "10000002", "filed_date": "2026-05-01"},
+                    "report_period_end": "2025-12-31", "identity": identity,
+                    "production_eligible": False, "holdings": [], "excluded": [],
+                    "quarantined": [{"extraction_id": "new", "reasons": ["value_not_representable"]}]}),
+            ]
+            for year, document_id, artifact in artifacts:
+                target = root / f"house_clerk/holding_qualifications/{year}/{document_id}/a.json"
+                target.parent.mkdir(parents=True)
+                target.write_text(json.dumps(artifact), encoding="utf-8")
+            (root / "status/house_holdings.json").write_text(json.dumps({
+                "qualification_count": 2, "qualified_holding_count": 1,
+                "quarantined_row_count": 1}), encoding="utf-8")
+            state = {"status": "ok", "run_at": "2026-09-18T12:00:00Z",
+                     "counts": {"archived": 1, "pending": 0, "failed": 0}}
+            result = build_house_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(result["reported_holdings"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

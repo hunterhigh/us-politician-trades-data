@@ -48,7 +48,6 @@ class HouseIndexTests(unittest.TestCase):
 
     def test_malformed_duplicate_and_unexpected_archive_fail(self):
         cases = [
-            fixture(ROW + ROW),
             fixture(ROW.replace("9/17/2026", "2/30/2026")),
             fixture(ROW.replace("<Year>2026", "<Year>2025")),
             fixture(ROW, extra="../escape"),
@@ -56,6 +55,12 @@ class HouseIndexTests(unittest.TestCase):
         for archive in cases:
             with self.subTest(), self.assertRaises(HouseIndexError):
                 parse_index(archive, 2026)
+
+    def test_exact_duplicate_index_rows_are_collapsed_but_conflicts_fail(self):
+        self.assertEqual(len(parse_index(fixture(ROW + ROW), 2026)), 1)
+        conflicting = ROW + ROW.replace("Hon.</Prefix>", "Dr.</Prefix>")
+        with self.assertRaises(HouseIndexError):
+            parse_index(fixture(conflicting), 2026)
 
     def test_archive_is_content_addressed_and_repeatable(self):
         content = fixture(ROW)

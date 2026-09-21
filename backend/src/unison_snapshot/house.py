@@ -71,8 +71,8 @@ def parse_index(archive: bytes, year: int) -> list[HouseFilingCandidate]:
         def text(name: str) -> str:
             return (member.findtext(name) or "").strip()
         document_id, filing_type, row_year = text("DocID"), text("FilingType"), text("Year")
-        if not re.fullmatch(r"[0-9]{1,20}", document_id) or document_id in seen:
-            raise HouseIndexError("House index has an invalid or duplicate document ID")
+        if not re.fullmatch(r"[0-9]{1,20}", document_id):
+            raise HouseIndexError("House index has an invalid document ID")
         if not re.fullmatch(r"[A-Z]", filing_type) or row_year != str(year):
             raise HouseIndexError("House index row has an invalid type or year")
         filed_text = text("FilingDate")
@@ -87,13 +87,21 @@ def parse_index(archive: bytes, year: int) -> list[HouseFilingCandidate]:
         name = " ".join(part for part in parts if part)
         if not name:
             raise HouseIndexError("House index row has no filer name")
-        rows.append(HouseFilingCandidate(
+        candidate = HouseFilingCandidate(
             source_id="house_clerk", document_id=document_id, filing_type=filing_type,
             filer_name=name, state_district=text("StateDst") or None, filing_year=year,
             filed_date=filed_date,
             document_url=document_url(year, filing_type, document_id),
             verification_status="official_raw_unparsed",
-        ))
+        )
+        if document_id in seen:
+            # The Clerk has occasionally published byte-for-byte duplicate XML rows.  They do
+            # not represent another filing, but a conflicting reuse of an ID remains fatal.
+            previous = next(row for row in rows if row.document_id == document_id)
+            if previous != candidate:
+                raise HouseIndexError("House index reuses a document ID for conflicting rows")
+            continue
+        rows.append(candidate)
         seen.add(document_id)
     rows.sort(key=lambda row: (row.filed_date or "", row.document_id))
     return rows
