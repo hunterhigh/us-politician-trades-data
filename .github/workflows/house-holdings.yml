@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: production-source-write
+  group: disclosure-source-writer
   cancel-in-progress: false
 
 jobs:
