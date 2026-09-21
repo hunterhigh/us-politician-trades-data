@@ -16,8 +16,8 @@ from .oge import OgeCatalogError, OgeSourceConfig, require_collection_enabled
 
 REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
-PARSER_VERSION = "oge-278t-pdf/v1"
-MAX_PDF_BYTES = 25 * 1024 * 1024
+PARSER_VERSION = "oge-278t-pdf/v2"
+MAX_PDF_BYTES = 50 * 1024 * 1024
 
 _DIRECT_ID = re.compile(r"[0-9a-f]{32}")
 _ROW_NUMBER = re.compile(r"[1-9][0-9]*")
@@ -41,6 +41,8 @@ _AMOUNTS = {
     "$25,000,001 - $50,000,000": (25000001, 50000000),
 }
 _TYPES = {"Purchase": "purchase", "Sale": "sale", "Exchange": "exchange"}
+_TYPES_CASEFOLD = {key.casefold(): value for key, value in _TYPES.items()}
+_TABLE_HEADERS = ("#", "DESCRIPTION", "TYPE", "DATE", "NOTIFICATION", "AMOUNT")
 
 
 def _compact(value: object) -> str:
@@ -208,7 +210,22 @@ def archive_direct_batch(root: Path, catalog: dict, config: OgeSourceConfig, *, 
 def _amount(value: str) -> tuple[int, int] | None:
     normalized = _compact(value).replace("–", "-").replace("—", "-")
     normalized = re.sub(r"\s*-\s*", " - ", normalized)
-    return _AMOUNTS.get(normalized)
+    exact = _AMOUNTS.get(normalized)
+    if exact is not None:
+        return exact
+    # Image-based OGE forms frequently OCR thousands separators as spaces and
+    # the dollar sign as "S".  Accept only pairs that still resolve to one of
+    # the enumerated statutory ranges; arbitrary numeric guesses stay barred.
+    ocr = re.sub(r"(?i)S(?=\s*\d)", "$", normalized)
+    ocr = ocr.replace("•", "-").replace("·", "-")
+    groups = re.findall(r"\d[\d, ]*", ocr)
+    numbers = []
+    for group in groups:
+        digits = re.sub(r"[ ,]", "", group)
+        if digits:
+            numbers.append(int(digits))
+    pair = tuple(numbers) if len(numbers) == 2 else None
+    return pair if pair in set(_AMOUNTS.values()) else None
 
 
 def _owner_heading(value: str) -> str | None:
@@ -247,6 +264,9 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -
                                 "reasons": ["unexpected_column_count"]})
             continue
         raw_number, description, raw_type, raw_date, late_notice, raw_amount = cells
+        if (not _ROW_NUMBER.fullmatch(raw_number) and
+                raw_number.casefold().startswith(("endnot", "transacti"))):
+            continue
         non_transaction = not any((raw_type, raw_date, raw_amount))
         heading = _owner_heading(description) if non_transaction else None
         if heading:
@@ -268,7 +288,7 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -
             seen_numbers.add(number)
         if not description:
             reasons.append("description_missing")
-        transaction_type = _TYPES.get(raw_type)
+        transaction_type = _TYPES_CASEFOLD.get(raw_type.casefold())
         if transaction_type is None:
             reasons.append("transaction_type_unsupported")
         elif transaction_type == "exchange":
@@ -308,6 +328,101 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -
     return transactions, quarantined
 
 
+def _extract_borderless_transaction_tables(page) -> list[list[list[object]]]:
+    """Recover current Integrity.gov tables that only draw horizontal rules."""
+
+    words = page.extract_words(use_text_flow=False, keep_blank_chars=False) or []
+    recognized = []
+    for word in words:
+        text = _compact(word.get("text")).upper() if isinstance(word, dict) else ""
+        if text in _TABLE_HEADERS:
+            recognized.append((text, word))
+    anchors = None
+    for text, word in recognized:
+        if text != "#":
+            continue
+        top = float(word["top"])
+        candidate = {"#": word}
+        for label in _TABLE_HEADERS[1:]:
+            matches = [item for item_text, item in recognized
+                       if item_text == label and abs(float(item["top"]) - top) <= 3]
+            if matches:
+                candidate[label] = min(matches, key=lambda item: abs(float(item["top"]) - top))
+        if set(candidate) == set(_TABLE_HEADERS):
+            anchors = candidate
+            break
+    if anchors is None:
+        return []
+    header_tops = [float(anchors[label]["top"]) for label in _TABLE_HEADERS]
+    if max(header_tops) - min(header_tops) > 3:
+        return []
+
+    # Each table rule is represented as adjacent horizontal segments.  Their
+    # shared endpoints reveal the six column boundaries even though the PDF
+    # has no vertical strokes for pdfplumber's default table detector.
+    horizontal_by_top: dict[float, list[dict]] = {}
+    for line in getattr(page, "lines", ()):
+        if not isinstance(line, dict):
+            continue
+        try:
+            top = float(line["top"])
+            bottom = float(line["bottom"])
+            x0 = float(line["x0"])
+            x1 = float(line["x1"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if abs(top - bottom) <= 1 and top > max(header_tops):
+            horizontal_by_top.setdefault(round(top, 2), []).append(
+                {"x0": min(x0, x1), "x1": max(x0, x1)})
+
+    anchor_x = [float(anchors[label]["x0"]) for label in _TABLE_HEADERS]
+    boundaries = None
+    for top in sorted(horizontal_by_top):
+        endpoints = sorted({edge for line in horizontal_by_top[top]
+                            for edge in (line["x0"], line["x1"])})
+        starts = []
+        for x0 in anchor_x:
+            candidates = [edge for edge in endpoints if 0 <= x0 - edge <= 20]
+            if not candidates:
+                break
+            starts.append(max(candidates))
+        if len(starts) != len(_TABLE_HEADERS) or starts != sorted(set(starts)):
+            continue
+        right_edges = [edge for edge in endpoints if edge > anchor_x[-1] + 20]
+        if right_edges:
+            boundaries = starts + [max(right_edges)]
+            break
+    if boundaries is None:
+        return []
+
+    settings = {
+        "vertical_strategy": "explicit",
+        "explicit_vertical_lines": boundaries,
+        "horizontal_strategy": "lines",
+        "snap_tolerance": 3,
+        "join_tolerance": 3,
+    }
+    transaction_page = page
+    endnote_tops = [float(word["top"]) for word in words
+                    if isinstance(word, dict) and
+                    _compact(word.get("text")).casefold() == "endnotes" and
+                    float(word["top"]) > max(header_tops)]
+    if hasattr(page, "crop") and hasattr(page, "width") and hasattr(page, "height"):
+        bottom = min(endnote_tops) if endnote_tops else float(page.height)
+        transaction_page = page.crop((0, min(header_tops) - 1, float(page.width), bottom))
+    return transaction_page.extract_tables(settings) or []
+
+
+def _looks_like_transaction_table(table_rows: list[list[object]]) -> bool:
+    row_like = 0
+    for cells in table_rows:
+        compact = [_compact(cell) for cell in cells]
+        if (len(compact) == 6 and _ROW_NUMBER.fullmatch(compact[0]) and
+                ("/" in compact[3] or "$" in compact[5] or compact[5].startswith("S"))):
+            row_like += 1
+    return row_like >= 2
+
+
 def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]]]:
     try:
         import pdfplumber
@@ -321,15 +436,28 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
                 raise OgeCatalogError("OGE 278-T page count is outside the safety limit")
             for page_number, page in enumerate(document.pages, start=1):
                 texts.append(page.extract_text() or "")
-                for table in page.extract_tables() or []:
+                borderless_tables = _extract_borderless_transaction_tables(page)
+                if borderless_tables:
+                    for table in borderless_tables:
+                        rows.extend((page_number, cells) for cells in (table or [])
+                                    if isinstance(cells, list))
+                    continue
+                tables = page.extract_tables() or []
+                for table in tables:
                     table_rows = [cells for cells in (table or []) if isinstance(cells, list)]
                     signature = " ".join(_compact(cell).lower()
                                          for cells in table_rows for cell in cells)
-                    if ("description" not in signature or "type" not in signature or
-                            "date" not in signature or "amount" not in signature or
-                            "notification" not in signature):
+                    has_headers = ("description" in signature and "type" in signature and
+                                   "date" in signature and "amount" in signature and
+                                   "notification" in signature)
+                    if not has_headers and not _looks_like_transaction_table(table_rows):
                         continue
-                    rows.extend((page_number, cells) for cells in table_rows)
+                    first_transaction = next(
+                        (index for index, cells in enumerate(table_rows)
+                         if cells and _ROW_NUMBER.fullmatch(_compact(cells[0]))), None)
+                    selected_rows = (table_rows[first_transaction:]
+                                     if first_transaction is not None else table_rows)
+                    rows.extend((page_number, cells) for cells in selected_rows)
     except OgeCatalogError:
         raise
     except Exception:

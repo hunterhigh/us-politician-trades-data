@@ -253,8 +253,9 @@ jobs:
           target.write_bytes(content)
           for source in Path('.local/oge-extractions').glob('*.json'):
               value = json.loads(source.read_text(encoding='utf-8'))
+              parser_file = value['parser_version'].replace('/', '-') + '.json'
               target = (review / 'oge' / 'extractions' / value['document_id'] /
-                        value['source_sha256'] / 'oge-278t-pdf-v1.json')
+                        value['source_sha256'] / parser_file)
               target.parent.mkdir(parents=True, exist_ok=True)
               if target.is_file() and target.read_bytes() != source.read_bytes():
                   raise SystemExit('Immutable OGE extraction collision')

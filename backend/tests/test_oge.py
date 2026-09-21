@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import urllib.error
 from urllib.parse import parse_qs, urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -55,6 +56,16 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual(catalog["transactions"][0]["source_document_id"],
                          "42300720a4227e9e85258e77002dd1b3")
         self.assertIsNone(catalog["transactions"][1]["source_document_id"])
+
+    def test_unrelated_legacy_markup_does_not_block_278_transactions(self):
+        malformed_other = row(
+            "Certificate of Divestiture OGE-2026-101 "
+            "(<a href='https://extapps2.oge.gov/201/Presiden.nsf/"
+            "201%20Request?OpenForm&Filer=Dell'Olio'>Request this Document</a>)")
+        page = parse_catalog_page(
+            payload([malformed_other, row(DIRECT)], total=2), start=0, length=2)
+        self.assertEqual(len(page.transactions), 1)
+        self.assertEqual(page.transactions[0].access_method, "direct_pdf")
 
     def test_duplicate_request_rows_are_preserved_as_catalog_occurrences(self):
         duplicate = row(REQUEST)
@@ -196,6 +207,46 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual((query["start"], query["length"], query["search[value]"]),
                          (["0"], ["100"], [""]))
         self.assertEqual(headers["etag"], "example")
+
+    def test_http_client_retries_transient_network_failures(self):
+        body = json.dumps(payload([row(DIRECT)])).encode()
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json"}
+
+            def __init__(self, request):
+                self.request = request
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def geturl(self):
+                return self.request.full_url
+
+            def read(self, _):
+                return body
+
+        class Opener:
+            attempts = 0
+
+            def open(self, request, timeout):
+                self.attempts += 1
+                if self.attempts < 3:
+                    raise urllib.error.URLError("temporary")
+                return Response(request)
+
+        opener = Opener()
+        delays = []
+        content, _ = OgeCatalogClient(
+            timeout=7, opener=opener, sleeper=delays.append).download_page(
+                start=0, length=1000, draw=1)
+        self.assertEqual(content, body)
+        self.assertEqual(opener.attempts, 3)
+        self.assertEqual(delays, [1, 2])
 
 
 if __name__ == "__main__":

@@ -10,11 +10,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
 import re
 import tempfile
+import time
 from typing import Iterable
 import urllib.error
 from urllib.parse import parse_qs, unquote, urlencode, urlsplit
@@ -33,6 +35,8 @@ _ROW_FIELDS = {"type", "name", "agency", "title", "level", "docDate", "amended"}
 _ALLOWED_HOSTS = {"oge.gov", "www.oge.gov", "extapps2.oge.gov"}
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_CATALOG_ROWS = 25_000
+MAX_CATALOG_PAGE_SIZE = 1_000
+MAX_CATALOG_ATTEMPTS = 3
 
 
 class OgeCatalogError(RuntimeError):
@@ -204,6 +208,12 @@ def _type_fragment(value: str) -> tuple[str, list[tuple[str, str]]]:
 
 
 def _classify_278(type_markup: str) -> tuple[str, str, str | None, bool] | None:
+    # The live catalog contains legacy markup defects in unrelated document
+    # types (for example, an unescaped apostrophe inside a request URL).  Only
+    # 278-T rows are inputs to this source, so out-of-scope markup must not
+    # block the entire catalog while every candidate 278-T link stays strict.
+    if "278 Transaction" not in type_markup:
+        return None
     text, anchors = _type_fragment(type_markup)
     if not text.startswith("278 Transaction"):
         return None
@@ -316,12 +326,20 @@ class OgeCatalogClient:
 
     _COLUMNS = ("docDate", "title", "type", "name", "agency", "level")
 
-    def __init__(self, timeout: float = 30.0, opener=None):
+    def __init__(self, timeout: float = 30.0, opener=None, *,
+                 max_attempts: int = MAX_CATALOG_ATTEMPTS, sleeper=time.sleep):
+        if type(max_attempts) is not int or not 1 <= max_attempts <= 5:
+            raise OgeCatalogError("OGE catalog attempts are invalid")
+        if not callable(sleeper):
+            raise OgeCatalogError("OGE catalog sleeper is invalid")
         self.timeout = timeout
         self.opener = opener or urllib.request.build_opener()
+        self.max_attempts = max_attempts
+        self.sleeper = sleeper
 
     def download_page(self, *, start: int, length: int, draw: int) -> tuple[bytes, dict[str, str]]:
-        if type(start) is not int or start < 0 or type(length) is not int or not 1 <= length <= 100:
+        if (type(start) is not int or start < 0 or type(length) is not int or
+                not 1 <= length <= MAX_CATALOG_PAGE_SIZE):
             raise OgeCatalogError("OGE catalog request bounds are invalid")
         if type(draw) is not int or draw <= 0:
             raise OgeCatalogError("OGE catalog request draw is invalid")
@@ -349,17 +367,25 @@ class OgeCatalogClient:
             ),
             "X-Requested-With": "XMLHttpRequest",
         }, method="GET")
-        try:
-            with self.opener.open(request, timeout=self.timeout) as response:
-                if response.status != 200 or response.geturl() != url:
-                    raise OgeCatalogError("OGE catalog returned an unexpected response")
-                content = response.read(MAX_RESPONSE_BYTES + 1)
-                headers = {name.lower(): value for name, value in response.headers.items()
-                           if name.lower() in {"etag", "last-modified", "content-type"}}
-        except urllib.error.HTTPError as exc:
-            raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
-            raise OgeCatalogError("OGE catalog is unavailable") from None
+        content = b""
+        headers: dict[str, str] = {}
+        for attempt in range(self.max_attempts):
+            try:
+                with self.opener.open(request, timeout=self.timeout) as response:
+                    if response.status != 200 or response.geturl() != url:
+                        raise OgeCatalogError("OGE catalog returned an unexpected response")
+                    content = response.read(MAX_RESPONSE_BYTES + 1)
+                    headers = {name.lower(): value for name, value in response.headers.items()
+                               if name.lower() in {"etag", "last-modified", "content-type"}}
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in {429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
+                    raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
+            except (urllib.error.URLError, TimeoutError, ConnectionError,
+                    http.client.HTTPException):
+                if attempt + 1 == self.max_attempts:
+                    raise OgeCatalogError("OGE catalog is unavailable") from None
+            self.sleeper(2 ** attempt)
         if len(content) > MAX_RESPONSE_BYTES:
             raise OgeCatalogError("OGE catalog response exceeds its size limit")
         if "json" not in headers.get("content-type", "").lower():
@@ -430,11 +456,11 @@ def archive_catalog(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str,
     return metadata
 
 
-def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = 100,
+def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = 1_000,
                      client: OgeCatalogClient | None = None) -> dict:
     require_collection_enabled(config)
-    if type(page_size) is not int or not 1 <= page_size <= 100:
-        raise OgeCatalogError("OGE catalog page size must be between 1 and 100")
+    if type(page_size) is not int or not 1 <= page_size <= MAX_CATALOG_PAGE_SIZE:
+        raise OgeCatalogError("OGE catalog page size must be between 1 and 1000")
     selected = client or OgeCatalogClient()
     pages: list[OgeCatalogPage] = []
     raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []

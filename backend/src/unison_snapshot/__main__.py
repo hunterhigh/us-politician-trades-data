@@ -230,7 +230,7 @@ def main() -> None:
     oge_discovery = sub.add_parser("discover-oge")
     oge_discovery.add_argument("--archive", type=Path, required=True)
     oge_discovery.add_argument("--output", type=Path, required=True)
-    oge_discovery.add_argument("--page-size", type=int, default=100)
+    oge_discovery.add_argument("--page-size", type=int, default=1000)
     oge_discovery.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
     oge_discovery.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
     oge_reports = sub.add_parser("archive-oge-direct-pdfs")

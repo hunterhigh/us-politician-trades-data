@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
-    parse_archived_pdf, parse_table_rows,
+    _extract_borderless_transaction_tables, parse_archived_pdf, parse_table_rows,
 )
 
 
@@ -40,6 +40,52 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_borderless_integrity_table_uses_header_and_rule_geometry(self):
+        class Page:
+            lines = [
+                {"top": 76, "bottom": 76, "x0": left, "x1": right}
+                for left, right in zip(
+                    [36, 84, 325, 421, 517, 614, 710],
+                    [84, 325, 421, 517, 614, 710, 806])
+            ]
+
+            def __init__(self):
+                self.settings = None
+
+            def extract_words(self, **_):
+                return [{"text": "#", "x0": 126, "top": 100}] + [
+                    {"text": text, "x0": x0, "top": 43}
+                    for text, x0 in zip(
+                        ["#", "DESCRIPTION", "TYPE", "DATE", "NOTIFICATION", "AMOUNT"],
+                        [41, 89, 426, 522, 619, 715])
+                ]
+
+            def extract_tables(self, settings):
+                self.settings = settings
+                return [[
+                    ["1", "Example Inc. (EXM)", "Purchase", "05/01/2025", "No",
+                     "$1,001 - $15,000"]
+                ]]
+
+        page = Page()
+        tables = _extract_borderless_transaction_tables(page)
+        self.assertEqual(tables[0][0][1], "Example Inc. (EXM)")
+        self.assertEqual(page.settings["explicit_vertical_lines"],
+                         [36, 84, 421, 517, 614, 710, 806])
+
+    def test_parser_accepts_only_known_amount_ranges_after_safe_ocr_cleanup(self):
+        transactions, quarantined = parse_table_rows([
+            (2, ["1", "Example Inc.", "sale", "4/17/2026", "Yos",
+                 "$250 001 • S500 000"]),
+            (2, ["2", "Unknown Range", "Sale", "4/17/2026", "Yes",
+                 "$123 456 - $789 012"]),
+        ], source_sha="a" * 64)
+        self.assertEqual((transactions[0]["transaction_type"],
+                          transactions[0]["transaction_date"],
+                          transactions[0]["amount_low"], transactions[0]["amount_high"]),
+                         ("sale", "2026-04-17", 250001, 500000))
+        self.assertEqual(quarantined[0]["reasons"], ["amount_range_unsupported"])
+
     def test_pdf_client_requires_exact_direct_pdf_response(self):
         class Response:
             status = 200

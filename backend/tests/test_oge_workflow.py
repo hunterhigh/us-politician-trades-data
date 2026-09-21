@@ -24,6 +24,8 @@ class OgeWorkflowTests(unittest.TestCase):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
         self.assertIn("git -C \"$EVIDENCE_ROOT\" add oge/catalog oge/reports", content)
         self.assertIn("/ 'oge' / 'extractions' /", content)
+        self.assertIn("value['parser_version'].replace('/', '-')", content)
+        self.assertNotIn("'oge-278t-pdf-v1.json'", content)
         self.assertIn("status/oge.json", content)
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("python -m unison_snapshot build-oge-candidate", content)
