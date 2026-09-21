@@ -43,13 +43,13 @@ npm test
 
 该测试只使用明确标记为 demo 的合成数据和临时裸 Git 仓库，不访问 GitHub、披露网站或行情接口，也不修改 `review-input/`。
 
-公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批 PTR 原件，并更新公开来源检查点。`house-holdings.yml` 提供受控的手动小批次年度报告持仓回填，原件只进 `evidence`，机器结果与候选只进 `review`。下一步继续扩展自动资格校验、异常隔离和完整候选快照。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
+公开读取命令见 [client/README.md](client/README.md)。`publish-complete.yml` 已实现披露与Alpaca行情合并、冻结前端预验收、`market`先行发布、`main`原子发布、远端四模式回读和发布后浏览器复验；来源工作流继续增量更新`evidence`、`state`与`review`。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
 
-生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：后台部署已经运行，但自动晋级、完整披露回填、行情回填和原前端验收尚未完成。
+生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产快照包含313人、9,356笔交易、1,840条申报持仓、1,193条Alpaca SIP行情和4条来源状态；`main`固定引用已先发布的`market`提交，发布前后均已通过冻结前端浏览器验收。
 
 House联调候选可直接读取：[raw review/candidates/house-current.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/review/candidates/house-current.json)。该文件由自动资格结果构建并在每次运行中通过生产构建器和原前端渲染器；它是增量验收输入，不是正式 `main` 发布物。
 
-统一披露候选位于 [`review/candidates/disclosure-current.json`](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/review/candidates/disclosure-current.json)。各来源先写入 `review/candidates/sources/<source_id>-current.json`，统一构建器再检查身份冲突、事实ID重复、外键、来源归属和截止时间后合并。`house-current.json` 继续作为兼容入口；正式 `main` 仍须等完整来源和前端验收完成后发布。
+统一披露候选位于 [`review/candidates/disclosure-current.json`](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/review/candidates/disclosure-current.json)。各来源先写入 `review/candidates/sources/<source_id>-current.json`，统一构建器再检查身份冲突、事实ID重复、外键、来源归属和截止时间后合并。`house-current.json` 继续作为兼容入口；完整发布工作流从该候选构建经许可行情并在全部门禁通过后更新正式`main`。
 
 ## 命令行接口
 
