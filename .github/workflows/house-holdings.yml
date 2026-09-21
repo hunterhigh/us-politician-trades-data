@@ -83,7 +83,10 @@ jobs:
           pending.sort(key=lambda row: (row.get('filed_date') or '', row['document_id']), reverse=True)
           selected = pending[:int(os.environ['BATCH_SIZE'])]
           Path(os.environ['RUNNER_TEMP'], 'house-holding-batch.json').write_text(
-              json.dumps({'index_sha': discovery['metadata']['sha256'], 'rows': selected},
+              json.dumps({'index_sha': discovery['metadata']['sha256'],
+                          'current_member_annual_count': len(annual),
+                          'unarchived_before_count': len(pending),
+                          'selected_count': len(selected), 'rows': selected},
                          sort_keys=True, separators=(',', ':')), encoding='utf-8')
           PY
           python - <<'PY'
@@ -204,7 +207,22 @@ jobs:
           metadata=list(evidence.glob('house_clerk/financial-reports/*/*/*.json'))
           extractions=list(review.glob('house_clerk/holding_extractions/*/*/*.json'))
           failures=list(review.glob('house_clerk/holding_failures/*/*/*.json'))
+          identities=list(review.glob('house_clerk/holding_identities/*/*/*.json'))
           qualifications=list(review.glob('house_clerk/holding_qualifications/*/*/*.json'))
+          def keys(paths, root):
+              return {path.relative_to(root).as_posix() for path in paths}
+          metadata_keys=keys(metadata, evidence/'house_clerk/financial-reports')
+          extraction_keys=keys(extractions, review/'house_clerk/holding_extractions')
+          failure_keys=keys(failures, review/'house_clerk/holding_failures')
+          identity_keys=keys(identities, review/'house_clerk/holding_identities')
+          qualification_keys=keys(qualifications, review/'house_clerk/holding_qualifications')
+          if (extraction_keys != identity_keys or extraction_keys != qualification_keys or
+                  failure_keys & extraction_keys or
+                  (extraction_keys | failure_keys) - metadata_keys):
+              raise SystemExit('House holding artifact states are inconsistent')
+          pending_count=len(metadata_keys - (qualification_keys | failure_keys))
+          batch=json.loads(Path(os.environ['RUNNER_TEMP'], 'house-holding-batch.json').read_text(
+              encoding='utf-8'))
           eligible=holdings=quarantined=excluded=0
           for path in qualifications:
               value=json.loads(path.read_text(encoding='utf-8'))
@@ -218,8 +236,13 @@ jobs:
                  'extraction_count':len(extractions), 'failure_count':len(failures),
                  'qualification_count':len(qualifications), 'eligible_report_count':eligible,
                  'qualified_holding_count':holdings, 'excluded_row_count':excluded,
-                 'quarantined_row_count':quarantined,
-                 'status':'attention' if failures or quarantined else 'ok'}
+                 'quarantined_row_count':quarantined, 'pending_parse_count':pending_count,
+                 'current_member_annual_count':batch['current_member_annual_count'],
+                 'remaining_archive_count':max(batch['unarchived_before_count']-
+                                               batch['selected_count'], 0),
+                 'archived_this_run':batch['selected_count'],
+                 'status':'attention' if failures or quarantined or pending_count or
+                                           batch['unarchived_before_count'] > batch['selected_count'] else 'ok'}
           target=review/'status/house_holdings.json'; target.parent.mkdir(parents=True,exist_ok=True)
           target.write_text(json.dumps(value,sort_keys=True,separators=(',',':')),encoding='utf-8')
           PY
