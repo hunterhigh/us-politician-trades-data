@@ -14,16 +14,17 @@
     "firstRelease": [
       "公开 GitHub 分片快照生产",
       "官方原件内容寻址归档",
-      "确定性、完整性与恢复测试"
+      "确定性、完整性与恢复测试",
+      "已授权行情的独立分支发布与完整五数组验收"
     ],
     "notInScope": [
-      "购买行情许可",
-      "Senate 和 OGE 自动采集",
+      "OGE Form 201 请求型报告自动申请或入站处理",
       "替代法律意见"
     ],
     "successCriteria": [
       "重复生成内容ID稳定，健康可更新，Git版本固定可读",
-      "失败不损坏当前发布，不分发未获准数据"
+      "失败不损坏当前发布，不分发未获准数据",
+      "完整五数组通过冻结消费端验收后发布"
     ]
   },
   "classification": {
@@ -75,7 +76,7 @@
       "reviewByStage": "production"
     },
     {
-      "text": "House 公开来源已进入受控证据归档和待复核处理；来源用途批准及行情分发权限仍未确认",
+      "text": "运营方已确认首发行情再分发授权；生产凭据只能通过 GitHub environment secrets 配置",
       "reviewByStage": "production"
     }
   ],
@@ -99,7 +100,7 @@
     "createRepository": true,
     "configureRemote": true,
     "provisionCloud": false,
-    "setSecrets": false,
+    "setSecrets": true,
     "deploy": true
   }
 }

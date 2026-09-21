@@ -231,8 +231,9 @@ def _market_row(ticker: str, name: str, bars: list[dict], start_day: date,
 
 def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                             checked_at: str, as_of_date: str | None = None,
-                            batch_size: int = 50) -> MarketValidation:
-    """Fetch delayed SIP daily bars and attach them to a local candidate."""
+                            batch_size: int = 50,
+                            distribution_authorized: bool = False) -> MarketValidation:
+    """Fetch delayed SIP daily bars and attach them to a candidate."""
     if not isinstance(snapshot, dict) or not isinstance(snapshot.get("meta"), dict):
         raise AlpacaMarketError("Snapshot requires a meta object")
     if snapshot["meta"].get("is_demo") is not False:
@@ -281,6 +282,8 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
 
     result = deepcopy(snapshot)
     result["meta"]["subtitle"] = (
+        "House、Senate与OGE真实披露；Alpaca SIP拆股调整日线"
+        if distribution_authorized else
         "披露候选 + Alpaca Basic 延迟 SIP 日线；仅用于本地开发验证")
     result["security_market_data"] = sorted(rows, key=lambda row: row["ticker"])
     health = [deepcopy(row) for row in result.get("source_health", [])
@@ -295,7 +298,8 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "last_successful_sync_at": checked_at,
         "data_cutoff_at": max(
             (row["price_history"][-1]["date"] for row in rows)) + "T23:59:59Z",
-        "detail": f"local_basic_validation:{len(rows)}/{len(symbols)}_tickers",
+        "detail": (("licensed_production" if distribution_authorized else "local_basic_validation")
+                   + f":{len(rows)}/{len(symbols)}_tickers"),
     })
     result["source_health"] = sorted(health, key=lambda row: row["source_id"])
 
@@ -318,6 +322,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "covered_date_max": max(row["price_history"][-1]["date"] for row in rows),
         "missing_ticker_count": len(missing),
         "missing_tickers": missing,
+        "distribution_authorized": distribution_authorized,
     }
     if isinstance(getattr(client, "page_count", None), int):
         audit["response_page_count"] = client.page_count

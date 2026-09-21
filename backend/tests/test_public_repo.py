@@ -10,16 +10,19 @@ from unison_snapshot.builder import build
 from unison_snapshot.codec import bucket, digest, encode
 from unison_snapshot.materialize import materialize
 from unison_snapshot.legacy import load
+from unison_snapshot.market_store import build_market_bundle
 from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
 COMMIT = "1" * 40
+MARKET_COMMIT = "2" * 40
 
 
 class FakeTransport:
-    def __init__(self, files, commit=COMMIT):
+    def __init__(self, files, commit=COMMIT, extra_commits=None):
         self.files = files
         self.commit = commit
+        self.files_by_commit = {commit: files, **(extra_commits or {})}
         self.calls = []
 
     def get(self, url, limit, *, api=False):
@@ -28,16 +31,18 @@ class FakeTransport:
             reference = {"type": "commit", "sha": self.commit}
             value = encode({"object": reference})
         else:
-            marker = f"/{self.commit}/"
-            if marker not in url:
+            matched = next(((sha, files) for sha, files in self.files_by_commit.items()
+                            if f"/{sha}/" in url), None)
+            if matched is None:
                 raise AssertionError(url)
-            value = self.files[url.split(marker, 1)[1]]
+            sha, files = matched
+            value = files[url.split(f"/{sha}/", 1)[1]]
         if len(value) > limit:
             raise PublicSnapshotError("Repository object exceeds the contract size limit")
         return value
 
 
-def production_files():
+def production_payload():
     data = json.loads(FIXTURE.read_text(encoding="utf-8"))
     data["meta"]["is_demo"] = False
     hosts = {"house_clerk": "disclosures-clerk.house.gov", "senate_efd": "efdsearch.senate.gov"}
@@ -46,7 +51,12 @@ def production_files():
         row["source_url"] = f"https://{hosts[row['source_id']]}/test-contract/{row['filing_id']}"
     for row in data["source_health"]:
         row["status"] = "disabled" if row["source_id"] == "alpaca_sip_eod" else "ok"
-    return build(data, generated_at="2026-09-18T00:01:00Z", allow_production=True).files
+    return data
+
+
+def production_files():
+    return build(production_payload(), generated_at="2026-09-18T00:01:00Z",
+                 allow_production=True).files
 
 
 class PublicRepositoryTests(unittest.TestCase):
@@ -73,6 +83,33 @@ class PublicRepositoryTests(unittest.TestCase):
         self.assertEqual(len(ticker["people"]), 2)
         self.assertEqual(len(ticker["transactions"]), 2)
         self.assertEqual(ticker["meta"]["selection_scope"]["key"], "ZZDEMO")
+
+    def test_licensed_market_commit_is_loaded_for_scoped_views(self):
+        data = production_payload()
+        market = {
+            "ticker": "ZZDEMO", "company_name": "Fictional Company Alpha",
+            "source_id": "alpaca_sip_eod", "price_source": "Alpaca SIP EOD",
+            "source_url": "https://docs.alpaca.markets/docs/market-data",
+            "feed": "sip", "timeframe": "1Day", "adjustment": "split",
+            "price_history": [{"date": "2026-09-17", "close": 100},
+                              {"date": "2026-09-18", "close": 101}],
+        }
+        data["security_market_data"] = [market]
+        data["source_health"][-1].update(status="ok", source="Alpaca SIP EOD")
+        market_bundle = build_market_bundle(
+            [market], data_cutoff_at=data["meta"]["data_cutoff_at"])
+        main_files = build(
+            data, generated_at="2026-09-18T00:01:00Z", allow_production=True,
+            allow_market=True, market_commit=MARKET_COMMIT,
+            market_pages=market_bundle.page_shas).files
+        market_files = market_bundle.files
+        repo = PublicSnapshotRepository(
+            "example", "data",
+            transport=FakeTransport(main_files, extra_commits={MARKET_COMMIT: market_files}))
+        dashboard = repo.fetch("dashboard").snapshot
+        self.assertEqual(dashboard["security_market_data"][0]["ticker"], "ZZDEMO")
+        ticker = repo.fetch("ticker", "ZZDEMO").snapshot
+        self.assertEqual(ticker["security_market_data"][0]["ticker"], "ZZDEMO")
 
     def test_person_name_resolves_within_the_frozen_board(self):
         person = self.repo.fetch("person", "  demo   person ONE ").snapshot

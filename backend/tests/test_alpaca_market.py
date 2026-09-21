@@ -135,14 +135,17 @@ class AlpacaMarketTests(unittest.TestCase):
             ]
         })
         validation = build_market_validation(
-            snapshot, client=client, checked_at="2026-09-20T21:00:00Z", batch_size=1)
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z", batch_size=1,
+            distribution_authorized=True)
         self.assertEqual(validation.audit["symbol_count"], 2)
         self.assertEqual(validation.audit["market_row_count"], 1)
         self.assertEqual(validation.audit["missing_ticker_count"], 1)
+        self.assertTrue(validation.audit["distribution_authorized"])
         self.assertEqual(validation.snapshot["security_market_data"][0]["ticker"], "ZZDEMO")
         market_health = next(row for row in validation.snapshot["source_health"]
                              if row["source_id"] == "alpaca_sip_eod")
         self.assertEqual(market_health["status"], "partial")
+        self.assertIn("licensed_production", market_health["detail"])
         processed = load("process_snapshot").build_snapshot(validation.snapshot)
         market = processed["security_market_data"][0]
         self.assertEqual(market["as_of_date"], "2026-09-18")

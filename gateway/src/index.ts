@@ -61,9 +61,10 @@ export function parseRoute(rawUrl: string): { ref: string; path: string; market:
   const path = match[2];
   const allowed = path === "manifest.json"
     || /^board\/[a-f0-9]{64}\.json$/.test(path)
+    || /^market-pages\/[a-f0-9]{64}\.json$/.test(path)
     || /^(people|tickers|market)\/[a-f0-9]{2}\/(index|[a-f0-9]{64})\.json$/.test(path);
   if (!allowed || (ref === "main" && path !== "manifest.json")) fail(404, "not_found");
-  return { ref, path, market: path.startsWith("market/") };
+  return { ref, path, market: path.startsWith("market/") || path.startsWith("market-pages/") };
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -133,6 +134,15 @@ function validateManifest(bytes: Uint8Array, env: Env): void {
   if (env.ALLOW_MARKET !== "true" && manifest.market_commit) fail(503, "market_disabled");
   if (manifest.market_commit !== undefined
     && (typeof manifest.market_commit !== "string" || !SHA.test(manifest.market_commit))) {
+    fail(502, "invalid_manifest");
+  }
+  if (manifest.market_pages !== undefined
+    && (!Array.isArray(manifest.market_pages) || manifest.market_pages.length === 0
+      || manifest.market_pages.length > 100
+      || manifest.market_pages.some((item) => typeof item !== "string" || !DIGEST.test(item)))) {
+    fail(502, "invalid_manifest");
+  }
+  if (Boolean(manifest.market_commit) !== Boolean(manifest.market_pages)) {
     fail(502, "invalid_manifest");
   }
 }

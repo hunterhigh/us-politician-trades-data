@@ -126,6 +126,13 @@ class PublicSnapshotRepository:
         market = value.get("market_commit")
         if market is not None and (not isinstance(market, str) or not SHA1.fullmatch(market)):
             raise PublicSnapshotError("Manifest market_commit is invalid")
+        pages = value.get("market_pages", [])
+        if not isinstance(pages, list) or len(pages) > 100 \
+                or any(not isinstance(item, str) or not SHA256.fullmatch(item) for item in pages) \
+                or len(set(pages)) != len(pages):
+            raise PublicSnapshotError("Manifest market_pages is invalid")
+        if bool(market) != bool(pages):
+            raise PublicSnapshotError("Manifest market commit and pages must be declared together")
         return value
 
     def _content(self, commit: str, prefix: str, sha: str) -> dict:
@@ -151,7 +158,7 @@ class PublicSnapshotRepository:
         return self._content(commit, prefix, selected)
 
     def _market(self, manifest: dict, requirements: object) -> list[dict]:
-        if not isinstance(requirements, list) or len(requirements) > 40 or len(set(requirements)) != len(requirements):
+        if not isinstance(requirements, list) or len(requirements) > 2000 or len(set(requirements)) != len(requirements):
             raise PublicSnapshotError("Invalid dependency plan")
         market_commit = manifest.get("market_commit")
         if requirements and not market_commit:
@@ -168,6 +175,26 @@ class PublicSnapshotRepository:
             if not isinstance(row, dict) or row.get("ticker") != match.group(1):
                 raise PublicSnapshotError("Market shard does not match its dependency")
             rows.append(row)
+        return rows
+
+    def _market_pages(self, manifest: dict) -> list[dict]:
+        market_commit = manifest.get("market_commit")
+        pages = manifest.get("market_pages", [])
+        if not pages:
+            return []
+        rows: list[dict] = []
+        seen: set[str] = set()
+        for sha in pages:
+            value = self._content(market_commit, "market-pages", sha)
+            page = value.get("security_market_data")
+            if not isinstance(page, list) or any(not isinstance(row, dict) for row in page):
+                raise PublicSnapshotError("Market page has invalid rows")
+            for row in page:
+                ticker = row.get("ticker")
+                if not isinstance(ticker, str) or ticker in seen:
+                    raise PublicSnapshotError("Market pages contain invalid or duplicate tickers")
+                seen.add(ticker)
+                rows.append(row)
         return rows
 
     @staticmethod
@@ -204,6 +231,7 @@ class PublicSnapshotRepository:
         manifest = self.manifest(commit)
         if mode in {"dashboard", "search"}:
             board = self._content(commit, "board", manifest["board"])
+            board["security_market_data"] = self._market_pages(manifest)
         elif mode == "person" and key:
             key = self._resolve_person_key(commit, manifest, key)
             entity = self._entity(commit, "people", key)

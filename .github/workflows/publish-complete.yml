@@ -1,0 +1,165 @@
+name: Publish complete production snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: Alpaca symbols per request
+        required: true
+        default: '100'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-snapshot
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/code'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install producer
+        run: python -m pip install -e backend
+      - name: Enforce licensed production gate
+        env:
+          AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
+          KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+        run: |
+          test "$AUTHORIZED" = "true" || {
+            echo "MARKET_DISTRIBUTION_AUTHORIZED must be true in production." >&2
+            exit 2
+          }
+          test -n "$KEY_ID" && test -n "$SECRET_KEY" || {
+            echo "Alpaca production credentials are not configured." >&2
+            exit 2
+          }
+          case "$BATCH_SIZE" in *[!0-9]*) exit 2 ;; esac
+          test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 200
+      - name: Prepare fixed source and publication trees
+        id: trees
+        run: |
+          git fetch --no-tags origin review main market
+          review_root="$RUNNER_TEMP/complete-review"
+          market_root="$RUNNER_TEMP/complete-market"
+          main_root="$RUNNER_TEMP/complete-main"
+          git worktree add --detach "$review_root" origin/review
+          git worktree add --detach "$market_root" origin/market
+          git worktree add --detach "$main_root" origin/main
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "market_root=$market_root" >> "$GITHUB_OUTPUT"
+          echo "main_root=$main_root" >> "$GITHUB_OUTPUT"
+      - name: Build licensed five-array candidate
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          PYTHONPATH: backend/src
+        run: |
+          checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot build-alpaca-market-validation \
+            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/complete-candidate.json" \
+            --audit-output "$RUNNER_TEMP/market-audit.json" \
+            --processed-output "$RUNNER_TEMP/complete-processed.json" \
+            --html-output "$RUNNER_TEMP/complete-dashboard.html" \
+            --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
+            --distribution-authorized
+      - name: Prepare and commit market branch
+        id: market
+        env:
+          MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot prepare-market-publication \
+            --input "$RUNNER_TEMP/complete-candidate.json" --root "$MARKET_ROOT" \
+            --metadata-output "$RUNNER_TEMP/market-publication.json"
+          git -C "$MARKET_ROOT" add -A -- market market-pages
+          if ! git -C "$MARKET_ROOT" diff --cached --quiet; then
+            git -C "$MARKET_ROOT" config user.name "github-actions[bot]"
+            git -C "$MARKET_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$MARKET_ROOT" commit -m "market: licensed Alpaca EOD ${{ github.run_id }}"
+          fi
+          market_sha="$(git -C "$MARKET_ROOT" rev-parse HEAD)"
+          echo "market_sha=$market_sha" >> "$GITHUB_OUTPUT"
+      - name: Publish market before disclosure pointer
+        env:
+          MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+        run: |
+          if ! git ls-remote --exit-code origin "refs/tags/published-market/$MARKET_SHA" >/dev/null 2>&1; then
+            git -C "$MARKET_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
+            git -C "$MARKET_ROOT" push --atomic origin \
+              HEAD:refs/heads/market "refs/tags/published-market/$MARKET_SHA"
+          fi
+      - name: Prepare complete main snapshot
+        id: main
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          PYTHONPATH: backend/src
+        run: |
+          generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot prepare-publication \
+            --input "$RUNNER_TEMP/complete-candidate.json" --root "$MAIN_ROOT" \
+            --generated-at "$generated_at" --allow-market --market-commit "$MARKET_SHA" \
+            --market-pages-file "$RUNNER_TEMP/market-publication.json"
+          git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers
+          if git -C "$MAIN_ROOT" diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git -C "$MAIN_ROOT" config user.name "github-actions[bot]"
+          git -C "$MAIN_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          snapshot_id="$(python -c "import json; print(json.load(open('$MAIN_ROOT/manifest.json'))['snapshot_id'])")"
+          git -C "$MAIN_ROOT" commit -m "snapshot $snapshot_id"
+          main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
+          git -C "$MAIN_ROOT" tag "published/$main_sha" "$main_sha"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+      - name: Atomically publish complete main snapshot
+        if: steps.main.outputs.changed == 'true'
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+        run: |
+          git -C "$MAIN_ROOT" push --atomic origin \
+            HEAD:refs/heads/main "refs/tags/published/$MAIN_SHA"
+      - name: Record auditable coverage
+        env:
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
+          print(f"Market commit: `{os.environ['MARKET_SHA']}`")
+          print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
+          print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
+          print(f"Price points: {audit['price_point_count']}")
+          print(f"Missing tickers: {audit['missing_ticker_count']}")
+          PY
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
+          print(f"Market commit: `{os.environ['MARKET_SHA']}`")
+          print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
+          print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
+          print(f"Price points: {audit['price_point_count']}")
+          print(f"Missing tickers: {audit['missing_ticker_count']}")
+          PY

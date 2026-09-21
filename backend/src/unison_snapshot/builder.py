@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
 from .legacy import PROCESSOR_SHA256, load
+from .market_store import validate_market_rows
 
 SCHEMA = "politician-dashboard/v1"
 LAYOUT = "hash-sharded-v2"
@@ -47,7 +48,8 @@ def required(row: dict, key: str) -> str:
 
 
 def normalize(payload: dict, *, allow_production: bool = False,
-              allow_empty_production: bool = False) -> dict:
+              allow_empty_production: bool = False,
+              allow_market: bool = False) -> dict:
     if not isinstance(payload, dict) or not isinstance(payload.get("meta"), dict):
         raise ValueError("Snapshot input must be an object with meta")
     data = deepcopy(payload)
@@ -62,8 +64,12 @@ def normalize(payload: dict, *, allow_production: bool = False,
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
             raise ValueError(f"{kind} must be an array of objects")
         if kind == "security_market_data":
-            if rows:
+            if rows and not allow_market:
                 raise ValueError("Market publishing disabled pending licensing and separate branch implementation")
+            if rows:
+                if demo:
+                    raise ValueError("Licensed market publication cannot be demo data")
+                data[kind] = validate_market_rows(rows, data_cutoff_at=data["meta"]["data_cutoff_at"])
             continue
         seen = set()
         for row in rows:
@@ -145,9 +151,23 @@ def normalize(payload: dict, *, allow_production: bool = False,
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
           max_blob_bytes: int = 8 * 1024 * 1024, allow_production: bool = False,
-          allow_empty_production: bool = False) -> Bundle:
+          allow_empty_production: bool = False, allow_market: bool = False,
+          market_commit: str | None = None,
+          market_pages: tuple[str, ...] | list[str] | None = None) -> Bundle:
     data = normalize(payload, allow_production=allow_production,
-                     allow_empty_production=allow_empty_production)
+                     allow_empty_production=allow_empty_production,
+                     allow_market=allow_market)
+    if allow_market:
+        if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
+            raise ValueError("Licensed market publication requires a frozen market commit")
+        if not data["security_market_data"]:
+            raise ValueError("Licensed market publication requires market rows")
+        if not isinstance(market_pages, (tuple, list)) or not market_pages \
+                or any(not re.fullmatch(r"[0-9a-f]{64}", str(item)) for item in market_pages) \
+                or len(set(market_pages)) != len(market_pages):
+            raise ValueError("Licensed market publication requires unique content-addressed market pages")
+    elif market_commit is not None or market_pages is not None:
+        raise ValueError("market commit and pages require licensed market publication")
     candidate = deepcopy(data)
     candidate["meta"].update(snapshot_id="prepublication-validation", generated_at=generated_at)
     load("process_snapshot").build_snapshot(candidate)
@@ -170,18 +190,25 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         indexes.setdefault(f"{prefix}/index.json", {})[key] = sha
 
     board = {kind: data[kind] for kind in ARRAYS}
+    if allow_market:
+        board["security_market_data"] = []
     board_sha = blob("board", board)
+    market_tickers = {row["ticker"] for row in data["security_market_data"]}
     for person in data["people"]:
         rows = {kind: [row for row in data[kind] if row["person_id"] == person["id"]]
                 for kind in ("transactions", "reported_holdings")}
-        entity("people", person["id"], {"person": person, **rows, "requires": []})
+        required_market = sorted({row["ticker"] for records in rows.values() for row in records
+                                  if row.get("ticker") in market_tickers})
+        entity("people", person["id"], {"person": person, **rows,
+                                        "requires": [f"market:{ticker}" for ticker in required_market]})
     tickers = sorted({row["ticker"] for kind in ("transactions", "reported_holdings")
                       for row in data[kind] if row.get("ticker")})
     for ticker in tickers:
         rows = {kind: [row for row in data[kind] if row.get("ticker") == ticker]
                 for kind in ("transactions", "reported_holdings")}
         ids = {row["person_id"] for records in rows.values() for row in records}
-        entity("tickers", ticker, {**rows, "people": [p for p in data["people"] if p["id"] in ids], "requires": []})
+        entity("tickers", ticker, {**rows, "people": [p for p in data["people"] if p["id"] in ids],
+                                   "requires": [f"market:{ticker}"] if ticker in market_tickers else []})
     for path, shards in sorted(indexes.items()):
         content = encode({"shards": shards})
         if len(content) > max_index_bytes:
@@ -190,18 +217,28 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # Include business time and presentation configuration: both affect processor output.
     settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days")
                 if key in data["meta"]}
+    disclosed_tickers = set(tickers)
     coverage = {"scope": "all_input_records", "universe_complete": False,
-                "people_count": len(data["people"]), "market_enabled": False,
+                "people_count": len(data["people"]), "market_enabled": allow_market,
                 "publication_state": "bootstrap_empty" if not data["people"] else "active"}
+    if allow_market:
+        coverage.update(market_ticker_count=len(market_tickers),
+                        market_missing_ticker_count=len(disclosed_tickers - market_tickers))
     identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": PROCESSOR_SHA256, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
-                "data_cutoff_at": data["meta"]["data_cutoff_at"], "settings": settings, "coverage": coverage}
+                "data_cutoff_at": data["meta"]["data_cutoff_at"], "settings": settings,
+                "coverage": coverage}
+    if allow_market:
+        identity.update(market_commit=market_commit, market_pages=list(market_pages or []))
     manifest = {"schema_version": SCHEMA, "storage_layout": LAYOUT,
                 "snapshot_id": digest(encode(identity)), "generated_at": generated_at,
                 "data_cutoff_at": data["meta"]["data_cutoff_at"], "board": board_sha,
                 "source_health": data["source_health"], "status_revision": digest(encode(data["source_health"])),
                 "is_demo": data["meta"]["is_demo"], "processor_sha256": PROCESSOR_SHA256,
                 "coverage": coverage, **settings}
+    if market_commit is not None:
+        manifest["market_commit"] = market_commit
+        manifest["market_pages"] = list(market_pages or [])
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
         raise ValueError("Manifest exceeds gateway size budget")

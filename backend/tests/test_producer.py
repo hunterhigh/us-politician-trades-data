@@ -104,6 +104,37 @@ class ProducerTests(unittest.TestCase):
         self.assertFalse(bundle.manifest["is_demo"])
         self.assertEqual(bundle.manifest["coverage"]["publication_state"], "bootstrap_empty")
 
+    def test_licensed_market_requires_commit_and_is_sharded_from_entities(self):
+        data = deepcopy(self.data)
+        data["meta"]["is_demo"] = False
+        hosts = {"house_clerk": "disclosures-clerk.house.gov",
+                 "senate_efd": "efdsearch.senate.gov"}
+        for row in data["transactions"] + data["reported_holdings"]:
+            row["verification_status"] = "official_matched"
+            row["source_url"] = f"https://{hosts[row['source_id']]}/filing/{row['filing_id']}"
+        for row in data["source_health"]:
+            row["status"] = "ok"
+        data["security_market_data"] = [{
+            "ticker": "ZZDEMO", "company_name": "Fictional Company Alpha",
+            "source_id": "alpaca_sip_eod", "price_source": "Alpaca SIP EOD",
+            "source_url": "https://docs.alpaca.markets/docs/market-data",
+            "feed": "sip", "timeframe": "1Day", "adjustment": "split",
+            "price_history": [{"date": "2026-09-17", "close": 100},
+                              {"date": "2026-09-18", "close": 101}],
+        }]
+        with self.assertRaisesRegex(ValueError, "frozen market commit"):
+            build(data, generated_at=NOW, allow_production=True, allow_market=True)
+        bundle = build(data, generated_at=NOW, allow_production=True, allow_market=True,
+                       market_commit="1" * 40, market_pages=["2" * 64])
+        self.assertEqual(bundle.manifest["market_commit"], "1" * 40)
+        self.assertTrue(bundle.manifest["coverage"]["market_enabled"])
+        person_index = json.loads(bundle.files[
+            f"people/{bucket('people', 'house:DEMO001')}/index.json"])
+        person_sha = person_index["shards"]["house:DEMO001"]
+        person = json.loads(bundle.files[
+            f"people/{bucket('people', 'house:DEMO001')}/{person_sha}.json"])
+        self.assertEqual(person["requires"], ["market:ZZDEMO"])
+
 
 class StoreTests(unittest.TestCase):
     def setUp(self):

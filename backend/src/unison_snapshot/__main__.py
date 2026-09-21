@@ -11,6 +11,7 @@ from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_v
 from .builder import build
 from .codec import digest, encode
 from .materialize import materialize
+from .market_store import build_market_bundle, materialize_market
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_sync import plan_checkpoint, record_result
@@ -82,6 +83,13 @@ def main() -> None:
     prepare.add_argument("--root", type=Path, required=True)
     prepare.add_argument("--generated-at", required=True)
     prepare.add_argument("--allow-empty-production", action="store_true")
+    prepare.add_argument("--allow-market", action="store_true")
+    prepare.add_argument("--market-commit")
+    prepare.add_argument("--market-pages-file", type=Path)
+    prepare_market = sub.add_parser("prepare-market-publication")
+    prepare_market.add_argument("--input", type=Path, required=True)
+    prepare_market.add_argument("--root", type=Path, required=True)
+    prepare_market.add_argument("--metadata-output", type=Path, required=True)
     fetch = sub.add_parser("fetch-public")
     fetch.add_argument("--owner", required=True)
     fetch.add_argument("--repo", required=True)
@@ -170,6 +178,7 @@ def main() -> None:
     market_validation.add_argument("--timeout", type=float, default=30.0)
     market_validation.add_argument("--key-id-env", default="ALPACA_API_KEY_ID")
     market_validation.add_argument("--secret-key-env", default="ALPACA_API_SECRET_KEY")
+    market_validation.add_argument("--distribution-authorized", action="store_true")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -317,10 +326,30 @@ def main() -> None:
             if payload.get("meta", {}).get("is_demo") is not False:
                 raise ValueError("Public production publication requires is_demo=false")
             bundle = build(payload, generated_at=args.generated_at, allow_production=True,
-                           allow_empty_production=args.allow_empty_production)
+                           allow_empty_production=args.allow_empty_production,
+                           allow_market=args.allow_market, market_commit=args.market_commit,
+                           market_pages=(json.loads(args.market_pages_file.read_text(encoding="utf-8"))
+                                         ["market_pages"] if args.market_pages_file else None))
             result = materialize(args.root, bundle)
             print(json.dumps({"changed": result.changed, "business_changed": result.business_changed,
                               "snapshot_id": bundle.manifest["snapshot_id"],
+                              "written": result.written, "removed": result.removed}))
+        elif args.command == "prepare-market-publication":
+            payload = json.loads(args.input.read_text(encoding="utf-8"))
+            if payload.get("meta", {}).get("is_demo") is not False:
+                raise ValueError("Public market publication requires is_demo=false")
+            bundle = build_market_bundle(
+                payload.get("security_market_data"),
+                data_cutoff_at=payload.get("meta", {}).get("data_cutoff_at"))
+            result = materialize_market(args.root, bundle)
+            _write_atomic(args.metadata_output, {
+                "schema_version": "market-publication-plan/v1",
+                "data_cutoff_at": bundle.data_cutoff_at,
+                "ticker_count": len(bundle.tickers),
+                "market_pages": list(bundle.page_shas),
+            })
+            print(json.dumps({"changed": result.changed, "tickers": len(bundle.tickers),
+                              "pages": len(bundle.page_shas),
                               "written": result.written, "removed": result.removed}))
         elif args.command == "fetch-public":
             token = os.environ.get(args.token_env) if args.token_env else None
@@ -488,7 +517,8 @@ def main() -> None:
             )
             validation = build_market_validation(
                 payload, client=client, checked_at=checked_at,
-                as_of_date=args.as_of_date, batch_size=args.batch_size)
+                as_of_date=args.as_of_date, batch_size=args.batch_size,
+                distribution_authorized=args.distribution_authorized)
             result = validation.snapshot
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"

@@ -202,13 +202,15 @@ test("market paths and enabled-market manifests are closed by default", async ()
 });
 
 test("market opt-in uses its own retained tag namespace", async () => {
-  const mock = upstreamWith({ security_market_data: [] });
-  const response = await createGateway(mock.fetch)(request(`${COMMIT}/market/aa/${HASH}.json`), {
-    ...env, ALLOW_MARKET: "true",
-  });
-  assert.equal(response.status, 200);
-  await response.arrayBuffer();
-  assert.ok(mock.calls[0]?.includes("tags/published-market/"));
+  for (const path of [`market/aa/${HASH}.json`, `market-pages/${HASH}.json`]) {
+    const mock = upstreamWith({ security_market_data: [] });
+    const response = await createGateway(mock.fetch)(request(`${COMMIT}/${path}`), {
+      ...env, ALLOW_MARKET: "true",
+    });
+    assert.equal(response.status, 200);
+    await response.arrayBuffer();
+    assert.ok(mock.calls[0]?.includes("tags/published-market/"));
+  }
 });
 
 test("large shards stream without imposing the small manifest limit", async () => {

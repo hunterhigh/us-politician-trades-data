@@ -27,6 +27,8 @@ All notable changes follow Semantic Versioning.
 - Advanced the House legacy and retry parser versions so production replays actually revisit prior extractions and failures after those deterministic parsing changes.
 - Completed the official House asset-type code set, made annual-holding retries parser-version aware with bounded diagnostics, and excluded identities from ineligible holding reports from source candidates.
 - Added complete annual-report archive and parse backlog counts plus strict mutual-state checks to the House holding production status.
+- Added licensed Alpaca market publication on a protected content-addressed `market` branch, frozen market commits in `main`, and a complete five-array production workflow.
+- Defined OGE Form 201 request-only reports as outside the first-release completion boundary.
 
 ## 0.1.0 - 2026-09-18
 
