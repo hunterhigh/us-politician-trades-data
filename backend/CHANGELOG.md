@@ -24,6 +24,7 @@ All notable changes follow Semantic Versioning.
 - Added filing chronology quarantine and changed the remaining House backfill queue to newest filings first so 30/90-day frontend windows become useful earlier.
 - Added a fail-closed parser for legacy House checkbox PTR forms using OCR coordinates for owner, transaction direction and disclosed amount bucket; ambiguous or low-confidence marks remain quarantined.
 - Added deterministic support for four-digit dates, whitespace-damaged OCR titles, continuation-page table signatures and the wide-asset legacy checkbox layout; weak signatures and ambiguous marks still fail closed.
+- Advanced the House legacy and retry parser versions so production replays actually revisit prior extractions and failures after those deterministic parsing changes.
 
 ## 0.1.0 - 2026-09-18
 
