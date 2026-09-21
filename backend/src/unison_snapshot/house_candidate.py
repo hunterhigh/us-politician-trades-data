@@ -144,7 +144,9 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
                     if not isinstance(row, dict) or row.get("person_id") != person_id:
                         raise HouseIndexError("Qualified House holding has an invalid identity reference")
                     holdings.append(deepcopy(row))
-        for person_id, identity in holding_identities.items():
+        holding_people = {row["person_id"] for row in holdings}
+        for person_id in holding_people:
+            identity = holding_identities[person_id]
             if person_id in identities and identities[person_id] != identity:
                 raise HouseIndexError("House identity differs between transaction and holding reports")
             identities[person_id] = identity

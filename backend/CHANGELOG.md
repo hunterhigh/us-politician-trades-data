@@ -25,6 +25,7 @@ All notable changes follow Semantic Versioning.
 - Added a fail-closed parser for legacy House checkbox PTR forms using OCR coordinates for owner, transaction direction and disclosed amount bucket; ambiguous or low-confidence marks remain quarantined.
 - Added deterministic support for four-digit dates, whitespace-damaged OCR titles, continuation-page table signatures and the wide-asset legacy checkbox layout; weak signatures and ambiguous marks still fail closed.
 - Advanced the House legacy and retry parser versions so production replays actually revisit prior extractions and failures after those deterministic parsing changes.
+- Completed the official House asset-type code set, made annual-holding retries parser-version aware with bounded diagnostics, and excluded identities from ineligible holding reports from source candidates.
 
 ## 0.1.0 - 2026-09-18
 

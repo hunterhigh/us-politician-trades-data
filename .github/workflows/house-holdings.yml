@@ -115,19 +115,34 @@ jobs:
           BATCH_SIZE: ${{ inputs.batch_size }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
+          export HOLDING_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_holdings import PARSER_VERSION; print(PARSER_VERSION)')"
           roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
           test -n "$roster" && test -f "$roster"
           python - <<'PY'
           import json, os
           from pathlib import Path
           evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
+          parser_version=os.environ['HOLDING_PARSER_VERSION']
           pending=[]
           for path in evidence.glob('house_clerk/financial-reports/*/*/*.json'):
               value=json.loads(path.read_text(encoding='utf-8'))
               relative=Path(str(value['filing_year']))/value['document_id']/f"{value['sha256']}.json"
+              extraction=review/'house_clerk/holding_extractions'/relative
               qualification=review/'house_clerk/holding_qualifications'/relative
-              if not qualification.is_file():
-                  pending.append((value.get('filed_date') or '', value['document_id'], path))
+              failure=review/'house_clerk/holding_failures'/relative
+              if qualification.is_file() and extraction.is_file():
+                  try:
+                      if json.loads(extraction.read_text(encoding='utf-8')).get('parser_version') == parser_version:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
+              elif failure.is_file():
+                  try:
+                      if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == parser_version:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
+              pending.append((value.get('filed_date') or '', value['document_id'], path))
           pending.sort(reverse=True)
           Path(os.environ['RUNNER_TEMP'], 'holding-metadata.txt').write_text(
               ''.join(f'{item[2]}\n' for item in pending[:int(os.environ['BATCH_SIZE'])]),
@@ -148,8 +163,8 @@ jobs:
             failure="$REVIEW_ROOT/house_clerk/holding_failures/$relative"
             mkdir -p "$(dirname "$extraction")" "$(dirname "$identity")" \
               "$(dirname "$qualification")" "$(dirname "$failure")"
-            if PYTHONPATH=backend/src python -m unison_snapshot parse-house-holding-report \
-                --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction"; then
+            if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-holding-report \
+                --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
               rm -f "$failure"
               PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
                 --extraction "$extraction" --members "$roster" --output "$identity"
@@ -157,7 +172,9 @@ jobs:
                 --extraction "$extraction" --identity "$identity" --output "$qualification"
             else
               rm -f "$extraction" "$identity" "$qualification"
-              METADATA="$metadata" FAILURE="$failure" PARSER_COMMIT="$PARSER_COMMIT" python - <<'PY'
+              error="$(printf '%s' "$output" | tr '\n' ' ' | tail -c 480)"
+              METADATA="$metadata" FAILURE="$failure" PARSER_COMMIT="$PARSER_COMMIT" \
+                PARSER_VERSION="$HOLDING_PARSER_VERSION" ERROR="$error" python - <<'PY'
           import json, os
           from datetime import datetime, timezone
           from pathlib import Path
@@ -165,6 +182,7 @@ jobs:
           value={'schema_version':'house-holding-parse-failure/v1',
                  'document_id':metadata['document_id'], 'filing_year':metadata['filing_year'],
                  'source_sha256':metadata['sha256'], 'parser_commit':os.environ['PARSER_COMMIT'],
+                 'parser_version':os.environ['PARSER_VERSION'], 'error':os.environ['ERROR'],
                  'last_attempt_at':datetime.now(timezone.utc).isoformat()}
           Path(os.environ['FAILURE']).write_text(json.dumps(value,sort_keys=True,separators=(',',':')),
                                                  encoding='utf-8')

@@ -98,11 +98,12 @@ class HouseCandidateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             self.fixture(root)
-            identity = {**IDENTITY, "roster_sha256": "b" * 64,
+            identity = {**IDENTITY, "person_id": "house:A000001", "official_name": "Ada Example",
+                        "state": "NY", "state_district": "NY01", "roster_sha256": "b" * 64,
                         "status": "matched_automatically",
                         "match_basis": "official_roster_exact_district_first_last_name"}
             holding = {"id": "house-holding:one", "filing_id": "10000002",
-                       "person_id": "house:P000197", "owner": "Self",
+                       "person_id": "house:A000001", "owner": "Self",
                        "asset_name": "Example Corp", "ticker": "EXM",
                        "ticker_mapping_basis": "filing_explicit", "instrument_type": "Stock",
                        "report_period_end": "2025-12-31", "filed_at": "2026-05-01T00:00:00Z",
@@ -125,16 +126,19 @@ class HouseCandidateTests(unittest.TestCase):
                      "counts": {"archived": 1, "pending": 0, "failed": 0}}
             result = build_house_candidate(root, state, deepcopy(BASE))
             self.assertEqual(result["reported_holdings"], [holding])
+            self.assertEqual({person["id"] for person in result["people"]},
+                             {"house:P000197", "house:A000001"})
 
     def test_does_not_fall_back_when_latest_annual_report_is_ineligible(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             self.fixture(root)
-            identity = {**IDENTITY, "roster_sha256": "b" * 64,
+            identity = {**IDENTITY, "person_id": "house:A000001", "official_name": "Ada Example",
+                        "state": "NY", "state_district": "NY01", "roster_sha256": "b" * 64,
                         "status": "matched_automatically",
                         "match_basis": "official_roster_exact_district_first_last_name"}
             holding = {"id": "house-holding:old", "filing_id": "10000001",
-                       "person_id": "house:P000197", "owner": "Self", "asset_name": "Old",
+                       "person_id": "house:A000001", "owner": "Self", "asset_name": "Old",
                        "ticker": None, "ticker_mapping_basis": None, "instrument_type": "Other",
                        "report_period_end": "2024-12-31", "filed_at": "2025-05-01T00:00:00Z",
                        "value_low": 1001, "value_high": 15000, "change_from_prior": "unknown",
@@ -163,6 +167,7 @@ class HouseCandidateTests(unittest.TestCase):
                      "counts": {"archived": 1, "pending": 0, "failed": 0}}
             result = build_house_candidate(root, state, deepcopy(BASE))
             self.assertEqual(result["reported_holdings"], [])
+            self.assertEqual([person["id"] for person in result["people"]], ["house:P000197"])
 
 
 if __name__ == "__main__":

@@ -17,18 +17,37 @@ from .house_ptr import DETERMINISTIC_IDENTITY_BASES, OWNER_CODES
 
 EXTRACTION_SCHEMA = "house-holding-extraction/v1"
 QUALIFICATION_SCHEMA = "house-holding-qualification/v1"
-PARSER_VERSION = "house-annual-holdings-2026-01"
+PARSER_VERSION = "house-annual-holdings-2026-02"
 SUPPORTED_REPORT_TYPES = {"O": "Annual Report"}
 ASSET_RE = re.compile(
     r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,31})\))?\s*\[([A-Z0-9]{2})\]\s*$")
 VALUE_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 VALUE_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.00)?$")
 ASSET_TYPES = {
-    "ST": "Stock", "EF": "Exchange Traded Fund", "MF": "Mutual Fund",
-    "PE": "Pension", "BA": "Bank Account", "CS": "Corporate Security",
-    "CT": "Cryptocurrency", "RS": "Restricted Stock Unit", "OP": "Option",
-    "AB": "Asset-Backed Security", "ET": "Exchange Traded Note", "RP": "Real Property",
-    "OL": "Other", "OT": "Other", "FN": "Annuity",
+    "4K": "401K and Other Non-Federal Retirement Accounts",
+    "5C": "529 College Savings Plan", "5F": "529 Portfolio",
+    "5P": "529 Prepaid Tuition Plan", "AB": "Asset-Backed Securities",
+    "BA": "Bank Accounts, Money Market Accounts and CDs", "BK": "Brokerage Accounts",
+    "CO": "Collectibles", "CS": "Corporate Securities (Bonds and Notes)",
+    "CT": "Cryptocurrency", "DB": "Defined Benefit Pension",
+    "DO": "Debts Owed to the Filer", "DS": "Delaware Statutory Trust",
+    "EF": "Exchange Traded Funds (ETF)", "EQ": "Excepted/Qualified Blind Trust",
+    "ET": "Exchange Traded Notes", "FA": "Farms",
+    "FE": "Foreign Exchange Position (Currency)", "FN": "Fixed Annuity",
+    "FU": "Futures", "GS": "Government Securities and Agency Debt",
+    "HE": "Hedge Funds & Private Equity Funds (EIF)",
+    "HN": "Hedge Funds & Private Equity Funds (non-EIF)", "IC": "Investment Club",
+    "IH": "IRA (Held in Cash)", "IP": "Intellectual Property & Royalties",
+    "IR": "IRA", "MA": "Managed Accounts (e.g., SMA and UMA)",
+    "MF": "Mutual Funds", "MO": "Mineral/Oil/Solar Energy Rights",
+    "OI": "Ownership Interest (Holding Investments)",
+    "OL": "Ownership Interest (Engaged in a Trade or Business)", "OP": "Options",
+    "OT": "Other", "PE": "Pensions", "PM": "Precious Metals",
+    "PS": "Stock (Not Publicly Traded)", "RE": "Real Estate Invest. Trust (REIT)",
+    "RF": "REIT (EIF)", "RN": "REIT (non-EIF)", "RP": "Real Property",
+    "RS": "Restricted Stock Units (RSUs)", "SA": "Stock Appreciation Right",
+    "ST": "Stocks (including ADRs)", "TR": "Trust", "VA": "Variable Annuity",
+    "VI": "Variable Insurance", "WU": "Whole/Universal Insurance",
 }
 REPORT_PERIOD_BASIS = "annual_member_pdf_filing_year_end"
 
