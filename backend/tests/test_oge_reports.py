@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
     _extract_borderless_transaction_tables, parse_archived_pdf, parse_table_rows,
+    _extract_pdf,
 )
 
 
@@ -40,6 +42,35 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_long_official_filing_stays_bounded_above_one_hundred_pages(self):
+        class Page:
+            lines = []
+
+            def extract_text(self):
+                return ""
+
+            def extract_words(self, **_):
+                return []
+
+            def extract_tables(self, *_):
+                return []
+
+        class Document:
+            def __init__(self, count):
+                self.pages = [Page()] * count
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+        with patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(open=lambda _: Document(101))}):
+            self.assertEqual(_extract_pdf(Path("long.pdf")), ("\n" * 100, []))
+        with patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(open=lambda _: Document(501))}):
+            with self.assertRaisesRegex(OgeCatalogError, "page count"):
+                _extract_pdf(Path("too-long.pdf"))
+
     def test_borderless_integrity_table_uses_header_and_rule_geometry(self):
         class Page:
             lines = [

@@ -18,6 +18,7 @@ REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
 MAX_PDF_BYTES = 50 * 1024 * 1024
+MAX_PDF_PAGES = 500
 
 _DIRECT_ID = re.compile(r"[0-9a-f]{32}")
 _ROW_NUMBER = re.compile(r"[1-9][0-9]*")
@@ -432,7 +433,7 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
     rows: list[tuple[int, list[object]]] = []
     try:
         with pdfplumber.open(content_path) as document:
-            if not 1 <= len(document.pages) <= 100:
+            if not 1 <= len(document.pages) <= MAX_PDF_PAGES:
                 raise OgeCatalogError("OGE 278-T page count is outside the safety limit")
             for page_number, page in enumerate(document.pages, start=1):
                 texts.append(page.extract_text() or "")
