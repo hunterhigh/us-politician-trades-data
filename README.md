@@ -9,6 +9,7 @@
 - `backend/`：Python 3.11+ 标准库生产器，不依赖在线数据库。
 - `client/`：公开 GitHub 直接读取适配器；首发主路径。
 - `gateway/`：以后切回私有仓库时使用的可选只读代理；不在首发路径。
+- `frontend-e2e/`：离线浏览器验收；从临时 Git 固定提交贯通读取、原处理器、查询、渲染和交互。
 - `review-input/`：对方原始材料，只读基线，处理器和渲染器按 SHA-256 固定。
 - `docs/`：总体设计、契约审阅、实现状态和维护说明。
 - `.local/`：本机演示仓库与页面，不提交 Git。
@@ -32,7 +33,17 @@ Set-Location backend
 python scripts/verify.py
 ```
 
-公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批PTR原件，并更新公开来源检查点。`house-holdings.yml`提供受控的手动小批次年度报告持仓回填，原件只进`evidence`，机器结果与候选只进`review`。下一步以自动资格校验、异常隔离和完整候选快照替代逐条人工批准。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
+验证原前端浏览器交互（需要 Node 24 和系统 Chrome、Chromium 或 Edge）：
+
+```powershell
+Set-Location frontend-e2e
+npm ci
+npm test
+```
+
+该测试只使用明确标记为 demo 的合成数据和临时裸 Git 仓库，不访问 GitHub、披露网站或行情接口，也不修改 `review-input/`。
+
+公开读取命令见 [client/README.md](client/README.md)。`publish.yml` 已实现生产发布、远端基线比较以及分支和发布标签的原子推送；`house-state.yml` 每 6 小时刷新官方索引、顺序归档一小批 PTR 原件，并更新公开来源检查点。`house-holdings.yml` 提供受控的手动小批次年度报告持仓回填，原件只进 `evidence`，机器结果与候选只进 `review`。下一步继续扩展自动资格校验、异常隔离和完整候选快照。生产环境和 Secrets 说明见 [生产配置](docs/生产配置.md)。
 
 生产 manifest 可直接读取：[raw main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。当前生产态为 `bootstrap_empty`：后台部署已经运行，但自动晋级、完整披露回填、行情回填和原前端验收尚未完成。
 

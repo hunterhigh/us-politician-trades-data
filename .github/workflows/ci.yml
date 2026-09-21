@@ -2,9 +2,9 @@ name: Offline contract checks
 on:
   push:
     branches: [code]
-    paths: ['backend/**', 'client/**', 'gateway/**', 'review-input/**', '.github/workflows/**']
+    paths: ['backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**']
   pull_request:
-    paths: ['backend/**', 'client/**', 'gateway/**', 'review-input/**', '.github/workflows/**']
+    paths: ['backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**']
   workflow_dispatch:
     inputs:
       oge_evidence_validation:
@@ -44,7 +44,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: gateway/package-lock.json
+          cache-dependency-path: |
+            gateway/package-lock.json
+            frontend-e2e/package-lock.json
       - run: npm ci
         working-directory: gateway
       - run: npm test
@@ -53,6 +55,10 @@ jobs:
         working-directory: gateway
       - run: npm run types:check
         working-directory: gateway
+      - run: npm ci
+        working-directory: frontend-e2e
+      - run: npm test
+        working-directory: frontend-e2e
 
   collect-oge-validation-evidence:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.oge_evidence_validation && inputs.oge_terms_acknowledged }}
