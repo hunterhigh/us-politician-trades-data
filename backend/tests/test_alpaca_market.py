@@ -251,13 +251,20 @@ class AlpacaMarketTests(unittest.TestCase):
              {"ticker": "BOND12345", "reason": "non_equity_debt"},
              {"ticker": "FXAIX", "reason": "outside_sip_fund"}])
 
-    def test_production_rejects_symbol_absent_from_asset_master(self):
+    def test_production_accounts_for_symbol_absent_from_asset_master(self):
         snapshot = production_candidate()
-        client = FakeMarketClient({}, assets=[asset("OTHER")])
-        with self.assertRaisesRegex(AlpacaMarketError, "unresolved.*ZZDEMO"):
-            build_market_validation(
-                snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
-                distribution_authorized=True)
+        snapshot["transactions"][1]["ticker"] = "MISSING"
+        client = FakeMarketClient(
+            {"ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}]},
+            assets=[asset("ZZDEMO")],
+        )
+        validation = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(
+            validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"],
+            [{"ticker": "MISSING", "reason": "outside_sip_not_listed"}],
+        )
 
     def test_ignores_non_authoritative_asset_rows_but_keeps_required_symbols_fail_closed(self):
         snapshot = production_candidate()
@@ -278,13 +285,21 @@ class AlpacaMarketTests(unittest.TestCase):
         )
         self.assertEqual(validation.audit["market_row_count"], 1)
 
-        with self.assertRaisesRegex(AlpacaMarketError, "unresolved.*ZZDEMO"):
-            build_market_validation(
-                snapshot,
-                client=FakeMarketClient({}, assets=[malformed, asset("OTHER")]),
-                checked_at="2026-09-20T21:00:00Z",
-                distribution_authorized=True,
-            )
+        unavailable_snapshot = deepcopy(snapshot)
+        unavailable_snapshot["transactions"][1]["ticker"] = "OTHER"
+        unavailable = build_market_validation(
+            unavailable_snapshot,
+            client=FakeMarketClient(
+                {"OTHER": [{"t": "2026-09-18T04:00:00Z", "c": 50}]},
+                assets=[malformed, asset("OTHER")],
+            ),
+            checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True,
+        )
+        self.assertEqual(
+            unavailable.snapshot["meta"]["market_coverage"]["unsupported_tickers"],
+            [{"ticker": "ZZDEMO", "reason": "outside_sip_not_listed"}],
+        )
 
     def test_duplicate_asset_symbol_prefers_active_when_market_scope_is_unambiguous(self):
         snapshot = production_candidate()

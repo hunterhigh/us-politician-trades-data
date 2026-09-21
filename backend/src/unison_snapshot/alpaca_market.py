@@ -379,7 +379,11 @@ def _market_universe(symbols: list[str], contexts: dict[str, list[dict]],
                                    "asset_status": asset["status"],
                                    "exchange": asset["exchange"]})
             continue
-        unresolved.append({"ticker": ticker, "reason": "not_in_alpaca_asset_master"})
+        # Alpaca defines /v2/assets as the master list available for trading and
+        # data consumption.  Once explicit symbol variants and filing-derived
+        # non-equity classes have been considered, absence from that complete
+        # authenticated list is a deterministic outside-SIP classification.
+        unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
     return supported, unsupported, unresolved
 
 
