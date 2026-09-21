@@ -487,6 +487,12 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
             ticker = entry["ticker"]
             bars = received.get(entry["provider_symbol"], [])
             if not bars:
+                if entry["asset_status"] == "inactive":
+                    unsupported.append({
+                        "ticker": ticker,
+                        "reason": "outside_sip_inactive",
+                    })
+                    continue
                 missing.append({"ticker": ticker, "provider_symbol": entry["provider_symbol"],
                                 "asset_status": entry["asset_status"],
                                 "exchange": entry["exchange"], "reason": "no_bars_returned"})

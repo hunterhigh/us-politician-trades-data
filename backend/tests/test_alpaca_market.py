@@ -187,6 +187,23 @@ class AlpacaMarketTests(unittest.TestCase):
                 snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
                 distribution_authorized=True)
 
+    def test_production_accounts_for_inactive_asset_without_available_bars(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][1]["ticker"] = "INACTIVE"
+        validation = build_market_validation(
+            snapshot,
+            client=FakeMarketClient(
+                {"ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}]},
+                assets=[asset("ZZDEMO"), asset("INACTIVE", status="inactive")],
+            ),
+            checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True,
+        )
+        self.assertEqual(
+            validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"],
+            [{"ticker": "INACTIVE", "reason": "outside_sip_inactive"}],
+        )
+
     def test_production_rejects_stale_active_series_but_keeps_inactive_history(self):
         snapshot = production_candidate()
         stale = [{"t": "2026-08-01T04:00:00Z", "c": 110}]

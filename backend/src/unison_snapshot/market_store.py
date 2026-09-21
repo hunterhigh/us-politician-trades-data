@@ -19,6 +19,7 @@ UNSUPPORTED_REASONS = frozenset({
     "non_equity_debt",
     "outside_sip_foreign_exchange",
     "outside_sip_fund",
+    "outside_sip_inactive",
     "outside_sip_not_listed",
     "outside_sip_otc",
     "private_entity",
