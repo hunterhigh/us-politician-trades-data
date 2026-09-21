@@ -157,6 +157,20 @@ def multipage_legacy_checkbox_pages():
             {"width": 792, "height": 610.56, "words": table}]
 
 
+def wide_legacy_checkbox_pages():
+    words = [
+        ocr_word("FULL", 120, 300), ocr_word("ASSET", 155, 300),
+        ocr_word("NAME", 195, 300), ocr_word("AMOUNT", 590, 300),
+        ocr_word("OF", 640, 300), ocr_word("TRANSACTION", 655, 300),
+        ocr_word("X", 360, 230, 14),
+        ocr_word("SP", 52, 450), ocr_word("Municipal", 90, 450),
+        ocr_word("Bond", 155, 450), ocr_word("X", 414, 450, 14),
+        ocr_word("01/28/2026", 475, 450), ocr_word("02/02/2026", 540, 450),
+        ocr_word("X", 635, 450, 14),
+    ]
+    return [{"width": 792, "height": 610.56, "words": words}]
+
+
 META = {"source_id": "house_clerk", "document_id": "20000001", "filing_type": "P",
         "source_url": "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/20000001.pdf",
         "filer_name": "Hon. Example", "state_district": "CA01", "filing_year": 2026,
@@ -424,6 +438,72 @@ class HousePtrTests(unittest.TestCase):
                                      ocr_engine="tesseract 5.3.0")
         isolated = qualify_automatic(ambiguous, IDENTITY)
         self.assertIn("amount_invalid", isolated["quarantined"][0]["reasons"])
+
+    def test_legacy_checkbox_form_accepts_four_digit_dates_and_compact_ocr_title(self):
+        pages = deepcopy(legacy_checkbox_pages())
+        pages[0]["words"] = [
+            item for item in pages[0]["words"]
+            if item["text"] not in {"UNITED", "STATES", "HOUSE", "OF", "REPRESENTATIVES",
+                                    "Periodic", "Transaction", "Report"}
+        ]
+        pages[0]["words"].extend([
+            ocr_word("UNITEDSTATESHOUSEOFREPRESENTATIVES", 80, 35),
+            ocr_word("PeriodicTransactionReport", 160, 55),
+        ])
+        next(item for item in pages[0]["words"] if item["text"] == "01/28/26")["text"] = "01/28/2026"
+        next(item for item in pages[0]["words"] if item["text"] == "02/02/26")["text"] = "02/02/2026"
+
+        extraction = parse_word_pages(
+            META, "4" * 64, pages, copy_allowed=True, ocr_engine="tesseract 5.3.0")
+
+        self.assertEqual(len(extraction["transactions"]), 1)
+        self.assertEqual((extraction["transactions"][0]["transaction_date"],
+                          extraction["transactions"][0]["notification_date"]),
+                         ("2026-01-28", "2026-02-02"))
+
+    def test_legacy_continuation_page_uses_strong_table_signature(self):
+        pages = deepcopy(legacy_checkbox_pages())
+        pages[0]["words"] = [
+            item for item in pages[0]["words"]
+            if item["text"] not in {"UNITED", "STATES", "HOUSE", "OF", "REPRESENTATIVES",
+                                    "Periodic", "Transaction", "Report"}
+        ]
+        pages[0]["words"].extend([
+            ocr_word("FULL", 120, 300), ocr_word("ASSET", 155, 300),
+            ocr_word("NAME", 195, 300), ocr_word("AMOUNT", 490, 300),
+            ocr_word("OF", 540, 300), ocr_word("TRANSACTION", 555, 300),
+        ])
+        next(item for item in pages[0]["words"] if item["text"] == "01/28/26")["text"] = "01/28/2026"
+        next(item for item in pages[0]["words"] if item["text"] == "02/02/26")["text"] = "02/02/2026"
+
+        extraction = parse_word_pages(
+            META, "5" * 64, pages, copy_allowed=True, ocr_engine="tesseract 5.3.0")
+
+        self.assertEqual(len(extraction["transactions"]), 1)
+        self.assertEqual(extraction["transactions"][0]["asset_name"], "Example Fund")
+
+        no_signature = deepcopy(pages)
+        no_signature[0]["words"] = [item for item in no_signature[0]["words"]
+                                          if item["text"] != "AMOUNT"]
+        with self.assertRaisesRegex(HouseIndexError, "header does not match"):
+            parse_word_pages(
+                META, "7" * 64, no_signature, copy_allowed=True,
+                ocr_engine="tesseract 5.3.0")
+
+    def test_wide_legacy_table_uses_in_period_date_column_as_layout_signature(self):
+        extraction = parse_word_pages(
+            META, "6" * 64, wide_legacy_checkbox_pages(), copy_allowed=True,
+            ocr_engine="tesseract 5.3.0")
+
+        self.assertEqual(len(extraction["transactions"]), 1)
+        row = extraction["transactions"][0]
+        self.assertEqual((row["asset_name"], row["transaction_type"]),
+                         ("Municipal Bond", "purchase"))
+        self.assertEqual((row["transaction_date"], row["notification_date"]),
+                         ("2026-01-28", "2026-02-02"))
+        self.assertEqual((row["amount_low"], row["amount_high"]), (50001, 100000))
+        self.assertEqual(
+            qualify_automatic(extraction, IDENTITY)["qualification"]["qualified_count"], 1)
 
     def test_compact_legacy_form_excludes_its_printed_example_row(self):
         extraction = parse_word_pages(META, "d" * 64, compact_legacy_checkbox_pages(),
