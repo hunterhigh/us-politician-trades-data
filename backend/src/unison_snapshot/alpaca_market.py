@@ -260,7 +260,12 @@ def _asset_registry(rows: object) -> dict[str, dict]:
         status = str(row.get("status") or "").strip().casefold()
         if not symbol or not TICKER.fullmatch(symbol) or asset_class != "us_equity" \
                 or not exchange or status not in {"active", "inactive"}:
-            raise AlpacaMarketError("Alpaca assets response contains an invalid US equity")
+            # Alpaca's asset enum is broader than the US-equity universe and can
+            # evolve independently of this consumer.  Ignore rows that cannot be
+            # authoritative US-equity records.  A disclosed ticker that only has
+            # an ignored row remains unresolved and is rejected by the production
+            # coverage gate below, so this cannot silently create market coverage.
+            continue
         if symbol in result:
             raise AlpacaMarketError(f"Alpaca assets response contains duplicate symbol {symbol}")
         result[symbol] = dict(row, symbol=symbol, exchange=exchange, status=status)

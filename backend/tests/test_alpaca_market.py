@@ -259,6 +259,33 @@ class AlpacaMarketTests(unittest.TestCase):
                 snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
                 distribution_authorized=True)
 
+    def test_ignores_non_authoritative_asset_rows_but_keeps_required_symbols_fail_closed(self):
+        snapshot = production_candidate()
+        malformed = {
+            "symbol": "NEW-ASSET-CLASS",
+            "class": "global_equity",
+            "exchange": "",
+            "status": "active",
+        }
+        validation = build_market_validation(
+            snapshot,
+            client=FakeMarketClient(
+                {"ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}]},
+                assets=[malformed, asset("ZZDEMO")],
+            ),
+            checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True,
+        )
+        self.assertEqual(validation.audit["market_row_count"], 1)
+
+        with self.assertRaisesRegex(AlpacaMarketError, "unresolved.*ZZDEMO"):
+            build_market_validation(
+                snapshot,
+                client=FakeMarketClient({}, assets=[malformed, asset("OTHER")]),
+                checked_at="2026-09-20T21:00:00Z",
+                distribution_authorized=True,
+            )
+
     def test_future_as_of_and_empty_response_fail_closed(self):
         snapshot = production_candidate()
         client = FakeMarketClient({})
