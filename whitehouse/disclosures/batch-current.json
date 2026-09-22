@@ -1,5 +1,5 @@
 {
-  "archived_version_count": 70,
+  "archived_version_count": 120,
   "attempted_count": 50,
   "failures": [],
   "index_quarantine": [
@@ -71,9 +71,1409 @@
     }
   ],
   "indexed_count": 346,
-  "last_attempted_id": "wh-url:2106311f28929491a2fcb10b",
-  "pending_url_count": 276,
+  "last_attempted_id": "wh-url:d2f33a52474d54287d2fdefe",
+  "pending_url_count": 226,
   "reports": [
+    {
+      "archive_path": "whitehouse/disclosures/reports/ad0b37648e95f03ee36cc836/3f109939c6aeca2ef3f53fba03898b9b2b3850eae41d4422bb089db75f6588b8.pdf",
+      "byte_length": 17908,
+      "document_id": "wh-url:ad0b37648e95f03ee36cc836",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Mangold-Lenett-Samuel.pdf",
+      "filer_name_from_label": "Mangold-Lenett, Samuel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ca3cdeb9c8ef31c9\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Mangold-Lenett, Samuel",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:05.784888+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3f109939c6aeca2ef3f53fba03898b9b2b3850eae41d4422bb089db75f6588b8",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/359bc14fb0e9e9708b541dda/027d52f9875d3636019b6624d8bcd8863bb74fa1bbd4a13482fbc6f050801576.pdf",
+      "byte_length": 14842,
+      "document_id": "wh-url:359bc14fb0e9e9708b541dda",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Martin-Margo.pdf",
+      "filer_name_from_label": "Martin, Margo",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"52741b5d0957227e\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Martin, Margo",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:05.816138+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "027d52f9875d3636019b6624d8bcd8863bb74fa1bbd4a13482fbc6f050801576",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/da201ec429e844b70a5a0327/05ecbfdee382548f426f5e811a27fe7319c61e4b59f6b791d3cc6576d681eb23.pdf",
+      "byte_length": 15449,
+      "document_id": "wh-url:da201ec429e844b70a5a0327",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Martin-William.pdf",
+      "filer_name_from_label": "Martin, William",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"3a373c6729792482\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Martin, William",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:05.929467+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "05ecbfdee382548f426f5e811a27fe7319c61e4b59f6b791d3cc6576d681eb23",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3774a6caf51162890da45b19/3b96b562a18545e6b012dc3095cc039dfd72310b6f395048e55648c3edb2df9a.pdf",
+      "byte_length": 16163,
+      "document_id": "wh-url:3774a6caf51162890da45b19",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/McCommas-Stuart.pdf",
+      "filer_name_from_label": "McCommas, Stuart",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"699155309800f4a2\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "McCommas, Stuart",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:05.962959+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3b96b562a18545e6b012dc3095cc039dfd72310b6f395048e55648c3edb2df9a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/ae1e88c2c16808c5d72a5f25/9f52483a6a2972c8b9ab09bc9b534bc6ab7d04ed76f69d08bccecc24d6d53988.pdf",
+      "byte_length": 13860,
+      "document_id": "wh-url:ae1e88c2c16808c5d72a5f25",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/McIntyre-Natalie.pdf",
+      "filer_name_from_label": "McIntyre, Natalie",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"afe2c85a7bec305a\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "McIntyre, Natalie",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.165472+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "9f52483a6a2972c8b9ab09bc9b534bc6ab7d04ed76f69d08bccecc24d6d53988",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/184107efc195a65485c03771/8554bffc88211a8d4eb7eed33f7d2f9a8671db6b1e951d8f13eeaa586dfa8955.pdf",
+      "byte_length": 15125,
+      "document_id": "wh-url:184107efc195a65485c03771",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/McMullan-Matthew.pdf",
+      "filer_name_from_label": "McMullan, Matthew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"09a4707a79ab077e\"",
+        "last-modified": "Fri, 17 Apr 2026 17:38:31 GMT"
+      },
+      "link_label": "McMullan, Matthew",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.322073+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "8554bffc88211a8d4eb7eed33f7d2f9a8671db6b1e951d8f13eeaa586dfa8955",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e8921f6f58e19fbf0df7d6fc/afa6d154d0d6ca2940ad396305420b82000656a593ed7fff75d692b9f5716478.pdf",
+      "byte_length": 15982,
+      "document_id": "wh-url:e8921f6f58e19fbf0df7d6fc",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Merkel-Theodore.pdf",
+      "filer_name_from_label": "Merkel, Theodore",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4936ee2b1cfe03aa\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Merkel, Theodore",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.357364+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "afa6d154d0d6ca2940ad396305420b82000656a593ed7fff75d692b9f5716478",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e817e6c176d93b0c98bde7c5/a6b0fe16a6e619a2204c7f60c9cf292b93e5ee4891104d9ee1344acbdb3c744d.pdf",
+      "byte_length": 16866,
+      "document_id": "wh-url:e817e6c176d93b0c98bde7c5",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Meyer-Alexander.pdf",
+      "filer_name_from_label": "Meyer, Alexander",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"24b9342ca9c0a1a5\"",
+        "last-modified": "Fri, 13 Mar 2026 21:21:12 GMT"
+      },
+      "link_label": "Meyer, Alexander",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.387953+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a6b0fe16a6e619a2204c7f60c9cf292b93e5ee4891104d9ee1344acbdb3c744d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/63dbd5c72f942e8103907152/01300bfce38d3400107089f8536e73902b0899a95000214acad85f251090f5b5.pdf",
+      "byte_length": 21295,
+      "document_id": "wh-url:63dbd5c72f942e8103907152",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Miller-Stephen.pdf",
+      "filer_name_from_label": "Miller, Stephen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"6426fecaffaa5a98\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Miller, Stephen",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.420660+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "01300bfce38d3400107089f8536e73902b0899a95000214acad85f251090f5b5",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/cfd1ffaa740793d463689c10/841fbe7d8d4a4dfc8f5294000133a504dc16ed983719bbf279d90fe7f1312ef7.pdf",
+      "byte_length": 15684,
+      "document_id": "wh-url:cfd1ffaa740793d463689c10",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Milner-Clark.pdf",
+      "filer_name_from_label": "Milner, Clark",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4dad721ee3ffa7f1\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Milner, Clark",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.450482+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "841fbe7d8d4a4dfc8f5294000133a504dc16ed983719bbf279d90fe7f1312ef7",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/84f8b8d9e1e1201d8916ffdb/da38fbf028f43dc3d5554e3b62edc7c83c055b8cfc20fa79e5c524e65354d242.pdf",
+      "byte_length": 13849,
+      "document_id": "wh-url:84f8b8d9e1e1201d8916ffdb",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Moreau-Marshall.pdf",
+      "filer_name_from_label": "Moreau, Marshall",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"37201149ed8aa6d3\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Moreau, Marshall",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.611662+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "da38fbf028f43dc3d5554e3b62edc7c83c055b8cfc20fa79e5c524e65354d242",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b7f31cda4f4eb812e193c8aa/6d3d4b555ae6861e36159054bb7cf756f63b3f33e6c2f64ccd301b02240a8e66.pdf",
+      "byte_length": 13322,
+      "document_id": "wh-url:b7f31cda4f4eb812e193c8aa",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Naglieri-Trevor.pdf",
+      "filer_name_from_label": "Naglieri, Trevor",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"13acaa989ec2f9f5\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Naglieri, Trevor",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.760431+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "6d3d4b555ae6861e36159054bb7cf756f63b3f33e6c2f64ccd301b02240a8e66",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/acd9e5ebc63218064140b02b/3bafa9bfdbe33745cef3375b93d1466bfef71638e50e229ca10945fafcbfff98.pdf",
+      "byte_length": 12468,
+      "document_id": "wh-url:acd9e5ebc63218064140b02b",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Nauta-Waltine.pdf",
+      "filer_name_from_label": "Nauta, Waltine",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"7dd297a9789d8c4b\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Nauta, Waltine",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.913254+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3bafa9bfdbe33745cef3375b93d1466bfef71638e50e229ca10945fafcbfff98",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/61c247f7dd0bbe0ec84a7a0c/3725bc029a7e67e81a6a961c0f72ebf3b72cffb690a452f91fc2e1e8a769823c.pdf",
+      "byte_length": 24248,
+      "document_id": "wh-url:61c247f7dd0bbe0ec84a7a0c",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Navarro-Peter.pdf",
+      "filer_name_from_label": "Navarro, Peter",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e85742cc786e0293\"",
+        "last-modified": "Fri, 13 Mar 2026 21:21:34 GMT"
+      },
+      "link_label": "Navarro, Peter",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:06.946206+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3725bc029a7e67e81a6a961c0f72ebf3b72cffb690a452f91fc2e1e8a769823c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/5f9818652e53eb21f87fe6a6/d1962a72a62d1f1a5c81b40d71c9193e02ff3212418371f4bd082dd06e27dcd4.pdf",
+      "byte_length": 17066,
+      "document_id": "wh-url:5f9818652e53eb21f87fe6a6",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Ney-Paul.pdf",
+      "filer_name_from_label": "Ney, Paul",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"81d329d5dd342f42\"",
+        "last-modified": "Fri, 13 Mar 2026 21:21:57 GMT"
+      },
+      "link_label": "Ney, Paul",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.057094+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d1962a72a62d1f1a5c81b40d71c9193e02ff3212418371f4bd082dd06e27dcd4",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/682c7c1b6b8dfd2d0245beac/b4b37930087ed5047a4e8696b1921d934f3a2af02f9930b5fd3c0c9e8b4cdd53.pdf",
+      "byte_length": 14060,
+      "document_id": "wh-url:682c7c1b6b8dfd2d0245beac",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Overton-Heidi.pdf",
+      "filer_name_from_label": "Overton, Heidi",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e246c8b97dd4a8ba\"",
+        "last-modified": "Fri, 13 Mar 2026 21:22:16 GMT"
+      },
+      "link_label": "Overton, Heidi",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.193967+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "b4b37930087ed5047a4e8696b1921d934f3a2af02f9930b5fd3c0c9e8b4cdd53",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4e36e51ca08d70048702e17f/ddaccb91410c03729403c890bb14c7c1e3a75dcb8df2ce79798413fb1897b5d3.pdf",
+      "byte_length": 14139,
+      "document_id": "wh-url:4e36e51ca08d70048702e17f",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Page-Jacob.pdf",
+      "filer_name_from_label": "Page, Jacob",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"eb1f370315ae6e35\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Page, Jacob",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.225420+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "ddaccb91410c03729403c890bb14c7c1e3a75dcb8df2ce79798413fb1897b5d3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a722bc6ed1033ba45d164ee1/41df93cfdae3b7007b7cffbb7e32ead6ff710aa532cd1246611ca5074eeb7c4c.pdf",
+      "byte_length": 15378,
+      "document_id": "wh-url:a722bc6ed1033ba45d164ee1",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Perez-Gabriel.pdf",
+      "filer_name_from_label": "Perez, Gabriel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"02fcbd3be7ae59aa\"",
+        "last-modified": "Fri, 13 Mar 2026 21:23:04 GMT"
+      },
+      "link_label": "Perez, Gabriel",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.253937+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "41df93cfdae3b7007b7cffbb7e32ead6ff710aa532cd1246611ca5074eeb7c4c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/34444f00ae11c5eb0fc2514a/87560beabe4110e225fc39218e71e6c90b1db97d909c4be5bddf691b58dbec41.pdf",
+      "byte_length": 16905,
+      "document_id": "wh-url:34444f00ae11c5eb0fc2514a",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Pfeiffer-Alexander.pdf",
+      "filer_name_from_label": "Pfeiffer, Alexander",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"95b1f06f9b9817a4\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Pfeiffer, Alexander",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.415105+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "87560beabe4110e225fc39218e71e6c90b1db97d909c4be5bddf691b58dbec41",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/9a61db376c5073fbb4cd1820/548f06cdc66e5e9a94ba3a6dbb24c608c5a099a40c55f7ed40d68605a0be614e.pdf",
+      "byte_length": 15445,
+      "document_id": "wh-url:9a61db376c5073fbb4cd1820",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Placek-Robert.pdf",
+      "filer_name_from_label": "Placek, Robert",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"151ee2edda57c9b7\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Placek, Robert",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.445430+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "548f06cdc66e5e9a94ba3a6dbb24c608c5a099a40c55f7ed40d68605a0be614e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/eddf66b322b641a848ce6adb/59e14d03351cc108e46559f5db1b3ca8c6b68a94a4c6362c8586a2dd31a19531.pdf",
+      "byte_length": 13155,
+      "document_id": "wh-url:eddf66b322b641a848ce6adb",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Policastro-Marie.pdf",
+      "filer_name_from_label": "Policastro, Marie",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0d92cc4ec9e07f4e\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Policastro, Marie",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.585135+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "59e14d03351cc108e46559f5db1b3ca8c6b68a94a4c6362c8586a2dd31a19531",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b8500ab81a860541c2b5088c/1353fe5492e78f452c6c7eda7022952a5e58c878e568201e094069ac11d8a9d3.pdf",
+      "byte_length": 14051,
+      "document_id": "wh-url:b8500ab81a860541c2b5088c",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Powell-Brette.pdf",
+      "filer_name_from_label": "Powell, Brette",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ede72bc221dd5bd0\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Powell, Brette",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.754377+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1353fe5492e78f452c6c7eda7022952a5e58c878e568201e094069ac11d8a9d3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3af061f13da953544966b089/3ea14fc4a84afd9a904c21c04de3f7b8efaa2d4f1bab91d1917ed873880eaf49.pdf",
+      "byte_length": 44458944,
+      "document_id": "wh-url:3af061f13da953544966b089",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/President-Donald-J.-Trump.pdf",
+      "filer_name_from_label": "President Donald J. Trump",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"40e5380101a67748\"",
+        "last-modified": "Fri, 13 Jun 2025 20:43:18 GMT"
+      },
+      "link_label": "President Donald J. Trump",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:07.926889+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3ea14fc4a84afd9a904c21c04de3f7b8efaa2d4f1bab91d1917ed873880eaf49",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/89cd4d8b0819ed4959e96d8e/0ebbc7024f4b355170ce631a4becb6fe0992fcce47fa6fe04b8007c4d2d686f5.pdf",
+      "byte_length": 18157,
+      "document_id": "wh-url:89cd4d8b0819ed4959e96d8e",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Reses-Jacob.pdf",
+      "filer_name_from_label": "Reses, Jacob",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0fa87fa5bf38c223\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Reses, Jacob",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.096321+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "0ebbc7024f4b355170ce631a4becb6fe0992fcce47fa6fe04b8007c4d2d686f5",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3b634849302a5165e439bb26/b6f271bc2660113ffea097b9d7e146dc0b360a89adf258c3a7cf94cdd48055ae.pdf",
+      "byte_length": 12964,
+      "document_id": "wh-url:3b634849302a5165e439bb26",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Rosemond-Jack.pdf",
+      "filer_name_from_label": "Rosemond, Jack",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"18193625e30964ef\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Rosemond, Jack",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.206185+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "b6f271bc2660113ffea097b9d7e146dc0b360a89adf258c3a7cf94cdd48055ae",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/fd130c34731fd1b7591fbc61/3d1de7b0f7a39db77b27b83e2dc03ccf5563de5408272a2282660b2949efb6af.pdf",
+      "byte_length": 14097,
+      "document_id": "wh-url:fd130c34731fd1b7591fbc61",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Sadler-Cameron.pdf",
+      "filer_name_from_label": "Sadler, Cameron",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a1a2864c38f22e24\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Sadler, Cameron",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.369219+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3d1de7b0f7a39db77b27b83e2dc03ccf5563de5408272a2282660b2949efb6af",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3e87d87b2a36ea4da321a183/e47a8f2297232482b2313dcc49a0e702b743cb11fccd8fa3b830e2a4cb13563e.pdf",
+      "byte_length": 15287,
+      "document_id": "wh-url:3e87d87b2a36ea4da321a183",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Sayle-Desiree.pdf",
+      "filer_name_from_label": "Sayle, Desiree",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"47b0b7afc6e1cb34\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Sayle, Desiree",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.532041+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e47a8f2297232482b2313dcc49a0e702b743cb11fccd8fa3b830e2a4cb13563e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/87ecb90a10769f61e78c8944/5e1e4e9cb210c653b8c613236f72cafb50d60f262ce2d0a393ef3041e7b41abf.pdf",
+      "byte_length": 13903,
+      "document_id": "wh-url:87ecb90a10769f61e78c8944",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Scavino-Daniel.pdf",
+      "filer_name_from_label": "Scavino, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e5c5056579b9372a\"",
+        "last-modified": "Fri, 13 Mar 2026 21:24:03 GMT"
+      },
+      "link_label": "Scavino, Daniel",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.563411+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5e1e4e9cb210c653b8c613236f72cafb50d60f262ce2d0a393ef3041e7b41abf",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f08413e5c2d4d768dd501bff/75e82d4aa14703ab499a47bbc134d1768886b3e1578188664a1328e030c6ae52.pdf",
+      "byte_length": 19069,
+      "document_id": "wh-url:f08413e5c2d4d768dd501bff",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Scharf-William.pdf",
+      "filer_name_from_label": "Scharf, William",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"6cb89836de7f021d\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:50 GMT"
+      },
+      "link_label": "Scharf, William",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.715118+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "75e82d4aa14703ab499a47bbc134d1768886b3e1578188664a1328e030c6ae52",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/09e1794370a5a984172593d2/3a73fb2ae19e375bac07631e55d5d7d3e22a3ab44948b07f89110126f62e11bb.pdf",
+      "byte_length": 15873,
+      "document_id": "wh-url:09e1794370a5a984172593d2",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Sharma-Saurabh.pdf",
+      "filer_name_from_label": "Sharma, Saurabh",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"861fc8585366b90c\"",
+        "last-modified": "Fri, 13 Mar 2026 21:24:23 GMT"
+      },
+      "link_label": "Sharma, Saurabh",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.746005+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3a73fb2ae19e375bac07631e55d5d7d3e22a3ab44948b07f89110126f62e11bb",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/611411914af0d99171798320/9474a9e4208779e9c5ee4ec55d99d4aa7be0e4dd10a676d19e098082eaf0fd2f.pdf",
+      "byte_length": 18629,
+      "document_id": "wh-url:611411914af0d99171798320",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Sherk-James.pdf",
+      "filer_name_from_label": "Sherk, James",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e5733c18943548c2\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Sherk, James",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.862782+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "9474a9e4208779e9c5ee4ec55d99d4aa7be0e4dd10a676d19e098082eaf0fd2f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e218c3efbf9cc3a6d867cd42/6430231b5ae55263976ce2cbdecf6ffc0cfb19bb848d071845de80ffdaf58a7c.pdf",
+      "byte_length": 15126,
+      "document_id": "wh-url:e218c3efbf9cc3a6d867cd42",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Siao-Stephen.pdf",
+      "filer_name_from_label": "Siao, Stephen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f772f27f4ad9a78b\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:49 GMT"
+      },
+      "link_label": "Siao, Stephen",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.900475+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "6430231b5ae55263976ce2cbdecf6ffc0cfb19bb848d071845de80ffdaf58a7c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/21b2078a9ac691fd78c7fe5d/a2286ca1c01bd95d3da00f7bc7eb115f92006a290b950a61bff4e897ae3d273e.pdf",
+      "byte_length": 13181,
+      "document_id": "wh-url:21b2078a9ac691fd78c7fe5d",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Skeeters-McKenna.pdf",
+      "filer_name_from_label": "Skeeters, McKenna",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f80ddd73dd8ca32e\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Skeeters, McKenna",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:08.929467+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a2286ca1c01bd95d3da00f7bc7eb115f92006a290b950a61bff4e897ae3d273e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/63721ebe191db194e2910d59/30c99be30f4e94866481fc0d717a373b71aefbd473e6c356fe6bfd31dc8e5d37.pdf",
+      "byte_length": 13882,
+      "document_id": "wh-url:63721ebe191db194e2910d59",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Thorgersen-Thomas.pdf",
+      "filer_name_from_label": "Thorgersen, Thomas",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e2a3e9492c085e9e\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Thorgersen, Thomas",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.073903+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "30c99be30f4e94866481fc0d717a373b71aefbd473e6c356fe6bfd31dc8e5d37",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b44dd491bba615b603de5f61/a6843f88fc76a3e4a5ab3cd7bb33e56f9645f7a8a597b2cf7fa83057eb191a57.pdf",
+      "byte_length": 14747,
+      "document_id": "wh-url:b44dd491bba615b603de5f61",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Tiso-Daniel.pdf",
+      "filer_name_from_label": "Tiso, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"7e47e2ff4c4aabaa\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Tiso, Daniel",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.223043+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a6843f88fc76a3e4a5ab3cd7bb33e56f9645f7a8a597b2cf7fa83057eb191a57",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b7f1f7ece315a35b7ce8c547/8cd4bc90bd98eec64eb67997c13660af5673f0fe4238d0344ab6c406e482a0d1.pdf",
+      "byte_length": 16986,
+      "document_id": "wh-url:b7f1f7ece315a35b7ce8c547",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Underwood-Emily.pdf",
+      "filer_name_from_label": "Underwood, Emily",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b17ffdb3ec5caf4e\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Underwood, Emily",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.365161+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "8cd4bc90bd98eec64eb67997c13660af5673f0fe4238d0344ab6c406e482a0d1",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/44d4cfdd3e5eb41973f33b4f/94a0c0f69326807c843d330b0f3ce44420546da356174e9c7b874c6a3212f09b.pdf",
+      "byte_length": 18635,
+      "document_id": "wh-url:44d4cfdd3e5eb41973f33b4f",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Van-Kirk-Taylor.pdf",
+      "filer_name_from_label": "Van Kirk, Taylor",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f969405be3911da6\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Van Kirk, Taylor",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.396071+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "94a0c0f69326807c843d330b0f3ce44420546da356174e9c7b874c6a3212f09b",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4f3be9b4c3b20e26bc1a4cbf/1e535c22e8e517d5dd26865b601eb282c6ac33fe0f2ac1e3bb3c5588e51e205e.pdf",
+      "byte_length": 16421,
+      "document_id": "wh-url:4f3be9b4c3b20e26bc1a4cbf",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Veletsis-Alexandra.pdf",
+      "filer_name_from_label": "Veletsis, Alexandra",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"97a703f11388c757\"",
+        "last-modified": "Fri, 13 Jun 2025 20:47:44 GMT"
+      },
+      "link_label": "Veletsis, Alexandra",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.546057+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1e535c22e8e517d5dd26865b601eb282c6ac33fe0f2ac1e3bb3c5588e51e205e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/8522a6bfbf719a9123730dc2/8ee33261b33a68fb1f81565a12bc5e03b87087f903e6ace53bbcac3715f49261.pdf",
+      "byte_length": 1402273,
+      "document_id": "wh-url:8522a6bfbf719a9123730dc2",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Vice-President-JD-Vance.pdf",
+      "filer_name_from_label": "Vice President JD Vance",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"20f05a597ba78cb4\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:02 GMT"
+      },
+      "link_label": "Vice President JD Vance",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.594423+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "8ee33261b33a68fb1f81565a12bc5e03b87087f903e6ace53bbcac3715f49261",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c993503d1b1e9e884ee532b1/5acd825f2ef415289ce6712318d5685ab07208331f8ec892767e1daec5a510c0.pdf",
+      "byte_length": 19461,
+      "document_id": "wh-url:c993503d1b1e9e884ee532b1",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Waltz-Michael.pdf",
+      "filer_name_from_label": "Waltz, Michael",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8fb4380093c47e90\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:50 GMT"
+      },
+      "link_label": "Waltz, Michael",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.751472+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5acd825f2ef415289ce6712318d5685ab07208331f8ec892767e1daec5a510c0",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/da20b452a8981497b86d4299/defbc220bc4306aa9d361962582b679e76c2fb15c531f7b3ca4b312af2a26c40.pdf",
+      "byte_length": 15543,
+      "document_id": "wh-url:da20b452a8981497b86d4299",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Walukevich-Ashley.pdf",
+      "filer_name_from_label": "Walukevich, Ashley",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"db4e50be546acce2\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Walukevich, Ashley",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.781930+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "defbc220bc4306aa9d361962582b679e76c2fb15c531f7b3ca4b312af2a26c40",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c559c87a128f005938b3084b/901bce332fe896c701973d3e5752416771cc5c751bb8d987816508ac450cd16d.pdf",
+      "byte_length": 20188,
+      "document_id": "wh-url:c559c87a128f005938b3084b",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Warrington-David.pdf",
+      "filer_name_from_label": "Warrington, David",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"5c14c4cb85b07ac4\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Warrington, David",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.814138+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "901bce332fe896c701973d3e5752416771cc5c751bb8d987816508ac450cd16d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/0049f38430c0460360152ed5/f21fdb17069d44ed0682d3f826c5432dbf0f67bc614745d5ab1f0dd4c5b9d1e7.pdf",
+      "byte_length": 20130,
+      "document_id": "wh-url:0049f38430c0460360152ed5",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wartman-Isaiah.pdf",
+      "filer_name_from_label": "Wartman, Isaiah",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"1536f25d6330919c\"",
+        "last-modified": "Fri, 13 Mar 2026 21:24:55 GMT"
+      },
+      "link_label": "Wartman, Isaiah",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:09.967612+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f21fdb17069d44ed0682d3f826c5432dbf0f67bc614745d5ab1f0dd4c5b9d1e7",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f035b42b4ac1d5a827956930/847c976130573c597deed88b5ac3bce4a9f48ccb2ac5214db54945170f76050e.pdf",
+      "byte_length": 21651,
+      "document_id": "wh-url:f035b42b4ac1d5a827956930",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wiles-Susie.pdf",
+      "filer_name_from_label": "Wiles, Susie",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"532874088725edef\"",
+        "last-modified": "Fri, 13 Mar 2026 21:25:27 GMT"
+      },
+      "link_label": "Wiles, Susie",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.000434+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "847c976130573c597deed88b5ac3bce4a9f48ccb2ac5214db54945170f76050e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/d0dd197aa2c9e9d25b56c627/eabac038d0dac7518c4c485a90f1d4986f8c505afe9dc5986b3eb2c360822735.pdf",
+      "byte_length": 18130,
+      "document_id": "wh-url:d0dd197aa2c9e9d25b56c627",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Willey-Paige.pdf",
+      "filer_name_from_label": "Willey, Paige",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4c92dbd06bfff927\"",
+        "last-modified": "Fri, 17 Apr 2026 17:39:18 GMT"
+      },
+      "link_label": "Willey, Paige",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.135918+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "eabac038d0dac7518c4c485a90f1d4986f8c505afe9dc5986b3eb2c360822735",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/7f0448cfc641832f11784b70/306126321b0568f01022d415540a69abaac1cddc565b8acbf870f629262b5883.pdf",
+      "byte_length": 23649,
+      "document_id": "wh-url:7f0448cfc641832f11784b70",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wong-Alex.pdf",
+      "filer_name_from_label": "Wong, Alex",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f87eccf26c82b379\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Wong, Alex",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.167304+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "306126321b0568f01022d415540a69abaac1cddc565b8acbf870f629262b5883",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/37c11a7cb3eae62460ae5ef8/5d9f1bb68c7b28898e07585935751907e1e026e01a9f4569c6f4cb535a8e2265.pdf",
+      "byte_length": 18543,
+      "document_id": "wh-url:37c11a7cb3eae62460ae5ef8",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Worthington-Ross.pdf",
+      "filer_name_from_label": "Worthington, Ross",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"66a649b8986fccb2\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Worthington, Ross",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.313840+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5d9f1bb68c7b28898e07585935751907e1e026e01a9f4569c6f4cb535a8e2265",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f98ab69596e2e5758acd9a6c/a9aeb2a6a45ba40e918e7ef61d30b2446ad535ffa5052ff42510ddbe2db3cc51.pdf",
+      "byte_length": 18013,
+      "document_id": "wh-url:f98ab69596e2e5758acd9a6c",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wrase-Jeffrey.pdf",
+      "filer_name_from_label": "Wrase, Jeffrey",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"62a06da72c90d12c\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Wrase, Jeffrey",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.346194+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a9aeb2a6a45ba40e918e7ef61d30b2446ad535ffa5052ff42510ddbe2db3cc51",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3380696a77e1765bb151f329/04d0261a51eb93f63244ff269a198a97d4dd031afb27cfa143e004367d0bfe0f.pdf",
+      "byte_length": 15390,
+      "document_id": "wh-url:3380696a77e1765bb151f329",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Zakaria-Hannah.pdf",
+      "filer_name_from_label": "Zakaria, Hannah",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"328ba84ae7214618\"",
+        "last-modified": "Fri, 13 Jun 2025 20:48:17 GMT"
+      },
+      "link_label": "Zakaria, Hannah",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.507608+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "04d0261a51eb93f63244ff269a198a97d4dd031afb27cfa143e004367d0bfe0f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/d2f33a52474d54287d2fdefe/926e445ce6c776095317333c86fd9f229deb6e959b2bc5da746f2776d7ffb619.pdf",
+      "byte_length": 13577,
+      "document_id": "wh-url:d2f33a52474d54287d2fdefe",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/07/Gabriel-Robert.pdf",
+      "filer_name_from_label": "Gabriel, Robert",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e2ebaa49219a117b\"",
+        "last-modified": "Wed, 23 Jul 2025 14:45:45 GMT"
+      },
+      "link_label": "Gabriel, Robert",
+      "page_sha256": "9b4512abacb05030e578c7ab821082f4e5d46d6e1b302d332a74d443a7b1fc74",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:03:10.675205+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "926e445ce6c776095317333c86fd9f229deb6e959b2bc5da746f2776d7ffb619",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/941e1fb514d0c7599b5d3915/d25fe0730f09bcd49e97e855e09aadae7fd798eb6aa0d6c20743e3bc7ef71eb5.pdf",
+      "byte_length": 17029,
+      "document_id": "wh-url:941e1fb514d0c7599b5d3915",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Adolphsen-Samuel.pdf",
+      "filer_name_from_label": "Adolphsen, Samuel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"180767737f42ecfc\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Adolphsen, Samuel",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:50.431568+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d25fe0730f09bcd49e97e855e09aadae7fd798eb6aa0d6c20743e3bc7ef71eb5",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/29dc2a88de72f63bf4e63737/32377e68fc722427806eeff1d5a7f4416660217331cbf0b5e6e88726cce09271.pdf",
+      "byte_length": 12577,
+      "document_id": "wh-url:29dc2a88de72f63bf4e63737",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Ambrosini-Christopher.pdf",
+      "filer_name_from_label": "Ambrosini, Christopher",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"46ebda5312654e2a\"",
+        "last-modified": "Fri, 13 Mar 2026 21:12:27 GMT"
+      },
+      "link_label": "Ambrosini, Christopher",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:50.484681+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "32377e68fc722427806eeff1d5a7f4416660217331cbf0b5e6e88726cce09271",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e3f2a4f9cdfd594c5d7af561/2e23be4ea8a6b2732cbd01b1224478b79f8ca1f6b07b552351a67ca02154a5e2.pdf",
+      "byte_length": 15426,
+      "document_id": "wh-url:e3f2a4f9cdfd594c5d7af561",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Baasch-Ryan.pdf",
+      "filer_name_from_label": "Baasch, Ryan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"427fd47ffca34d72\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Baasch, Ryan",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:50.835099+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "2e23be4ea8a6b2732cbd01b1224478b79f8ca1f6b07b552351a67ca02154a5e2",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/d6edca1b2bc9054037f28eeb/63a9774479ff6154d6571bd1f232722946d9e1e48ebf48c548f86a2df3751b4e.pdf",
+      "byte_length": 20939,
+      "document_id": "wh-url:d6edca1b2bc9054037f28eeb",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Baker-Andrew.pdf",
+      "filer_name_from_label": "Baker, Andrew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"1d5a0582f1027f3f\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Baker, Andrew",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:50.894749+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "63a9774479ff6154d6571bd1f232722946d9e1e48ebf48c548f86a2df3751b4e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a1f04de056bd617b30a34fea/b4b0cdad3ef7351a805aeb9e6575c92c02dcf166a0acf31bff6e94a656b7e0e0.pdf",
+      "byte_length": 13095,
+      "document_id": "wh-url:a1f04de056bd617b30a34fea",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bardon-Lea.pdf",
+      "filer_name_from_label": "Bardon, Lea",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"69f109f40bbece77\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Bardon, Lea",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:51.243768+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "b4b0cdad3ef7351a805aeb9e6575c92c02dcf166a0acf31bff6e94a656b7e0e0",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/2d669f50e6dd0c61e4ab42db/e6f0ec50c15c72c69828169b1f235931a0a2c4059413f441444a6d17b8e5fd65.pdf",
+      "byte_length": 18641,
+      "document_id": "wh-url:2d669f50e6dd0c61e4ab42db",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bauer-Meghan.pdf",
+      "filer_name_from_label": "Bauer, Meghan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a60ce153dc95b709\"",
+        "last-modified": "Fri, 13 Mar 2026 21:12:49 GMT"
+      },
+      "link_label": "Bauer, Meghan",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:51.307173+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e6f0ec50c15c72c69828169b1f235931a0a2c4059413f441444a6d17b8e5fd65",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/845d833a32561b063d88d5ad/afa6b57fda1e8e59b20f1ed12f1e26ed2880d9add349a1a990fe61cedca8b2d6.pdf",
+      "byte_length": 14455,
+      "document_id": "wh-url:845d833a32561b063d88d5ad",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Biddle-Emily.pdf",
+      "filer_name_from_label": "Biddle, Emily",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2ce32b82a98b9944\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Biddle, Emily",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:51.671267+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "afa6b57fda1e8e59b20f1ed12f1e26ed2880d9add349a1a990fe61cedca8b2d6",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c677d71234e55b5d31d36a12/6395b3758273912b0334f4998d7d786c646580fd6f477dc686686501c777a015.pdf",
+      "byte_length": 25787,
+      "document_id": "wh-url:c677d71234e55b5d31d36a12",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Blair-Michael-James.pdf",
+      "filer_name_from_label": "Blair, Michael James",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"14235f117bd091d5\"",
+        "last-modified": "Sun, 15 Jun 2025 00:12:07 GMT"
+      },
+      "link_label": "Blair, Michael James",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.062039+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "6395b3758273912b0334f4998d7d786c646580fd6f477dc686686501c777a015",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/72d2da6abed716042d1d0dba/7a26b7b1e0b94ea00658369e831dd333daa3a717f17671ee43e3165308fea1d6.pdf",
+      "byte_length": 14193,
+      "document_id": "wh-url:72d2da6abed716042d1d0dba",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bledsoe-Eric.pdf",
+      "filer_name_from_label": "Bledsoe, Eric",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"d5a6aaf333c1ce64\"",
+        "last-modified": "Fri, 13 Mar 2026 21:13:17 GMT"
+      },
+      "link_label": "Bledsoe, Eric",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.121653+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "7a26b7b1e0b94ea00658369e831dd333daa3a717f17671ee43e3165308fea1d6",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e6eeb71ee11c1a716d279976/1f7f37a16ac139ceb5b4c044fdfeb0411a4c3f31ea04f6514f1b4f5a0026e020.pdf",
+      "byte_length": 16584,
+      "document_id": "wh-url:e6eeb71ee11c1a716d279976",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borden-Hailey.pdf",
+      "filer_name_from_label": "Borden, Hailey",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2e1ae6c9a5a40024\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Borden, Hailey",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.500442+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1f7f37a16ac139ceb5b4c044fdfeb0411a4c3f31ea04f6514f1b4f5a0026e020",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/90d461a95145ba1c91dd815a/2fa54099214eef9ec5b914eddca333208e1ef4c74c495c642a45503f3fa9fe09.pdf",
+      "byte_length": 15285,
+      "document_id": "wh-url:90d461a95145ba1c91dd815a",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borg-Jared.pdf",
+      "filer_name_from_label": "Borg, Jared",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a8cb7960bb0f16cd\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Borg, Jared",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.562540+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "2fa54099214eef9ec5b914eddca333208e1ef4c74c495c642a45503f3fa9fe09",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/5e830920d1b7aa6439b7dfe9/476156c883ffa7d35ef277540b109e81c9df07397805e89cc2a5cfedd1510833.pdf",
+      "byte_length": 13975,
+      "document_id": "wh-url:5e830920d1b7aa6439b7dfe9",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Braid-James.pdf",
+      "filer_name_from_label": "Braid, James",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"d4c2c9e2111deea5\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Braid, James",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.620755+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "476156c883ffa7d35ef277540b109e81c9df07397805e89cc2a5cfedd1510833",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b600a8e1a67c5f8db454a375/ace0910a925b89dac6bd56deb0fe9b75338384899de1a7cd5a29bd6c7e8f0892.pdf",
+      "byte_length": 13486,
+      "document_id": "wh-url:b600a8e1a67c5f8db454a375",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Brasseaux-Matthew.pdf",
+      "filer_name_from_label": "Brasseaux, Matthew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8cc95f26a908e1ca\"",
+        "last-modified": "Fri, 13 Mar 2026 21:14:00 GMT"
+      },
+      "link_label": "Brasseaux, Matthew",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:52.676350+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "ace0910a925b89dac6bd56deb0fe9b75338384899de1a7cd5a29bd6c7e8f0892",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/0959a276c9826a3f9030759f/add2fcba2048f33ed0fb06f976be167f3f20e13be366529cc9b829d5f18bb1a0.pdf",
+      "byte_length": 21503,
+      "document_id": "wh-url:0959a276c9826a3f9030759f",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bresso-Gineen.pdf",
+      "filer_name_from_label": "Bresso, Gineen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a1265fa54e9ed87c\"",
+        "last-modified": "Fri, 17 Apr 2026 17:37:04 GMT"
+      },
+      "link_label": "Bresso, Gineen",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:53.015869+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "add2fcba2048f33ed0fb06f976be167f3f20e13be366529cc9b829d5f18bb1a0",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/2cc1a3ecb3d726fe57708cd2/814487937a1a1fbc01b3c3c431b0143eb44e1d3fdb7667623b65c483cf6cd7fd.pdf",
+      "byte_length": 16833,
+      "document_id": "wh-url:2cc1a3ecb3d726fe57708cd2",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Budowich-Taylor.pdf",
+      "filer_name_from_label": "Budowich, Taylor",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"32c60f3175760dcf\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Budowich, Taylor",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:53.074277+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "814487937a1a1fbc01b3c3c431b0143eb44e1d3fdb7667623b65c483cf6cd7fd",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/26c34cb05db569e49af1437a/914010c6bd0c0056883696a7e26ded1b693f08fd71627658f4f87a54841cb48f.pdf",
+      "byte_length": 22086,
+      "document_id": "wh-url:26c34cb05db569e49af1437a",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bulazel-Alina.pdf",
+      "filer_name_from_label": "Bulazel, Alina",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2573c3b1c5427825\"",
+        "last-modified": "Fri, 13 Mar 2026 21:14:41 GMT"
+      },
+      "link_label": "Bulazel, Alina",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:53.408038+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "914010c6bd0c0056883696a7e26ded1b693f08fd71627658f4f87a54841cb48f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/0ad8b922a6171a290a41a7a1/1ac857da63764c5f2f6bd4b243676bc5f826e8c59498ca366da266f1a22a1592.pdf",
+      "byte_length": 23778,
+      "document_id": "wh-url:0ad8b922a6171a290a41a7a1",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Burrows-Daniel.pdf",
+      "filer_name_from_label": "Burrows, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"7a4a15be40583fc9\"",
+        "last-modified": "Fri, 13 Mar 2026 21:15:16 GMT"
+      },
+      "link_label": "Burrows, Daniel",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:53.748017+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1ac857da63764c5f2f6bd4b243676bc5f826e8c59498ca366da266f1a22a1592",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/6318cbc502e8b51b383bbd38/8212272b84e8ed07cd83c12ad0d17394f199956ec01773bb8924834253d06c88.pdf",
+      "byte_length": 17244,
+      "document_id": "wh-url:6318cbc502e8b51b383bbd38",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Centorino-Scott.pdf",
+      "filer_name_from_label": "Centorino, Scott",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2e82f20bb9ad708c\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Centorino, Scott",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:54.072448+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "8212272b84e8ed07cd83c12ad0d17394f199956ec01773bb8924834253d06c88",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/fe3f762d7ecfdcca7f905571/31495b4881d2a169a5821b7178d5e1f0e00203c4ba8d933f6f27f0931aed3d73.pdf",
+      "byte_length": 14089,
+      "document_id": "wh-url:fe3f762d7ecfdcca7f905571",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Chalkey-Richard.pdf",
+      "filer_name_from_label": "Chalkey, Richard",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"854e222b859a3648\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Chalkey, Richard",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:54.131476+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "31495b4881d2a169a5821b7178d5e1f0e00203c4ba8d933f6f27f0931aed3d73",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/494d0769da2d755c84604f08/e9d11e8f0e1cdc1bb0c76379cd228eced26cf54835351d17f99609181e2ee1fc.pdf",
+      "byte_length": 13780,
+      "document_id": "wh-url:494d0769da2d755c84604f08",
+      "document_type_from_label": "278e_unspecified",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Clemens-Nicholas.pdf",
+      "filer_name_from_label": "Clemens, Nicholas",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"3b7b869245203b49\"",
+        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
+      },
+      "link_label": "Clemens, Nicholas",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T06:56:54.453083+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e9d11e8f0e1cdc1bb0c76379cd228eced26cf54835351d17f99609181e2ee1fc",
+      "source_id": "whitehouse_public_disclosures"
+    },
     {
       "archive_path": "whitehouse/disclosures/reports/cf2aaeaf73108295be882852/72dd9f30ac88b828de660f1b9d06bf7bbc3dbd566e40b04d0ecd85685297304e.pdf",
       "byte_length": 15818,
@@ -1072,406 +2472,6 @@
       "retrieved_at": "2026-09-22T07:00:29.518848+00:00",
       "schema_version": "whitehouse-public-disclosures-pdf/v1",
       "sha256": "e3e933e7e8769b38cc5ed92b59bf34829972690a1d1cf180398d123d78a33f00",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/941e1fb514d0c7599b5d3915/d25fe0730f09bcd49e97e855e09aadae7fd798eb6aa0d6c20743e3bc7ef71eb5.pdf",
-      "byte_length": 17029,
-      "document_id": "wh-url:941e1fb514d0c7599b5d3915",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Adolphsen-Samuel.pdf",
-      "filer_name_from_label": "Adolphsen, Samuel",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"180767737f42ecfc\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Adolphsen, Samuel",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:50.431568+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "d25fe0730f09bcd49e97e855e09aadae7fd798eb6aa0d6c20743e3bc7ef71eb5",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/29dc2a88de72f63bf4e63737/32377e68fc722427806eeff1d5a7f4416660217331cbf0b5e6e88726cce09271.pdf",
-      "byte_length": 12577,
-      "document_id": "wh-url:29dc2a88de72f63bf4e63737",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Ambrosini-Christopher.pdf",
-      "filer_name_from_label": "Ambrosini, Christopher",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"46ebda5312654e2a\"",
-        "last-modified": "Fri, 13 Mar 2026 21:12:27 GMT"
-      },
-      "link_label": "Ambrosini, Christopher",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:50.484681+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "32377e68fc722427806eeff1d5a7f4416660217331cbf0b5e6e88726cce09271",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/e3f2a4f9cdfd594c5d7af561/2e23be4ea8a6b2732cbd01b1224478b79f8ca1f6b07b552351a67ca02154a5e2.pdf",
-      "byte_length": 15426,
-      "document_id": "wh-url:e3f2a4f9cdfd594c5d7af561",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Baasch-Ryan.pdf",
-      "filer_name_from_label": "Baasch, Ryan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"427fd47ffca34d72\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Baasch, Ryan",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:50.835099+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "2e23be4ea8a6b2732cbd01b1224478b79f8ca1f6b07b552351a67ca02154a5e2",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/d6edca1b2bc9054037f28eeb/63a9774479ff6154d6571bd1f232722946d9e1e48ebf48c548f86a2df3751b4e.pdf",
-      "byte_length": 20939,
-      "document_id": "wh-url:d6edca1b2bc9054037f28eeb",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Baker-Andrew.pdf",
-      "filer_name_from_label": "Baker, Andrew",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"1d5a0582f1027f3f\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Baker, Andrew",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:50.894749+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "63a9774479ff6154d6571bd1f232722946d9e1e48ebf48c548f86a2df3751b4e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/a1f04de056bd617b30a34fea/b4b0cdad3ef7351a805aeb9e6575c92c02dcf166a0acf31bff6e94a656b7e0e0.pdf",
-      "byte_length": 13095,
-      "document_id": "wh-url:a1f04de056bd617b30a34fea",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bardon-Lea.pdf",
-      "filer_name_from_label": "Bardon, Lea",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"69f109f40bbece77\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Bardon, Lea",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:51.243768+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "b4b0cdad3ef7351a805aeb9e6575c92c02dcf166a0acf31bff6e94a656b7e0e0",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/2d669f50e6dd0c61e4ab42db/e6f0ec50c15c72c69828169b1f235931a0a2c4059413f441444a6d17b8e5fd65.pdf",
-      "byte_length": 18641,
-      "document_id": "wh-url:2d669f50e6dd0c61e4ab42db",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bauer-Meghan.pdf",
-      "filer_name_from_label": "Bauer, Meghan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"a60ce153dc95b709\"",
-        "last-modified": "Fri, 13 Mar 2026 21:12:49 GMT"
-      },
-      "link_label": "Bauer, Meghan",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:51.307173+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "e6f0ec50c15c72c69828169b1f235931a0a2c4059413f441444a6d17b8e5fd65",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/845d833a32561b063d88d5ad/afa6b57fda1e8e59b20f1ed12f1e26ed2880d9add349a1a990fe61cedca8b2d6.pdf",
-      "byte_length": 14455,
-      "document_id": "wh-url:845d833a32561b063d88d5ad",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Biddle-Emily.pdf",
-      "filer_name_from_label": "Biddle, Emily",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2ce32b82a98b9944\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Biddle, Emily",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:51.671267+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "afa6b57fda1e8e59b20f1ed12f1e26ed2880d9add349a1a990fe61cedca8b2d6",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/c677d71234e55b5d31d36a12/6395b3758273912b0334f4998d7d786c646580fd6f477dc686686501c777a015.pdf",
-      "byte_length": 25787,
-      "document_id": "wh-url:c677d71234e55b5d31d36a12",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Blair-Michael-James.pdf",
-      "filer_name_from_label": "Blair, Michael James",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"14235f117bd091d5\"",
-        "last-modified": "Sun, 15 Jun 2025 00:12:07 GMT"
-      },
-      "link_label": "Blair, Michael James",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.062039+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "6395b3758273912b0334f4998d7d786c646580fd6f477dc686686501c777a015",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/72d2da6abed716042d1d0dba/7a26b7b1e0b94ea00658369e831dd333daa3a717f17671ee43e3165308fea1d6.pdf",
-      "byte_length": 14193,
-      "document_id": "wh-url:72d2da6abed716042d1d0dba",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bledsoe-Eric.pdf",
-      "filer_name_from_label": "Bledsoe, Eric",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"d5a6aaf333c1ce64\"",
-        "last-modified": "Fri, 13 Mar 2026 21:13:17 GMT"
-      },
-      "link_label": "Bledsoe, Eric",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.121653+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "7a26b7b1e0b94ea00658369e831dd333daa3a717f17671ee43e3165308fea1d6",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/e6eeb71ee11c1a716d279976/1f7f37a16ac139ceb5b4c044fdfeb0411a4c3f31ea04f6514f1b4f5a0026e020.pdf",
-      "byte_length": 16584,
-      "document_id": "wh-url:e6eeb71ee11c1a716d279976",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borden-Hailey.pdf",
-      "filer_name_from_label": "Borden, Hailey",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2e1ae6c9a5a40024\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Borden, Hailey",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.500442+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "1f7f37a16ac139ceb5b4c044fdfeb0411a4c3f31ea04f6514f1b4f5a0026e020",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/90d461a95145ba1c91dd815a/2fa54099214eef9ec5b914eddca333208e1ef4c74c495c642a45503f3fa9fe09.pdf",
-      "byte_length": 15285,
-      "document_id": "wh-url:90d461a95145ba1c91dd815a",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borg-Jared.pdf",
-      "filer_name_from_label": "Borg, Jared",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"a8cb7960bb0f16cd\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Borg, Jared",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.562540+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "2fa54099214eef9ec5b914eddca333208e1ef4c74c495c642a45503f3fa9fe09",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/5e830920d1b7aa6439b7dfe9/476156c883ffa7d35ef277540b109e81c9df07397805e89cc2a5cfedd1510833.pdf",
-      "byte_length": 13975,
-      "document_id": "wh-url:5e830920d1b7aa6439b7dfe9",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Braid-James.pdf",
-      "filer_name_from_label": "Braid, James",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"d4c2c9e2111deea5\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Braid, James",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.620755+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "476156c883ffa7d35ef277540b109e81c9df07397805e89cc2a5cfedd1510833",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/b600a8e1a67c5f8db454a375/ace0910a925b89dac6bd56deb0fe9b75338384899de1a7cd5a29bd6c7e8f0892.pdf",
-      "byte_length": 13486,
-      "document_id": "wh-url:b600a8e1a67c5f8db454a375",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Brasseaux-Matthew.pdf",
-      "filer_name_from_label": "Brasseaux, Matthew",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"8cc95f26a908e1ca\"",
-        "last-modified": "Fri, 13 Mar 2026 21:14:00 GMT"
-      },
-      "link_label": "Brasseaux, Matthew",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:52.676350+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "ace0910a925b89dac6bd56deb0fe9b75338384899de1a7cd5a29bd6c7e8f0892",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/0959a276c9826a3f9030759f/add2fcba2048f33ed0fb06f976be167f3f20e13be366529cc9b829d5f18bb1a0.pdf",
-      "byte_length": 21503,
-      "document_id": "wh-url:0959a276c9826a3f9030759f",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bresso-Gineen.pdf",
-      "filer_name_from_label": "Bresso, Gineen",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"a1265fa54e9ed87c\"",
-        "last-modified": "Fri, 17 Apr 2026 17:37:04 GMT"
-      },
-      "link_label": "Bresso, Gineen",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:53.015869+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "add2fcba2048f33ed0fb06f976be167f3f20e13be366529cc9b829d5f18bb1a0",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/2cc1a3ecb3d726fe57708cd2/814487937a1a1fbc01b3c3c431b0143eb44e1d3fdb7667623b65c483cf6cd7fd.pdf",
-      "byte_length": 16833,
-      "document_id": "wh-url:2cc1a3ecb3d726fe57708cd2",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Budowich-Taylor.pdf",
-      "filer_name_from_label": "Budowich, Taylor",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"32c60f3175760dcf\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Budowich, Taylor",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:53.074277+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "814487937a1a1fbc01b3c3c431b0143eb44e1d3fdb7667623b65c483cf6cd7fd",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/26c34cb05db569e49af1437a/914010c6bd0c0056883696a7e26ded1b693f08fd71627658f4f87a54841cb48f.pdf",
-      "byte_length": 22086,
-      "document_id": "wh-url:26c34cb05db569e49af1437a",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Bulazel-Alina.pdf",
-      "filer_name_from_label": "Bulazel, Alina",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2573c3b1c5427825\"",
-        "last-modified": "Fri, 13 Mar 2026 21:14:41 GMT"
-      },
-      "link_label": "Bulazel, Alina",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:53.408038+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "914010c6bd0c0056883696a7e26ded1b693f08fd71627658f4f87a54841cb48f",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/0ad8b922a6171a290a41a7a1/1ac857da63764c5f2f6bd4b243676bc5f826e8c59498ca366da266f1a22a1592.pdf",
-      "byte_length": 23778,
-      "document_id": "wh-url:0ad8b922a6171a290a41a7a1",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Burrows-Daniel.pdf",
-      "filer_name_from_label": "Burrows, Daniel",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"7a4a15be40583fc9\"",
-        "last-modified": "Fri, 13 Mar 2026 21:15:16 GMT"
-      },
-      "link_label": "Burrows, Daniel",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:53.748017+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "1ac857da63764c5f2f6bd4b243676bc5f826e8c59498ca366da266f1a22a1592",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/6318cbc502e8b51b383bbd38/8212272b84e8ed07cd83c12ad0d17394f199956ec01773bb8924834253d06c88.pdf",
-      "byte_length": 17244,
-      "document_id": "wh-url:6318cbc502e8b51b383bbd38",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Centorino-Scott.pdf",
-      "filer_name_from_label": "Centorino, Scott",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2e82f20bb9ad708c\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Centorino, Scott",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:54.072448+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "8212272b84e8ed07cd83c12ad0d17394f199956ec01773bb8924834253d06c88",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/fe3f762d7ecfdcca7f905571/31495b4881d2a169a5821b7178d5e1f0e00203c4ba8d933f6f27f0931aed3d73.pdf",
-      "byte_length": 14089,
-      "document_id": "wh-url:fe3f762d7ecfdcca7f905571",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Chalkey-Richard.pdf",
-      "filer_name_from_label": "Chalkey, Richard",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"854e222b859a3648\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Chalkey, Richard",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:54.131476+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "31495b4881d2a169a5821b7178d5e1f0e00203c4ba8d933f6f27f0931aed3d73",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/494d0769da2d755c84604f08/e9d11e8f0e1cdc1bb0c76379cd228eced26cf54835351d17f99609181e2ee1fc.pdf",
-      "byte_length": 13780,
-      "document_id": "wh-url:494d0769da2d755c84604f08",
-      "document_type_from_label": "278e_unspecified",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/06/Clemens-Nicholas.pdf",
-      "filer_name_from_label": "Clemens, Nicholas",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"3b7b869245203b49\"",
-        "last-modified": "Fri, 13 Jun 2025 20:44:48 GMT"
-      },
-      "link_label": "Clemens, Nicholas",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T06:56:54.453083+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "e9d11e8f0e1cdc1bb0c76379cd228eced26cf54835351d17f99609181e2ee1fc",
       "source_id": "whitehouse_public_disclosures"
     }
   ],
