@@ -1,79 +1,1432 @@
 {
-  "archived_version_count": 346,
-  "attempted_count": 27,
+  "archived_version_count": 357,
+  "attempted_count": 11,
   "failures": [],
-  "index_quarantine": [
-    {
-      "label": "Kenny, Stephen – Periodic Transaction Report– 03.14.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report–-03.14.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 03.28.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-03.28.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 06.08.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-06.08.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 07.07.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-07.07.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report– 08.16.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report–-08.16.25.pdf"
-    },
-    {
-      "label": "Scavino, Daniel – Periodic Transaction Report – 05.20.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-–-05.20.25.pdf"
-    },
-    {
-      "label": "Tiso, Daniel – Periodic Transaction Report – 06.20.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-06.20.25.pdf"
-    },
-    {
-      "label": "Tiso, Daniel – Periodic Transaction Report – 08.01.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-08.01.25.pdf"
-    },
-    {
-      "label": "Warrington, David – Periodic Transaction Report – 05.05.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-–-05.05.25.pdf"
-    },
-    {
-      "label": "Wiles, Susie – Periodic Transaction Report– 06.13.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report–-06.13.25.pdf"
-    },
-    {
-      "label": "Zinberg, Joel – Periodic Transaction Report – 07.22.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-–-07.22.25.pdf"
-    }
-  ],
-  "indexed_count": 346,
-  "last_attempted_id": "wh-url:0c14d3849ca60768024e470b",
+  "index_quarantine": [],
+  "indexed_count": 357,
+  "last_attempted_id": "wh-url:156b23394914d54054fbd853",
   "pending_url_count": 0,
   "reports": [
+    {
+      "archive_path": "whitehouse/disclosures/reports/7e17c4be2b42f563d37df173/a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b.pdf",
+      "byte_length": 48562473,
+      "document_id": "wh-url:7e17c4be2b42f563d37df173",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf",
+      "filer_name_from_label": "President Donald J. Trump",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"15e9b110a4bc8f16\"",
+        "last-modified": "Tue, 30 Jun 2026 19:55:07 GMT"
+      },
+      "link_label": "President Donald J. Trump Periodic Transaction Report 06.25.26 (1)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:12:21.294604+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/01475dee0bcffa4e79f7f58c/fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a.pdf",
+      "byte_length": 23728880,
+      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf",
+      "filer_name_from_label": "President Donald J. Trump",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4e0e07192b434b4b\"",
+        "last-modified": "Tue, 30 Jun 2026 19:55:04 GMT"
+      },
+      "link_label": "President Donald J. Trump Periodic Transaction Report 06.25.26 (2)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:12:21.421763+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/0c609f02c74c89d141cc2ca6/d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d.pdf",
+      "byte_length": 10487453,
+      "document_id": "wh-url:0c609f02c74c89d141cc2ca6",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/Vice-President-JD-Vance-2025-Annual-Report.pdf",
+      "filer_name_from_label": "Vice President JD Vance",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e30ff2e3af143bae\"",
+        "last-modified": "Tue, 30 Jun 2026 20:03:54 GMT"
+      },
+      "link_label": "Vice President JD Vance 2025 Annual Report",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2025,
+      "retrieved_at": "2026-09-22T07:12:21.504228+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/5e95b7609861d78aa29e3d13/e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed.pdf",
+      "byte_length": 31882456,
+      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
+      "filer_name_from_label": "President Donald J. Trump",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4d598aa19922deeb\"",
+        "last-modified": "Mon, 24 Aug 2026 15:47:36 GMT"
+      },
+      "link_label": "President Donald J. Trump Periodic Transaction Report 08.12.26",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:12:21.666724+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/ecd1383eca470ccb5c72b1ef/2e58663ff1c36c028c300ab23fc5a186d8638bbd1f121311881ea54ed3ac5d2a.pdf",
+      "byte_length": 13876,
+      "document_id": "wh-url:ecd1383eca470ccb5c72b1ef",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Adams-Patrick-2026-Annual.pdf",
+      "filer_name_from_label": "Adams, Patrick",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a7288f1900008727\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Adams, Patrick (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.698235+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "2e58663ff1c36c028c300ab23fc5a186d8638bbd1f121311881ea54ed3ac5d2a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3765459a47ee01e7e9a4821e/4e23534b283f8d788970cb4b7a08bc980dd972768f6b4c823174a4055a573724.pdf",
+      "byte_length": 15332,
+      "document_id": "wh-url:3765459a47ee01e7e9a4821e",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Agen-Jarrod-2026-Annual.pdf",
+      "filer_name_from_label": "Agen, Jarrod",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"124272e37a8f0ab8\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Agen, Jarrod (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.729244+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4e23534b283f8d788970cb4b7a08bc980dd972768f6b4c823174a4055a573724",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/dbacff31d1da2dde438a24d8/efbb1c53de798e99f83e68aee52421afc52ccdc49c8a504e3022975444771223.pdf",
+      "byte_length": 12376,
+      "document_id": "wh-url:dbacff31d1da2dde438a24d8",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Ambrosini-Christopher-2026-Annual.pdf",
+      "filer_name_from_label": "Ambrosini, Christopher",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ebe2bfcc000f10a3\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Ambrosini, Christopher (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.758932+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "efbb1c53de798e99f83e68aee52421afc52ccdc49c8a504e3022975444771223",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4657ef886d0fd2de13928223/79263ee354cb2bb88dbe38fbfd91876f13828ffe983db9f800fed97122d172f3.pdf",
+      "byte_length": 19123,
+      "document_id": "wh-url:4657ef886d0fd2de13928223",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Baasch-Ryan-2026-Annual.pdf",
+      "filer_name_from_label": "Baasch, Ryan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0b82cb35be58ccac\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Baasch, Ryan (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.789942+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "79263ee354cb2bb88dbe38fbfd91876f13828ffe983db9f800fed97122d172f3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/812c268609370f384df13246/cef74b48012e25b4a9e4f26d07e43a4f1b7c247e702509f0f9dbe4a5a2125a28.pdf",
+      "byte_length": 15655,
+      "document_id": "wh-url:812c268609370f384df13246",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bailey-Catharine-2026-Annual.pdf",
+      "filer_name_from_label": "Bailey, Catharine",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4746a517a2386b57\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Bailey, Catharine (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.823007+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "cef74b48012e25b4a9e4f26d07e43a4f1b7c247e702509f0f9dbe4a5a2125a28",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/d0fd9821591c6433f71bb081/a66fb125a12fa257c28b3f285ade14cb535ba2695c60c77258850a99c3ce5fb3.pdf",
+      "byte_length": 14569,
+      "document_id": "wh-url:d0fd9821591c6433f71bb081",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Barrett-Walker-2026-Annual.pdf",
+      "filer_name_from_label": "Barrett, Walker",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8c1265098f220b9a\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Barrett, Walker (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.855021+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a66fb125a12fa257c28b3f285ade14cb535ba2695c60c77258850a99c3ce5fb3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c9c06eb4fd00f1a04f1a5594/9126238fdfc6a7bf762feea04a658f1eb350d39e429e50f6795b7b3e1f83b487.pdf",
+      "byte_length": 18109,
+      "document_id": "wh-url:c9c06eb4fd00f1a04f1a5594",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bauer-Meghan-2026-Annual.pdf",
+      "filer_name_from_label": "Bauer, Meghan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"5d26752a6258609b\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Bauer, Meghan (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.887475+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "9126238fdfc6a7bf762feea04a658f1eb350d39e429e50f6795b7b3e1f83b487",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/6dbefe1a1cf3b55bb437690b/f15e2276f57104fb86c6c379b5c2d3f352c178c463156f69d30a393036f2deea.pdf",
+      "byte_length": 14289,
+      "document_id": "wh-url:6dbefe1a1cf3b55bb437690b",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Biddle-Emily-2026-Annual.pdf",
+      "filer_name_from_label": "Biddle, Emily",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2cb9630383fc01dd\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Biddle, Emily (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.919257+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f15e2276f57104fb86c6c379b5c2d3f352c178c463156f69d30a393036f2deea",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/11497e5659c2556000d94f29/5e64db98cee790d70d5fc1f875aa6c47448894646e1f2e51f685cf40ea6618c9.pdf",
+      "byte_length": 18032,
+      "document_id": "wh-url:11497e5659c2556000d94f29",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Blakely-Kyser-2026-Annual.pdf",
+      "filer_name_from_label": "Blakely, Kyser",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"307f620e3c9e8b41\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Blakely, Kyser (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.950762+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5e64db98cee790d70d5fc1f875aa6c47448894646e1f2e51f685cf40ea6618c9",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/fa0630b8ff52866111840aa1/233e7815e433dfdbdb4cde0b6ba8e5bfe1ebf000615e6b1a7ef96ef3c341ccc5.pdf",
+      "byte_length": 17620,
+      "document_id": "wh-url:fa0630b8ff52866111840aa1",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Borden-Hailey-2026-Annual.pdf",
+      "filer_name_from_label": "Borden, Hailey",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"df2f32bb53aa20bf\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Borden, Hailey (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:21.984972+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "233e7815e433dfdbdb4cde0b6ba8e5bfe1ebf000615e6b1a7ef96ef3c341ccc5",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/d355848eb8e2118aaa5691f9/5533541b6ad4404d4ac9fca0ebcd504f3e143ce5d012a61122154030ca411198.pdf",
+      "byte_length": 12989,
+      "document_id": "wh-url:d355848eb8e2118aaa5691f9",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Borg-Jared-2026-Annual.pdf",
+      "filer_name_from_label": "Borg, Jared",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2f7afd75c1e6addf\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Borg, Jared (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.017151+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5533541b6ad4404d4ac9fca0ebcd504f3e143ce5d012a61122154030ca411198",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/cb248f75e616a726641cc2bb/514ed16c120dd63753abd195893796af56f9b21e72d141b6499088066314308c.pdf",
+      "byte_length": 12461,
+      "document_id": "wh-url:cb248f75e616a726641cc2bb",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Brasseaux-Matthew-2026-Annual.pdf",
+      "filer_name_from_label": "Brasseaux, Matthew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"659b7e046d98fd16\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Brasseaux, Matthew (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.048461+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "514ed16c120dd63753abd195893796af56f9b21e72d141b6499088066314308c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f5353ebd26bf0015a4896b60/4241abc53f65509716bfd9fffd1f39137890a0164bbb0ef34bfad7d77311720a.pdf",
+      "byte_length": 21308,
+      "document_id": "wh-url:f5353ebd26bf0015a4896b60",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bresso-Gineen-2026-Annual.pdf",
+      "filer_name_from_label": "Bresso, Gineen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e16c6eb5ecce84e3\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Bresso, Gineen (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.084575+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4241abc53f65509716bfd9fffd1f39137890a0164bbb0ef34bfad7d77311720a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f21a781301fe273199d562ec/bfa77e32e6448948f9ea0e89c00e0d97aa41604b3c2a52d6a19a563b57c17034.pdf",
+      "byte_length": 12952,
+      "document_id": "wh-url:f21a781301fe273199d562ec",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Brody-Bryan-2026-Annual.pdf",
+      "filer_name_from_label": "Brody, Bryan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e1d0b40a79909f73\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Brody, Bryan (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.116308+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "bfa77e32e6448948f9ea0e89c00e0d97aa41604b3c2a52d6a19a563b57c17034",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/71b24f03d33664e9a1671a6d/0823caef353296f334ab4f3d9eb170d2f80582972dd21d7b19bafb6f5037019a.pdf",
+      "byte_length": 25665,
+      "document_id": "wh-url:71b24f03d33664e9a1671a6d",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bulazel-Alina-2026-Annual.pdf",
+      "filer_name_from_label": "Bulazel, Alina",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"bdcd522911a42479\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Bulazel, Alina (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.148563+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "0823caef353296f334ab4f3d9eb170d2f80582972dd21d7b19bafb6f5037019a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/75aaad34d269c6a3490ada86/6b03bbe24121974e6a145ec86156b3ee802ea36817c56f02476be9b4cbf72879.pdf",
+      "byte_length": 13371,
+      "document_id": "wh-url:75aaad34d269c6a3490ada86",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Clemens-Nicholas-2026-Annual.pdf",
+      "filer_name_from_label": "Clemens, Nicholas",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"1178a0bc357f043d\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Clemens, Nicholas (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.179974+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "6b03bbe24121974e6a145ec86156b3ee802ea36817c56f02476be9b4cbf72879",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b7da47ab4d4129b56c6f48ee/7b669ff620a7f5e4426e946a03077bd16a016119c981eb18923ede3f3f445e55.pdf",
+      "byte_length": 15398,
+      "document_id": "wh-url:b7da47ab4d4129b56c6f48ee",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Clingenpeel-Cale-2026-Annual.pdf",
+      "filer_name_from_label": "Clingenpeel, Cale",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"bec479c6dd08e889\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Clingenpeel, Cale (2026 Annual)",
+      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:12:22.211778+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "7b669ff620a7f5e4426e946a03077bd16a016119c981eb18923ede3f3f445e55",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/50c4a7febda74a300a0b22e0/064e380669bcfc7f07cb30442a59de98eebd64b30f3cef1b17959c6471df0443.pdf",
+      "byte_length": 14844,
+      "document_id": "wh-url:50c4a7febda74a300a0b22e0",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Connor-Cameron-2026-Annual.pdf",
+      "filer_name_from_label": "Connor, Cameron",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b6aef385d340a23d\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Connor, Cameron (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:22.325478+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "064e380669bcfc7f07cb30442a59de98eebd64b30f3cef1b17959c6471df0443",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/249518147e862b4b433729eb/3b55be1b8f150d26edb12d426e728c05b55f00384c841bcadf22bfbda4d276ff.pdf",
+      "byte_length": 12100,
+      "document_id": "wh-url:249518147e862b4b433729eb",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Cox-Jordan-2026-Annual.pdf",
+      "filer_name_from_label": "Cox, Jordan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"be4d9b6205ccdf6c\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Cox, Jordan (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:22.534472+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3b55be1b8f150d26edb12d426e728c05b55f00384c841bcadf22bfbda4d276ff",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/537258ae22d4ac77c4f01bbd/32c85c5f32dc9f950a7bdebd4b40c437e765ed3cbba30fb43567c9b837d73833.pdf",
+      "byte_length": 14426,
+      "document_id": "wh-url:537258ae22d4ac77c4f01bbd",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Cox-Raymond-2026-Annual.pdf",
+      "filer_name_from_label": "Cox, Raymond",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"3b3fd265b4449957\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Cox, Raymond (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:22.663807+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "32c85c5f32dc9f950a7bdebd4b40c437e765ed3cbba30fb43567c9b837d73833",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/218a0e6ad915b980b4526f11/0a185796330c93556a438b0b6ac8e05d23fa80516c53ff694742ed227a85b45d.pdf",
+      "byte_length": 21430,
+      "document_id": "wh-url:218a0e6ad915b980b4526f11",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/DeWitt-Morgan-2026-Annual.pdf",
+      "filer_name_from_label": "DeWitt, Morgan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ca003517dad3d5ae\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "DeWitt, Morgan (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:22.866363+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "0a185796330c93556a438b0b6ac8e05d23fa80516c53ff694742ed227a85b45d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a64e79ae52a2a2206dc030a6/4e8ddb3c0cf4f6fdf771ca674f7091000402b8f305c4bae3814b10eef6142d2e.pdf",
+      "byte_length": 46672,
+      "document_id": "wh-url:a64e79ae52a2a2206dc030a6",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Donaldson-David-2026-Annual.pdf",
+      "filer_name_from_label": "Donaldson, David",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"d993640ab91f8252\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Donaldson, David (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.076946+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4e8ddb3c0cf4f6fdf771ca674f7091000402b8f305c4bae3814b10eef6142d2e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/8940003aa5ffa8e646cd4014/cb9d4a8aab3cbcbff4e681ca30a4d4c8dff8f79cbf71e6f328afed9af5a7c067.pdf",
+      "byte_length": 13232,
+      "document_id": "wh-url:8940003aa5ffa8e646cd4014",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Dorr-Kaelan-2026-Annual.pdf",
+      "filer_name_from_label": "Dorr, Kaelan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"22c1d57a3492b190\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Dorr, Kaelan (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.380061+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "cb9d4a8aab3cbcbff4e681ca30a4d4c8dff8f79cbf71e6f328afed9af5a7c067",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/493cedaefdd8b4d713773cbd/5ac3ae8192d36ff36c51898e67e7c0fb61fde8e1b14ac76f01bebdc2fceeab1c.pdf",
+      "byte_length": 14408,
+      "document_id": "wh-url:493cedaefdd8b4d713773cbd",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Dulin-Kassandra-2026-Annual.pdf",
+      "filer_name_from_label": "Dulin, Kassandra",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2d1ce1a83d61e251\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Dulin, Kassandra (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.416105+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "5ac3ae8192d36ff36c51898e67e7c0fb61fde8e1b14ac76f01bebdc2fceeab1c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/601a47d7f705497d2f3719a0/277b804b743cebf655cee5cbb5b48f797327fb0a6584f1394dc86780a39432db.pdf",
+      "byte_length": 16007,
+      "document_id": "wh-url:601a47d7f705497d2f3719a0",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Escobedo-Christopher-2026-Annual.pdf",
+      "filer_name_from_label": "Escobedo, Christopher",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b6820b63f4eb5ebf\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Escobedo, Christopher (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.608472+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "277b804b743cebf655cee5cbb5b48f797327fb0a6584f1394dc86780a39432db",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/00b20e8ae00ae215d84bde4e/f40ecd991dd324817218ae5ad509811fc82af571dfef5243e00a2f311142abf3.pdf",
+      "byte_length": 12936,
+      "document_id": "wh-url:00b20e8ae00ae215d84bde4e",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Finzer-Mary-2026-Annual.pdf",
+      "filer_name_from_label": "Finzer, Mary",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"32ce60961c34db9c\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Finzer, Mary (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.639439+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f40ecd991dd324817218ae5ad509811fc82af571dfef5243e00a2f311142abf3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b9972e04df6355fff78a4c12/cf85f2f11aed712aadd125c775f6588163911aa0905496d05a7bab7d2dc1c685.pdf",
+      "byte_length": 16609,
+      "document_id": "wh-url:b9972e04df6355fff78a4c12",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Flemister-Alex-2026-Annual.pdf",
+      "filer_name_from_label": "Flemister, Alex",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ef83197698a465a9\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Flemister, Alex (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.787369+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "cf85f2f11aed712aadd125c775f6588163911aa0905496d05a7bab7d2dc1c685",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/6a459c38e14e7d8b9b16edc6/cf985297cc9615c7bdd5b8dcdc31fe733c9ace3a981be3854f6c2114985c1be6.pdf",
+      "byte_length": 19737,
+      "document_id": "wh-url:6a459c38e14e7d8b9b16edc6",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Frederick-Kara-2026-Annual.pdf",
+      "filer_name_from_label": "Frederick, Kara",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"cd817b672d1fde66\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Frederick, Kara (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:23.969948+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "cf985297cc9615c7bdd5b8dcdc31fe733c9ace3a981be3854f6c2114985c1be6",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4ad24633ec723828c183fc3e/3fb6c8b73ea0bdffa21ff84135731c9c361d0ba63e841e31b54c0885d902bb8a.pdf",
+      "byte_length": 48762,
+      "document_id": "wh-url:4ad24633ec723828c183fc3e",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Freeland-Jeffrey-2026-Annual.pdf",
+      "filer_name_from_label": "Freeland, Jeffrey",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0e9d42ee1fcc9a80\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Freeland, Jeffrey (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:24.249208+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3fb6c8b73ea0bdffa21ff84135731c9c361d0ba63e841e31b54c0885d902bb8a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/82dcd8bbaee1703570f950dc/3cd388bbf200d797d81aee29f5ed60dc99ef0fa6d9d802c682bdbcf9ebc88b1e.pdf",
+      "byte_length": 12903,
+      "document_id": "wh-url:82dcd8bbaee1703570f950dc",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Garoufalis-Luke-2026-Annual.pdf",
+      "filer_name_from_label": "Garoufalis, Luke",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"bfc36bc59e31b7ea\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Garoufalis, Luke (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:24.280036+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "3cd388bbf200d797d81aee29f5ed60dc99ef0fa6d9d802c682bdbcf9ebc88b1e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/2bb6a7bc506a5eafaada9884/017cc0c7cf21e325c0c4527c27a2eaca34fb6125f9c10c75369255b71d5ee738.pdf",
+      "byte_length": 21312,
+      "document_id": "wh-url:2bb6a7bc506a5eafaada9884",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gast-Scott-2026-Annual.pdf",
+      "filer_name_from_label": "Gast, Scott",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"190891935a92b2f6\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Gast, Scott (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:24.455798+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "017cc0c7cf21e325c0c4527c27a2eaca34fb6125f9c10c75369255b71d5ee738",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a91bc9833ea6fcdd2e8f21d1/2ad4dea93379076c440bfd7cab97ea530a68c25662eca960d5b8cc3b1553fc9d.pdf",
+      "byte_length": 12608,
+      "document_id": "wh-url:a91bc9833ea6fcdd2e8f21d1",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/George-Jonathan-2026-Annual.pdf",
+      "filer_name_from_label": "George, Jonathan",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"7070072ebbe84466\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "George, Jonathan (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:24.698829+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "2ad4dea93379076c440bfd7cab97ea530a68c25662eca960d5b8cc3b1553fc9d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/5c3f89920a412e23a37d576f/4e51f396730eb37c51d81017ef8a1fbc77002d2a375020ef9bb7b14ee017afea.pdf",
+      "byte_length": 15578,
+      "document_id": "wh-url:5c3f89920a412e23a37d576f",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gesiriech-Sarah-2026-Annual.pdf",
+      "filer_name_from_label": "Gesiriech, Sarah",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"932a6ee2d52dae08\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Gesiriech, Sarah (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:24.891120+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4e51f396730eb37c51d81017ef8a1fbc77002d2a375020ef9bb7b14ee017afea",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/72555ff00ceb4aedfa566247/156ab3b4afafc8dd34b6b1b9d2e64b49bc9be8e4c58e0cf3afc5447b92555330.pdf",
+      "byte_length": 14079,
+      "document_id": "wh-url:72555ff00ceb4aedfa566247",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gillespie-James-2026-Annual.pdf",
+      "filer_name_from_label": "Gillespie, James",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"7c5fae10202da871\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Gillespie, James (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.105211+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "156ab3b4afafc8dd34b6b1b9d2e64b49bc9be8e4c58e0cf3afc5447b92555330",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/068bd73be56fb7b17f543d05/7e4d293f2f42e70db8131d63699abbec1c61423ed2483cf1ec656eebc569fa96.pdf",
+      "byte_length": 15329,
+      "document_id": "wh-url:068bd73be56fb7b17f543d05",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Goyer-James-2026-Annual.pdf",
+      "filer_name_from_label": "Goyer, James",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0030f105e8ee54b6\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Goyer, James (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.287158+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "7e4d293f2f42e70db8131d63699abbec1c61423ed2483cf1ec656eebc569fa96",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/743e07f66cf9a0cef83dbfde/b7282c8aa5489337a70bc4aff1cb41d69d54d280c38c6d443f5c835236dc302e.pdf",
+      "byte_length": 11841,
+      "document_id": "wh-url:743e07f66cf9a0cef83dbfde",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Grace-Andrea-2026-Annual.pdf",
+      "filer_name_from_label": "Grace, Andrea",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"40864d102a0772f7\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Grace, Andrea (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.545845+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "b7282c8aa5489337a70bc4aff1cb41d69d54d280c38c6d443f5c835236dc302e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/19552b96cfc0ac2f9d33ced9/27397788dfcd4edf6ca93a6ac6fdbb79acd22c7e918785150ff27d009cf9211b.pdf",
+      "byte_length": 12818,
+      "document_id": "wh-url:19552b96cfc0ac2f9d33ced9",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Grove-Sara-2026-Annual.pdf",
+      "filer_name_from_label": "Grove, Sara",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"840a1bc998761e76\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Grove, Sara (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.778038+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "27397788dfcd4edf6ca93a6ac6fdbb79acd22c7e918785150ff27d009cf9211b",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/38ee407149e42ab847ebc527/f466fcafa1ea2d90c79692cdfd174db7e6f6e0f5b04e1f60e625be2941d5d59e.pdf",
+      "byte_length": 14441,
+      "document_id": "wh-url:38ee407149e42ab847ebc527",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Haley-Vincent-2026-Annual.pdf",
+      "filer_name_from_label": "Haley, Vincent",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8b9210f348fab844\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Haley, Vincent (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.808212+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f466fcafa1ea2d90c79692cdfd174db7e6f6e0f5b04e1f60e625be2941d5d59e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/9d6170c7ee1d90e8a763b6cc/d6acd23569023021d1bddbebee401688be6ad4ac3da969e4f5f61ed1fe92c739.pdf",
+      "byte_length": 13484,
+      "document_id": "wh-url:9d6170c7ee1d90e8a763b6cc",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harp-Natalie-2026-Annual.pdf",
+      "filer_name_from_label": "Harp, Natalie",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ce5f5743b0000ea0\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Harp, Natalie (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.836715+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d6acd23569023021d1bddbebee401688be6ad4ac3da969e4f5f61ed1fe92c739",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c4e4e25a4419b7a0efbf9cce/7bcb7a3d96acefaac73aa67ca5de52d04e2c39395c77d55e1e9ac92a84b0f21c.pdf",
+      "byte_length": 15605,
+      "document_id": "wh-url:c4e4e25a4419b7a0efbf9cce",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harris-Chamberlain-2026-Annual.pdf",
+      "filer_name_from_label": "Harris, Chamberlain",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"395ee7cb6b9013ba\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Harris, Chamberlain (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:25.866217+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "7bcb7a3d96acefaac73aa67ca5de52d04e2c39395c77d55e1e9ac92a84b0f21c",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/1202e58bbd0cf47127e8ebc0/00fc49dcce8049d4dd3d5ed8c7214c6e8d742e6b4683f2913f19f13f24cee9bd.pdf",
+      "byte_length": 12730,
+      "document_id": "wh-url:1202e58bbd0cf47127e8ebc0",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harrison-Hayley-2026-Annual.pdf",
+      "filer_name_from_label": "Harrison, Hayley",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0da3be416ead93a1\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Harrison, Hayley (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.111609+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "00fc49dcce8049d4dd3d5ed8c7214c6e8d742e6b4683f2913f19f13f24cee9bd",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/76060e1298cfb5e92b9a2273/ff18a4e0e0458e17b1a9d70623e46a387c3bc737b380b32f8de3bf012a67990e.pdf",
+      "byte_length": 12736,
+      "document_id": "wh-url:76060e1298cfb5e92b9a2273",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harrison-William-2026-Annual.pdf",
+      "filer_name_from_label": "Harrison, William",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"d742c705f303ca69\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Harrison, William (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.278699+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "ff18a4e0e0458e17b1a9d70623e46a387c3bc737b380b32f8de3bf012a67990e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/fdf3e3e86f4f618f90536176/40407a82acc228d1f962b843fd6a5524f4d3636f0e7d3f4b1de2a332772e1a5b.pdf",
+      "byte_length": 20807,
+      "document_id": "wh-url:fdf3e3e86f4f618f90536176",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Hassett-Kevin-2026-Annual.pdf",
+      "filer_name_from_label": "Hassett, Kevin",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"10e74a28d7cf59a9\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Hassett, Kevin (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.310807+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "40407a82acc228d1f962b843fd6a5524f4d3636f0e7d3f4b1de2a332772e1a5b",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/67348b18a8e241721774aa40/4f01915ae916b9faa1fb5a4f577dfc34a68114c2124429c852e9ed8a15ed0d4a.pdf",
+      "byte_length": 18036,
+      "document_id": "wh-url:67348b18a8e241721774aa40",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Hayes-Sean-2026-Annual.pdf",
+      "filer_name_from_label": "Hayes, Sean",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"95ac2b2a94ddab46\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Hayes, Sean (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.451138+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4f01915ae916b9faa1fb5a4f577dfc34a68114c2124429c852e9ed8a15ed0d4a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/1b109c911f7e9745aef77d68/b1bb22e96b3861d89d30bc2e023b16a062f0f25e9cb1ad2e56f74052561f376a.pdf",
+      "byte_length": 47292,
+      "document_id": "wh-url:1b109c911f7e9745aef77d68",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Homan-Thomas-2026-Annual.pdf",
+      "filer_name_from_label": "Homan, Thomas",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"c4dfeb85795fcddc\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Homan, Thomas (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.652698+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "b1bb22e96b3861d89d30bc2e023b16a062f0f25e9cb1ad2e56f74052561f376a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/458de28ea00058a4f1e270c5/200c94d0bc9433ff0b7f05b3dc05ab6403547386662d8855d61c8f4ec82eb16f.pdf",
+      "byte_length": 13447,
+      "document_id": "wh-url:458de28ea00058a4f1e270c5",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Jones-Zachary-2026-Annual.pdf",
+      "filer_name_from_label": "Jones, Zachary",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"6ccaf90bdb49c1db\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Jones, Zachary (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.685103+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "200c94d0bc9433ff0b7f05b3dc05ab6403547386662d8855d61c8f4ec82eb16f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/297f8c3734c76fe3ce458e3a/02d4faf1075138bf750b4446312a3a1da5361e107ebf09f6ebc834124c8967c7.pdf",
+      "byte_length": 13616,
+      "document_id": "wh-url:297f8c3734c76fe3ce458e3a",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Jorjani-Daniel-2026-Annual.pdf",
+      "filer_name_from_label": "Jorjani, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"d9655eb44d80c347\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Jorjani, Daniel (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:26.849891+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "02d4faf1075138bf750b4446312a3a1da5361e107ebf09f6ebc834124c8967c7",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/ee4e563d1cc845ea8d53822f/547d00cf9033024d96d8396c2cdacb4205096abe2a2c007a53daffc72d99f621.pdf",
+      "byte_length": 13962,
+      "document_id": "wh-url:ee4e563d1cc845ea8d53822f",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Kelley-Ian-2026-Annual.pdf",
+      "filer_name_from_label": "Kelley, Ian",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"47876c91f4d9a291\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Kelley, Ian (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.071452+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "547d00cf9033024d96d8396c2cdacb4205096abe2a2c007a53daffc72d99f621",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/57cb6671d1dc3072a0e12bf6/03e5d6ba1493e97febf189084fa68c9672b0bc4014b4a652e6493e139545933b.pdf",
+      "byte_length": 17455,
+      "document_id": "wh-url:57cb6671d1dc3072a0e12bf6",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Klopp-Jacalynne-2026-Annual.pdf",
+      "filer_name_from_label": "Klopp, Jacalynne",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f63cb52025ea10c3\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Klopp, Jacalynne (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.101790+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "03e5d6ba1493e97febf189084fa68c9672b0bc4014b4a652e6493e139545933b",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a09eb9e11208b7f3bb49f89b/18a76095e3ff49fcf2a7cc2302f0a765b6aab4bbcdea11868fcf480ea6ba7a1e.pdf",
+      "byte_length": 21376,
+      "document_id": "wh-url:a09eb9e11208b7f3bb49f89b",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Korn-Jennifer-2026-Annual.pdf",
+      "filer_name_from_label": "Korn, Jennifer",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f2a1add60073cf7b\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Korn, Jennifer (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.134633+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "18a76095e3ff49fcf2a7cc2302f0a765b6aab4bbcdea11868fcf480ea6ba7a1e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/3c3204fd87074ab9259c2308/1c57be3b86efec11df791560afdef3b3e53573969a20ac335e2a07288314fe26.pdf",
+      "byte_length": 14351,
+      "document_id": "wh-url:3c3204fd87074ab9259c2308",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lane-Jackson-2026-Annual.pdf",
+      "filer_name_from_label": "Lane, Jackson",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4e2825299a2e7919\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Lane, Jackson (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.394193+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1c57be3b86efec11df791560afdef3b3e53573969a20ac335e2a07288314fe26",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/ae7f816b882160990102f60c/1b14a8ff0ac83916e87459c2b8dbe344f1635502d71394c09fafb3840698ffcd.pdf",
+      "byte_length": 20073,
+      "document_id": "wh-url:ae7f816b882160990102f60c",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lawkowski-Gary-2026-Annual.pdf",
+      "filer_name_from_label": "Lawkowski, Gary",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b0a318e79299b85e\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Lawkowski, Gary (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.425690+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "1b14a8ff0ac83916e87459c2b8dbe344f1635502d71394c09fafb3840698ffcd",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/cb7fabbc8845adaf84467e6d/c9e478ca0f961459404df972852d892429b6ed5fca001a48a39ffcf860e273e3.pdf",
+      "byte_length": 15612,
+      "document_id": "wh-url:cb7fabbc8845adaf84467e6d",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Leavitt-Karoline-2026-Annual.pdf",
+      "filer_name_from_label": "Leavitt, Karoline",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ef79974c62b5d00e\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Leavitt, Karoline (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.455585+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "c9e478ca0f961459404df972852d892429b6ed5fca001a48a39ffcf860e273e3",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/8d46c7ddfb0bd4675f368170/46ac8034bddaea3b1a7dffe8f896621aea59161c917a96d69316533ae51b3fe7.pdf",
+      "byte_length": 13792,
+      "document_id": "wh-url:8d46c7ddfb0bd4675f368170",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lynch-Christopher-2026-Annual.pdf",
+      "filer_name_from_label": "Lynch, Christopher",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"5821bf8780d44f3e\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Lynch, Christopher (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.607561+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "46ac8034bddaea3b1a7dffe8f896621aea59161c917a96d69316533ae51b3fe7",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/15db3af84c5817aaf33badf9/4dbea01c125bbde343907d6ab0b5c49bdaf460e86232ce7f6241f1d8d38de880.pdf",
+      "byte_length": 12925,
+      "document_id": "wh-url:15db3af84c5817aaf33badf9",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/MacDonnell-Patrick-2026-Annual.pdf",
+      "filer_name_from_label": "MacDonnell, Patrick",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"1413fe86c98fd6da\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "MacDonnell, Patrick (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.638365+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4dbea01c125bbde343907d6ab0b5c49bdaf460e86232ce7f6241f1d8d38de880",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/14b203996192064546afb086/9e85f2129bc6494b902c99010c6b41043832bcb2f23536f855b5b39e89e00d1f.pdf",
+      "byte_length": 17583,
+      "document_id": "wh-url:14b203996192064546afb086",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Mangold-Lenett-Samuel-2026-Annual.pdf",
+      "filer_name_from_label": "Mangold-Lenett, Samuel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"3e7b34bf078878b9\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Mangold-Lenett, Samuel (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.669721+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "9e85f2129bc6494b902c99010c6b41043832bcb2f23536f855b5b39e89e00d1f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/399ae9e311d12bc578fbf761/c0b7913aafd92e342248b4c58688820e04d2bb6f852ba0d7304beffa6a5758d6.pdf",
+      "byte_length": 16839,
+      "document_id": "wh-url:399ae9e311d12bc578fbf761",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Marco-Jacob-2026-Annual.pdf",
+      "filer_name_from_label": "Marco, Jacob",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b749420a50f67cea\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Marco, Jacob (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.812526+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "c0b7913aafd92e342248b4c58688820e04d2bb6f852ba0d7304beffa6a5758d6",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/8740bb6127ae67aa41f67426/d5c940d764b8512d8216c9ec9e2b8ee28b1bcb40fedc4cd96329664eab89dd61.pdf",
+      "byte_length": 15202,
+      "document_id": "wh-url:8740bb6127ae67aa41f67426",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Marks-Martin-2026-Annual.pdf",
+      "filer_name_from_label": "Marks, Martin",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f6c34dd5bcddaaf2\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Marks, Martin (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.841841+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d5c940d764b8512d8216c9ec9e2b8ee28b1bcb40fedc4cd96329664eab89dd61",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/f494baace66e018030e0a09a/a2b9feb3a0b72ed97bd27832956de28a521e63b16e900b57ffdc6dee7b3801cd.pdf",
+      "byte_length": 15961,
+      "document_id": "wh-url:f494baace66e018030e0a09a",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Martin-Margo-2026-Annual.pdf",
+      "filer_name_from_label": "Martin, Margo",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"ea97c83b2d7fe439\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Martin, Margo (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.872772+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "a2b9feb3a0b72ed97bd27832956de28a521e63b16e900b57ffdc6dee7b3801cd",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/35fb926421478a4610eed333/595ee01ece3ad447a38f0f368a33aa80c16c0533218dad1fc52d916069edfb5f.pdf",
+      "byte_length": 15222,
+      "document_id": "wh-url:35fb926421478a4610eed333",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Merkel-Theodore-2026-Annual.pdf",
+      "filer_name_from_label": "Merkel, Theodore",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"e9fac11a31e0c05a\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Merkel, Theodore (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.903282+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "595ee01ece3ad447a38f0f368a33aa80c16c0533218dad1fc52d916069edfb5f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c8a139e975850704167967b5/f3e76688d7b6faeaf5a2c90a99c5ab7f63a02e6ba6d38c94a50cbb6b144e09af.pdf",
+      "byte_length": 17774,
+      "document_id": "wh-url:c8a139e975850704167967b5",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Miller-Stephen-2026-Annual.pdf",
+      "filer_name_from_label": "Miller, Stephen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"a492302b438d7b5f\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Miller, Stephen (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.932725+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f3e76688d7b6faeaf5a2c90a99c5ab7f63a02e6ba6d38c94a50cbb6b144e09af",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4862e79b431df0f4c2375ffd/ae634f2b1845133b01882f50b466bccea2a2444b8fc78e614eca92a92522858f.pdf",
+      "byte_length": 16940,
+      "document_id": "wh-url:4862e79b431df0f4c2375ffd",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Milner-Clark-2026-Annual.pdf",
+      "filer_name_from_label": "Milner, Clark",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"58c1ae8e6257effb\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Milner, Clark (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:27.962295+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "ae634f2b1845133b01882f50b466bccea2a2444b8fc78e614eca92a92522858f",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/30d5cfb0cc9852c04bc2a537/7bccef2c253ff508121d8dd5aaa31a97a9fc079d756617ae4a43148283e23dde.pdf",
+      "byte_length": 12215,
+      "document_id": "wh-url:30d5cfb0cc9852c04bc2a537",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Moreau-Marshall-2026-Annual.pdf",
+      "filer_name_from_label": "Moreau, Marshall",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"4ba47970ac187597\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Moreau, Marshall (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:28.113912+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "7bccef2c253ff508121d8dd5aaa31a97a9fc079d756617ae4a43148283e23dde",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/9a7b03a42e45c43ed5a62b75/11cbc672f791fdbe1d36e77a0e00121ca15408ee585b04b957289256c536a4c7.pdf",
+      "byte_length": 12421,
+      "document_id": "wh-url:9a7b03a42e45c43ed5a62b75",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Nauta-Waltine-2026-Annual.pdf",
+      "filer_name_from_label": "Nauta, Waltine",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"0d866b9467004151\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Nauta, Waltine (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:28.144685+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "11cbc672f791fdbe1d36e77a0e00121ca15408ee585b04b957289256c536a4c7",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a4229796c4a62c14d2d021f6/e068e1bca2663cc95e95ba84255c8e735fedd2fdf59176de199fae52f81cc8e8.pdf",
+      "byte_length": 13631,
+      "document_id": "wh-url:a4229796c4a62c14d2d021f6",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Overton-Heidi-2026-Annual.pdf",
+      "filer_name_from_label": "Overton, Heidi",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"bee8dc31d7e495c3\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Overton, Heidi (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:28.275136+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e068e1bca2663cc95e95ba84255c8e735fedd2fdf59176de199fae52f81cc8e8",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e3e4a28a48230098a9af3844/e1a502831c3e5dadcd3fdb4dfb2200952158df37e7f6ab2063ba887d8c6f2c88.pdf",
+      "byte_length": 13155,
+      "document_id": "wh-url:e3e4a28a48230098a9af3844",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Page-Jacob-2026-Annual.pdf",
+      "filer_name_from_label": "Page, Jacob",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"b86cf198527d7df7\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Page, Jacob (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:28.305486+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "e1a502831c3e5dadcd3fdb4dfb2200952158df37e7f6ab2063ba887d8c6f2c88",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/b20772190961fed98268365d/fb75948f4029c510c30e4e25f4ee7774656aef51ccd96a1d3f9f77f2800f945c.pdf",
+      "byte_length": 12563,
+      "document_id": "wh-url:b20772190961fed98268365d",
+      "document_type_from_label": "278e_annual",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Parent-Charyssa-2026-Annual.pdf",
+      "filer_name_from_label": "Parent, Charyssa",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"cecd09d760c47fd0\"",
+        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
+      },
+      "link_label": "Parent, Charyssa (2026 Annual)",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": 2026,
+      "retrieved_at": "2026-09-22T07:28:28.533890+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "fb75948f4029c510c30e4e25f4ee7774656aef51ccd96a1d3f9f77f2800f945c",
+      "source_id": "whitehouse_public_disclosures"
+    },
     {
       "archive_path": "whitehouse/disclosures/reports/7d1f51d566f4d0b543e8323e/844176db134e3dc38519361ca693cb1d751779682d60efd8642109d3494b741d.pdf",
       "byte_length": 14824,
@@ -3315,6 +4668,106 @@
       "source_id": "whitehouse_public_disclosures"
     },
     {
+      "archive_path": "whitehouse/disclosures/reports/a1f887a1d37971bb3956c12a/82094b62d8839507dbe465daa74ec5ae2aed2bb179cadaba3015f79ab41a4086.pdf",
+      "byte_length": 5605,
+      "document_id": "wh-url:a1f887a1d37971bb3956c12a",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report%E2%80%93-03.14.25.pdf",
+      "filer_name_from_label": "Kenny, Stephen",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"f76c6690f3a67495\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Kenny, Stephen – Periodic Transaction Report– 03.14.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.321400+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "82094b62d8839507dbe465daa74ec5ae2aed2bb179cadaba3015f79ab41a4086",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a37423e7c33351e0b81ebd96/4a857b632851ed8afc2310df3652c730560543df613aec782f8baa1686dce447.pdf",
+      "byte_length": 5589,
+      "document_id": "wh-url:a37423e7c33351e0b81ebd96",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report%E2%80%93-08.16.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8eb7c6709ff32d76\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Lyon, Andrew – Periodic Transaction Report– 08.16.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.374265+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "4a857b632851ed8afc2310df3652c730560543df613aec782f8baa1686dce447",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/bdc9f33e40dad0984b4d14a9/d446161dcb838779e37c476c0a06d708008297e3f459ea6a173ab109adb9637d.pdf",
+      "byte_length": 9240,
+      "document_id": "wh-url:bdc9f33e40dad0984b4d14a9",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-03.28.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"652eaeb1cb06666a\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 03.28.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.424433+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "d446161dcb838779e37c476c0a06d708008297e3f459ea6a173ab109adb9637d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/5441103eb5823b10dacde588/65ac344a378b39a41221225ebba42de185b509117fce5a12a0d88dc339e72f6a.pdf",
+      "byte_length": 5603,
+      "document_id": "wh-url:5441103eb5823b10dacde588",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-06.08.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"fe1592da7c6b334d\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 06.08.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.480918+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "65ac344a378b39a41221225ebba42de185b509117fce5a12a0d88dc339e72f6a",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/e07817d54879f61f40ea89ed/950594591186022d2d7fa876b3f0db38b2c91bd16b284e9bf0a47b0860492df5.pdf",
+      "byte_length": 5589,
+      "document_id": "wh-url:e07817d54879f61f40ea89ed",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-07.07.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"8eb7c6709ff32d76\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 07.07.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.529650+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "950594591186022d2d7fa876b3f0db38b2c91bd16b284e9bf0a47b0860492df5",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
       "archive_path": "whitehouse/disclosures/reports/a7d82624abc74fe65eb63f2b/6b9258f6b3b1e46a5a1b73caed93e8751b1a3fed5befa59ca058bbd0bd949c36.pdf",
       "byte_length": 864691,
       "document_id": "wh-url:a7d82624abc74fe65eb63f2b",
@@ -3332,6 +4785,126 @@
       "retrieved_at": "2026-09-22T07:06:17.105619+00:00",
       "schema_version": "whitehouse-public-disclosures-pdf/v1",
       "sha256": "6b9258f6b3b1e46a5a1b73caed93e8751b1a3fed5befa59ca058bbd0bd949c36",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/4ee23e4be51e022bf34df22c/40ec16e28758c0570e78d60dfac6b8bf3e6f20e5bb6e6692a4c588f915ddcbf8.pdf",
+      "byte_length": 5738,
+      "document_id": "wh-url:4ee23e4be51e022bf34df22c",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-%E2%80%93-05.20.25.pdf",
+      "filer_name_from_label": "Scavino, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"1b01bbfa9766312e\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Scavino, Daniel – Periodic Transaction Report – 05.20.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.576889+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "40ec16e28758c0570e78d60dfac6b8bf3e6f20e5bb6e6692a4c588f915ddcbf8",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/789c18527203630b48b575b4/41b4fbd7cbbd10dff8aab11158d279e7830e2d8f9647dd9ce524e752c174428e.pdf",
+      "byte_length": 5528,
+      "document_id": "wh-url:789c18527203630b48b575b4",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-06.20.25.pdf",
+      "filer_name_from_label": "Tiso, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"36a980cccbd299eb\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 06.20.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.818793+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "41b4fbd7cbbd10dff8aab11158d279e7830e2d8f9647dd9ce524e752c174428e",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/867980669614b684ddb349b4/cae30ec440be85d9cc64d193ceb19c24624c5b85fe0982a61a7c750f345a620d.pdf",
+      "byte_length": 5535,
+      "document_id": "wh-url:867980669614b684ddb349b4",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-08.01.25.pdf",
+      "filer_name_from_label": "Tiso, Daniel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"2ae92a07030c65d2\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 08.01.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:15.873607+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "cae30ec440be85d9cc64d193ceb19c24624c5b85fe0982a61a7c750f345a620d",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/c5635a4c72959754079f8dd3/07f31294a228d2873667cca23bd67198208533bcae0fa3b4b9d1934be6cc1290.pdf",
+      "byte_length": 5685,
+      "document_id": "wh-url:c5635a4c72959754079f8dd3",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-%E2%80%93-05.05.25.pdf",
+      "filer_name_from_label": "Warrington, David",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"74a07733cbec1b8b\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Warrington, David – Periodic Transaction Report – 05.05.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:16.143098+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "07f31294a228d2873667cca23bd67198208533bcae0fa3b4b9d1934be6cc1290",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/a31f97b78eacdf16d90377ea/aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc.pdf",
+      "byte_length": 5701,
+      "document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report%E2%80%93-06.13.25.pdf",
+      "filer_name_from_label": "Wiles, Susie",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"303bcc012b8a8022\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Wiles, Susie – Periodic Transaction Report– 06.13.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:16.214249+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc",
+      "source_id": "whitehouse_public_disclosures"
+    },
+    {
+      "archive_path": "whitehouse/disclosures/reports/156b23394914d54054fbd853/f0e58be83a177f96a62cca3efc19af9f839518fd1587c640756c96ffd40a2dfa.pdf",
+      "byte_length": 5545,
+      "document_id": "wh-url:156b23394914d54054fbd853",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-%E2%80%93-07.22.25.pdf",
+      "filer_name_from_label": "Zinberg, Joel",
+      "headers": {
+        "content-type": "application/pdf",
+        "etag": "\"eff0775b6944a0bb\"",
+        "last-modified": "Fri, 14 Nov 2025 22:13:03 GMT"
+      },
+      "link_label": "Zinberg, Joel – Periodic Transaction Report – 07.22.25",
+      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+      "report_year_from_label": null,
+      "retrieved_at": "2026-09-22T07:42:16.503684+00:00",
+      "schema_version": "whitehouse-public-disclosures-pdf/v1",
+      "sha256": "f0e58be83a177f96a62cca3efc19af9f839518fd1587c640756c96ffd40a2dfa",
       "source_id": "whitehouse_public_disclosures"
     },
     {
@@ -5618,1426 +7191,6 @@
       "retrieved_at": "2026-09-22T07:33:06.002024+00:00",
       "schema_version": "whitehouse-public-disclosures-chunked-pdf/v1",
       "sha256": "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/7e17c4be2b42f563d37df173/a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b.pdf",
-      "byte_length": 48562473,
-      "document_id": "wh-url:7e17c4be2b42f563d37df173",
-      "document_type_from_label": "278t",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf",
-      "filer_name_from_label": "President Donald J. Trump",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"15e9b110a4bc8f16\"",
-        "last-modified": "Tue, 30 Jun 2026 19:55:07 GMT"
-      },
-      "link_label": "President Donald J. Trump Periodic Transaction Report 06.25.26 (1)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T07:12:21.294604+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/01475dee0bcffa4e79f7f58c/fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a.pdf",
-      "byte_length": 23728880,
-      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
-      "document_type_from_label": "278t",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf",
-      "filer_name_from_label": "President Donald J. Trump",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"4e0e07192b434b4b\"",
-        "last-modified": "Tue, 30 Jun 2026 19:55:04 GMT"
-      },
-      "link_label": "President Donald J. Trump Periodic Transaction Report 06.25.26 (2)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T07:12:21.421763+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/0c609f02c74c89d141cc2ca6/d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d.pdf",
-      "byte_length": 10487453,
-      "document_id": "wh-url:0c609f02c74c89d141cc2ca6",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/Vice-President-JD-Vance-2025-Annual-Report.pdf",
-      "filer_name_from_label": "Vice President JD Vance",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"e30ff2e3af143bae\"",
-        "last-modified": "Tue, 30 Jun 2026 20:03:54 GMT"
-      },
-      "link_label": "Vice President JD Vance 2025 Annual Report",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2025,
-      "retrieved_at": "2026-09-22T07:12:21.504228+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/5e95b7609861d78aa29e3d13/e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed.pdf",
-      "byte_length": 31882456,
-      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
-      "document_type_from_label": "278t",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
-      "filer_name_from_label": "President Donald J. Trump",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"4d598aa19922deeb\"",
-        "last-modified": "Mon, 24 Aug 2026 15:47:36 GMT"
-      },
-      "link_label": "President Donald J. Trump Periodic Transaction Report 08.12.26",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": null,
-      "retrieved_at": "2026-09-22T07:12:21.666724+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/ecd1383eca470ccb5c72b1ef/2e58663ff1c36c028c300ab23fc5a186d8638bbd1f121311881ea54ed3ac5d2a.pdf",
-      "byte_length": 13876,
-      "document_id": "wh-url:ecd1383eca470ccb5c72b1ef",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Adams-Patrick-2026-Annual.pdf",
-      "filer_name_from_label": "Adams, Patrick",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"a7288f1900008727\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Adams, Patrick (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.698235+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "2e58663ff1c36c028c300ab23fc5a186d8638bbd1f121311881ea54ed3ac5d2a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/3765459a47ee01e7e9a4821e/4e23534b283f8d788970cb4b7a08bc980dd972768f6b4c823174a4055a573724.pdf",
-      "byte_length": 15332,
-      "document_id": "wh-url:3765459a47ee01e7e9a4821e",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Agen-Jarrod-2026-Annual.pdf",
-      "filer_name_from_label": "Agen, Jarrod",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"124272e37a8f0ab8\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Agen, Jarrod (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.729244+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4e23534b283f8d788970cb4b7a08bc980dd972768f6b4c823174a4055a573724",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/dbacff31d1da2dde438a24d8/efbb1c53de798e99f83e68aee52421afc52ccdc49c8a504e3022975444771223.pdf",
-      "byte_length": 12376,
-      "document_id": "wh-url:dbacff31d1da2dde438a24d8",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Ambrosini-Christopher-2026-Annual.pdf",
-      "filer_name_from_label": "Ambrosini, Christopher",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ebe2bfcc000f10a3\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Ambrosini, Christopher (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.758932+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "efbb1c53de798e99f83e68aee52421afc52ccdc49c8a504e3022975444771223",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/4657ef886d0fd2de13928223/79263ee354cb2bb88dbe38fbfd91876f13828ffe983db9f800fed97122d172f3.pdf",
-      "byte_length": 19123,
-      "document_id": "wh-url:4657ef886d0fd2de13928223",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Baasch-Ryan-2026-Annual.pdf",
-      "filer_name_from_label": "Baasch, Ryan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"0b82cb35be58ccac\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Baasch, Ryan (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.789942+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "79263ee354cb2bb88dbe38fbfd91876f13828ffe983db9f800fed97122d172f3",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/812c268609370f384df13246/cef74b48012e25b4a9e4f26d07e43a4f1b7c247e702509f0f9dbe4a5a2125a28.pdf",
-      "byte_length": 15655,
-      "document_id": "wh-url:812c268609370f384df13246",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bailey-Catharine-2026-Annual.pdf",
-      "filer_name_from_label": "Bailey, Catharine",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"4746a517a2386b57\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Bailey, Catharine (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.823007+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "cef74b48012e25b4a9e4f26d07e43a4f1b7c247e702509f0f9dbe4a5a2125a28",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/d0fd9821591c6433f71bb081/a66fb125a12fa257c28b3f285ade14cb535ba2695c60c77258850a99c3ce5fb3.pdf",
-      "byte_length": 14569,
-      "document_id": "wh-url:d0fd9821591c6433f71bb081",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Barrett-Walker-2026-Annual.pdf",
-      "filer_name_from_label": "Barrett, Walker",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"8c1265098f220b9a\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Barrett, Walker (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.855021+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "a66fb125a12fa257c28b3f285ade14cb535ba2695c60c77258850a99c3ce5fb3",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/c9c06eb4fd00f1a04f1a5594/9126238fdfc6a7bf762feea04a658f1eb350d39e429e50f6795b7b3e1f83b487.pdf",
-      "byte_length": 18109,
-      "document_id": "wh-url:c9c06eb4fd00f1a04f1a5594",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bauer-Meghan-2026-Annual.pdf",
-      "filer_name_from_label": "Bauer, Meghan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"5d26752a6258609b\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Bauer, Meghan (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.887475+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "9126238fdfc6a7bf762feea04a658f1eb350d39e429e50f6795b7b3e1f83b487",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/6dbefe1a1cf3b55bb437690b/f15e2276f57104fb86c6c379b5c2d3f352c178c463156f69d30a393036f2deea.pdf",
-      "byte_length": 14289,
-      "document_id": "wh-url:6dbefe1a1cf3b55bb437690b",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Biddle-Emily-2026-Annual.pdf",
-      "filer_name_from_label": "Biddle, Emily",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2cb9630383fc01dd\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Biddle, Emily (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.919257+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "f15e2276f57104fb86c6c379b5c2d3f352c178c463156f69d30a393036f2deea",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/11497e5659c2556000d94f29/5e64db98cee790d70d5fc1f875aa6c47448894646e1f2e51f685cf40ea6618c9.pdf",
-      "byte_length": 18032,
-      "document_id": "wh-url:11497e5659c2556000d94f29",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Blakely-Kyser-2026-Annual.pdf",
-      "filer_name_from_label": "Blakely, Kyser",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"307f620e3c9e8b41\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Blakely, Kyser (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.950762+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "5e64db98cee790d70d5fc1f875aa6c47448894646e1f2e51f685cf40ea6618c9",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/fa0630b8ff52866111840aa1/233e7815e433dfdbdb4cde0b6ba8e5bfe1ebf000615e6b1a7ef96ef3c341ccc5.pdf",
-      "byte_length": 17620,
-      "document_id": "wh-url:fa0630b8ff52866111840aa1",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Borden-Hailey-2026-Annual.pdf",
-      "filer_name_from_label": "Borden, Hailey",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"df2f32bb53aa20bf\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Borden, Hailey (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:21.984972+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "233e7815e433dfdbdb4cde0b6ba8e5bfe1ebf000615e6b1a7ef96ef3c341ccc5",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/d355848eb8e2118aaa5691f9/5533541b6ad4404d4ac9fca0ebcd504f3e143ce5d012a61122154030ca411198.pdf",
-      "byte_length": 12989,
-      "document_id": "wh-url:d355848eb8e2118aaa5691f9",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Borg-Jared-2026-Annual.pdf",
-      "filer_name_from_label": "Borg, Jared",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2f7afd75c1e6addf\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Borg, Jared (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.017151+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "5533541b6ad4404d4ac9fca0ebcd504f3e143ce5d012a61122154030ca411198",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/cb248f75e616a726641cc2bb/514ed16c120dd63753abd195893796af56f9b21e72d141b6499088066314308c.pdf",
-      "byte_length": 12461,
-      "document_id": "wh-url:cb248f75e616a726641cc2bb",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Brasseaux-Matthew-2026-Annual.pdf",
-      "filer_name_from_label": "Brasseaux, Matthew",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"659b7e046d98fd16\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Brasseaux, Matthew (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.048461+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "514ed16c120dd63753abd195893796af56f9b21e72d141b6499088066314308c",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/f5353ebd26bf0015a4896b60/4241abc53f65509716bfd9fffd1f39137890a0164bbb0ef34bfad7d77311720a.pdf",
-      "byte_length": 21308,
-      "document_id": "wh-url:f5353ebd26bf0015a4896b60",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bresso-Gineen-2026-Annual.pdf",
-      "filer_name_from_label": "Bresso, Gineen",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"e16c6eb5ecce84e3\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Bresso, Gineen (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.084575+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4241abc53f65509716bfd9fffd1f39137890a0164bbb0ef34bfad7d77311720a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/f21a781301fe273199d562ec/bfa77e32e6448948f9ea0e89c00e0d97aa41604b3c2a52d6a19a563b57c17034.pdf",
-      "byte_length": 12952,
-      "document_id": "wh-url:f21a781301fe273199d562ec",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Brody-Bryan-2026-Annual.pdf",
-      "filer_name_from_label": "Brody, Bryan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"e1d0b40a79909f73\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Brody, Bryan (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.116308+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "bfa77e32e6448948f9ea0e89c00e0d97aa41604b3c2a52d6a19a563b57c17034",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/71b24f03d33664e9a1671a6d/0823caef353296f334ab4f3d9eb170d2f80582972dd21d7b19bafb6f5037019a.pdf",
-      "byte_length": 25665,
-      "document_id": "wh-url:71b24f03d33664e9a1671a6d",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Bulazel-Alina-2026-Annual.pdf",
-      "filer_name_from_label": "Bulazel, Alina",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"bdcd522911a42479\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Bulazel, Alina (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.148563+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "0823caef353296f334ab4f3d9eb170d2f80582972dd21d7b19bafb6f5037019a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/75aaad34d269c6a3490ada86/6b03bbe24121974e6a145ec86156b3ee802ea36817c56f02476be9b4cbf72879.pdf",
-      "byte_length": 13371,
-      "document_id": "wh-url:75aaad34d269c6a3490ada86",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Clemens-Nicholas-2026-Annual.pdf",
-      "filer_name_from_label": "Clemens, Nicholas",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"1178a0bc357f043d\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Clemens, Nicholas (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.179974+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "6b03bbe24121974e6a145ec86156b3ee802ea36817c56f02476be9b4cbf72879",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/b7da47ab4d4129b56c6f48ee/7b669ff620a7f5e4426e946a03077bd16a016119c981eb18923ede3f3f445e55.pdf",
-      "byte_length": 15398,
-      "document_id": "wh-url:b7da47ab4d4129b56c6f48ee",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Clingenpeel-Cale-2026-Annual.pdf",
-      "filer_name_from_label": "Clingenpeel, Cale",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"bec479c6dd08e889\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Clingenpeel, Cale (2026 Annual)",
-      "page_sha256": "9df1a4315382feeb03e531bb52520400fd5862f76d2398fc29e84bd22c1c15f6",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:12:22.211778+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "7b669ff620a7f5e4426e946a03077bd16a016119c981eb18923ede3f3f445e55",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/50c4a7febda74a300a0b22e0/064e380669bcfc7f07cb30442a59de98eebd64b30f3cef1b17959c6471df0443.pdf",
-      "byte_length": 14844,
-      "document_id": "wh-url:50c4a7febda74a300a0b22e0",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Connor-Cameron-2026-Annual.pdf",
-      "filer_name_from_label": "Connor, Cameron",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"b6aef385d340a23d\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Connor, Cameron (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:22.325478+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "064e380669bcfc7f07cb30442a59de98eebd64b30f3cef1b17959c6471df0443",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/249518147e862b4b433729eb/3b55be1b8f150d26edb12d426e728c05b55f00384c841bcadf22bfbda4d276ff.pdf",
-      "byte_length": 12100,
-      "document_id": "wh-url:249518147e862b4b433729eb",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Cox-Jordan-2026-Annual.pdf",
-      "filer_name_from_label": "Cox, Jordan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"be4d9b6205ccdf6c\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Cox, Jordan (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:22.534472+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "3b55be1b8f150d26edb12d426e728c05b55f00384c841bcadf22bfbda4d276ff",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/537258ae22d4ac77c4f01bbd/32c85c5f32dc9f950a7bdebd4b40c437e765ed3cbba30fb43567c9b837d73833.pdf",
-      "byte_length": 14426,
-      "document_id": "wh-url:537258ae22d4ac77c4f01bbd",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Cox-Raymond-2026-Annual.pdf",
-      "filer_name_from_label": "Cox, Raymond",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"3b3fd265b4449957\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Cox, Raymond (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:22.663807+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "32c85c5f32dc9f950a7bdebd4b40c437e765ed3cbba30fb43567c9b837d73833",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/218a0e6ad915b980b4526f11/0a185796330c93556a438b0b6ac8e05d23fa80516c53ff694742ed227a85b45d.pdf",
-      "byte_length": 21430,
-      "document_id": "wh-url:218a0e6ad915b980b4526f11",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/DeWitt-Morgan-2026-Annual.pdf",
-      "filer_name_from_label": "DeWitt, Morgan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ca003517dad3d5ae\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "DeWitt, Morgan (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:22.866363+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "0a185796330c93556a438b0b6ac8e05d23fa80516c53ff694742ed227a85b45d",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/a64e79ae52a2a2206dc030a6/4e8ddb3c0cf4f6fdf771ca674f7091000402b8f305c4bae3814b10eef6142d2e.pdf",
-      "byte_length": 46672,
-      "document_id": "wh-url:a64e79ae52a2a2206dc030a6",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Donaldson-David-2026-Annual.pdf",
-      "filer_name_from_label": "Donaldson, David",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"d993640ab91f8252\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Donaldson, David (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.076946+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4e8ddb3c0cf4f6fdf771ca674f7091000402b8f305c4bae3814b10eef6142d2e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/8940003aa5ffa8e646cd4014/cb9d4a8aab3cbcbff4e681ca30a4d4c8dff8f79cbf71e6f328afed9af5a7c067.pdf",
-      "byte_length": 13232,
-      "document_id": "wh-url:8940003aa5ffa8e646cd4014",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Dorr-Kaelan-2026-Annual.pdf",
-      "filer_name_from_label": "Dorr, Kaelan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"22c1d57a3492b190\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Dorr, Kaelan (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.380061+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "cb9d4a8aab3cbcbff4e681ca30a4d4c8dff8f79cbf71e6f328afed9af5a7c067",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/493cedaefdd8b4d713773cbd/5ac3ae8192d36ff36c51898e67e7c0fb61fde8e1b14ac76f01bebdc2fceeab1c.pdf",
-      "byte_length": 14408,
-      "document_id": "wh-url:493cedaefdd8b4d713773cbd",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Dulin-Kassandra-2026-Annual.pdf",
-      "filer_name_from_label": "Dulin, Kassandra",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"2d1ce1a83d61e251\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Dulin, Kassandra (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.416105+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "5ac3ae8192d36ff36c51898e67e7c0fb61fde8e1b14ac76f01bebdc2fceeab1c",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/601a47d7f705497d2f3719a0/277b804b743cebf655cee5cbb5b48f797327fb0a6584f1394dc86780a39432db.pdf",
-      "byte_length": 16007,
-      "document_id": "wh-url:601a47d7f705497d2f3719a0",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Escobedo-Christopher-2026-Annual.pdf",
-      "filer_name_from_label": "Escobedo, Christopher",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"b6820b63f4eb5ebf\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Escobedo, Christopher (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.608472+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "277b804b743cebf655cee5cbb5b48f797327fb0a6584f1394dc86780a39432db",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/00b20e8ae00ae215d84bde4e/f40ecd991dd324817218ae5ad509811fc82af571dfef5243e00a2f311142abf3.pdf",
-      "byte_length": 12936,
-      "document_id": "wh-url:00b20e8ae00ae215d84bde4e",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Finzer-Mary-2026-Annual.pdf",
-      "filer_name_from_label": "Finzer, Mary",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"32ce60961c34db9c\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Finzer, Mary (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.639439+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "f40ecd991dd324817218ae5ad509811fc82af571dfef5243e00a2f311142abf3",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/b9972e04df6355fff78a4c12/cf85f2f11aed712aadd125c775f6588163911aa0905496d05a7bab7d2dc1c685.pdf",
-      "byte_length": 16609,
-      "document_id": "wh-url:b9972e04df6355fff78a4c12",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Flemister-Alex-2026-Annual.pdf",
-      "filer_name_from_label": "Flemister, Alex",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ef83197698a465a9\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Flemister, Alex (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.787369+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "cf85f2f11aed712aadd125c775f6588163911aa0905496d05a7bab7d2dc1c685",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/6a459c38e14e7d8b9b16edc6/cf985297cc9615c7bdd5b8dcdc31fe733c9ace3a981be3854f6c2114985c1be6.pdf",
-      "byte_length": 19737,
-      "document_id": "wh-url:6a459c38e14e7d8b9b16edc6",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Frederick-Kara-2026-Annual.pdf",
-      "filer_name_from_label": "Frederick, Kara",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"cd817b672d1fde66\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Frederick, Kara (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:23.969948+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "cf985297cc9615c7bdd5b8dcdc31fe733c9ace3a981be3854f6c2114985c1be6",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/4ad24633ec723828c183fc3e/3fb6c8b73ea0bdffa21ff84135731c9c361d0ba63e841e31b54c0885d902bb8a.pdf",
-      "byte_length": 48762,
-      "document_id": "wh-url:4ad24633ec723828c183fc3e",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Freeland-Jeffrey-2026-Annual.pdf",
-      "filer_name_from_label": "Freeland, Jeffrey",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"0e9d42ee1fcc9a80\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Freeland, Jeffrey (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:24.249208+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "3fb6c8b73ea0bdffa21ff84135731c9c361d0ba63e841e31b54c0885d902bb8a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/82dcd8bbaee1703570f950dc/3cd388bbf200d797d81aee29f5ed60dc99ef0fa6d9d802c682bdbcf9ebc88b1e.pdf",
-      "byte_length": 12903,
-      "document_id": "wh-url:82dcd8bbaee1703570f950dc",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Garoufalis-Luke-2026-Annual.pdf",
-      "filer_name_from_label": "Garoufalis, Luke",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"bfc36bc59e31b7ea\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Garoufalis, Luke (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:24.280036+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "3cd388bbf200d797d81aee29f5ed60dc99ef0fa6d9d802c682bdbcf9ebc88b1e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/2bb6a7bc506a5eafaada9884/017cc0c7cf21e325c0c4527c27a2eaca34fb6125f9c10c75369255b71d5ee738.pdf",
-      "byte_length": 21312,
-      "document_id": "wh-url:2bb6a7bc506a5eafaada9884",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gast-Scott-2026-Annual.pdf",
-      "filer_name_from_label": "Gast, Scott",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"190891935a92b2f6\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Gast, Scott (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:24.455798+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "017cc0c7cf21e325c0c4527c27a2eaca34fb6125f9c10c75369255b71d5ee738",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/a91bc9833ea6fcdd2e8f21d1/2ad4dea93379076c440bfd7cab97ea530a68c25662eca960d5b8cc3b1553fc9d.pdf",
-      "byte_length": 12608,
-      "document_id": "wh-url:a91bc9833ea6fcdd2e8f21d1",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/George-Jonathan-2026-Annual.pdf",
-      "filer_name_from_label": "George, Jonathan",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"7070072ebbe84466\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "George, Jonathan (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:24.698829+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "2ad4dea93379076c440bfd7cab97ea530a68c25662eca960d5b8cc3b1553fc9d",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/5c3f89920a412e23a37d576f/4e51f396730eb37c51d81017ef8a1fbc77002d2a375020ef9bb7b14ee017afea.pdf",
-      "byte_length": 15578,
-      "document_id": "wh-url:5c3f89920a412e23a37d576f",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gesiriech-Sarah-2026-Annual.pdf",
-      "filer_name_from_label": "Gesiriech, Sarah",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"932a6ee2d52dae08\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Gesiriech, Sarah (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:24.891120+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4e51f396730eb37c51d81017ef8a1fbc77002d2a375020ef9bb7b14ee017afea",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/72555ff00ceb4aedfa566247/156ab3b4afafc8dd34b6b1b9d2e64b49bc9be8e4c58e0cf3afc5447b92555330.pdf",
-      "byte_length": 14079,
-      "document_id": "wh-url:72555ff00ceb4aedfa566247",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Gillespie-James-2026-Annual.pdf",
-      "filer_name_from_label": "Gillespie, James",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"7c5fae10202da871\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Gillespie, James (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.105211+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "156ab3b4afafc8dd34b6b1b9d2e64b49bc9be8e4c58e0cf3afc5447b92555330",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/068bd73be56fb7b17f543d05/7e4d293f2f42e70db8131d63699abbec1c61423ed2483cf1ec656eebc569fa96.pdf",
-      "byte_length": 15329,
-      "document_id": "wh-url:068bd73be56fb7b17f543d05",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Goyer-James-2026-Annual.pdf",
-      "filer_name_from_label": "Goyer, James",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"0030f105e8ee54b6\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Goyer, James (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.287158+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "7e4d293f2f42e70db8131d63699abbec1c61423ed2483cf1ec656eebc569fa96",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/743e07f66cf9a0cef83dbfde/b7282c8aa5489337a70bc4aff1cb41d69d54d280c38c6d443f5c835236dc302e.pdf",
-      "byte_length": 11841,
-      "document_id": "wh-url:743e07f66cf9a0cef83dbfde",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Grace-Andrea-2026-Annual.pdf",
-      "filer_name_from_label": "Grace, Andrea",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"40864d102a0772f7\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Grace, Andrea (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.545845+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "b7282c8aa5489337a70bc4aff1cb41d69d54d280c38c6d443f5c835236dc302e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/19552b96cfc0ac2f9d33ced9/27397788dfcd4edf6ca93a6ac6fdbb79acd22c7e918785150ff27d009cf9211b.pdf",
-      "byte_length": 12818,
-      "document_id": "wh-url:19552b96cfc0ac2f9d33ced9",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Grove-Sara-2026-Annual.pdf",
-      "filer_name_from_label": "Grove, Sara",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"840a1bc998761e76\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Grove, Sara (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.778038+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "27397788dfcd4edf6ca93a6ac6fdbb79acd22c7e918785150ff27d009cf9211b",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/38ee407149e42ab847ebc527/f466fcafa1ea2d90c79692cdfd174db7e6f6e0f5b04e1f60e625be2941d5d59e.pdf",
-      "byte_length": 14441,
-      "document_id": "wh-url:38ee407149e42ab847ebc527",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Haley-Vincent-2026-Annual.pdf",
-      "filer_name_from_label": "Haley, Vincent",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"8b9210f348fab844\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Haley, Vincent (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.808212+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "f466fcafa1ea2d90c79692cdfd174db7e6f6e0f5b04e1f60e625be2941d5d59e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/9d6170c7ee1d90e8a763b6cc/d6acd23569023021d1bddbebee401688be6ad4ac3da969e4f5f61ed1fe92c739.pdf",
-      "byte_length": 13484,
-      "document_id": "wh-url:9d6170c7ee1d90e8a763b6cc",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harp-Natalie-2026-Annual.pdf",
-      "filer_name_from_label": "Harp, Natalie",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ce5f5743b0000ea0\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Harp, Natalie (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.836715+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "d6acd23569023021d1bddbebee401688be6ad4ac3da969e4f5f61ed1fe92c739",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/c4e4e25a4419b7a0efbf9cce/7bcb7a3d96acefaac73aa67ca5de52d04e2c39395c77d55e1e9ac92a84b0f21c.pdf",
-      "byte_length": 15605,
-      "document_id": "wh-url:c4e4e25a4419b7a0efbf9cce",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harris-Chamberlain-2026-Annual.pdf",
-      "filer_name_from_label": "Harris, Chamberlain",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"395ee7cb6b9013ba\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Harris, Chamberlain (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:25.866217+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "7bcb7a3d96acefaac73aa67ca5de52d04e2c39395c77d55e1e9ac92a84b0f21c",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/1202e58bbd0cf47127e8ebc0/00fc49dcce8049d4dd3d5ed8c7214c6e8d742e6b4683f2913f19f13f24cee9bd.pdf",
-      "byte_length": 12730,
-      "document_id": "wh-url:1202e58bbd0cf47127e8ebc0",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harrison-Hayley-2026-Annual.pdf",
-      "filer_name_from_label": "Harrison, Hayley",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"0da3be416ead93a1\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Harrison, Hayley (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.111609+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "00fc49dcce8049d4dd3d5ed8c7214c6e8d742e6b4683f2913f19f13f24cee9bd",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/76060e1298cfb5e92b9a2273/ff18a4e0e0458e17b1a9d70623e46a387c3bc737b380b32f8de3bf012a67990e.pdf",
-      "byte_length": 12736,
-      "document_id": "wh-url:76060e1298cfb5e92b9a2273",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Harrison-William-2026-Annual.pdf",
-      "filer_name_from_label": "Harrison, William",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"d742c705f303ca69\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Harrison, William (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.278699+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "ff18a4e0e0458e17b1a9d70623e46a387c3bc737b380b32f8de3bf012a67990e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/fdf3e3e86f4f618f90536176/40407a82acc228d1f962b843fd6a5524f4d3636f0e7d3f4b1de2a332772e1a5b.pdf",
-      "byte_length": 20807,
-      "document_id": "wh-url:fdf3e3e86f4f618f90536176",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Hassett-Kevin-2026-Annual.pdf",
-      "filer_name_from_label": "Hassett, Kevin",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"10e74a28d7cf59a9\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Hassett, Kevin (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.310807+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "40407a82acc228d1f962b843fd6a5524f4d3636f0e7d3f4b1de2a332772e1a5b",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/67348b18a8e241721774aa40/4f01915ae916b9faa1fb5a4f577dfc34a68114c2124429c852e9ed8a15ed0d4a.pdf",
-      "byte_length": 18036,
-      "document_id": "wh-url:67348b18a8e241721774aa40",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Hayes-Sean-2026-Annual.pdf",
-      "filer_name_from_label": "Hayes, Sean",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"95ac2b2a94ddab46\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Hayes, Sean (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.451138+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4f01915ae916b9faa1fb5a4f577dfc34a68114c2124429c852e9ed8a15ed0d4a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/1b109c911f7e9745aef77d68/b1bb22e96b3861d89d30bc2e023b16a062f0f25e9cb1ad2e56f74052561f376a.pdf",
-      "byte_length": 47292,
-      "document_id": "wh-url:1b109c911f7e9745aef77d68",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Homan-Thomas-2026-Annual.pdf",
-      "filer_name_from_label": "Homan, Thomas",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"c4dfeb85795fcddc\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Homan, Thomas (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.652698+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "b1bb22e96b3861d89d30bc2e023b16a062f0f25e9cb1ad2e56f74052561f376a",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/458de28ea00058a4f1e270c5/200c94d0bc9433ff0b7f05b3dc05ab6403547386662d8855d61c8f4ec82eb16f.pdf",
-      "byte_length": 13447,
-      "document_id": "wh-url:458de28ea00058a4f1e270c5",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Jones-Zachary-2026-Annual.pdf",
-      "filer_name_from_label": "Jones, Zachary",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"6ccaf90bdb49c1db\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Jones, Zachary (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.685103+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "200c94d0bc9433ff0b7f05b3dc05ab6403547386662d8855d61c8f4ec82eb16f",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/297f8c3734c76fe3ce458e3a/02d4faf1075138bf750b4446312a3a1da5361e107ebf09f6ebc834124c8967c7.pdf",
-      "byte_length": 13616,
-      "document_id": "wh-url:297f8c3734c76fe3ce458e3a",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Jorjani-Daniel-2026-Annual.pdf",
-      "filer_name_from_label": "Jorjani, Daniel",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"d9655eb44d80c347\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Jorjani, Daniel (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:26.849891+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "02d4faf1075138bf750b4446312a3a1da5361e107ebf09f6ebc834124c8967c7",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/ee4e563d1cc845ea8d53822f/547d00cf9033024d96d8396c2cdacb4205096abe2a2c007a53daffc72d99f621.pdf",
-      "byte_length": 13962,
-      "document_id": "wh-url:ee4e563d1cc845ea8d53822f",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Kelley-Ian-2026-Annual.pdf",
-      "filer_name_from_label": "Kelley, Ian",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"47876c91f4d9a291\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Kelley, Ian (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.071452+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "547d00cf9033024d96d8396c2cdacb4205096abe2a2c007a53daffc72d99f621",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/57cb6671d1dc3072a0e12bf6/03e5d6ba1493e97febf189084fa68c9672b0bc4014b4a652e6493e139545933b.pdf",
-      "byte_length": 17455,
-      "document_id": "wh-url:57cb6671d1dc3072a0e12bf6",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Klopp-Jacalynne-2026-Annual.pdf",
-      "filer_name_from_label": "Klopp, Jacalynne",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"f63cb52025ea10c3\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Klopp, Jacalynne (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.101790+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "03e5d6ba1493e97febf189084fa68c9672b0bc4014b4a652e6493e139545933b",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/a09eb9e11208b7f3bb49f89b/18a76095e3ff49fcf2a7cc2302f0a765b6aab4bbcdea11868fcf480ea6ba7a1e.pdf",
-      "byte_length": 21376,
-      "document_id": "wh-url:a09eb9e11208b7f3bb49f89b",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Korn-Jennifer-2026-Annual.pdf",
-      "filer_name_from_label": "Korn, Jennifer",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"f2a1add60073cf7b\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Korn, Jennifer (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.134633+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "18a76095e3ff49fcf2a7cc2302f0a765b6aab4bbcdea11868fcf480ea6ba7a1e",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/3c3204fd87074ab9259c2308/1c57be3b86efec11df791560afdef3b3e53573969a20ac335e2a07288314fe26.pdf",
-      "byte_length": 14351,
-      "document_id": "wh-url:3c3204fd87074ab9259c2308",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lane-Jackson-2026-Annual.pdf",
-      "filer_name_from_label": "Lane, Jackson",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"4e2825299a2e7919\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Lane, Jackson (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.394193+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "1c57be3b86efec11df791560afdef3b3e53573969a20ac335e2a07288314fe26",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/ae7f816b882160990102f60c/1b14a8ff0ac83916e87459c2b8dbe344f1635502d71394c09fafb3840698ffcd.pdf",
-      "byte_length": 20073,
-      "document_id": "wh-url:ae7f816b882160990102f60c",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lawkowski-Gary-2026-Annual.pdf",
-      "filer_name_from_label": "Lawkowski, Gary",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"b0a318e79299b85e\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Lawkowski, Gary (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.425690+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "1b14a8ff0ac83916e87459c2b8dbe344f1635502d71394c09fafb3840698ffcd",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/cb7fabbc8845adaf84467e6d/c9e478ca0f961459404df972852d892429b6ed5fca001a48a39ffcf860e273e3.pdf",
-      "byte_length": 15612,
-      "document_id": "wh-url:cb7fabbc8845adaf84467e6d",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Leavitt-Karoline-2026-Annual.pdf",
-      "filer_name_from_label": "Leavitt, Karoline",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ef79974c62b5d00e\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Leavitt, Karoline (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.455585+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "c9e478ca0f961459404df972852d892429b6ed5fca001a48a39ffcf860e273e3",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/8d46c7ddfb0bd4675f368170/46ac8034bddaea3b1a7dffe8f896621aea59161c917a96d69316533ae51b3fe7.pdf",
-      "byte_length": 13792,
-      "document_id": "wh-url:8d46c7ddfb0bd4675f368170",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Lynch-Christopher-2026-Annual.pdf",
-      "filer_name_from_label": "Lynch, Christopher",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"5821bf8780d44f3e\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Lynch, Christopher (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.607561+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "46ac8034bddaea3b1a7dffe8f896621aea59161c917a96d69316533ae51b3fe7",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/15db3af84c5817aaf33badf9/4dbea01c125bbde343907d6ab0b5c49bdaf460e86232ce7f6241f1d8d38de880.pdf",
-      "byte_length": 12925,
-      "document_id": "wh-url:15db3af84c5817aaf33badf9",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/MacDonnell-Patrick-2026-Annual.pdf",
-      "filer_name_from_label": "MacDonnell, Patrick",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"1413fe86c98fd6da\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "MacDonnell, Patrick (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.638365+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "4dbea01c125bbde343907d6ab0b5c49bdaf460e86232ce7f6241f1d8d38de880",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/14b203996192064546afb086/9e85f2129bc6494b902c99010c6b41043832bcb2f23536f855b5b39e89e00d1f.pdf",
-      "byte_length": 17583,
-      "document_id": "wh-url:14b203996192064546afb086",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Mangold-Lenett-Samuel-2026-Annual.pdf",
-      "filer_name_from_label": "Mangold-Lenett, Samuel",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"3e7b34bf078878b9\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Mangold-Lenett, Samuel (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.669721+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "9e85f2129bc6494b902c99010c6b41043832bcb2f23536f855b5b39e89e00d1f",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/399ae9e311d12bc578fbf761/c0b7913aafd92e342248b4c58688820e04d2bb6f852ba0d7304beffa6a5758d6.pdf",
-      "byte_length": 16839,
-      "document_id": "wh-url:399ae9e311d12bc578fbf761",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Marco-Jacob-2026-Annual.pdf",
-      "filer_name_from_label": "Marco, Jacob",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"b749420a50f67cea\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Marco, Jacob (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.812526+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "c0b7913aafd92e342248b4c58688820e04d2bb6f852ba0d7304beffa6a5758d6",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/8740bb6127ae67aa41f67426/d5c940d764b8512d8216c9ec9e2b8ee28b1bcb40fedc4cd96329664eab89dd61.pdf",
-      "byte_length": 15202,
-      "document_id": "wh-url:8740bb6127ae67aa41f67426",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Marks-Martin-2026-Annual.pdf",
-      "filer_name_from_label": "Marks, Martin",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"f6c34dd5bcddaaf2\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Marks, Martin (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.841841+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "d5c940d764b8512d8216c9ec9e2b8ee28b1bcb40fedc4cd96329664eab89dd61",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/f494baace66e018030e0a09a/a2b9feb3a0b72ed97bd27832956de28a521e63b16e900b57ffdc6dee7b3801cd.pdf",
-      "byte_length": 15961,
-      "document_id": "wh-url:f494baace66e018030e0a09a",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Martin-Margo-2026-Annual.pdf",
-      "filer_name_from_label": "Martin, Margo",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"ea97c83b2d7fe439\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Martin, Margo (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.872772+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "a2b9feb3a0b72ed97bd27832956de28a521e63b16e900b57ffdc6dee7b3801cd",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/35fb926421478a4610eed333/595ee01ece3ad447a38f0f368a33aa80c16c0533218dad1fc52d916069edfb5f.pdf",
-      "byte_length": 15222,
-      "document_id": "wh-url:35fb926421478a4610eed333",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Merkel-Theodore-2026-Annual.pdf",
-      "filer_name_from_label": "Merkel, Theodore",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"e9fac11a31e0c05a\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Merkel, Theodore (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.903282+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "595ee01ece3ad447a38f0f368a33aa80c16c0533218dad1fc52d916069edfb5f",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/c8a139e975850704167967b5/f3e76688d7b6faeaf5a2c90a99c5ab7f63a02e6ba6d38c94a50cbb6b144e09af.pdf",
-      "byte_length": 17774,
-      "document_id": "wh-url:c8a139e975850704167967b5",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Miller-Stephen-2026-Annual.pdf",
-      "filer_name_from_label": "Miller, Stephen",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"a492302b438d7b5f\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Miller, Stephen (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.932725+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "f3e76688d7b6faeaf5a2c90a99c5ab7f63a02e6ba6d38c94a50cbb6b144e09af",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/4862e79b431df0f4c2375ffd/ae634f2b1845133b01882f50b466bccea2a2444b8fc78e614eca92a92522858f.pdf",
-      "byte_length": 16940,
-      "document_id": "wh-url:4862e79b431df0f4c2375ffd",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Milner-Clark-2026-Annual.pdf",
-      "filer_name_from_label": "Milner, Clark",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"58c1ae8e6257effb\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Milner, Clark (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:27.962295+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "ae634f2b1845133b01882f50b466bccea2a2444b8fc78e614eca92a92522858f",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/30d5cfb0cc9852c04bc2a537/7bccef2c253ff508121d8dd5aaa31a97a9fc079d756617ae4a43148283e23dde.pdf",
-      "byte_length": 12215,
-      "document_id": "wh-url:30d5cfb0cc9852c04bc2a537",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Moreau-Marshall-2026-Annual.pdf",
-      "filer_name_from_label": "Moreau, Marshall",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"4ba47970ac187597\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Moreau, Marshall (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:28.113912+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "7bccef2c253ff508121d8dd5aaa31a97a9fc079d756617ae4a43148283e23dde",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/9a7b03a42e45c43ed5a62b75/11cbc672f791fdbe1d36e77a0e00121ca15408ee585b04b957289256c536a4c7.pdf",
-      "byte_length": 12421,
-      "document_id": "wh-url:9a7b03a42e45c43ed5a62b75",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Nauta-Waltine-2026-Annual.pdf",
-      "filer_name_from_label": "Nauta, Waltine",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"0d866b9467004151\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Nauta, Waltine (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:28.144685+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "11cbc672f791fdbe1d36e77a0e00121ca15408ee585b04b957289256c536a4c7",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/a4229796c4a62c14d2d021f6/e068e1bca2663cc95e95ba84255c8e735fedd2fdf59176de199fae52f81cc8e8.pdf",
-      "byte_length": 13631,
-      "document_id": "wh-url:a4229796c4a62c14d2d021f6",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Overton-Heidi-2026-Annual.pdf",
-      "filer_name_from_label": "Overton, Heidi",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"bee8dc31d7e495c3\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Overton, Heidi (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:28.275136+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "e068e1bca2663cc95e95ba84255c8e735fedd2fdf59176de199fae52f81cc8e8",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/e3e4a28a48230098a9af3844/e1a502831c3e5dadcd3fdb4dfb2200952158df37e7f6ab2063ba887d8c6f2c88.pdf",
-      "byte_length": 13155,
-      "document_id": "wh-url:e3e4a28a48230098a9af3844",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Page-Jacob-2026-Annual.pdf",
-      "filer_name_from_label": "Page, Jacob",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"b86cf198527d7df7\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Page, Jacob (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:28.305486+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "e1a502831c3e5dadcd3fdb4dfb2200952158df37e7f6ab2063ba887d8c6f2c88",
-      "source_id": "whitehouse_public_disclosures"
-    },
-    {
-      "archive_path": "whitehouse/disclosures/reports/b20772190961fed98268365d/fb75948f4029c510c30e4e25f4ee7774656aef51ccd96a1d3f9f77f2800f945c.pdf",
-      "byte_length": 12563,
-      "document_id": "wh-url:b20772190961fed98268365d",
-      "document_type_from_label": "278e_annual",
-      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Parent-Charyssa-2026-Annual.pdf",
-      "filer_name_from_label": "Parent, Charyssa",
-      "headers": {
-        "content-type": "application/pdf",
-        "etag": "\"cecd09d760c47fd0\"",
-        "last-modified": "Fri, 04 Sep 2026 18:52:49 GMT"
-      },
-      "link_label": "Parent, Charyssa (2026 Annual)",
-      "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
-      "report_year_from_label": 2026,
-      "retrieved_at": "2026-09-22T07:28:28.533890+00:00",
-      "schema_version": "whitehouse-public-disclosures-pdf/v1",
-      "sha256": "fb75948f4029c510c30e4e25f4ee7774656aef51ccd96a1d3f9f77f2800f945c",
       "source_id": "whitehouse_public_disclosures"
     }
   ],

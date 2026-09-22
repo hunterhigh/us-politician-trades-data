@@ -1,0 +1,98 @@
+{
+  "recovered_url_count": 11,
+  "remaining_quarantine_count": 0,
+  "rows": [
+    {
+      "filer_name_from_label": "Kenny, Stephen",
+      "link_label": "Kenny, Stephen – Periodic Transaction Report– 03.14.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report%E2%80%93-03.14.25.pdf",
+      "source_document_id": "wh-url:a1f887a1d37971bb3956c12a",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report–-03.14.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 03.28.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-03.28.25.pdf",
+      "source_document_id": "wh-url:bdc9f33e40dad0984b4d14a9",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-03.28.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 06.08.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-06.08.25.pdf",
+      "source_document_id": "wh-url:5441103eb5823b10dacde588",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-06.08.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 07.07.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-07.07.25.pdf",
+      "source_document_id": "wh-url:e07817d54879f61f40ea89ed",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-07.07.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report– 08.16.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report%E2%80%93-08.16.25.pdf",
+      "source_document_id": "wh-url:a37423e7c33351e0b81ebd96",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report–-08.16.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Scavino, Daniel",
+      "link_label": "Scavino, Daniel – Periodic Transaction Report – 05.20.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-%E2%80%93-05.20.25.pdf",
+      "source_document_id": "wh-url:4ee23e4be51e022bf34df22c",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-–-05.20.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Tiso, Daniel",
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 06.20.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-06.20.25.pdf",
+      "source_document_id": "wh-url:789c18527203630b48b575b4",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-06.20.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Tiso, Daniel",
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 08.01.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-08.01.25.pdf",
+      "source_document_id": "wh-url:867980669614b684ddb349b4",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-08.01.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Warrington, David",
+      "link_label": "Warrington, David – Periodic Transaction Report – 05.05.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-%E2%80%93-05.05.25.pdf",
+      "source_document_id": "wh-url:c5635a4c72959754079f8dd3",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-–-05.05.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Wiles, Susie",
+      "link_label": "Wiles, Susie – Periodic Transaction Report– 06.13.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report%E2%80%93-06.13.25.pdf",
+      "source_document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report–-06.13.25.pdf",
+      "status": "pending_pdf_download"
+    },
+    {
+      "filer_name_from_label": "Zinberg, Joel",
+      "link_label": "Zinberg, Joel – Periodic Transaction Report – 07.22.25",
+      "retrieval_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-%E2%80%93-07.22.25.pdf",
+      "source_document_id": "wh-url:156b23394914d54054fbd853",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-–-07.22.25.pdf",
+      "status": "pending_pdf_download"
+    }
+  ],
+  "schema_version": "whitehouse-public-iri-link-recovery/v1",
+  "source_page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
+  "source_page_url": "https://www.whitehouse.gov/disclosures/",
+  "transformation": "RFC3986 UTF-8 percent encoding of exact official href path"
+}

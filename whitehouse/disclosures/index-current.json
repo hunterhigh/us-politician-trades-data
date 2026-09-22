@@ -15,76 +15,9 @@
   },
   "page_sha256": "c022c1e59de7df321fe45990cec68a6de5bc146dec8b29543febd888a1e52965",
   "page_url": "https://www.whitehouse.gov/disclosures/",
-  "quarantine": [
-    {
-      "label": "Kenny, Stephen – Periodic Transaction Report– 03.14.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report–-03.14.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 03.28.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-03.28.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 06.08.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-06.08.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report – 07.07.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-07.07.25.pdf"
-    },
-    {
-      "label": "Lyon, Andrew – Periodic Transaction Report– 08.16.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report–-08.16.25.pdf"
-    },
-    {
-      "label": "Scavino, Daniel – Periodic Transaction Report – 05.20.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-–-05.20.25.pdf"
-    },
-    {
-      "label": "Tiso, Daniel – Periodic Transaction Report – 06.20.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-06.20.25.pdf"
-    },
-    {
-      "label": "Tiso, Daniel – Periodic Transaction Report – 08.01.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-08.01.25.pdf"
-    },
-    {
-      "label": "Warrington, David – Periodic Transaction Report – 05.05.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-–-05.05.25.pdf"
-    },
-    {
-      "label": "Wiles, Susie – Periodic Transaction Report– 06.13.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report–-06.13.25.pdf"
-    },
-    {
-      "label": "Zinberg, Joel – Periodic Transaction Report – 07.22.25",
-      "reason": "PDF URL is outside the official upload allowlist",
-      "section": "Transaction Reports",
-      "url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-–-07.22.25.pdf"
-    }
-  ],
-  "quarantine_count": 11,
-  "report_link_count": 346,
+  "quarantine": [],
+  "quarantine_count": 0,
+  "report_link_count": 357,
   "reports": [
     {
       "classification_status": "requires_pdf_inspection",
@@ -1583,6 +1516,66 @@
       "source_section": "Transaction Reports"
     },
     {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report%E2%80%93-03.14.25.pdf",
+      "filer_name_from_label": "Kenny, Stephen",
+      "link_label": "Kenny, Stephen – Periodic Transaction Report– 03.14.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:a1f887a1d37971bb3956c12a",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Kenny-Stephen-Periodic-Transaction-Report–-03.14.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report%E2%80%93-08.16.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report– 08.16.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:a37423e7c33351e0b81ebd96",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report–-08.16.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-03.28.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 03.28.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:bdc9f33e40dad0984b4d14a9",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-03.28.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-06.08.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 06.08.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:5441103eb5823b10dacde588",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-06.08.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-%E2%80%93-07.07.25.pdf",
+      "filer_name_from_label": "Lyon, Andrew",
+      "link_label": "Lyon, Andrew – Periodic Transaction Report – 07.07.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:e07817d54879f61f40ea89ed",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Lyon-Andrew-Periodic-Transaction-Report-–-07.07.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
       "classification_status": "classified_from_label",
       "document_type_from_label": "278t",
       "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/President-Donald-J.-Trump-Periodic-Transaction-Report-11.14.25.pdf",
@@ -1590,6 +1583,78 @@
       "link_label": "President Donald J. Trump Periodic Transaction Report 11.14.25",
       "report_year_from_label": null,
       "source_document_id": "wh-url:a7d82624abc74fe65eb63f2b",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-%E2%80%93-05.20.25.pdf",
+      "filer_name_from_label": "Scavino, Daniel",
+      "link_label": "Scavino, Daniel – Periodic Transaction Report – 05.20.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:4ee23e4be51e022bf34df22c",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Scavino-Daniel-Periodic-Transaction-Report-–-05.20.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-06.20.25.pdf",
+      "filer_name_from_label": "Tiso, Daniel",
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 06.20.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:789c18527203630b48b575b4",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-06.20.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-%E2%80%93-08.01.25.pdf",
+      "filer_name_from_label": "Tiso, Daniel",
+      "link_label": "Tiso, Daniel – Periodic Transaction Report – 08.01.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:867980669614b684ddb349b4",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Tiso-Daniel-Periodic-Transaction-Report-–-08.01.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-%E2%80%93-05.05.25.pdf",
+      "filer_name_from_label": "Warrington, David",
+      "link_label": "Warrington, David – Periodic Transaction Report – 05.05.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:c5635a4c72959754079f8dd3",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Warrington-David-Periodic-Transaction-Report-–-05.05.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report%E2%80%93-06.13.25.pdf",
+      "filer_name_from_label": "Wiles, Susie",
+      "link_label": "Wiles, Susie – Periodic Transaction Report– 06.13.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report–-06.13.25.pdf",
+      "source_id": "whitehouse_public_disclosures",
+      "source_section": "Transaction Reports"
+    },
+    {
+      "classification_status": "official_iri_encoded_pdf_pending",
+      "document_type_from_label": "278t",
+      "document_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-%E2%80%93-07.22.25.pdf",
+      "filer_name_from_label": "Zinberg, Joel",
+      "link_label": "Zinberg, Joel – Periodic Transaction Report – 07.22.25",
+      "report_year_from_label": null,
+      "source_document_id": "wh-url:156b23394914d54054fbd853",
+      "source_href": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report-–-07.22.25.pdf",
       "source_id": "whitehouse_public_disclosures",
       "source_section": "Transaction Reports"
     },
