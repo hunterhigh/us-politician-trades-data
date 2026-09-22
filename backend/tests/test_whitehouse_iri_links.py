@@ -1,4 +1,6 @@
 import hashlib
+import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -6,6 +8,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from unittest.mock import patch
 
 from unison_snapshot.whitehouse_disclosures import (
     WhiteHouseDisclosureError, parse_disclosure_index,
@@ -93,6 +97,53 @@ class UnicodeLinkTests(unittest.TestCase):
                              ["report_link_count"], 2)
             self.assertEqual(json.loads(audit_path.read_text(encoding="utf-8"))
                              ["recovered_url_count"], 1)
+
+    def test_sync_cli_uses_one_expanded_index_for_batch_and_review(self):
+        backend = Path(__file__).resolve().parents[1]
+        script = backend / "scripts/whitehouse_disclosures.py"
+        spec = importlib.util.spec_from_file_location("whitehouse_sync_cli_test", script)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        seen = []
+
+        def fake_batch(root, expanded, **kwargs):
+            seen.append(expanded)
+            return {"schema_version": "whitehouse-public-disclosures-batch/v1",
+                    "indexed_count": len(expanded["reports"]), "attempted_count": 1,
+                    "pending_url_count": 1, "failures": [],
+                    "last_attempted_id": None, "reports": [],
+                    "index_quarantine": expanded["quarantine"]}
+
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch.object(module, "archive_public_index", return_value=index()), \
+                patch.object(module, "archive_public_batch", side_effect=fake_batch), \
+                redirect_stdout(io.StringIO()):
+            root = Path(temporary)
+            args = ["sync", "--evidence-root", str(root / "evidence"),
+                    "--index-out", str(root / "index.json"),
+                    "--iri-audit-out", str(root / "iri-audit.json"),
+                    "--batch-out", str(root / "batch.json"), "--limit", "1"]
+            self.assertEqual(module.main(args), 0)
+            self.assertEqual(len(seen), 1)
+            self.assertEqual(seen[0]["report_link_count"], 2)
+            self.assertEqual(json.loads((root / "index.json").read_text(encoding="utf-8"))
+                             ["report_link_count"], 2)
+            self.assertEqual(json.loads((root / "batch.json").read_text(encoding="utf-8"))
+                             ["indexed_count"], 2)
+            self.assertEqual(json.loads((root / "iri-audit.json").read_text(encoding="utf-8"))
+                             ["recovered_url_count"], 1)
+
+    def test_workflow_writes_iri_audit_to_review_in_same_sync(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/whitehouse-public-disclosures.yml")
+        content = workflow.read_text(encoding="utf-8")
+        self.assertIn("python backend/scripts/whitehouse_disclosures.py sync", content)
+        self.assertIn('--iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json"',
+                      content)
+        self.assertIn('--batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json"',
+                      content)
+        self.assertIn('git -C "$REVIEW_ROOT" add whitehouse', content)
 
 
 if __name__ == "__main__":

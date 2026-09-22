@@ -65,6 +65,7 @@ jobs:
           python backend/scripts/whitehouse_disclosures.py sync \
             --evidence-root "$EVIDENCE_ROOT" \
             --index-out "$REVIEW_ROOT/whitehouse/disclosures/index-current.json" \
+            --iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json" \
             --batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json" \
             --limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"
           python - <<'PY'

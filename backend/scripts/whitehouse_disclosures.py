@@ -3,7 +3,7 @@
 Examples (evidence and review are separate checked-out branches):
 
   python scripts/whitehouse_disclosures.py sync --evidence-root E --index-out R/index.json \
-      --batch-out R/batch.json --limit 25
+      --iri-audit-out R/iri-audit.json --batch-out R/batch.json --limit 25
   python scripts/whitehouse_disclosures.py crosswalk --evidence-root E \
       --oge-manifest E/oge/catalog/MANIFEST.json --index R/index.json \
       --out R/crosswalk.json
@@ -20,6 +20,7 @@ from unison_snapshot.whitehouse_disclosure_audit import build_oge_public_crosswa
 from unison_snapshot.whitehouse_disclosures import (
     WhiteHouseDisclosureError, archive_public_batch, archive_public_index,
 )
+from unison_snapshot.whitehouse_iri_links import recover_official_iri_links
 
 
 def _write_json(path: Path, value: dict) -> None:
@@ -38,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
     sync = commands.add_parser("sync", help="archive page and a bounded PDF batch")
     sync.add_argument("--evidence-root", type=Path, required=True)
     sync.add_argument("--index-out", type=Path, required=True)
+    sync.add_argument("--iri-audit-out", type=Path, required=True,
+                      help="Review audit mapping exact Unicode hrefs to encoded official URIs")
     sync.add_argument("--batch-out", type=Path, required=True)
     sync.add_argument("--limit", type=int, default=25)
     sync.add_argument("--refresh-existing", action="store_true")
@@ -51,8 +54,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "sync":
-            index = archive_public_index(args.evidence_root)
+            raw_index = archive_public_index(args.evidence_root)
+            index, iri_audit = recover_official_iri_links(raw_index)
             _write_json(args.index_out, index)
+            _write_json(args.iri_audit_out, iri_audit)
             batch = archive_public_batch(
                 args.evidence_root, index, limit=args.limit,
                 refresh_existing=args.refresh_existing,
@@ -61,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
             _write_json(args.batch_out, batch)
             print(json.dumps({"report_links": index["report_link_count"],
                               "index_quarantine": index["quarantine_count"],
+                              "official_unicode_hrefs_encoded": iri_audit["recovered_url_count"],
                               "download_attempts": batch["attempted_count"],
                               "pending_urls": batch["pending_url_count"],
                               "download_failures": len(batch["failures"]),
