@@ -60,12 +60,14 @@ jobs:
         env:
           EVIDENCE_ROOT: ${{ runner.temp }}/oge-whitehouse-evidence
         run: |
-          git -C "$EVIDENCE_ROOT" add oge/annual/reports
-          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
-            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
-            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$EVIDENCE_ROOT" commit -m "evidence: OGE annual reports ${{ github.run_id }}"
-            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          if [ -d "$EVIDENCE_ROOT/oge/annual/reports" ]; then
+            git -C "$EVIDENCE_ROOT" add oge/annual/reports
+            if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+              git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+              git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git -C "$EVIDENCE_ROOT" commit -m "evidence: OGE annual reports ${{ github.run_id }}"
+              git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+            fi
           fi
       - name: Publish complete White House coverage audit
         env:

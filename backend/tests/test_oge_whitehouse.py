@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_whitehouse import (
@@ -92,6 +93,21 @@ class WhiteHouseCoverageTests(unittest.TestCase):
             again = archive_direct_annual_batch(Path(temporary), coverage, limit=0, client=client)
             self.assertEqual(again["pending_count"], 0)
 
+    def test_pinned_oge_release_fallback_records_actual_retrieval(self):
+        coverage = build_whitehouse_coverage([(0, page(self.rows))])
+        coverage["catalog_sha256"] = "cataloghash"
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch("unison_snapshot.oge_whitehouse.OgePdfClient") as catalog_client, \
+                patch("unison_snapshot.oge_whitehouse._download_official_box") as fallback:
+            catalog_client.return_value.download.side_effect = OgeCatalogError("catalog PDF unavailable")
+            fallback.return_value = (b"%PDF-1.7\nexample\n%%EOF", {"content-type": "application/pdf"})
+            result = archive_direct_annual_batch(Path(temporary), coverage, limit=1)
+            self.assertEqual(result["archived_count"], 1)
+            metadata = result["reports"][0]
+            self.assertEqual(metadata["document_url"], DIRECT)
+            self.assertIn("oge.box.com", metadata["retrieval_url"])
+            self.assertIn("oge.nsf", metadata["source_announcement_url"])
+
     def test_workflow_keeps_originals_and_coverage_on_separate_branches(self):
         path = Path(__file__).resolve().parents[2] / ".github/workflows/oge-whitehouse.yml"
         workflow = path.read_text(encoding="utf-8")
@@ -99,6 +115,7 @@ class WhiteHouseCoverageTests(unittest.TestCase):
         self.assertIn('test "$OGE_COLLECTION_ENABLED" = true', workflow)
         self.assertIn('test "$OGE_TERMS_ACKNOWLEDGED" = true', workflow)
         self.assertIn('git -C "$EVIDENCE_ROOT" add oge/annual/reports', workflow)
+        self.assertIn('if [ -d "$EVIDENCE_ROOT/oge/annual/reports" ]; then', workflow)
         self.assertIn('git -C "$REVIEW_ROOT" add oge/whitehouse', workflow)
         self.assertNotIn("201 Request", workflow)
 

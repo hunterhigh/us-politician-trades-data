@@ -9,6 +9,8 @@ import hashlib
 from pathlib import Path
 import json
 import re
+import urllib.error
+import urllib.request
 from urllib.parse import unquote, urlsplit
 
 from .oge import OgeCatalogError, _classify_278, _type_fragment
@@ -175,6 +177,46 @@ def latest_catalog_metadata(root: Path) -> Path:
 
 
 ANNUAL_ARCHIVE_SCHEMA = "oge-278e-annual-archive/v1"
+_MAX_ANNUAL_BYTES = 50 * 1024 * 1024
+_OGE_2026_ANNOUNCEMENT = (
+    "https://www2.oge.gov/web/oge.nsf/Resources/"
+    "Now%2BAvailable%3A%2BThe%2BPresident%E2%80%99s%2Band%2BVice%2BPresident%E2%80%99s"
+    "%2Bcertified%2Bannual%2Bfinancial%2Bdisclosure%2Breports"
+)
+# OGE also published these two 2026 PDFs in its dated announcement. Their
+# content hashes were verified against that public release before pinning.
+_OFFICIAL_2026_FALLBACKS = {
+    "69aeaa9d7455acd585258e27002ddee1": (
+        "https://oge.box.com/shared/static/zycb5i2ny8kssm51uzqm8ygyq2zkpkqq.pdf",
+        "84b5987e4c8a418188600bea1e1ba6b44e0d5735cdd757cee5aba551977ca402",
+    ),
+    "40ce0f66f853096985258e27002ddfbb": (
+        "https://oge.box.com/shared/static/o3xuu4cumw5a2pi39ij4jauekltvax4u.pdf",
+        "bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d",
+    ),
+}
+
+
+def _download_official_box(url: str, expected_sha: str) -> tuple[bytes, dict[str, str]]:
+    if urlsplit(url).hostname != "oge.box.com":
+        raise OgeCatalogError("Annual fallback is not an OGE Box URL")
+    request = urllib.request.Request(url, headers={"Accept": "application/pdf",
+                                                    "User-Agent": "unison-oge-evidence/0.1"})
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            final = urlsplit(response.geturl())
+            if response.status != 200 or final.scheme != "https" or final.hostname != "public.boxcloud.com":
+                raise OgeCatalogError("OGE Box annual PDF redirected unexpectedly")
+            content = response.read(_MAX_ANNUAL_BYTES + 1)
+            content_type = response.headers.get("Content-Type", "")
+    except (urllib.error.URLError, TimeoutError):
+        raise OgeCatalogError("OGE Box annual PDF is unavailable") from None
+    if (len(content) > _MAX_ANNUAL_BYTES or "pdf" not in content_type.lower() or
+            not content.startswith(b"%PDF-") or b"%%EOF" not in content[-4096:]):
+        raise OgeCatalogError("OGE Box annual PDF is incomplete")
+    if hashlib.sha256(content).hexdigest() != expected_sha:
+        raise OgeCatalogError("OGE Box annual PDF differs from pinned official release")
+    return content, {"content-type": content_type}
 
 
 def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
@@ -203,7 +245,17 @@ def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
             continue
         attempted += 1
         try:
-            content, headers = (client or OgePdfClient()).download(row["document_url"])
+            retrieval_url = row["document_url"]
+            announcement_url = None
+            try:
+                content, headers = (client or OgePdfClient()).download(retrieval_url)
+            except OgeCatalogError:
+                fallback = _OFFICIAL_2026_FALLBACKS.get(document_id)
+                if fallback is None or client is not None:
+                    raise
+                retrieval_url, expected_sha = fallback
+                content, headers = _download_official_box(retrieval_url, expected_sha)
+                announcement_url = _OGE_2026_ANNOUNCEMENT
             sha = hashlib.sha256(content).hexdigest()
             pdf_path = folder / f"{sha}.pdf"
             _write_once(pdf_path, content)
@@ -214,6 +266,8 @@ def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
                 "catalog_entry_id": row["catalog_entry_id"],
                 "catalog_sha256": coverage["catalog_sha256"],
                 "document_url": row["document_url"],
+                "retrieval_url": retrieval_url,
+                "source_announcement_url": announcement_url,
                 "filer_name": row["filer_name"],
                 "agency": row["agency"],
                 "position_title": row["position_title"],
