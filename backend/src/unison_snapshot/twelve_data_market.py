@@ -38,6 +38,10 @@ class TwelveDataUnavailable(TwelveDataError):
     """Provider definitively has no usable data for this symbol."""
 
 
+class TwelveDataInvalidSeries(TwelveDataError):
+    """One symbol's series is unsuitable; isolate it and continue the audit."""
+
+
 class TwelveDataClient:
     def __init__(self, key: str, *, timeout: float = 30, retries: int = 3,
                  opener=urlopen, sleeper=time.sleep, pace_seconds: float = 0.25,
@@ -139,20 +143,22 @@ def _points(value: dict, *, ticker: str, start: date, end: date) -> list[dict]:
             or meta.get("interval") != "1day" or not isinstance(rows, list):
         raise TwelveDataTransient("Twelve Data daily response identity is malformed")
     points: list[dict] = []
-    previous: date | None = None
     for row in rows:
         if not isinstance(row, dict):
-            raise TwelveDataTransient("Twelve Data daily response has a non-object")
+            raise TwelveDataInvalidSeries("non_object_bar")
         try:
             day = date.fromisoformat(row["datetime"])
             close = float(row["close"])
         except (KeyError, TypeError, ValueError):
-            raise TwelveDataTransient("Twelve Data daily response has an invalid bar") from None
-        if day < start or day > end or (previous is not None and day <= previous) \
-                or not math.isfinite(close) or close <= 0:
-            raise TwelveDataTransient("Twelve Data daily response has an invalid price sequence")
+            raise TwelveDataInvalidSeries("invalid_date_or_close") from None
+        if day < start or day > end:
+            raise TwelveDataInvalidSeries("bar_outside_requested_window")
+        if not math.isfinite(close) or close <= 0:
+            raise TwelveDataInvalidSeries("nonpositive_or_nonfinite_close")
         points.append({"date": day.isoformat(), "close": round(close, 4)})
-        previous = day
+    points.sort(key=lambda row: row["date"])
+    if any(left["date"] == right["date"] for left, right in zip(points, points[1:])):
+        raise TwelveDataInvalidSeries("duplicate_session_date")
     return points
 
 
@@ -216,6 +222,11 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
                              ticker=ticker, start=earliest, end=end)
         except TwelveDataUnavailable:
             points = []
+        except TwelveDataInvalidSeries as error:
+            remaining.append({"ticker": ticker, "reason": "twelve_data_unavailable"})
+            audit.append({"ticker": ticker, "status": "invalid_series",
+                          "reason": str(error)})
+            continue
         if not points or date.fromisoformat(points[-1]["date"]) < end - timedelta(days=7):
             remaining.append({"ticker": ticker, "reason": "twelve_data_unavailable"})
             audit.append({"ticker": ticker, "status": "no_current_series",

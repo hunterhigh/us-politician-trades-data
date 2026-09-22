@@ -106,6 +106,20 @@ class TwelveDataMarketTests(unittest.TestCase):
         self.assertEqual(audit["accepted_count"], 0)
         self.assertEqual(data["meta"]["market_coverage"]["source_id"], "alpaca_sip_eod")
 
+    def test_descending_daily_bars_are_sorted_and_bad_symbol_is_isolated(self):
+        from unison_snapshot.twelve_data_market import _points, TwelveDataInvalidSeries
+        payload = {"meta": {"symbol": "FUNDX", "interval": "1day"},
+                   "values": [{"datetime": "2026-09-17", "close": "12.6"},
+                              {"datetime": "2026-09-16", "close": "12.5"}]}
+        points = _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
+                         end=date(2026, 9, 18))
+        self.assertEqual([row["date"] for row in points],
+                         ["2026-09-16", "2026-09-17"])
+        payload["values"][0]["close"] = "0"
+        with self.assertRaisesRegex(TwelveDataInvalidSeries, "nonpositive"):
+            _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
+                    end=date(2026, 9, 18))
+
     def test_rate_limit_fails_publication_and_never_exposes_key(self):
         def opener(request, timeout):
             raise HTTPError(request.full_url, 429, "rate limit", {}, None)
