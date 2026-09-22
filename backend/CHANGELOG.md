@@ -4,6 +4,8 @@ All notable changes follow Semantic Versioning.
 
 ## Unreleased
 
+- Reuse hash-verified published Alpaca history for active symbols, compare a 45-day split-adjusted overlap, refetch changed symbols, and force a full refresh after prolonged gaps or 30 days.
+- Persist the market fetch window in the protected market branch and report incremental versus full-refresh counts in production runs.
 - Added direct public-GitHub frozen-commit reading for dashboard, search, person and ticker selections.
 - Added production-input validation, safe worktree materialization and an atomic manual publication workflow.
 - Made the Cloudflare gateway optional for a later private-repository phase.

@@ -19,7 +19,8 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
-from .market_store import MARKET_COVERAGE_SCHEMA, UNSUPPORTED_REASONS
+from .market_store import (MARKET_COVERAGE_SCHEMA, UNSUPPORTED_REASONS,
+                           PublishedMarketCache)
 
 
 SOURCE_ID = "alpaca_sip_eod"
@@ -31,6 +32,9 @@ FEED = "sip"
 TIMEFRAME = "1Day"
 ADJUSTMENT = "split"
 MAX_ACTIVE_STALENESS_DAYS = 7
+MAX_CACHE_AGE_DAYS = 7
+CACHE_OVERLAP_DAYS = 45
+FULL_REFRESH_INTERVAL_DAYS = 30
 AUDIT_SCHEMA = "alpaca-market-validation/v2"
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 EXPLICIT_NAME_TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)\s*$")
@@ -465,10 +469,32 @@ def _historical_bars_with_rejected_symbols(
         return first, first_rejected + second_rejected
 
 
+def _merge_cached_history(cached: dict, fresh_bars: list[dict], *,
+                          ticker: str, name: str, start_day: date,
+                          tail_day: date, as_of: date,
+                          previous_as_of: date) -> list[dict] | None:
+    """Reuse old closes only when the overlapping split-adjusted tail agrees."""
+    fresh = (_market_row(ticker, name, fresh_bars, tail_day, as_of)["price_history"]
+             if fresh_bars else [])
+    old = [point for point in cached["price_history"]
+           if start_day <= date.fromisoformat(point["date"]) <= as_of]
+    old_overlap = {point["date"]: point["close"] for point in old
+                   if date.fromisoformat(point["date"]) >= tail_day}
+    fresh_overlap = {point["date"]: point["close"] for point in fresh
+                     if date.fromisoformat(point["date"]) <= previous_as_of}
+    if old_overlap != fresh_overlap:
+        return None
+    merged = [point for point in old if date.fromisoformat(point["date"]) < tail_day]
+    merged.extend(fresh)
+    return [{"t": point["date"] + "T00:00:00Z", "c": point["close"]}
+            for point in merged]
+
+
 def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                             checked_at: str, as_of_date: str | None = None,
                             batch_size: int = 50,
-                            distribution_authorized: bool = False) -> MarketValidation:
+                            distribution_authorized: bool = False,
+                            previous_market: PublishedMarketCache | None = None) -> MarketValidation:
     """Fetch delayed SIP daily bars and attach them to a candidate."""
     if not isinstance(snapshot, dict) or not isinstance(snapshot.get("meta"), dict):
         raise AlpacaMarketError("Snapshot requires a meta object")
@@ -528,13 +554,36 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     missing: list[dict] = []
     current_entries = [entry for entry in supported if entry["asset_status"] != "not_listed"]
     historical_entries = [entry for entry in supported if entry["asset_status"] == "not_listed"]
+    cache_usable = (previous_market is not None
+                    and previous_market.requested_start_date <= start_day
+                    and previous_market.requested_as_of_date <= requested_as_of
+                    and (requested_as_of - previous_market.requested_as_of_date).days
+                    <= MAX_CACHE_AGE_DAYS
+                    and (requested_as_of - (previous_market.full_refresh_date
+                                            or previous_market.requested_as_of_date)).days
+                    < FULL_REFRESH_INTERVAL_DAYS)
+    tail_day = (max(start_day, previous_market.requested_as_of_date
+                    - timedelta(days=CACHE_OVERLAP_DAYS))
+                if cache_usable else start_day)
+    cached_entries = [entry for entry in current_entries
+                      if cache_usable and entry["asset_status"] == "active"
+                      and entry["ticker"] in previous_market.rows
+                      and previous_market.provider_symbols.get(entry["ticker"])
+                      == entry["provider_symbol"]]
+    cached_tickers = {entry["ticker"] for entry in cached_entries}
+    full_current_entries = [entry for entry in current_entries
+                            if entry["ticker"] not in cached_tickers]
+    split_refresh_count = 0
     rejected_historical_symbols: list[str] = []
     if historical_entries:
         # A 400 here means the query format itself is rejected, not a bad filing
         # symbol.  Do not misclassify every historical symbol as unsupported.
         client.daily_bars(
             ["AAPL"], start=end - timedelta(days=30), end=end, asof="-")
-    for group, historical_probe in ((current_entries, False), (historical_entries, True)):
+    for group, historical_probe, incremental in (
+            (full_current_entries, False, False),
+            (historical_entries, True, False),
+            (cached_entries, False, True)):
       for offset in range(0, len(group), batch_size):
         batch_entries = group[offset:offset + batch_size]
         batch = [row["provider_symbol"] for row in batch_entries]
@@ -543,10 +592,25 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                 client, batch, start=start, end=end)
             rejected_historical_symbols.extend(rejected)
         else:
-            received = client.daily_bars(batch, start=start, end=end)
+            request_start = (datetime.combine(tail_day, time(), timezone.utc)
+                             if incremental else start)
+            received = client.daily_bars(batch, start=request_start, end=end)
         for entry in batch_entries:
             ticker = entry["ticker"]
             bars = received.get(entry["provider_symbol"], [])
+            if incremental:
+                combined = _merge_cached_history(
+                    previous_market.rows[ticker], bars, ticker=ticker,
+                    name=names[ticker], start_day=start_day, tail_day=tail_day,
+                    as_of=requested_as_of,
+                    previous_as_of=previous_market.requested_as_of_date)
+                if combined is None:
+                    split_refresh_count += 1
+                    bars = client.daily_bars([entry["provider_symbol"]],
+                                             start=start, end=end).get(
+                                                 entry["provider_symbol"], [])
+                else:
+                    bars = combined
             if not bars:
                 if entry["asset_status"] == "not_listed":
                     unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
@@ -645,6 +709,17 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "price_point_count": sum(len(row["price_history"]) for row in rows),
         "covered_date_min": min(row["price_history"][0]["date"] for row in rows),
         "covered_date_max": max(row["price_history"][-1]["date"] for row in rows),
+        "cache_status": ("reused" if cached_entries else
+                         "ineligible" if previous_market is not None else "unavailable"),
+        "incremental_ticker_count": len(cached_entries) - split_refresh_count,
+        "full_refresh_ticker_count": (len(full_current_entries)
+                                      + len(historical_entries) + split_refresh_count),
+        "split_refresh_ticker_count": split_refresh_count,
+        "full_history_verified_at": (
+            (previous_market.full_refresh_date
+             or previous_market.requested_as_of_date).isoformat()
+            if cached_entries and len(cached_entries) > split_refresh_count
+            else requested_as_of.isoformat()),
         "missing_ticker_count": len(missing),
         "missing_tickers": missing,
         "distribution_authorized": distribution_authorized,
