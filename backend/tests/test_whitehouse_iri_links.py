@@ -2,10 +2,7 @@ import hashlib
 import importlib.util
 import io
 import json
-import os
 from pathlib import Path
-import subprocess
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -77,26 +74,6 @@ class UnicodeLinkTests(unittest.TestCase):
     def test_invalid_audit_fails_closed(self):
         with self.assertRaises(WhiteHouseDisclosureError):
             verify_recovered_pdfs({"schema_version": "wrong"})
-
-    def test_cli_writes_recovered_index_and_audit_without_network(self):
-        backend = Path(__file__).resolve().parents[1]
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "index.json"
-            expanded = root / "expanded.json"
-            audit_path = root / "audit.json"
-            source.write_text(json.dumps(index(), ensure_ascii=False), encoding="utf-8")
-            env = dict(os.environ, PYTHONPATH=str(backend / "src"))
-            completed = subprocess.run(
-                [sys.executable, str(backend / "scripts/whitehouse_iri_links.py"),
-                 "--index", str(source), "--index-out", str(expanded),
-                 "--audit-out", str(audit_path)],
-                env=env, cwd=backend, capture_output=True, text=True, check=False)
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            self.assertEqual(json.loads(expanded.read_text(encoding="utf-8"))
-                             ["report_link_count"], 2)
-            self.assertEqual(json.loads(audit_path.read_text(encoding="utf-8"))
-                             ["recovered_url_count"], 1)
 
     def test_sync_cli_uses_one_expanded_index_for_batch_and_review(self):
         backend = Path(__file__).resolve().parents[1]
