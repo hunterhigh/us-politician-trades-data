@@ -1,0 +1,104 @@
+name: OGE White House annual evidence
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive-annual:
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+      OGE_ANNUAL_REPORT_BATCH_SIZE: ${{ vars.OGE_ANNUAL_REPORT_BATCH_SIZE }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check OGE production authorization
+        run: |
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+      - name: Prepare evidence and review branches
+        run: |
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review
+          git worktree add --detach "$RUNNER_TEMP/oge-whitehouse-evidence" origin/evidence
+          git worktree add --detach "$RUNNER_TEMP/oge-whitehouse-review" origin/review
+      - name: Account for reports and archive a bounded annual batch
+        env:
+          EVIDENCE_ROOT: ${{ runner.temp }}/oge-whitehouse-evidence
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py coverage \
+            --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-coverage.json
+          batch_size="${OGE_ANNUAL_REPORT_BATCH_SIZE:-2}"
+          if ! [[ "$batch_size" =~ ^([1-9]|1[0-2])$ ]]; then
+            echo "OGE annual batch size must be between 1 and 12" >&2
+            exit 2
+          fi
+          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py archive-annual \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --coverage .local/oge-whitehouse-coverage.json \
+            --limit "$batch_size" --output .local/oge-annual-batch.json
+      - name: Publish official annual originals
+        env:
+          EVIDENCE_ROOT: ${{ runner.temp }}/oge-whitehouse-evidence
+        run: |
+          git -C "$EVIDENCE_ROOT" add oge/annual/reports
+          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
+            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
+            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$EVIDENCE_ROOT" commit -m "evidence: OGE annual reports ${{ github.run_id }}"
+            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Publish complete White House coverage audit
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/oge-whitehouse-review
+        run: |
+          REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT'])
+          coverage = json.loads(Path('.local/oge-whitehouse-coverage.json').read_text(encoding='utf-8'))
+          batch = json.loads(Path('.local/oge-annual-batch.json').read_text(encoding='utf-8'))
+          target = root / 'oge/whitehouse/coverage-current.json'
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(coverage, ensure_ascii=False, sort_keys=True,
+                                       separators=(',', ':')), encoding='utf-8')
+          status = root / 'oge/whitehouse/archive-status.json'
+          status.write_text(json.dumps({
+              'schema_version': 'oge-whitehouse-archive-status/v1',
+              'catalog_sha256': coverage['catalog_sha256'],
+              'catalog_retrieved_at': coverage['catalog_retrieved_at'],
+              'counts': coverage['counts'],
+              'direct_annual_archived': batch['archived_count'],
+              'direct_annual_pending': batch['pending_count'],
+              'direct_annual_failures': batch['failures'],
+              'request_required_not_obtained': True,
+              'candidate_integration_status': 'not_started',
+          }, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+              encoding='utf-8')
+          PY
+          git -C "$REVIEW_ROOT" add oge/whitehouse
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: White House OGE coverage ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
