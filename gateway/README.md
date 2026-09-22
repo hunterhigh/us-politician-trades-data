@@ -38,7 +38,7 @@ npm run build:check
 - 每个请求先鉴权；对等长 SHA-256 令牌摘要做常量时间比较。生产代理令牌应使用高熵随机值。当前单仓库/单凭据部署，未实现每用户角色体系。
 - GitHub 凭据与代理 key 分离。只使用内容只读范围的 GitHub 凭据；代理没有远端写操作。请求 URL、Authorization、上游响应和异常详情不写应用日志。
 - 所有响应 `private, no-store`，CDN 不缓存；没有共享缓存。GitHub API 请求禁用缓存、手动处理且拒绝重定向，密钥不发给任意主机。
-- metadata/manifest 最大 16 KiB；所有index最大8 KiB；board/person/ticker/market内容分片最大8 MiB。后两类流式转发、不整体读进内存，按实际字节计数，不能用缺失或伪造Content-Length绕过；超限立即中断流而非成功返回截断JSON。每个上游请求含读取 body 的 10 秒截止，超时可能中断已开始的流，客户端必须丢弃不完整临时文件。
+- metadata/manifest 最大 16 KiB；所有index最大8 KiB；board/person/ticker/market内容分片最大16 MiB。后两类流式转发、不整体读进内存，按实际字节计数，不能用缺失或伪造Content-Length绕过；超限立即中断流而非成功返回截断JSON。每个上游请求含读取 body 的 10 秒截止，超时可能中断已开始的流，客户端必须丢弃不完整临时文件。
 - manifest的 `generated_at` 和 `data_cutoff_at` 必填且须为有效带时区ISO日期时间；拒绝不存在的日期、无时区日期时间、日期字符串或任意文本。
 - 不对分片执行服务端 SHA 验证，以保留流式行为；验证职责在实际消费者。代理只校验有限 manifest 字段，完整 schema/业务验证仍由发布者与消费者执行。
 - main入口正常使用3次GitHub API请求（解析main、验证tag、读manifest）；固定SHA主分支索引/分片3次（验证tag、校验manifest、读文件）；固定SHA的manifest本身2次；可选市场文件2次（独立tag和文件）。这不等同于HTML原先只计客户端请求的成本，需纳入API额度测量。尚未缓存，不能承诺高并发能力或零成本。

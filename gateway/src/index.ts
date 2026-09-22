@@ -4,7 +4,7 @@ const SHA = /^[a-f0-9]{40}$/;
 const DIGEST = /^[a-f0-9]{64}$/;
 const HEAD_LIMIT = 16 * 1024;
 const INDEX_LIMIT = 8 * 1024;
-const SHARD_LIMIT = 8 * 1024 * 1024;
+const SHARD_LIMIT = 16 * 1024 * 1024;
 const TIMEOUT_MS = 10_000;
 const MAX_PATH = 300;
 

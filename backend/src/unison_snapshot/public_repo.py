@@ -16,7 +16,7 @@ from .codec import bucket
 SHA1 = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 NAME = re.compile(r"[A-Za-z0-9_.-]{1,100}")
-LIMITS = {"manifest": 16 * 1024, "index": 8 * 1024, "shard": 8 * 1024 * 1024}
+LIMITS = {"manifest": 16 * 1024, "index": 8 * 1024, "shard": 16 * 1024 * 1024}
 
 
 class PublicSnapshotError(RuntimeError):

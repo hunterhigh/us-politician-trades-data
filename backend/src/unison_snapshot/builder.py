@@ -160,7 +160,7 @@ def normalize(payload: dict, *, allow_production: bool = False,
 
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
-          max_blob_bytes: int = 8 * 1024 * 1024, allow_production: bool = False,
+          max_blob_bytes: int = 16 * 1024 * 1024, allow_production: bool = False,
           allow_empty_production: bool = False, allow_market: bool = False,
           market_commit: str | None = None,
           market_pages: tuple[str, ...] | list[str] | None = None) -> Bundle:
