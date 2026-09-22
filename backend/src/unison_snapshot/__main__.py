@@ -585,6 +585,8 @@ def main() -> None:
                               "incremental_tickers": audit["incremental_ticker_count"],
                               "full_refresh_tickers": audit["full_refresh_ticker_count"],
                               "split_refresh_tickers": audit["split_refresh_ticker_count"],
+                              "response_pages": audit.get("response_page_count"),
+                              "request_attempts": audit.get("request_attempt_count"),
                               "historical_recovered": audit["historical_recovered_count"],
                               "historical_rejected": len(audit["historical_rejected_symbols"]),
                               "missing_tickers": audit["missing_ticker_count"],
