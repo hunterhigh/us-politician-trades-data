@@ -130,6 +130,11 @@ jobs:
           python backend/scripts/whitehouse_extract.py \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
             --limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"
+      - name: Account for every public report link
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
+        run: |
+          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT"
       - name: Publish bounded review audit
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
