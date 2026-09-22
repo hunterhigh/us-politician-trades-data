@@ -6,15 +6,18 @@ import re
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
-from .legacy import PROCESSOR_SHA256, load
-from .market_store import (MARKET_COVERAGE_SCHEMA, SOURCE_ID as MARKET_SOURCE_ID,
-                           UNSUPPORTED_REASONS, validate_market_rows)
+from .legacy import PROCESSOR_SHA256, PROCESSOR_V2_SHA256, load
+from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
+                           SOURCE_ID as MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID,
+                           UNSUPPORTED_REASONS, MIXED_UNSUPPORTED_REASONS,
+                           validate_market_rows)
 
 SCHEMA = "politician-dashboard/v1"
 LAYOUT = "hash-sharded-v2"
 ARRAYS = ("people", "transactions", "reported_holdings", "security_market_data")
 SOURCES = {"house_clerk", "senate_efd", "oge"}
-HEALTH_SOURCES = SOURCES | {"house_ethics_guidance", "senate_ethics_guidance", "alpaca_sip_eod"}
+HEALTH_SOURCES = SOURCES | {"house_ethics_guidance", "senate_ethics_guidance",
+                            MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID}
 SOURCE_HOSTS = {
     "house_clerk": {"disclosures-clerk.house.gov", "clerk.house.gov"},
     "senate_efd": {"efdsearch.senate.gov"},
@@ -164,6 +167,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     data = normalize(payload, allow_production=allow_production,
                      allow_empty_production=allow_empty_production,
                      allow_market=allow_market)
+    mixed_market = any(row["source_id"] == TWELVE_DATA_SOURCE_ID
+                       for row in data["security_market_data"])
+    processor_version = "v2" if mixed_market else "v1"
+    processor_sha = PROCESSOR_V2_SHA256 if mixed_market else PROCESSOR_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")
@@ -177,10 +184,17 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                              for row in data[kind] if row.get("ticker")}
         market_tickers = {row["ticker"] for row in data["security_market_data"]}
         market_coverage = data["meta"].get("market_coverage")
+        expected_schema = (MIXED_MARKET_COVERAGE_SCHEMA if mixed_market
+                           else MARKET_COVERAGE_SCHEMA)
         if not isinstance(market_coverage, dict) \
-                or market_coverage.get("schema_version") != MARKET_COVERAGE_SCHEMA \
-                or market_coverage.get("source_id") != MARKET_SOURCE_ID:
+                or market_coverage.get("schema_version") != expected_schema:
             raise ValueError("Licensed market publication requires deterministic market coverage")
+        if mixed_market:
+            actual_sources = {row["source_id"] for row in data["security_market_data"]}
+            if market_coverage.get("source_ids") != sorted(actual_sources):
+                raise ValueError("Mixed market coverage must identify each price source")
+        elif market_coverage.get("source_id") != MARKET_SOURCE_ID:
+            raise ValueError("Alpaca market coverage must identify its source")
         covered = market_coverage.get("covered_tickers")
         unsupported_rows = market_coverage.get("unsupported_tickers")
         if not isinstance(covered, list) or any(not isinstance(item, str) for item in covered) \
@@ -192,7 +206,9 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         unsupported: set[str] = set()
         for item in unsupported_rows:
             if set(item) != {"ticker", "reason"} or not isinstance(item["ticker"], str) \
-                    or item["reason"] not in UNSUPPORTED_REASONS or item["ticker"] in unsupported:
+                or item["reason"] not in (MIXED_UNSUPPORTED_REASONS if mixed_market
+                                          else UNSUPPORTED_REASONS) \
+                or item["ticker"] in unsupported:
                 raise ValueError("Market coverage contains an invalid unsupported ticker")
             unsupported.add(item["ticker"])
         if unsupported & market_tickers or disclosed_tickers != market_tickers | unsupported:
@@ -201,7 +217,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         raise ValueError("market commit and pages require licensed market publication")
     candidate = deepcopy(data)
     candidate["meta"].update(snapshot_id="prepublication-validation", generated_at=generated_at)
-    load("process_snapshot").build_snapshot(candidate)
+    load("process_snapshot", version=processor_version).build_snapshot(candidate)
     if timestamp(generated_at) < timestamp(data["meta"]["data_cutoff_at"]):
         raise ValueError("Generation precedes data cutoff")
     files: dict[str, bytes] = {}
@@ -257,7 +273,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                         market_unsupported_ticker_count=len(unsupported),
                         market_supported_complete=True,
                         market_coverage_sha256=digest(encode(market_coverage)))
-    identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": PROCESSOR_SHA256, "board": board_sha,
+    identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": processor_sha, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
                 "data_cutoff_at": data["meta"]["data_cutoff_at"], "settings": settings,
                 "coverage": coverage}
@@ -267,7 +283,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 "snapshot_id": digest(encode(identity)), "generated_at": generated_at,
                 "data_cutoff_at": data["meta"]["data_cutoff_at"], "board": board_sha,
                 "source_health": data["source_health"], "status_revision": digest(encode(data["source_health"])),
-                "is_demo": data["meta"]["is_demo"], "processor_sha256": PROCESSOR_SHA256,
+                "is_demo": data["meta"]["is_demo"], "processor_sha256": processor_sha,
                 "coverage": coverage, **settings}
     if market_commit is not None:
         manifest["market_commit"] = market_commit

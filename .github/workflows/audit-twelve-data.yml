@@ -1,0 +1,106 @@
+name: Audit Twelve Data market coverage
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum Alpaca-unpriced tickers to check (1-758)
+        required: true
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twelve-data-market-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/code'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install producer
+        run: python -m pip install -e backend
+      - name: Verify access and authorization
+        env:
+          ALPACA_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
+          TWELVE_AUTHORIZED: ${{ vars.TWELVE_DATA_DISTRIBUTION_AUTHORIZED }}
+          ALPACA_KEY: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          TWELVE_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          test "$ALPACA_AUTHORIZED" = true && test "$TWELVE_AUTHORIZED" = true
+          test -n "$ALPACA_KEY" && test -n "$ALPACA_SECRET" && test -n "$TWELVE_KEY"
+          case "$LIMIT" in *[!0-9]*|'') exit 2 ;; esac
+          test "$LIMIT" -ge 1 && test "$LIMIT" -le 758
+      - name: Prepare fixed production trees
+        id: trees
+        run: |
+          git fetch --no-tags origin review main market
+          git worktree add --detach "$RUNNER_TEMP/review" origin/review
+          git worktree add --detach "$RUNNER_TEMP/main" origin/main
+          git worktree add --detach "$RUNNER_TEMP/market" origin/market
+          echo "market_base=$(git -C "$RUNNER_TEMP/market" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Rebuild Alpaca candidate from licensed cache
+        env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          PYTHONPATH: backend/src
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+        run: |
+          checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot build-alpaca-market-validation \
+            --input "$RUNNER_TEMP/review/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/alpaca-candidate.json" \
+            --audit-output "$RUNNER_TEMP/alpaca-audit.json" \
+            --checked-at "$checked_at" \
+            --previous-main-root "$RUNNER_TEMP/main" \
+            --previous-market-root "$RUNNER_TEMP/market" \
+            --previous-market-commit "$MARKET_BASE" \
+            --distribution-authorized
+      - name: Check Twelve Data without publication
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          PYTHONPATH: backend/src
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot build-twelve-data-supplement \
+            --input "$RUNNER_TEMP/alpaca-candidate.json" \
+            --output "$RUNNER_TEMP/twelve-candidate.json" \
+            --audit-output "$RUNNER_TEMP/twelve-audit.json" \
+            --checked-at "$checked_at" --limit "$LIMIT" \
+            --distribution-authorized
+      - name: Summarize coverage
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          root=os.environ['RUNNER_TEMP']
+          audit=json.load(open(root+'/twelve-audit.json'))
+          from collections import Counter
+          counts=Counter(row['status'] for row in audit['results'])
+          print('### Twelve Data coverage audit')
+          print(f"Attempted: {audit['attempted_count']}; accepted: {audit['accepted_count']}")
+          print(f"Requests: {audit['request_count']}")
+          for status,count in sorted(counts.items()):
+              print(f"- {status}: {count}")
+          print('No market data was published by this run.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: twelve-data-coverage-audit
+          path: ${{ runner.temp }}/twelve-audit.json
+          retention-days: 14

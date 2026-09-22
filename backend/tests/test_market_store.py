@@ -87,7 +87,7 @@ class MarketStoreTests(unittest.TestCase):
     def test_rejects_wrong_source_and_future_prices(self):
         bad = row()
         bad["source_id"] = "other"
-        with self.assertRaisesRegex(ValueError, "licensed Alpaca"):
+        with self.assertRaisesRegex(ValueError, "invalid source or price basis"):
             build_market_bundle([bad], data_cutoff_at="2026-09-20T23:59:59Z")
         bad = row()
         bad["price_history"][-1]["date"] = "2026-09-21"
