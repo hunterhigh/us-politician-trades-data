@@ -79,6 +79,15 @@ try {
   assert.equal(await page.locator('#stockPage').getAttribute('aria-hidden'), 'false');
   assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), marketTicker);
   assert.equal(await page.locator('.stock-price-chart').count(), 1);
+  const twelveTicker = data.security_market_data.find(
+    row => row.source_id === 'twelve_data_split_adjusted_eod',
+  )?.ticker;
+  if (twelveTicker) {
+    await page.evaluate(ticker => openTicker(ticker), twelveTicker);
+    assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), twelveTicker);
+    assert.equal(await page.locator('.stock-price-chart').count(), 1);
+    assert.match(await page.locator('.stock-price-notes').textContent(), /Twelve Data split-adjusted EOD/);
+  }
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({
     status: 'passed',
