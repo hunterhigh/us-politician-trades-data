@@ -41,6 +41,26 @@ def _first_last(value: str) -> tuple[str, str] | None:
     return (parts[0], parts[-1]) if len(parts) >= 2 else None
 
 
+def _filer_information(text: str) -> tuple[str | None, str | None, str | None, str | None, list[str]]:
+    """Read only the two printed lines in the PDF's Filer's Information box."""
+
+    match = re.search(
+        r"Filer(?:'|’)?s\s+Information\s*\n"
+        r"(?P<name>[^\n]+)\n(?P<role>[^\n]+)\n"
+        r"Electronic\s+Signature\s*-",
+        text, re.IGNORECASE)
+    if match is None:
+        return None, None, None, None, ["pdf_filer_information_not_verified"]
+    name = match.group("name").strip()
+    role_raw = match.group("role").strip()
+    if not name or not role_raw:
+        return None, None, None, None, ["pdf_filer_information_not_verified"]
+    role, separator, agency = role_raw.rpartition(" - ")
+    position = role.strip() if separator else role_raw
+    agency_label = agency.strip() if separator else None
+    return name, position, agency_label, role_raw, []
+
+
 def _filer_signature(text: str) -> tuple[str | None, str, str | None, str | None, list[str]]:
     """Read the filer's own electronic attestation, never an ethics signature."""
 
@@ -107,8 +127,16 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     text, rows = _extract_pdf(Path(pdf_path))
     first_page = text.split("Transactions", 1)[0] if text else ""
     filed_at, signature_method, signature_raw, signature_name, reasons = _filer_signature(first_page)
+    pdf_filer_name, pdf_position_title, pdf_agency_label, pdf_role_raw, identity_reasons = (
+        _filer_information(first_page))
+    reasons.extend(identity_reasons)
     if signature_name is not None and _first_last(signature_name) != _first_last(filer_name):
         reasons.append("filer_signature_name_mismatch")
+    if pdf_filer_name is not None and _first_last(pdf_filer_name) != _first_last(filer_name):
+        reasons.append("pdf_filer_name_mismatch")
+    if signature_name is not None and pdf_filer_name is not None and (
+            _first_last(signature_name) != _first_last(pdf_filer_name)):
+        reasons.append("pdf_filer_signature_name_mismatch")
 
     if "Periodic Transaction Report (OGE Form 278-T)" not in first_page:
         reasons.append("278t_form_title_not_verified")
@@ -142,6 +170,10 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         "source_url": source_url,
         "source_sha256": source_sha256,
         "filer_name": filer_name,
+        "pdf_filer_name": pdf_filer_name,
+        "pdf_position_title": pdf_position_title,
+        "pdf_agency_label": pdf_agency_label,
+        "pdf_position_agency_raw": pdf_role_raw,
         "amended_label": amended_label,
         "filed_at": filed_at,
         "signature_method": signature_method,

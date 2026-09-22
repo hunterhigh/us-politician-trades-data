@@ -20,6 +20,7 @@ ROW = ["1", "Example Inc. (EXM)", "Purchase", "05/01/2025", "No", "$1,001 - $15,
 TEXT = (
     "Periodic Transaction Report (OGE Form 278-T)\n"
     "Filer's Information\nExample, Ada\n"
+    "Deputy Counsel to the President, Trump-Vance (2025) - White House\n"
     "Electronic Signature - I certify that this is correct.\n"
     "/s/ Example, Ada [electronically signed on 06/03/2025 by Example, Ada in Integrity.gov]\n"
     "Agency Ethics Official's Opinion\n"
@@ -44,6 +45,10 @@ class WhiteHouse278TTests(unittest.TestCase):
         self.assertEqual(result["filed_at"], "2025-06-03")
         self.assertEqual(result["signature_method"], "electronic")
         self.assertTrue(result["evidence_complete"])
+        self.assertEqual(result["pdf_filer_name"], "Example, Ada")
+        self.assertEqual(result["pdf_position_title"],
+                         "Deputy Counsel to the President, Trump-Vance (2025)")
+        self.assertEqual(result["pdf_agency_label"], "White House")
         self.assertIn("06/03/2025", result["filer_signature_evidence"])
         self.assertEqual((result["transactions"][0]["ticker"],
                           result["transactions"][0]["transaction_type"],
@@ -67,6 +72,21 @@ class WhiteHouse278TTests(unittest.TestCase):
         self.assertEqual(result["filed_at"], "2025-06-03")
         self.assertIn("filer_signature_name_mismatch", result["document_reasons"])
         self.assertFalse(result["evidence_complete"])
+
+    def test_pdf_filer_box_must_match_index_and_signature(self):
+        text = TEXT.replace("Filer's Information\nExample, Ada\n",
+                            "Filer's Information\nOther, Ann\n")
+        result = self.extract(text)
+        self.assertEqual(result["pdf_filer_name"], "Other, Ann")
+        self.assertIn("pdf_filer_name_mismatch", result["document_reasons"])
+        self.assertIn("pdf_filer_signature_name_mismatch", result["document_reasons"])
+        self.assertFalse(result["evidence_complete"])
+
+    def test_missing_printed_filer_information_is_not_inferred_from_index(self):
+        result = self.extract(TEXT.replace("Filer's Information", "Other Information"))
+        self.assertIsNone(result["pdf_filer_name"])
+        self.assertIsNone(result["pdf_agency_label"])
+        self.assertIn("pdf_filer_information_not_verified", result["document_reasons"])
 
     def test_handwritten_signature_and_garbled_pdf_text_are_not_inferred(self):
         handwritten = self.extract(
