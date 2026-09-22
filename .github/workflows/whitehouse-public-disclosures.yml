@@ -9,6 +9,10 @@ on:
         description: New public PDFs to attempt this run (1-50)
         required: true
         default: '20'
+      extraction_batch_size:
+        description: Archived PDFs to extract this run (1-100)
+        required: true
+        default: '100'
 
 permissions:
   contents: write
@@ -25,6 +29,7 @@ jobs:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
       PDF_BATCH_SIZE: ${{ inputs.pdf_batch_size || '20' }}
+      EXTRACTION_BATCH_SIZE: ${{ inputs.extraction_batch_size || '100' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,6 +47,8 @@ jobs:
           test "$OGE_TERMS_ACKNOWLEDGED" = true
           case "$PDF_BATCH_SIZE" in *[!0-9]*|'') exit 2 ;; esac
           test "$PDF_BATCH_SIZE" -ge 1 && test "$PDF_BATCH_SIZE" -le 50
+          case "$EXTRACTION_BATCH_SIZE" in *[!0-9]*|'') exit 2 ;; esac
+          test "$EXTRACTION_BATCH_SIZE" -ge 1 && test "$EXTRACTION_BATCH_SIZE" -le 100
       - name: Install PDF parsers
         run: python -m pip install -e 'backend[house-ingest]'
       - name: Prepare evidence and review trees
@@ -130,7 +137,7 @@ jobs:
           )"
           python backend/scripts/whitehouse_extract.py \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"
+            --limit "$EXTRACTION_BATCH_SIZE" --start-after-id "$cursor"
       - name: Account for every public report link
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review

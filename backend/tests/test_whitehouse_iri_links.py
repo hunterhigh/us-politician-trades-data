@@ -120,6 +120,10 @@ class UnicodeLinkTests(unittest.TestCase):
                       content)
         self.assertIn('--batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json"',
                       content)
+        self.assertIn('extraction_batch_size:', content)
+        self.assertIn('test "$EXTRACTION_BATCH_SIZE" -le 100', content)
+        self.assertIn('--limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"', content)
+        self.assertIn('--limit "$EXTRACTION_BATCH_SIZE" --start-after-id "$cursor"', content)
         self.assertIn('git -C "$REVIEW_ROOT" add whitehouse', content)
 
 
