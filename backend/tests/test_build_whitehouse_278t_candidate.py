@@ -11,8 +11,8 @@ import unittest
 from unittest.mock import patch
 from contextlib import redirect_stdout
 
-from backend.scripts.build_whitehouse_278t_candidate import main, run
-from backend.tests.test_whitehouse_278t_candidate import _base, _catalog, _wiles
+from scripts.build_whitehouse_278t_candidate import main, run
+from tests.test_whitehouse_278t_candidate import _base, _catalog, _wiles
 from unison_snapshot.builder import SOURCE_HOSTS
 
 
@@ -97,7 +97,7 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.assertTrue(self._run()["idempotent"])
         self.assertEqual(self.oge.read_bytes(), candidate_raw)
 
-    def test_wrong_archive_hash_pending_or_count_blocks_all_outputs(self):
+    def test_wrong_archive_hash_or_count_blocks_all_outputs(self):
         original = self.oge.read_bytes()
         self.coverage["reports"][0]["archive_sha256_versions"] = ["c" * 64]
         self._write_inputs()
@@ -106,16 +106,27 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.assertEqual(self.oge.read_bytes(), original)
         self.assertFalse(self.audit_out.exists())
         self.coverage["reports"][0]["archive_sha256_versions"] = [self.report["source_sha256"]]
-        self.status["pending_count"] = 1
-        self._write_inputs()
-        with self.assertRaises(ValueError):
-            self._run()
-        self.status["pending_count"] = 0
-        self._write_inputs()
         with self.assertRaises(ValueError):
             self._run(expected_report_count=2)
         self.assertEqual(self.oge.read_bytes(), original)
         self.assertFalse(self.audit_out.exists())
+
+    def test_pending_annual_does_not_block_complete_278t(self):
+        annual = {
+            "document_id": "wh-url:" + "a" * 24,
+            "document_url": "https://www.whitehouse.gov/wp-content/uploads/2026/09/Annual.pdf",
+            "document_type_from_label": "278e_annual",
+            "archive_sha256_versions": ["b" * 64],
+            "review_state": "pending_extraction",
+        }
+        self.coverage["reports"].append(annual)
+        self.coverage["report_link_count"] = 2
+        self.coverage["counts_by_review_state"] = {
+            "extracted_review_only": 1, "pending_extraction": 1,
+        }
+        self.status["pending_count"] = 1
+        self._write_inputs()
+        self.assertEqual(self._run()["promoted_transaction_count"], 3)
 
     def test_unaccounted_extraction_and_wrong_url_fail_closed(self):
         original = self.oge.read_bytes()

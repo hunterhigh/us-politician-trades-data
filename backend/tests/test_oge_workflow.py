@@ -33,6 +33,12 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("python -m unison_snapshot build-oge-candidate", content)
         self.assertIn("candidates/sources/oge-current.json", content)
+        self.assertIn("python backend/scripts/build_whitehouse_278t_candidate.py", content)
+        self.assertIn("whitehouse/qualifications/candidate-current.json", content)
+        self.assertLess(content.index("python -m unison_snapshot build-oge-candidate"),
+                        content.index("python backend/scripts/build_whitehouse_278t_candidate.py"))
+        self.assertLess(content.index("python backend/scripts/build_whitehouse_278t_candidate.py"),
+                        content.index("python -m unison_snapshot build-disclosure-candidate"))
         self.assertIn("python -m unison_snapshot build-disclosure-candidate", content)
         self.assertIn("--harmonize-cutoffs", content)
         self.assertIn("candidates/disclosure-current.json", content)

@@ -267,6 +267,11 @@ jobs:
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json"
+          PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py \
+            --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --review-root "$REVIEW_ROOT" \
+            --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
           source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           for source_id in house_clerk senate_efd; do
             candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
@@ -285,6 +290,8 @@ jobs:
           batch = json.loads(Path('.local/oge-report-batch.json').read_text(encoding='utf-8'))
           extraction = json.loads(Path('.local/oge-extraction-batch.json').read_text(encoding='utf-8'))
           audit = json.loads((review / 'oge/qualifications/current.json').read_text(encoding='utf-8'))
+          whitehouse = json.loads((review / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
+          combined = json.loads((review / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
           value = {
               'schema_version': 'oge-review-run/v1', 'source_id': 'oge',
               'generated_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
@@ -296,15 +303,18 @@ jobs:
               'pending_direct_count': batch['pending_count'],
               'extraction_count': extraction['extraction_count'],
               'extraction_failure_count': extraction['failure_count'],
-              'qualified_transaction_count': audit['promoted_transaction_count'],
-              'quarantined_row_count': audit['quarantined_row_count'],
+              'qualified_transaction_count': len(combined['transactions']),
+              'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
+              'whitehouse_public_qualified_transaction_count': whitehouse['promoted_transaction_count'],
+              'quarantined_row_count': (audit['quarantined_row_count'] +
+                                        whitehouse['quarantined_row_count']),
           }
           target = review / 'status/oge.json'
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                        separators=(',', ':')), encoding='utf-8')
           PY
-          git -C "$REVIEW_ROOT" add oge candidates status/oge.json status/disclosure_cutoff.json
+          git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

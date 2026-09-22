@@ -66,8 +66,8 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
     if (status.get("schema_version") != _STATUS_SCHEMA or
             status.get("source_id") != "whitehouse_public_disclosures" or
             type(status.get("pending_count")) is not int or
-            status["pending_count"] != 0):
-        raise ValueError("White House extraction status has pending or invalid work")
+            status["pending_count"] < 0):
+        raise ValueError("White House extraction status is invalid")
     reports = [row for row in coverage["reports"]
                if row.get("document_type_from_label") == "278t"]
     if (not reports or (expected_report_count is not None and
