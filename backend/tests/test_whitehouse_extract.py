@@ -32,7 +32,7 @@ class WhiteHouseExtractTests(unittest.TestCase):
         folder = self.evidence / "whitehouse/disclosures/reports" / document_id[7:]
         folder.mkdir(parents=True)
         (folder / f"{sha}.pdf").write_bytes(content)
-        row = {"schema_version": script.METADATA_SCHEMA,
+        row = {"schema_version": script.PDF_ARCHIVE_SCHEMA,
                "source_id": "whitehouse_public_disclosures", "document_id": document_id,
                "document_url": f"https://www.whitehouse.gov/wp-content/uploads/2026/09/{suffix}.pdf",
                "sha256": sha, "byte_length": len(content),
@@ -60,7 +60,7 @@ class WhiteHouseExtractTests(unittest.TestCase):
         pdf = (self.evidence / "whitehouse/disclosures/reports" /
                row["document_id"][7:] / f"{row['sha256']}.pdf")
         pdf.write_bytes(b"corrupt")
-        with self.assertRaisesRegex(ValueError, "hash mismatch"):
+        with self.assertRaisesRegex(ValueError, "hash differs"):
             script.extract_batch(self.evidence, self.review, limit=1)
 
     def test_failed_report_does_not_starve_later_document(self):
@@ -86,6 +86,33 @@ class WhiteHouseExtractTests(unittest.TestCase):
         self.assertEqual(settled["attempted_count"], 0)
         self.assertEqual(settled["existing_failure_count"], 1)
         self.assertEqual(settled["pending_count"], 0)
+
+    def test_chunked_official_pdf_is_reassembled_only_for_parsing(self):
+        row = self.archive("c")
+        folder = (self.evidence / "whitehouse/disclosures/reports" /
+                  row["document_id"][7:])
+        pdf = folder / f"{row['sha256']}.pdf"
+        content = pdf.read_bytes()
+        pdf.unlink()
+        row["schema_version"] = script.PDF_CHUNK_ARCHIVE_SCHEMA
+        del row["archive_path"]
+        row["chunks"] = []
+        for number, part in enumerate((content[:10], content[10:])):
+            path = folder / f"{row['sha256']}.part-{number:03d}.bin"
+            path.write_bytes(part)
+            row["chunks"].append({
+                "archive_path": path.relative_to(self.evidence).as_posix(),
+                "sha256": hashlib.sha256(part).hexdigest(), "byte_length": len(part),
+            })
+        (folder / f"{row['sha256']}.json").write_text(json.dumps(row), encoding="utf-8")
+        def parse(path, *, source_url, source_sha256, **_kwargs):
+            self.assertEqual(path.read_bytes(), content)
+            return {"source_url": source_url, "source_sha256": source_sha256,
+                    "parser_version": script.TRADE_PARSER_VERSION}
+        with patch.object(script, "parse_whitehouse_278t_pdf", side_effect=parse):
+            result = script.extract_batch(self.evidence, self.review, limit=1)
+        self.assertEqual(result["extraction_created_count"], 1)
+        self.assertEqual(result["failure_count"], 0)
 
 
 if __name__ == "__main__":

@@ -3,11 +3,14 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
+import unison_snapshot.whitehouse_disclosures as disclosures
 from unison_snapshot.whitehouse_disclosure_audit import build_oge_public_crosswalk
 from unison_snapshot.whitehouse_disclosures import (
     WhiteHouseDisclosureError, archive_public_batch, archive_public_index,
     parse_disclosure_index,
+    read_archived_pdf,
 )
 
 
@@ -105,6 +108,30 @@ class PublicDisclosureTests(unittest.TestCase):
             self.assertEqual(second["attempted_count"], 2)
             self.assertEqual(second["pending_url_count"], 1)
             self.assertEqual(len(second["failures"]), 0)
+
+    def test_large_original_is_split_without_changing_its_pdf_hash(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            client = Client()
+            client.pdf = b"%PDF-1.7\n" + b"x" * 90 + b"\n%%EOF"
+            index = parse_disclosure_index(page())
+            index["reports"] = index["reports"][:1]
+            index["report_link_count"] = 1
+            with patch.object(disclosures, "MAX_SINGLE_FILE_BYTES", 40), \
+                    patch.object(disclosures, "PDF_CHUNK_BYTES", 20):
+                batch = archive_public_batch(root, index, limit=1, client=client)
+                self.assertEqual(batch["pending_url_count"], 0)
+                metadata = batch["reports"][0]
+                self.assertEqual(metadata["schema_version"],
+                                 disclosures.PDF_CHUNK_ARCHIVE_SCHEMA)
+                self.assertEqual(len(metadata["chunks"]), 6)
+                self.assertEqual(read_archived_pdf(root, metadata), client.pdf)
+                again = archive_public_batch(root, index, limit=1, client=client)
+                self.assertEqual(again["attempted_count"], 0)
+                chunk = root / metadata["chunks"][0]["archive_path"]
+                chunk.write_bytes(b"corrupt")
+                with self.assertRaisesRegex(WhiteHouseDisclosureError, "chunk hash"):
+                    read_archived_pdf(root, metadata)
 
     def test_catalog_crosswalk_is_candidate_only_and_checks_page_hash(self):
         index = parse_disclosure_index(page())

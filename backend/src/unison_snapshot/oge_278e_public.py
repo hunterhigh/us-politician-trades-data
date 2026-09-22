@@ -18,7 +18,7 @@ from .oge_annual import _range
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
 PARSER_VERSION = "whitehouse-278e-positioned-text/v1"
-MAX_PDF_BYTES = 50 * 1024 * 1024
+MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SECTION = re.compile(r"^([1-9])\.\s+(Filer's Employment Assets|Spouse's Employment Assets|Other Assets and Income|Transactions|Liabilities|Gifts and Travel|Filer's Employment Agreements|Filer's Sources|Filer's Positions)", re.I)

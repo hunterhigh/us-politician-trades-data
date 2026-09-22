@@ -21,8 +21,11 @@ PAGE_URL = "https://www.whitehouse.gov/disclosures/"
 INDEX_SCHEMA = "whitehouse-public-disclosures-index/v1"
 PAGE_ARCHIVE_SCHEMA = "whitehouse-public-disclosures-page/v1"
 PDF_ARCHIVE_SCHEMA = "whitehouse-public-disclosures-pdf/v1"
+PDF_CHUNK_ARCHIVE_SCHEMA = "whitehouse-public-disclosures-chunked-pdf/v1"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
-MAX_PDF_BYTES = 50 * 1024 * 1024
+MAX_PDF_BYTES = 200 * 1024 * 1024
+MAX_SINGLE_FILE_BYTES = 40 * 1024 * 1024
+PDF_CHUNK_BYTES = 16 * 1024 * 1024
 _UPLOAD_PATH = re.compile(r"/wp-content/uploads/20\d{2}/(?:0[1-9]|1[0-2])/.+\.pdf", re.I)
 _ANNUAL = re.compile(r"\((20\d{2}) Annual\)$", re.I)
 _PRESIDENT_ANNUAL = re.compile(r"\s+(20\d{2}) Annual Report$", re.I)
@@ -254,18 +257,58 @@ def archive_public_index(root: Path, *, client: WhiteHouseDisclosureClient | Non
     return index
 
 
+def read_archived_pdf(root: Path, metadata: dict) -> bytes:
+    """Reassemble and hash-check original bytes from one evidence metadata row."""
+    if not isinstance(metadata, dict):
+        raise WhiteHouseDisclosureError("archived White House PDF metadata is invalid")
+    document_id = metadata.get("document_id")
+    sha = metadata.get("sha256")
+    if (not isinstance(document_id, str) or not re.fullmatch(r"wh-url:[0-9a-f]{24}", document_id) or
+            not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha) or
+            type(metadata.get("byte_length")) is not int or metadata["byte_length"] <= 0):
+        raise WhiteHouseDisclosureError("archived White House PDF identity is invalid")
+    base = Path(root).resolve()
+    folder = base / "whitehouse/disclosures/reports" / document_id.split(":", 1)[1]
+    if metadata.get("schema_version") == PDF_ARCHIVE_SCHEMA:
+        relative = (folder / f"{sha}.pdf").relative_to(base).as_posix()
+        if metadata.get("archive_path") != relative:
+            raise WhiteHouseDisclosureError("archived White House PDF path is invalid")
+        content = (base / relative).read_bytes()
+    elif metadata.get("schema_version") == PDF_CHUNK_ARCHIVE_SCHEMA:
+        chunks = metadata.get("chunks")
+        if not isinstance(chunks, list) or len(chunks) < 2:
+            raise WhiteHouseDisclosureError("archived White House PDF chunks are invalid")
+        parts = []
+        for number, chunk in enumerate(chunks):
+            relative = (folder / f"{sha}.part-{number:03d}.bin").relative_to(base).as_posix()
+            if (not isinstance(chunk, dict) or chunk.get("archive_path") != relative or
+                    not isinstance(chunk.get("sha256"), str) or
+                    not re.fullmatch(r"[0-9a-f]{64}", chunk["sha256"]) or
+                    type(chunk.get("byte_length")) is not int or
+                    not 1 <= chunk["byte_length"] <= PDF_CHUNK_BYTES):
+                raise WhiteHouseDisclosureError("archived White House PDF chunk metadata is invalid")
+            part = (base / relative).read_bytes()
+            if len(part) != chunk["byte_length"] or _sha(part) != chunk["sha256"]:
+                raise WhiteHouseDisclosureError("archived White House PDF chunk hash differs")
+            parts.append(part)
+        content = b"".join(parts)
+    else:
+        raise WhiteHouseDisclosureError("archived White House PDF schema is invalid")
+    if len(content) != metadata["byte_length"] or _sha(content) != sha:
+        raise WhiteHouseDisclosureError("archived White House PDF hash differs")
+    return content
+
+
 def _existing_pdfs(folder: Path, source_id: str, url: str) -> list[dict]:
     result = []
     for path in sorted(folder.glob("*.json")):
         record = json.loads(path.read_text(encoding="utf-8"))
         sha = record.get("sha256")
-        pdf = folder / f"{sha}.pdf"
-        if (record.get("schema_version") != PDF_ARCHIVE_SCHEMA or
-                record.get("document_id") != source_id or record.get("document_url") != url or
+        if (record.get("document_id") != source_id or record.get("document_url") != url or
                 not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha) or
-                path.name != f"{sha}.json" or not pdf.is_file() or
-                _sha(pdf.read_bytes()) != sha or pdf.stat().st_size != record.get("byte_length")):
+                path.name != f"{sha}.json"):
             raise WhiteHouseDisclosureError("archived White House PDF or metadata is invalid")
+        read_archived_pdf(folder.parents[3], record)
         result.append(record)
     return result
 
@@ -309,13 +352,13 @@ def archive_public_batch(root: Path, index: dict, *, limit: int,
             continue
         attempted += 1
         last_attempted_id = document_id
+        created_files: list[Path] = []
         try:
             content, headers = (client or WhiteHouseDisclosureClient()).download_pdf(url)
             sha = _sha(content)
-            pdf_path = folder / f"{sha}.pdf"
             metadata_path = folder / f"{sha}.json"
-            _write_once(pdf_path, content)
-            metadata = {"schema_version": PDF_ARCHIVE_SCHEMA,
+            metadata = {"schema_version": (PDF_ARCHIVE_SCHEMA if len(content) <= MAX_SINGLE_FILE_BYTES
+                                            else PDF_CHUNK_ARCHIVE_SCHEMA),
                         "source_id": "whitehouse_public_disclosures",
                         "document_id": document_id, "document_url": url,
                         "page_sha256": index["page_sha256"],
@@ -324,14 +367,33 @@ def archive_public_batch(root: Path, index: dict, *, limit: int,
                         "filer_name_from_label": row["filer_name_from_label"],
                         "report_year_from_label": row["report_year_from_label"],
                         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
-                        "sha256": sha, "byte_length": len(content), "headers": headers,
-                        "archive_path": pdf_path.relative_to(base).as_posix()}
+                        "sha256": sha, "byte_length": len(content), "headers": headers}
+            if len(content) <= MAX_SINGLE_FILE_BYTES:
+                pdf_path = folder / f"{sha}.pdf"
+                if not pdf_path.exists():
+                    created_files.append(pdf_path)
+                _write_once(pdf_path, content)
+                metadata["archive_path"] = pdf_path.relative_to(base).as_posix()
+            else:
+                chunks = []
+                for number, start in enumerate(range(0, len(content), PDF_CHUNK_BYTES)):
+                    part = content[start:start + PDF_CHUNK_BYTES]
+                    part_path = folder / f"{sha}.part-{number:03d}.bin"
+                    if not part_path.exists():
+                        created_files.append(part_path)
+                    _write_once(part_path, part)
+                    chunks.append({"archive_path": part_path.relative_to(base).as_posix(),
+                                   "sha256": _sha(part), "byte_length": len(part)})
+                metadata["chunks"] = chunks
             if metadata_path.exists():
                 old = json.loads(metadata_path.read_text(encoding="utf-8"))
                 # The same PDF can be relisted after page and label changes.
                 if any(old.get(key) != metadata[key] for key in
                        ("schema_version", "source_id", "document_id", "document_url",
-                        "sha256", "byte_length", "archive_path")):
+                        "sha256", "byte_length")):
+                    raise WhiteHouseDisclosureError("archived PDF metadata conflicts")
+                storage_keys = ("archive_path",) if metadata["schema_version"] == PDF_ARCHIVE_SCHEMA else ("chunks",)
+                if any(old.get(key) != metadata[key] for key in storage_keys):
                     raise WhiteHouseDisclosureError("archived PDF metadata conflicts")
                 metadata = old
             else:
@@ -339,6 +401,8 @@ def archive_public_batch(root: Path, index: dict, *, limit: int,
             archived.extend(record for record in existing if record["sha256"] != sha)
             archived.append(metadata)
         except (WhiteHouseDisclosureError, OSError) as exc:
+            for path in created_files:
+                path.unlink(missing_ok=True)
             archived.extend(existing)
             failures.append({"document_id": document_id, "document_url": url,
                              "reason": str(exc), "retryable": True})

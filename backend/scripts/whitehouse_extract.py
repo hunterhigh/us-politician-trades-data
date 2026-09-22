@@ -6,11 +6,11 @@ Each extraction is bound to the immutable PDF hash and parser version.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import re
 import sys
+import tempfile
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (
@@ -21,11 +21,13 @@ from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
     parse_whitehouse_278t_pdf,
 )
+from unison_snapshot.whitehouse_disclosures import (
+    PDF_ARCHIVE_SCHEMA, PDF_CHUNK_ARCHIVE_SCHEMA, read_archived_pdf,
+)
 
 
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 ID = re.compile(r"wh-url:([0-9a-f]{24})\Z")
-METADATA_SCHEMA = "whitehouse-public-disclosures-pdf/v1"
 STATUS_SCHEMA = "whitehouse-public-extraction-status/v1"
 FAILURE_SCHEMA = "whitehouse-public-extraction-failure/v1"
 
@@ -36,7 +38,7 @@ def _write(path: Path, value: dict) -> None:
                                separators=(",", ":")), encoding="utf-8")
 
 
-def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path]]:
+def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path | None]]:
     folder = evidence_root / "whitehouse/disclosures/reports"
     rows = []
     for metadata_path in sorted(folder.glob("*/*.json")):
@@ -44,17 +46,14 @@ def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path]]:
         document_id = metadata.get("document_id")
         sha = metadata.get("sha256")
         match = ID.fullmatch(document_id) if isinstance(document_id, str) else None
-        if (metadata.get("schema_version") != METADATA_SCHEMA or
+        if (metadata.get("schema_version") not in {PDF_ARCHIVE_SCHEMA, PDF_CHUNK_ARCHIVE_SCHEMA} or
                 metadata.get("source_id") != "whitehouse_public_disclosures" or
                 match is None or metadata_path.parent.name != match[1] or
                 not isinstance(sha, str) or not SHA.fullmatch(sha) or
                 metadata_path.name != f"{sha}.json"):
             raise ValueError(f"Invalid White House archive metadata: {metadata_path}")
-        pdf = metadata_path.with_suffix(".pdf")
-        if (not pdf.is_file() or pdf.stat().st_size != metadata.get("byte_length") or
-                metadata.get("archive_path") != pdf.relative_to(evidence_root).as_posix() or
-                hashlib.sha256(pdf.read_bytes()).hexdigest() != sha):
-            raise ValueError(f"White House PDF archive hash mismatch: {pdf}")
+        read_archived_pdf(evidence_root, metadata)
+        pdf = metadata_path.with_suffix(".pdf") if metadata["schema_version"] == PDF_ARCHIVE_SCHEMA else None
         rows.append((metadata, pdf))
     return sorted(rows, key=lambda item: (
         item[0].get("document_type_from_label") != "278t",
@@ -117,13 +116,20 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 raise ValueError("White House link has no filer name for PDF identity binding")
             common = {"source_url": metadata["document_url"],
                       "source_sha256": metadata["sha256"]}
-            if kind == "278t":
-                result = parse_whitehouse_278t_pdf(
-                    pdf, **common, document_id=metadata["document_id"],
-                    filer_name=name,
-                    amended_label=metadata.get("link_label"))
+            def parse(path: Path) -> dict:
+                if kind == "278t":
+                    return parse_whitehouse_278t_pdf(
+                        path, **common, document_id=metadata["document_id"],
+                        filer_name=name,
+                        amended_label=metadata.get("link_label"))
+                return extract_public_278e_pdf(path, **common, expected_filer=name)
+            if pdf is None:
+                with tempfile.TemporaryDirectory(prefix="whitehouse-pdf-") as temporary:
+                    assembled = Path(temporary) / "original.pdf"
+                    assembled.write_bytes(read_archived_pdf(evidence_root, metadata))
+                    result = parse(assembled)
             else:
-                result = extract_public_278e_pdf(pdf, **common, expected_filer=name)
+                result = parse(pdf)
             if (result.get("source_sha256") != metadata["sha256"] or
                     result.get("source_url") != metadata["document_url"] or
                     result.get("parser_version") != version):
