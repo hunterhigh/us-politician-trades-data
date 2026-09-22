@@ -22,7 +22,7 @@ jobs:
     if: github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Enforce scheduled publication switch
         if: github.event_name == 'schedule'
@@ -50,6 +50,8 @@ jobs:
           AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
           KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          TWELVE_AUTHORIZED: ${{ vars.TWELVE_DATA_DISTRIBUTION_AUTHORIZED }}
+          TWELVE_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           BATCH_SIZE: ${{ inputs.batch_size || vars.MARKET_BATCH_SIZE || '100' }}
         run: |
           test "$AUTHORIZED" = "true" || {
@@ -58,6 +60,10 @@ jobs:
           }
           test -n "$KEY_ID" && test -n "$SECRET_KEY" || {
             echo "Alpaca production credentials are not configured." >&2
+            exit 2
+          }
+          test "$TWELVE_AUTHORIZED" = "true" && test -n "$TWELVE_KEY" || {
+            echo "Twelve Data production authorization or credential is missing." >&2
             exit 2
           }
           case "$BATCH_SIZE" in *[!0-9]*) exit 2 ;; esac
@@ -112,6 +118,28 @@ jobs:
             --previous-market-root "$MARKET_ROOT" \
             --previous-market-commit "$MARKET_BASE" \
             --distribution-authorized
+      - name: Add licensed Twelve Data daily prices
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          PYTHONPATH: backend/src
+        run: |
+          checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot build-twelve-data-supplement \
+            --input "$RUNNER_TEMP/complete-candidate.json" \
+            --output "$RUNNER_TEMP/complete-candidate.json" \
+            --audit-output "$RUNNER_TEMP/twelve-audit.json" \
+            --processed-output "$RUNNER_TEMP/complete-processed.json" \
+            --html-output "$RUNNER_TEMP/complete-dashboard.html" \
+            --checked-at "$checked_at" --limit 10 \
+            --distribution-authorized
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          audit = json.loads((root / 'twelve-audit.json').read_text(encoding='utf-8'))
+          if audit['accepted_count'] < 1:
+              raise SystemExit('No qualified Twelve Data price series; preserving the last publication')
+          PY
       - name: Select fixed published readback probes
         id: probes
         run: |
@@ -119,12 +147,17 @@ jobs:
           import json, os
           candidate = json.load(open(os.environ['RUNNER_TEMP'] + '/complete-candidate.json'))
           covered = {row['ticker'] for row in candidate['security_market_data']}
+          twelve = sorted(row['ticker'] for row in candidate['security_market_data']
+                          if row['source_id'] == 'twelve_data_split_adjusted_eod')
+          if not twelve:
+              raise SystemExit('Twelve Data probe is missing from the candidate')
           transaction = next(
               row for row in candidate['transactions']
               if row.get('ticker') in covered)
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f"person_id={transaction['person_id']}\n")
               output.write(f"ticker={transaction['ticker']}\n")
+              output.write(f"twelve_ticker={twelve[0]}\n")
           PY
       - name: Verify complete candidate in the frozen browser frontend
         env:
@@ -211,6 +244,7 @@ jobs:
           EXPECTED_MAIN: ${{ steps.main.outputs.main_sha || steps.trees.outputs.main_base }}
           PERSON_ID: ${{ steps.probes.outputs.person_id }}
           TICKER: ${{ steps.probes.outputs.ticker }}
+          TWELVE_TICKER: ${{ steps.probes.outputs.twelve_ticker }}
           GITHUB_TOKEN: ${{ github.token }}
           PYTHONPATH: backend/src
         run: |
@@ -231,6 +265,7 @@ jobs:
           fetch_selection search '' "$RUNNER_TEMP/readback-search.json"
           fetch_selection person "$PERSON_ID" "$RUNNER_TEMP/readback-person.json"
           fetch_selection ticker "$TICKER" "$RUNNER_TEMP/readback-ticker.json"
+          fetch_selection ticker "$TWELVE_TICKER" "$RUNNER_TEMP/readback-twelve.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -240,14 +275,15 @@ jobs:
           expected = os.environ['EXPECTED_MAIN']
           person_id = os.environ['PERSON_ID']
           ticker = os.environ['TICKER']
+          twelve_ticker = os.environ['TWELVE_TICKER']
           values = {
               mode: json.loads((root / f'readback-{mode}.json').read_text(encoding='utf-8'))
-              for mode in ('dashboard', 'search', 'person', 'ticker')
+              for mode in ('dashboard', 'search', 'person', 'ticker', 'twelve')
           }
           for mode, value in values.items():
               if value['meta']['snapshot_commit'] != expected:
                   raise SystemExit(f'{mode} resolved an unexpected main commit')
-              if value['meta']['selection_scope']['mode'] != mode:
+              if value['meta']['selection_scope']['mode'] != ('ticker' if mode == 'twelve' else mode):
                   raise SystemExit(f'{mode} returned an unexpected selection scope')
           for mode in ('dashboard', 'search'):
               for key in ('people', 'transactions', 'reported_holdings',
@@ -261,8 +297,13 @@ jobs:
                   or not values['ticker']['transactions'] \
                   or not values['ticker']['security_market_data']:
               raise SystemExit('Published ticker readback is incomplete')
+          if values['twelve']['meta']['selection_scope']['key'] != twelve_ticker \
+                  or not any(row['ticker'] == twelve_ticker
+                             and row['source_id'] == 'twelve_data_split_adjusted_eod'
+                             for row in values['twelve']['security_market_data']):
+              raise SystemExit('Published Twelve Data ticker readback is incomplete')
 
-          renderer = load('render_dashboard')
+          renderer = load('render_dashboard', version='v2')
           html = renderer.render_html(renderer.load_dashboard_data(
               root / 'readback-dashboard.json'))
           (root / 'readback-dashboard.html').write_text(html, encoding='utf-8')
@@ -294,6 +335,8 @@ jobs:
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
           print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
+          twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
+          print(f"Twelve Data: {twelve['accepted_count']}/{twelve['attempted_count']} accepted in {twelve['request_count']} requests")
           PY
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, os
@@ -312,4 +355,6 @@ jobs:
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
           print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
+          twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
+          print(f"Twelve Data: {twelve['accepted_count']}/{twelve['attempted_count']} accepted in {twelve['request_count']} requests")
           PY
