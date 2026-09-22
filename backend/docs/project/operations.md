@@ -7,4 +7,4 @@
 - 记录预算、配额、昂贵操作和接近上限时的降级顺序
 - 定时任务必须能停止、重复执行安全并记录断点
 
-当前 House 生产运行以 `state/status/house_clerk.json` 和 `review/status/house_clerk.json` 为机器可读状态，旧文件名暂作兼容别名；来源归档每 6 小时运行，成功后自动触发复核队列。`main` 事实发布保持人工触发，回退通过新增恢复提交完成。详细操作见 `../../../docs/生产配置.md`、`../../../docs/House-PTR-增量运行.md` 和 `../../../docs/House-PTR-复核流程.md`。
+当前 House 生产运行以 `state/status/house_clerk.json` 和 `review/status/house_clerk.json` 为机器可读状态，旧文件名暂作兼容别名；来源归档每 6 小时运行，成功后自动触发资格队列。完整生产发布已配置工作日定时与手动触发，回退通过受控工作流新增恢复提交完成；修复后的连续定时成功仍待实际运行验证。详细操作与当前状态见 `../../../docs/生产配置.md`、`../../../docs/House-PTR-增量运行.md`、`../../../docs/实现状态与下一步.md`。
