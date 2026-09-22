@@ -14,6 +14,7 @@ import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -68,7 +69,7 @@ def _get_json(route: str, token: str) -> dict:
         try:
             with urllib.request.urlopen(request, timeout=45) as response:
                 return json.load(response)
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException) as exc:
             if attempt == 2:
                 raise RuntimeError(f"GitHub read failed: {route}: {exc}") from None
             time.sleep(0.5 * (attempt + 1))
@@ -144,7 +145,7 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
     extraction_paths = sorted(path for path in blobs if _EXTRACTION_PATH.fullmatch(path))
     selected = sorted(required | set(extraction_paths))
     contents = {}
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {pool.submit(_blob, blobs[path], token): path for path in selected}
         for future in as_completed(futures):
             contents[futures[future]] = future.result()
@@ -172,6 +173,8 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         audit_output.parent.mkdir(parents=True, exist_ok=True)
         audit_output.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     archived = [row for row in coverage_rows if row.get("archive_sha256_versions")]
+    extracted_ids = {item["document_id"] for item in extractions}
+    archived_not_extracted = [row for row in archived if row["document_id"] not in extracted_ids]
     eligible = [row for row in audit["reports"] if row["status"] == "eligible"]
     index_quarantine = [row for row in coverage.get("index_quarantine", [])
                         if "periodic transaction" in row.get("label", "").casefold()]
@@ -195,6 +198,9 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         "archived_278t_report_count": len(archived),
         "archived_278t_label_name_count": len(_names(archived, "filer_name_from_label")),
         "extracted_278t_report_count": len(extractions),
+        "archived_not_extracted_278t_report_count": len(archived_not_extracted),
+        "archived_not_extracted_278t_names": sorted(_names(
+            archived_not_extracted, "filer_name_from_label")),
         "pdf_filer_name_count": len(_names(extractions, "pdf_filer_name")),
         "eligible_report_count": audit["eligible_report_count"],
         "quarantined_report_count": audit["report_count"] - audit["eligible_report_count"],
