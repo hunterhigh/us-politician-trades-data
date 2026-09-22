@@ -4,6 +4,7 @@ All notable changes follow Semantic Versioning.
 
 ## Unreleased
 
+- Added a bounded official White House public-disclosures adapter and CLI with content-addressed HTML/PDF evidence, incremental retries, malformed-link quarantine, and a conservative OGE request-catalog crosswalk that never equates same-name links with verified reports.
 - Reuse hash-verified published Alpaca history for active symbols, compare a 45-day split-adjusted overlap, refetch changed symbols, and force a full refresh after prolonged gaps or 30 days.
 - Persist the market fetch window in the protected market branch and report incremental versus full-refresh counts in production runs.
 - Added direct public-GitHub frozen-commit reading for dashboard, search, person and ticker selections.
