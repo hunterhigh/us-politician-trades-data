@@ -27,6 +27,7 @@ SHA = re.compile(r"[0-9a-f]{64}\Z")
 ID = re.compile(r"wh-url:([0-9a-f]{24})\Z")
 METADATA_SCHEMA = "whitehouse-public-disclosures-pdf/v1"
 STATUS_SCHEMA = "whitehouse-public-extraction-status/v1"
+FAILURE_SCHEMA = "whitehouse-public-extraction-failure/v1"
 
 
 def _write(path: Path, value: dict) -> None:
@@ -77,6 +78,8 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     created = 0
     failures = []
     skipped = 0
+    known_failures = 0
+    recorded_failures = 0
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
@@ -85,6 +88,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
         target = (review_root / "whitehouse/extractions" /
                   metadata["document_id"].split(":", 1)[1] /
                   metadata["sha256"] / f"{suffix}.json")
+        failure_target = target.with_suffix(".failure.json")
         if target.is_file():
             existing = json.loads(target.read_text(encoding="utf-8"))
             if (existing.get("source_sha256") != metadata["sha256"] or
@@ -92,6 +96,16 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     existing.get("parser_version") != version):
                 raise ValueError(f"White House extraction evidence conflict: {target}")
             skipped += 1
+            continue
+        if failure_target.is_file():
+            prior = json.loads(failure_target.read_text(encoding="utf-8"))
+            if (prior.get("schema_version") != FAILURE_SCHEMA or
+                    prior.get("document_id") != metadata["document_id"] or
+                    prior.get("source_sha256") != metadata["sha256"] or
+                    prior.get("source_url") != metadata.get("document_url") or
+                    prior.get("parser_version") != version):
+                raise ValueError(f"White House extraction failure evidence conflict: {failure_target}")
+            known_failures += 1
             continue
         if attempted >= limit:
             continue
@@ -120,11 +134,24 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
             failures.append({"document_id": metadata["document_id"],
                              "sha256": metadata["sha256"],
                              "reason": str(exc)})
+            if not isinstance(exc, OSError):
+                _write(failure_target, {
+                    "schema_version": FAILURE_SCHEMA,
+                    "document_id": metadata["document_id"],
+                    "source_sha256": metadata["sha256"],
+                    "source_url": metadata["document_url"],
+                    "parser_version": version,
+                    "reason": str(exc),
+                    "status": "quarantined_until_parser_revision",
+                })
+                recorded_failures += 1
     return {"schema_version": STATUS_SCHEMA, "source_id": "whitehouse_public_disclosures",
             "archived_version_count": len(rows), "attempted_count": attempted,
             "last_attempted_id": last_attempted_id,
             "extraction_created_count": created, "existing_extraction_count": skipped,
-            "pending_count": len(rows) - skipped - created,
+            "existing_failure_count": known_failures,
+            "recorded_failure_count": recorded_failures,
+            "pending_count": len(rows) - skipped - created - known_failures - recorded_failures,
             "failure_count": len(failures), "failures": failures,
             "production_qualification": "not_attempted"}
 

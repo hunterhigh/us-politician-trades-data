@@ -76,9 +76,16 @@ class WhiteHouseExtractTests(unittest.TestCase):
             two = script.extract_batch(self.evidence, self.review, limit=1,
                                        start_after_id=one["last_attempted_id"])
         self.assertEqual(one["failure_count"], 1)
-        self.assertEqual(one["pending_count"], 2)
+        self.assertEqual(one["pending_count"], 1)
+        self.assertEqual(one["recorded_failure_count"], 1)
         self.assertEqual(two["last_attempted_id"], second["document_id"])
         self.assertEqual(two["extraction_created_count"], 1)
+        with patch.object(script, "parse_whitehouse_278t_pdf", side_effect=AssertionError(
+                "quarantined source must not be parsed again")):
+            settled = script.extract_batch(self.evidence, self.review, limit=1)
+        self.assertEqual(settled["attempted_count"], 0)
+        self.assertEqual(settled["existing_failure_count"], 1)
+        self.assertEqual(settled["pending_count"], 0)
 
 
 if __name__ == "__main__":
