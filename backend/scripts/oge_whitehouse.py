@@ -20,6 +20,7 @@ def main() -> None:
     annual.add_argument("--evidence-root", type=Path, required=True)
     annual.add_argument("--coverage", type=Path, required=True)
     annual.add_argument("--limit", type=int, default=2)
+    annual.add_argument("--start-after-id")
     annual.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "coverage":
@@ -27,7 +28,8 @@ def main() -> None:
                                        latest_catalog_metadata(args.evidence_root))
     else:
         catalog = json.loads(args.coverage.read_text(encoding="utf-8"))
-        result = archive_direct_annual_batch(args.evidence_root, catalog, limit=args.limit)
+        result = archive_direct_annual_batch(args.evidence_root, catalog, limit=args.limit,
+                                             start_after_id=args.start_after_id)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True,
                                      separators=(",", ":")), encoding="utf-8")

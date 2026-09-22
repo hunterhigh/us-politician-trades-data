@@ -36,6 +36,15 @@ class FakePdfClient:
         return b"%PDF-1.7\nexample\n%%EOF", {"content-type": "application/pdf"}
 
 
+class FailedPdfClient:
+    def __init__(self):
+        self.urls = []
+
+    def download(self, url):
+        self.urls.append(url)
+        raise OgeCatalogError("source unavailable")
+
+
 class WhiteHouseCoverageTests(unittest.TestCase):
     def setUp(self):
         self.rows = [
@@ -107,6 +116,24 @@ class WhiteHouseCoverageTests(unittest.TestCase):
             self.assertEqual(metadata["document_url"], DIRECT)
             self.assertIn("oge.box.com", metadata["retrieval_url"])
             self.assertIn("oge.nsf", metadata["source_announcement_url"])
+
+    def test_failed_batch_rotates_to_next_document(self):
+        second = DIRECT.replace("69AEAA9D7455ACD585258E27002DDEE1",
+                                "40CE0F66F853096985258E27002DDFBB")
+        rows = [self.rows[0], row("Vance, JD", "Office of the Vice President",
+                                  f"<a href='{second}'>Annual (2026)</a>")]
+        coverage = build_whitehouse_coverage([(0, page(rows))])
+        coverage["catalog_sha256"] = "cataloghash"
+        client = FailedPdfClient()
+        with tempfile.TemporaryDirectory() as temporary:
+            first = archive_direct_annual_batch(Path(temporary), coverage, limit=1, client=client)
+            second_batch = archive_direct_annual_batch(
+                Path(temporary), coverage, limit=1,
+                start_after_id=first["last_attempted_id"], client=client)
+        self.assertEqual(first["attempted_count"], 1)
+        self.assertEqual(second_batch["attempted_count"], 1)
+        self.assertNotEqual(first["last_attempted_id"], second_batch["last_attempted_id"])
+        self.assertEqual(len(set(client.urls)), 2)
 
     def test_workflow_keeps_originals_and_coverage_on_separate_branches(self):
         path = Path(__file__).resolve().parents[2] / ".github/workflows/oge-whitehouse.yml"

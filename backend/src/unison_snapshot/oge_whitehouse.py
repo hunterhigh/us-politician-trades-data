@@ -220,6 +220,7 @@ def _download_official_box(url: str, expected_sha: str) -> tuple[bytes, dict[str
 
 
 def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
+                                start_after_id: str | None = None,
                                 client: OgePdfClient | None = None) -> dict:
     """Archive catalog-linked annual PDFs; leave Form 201 rows untouched."""
     if coverage.get("schema_version") != SCHEMA or type(limit) is not int or limit < 0:
@@ -230,8 +231,14 @@ def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
         raise OgeCatalogError("White House annual direct IDs are duplicated")
     # Newest reports first; the catalog is an index, never a source of filing dates.
     direct.sort(key=lambda row: (row["report_year"] or 0, row["catalog_index"]), reverse=True)
+    if start_after_id:
+        for index, row in enumerate(direct):
+            if row["source_document_id"] == start_after_id:
+                direct = direct[index + 1:] + direct[:index + 1]
+                break
     base = root.resolve()
     attempted = 0
+    last_attempted_id = start_after_id
     archived = []
     failures = []
     for row in direct:
@@ -244,6 +251,7 @@ def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
         if attempted >= limit:
             continue
         attempted += 1
+        last_attempted_id = document_id
         try:
             retrieval_url = row["document_url"]
             announcement_url = None
@@ -291,6 +299,7 @@ def archive_direct_annual_batch(root: Path, coverage: dict, *, limit: int,
         "direct_count": len(direct),
         "request_required_count": coverage["counts"]["278e_annual"]["request_required"],
         "attempted_count": attempted,
+        "last_attempted_id": last_attempted_id,
         "archived_count": len(archived),
         "pending_count": len(direct) - len(archived),
         "reports": archived,

@@ -52,9 +52,18 @@ jobs:
             echo "OGE annual batch size must be between 1 and 12" >&2
             exit 2
           fi
+          cursor="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'oge-whitehouse-review/oge/whitehouse/archive-status.json'
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          print(value.get('last_attempted_id') or '')
+          PY
+          )"
           PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py archive-annual \
             --evidence-root "$EVIDENCE_ROOT" \
             --coverage .local/oge-whitehouse-coverage.json \
+            --start-after-id "$cursor" \
             --limit "$batch_size" --output .local/oge-annual-batch.json
       - name: Publish official annual originals
         env:
@@ -92,6 +101,7 @@ jobs:
               'direct_annual_archived': batch['archived_count'],
               'direct_annual_pending': batch['pending_count'],
               'direct_annual_failures': batch['failures'],
+              'last_attempted_id': batch['last_attempted_id'],
               'request_required_not_obtained': True,
               'candidate_integration_status': 'not_started',
           }, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
