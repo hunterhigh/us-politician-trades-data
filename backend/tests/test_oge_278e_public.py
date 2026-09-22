@@ -1,0 +1,157 @@
+"""Fail-closed extraction of public White House 278e cover and positioned rows."""
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from unison_snapshot.oge import OgeCatalogError
+from unison_snapshot.oge_278e_public import _cover, _parse_row, extract_public_278e_pdf
+
+
+def _cover_text(report: str, year: str = "", date_label: str = "Date of Appointment",
+                date_value: str = "01/22/2025", signature_date: str = "06/20/2026") -> str:
+    return ("OGE Form 278e\nPublic Financial Disclosure Report\n"
+            f"Report Type: {report} Report\nYear (Annual Report only): {year}\n"
+            f"{date_label}: {date_value}\nFiler's Information\n"
+            "Example, Ada\nAssistant to the President - White House\n"
+            "/s/ Example, Ada [electronically signed on " + signature_date +
+            " by Example, Ada in Integrity.gov]")
+
+
+class _Page:
+    def __init__(self, lines: list[str]):
+        self.lines = lines
+
+    def extract_text(self):
+        return "\n".join(self.lines)
+
+    def extract_text_lines(self):
+        return [{"text": line, "top": i * 10.0} for i, line in enumerate(self.lines)]
+
+    def extract_words(self):
+        words = []
+        for i, line in enumerate(self.lines):
+            if line.startswith("# DESCRIPTION EIF"):
+                tokens = [("#", 35), ("DESCRIPTION", 78), ("EIF", 383),
+                          ("VALUE", 469), ("INCOME", 556)]
+            elif line.startswith("# DESCRIPTION TYPE"):
+                tokens = [("#", 35), ("DESCRIPTION", 78), ("TYPE", 383),
+                          ("DATE", 469), ("AMOUNT", 556)]
+            elif line.startswith("1 SPY ETF Yes"):
+                tokens = [("1", 35), ("SPY", 78), ("ETF", 100), ("Yes", 383),
+                          ("$1,001", 469), ("-", 505), ("$15,000", 510)]
+            elif line.startswith("1 SPY ETF Purchase"):
+                tokens = [("1", 35), ("SPY", 78), ("ETF", 100), ("Purchase", 383),
+                          ("03/20/2025", 469), ("$1,001", 556), ("-", 591),
+                          ("$15,000", 602)]
+            elif line.startswith("2 QQQ ETF Sale"):
+                tokens = [("2", 35), ("QQQ", 78), ("ETF", 100), ("Sale", 383),
+                          ("-", 469), ("$1,001", 556), ("-", 591),
+                          ("$15,000", 602)]
+            else:
+                tokens = []
+            words.extend({"text": text, "x0": x, "top": i * 10.0}
+                         for text, x in tokens)
+        return words
+
+
+class _Document:
+    def __init__(self, pages):
+        self.pages = pages
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+
+class Public278eTests(unittest.TestCase):
+    def test_cover_separates_report_year_from_reporting_period(self):
+        annual = _cover(_cover_text("Annual", "2026"), "Ada Example")
+        self.assertEqual(annual["report_period_end"], "2025-12-31")
+        self.assertEqual(annual["holding_valuation_date"], "2025-12-31")
+        self.assertEqual(annual["filing_date"], "2026-06-20")
+        self.assertEqual(annual["position_title_raw"], "Assistant to the President")
+        self.assertEqual(annual["agency_office_raw"], "White House")
+        entrant = _cover(_cover_text("New Entrant", date_value="01/22/2025",
+                                    signature_date="05/13/2025"), "Ada Example")
+        self.assertEqual(entrant["appointment_date"], "2025-01-22")
+        self.assertIsNone(entrant["holding_valuation_date"])
+        term = _cover(_cover_text("Termination", date_label="Date of Termination",
+                                 date_value="01/02/2026", signature_date="12/18/2025"),
+                      "Ada Example")
+        self.assertEqual(term["termination_date"], "2026-01-02")
+        self.assertIsNone(term["holding_valuation_date"])
+
+    def test_signature_identity_is_required(self):
+        with self.assertRaises(OgeCatalogError):
+            _cover(_cover_text("Annual", "2026").replace("by Example, Ada", "by Someone Else"),
+                   "Ada Example")
+
+    def test_valued_parent_container_cannot_double_count_children(self):
+        meta = _cover(_cover_text("Annual", "2026"), "Ada Example")
+        row = {"section": "part2", "page_number": 3, "row_number": "1",
+               "owner": "Self", "description": ["IRA"], "eif": ["No"],
+               "value": ["$1,001", "-", "$15,000"]}
+        destination, result = _parse_row(row, meta, "1")
+        self.assertEqual(destination, "quarantined")
+        self.assertIn("nested_aggregate_may_double_count", result["reasons"])
+
+    def test_unknown_table_header_leaves_numbered_row_visible(self):
+        pages = [_Page(_cover_text("Annual", "2026").splitlines()),
+                 _Page(["2. Filer's Employment Assets & Income and Retirement Accounts",
+                        "BROKEN COLUMN HEADER", "1 SPY ETF Yes $1,001 - $15,000",
+                        "5. Spouse's Employment Assets & Income and Retirement Accounts", "None",
+                        "6. Other Assets and Income", "None",
+                        "7. Transactions", "None"])]
+        content = b"%PDF-1.7\nfixture\n%%EOF"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.pdf"
+            path.write_bytes(content)
+            with patch.dict(sys.modules, {"pdfplumber": type("PDFPlumber", (), {
+                    "open": staticmethod(lambda _: _Document(pages))})}):
+                result = extract_public_278e_pdf(
+                    path, source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
+                    source_sha256=hashlib.sha256(content).hexdigest(), expected_filer="Ada Example")
+        self.assertEqual(result["printed_row_count"], 1)
+        self.assertEqual(result["quarantined"][0]["reasons"], ["table_header_unrecognized"])
+        self.assertIn("table_header_unrecognized", result["document_reasons"])
+
+    def test_pdf_rows_reconcile_and_part7_is_never_promoted(self):
+        pages = [_Page(_cover_text("Annual", "2026").splitlines()),
+                 _Page(["2. Filer's Employment Assets & Income and Retirement Accounts",
+                        "# DESCRIPTION EIF VALUE INCOME TYPE INCOME AMOUNT",
+                        "1 SPY ETF Yes $1,001 - $15,000",
+                        "7. Transactions", "# DESCRIPTION TYPE DATE AMOUNT",
+                        "1 SPY ETF Purchase 03/20/2025 $1,001 - $15,000",
+                        "2 QQQ ETF Sale - $1,001 - $15,000"])]
+        content = b"%PDF-1.7\nfixture\n%%EOF"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.pdf"
+            path.write_bytes(content)
+            with patch.dict(sys.modules, {"pdfplumber": type("PDFPlumber", (), {
+                    "open": staticmethod(lambda _: _Document(pages))})}):
+                result = extract_public_278e_pdf(
+                    path, source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
+                    source_sha256=hashlib.sha256(content).hexdigest(), expected_filer="Ada Example")
+        self.assertEqual(result["printed_row_count"], 3)
+        self.assertEqual(len(result["holdings"]), 1)
+        self.assertEqual(result["holdings"][0]["owner"], "Self")
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertEqual(result["transactions"][0]["transaction_date"], "2025-03-20")
+        self.assertEqual(result["quarantined"][0]["reasons"],
+                         ["transaction_date_unreadable_or_outside_period"])
+        self.assertTrue(result["requires_cross_report_dedup"])
+        self.assertEqual(result["production_qualification"],
+                         "pending_identity_amendments_part7_dedup_and_quarantine")
+
+
+if __name__ == "__main__":
+    unittest.main()
