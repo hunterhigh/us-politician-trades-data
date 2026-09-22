@@ -7,6 +7,11 @@ on:
         description: Maximum Alpaca-unpriced tickers to check (1-758)
         required: true
         default: '30'
+      usage_only:
+        description: Check account capacity without auditing symbols
+        required: true
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: read
@@ -46,7 +51,27 @@ jobs:
           test -n "$ALPACA_KEY" && test -n "$ALPACA_SECRET" && test -n "$TWELVE_KEY"
           case "$LIMIT" in *[!0-9]*|'') exit 2 ;; esac
           test "$LIMIT" -ge 1 && test "$LIMIT" -le 758
+      - name: Check Twelve Data account capacity
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+        run: |
+          python - <<'PY' | tee "$GITHUB_STEP_SUMMARY"
+          import json, os, urllib.request
+          request=urllib.request.Request(
+              'https://api.twelvedata.com/api_usage',
+              headers={'Authorization': 'apikey '+os.environ['TWELVE_DATA_API_KEY'],
+                       'Accept': 'application/json'})
+          with urllib.request.urlopen(request, timeout=20) as response:
+              value=json.load(response)
+          fields=('plan_category','plan_limit','current_usage',
+                  'plan_daily_limit','daily_usage')
+          print('### Twelve Data account capacity')
+          for field in fields:
+              if field in value:
+                  print(f'- {field}: {value[field]}')
+          PY
       - name: Prepare fixed production trees
+        if: inputs.usage_only != true
         id: trees
         run: |
           git fetch --no-tags origin review main market
@@ -55,6 +80,7 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/market" origin/market
           echo "market_base=$(git -C "$RUNNER_TEMP/market" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Rebuild Alpaca candidate from licensed cache
+        if: inputs.usage_only != true
         env:
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
@@ -72,6 +98,7 @@ jobs:
             --previous-market-commit "$MARKET_BASE" \
             --distribution-authorized
       - name: Check Twelve Data without publication
+        if: inputs.usage_only != true
         env:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           PYTHONPATH: backend/src
@@ -85,6 +112,7 @@ jobs:
             --checked-at "$checked_at" --limit "$LIMIT" \
             --distribution-authorized
       - name: Summarize coverage
+        if: inputs.usage_only != true
         run: |
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, os
@@ -100,6 +128,7 @@ jobs:
           print('No market data was published by this run.')
           PY
       - uses: actions/upload-artifact@v4
+        if: inputs.usage_only != true
         with:
           name: twelve-data-coverage-audit
           path: ${{ runner.temp }}/twelve-audit.json
