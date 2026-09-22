@@ -98,7 +98,8 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
 
 def build_whitehouse_278t_review_candidate(
         base_oge_candidate: dict, extractions: list[dict], eligibility_audit: dict,
-        oge_whitehouse_coverage: dict, *, data_cutoff_at: str) -> tuple[dict, dict]:
+        oge_whitehouse_coverage: dict, *, data_cutoff_at: str,
+        annual_extractions: list[dict] | None = None) -> tuple[dict, dict]:
     """Return an append-only OGE review candidate and every source row's fate.
 
     The supplied audit is recomputed from these exact inputs to reject stale or
@@ -134,7 +135,8 @@ def build_whitehouse_278t_review_candidate(
     except ValueError as exc:
         raise OgeCatalogError(f"Existing OGE candidate is invalid: {exc}") from None
     expected_audit = audit_whitehouse_278t(
-        extractions, oge_whitehouse_coverage, base_oge_candidate)
+        extractions, oge_whitehouse_coverage, base_oge_candidate,
+        annual_extractions)
     if eligibility_audit != expected_audit:
         raise OgeCatalogError("White House 278-T qualification audit is stale or altered")
     if len(extractions) != expected_audit["report_count"]:
@@ -231,6 +233,7 @@ def build_whitehouse_278t_review_candidate(
     candidate["transactions"].extend(added_transactions)
     candidate["people"].sort(key=lambda row: row["id"])
     candidate["transactions"].sort(key=lambda row: row["id"])
+    candidate["source_health"].sort(key=lambda row: row["source_id"])
     total_rows = sum(row["source_row_count"] for row in audit_reports)
     promoted = sum(row["promoted_count"] for row in audit_reports)
     quarantined = sum(row["quarantined_count"] for row in audit_reports)

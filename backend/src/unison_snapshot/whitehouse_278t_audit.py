@@ -117,7 +117,8 @@ def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | No
 
 
 def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict,
-                          existing_oge_candidate: dict) -> dict:
+                          existing_oge_candidate: dict,
+                          annual_extractions: list[dict] | None = None) -> dict:
     """Assess each archived public PDF and row without modifying source data.
 
     The caller must provide a verified OGE coverage artifact and the current
@@ -162,6 +163,25 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
         if row.get("source_id") == "oge" and isinstance(row.get("person_id"), str):
             existing_keys.update(_trade_keys(row, row["person_id"]))
 
+    annual_keys = set()
+    for annual in annual_extractions or []:
+        if not isinstance(annual, dict) or not isinstance(annual.get("transactions"), list):
+            raise OgeCatalogError("White House annual dedup input is invalid")
+        filer = _first_last(annual.get("filer_name") or "")
+        if filer is None:
+            raise OgeCatalogError("White House annual dedup filer is missing")
+        for row in annual["transactions"]:
+            if not isinstance(row, dict):
+                raise OgeCatalogError("White House annual dedup row is invalid")
+            asset = _words(row.get("asset_name") or "")
+            if (asset and row.get("transaction_type") in {"purchase", "sale"} and
+                    _day(row.get("transaction_date")) is not None and
+                    type(row.get("amount_low")) is int and
+                    type(row.get("amount_high")) is int):
+                annual_keys.add((filer, row.get("owner"), row["transaction_type"],
+                                 row["transaction_date"], row["amount_low"],
+                                 row["amount_high"], asset))
+
     reports = []
     row_keys: dict[tuple, list[tuple[int, int]]] = defaultdict(list)
     for report in screened:
@@ -205,6 +225,14 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                 keys = _trade_keys(source_row, person_id)
                 if keys & existing_keys:
                     row_reasons.append("possible_existing_oge_transaction_duplicate")
+                filer = _first_last(report.get("pdf_filer_name") or "")
+                annual_common = (filer, source_row.get("transaction_type"),
+                                 source_row.get("transaction_date"),
+                                 source_row.get("amount_low"), source_row.get("amount_high"),
+                                 _words(source_row.get("asset_name") or ""))
+                if any((annual_common[0], owner, *annual_common[1:]) in annual_keys
+                       for owner in (source_row.get("owner"), "Unknown")):
+                    row_reasons.append("possible_annual_part7_transaction_duplicate")
                 for key in keys:
                     row_keys[key].append((len(reports), len(rows)))
             rows.append({"extraction_id": source_row.get("extraction_id"),
@@ -232,13 +260,16 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
         })
 
     for locations in row_keys.values():
-        if len({report_index for report_index, _ in locations}) <= 1:
+        if len(set(locations)) <= 1:
             continue
         for report_index, row_index in locations:
             row = reports[report_index]["rows"][row_index]
             row["status"] = "quarantined"
+            reason = ("possible_whitehouse_report_transaction_duplicate"
+                      if len({index for index, _ in locations}) > 1 else
+                      "possible_whitehouse_same_report_transaction_duplicate")
             row["reasons"] = sorted(set(row["reasons"] +
-                                        ["possible_whitehouse_report_transaction_duplicate"]))
+                                        [reason]))
     for report in reports:
         if report["status"] == "eligible" and not any(
                 row["status"] == "eligible" for row in report["rows"]):

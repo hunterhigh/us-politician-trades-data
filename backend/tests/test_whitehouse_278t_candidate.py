@@ -113,6 +113,15 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         self.assertIn("3 total OGE candidate transactions", candidate["source_health"][0]["detail"])
         self.assertIs(candidate["meta"]["is_demo"], False)
 
+    def test_existing_unsorted_health_is_canonicalized_for_publication(self):
+        base = _base()
+        extra = deepcopy(base["source_health"][0])
+        extra["source_id"] = "house_clerk"
+        base["source_health"].append(extra)
+        candidate, _ = _build(base)
+        self.assertEqual([row["source_id"] for row in candidate["source_health"]],
+                         ["house_clerk", "oge"])
+
     def test_existing_id_conflict_is_quarantined_without_overwrite(self):
         first, _ = _build()
         original = deepcopy(first["transactions"][0])

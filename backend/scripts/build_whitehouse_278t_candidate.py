@@ -26,6 +26,8 @@ from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
+                                             SCHEMA as ANNUAL_SCHEMA)
 
 
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -48,7 +50,7 @@ def _json_bytes(value: dict) -> bytes:
                        allow_nan=False) + "\n").encode("utf-8")
 
 
-def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[list[dict], dict, dict]:
+def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[list[dict], list[dict], dict, dict]:
     coverage, coverage_sha = _read_object(review_root / "whitehouse/coverage-current.json")
     status, status_sha = _read_object(review_root / "whitehouse/extraction-status.json")
     oge_coverage, oge_coverage_sha = _read_object(
@@ -119,7 +121,32 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         "whitehouse_extraction_set_sha256": hashlib.sha256(
             "\n".join(manifest).encode("utf-8")).hexdigest(),
     }
-    return extractions, oge_coverage, provenance
+    annual_extractions = []
+    annual_manifest = []
+    for row in coverage["reports"]:
+        if (not isinstance(row, dict) or
+                not str(row.get("document_type_from_label", "")).startswith("278e_") or
+                row.get("review_state") not in {"extracted_review_only", "extracted_with_issues"}):
+            continue
+        document_id = row.get("document_id")
+        match = _DOCUMENT.fullmatch(document_id) if isinstance(document_id, str) else None
+        versions = row.get("archive_sha256_versions")
+        if (match is None or not isinstance(versions, list) or len(versions) != 1 or
+                not isinstance(versions[0], str) or not _SHA256.fullmatch(versions[0])):
+            raise ValueError("White House annual dedup source is not uniquely archived")
+        relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+                    f"{ANNUAL_PARSER.replace('/', '-')}.json")
+        annual, raw_sha = _read_object(review_root / relative)
+        if (annual.get("schema_version") != ANNUAL_SCHEMA or
+                annual.get("parser_version") != ANNUAL_PARSER or
+                annual.get("source_url") != row.get("document_url") or
+                annual.get("source_sha256") != versions[0]):
+            raise ValueError("White House annual dedup extraction is not bound to its PDF")
+        annual_extractions.append(annual)
+        annual_manifest.append(f"{relative.as_posix()} {raw_sha}")
+    provenance["whitehouse_annual_dedup_set_sha256"] = hashlib.sha256(
+        "\n".join(sorted(annual_manifest)).encode("utf-8")).hexdigest()
+    return extractions, annual_extractions, oge_coverage, provenance
 
 
 def _stage(path: Path, content: bytes) -> Path:
@@ -157,7 +184,7 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
         raise ValueError("Expected White House report count must be positive")
-    extractions, oge_coverage, provenance = _verify_review(
+    extractions, annual_extractions, oge_coverage, provenance = _verify_review(
         review_root, expected_report_count=expected_report_count)
     base, base_sha = _read_object(oge_candidate)
     if any(urlsplit(row.get("source_url") or "").hostname in
@@ -174,10 +201,11 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         return {"idempotent": True, "report_count": prior["report_count"],
                 "promoted_transaction_count": prior["promoted_transaction_count"],
                 "quarantined_row_count": prior["quarantined_row_count"]}
-    eligibility = audit_whitehouse_278t(extractions, oge_coverage, base)
+    eligibility = audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions)
     candidate, conservation = build_whitehouse_278t_review_candidate(
         base, extractions, eligibility, oge_coverage,
-        data_cutoff_at=base["meta"]["data_cutoff_at"])
+        data_cutoff_at=base["meta"]["data_cutoff_at"],
+        annual_extractions=annual_extractions)
     normalized = normalize(candidate, allow_production=True,
                            allow_market=bool(candidate["security_market_data"]))
     if normalized != candidate:

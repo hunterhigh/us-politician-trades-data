@@ -118,6 +118,36 @@ class WhiteHouse278TAuditTests(unittest.TestCase):
         result = audit_whitehouse_278t([one, two], catalog(), candidate())
         self.assertEqual(result["eligible_row_count"], 2)
 
+    def test_same_report_duplicate_rows_are_quarantined(self):
+        source = extraction()
+        duplicate = deepcopy(source["transactions"][0])
+        duplicate["extraction_id"] = "oge-278t:" + "f" * 24
+        duplicate["row_number"] = 2
+        source["transactions"].append(duplicate)
+        result = audit_whitehouse_278t([source], catalog(), candidate())
+        self.assertEqual(result["eligible_row_count"], 0)
+        self.assertTrue(all("possible_whitehouse_same_report_transaction_duplicate"
+                            in row["reasons"] for row in result["reports"][0]["rows"]))
+
+    def test_annual_part7_match_is_quarantined_but_different_trade_remains(self):
+        source = extraction()
+        other = deepcopy(source["transactions"][0])
+        other["extraction_id"] = "oge-278t:" + "f" * 24
+        other["row_number"] = 2
+        other["amount_low"] = 50001
+        other["amount_high"] = 100000
+        source["transactions"].append(other)
+        annual = {"filer_name": "Susie Wiles", "transactions": [{
+            "owner": "Unknown", "asset_name": "Procter & Gamble Co.",
+            "transaction_type": "sale", "transaction_date": "2025-06-09",
+            "amount_low": 15001, "amount_high": 50000,
+        }]}
+        result = audit_whitehouse_278t([source], catalog(), candidate(), [annual])
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertIn("possible_annual_part7_transaction_duplicate",
+                      result["reports"][0]["rows"][0]["reasons"])
+        self.assertEqual(result["reports"][0]["rows"][1]["status"], "eligible")
+
     def test_tampered_transaction_fields_cannot_become_eligible(self):
         source = extraction()
         source["transactions"][0]["transaction_date"] = "2025-06-14"
