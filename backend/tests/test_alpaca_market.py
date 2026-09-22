@@ -51,8 +51,8 @@ class FakeMarketClient:
     def assets(self):
         return self.asset_response
 
-    def daily_bars(self, symbols, *, start, end):
-        self.calls.append((symbols, start, end))
+    def daily_bars(self, symbols, *, start, end, asof=None):
+        self.calls.append((symbols, start, end, asof))
         return {symbol: self.response[symbol] for symbol in symbols if symbol in self.response}
 
 
@@ -282,6 +282,25 @@ class AlpacaMarketTests(unittest.TestCase):
             validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"],
             [{"ticker": "MISSING", "reason": "outside_sip_not_listed"}],
         )
+        self.assertEqual(client.calls[-1][3], "-")
+
+    def test_historical_sip_bars_recover_symbol_missing_from_current_assets(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][1].update(
+            ticker="OLD", transaction_date="2024-08-01",
+            asset_name="Historical Stock (OLD)")
+        client = FakeMarketClient({
+            "ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}],
+            "OLD": [{"t": "2024-08-01T04:00:00Z", "c": 25}],
+        }, assets=[asset("ZZDEMO")])
+        validation = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(
+            {row["ticker"] for row in validation.snapshot["security_market_data"]},
+            {"OLD", "ZZDEMO"})
+        self.assertEqual(client.calls[-1][3], "-")
+        self.assertEqual(validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"], [])
 
     def test_ignores_non_authoritative_asset_rows_but_keeps_required_symbols_fail_closed(self):
         snapshot = production_candidate()

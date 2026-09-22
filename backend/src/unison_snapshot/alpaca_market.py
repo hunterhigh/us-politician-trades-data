@@ -161,7 +161,7 @@ class AlpacaMarketClient:
         return payload
 
     def daily_bars(self, symbols: list[str], *, start: datetime, end: datetime,
-                   max_pages: int = 500) -> dict[str, list[dict]]:
+                   max_pages: int = 500, asof: str | None = None) -> dict[str, list[dict]]:
         if not symbols:
             return {}
         parameters = {
@@ -174,6 +174,10 @@ class AlpacaMarketClient:
             "sort": "asc",
             "limit": "10000",
         }
+        if asof is not None:
+            if asof != "-" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", asof):
+                raise AlpacaMarketError("Invalid historical symbol asof date")
+            parameters["asof"] = asof
         result: dict[str, list[dict]] = defaultdict(list)
         seen_tokens: set[str] = set()
         for _ in range(max_pages):
@@ -379,11 +383,11 @@ def _market_universe(symbols: list[str], contexts: dict[str, list[dict]],
                                    "asset_status": asset["status"],
                                    "exchange": asset["exchange"]})
             continue
-        # Alpaca defines /v2/assets as the master list available for trading and
-        # data consumption.  Once explicit symbol variants and filing-derived
-        # non-equity classes have been considered, absence from that complete
-        # authenticated list is a deterministic outside-SIP classification.
-        unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
+        # The current asset master is not a complete historical symbol master.
+        # Query historical SIP bars before declaring a former listing unavailable.
+        supported.append({"ticker": ticker, "provider_symbol": ticker,
+                          "mapping_basis": "historical_symbol_probe",
+                          "asset_status": "not_listed", "exchange": "unknown"})
     return supported, unsupported, unresolved
 
 
@@ -423,6 +427,22 @@ def _market_row(ticker: str, name: str, bars: list[dict], start_day: date,
         "adjustment": ADJUSTMENT,
         "price_history": history,
     }
+
+
+def _historical_bar_matches_disclosure(history: list[dict], contexts: list[dict]) -> bool:
+    """Avoid attaching a reused old symbol to an unrelated disclosed company."""
+    bar_days = {date.fromisoformat(point["date"]) for point in history}
+    for row in contexts:
+        value = row.get("transaction_date") or row.get("report_period_end")
+        if not value:
+            continue
+        try:
+            disclosed_day = date.fromisoformat(str(value)[:10])
+        except ValueError:
+            raise AlpacaMarketError(f"Invalid disclosure date for {row.get('ticker')}") from None
+        if any(abs((bar_day - disclosed_day).days) <= 10 for bar_day in bar_days):
+            return True
+    return False
 
 
 def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
@@ -474,19 +494,34 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                 disclosure_days.append(date.fromisoformat(str(row.get(field) or "")[:10]))
             except ValueError:
                 raise AlpacaMarketError(f"Invalid {field}: {row.get(field)}") from None
+    for row in normalized_snapshot.get("reported_holdings", []):
+        if row.get("ticker") in supported_tickers:
+            try:
+                disclosure_days.append(date.fromisoformat(str(row.get("report_period_end") or "")[:10]))
+            except ValueError:
+                raise AlpacaMarketError(
+                    f"Invalid report_period_end: {row.get('report_period_end')}") from None
     start_day = min([_lookback_start(requested_as_of), *disclosure_days]) - timedelta(days=7)
     start = datetime.combine(start_day, time(), timezone.utc)
     end = _request_end(requested_as_of, checked)
     rows: list[dict] = []
     missing: list[dict] = []
-    for offset in range(0, len(supported), batch_size):
-        batch_entries = supported[offset:offset + batch_size]
+    current_entries = [entry for entry in supported if entry["asset_status"] != "not_listed"]
+    historical_entries = [entry for entry in supported if entry["asset_status"] == "not_listed"]
+    for group, historical_probe in ((current_entries, False), (historical_entries, True)):
+      for offset in range(0, len(group), batch_size):
+        batch_entries = group[offset:offset + batch_size]
         batch = [row["provider_symbol"] for row in batch_entries]
-        received = client.daily_bars(batch, start=start, end=end)
+        received = client.daily_bars(
+            batch, start=start, end=end,
+            asof="-" if historical_probe else None)
         for entry in batch_entries:
             ticker = entry["ticker"]
             bars = received.get(entry["provider_symbol"], [])
             if not bars:
+                if entry["asset_status"] == "not_listed":
+                    unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
+                    continue
                 if entry["asset_status"] == "inactive":
                     unsupported.append({
                         "ticker": ticker,
@@ -498,6 +533,10 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                                 "exchange": entry["exchange"], "reason": "no_bars_returned"})
                 continue
             market_row = _market_row(ticker, names[ticker], bars, start_day, requested_as_of)
+            if entry["asset_status"] == "not_listed" and not _historical_bar_matches_disclosure(
+                    market_row["price_history"], contexts[ticker]):
+                unsupported.append({"ticker": ticker, "reason": "outside_sip_not_listed"})
+                continue
             last_day = date.fromisoformat(market_row["price_history"][-1]["date"])
             if entry["asset_status"] == "active" \
                     and last_day < requested_as_of - timedelta(days=MAX_ACTIVE_STALENESS_DAYS):
@@ -548,6 +587,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
             key=lambda row: row["ticker"]),
     }
 
+    historical_tickers = {entry["ticker"] for entry in historical_entries}
     audit = {
         "schema_version": AUDIT_SCHEMA,
         "source_id": SOURCE_ID,
@@ -561,6 +601,8 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "symbol_count": len(symbols),
         "requested_tickers": symbols,
         "supported_ticker_count": len(supported),
+        "historical_recovered_count": sum(
+            row["ticker"] in historical_tickers for row in rows),
         "supported_tickers": supported,
         "unsupported_ticker_count": len(unsupported),
         "unsupported_tickers": unsupported,

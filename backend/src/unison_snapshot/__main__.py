@@ -564,6 +564,7 @@ def main() -> None:
                 args.html_output.write_text(html, encoding="utf-8")
             print(json.dumps({"symbols": audit["symbol_count"],
                               "market_rows": audit["market_row_count"],
+                              "historical_recovered": audit["historical_recovered_count"],
                               "missing_tickers": audit["missing_ticker_count"],
                               "unsupported_tickers": audit["unsupported_ticker_count"],
                               "unresolved_tickers": audit["unresolved_ticker_count"],

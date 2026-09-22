@@ -19,13 +19,16 @@ concurrency:
 
 jobs:
   publish:
-    if: >-
-      github.ref == 'refs/heads/code' &&
-      (github.event_name == 'workflow_dispatch' || vars.COMPLETE_PUBLICATION_ENABLED == 'true')
+    if: github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Enforce scheduled publication switch
+        if: github.event_name == 'schedule'
+        env:
+          ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
+        run: test "$ENABLED" = "true"
       - uses: actions/checkout@v7
         with:
           ref: code
@@ -275,6 +278,7 @@ jobs:
           print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
           print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
           print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
+          print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
           print(f"Price points: {audit['price_point_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
@@ -289,6 +293,7 @@ jobs:
           print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
           print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
           print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
+          print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
           print(f"Price points: {audit['price_point_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")

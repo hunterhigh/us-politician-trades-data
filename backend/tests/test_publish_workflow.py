@@ -25,7 +25,9 @@ class PublishWorkflowTests(unittest.TestCase):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
             encoding="utf-8")
         bootstrap = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
-        self.assertIn("vars.COMPLETE_PUBLICATION_ENABLED == 'true'", complete)
+        self.assertIn("ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}", complete)
+        self.assertIn('if: github.event_name == \'schedule\'', complete)
+        self.assertIn('run: test "$ENABLED" = "true"', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
 
