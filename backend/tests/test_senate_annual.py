@@ -11,6 +11,7 @@ from unison_snapshot.senate_annual import (
     DISCOVERY_SCHEMA, build_annual_review, extract_annual, overlay_annual_candidate,
     parse_annual_search_page, _json,
 )
+from unison_snapshot.senate import SenateEfdError
 from tests.test_senate_identity import member, roster
 
 
@@ -61,6 +62,28 @@ class SenateAnnualTests(unittest.TestCase):
                          ["eligible", "excluded"])
         self.assertEqual((parsed["rows"][0]["ticker"], parsed["rows"][0]["value_low"]),
                          ("ACME", 1001))
+
+    def test_formal_filer_matches_catalog_when_heading_uses_nickname(self):
+        raw = annual_html().replace(
+            b"Senator Ada Example (Example, Ada)",
+            b"The Honorable Ada B Example (Example, Addie)")
+        metadata = {"schema_version": "senate-efd-annual-archive/v1",
+                    "document_id": "11111111-1111-1111-1111-111111111111",
+                    "document_url": "https://efdsearch.senate.gov/search/view/annual/"
+                                    "11111111-1111-1111-1111-111111111111/",
+                    "source_sha256": hashlib.sha256(raw).hexdigest(),
+                    "byte_length": len(raw), "filer_name": "Ada B Example",
+                    "report_year": 2025, "amendment_number": 0,
+                    "portal_listed_date": "2026-05-01"}
+        self.assertEqual(extract_annual(metadata, raw)["row_count"], 2)
+        mismatched = {**metadata, "filer_name": "Bea B Example"}
+        with self.assertRaisesRegex(SenateEfdError, "conflicts with its catalog"):
+            extract_annual(mismatched, raw)
+        wrong_surname = raw.replace(b"(Example, Addie)", b"(Elsewhere, Addie)")
+        wrong_metadata = {**metadata, "source_sha256": hashlib.sha256(wrong_surname).hexdigest(),
+                          "byte_length": len(wrong_surname)}
+        with self.assertRaisesRegex(SenateEfdError, "conflicts with its catalog"):
+            extract_annual(wrong_metadata, wrong_surname)
 
     def test_latest_complete_amendment_replaces_original(self):
         with tempfile.TemporaryDirectory() as folder:

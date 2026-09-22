@@ -28,7 +28,7 @@ from .senate_reports import _report_parser
 SCHEMA = "senate-efd-annual-review/v1"
 DISCOVERY_SCHEMA = "senate-efd-annual-discovery/v1"
 EXTRACTION_SCHEMA = "senate-efd-annual-extraction/v1"
-PARSER_VERSION = "senate-efd-annual-html-2026-09-v1"
+PARSER_VERSION = "senate-efd-annual-html-2026-09-v2"
 MAX_HTML_BYTES = 25 * 1024 * 1024
 _URL_PREFIX = "https://efdsearch.senate.gov/search/view/annual/"
 _LABEL = re.compile(r"Annual Report for CY (20\d{2})(?: \(Amendment ([1-9]\d*)\))?")
@@ -213,11 +213,6 @@ def archive_selected_annuals(client: SenateEfdClient, evidence_root: Path,
             "failures": failures, "pending_document_ids": pending}
 
 
-def _first_last(value: str) -> tuple[str, str] | None:
-    words = _without_suffix(_words(value))
-    return (words[0], words[-1]) if len(words) >= 2 else None
-
-
 def extract_annual(metadata: dict, raw: bytes) -> dict:
     if (metadata.get("schema_version") != "senate-efd-annual-archive/v1" or
             hashlib.sha256(raw).hexdigest() != metadata.get("source_sha256") or
@@ -232,11 +227,17 @@ def extract_annual(metadata: dict, raw: bytes) -> dict:
     headings = [text for tag, text in parsed.headings if tag == "h2"]
     if len(headings) != 1 or "(" not in headings[0] or ")" not in headings[0]:
         raise SenateEfdError("Senate annual filer heading is missing")
-    heading_name = headings[0].rsplit("(", 1)[1].rstrip(") ")
+    formal_name, heading_name = headings[0].rsplit("(", 1)
+    heading_name = heading_name.rstrip(") ")
     if "," not in heading_name:
         raise SenateEfdError("Senate annual filer heading changed")
     surname, given = heading_name.split(",", 1)
-    if _first_last(given.strip() + " " + surname.strip()) != _first_last(metadata["filer_name"]):
+    formal_name = re.sub(r"^(?:Mr\.|Mrs\.|Ms\.|The Honorable|Senator)\s+", "",
+                         formal_name.strip())
+    catalog_words = _without_suffix(_words(metadata["filer_name"]))
+    formal_words = _without_suffix(_words(formal_name))
+    if (len(catalog_words) < 2 or formal_words != catalog_words or
+            _words(surname) != (catalog_words[-1],) or not _words(given)):
         raise SenateEfdError("Senate annual PDF filer conflicts with its catalog")
     filed = [text for text in parsed.text_segments if
              re.fullmatch(r"Filed \d{2}/\d{2}/\d{4} @ .+", text)]
