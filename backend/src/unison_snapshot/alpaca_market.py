@@ -445,6 +445,26 @@ def _historical_bar_matches_disclosure(history: list[dict], contexts: list[dict]
     return False
 
 
+def _historical_bars_with_rejected_symbols(
+        client: AlpacaMarketClient, symbols: list[str], *, start: datetime,
+        end: datetime) -> tuple[dict[str, list[dict]], list[str]]:
+    """Isolate symbols rejected by Alpaca without discarding valid batch peers."""
+    try:
+        return client.daily_bars(symbols, start=start, end=end, asof="-"), []
+    except AlpacaMarketError as error:
+        if str(error) != "Alpaca HTTP 400":
+            raise
+        if len(symbols) == 1:
+            return {}, symbols
+        middle = len(symbols) // 2
+        first, first_rejected = _historical_bars_with_rejected_symbols(
+            client, symbols[:middle], start=start, end=end)
+        second, second_rejected = _historical_bars_with_rejected_symbols(
+            client, symbols[middle:], start=start, end=end)
+        first.update(second)
+        return first, first_rejected + second_rejected
+
+
 def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
                             checked_at: str, as_of_date: str | None = None,
                             batch_size: int = 50,
@@ -508,13 +528,22 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     missing: list[dict] = []
     current_entries = [entry for entry in supported if entry["asset_status"] != "not_listed"]
     historical_entries = [entry for entry in supported if entry["asset_status"] == "not_listed"]
+    rejected_historical_symbols: list[str] = []
+    if historical_entries:
+        # A 400 here means the query format itself is rejected, not a bad filing
+        # symbol.  Do not misclassify every historical symbol as unsupported.
+        client.daily_bars(
+            ["AAPL"], start=end - timedelta(days=30), end=end, asof="-")
     for group, historical_probe in ((current_entries, False), (historical_entries, True)):
       for offset in range(0, len(group), batch_size):
         batch_entries = group[offset:offset + batch_size]
         batch = [row["provider_symbol"] for row in batch_entries]
-        received = client.daily_bars(
-            batch, start=start, end=end,
-            asof="-" if historical_probe else None)
+        if historical_probe:
+            received, rejected = _historical_bars_with_rejected_symbols(
+                client, batch, start=start, end=end)
+            rejected_historical_symbols.extend(rejected)
+        else:
+            received = client.daily_bars(batch, start=start, end=end)
         for entry in batch_entries:
             ticker = entry["ticker"]
             bars = received.get(entry["provider_symbol"], [])
@@ -603,6 +632,7 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
         "supported_ticker_count": len(supported),
         "historical_recovered_count": sum(
             row["ticker"] in historical_tickers for row in rows),
+        "historical_rejected_symbols": sorted(rejected_historical_symbols),
         "supported_tickers": supported,
         "unsupported_ticker_count": len(unsupported),
         "unsupported_tickers": unsupported,

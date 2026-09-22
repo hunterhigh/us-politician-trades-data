@@ -302,6 +302,33 @@ class AlpacaMarketTests(unittest.TestCase):
         self.assertEqual(client.calls[-1][3], "-")
         self.assertEqual(validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"], [])
 
+    def test_historical_batch_isolates_rejected_symbol(self):
+        snapshot = production_candidate()
+        snapshot["transactions"][1].update(
+            ticker="OLD", transaction_date="2024-08-01")
+        extra = deepcopy(snapshot["transactions"][1])
+        extra.update(id="rejected-row", ticker="BAD^", asset_name="Bad Symbol")
+        snapshot["transactions"].append(extra)
+
+        class RejectingClient(FakeMarketClient):
+            def daily_bars(self, symbols, *, start, end, asof=None):
+                if "BAD^" in symbols:
+                    raise AlpacaMarketError("Alpaca HTTP 400")
+                return super().daily_bars(symbols, start=start, end=end, asof=asof)
+
+        client = RejectingClient({
+            "ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}],
+            "OLD": [{"t": "2024-08-01T04:00:00Z", "c": 25}],
+        }, assets=[asset("ZZDEMO")])
+        validation = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(validation.audit["historical_rejected_symbols"], ["BAD^"])
+        self.assertEqual(validation.audit["historical_recovered_count"], 1)
+        self.assertIn(
+            {"ticker": "BAD^", "reason": "outside_sip_not_listed"},
+            validation.snapshot["meta"]["market_coverage"]["unsupported_tickers"])
+
     def test_ignores_non_authoritative_asset_rows_but_keeps_required_symbols_fail_closed(self):
         snapshot = production_candidate()
         malformed = {
