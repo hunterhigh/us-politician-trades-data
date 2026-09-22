@@ -15,7 +15,14 @@ def _base():
     return {
         "meta": {"is_demo": False, "data_cutoff_at": "2025-06-01T00:00:00Z"},
         "people": [], "transactions": [], "reported_holdings": [],
-        "security_market_data": [], "source_health": [],
+        "security_market_data": [], "source_health": [{
+            "source_id": "oge", "source": "U.S. Office of Government Ethics",
+            "source_type": "official_disclosure", "source_url": "https://www.oge.gov/",
+            "status": "partial", "last_checked_at": "2025-06-01T00:00:00Z",
+            "last_successful_sync_at": "2025-06-01T00:00:00Z",
+            "data_cutoff_at": "2025-06-01T00:00:00Z",
+            "detail": "0 direct 278-T entries; 0 transactions qualified",
+        }],
     }
 
 
@@ -99,8 +106,11 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         self.assertTrue(all(set(item) == FIELDS["transactions"]
                             for item in candidate["transactions"]))
         self.assertTrue(all(set(item) == FIELDS["people"] for item in candidate["people"]))
-        for name in ("reported_holdings", "security_market_data", "source_health"):
+        for name in ("reported_holdings", "security_market_data"):
             self.assertEqual(candidate[name], base[name])
+        self.assertEqual(len(candidate["source_health"]), 1)
+        self.assertIn("3 new transactions qualified", candidate["source_health"][0]["detail"])
+        self.assertIn("3 total OGE candidate transactions", candidate["source_health"][0]["detail"])
         self.assertIs(candidate["meta"]["is_demo"], False)
 
     def test_existing_id_conflict_is_quarantined_without_overwrite(self):

@@ -125,8 +125,8 @@ def build_whitehouse_278t_review_candidate(
            for row in base_oge_candidate[name]):
         raise OgeCatalogError("White House 278-T requires an OGE-only disclosure candidate")
     # Validate the existing OGE source independently.  The result is discarded
-    # so original people, transactions, holdings, market facts and health stay
-    # byte-for-byte unchanged in the returned candidate.
+    # so original people, transactions, holdings and market facts stay
+    # unchanged. Only the OGE health detail is expanded with exact new counts.
     try:
         normalize(base_oge_candidate, allow_production=True,
                   allow_empty_production=True,
@@ -236,6 +236,16 @@ def build_whitehouse_278t_review_candidate(
     quarantined = sum(row["quarantined_count"] for row in audit_reports)
     if promoted + quarantined != total_rows:
         raise OgeCatalogError("White House 278-T row conservation failed")
+    oge_health = [row for row in candidate["source_health"] if row.get("source_id") == "oge"]
+    if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
+        raise OgeCatalogError("White House 278-T requires one existing OGE source health record")
+    prior_detail = oge_health[0]["detail"]
+    oge_health[0]["detail"] = (
+        f"Prior direct OGE status: {prior_detail}; "
+        f"White House public 278-T: {len(audit_reports)} PDFs audited, "
+        f"{promoted} new transactions qualified, {quarantined} rows quarantined; "
+        f"{len(candidate['transactions'])} total OGE candidate transactions."
+    )
     return candidate, {
         "schema_version": SCHEMA, "source_id": "oge",
         "catalog_sha256": expected_audit["catalog_sha256"],
