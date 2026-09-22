@@ -97,8 +97,14 @@ def normalize(payload: dict, *, allow_production: bool = False,
             if not demo:
                 source_url = urlsplit(required(row, "source_url"))
                 host = source_url.hostname or ""
+                # The White House hosts original OGE forms as PDFs, while the
+                # frozen consumer contract still identifies their authority as OGE.
+                white_house_oge_pdf = (source_id == "oge" and host == "www.whitehouse.gov"
+                                       and source_url.path.startswith("/wp-content/uploads/")
+                                       and source_url.path.lower().endswith(".pdf"))
                 official_host = host in SOURCE_HOSTS.get(source_id, set()) \
-                    or (source_id == "oge" and (host == "oge.gov" or host.endswith(".oge.gov")))
+                    or (source_id == "oge" and (host == "oge.gov" or host.endswith(".oge.gov"))) \
+                    or white_house_oge_pdf
                 if source_url.scheme != "https" or source_url.username or source_url.password or not official_host:
                     raise ValueError("Production disclosure source_url must use its allowlisted official host")
             event_date = date.fromisoformat(required(row, day_field))

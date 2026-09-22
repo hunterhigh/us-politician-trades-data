@@ -104,6 +104,30 @@ class ProducerTests(unittest.TestCase):
         self.assertFalse(bundle.manifest["is_demo"])
         self.assertEqual(bundle.manifest["coverage"]["publication_state"], "bootstrap_empty")
 
+    def test_official_white_house_oge_pdf_url_is_admitted(self):
+        data = deepcopy(self.data)
+        data["meta"]["is_demo"] = False
+        hosts = {"house_clerk": "disclosures-clerk.house.gov",
+                 "senate_efd": "efdsearch.senate.gov"}
+        for row in data["transactions"] + data["reported_holdings"]:
+            row["verification_status"] = "official_matched"
+            row["source_url"] = f"https://{hosts[row['source_id']]}/{row['filing_id']}"
+        for row in data["source_health"]:
+            if row["status"] == "simulated":
+                row["status"] = "ok"
+        row = data["transactions"][0]
+        row["source_id"] = "oge"
+        row["source_url"] = "https://www.whitehouse.gov/wp-content/uploads/2026/09/example-278t.pdf"
+        build(data, generated_at=NOW, allow_production=True)
+        for url in ("http://www.whitehouse.gov/example.pdf",
+                    "https://www.whitehouse.gov/disclosures/",
+                    "https://www.whitehouse.gov.evil.example/example.pdf",
+                    "https://www.whitehouse.gov@evil.example/example.pdf"):
+            with self.subTest(url=url):
+                row["source_url"] = url
+                with self.assertRaisesRegex(ValueError, "allowlisted official host"):
+                    build(data, generated_at=NOW, allow_production=True)
+
     def test_licensed_market_requires_commit_and_is_sharded_from_entities(self):
         data = deepcopy(self.data)
         data["meta"]["is_demo"] = False
