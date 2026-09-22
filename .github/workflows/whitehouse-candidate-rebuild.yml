@@ -1,0 +1,92 @@
+name: Rebuild White House OGE review candidate from archived evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild-review:
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check bounded archived-source run
+        run: |
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+      - name: Install producer
+        run: python -m pip install -e backend
+      - name: Prepare fixed review tree
+        run: |
+          git fetch --no-tags origin review
+          git worktree add --detach "$RUNNER_TEMP/whitehouse-candidate-review" FETCH_HEAD
+      - name: Rebuild complete OGE and unified review candidates
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
+          PYTHONPATH: backend/src
+        run: |
+          python backend/scripts/build_whitehouse_278t_candidate.py \
+            --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --review-root "$REVIEW_ROOT" \
+            --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
+          for source_id in house_clerk senate_efd; do
+            candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
+            if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
+          done
+          python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
+          python -m unison_snapshot verify-first-launch \
+            --review-root "$REVIEW_ROOT" \
+            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/whitehouse-release-readiness.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT'])
+          candidate = json.loads((root / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
+          audit = json.loads((root / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
+          path = root / 'status/oge.json'
+          status = json.loads(path.read_text(encoding='utf-8'))
+          direct_count = status.get('oge_direct_qualified_transaction_count', status['qualified_transaction_count'])
+          direct_quarantined = status.get('oge_direct_quarantined_row_count', status['quarantined_row_count'])
+          if len(candidate['transactions']) != direct_count + audit['promoted_transaction_count']:
+              raise SystemExit('OGE and White House transaction counts do not reconcile')
+          status['oge_direct_qualified_transaction_count'] = direct_count
+          status['oge_direct_quarantined_row_count'] = direct_quarantined
+          status['whitehouse_public_qualified_transaction_count'] = audit['promoted_transaction_count']
+          status['qualified_transaction_count'] = len(candidate['transactions'])
+          status['quarantined_row_count'] = direct_quarantined + audit['quarantined_row_count']
+          path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True,
+                                     separators=(',', ':')), encoding='utf-8')
+          PY
+      - name: Publish verified review candidate
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
+        run: |
+          git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications status/oge.json status/disclosure_cutoff.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: White House OGE candidate ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi

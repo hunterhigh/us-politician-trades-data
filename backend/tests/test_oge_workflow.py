@@ -58,6 +58,18 @@ class OgeWorkflowTests(unittest.TestCase):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
             self.assertIn("candidates/sources/oge-current.json", content)
 
+    def test_archived_whitehouse_candidate_rebuild_is_manual_and_review_only(self):
+        content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("workflow_dispatch:", content)
+        self.assertNotIn("  schedule:", content)
+        self.assertIn("group: disclosure-source-writer", content)
+        self.assertIn("environment: production", content)
+        self.assertIn("python backend/scripts/build_whitehouse_278t_candidate.py", content)
+        self.assertIn("python -m unison_snapshot verify-first-launch", content)
+        self.assertIn("git -C \"$REVIEW_ROOT\" push origin HEAD:refs/heads/review", content)
+        self.assertNotIn("HEAD:refs/heads/main", content)
+
 
 if __name__ == "__main__":
     unittest.main()
