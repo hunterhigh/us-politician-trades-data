@@ -14,7 +14,9 @@ from .codec import bucket, digest, encode
 
 
 SOURCE_ID = "alpaca_sip_eod"
+TWELVE_DATA_SOURCE_ID = "twelve_data_split_adjusted_eod"
 MARKET_COVERAGE_SCHEMA = "alpaca-market-coverage/v1"
+MIXED_MARKET_COVERAGE_SCHEMA = "mixed-market-coverage/v2"
 UNSUPPORTED_REASONS = frozenset({
     "non_equity_debt",
     "outside_sip_foreign_exchange",
@@ -24,6 +26,9 @@ UNSUPPORTED_REASONS = frozenset({
     "outside_sip_otc",
     "private_entity",
 })
+MIXED_UNSUPPORTED_REASONS = UNSUPPORTED_REASONS | {
+    "twelve_data_unavailable", "identity_unresolved", "not_market_security",
+}
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 MUTABLE = re.compile(r"market/[0-9a-f]{2}/index\.json")
 IMMUTABLE = re.compile(r"(?:market/[0-9a-f]{2}|market-pages)/[0-9a-f]{64}\.json")
@@ -76,12 +81,16 @@ def validate_market_rows(rows: object, *, data_cutoff_at: str) -> list[dict]:
         if not TICKER.fullmatch(ticker) or ticker in seen:
             raise ValueError("Market tickers must be unique normalized symbols")
         seen.add(ticker)
-        if row.get("source_id") != SOURCE_ID or row.get("feed") != "sip" \
+        source_id = row.get("source_id")
+        expected_feed = {SOURCE_ID: "sip", TWELVE_DATA_SOURCE_ID: "twelve_data"}.get(source_id)
+        if expected_feed is None or row.get("feed") != expected_feed \
                 or row.get("timeframe") != "1Day" or row.get("adjustment") != "split":
-            raise ValueError(f"Market row {ticker} is not licensed Alpaca SIP split-adjusted EOD")
+            raise ValueError(f"Market row {ticker} has an invalid source or price basis")
         parsed_url = urlsplit(str(row.get("source_url") or ""))
+        allowed_hosts = ({"alpaca.markets", "docs.alpaca.markets"}
+                         if source_id == SOURCE_ID else {"twelvedata.com"})
         if parsed_url.scheme != "https" or parsed_url.username or parsed_url.password \
-                or parsed_url.hostname not in {"alpaca.markets", "docs.alpaca.markets"}:
+                or parsed_url.hostname not in allowed_hosts:
             raise ValueError(f"Market row {ticker} requires an allowlisted HTTPS source URL")
         history = row.get("price_history")
         if not isinstance(history, list) or not history:
@@ -181,7 +190,10 @@ def build_market_bundle(rows: object, *, data_cutoff_at: str,
         files[f"market-pages/{sha}.json"] = content
         page_shas.append(sha)
     if audit is not None:
-        files[CACHE_WINDOW] = _cache_window(audit, normalized)
+        # The incremental cache belongs only to Alpaca. Twelve Data rows share
+        # the published market branch but never inherit Alpaca's feed metadata.
+        alpaca_rows = [row for row in normalized if row["source_id"] == SOURCE_ID]
+        files[CACHE_WINDOW] = _cache_window(audit, alpaca_rows)
     return MarketBundle(files, tuple(row["ticker"] for row in normalized),
                         tuple(page_shas), data_cutoff_at)
 
@@ -237,8 +249,13 @@ def load_published_market_cache(main_root: Path, market_root: Path,
         if len(normalized) != 1 or normalized[0]["ticker"] != ticker:
             raise ValueError(f"Published market cache row is invalid for {ticker}")
         rows[ticker] = normalized[0]
-    if manifest.get("coverage", {}).get("market_ticker_count") != len(rows):
+    total = manifest.get("coverage", {}).get("market_ticker_count")
+    if type(total) is not int or total < len(rows):
         raise ValueError("Published market cache count does not match main")
+    if total > len(rows) and not any(
+            item.get("source_id") == TWELVE_DATA_SOURCE_ID
+            for item in manifest.get("source_health", [])):
+        raise ValueError("Published market cache has unexplained non-Alpaca rows")
     return PublishedMarketCache(rows, start, as_of, mappings, full_refresh)
 
 

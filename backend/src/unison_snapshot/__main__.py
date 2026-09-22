@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 
 from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_validation
+from .twelve_data_market import TwelveDataClient, TwelveDataError, supplement as supplement_twelve_data
 from .builder import build
 from .codec import digest, encode
 from .materialize import materialize
@@ -195,6 +196,16 @@ def main() -> None:
     market_validation.add_argument("--previous-main-root", type=Path)
     market_validation.add_argument("--previous-market-root", type=Path)
     market_validation.add_argument("--previous-market-commit")
+    twelve_market = sub.add_parser("build-twelve-data-supplement")
+    twelve_market.add_argument("--input", type=Path, required=True)
+    twelve_market.add_argument("--output", type=Path, required=True)
+    twelve_market.add_argument("--audit-output", type=Path, required=True)
+    twelve_market.add_argument("--processed-output", type=Path)
+    twelve_market.add_argument("--html-output", type=Path)
+    twelve_market.add_argument("--checked-at")
+    twelve_market.add_argument("--limit", type=int)
+    twelve_market.add_argument("--key-env", default="TWELVE_DATA_API_KEY")
+    twelve_market.add_argument("--distribution-authorized", action="store_true")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -536,6 +547,39 @@ def main() -> None:
                               "reported_holdings": len(result["reported_holdings"]),
                               "output": str(args.output.resolve()),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
+        elif args.command == "build-twelve-data-supplement":
+            if not args.distribution_authorized:
+                raise TwelveDataError("Twelve Data distribution authorization is required")
+            checked_at = args.checked_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            payload = json.loads(args.input.read_text(encoding="utf-8"))
+            client = TwelveDataClient(os.environ.get(args.key_env, ""))
+            result, audit = supplement_twelve_data(payload, client=client,
+                                                   checked_at=checked_at, limit=args.limit)
+            result["meta"].update(generated_at=checked_at,
+                                  snapshot_id="prepublication-validation")
+            version = ("v2" if audit["accepted_count"] else "v1")
+            processor = load("process_snapshot", version=version)
+            processor.build_snapshot(result)
+            identity = deepcopy(result)
+            identity["meta"].pop("snapshot_id", None)
+            result["meta"]["snapshot_id"] = digest(encode(identity))
+            processed = processor.build_snapshot(result)
+            audit = dict(audit, candidate_snapshot_id=result["meta"]["snapshot_id"],
+                         candidate_sha256=digest(encode(result)))
+            _write_atomic(args.output, result)
+            _write_atomic(args.audit_output, audit)
+            if args.processed_output:
+                _write_atomic(args.processed_output, processed)
+            if args.html_output:
+                renderer = load("render_dashboard", version=version)
+                html = renderer.render_html(renderer.load_dashboard_data(args.output))
+                args.html_output.parent.mkdir(parents=True, exist_ok=True)
+                args.html_output.write_text(html, encoding="utf-8")
+            print(json.dumps({"attempted": audit["attempted_count"],
+                              "accepted": audit["accepted_count"],
+                              "remaining": audit["remaining_count"],
+                              "requests": audit["request_count"],
+                              "output": str(args.output.resolve())}))
         elif args.command == "build-alpaca-market-validation":
             checked_at = args.checked_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             payload = json.loads(args.input.read_text(encoding="utf-8"))
