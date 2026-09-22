@@ -44,7 +44,7 @@ class TwelveDataInvalidSeries(TwelveDataError):
 
 class TwelveDataClient:
     def __init__(self, key: str, *, timeout: float = 30, retries: int = 3,
-                 opener=urlopen, sleeper=time.sleep, pace_seconds: float = 0.25,
+                 opener=urlopen, sleeper=time.sleep, pace_seconds: float = 8.5,
                  monotonic=time.monotonic):
         if not key or key.lower() == "demo":
             raise TwelveDataError("A production TWELVE_DATA_API_KEY is required")

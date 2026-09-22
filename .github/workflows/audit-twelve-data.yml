@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: Maximum Alpaca-unpriced tickers to check (1-758)
+        description: Maximum Alpaca-unpriced tickers to check (1-100)
         required: true
         default: '30'
       usage_only:
@@ -50,7 +50,7 @@ jobs:
           test "$ALPACA_AUTHORIZED" = true && test "$TWELVE_AUTHORIZED" = true
           test -n "$ALPACA_KEY" && test -n "$ALPACA_SECRET" && test -n "$TWELVE_KEY"
           case "$LIMIT" in *[!0-9]*|'') exit 2 ;; esac
-          test "$LIMIT" -ge 1 && test "$LIMIT" -le 758
+          test "$LIMIT" -ge 1 && test "$LIMIT" -le 100
       - name: Check Twelve Data account capacity
         env:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
