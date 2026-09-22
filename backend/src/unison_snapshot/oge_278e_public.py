@@ -320,6 +320,9 @@ def extract_public_278e_pdf(pdf_path: Path, *, source_url: str, source_sha256: s
         for part in ("part2", "part5", "part6"):
             if section_pages[part] == 0:
                 document_reasons.append(f"asset_section_missing:{part}")
+            elif (part not in explicit_empty and
+                  not any(row["section"] == part for row in raw_rows + unparsed_rows)):
+                document_reasons.append(f"asset_section_unreconciled:{part}")
         if unparsed_rows:
             document_reasons.append("table_header_unrecognized")
         if meta["report_type"] in {"Annual", "Termination", "Annual Term"} and (
@@ -335,6 +338,7 @@ def extract_public_278e_pdf(pdf_path: Path, *, source_url: str, source_sha256: s
                 "source_id": "whitehouse_public", "form_type": "278e",
                 "source_url": source_url, "source_sha256": source_sha256,
                 **meta, "page_count": len(document.pages), "section_pages": section_pages,
+                "explicit_empty_sections": sorted(explicit_empty),
                 "printed_row_count": len(raw_rows) + len(unparsed_rows), "holdings": holdings,
                 "transactions": transactions, "excluded": excluded,
                 "quarantined": quarantined, "document_reasons": document_reasons,
