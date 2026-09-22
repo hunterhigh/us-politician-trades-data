@@ -143,6 +143,11 @@ jobs:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
         run: |
           python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT"
+      - name: Index filer-reported rows independently of frontend eligibility
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
+        run: |
+          python backend/scripts/build_whitehouse_reported_index.py --review-root "$REVIEW_ROOT"
       - name: Publish bounded review audit
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
