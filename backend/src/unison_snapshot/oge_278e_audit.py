@@ -10,7 +10,8 @@ from datetime import date, datetime
 import re
 from urllib.parse import urlsplit
 
-from .oge_278e_public import PARSER_VERSION, SCHEMA, _SIGNATURE, _name_key
+from .oge_278e_public import (PARSER_VERSION, SCHEMA, _SIGNATURE, _explicit_part6_owner,
+                               _name_key)
 from .oge_annual import _VALUE_RANGES
 
 
@@ -38,6 +39,32 @@ def _signature_date(value: str) -> date | None:
         return datetime.strptime(value, "%m/%d/%Y").date()
     except ValueError:
         return None
+
+
+def _part6_owner_evidence_valid(row: dict) -> bool:
+    evidence = row.get("owner_evidence")
+    if not isinstance(evidence, list) or not evidence:
+        return False
+    for item in evidence:
+        if not isinstance(item, dict) or item.get("owner") != row.get("owner") or (
+                type(item.get("page_number")) is not int or item["page_number"] <= 0 or
+                not isinstance(item.get("row_number"), str) or
+                not isinstance(item.get("text"), str)):
+            return False
+        if item.get("basis") == "explicit_part6_parent_account":
+            if (_explicit_part6_owner(item["text"]) != row["owner"] or
+                    not row.get("row_number", "").startswith(item["row_number"] + ".")):
+                return False
+        elif item.get("basis") == "explicit_part6_endnote":
+            label = {"Spouse": r"Spousal asset", "Dependent Child": r"Dependent child asset",
+                     "Self": r"Filer(?:'s|’s) asset"}.get(row["owner"])
+            if (label is None or item["row_number"] != row.get("row_number") or
+                    not re.match(r"^6\.\s+" + re.escape(item["row_number"]) +
+                                 r"\s+" + label + r"\.", item["text"], re.I)):
+                return False
+        else:
+            return False
+    return True
 
 
 def audit_public_278e(extraction: dict) -> dict:
@@ -168,6 +195,10 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_row_evidence_invalid")
         if row.get("owner") not in _OWNERS:
             reasons.append("holding_owner_not_disclosed")
+        elif ((row.get("section") == "part2" and row["owner"] != "Self") or
+              (row.get("section") == "part5" and row["owner"] != "Spouse") or
+              (row.get("section") == "part6" and not _part6_owner_evidence_valid(row))):
+            reasons.append("holding_owner_evidence_invalid")
         low, high = row.get("value_low"), row.get("value_high")
         if type(low) is not int or type(high) is not int or (low, high) not in _VALUE_RANGES:
             reasons.append("holding_value_band_invalid")

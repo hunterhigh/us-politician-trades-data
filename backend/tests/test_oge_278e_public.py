@@ -11,7 +11,8 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278e_public import _cover, _parse_row, extract_public_278e_pdf
+from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _parse_row,
+                                              extract_public_278e_pdf)
 
 
 def _cover_text(report: str, year: str = "", date_label: str = "Date of Appointment",
@@ -94,6 +95,43 @@ class Public278eTests(unittest.TestCase):
         with self.assertRaises(OgeCatalogError):
             _cover(_cover_text("Annual", "2026").replace("by Example, Ada", "by Someone Else"),
                    "Ada Example")
+
+    def test_part6_owner_requires_explicit_parent_or_exact_endnote(self):
+        def row(number, description, value=None):
+            return {"section": "part6", "page_number": 4, "row_number": number,
+                    "owner": "Unknown", "description": description.split(), "eif": ["N/A"],
+                    "value": value.split() if value else []}
+        rows = [row("1", "Child Brokerage 1"),
+                row("1.1", "SPY ETF", "$1,001 - $15,000"),
+                row("2", "Joint Brokerage Account #2"),
+                row("2.1", "QQQ ETF", "$1,001 - $15,000"),
+                row("3", "Brokerage Account #3"),
+                row("3.1", "Cash", "$1,001 - $15,000"),
+                row("4", "xAI See Endnote", "Over $1,000,000")]
+        pages = [_Page(["Endnotes", "6. 4 Spousal asset. Recused from this asset.",
+                        "Summary of Contents"])]
+        _assign_part6_owners(rows, pages)
+        self.assertEqual(rows[1]["owner"], "Dependent Child")
+        self.assertEqual(rows[1]["owner_evidence"][0]["row_number"], "1")
+        self.assertEqual(rows[3]["owner"], "Joint")
+        self.assertEqual(rows[5]["owner"], "Unknown")
+        self.assertEqual(rows[6]["owner"], "Spouse")
+        self.assertEqual(rows[6]["owner_evidence"][0]["basis"], "explicit_part6_endnote")
+
+    def test_conflicting_part6_owner_evidence_is_quarantined(self):
+        parent = {"section": "part6", "page_number": 4, "row_number": "2",
+                  "owner": "Unknown", "description": "Joint Brokerage Account #2".split(),
+                  "eif": ["No"], "value": []}
+        child = {"section": "part6", "page_number": 4, "row_number": "2.1",
+                 "owner": "Unknown", "description": ["QQQ", "ETF"], "eif": ["Yes"],
+                 "value": ["$1,001", "-", "$15,000"]}
+        _assign_part6_owners([parent, child], [_Page([
+            "Endnotes", "6. 2.1 Spousal asset. Conflicting note.", "Summary of Contents"])])
+        self.assertEqual(child["owner"], "Unknown")
+        destination, result = _parse_row(child, _cover(_cover_text("Annual", "2026"),
+                                                      "Ada Example"), None)
+        self.assertEqual(destination, "quarantined")
+        self.assertIn("owner_evidence_conflicts", result["reasons"])
 
     def test_valued_parent_container_cannot_double_count_children(self):
         meta = _cover(_cover_text("Annual", "2026"), "Ada Example")

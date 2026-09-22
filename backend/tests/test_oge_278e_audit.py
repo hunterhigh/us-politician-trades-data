@@ -55,6 +55,20 @@ class Public278eAuditTests(unittest.TestCase):
         self.assertEqual(audit["holding_row_audit"][0]["reasons"],
                          ["holding_owner_not_disclosed"])
 
+    def test_part6_owner_requires_traceable_account_evidence(self):
+        extraction = _annual()
+        extraction["explicit_empty_sections"] = ["part2", "part5", "part7"]
+        row = extraction["holdings"][0]
+        row.update(section="part6", row_number="2.1", owner="Joint")
+        self.assertIn("holding_owner_evidence_invalid",
+                      audit_public_278e(extraction)["holding_row_audit"][0]["reasons"])
+        row["owner_evidence"] = [{"owner": "Joint", "basis": "explicit_part6_parent_account",
+                                  "page_number": 3, "row_number": "2",
+                                  "text": "Joint Brokerage Account #2"}]
+        audit = audit_public_278e(extraction)
+        self.assertTrue(audit["source_holdings_eligible"])
+        self.assertEqual(audit["source_candidate_holding_count"], 1)
+
     def test_part7_dedup_and_transaction_quarantine_do_not_erase_clean_asset_row(self):
         extraction = _annual()
         extraction["printed_row_count"] = 2

@@ -17,7 +17,7 @@ from .oge_annual import _range
 
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
-PARSER_VERSION = "whitehouse-278e-positioned-text/v1"
+PARSER_VERSION = "whitehouse-278e-positioned-text/v2"
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
@@ -141,9 +141,78 @@ def _append_line(row: dict, line_words: list[dict], columns: dict[str, float]) -
 
 
 def _quarantine(row: dict, reasons: list[str]) -> dict:
-    return {"section": row["section"], "page_number": row["page_number"],
+    result = {"section": row["section"], "page_number": row["page_number"],
             "row_number": row["row_number"], "raw_columns": row["raw_columns"],
+            "owner": row.get("owner", "Unknown"),
+            "owner_evidence": row.get("owner_evidence"),
             "reasons": sorted(set(reasons))}
+    if row.get("owner_evidence_conflict"):
+        result["owner_evidence_conflict"] = row["owner_evidence_conflict"]
+    return result
+
+
+def _explicit_part6_owner(description: str) -> str | None:
+    """Only account headings that themselves state the beneficiary/ownership."""
+    if re.fullmatch(r"Joint Brokerage Account #\d+", description, re.I):
+        return "Joint"
+    if re.fullmatch(r"Child Brokerage \d+", description, re.I):
+        return "Dependent Child"
+    return None
+
+
+def _part6_endnote_owners(pages: list[object]) -> dict[str, list[dict]]:
+    """Bind explicit ownership labels to exact Part 6 row numbers only."""
+    found: dict[str, list[dict]] = {}
+    in_endnotes = False
+    for page_number, page in enumerate(pages, 1):
+        for line in (page.extract_text() or "").splitlines():
+            line = _compact(line)
+            if line == "Endnotes":
+                in_endnotes = True
+                continue
+            if line == "Summary of Contents":
+                return found
+            if not in_endnotes:
+                continue
+            match = re.match(r"^6\.\s+([1-9]\d*(?:\.\d+)*)\s+"
+                             r"(Spousal asset|Dependent child asset|Filer(?:'s|’s) asset)\.\s*", line, re.I)
+            if match:
+                owner = {"spousal asset": "Spouse", "dependent child asset": "Dependent Child",
+                         "filer's asset": "Self", "filer’s asset": "Self"}[match[2].casefold()]
+                found.setdefault(match[1], []).append({
+                    "owner": owner, "basis": "explicit_part6_endnote",
+                    "page_number": page_number, "row_number": match[1], "text": line})
+    return found
+
+
+def _assign_part6_owners(raw_rows: list[dict], pages: list[object]) -> None:
+    parents: dict[str, dict] = {}
+    for row in raw_rows:
+        if row["section"] != "part6":
+            continue
+        description = _compact(" ".join(row["description"]))
+        owner = _explicit_part6_owner(description)
+        if owner:
+            parents[row["row_number"]] = {
+                "owner": owner, "basis": "explicit_part6_parent_account",
+                "page_number": row["page_number"], "row_number": row["row_number"],
+                "text": description}
+    endnotes = _part6_endnote_owners(pages)
+    for row in raw_rows:
+        if row["section"] != "part6":
+            continue
+        number = row["row_number"]
+        candidates = list(endnotes.get(number, []))
+        candidates += [evidence for parent, evidence in parents.items()
+                       if number.startswith(parent + ".")]
+        if not candidates:
+            continue
+        owners = {evidence["owner"] for evidence in candidates}
+        if len(owners) == 1:
+            row["owner"] = owners.pop()
+            row["owner_evidence"] = candidates
+        else:
+            row["owner_evidence_conflict"] = candidates
 
 
 def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, dict]:
@@ -153,6 +222,8 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, di
     evidence = {"section": row["section"], "page_number": row["page_number"],
                 "row_number": row["row_number"], "asset_name": cells.get("description", ""),
                 "owner": row["owner"], "raw_columns": cells}
+    if row.get("owner_evidence"):
+        evidence["owner_evidence"] = row["owner_evidence"]
     if row["section"] == "part7":
         kind = cells.get("type", "").casefold()
         when = _date(cells.get("date", ""))
@@ -181,6 +252,8 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, di
         return "excluded", {**evidence, "reason": "no_disclosed_period_end_value"}
     band = _range(value_text)
     reasons = []
+    if row.get("owner_evidence_conflict"):
+        reasons.append("owner_evidence_conflicts")
     if band is None:
         reasons.append("holding_value_unreadable_or_open")
     if "see endnote" in evidence["asset_name"].casefold() or "see endnote" in cells.get("eif", "").casefold():
@@ -303,6 +376,7 @@ def extract_public_278e_pdf(pdf_path: Path, *, source_url: str, source_sha256: s
         for row in raw_rows:
             key = row["section"], row["row_number"]
             counts[key] = counts.get(key, 0) + 1
+        _assign_part6_owners(raw_rows, document.pages)
         for row in raw_rows:
             key = row["section"], row["row_number"]
             if counts[key] > 1:
