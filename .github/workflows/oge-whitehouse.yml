@@ -2,7 +2,7 @@ name: OGE White House annual evidence
 
 on:
   schedule:
-    - cron: '17 9 * * *'
+    - cron: '17 9 * * 1'
   workflow_dispatch:
 
 permissions:
