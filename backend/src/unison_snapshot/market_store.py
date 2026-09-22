@@ -27,6 +27,8 @@ UNSUPPORTED_REASONS = frozenset({
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 MUTABLE = re.compile(r"market/[0-9a-f]{2}/index\.json")
 IMMUTABLE = re.compile(r"(?:market/[0-9a-f]{2}|market-pages)/[0-9a-f]{64}\.json")
+CACHE_WINDOW = "market/cache-window.json"
+CACHE_WINDOW_SCHEMA = "market-cache-window/v1"
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,15 @@ class MarketMaterializeResult:
     changed: bool
     written: tuple[str, ...]
     removed: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PublishedMarketCache:
+    rows: dict[str, dict]
+    requested_start_date: date
+    requested_as_of_date: date
+    provider_symbols: dict[str, str]
+    full_refresh_date: date | None = None
 
 
 def _timestamp(value: object) -> datetime:
@@ -95,10 +106,51 @@ def validate_market_rows(rows: object, *, data_cutoff_at: str) -> list[dict]:
     return sorted(result, key=lambda item: item["ticker"])
 
 
+def _cache_window(audit: dict, rows: list[dict]) -> bytes:
+    if audit.get("schema_version") != "alpaca-market-validation/v2":
+        raise ValueError("Market cache requires a validated Alpaca audit")
+    try:
+        start = date.fromisoformat(audit["start_date"])
+        as_of = date.fromisoformat(audit["requested_as_of_date"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("Market cache audit has an invalid request window") from None
+    if start > as_of or audit.get("feed") != "sip" \
+            or audit.get("timeframe") != "1Day" or audit.get("adjustment") != "split":
+        raise ValueError("Market cache audit does not match the published feed")
+    tickers = {row["ticker"] for row in rows}
+    if set(audit.get("covered_tickers", [])) != tickers \
+            or audit.get("market_row_count") != len(rows):
+        raise ValueError("Market cache audit does not match published rows")
+    supported = audit.get("supported_tickers")
+    if not isinstance(supported, list):
+        raise ValueError("Market cache audit lacks provider mappings")
+    mappings = {row.get("ticker"): row.get("provider_symbol") for row in supported
+                if isinstance(row, dict) and row.get("ticker") in tickers}
+    if set(mappings) != tickers or any(not TICKER.fullmatch(str(value or ""))
+                                       for value in mappings.values()):
+        raise ValueError("Market cache audit has incomplete provider mappings")
+    try:
+        full_refresh = date.fromisoformat(audit["full_history_verified_at"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("Market cache audit lacks a full refresh date") from None
+    if full_refresh > as_of:
+        raise ValueError("Market cache full refresh date exceeds market cutoff")
+    return encode({
+        "schema_version": CACHE_WINDOW_SCHEMA,
+        "source_id": SOURCE_ID,
+        "feed": "sip", "timeframe": "1Day", "adjustment": "split",
+        "requested_start_date": start.isoformat(),
+        "requested_as_of_date": as_of.isoformat(),
+        "full_history_verified_at": full_refresh.isoformat(),
+        "provider_symbols": dict(sorted(mappings.items())),
+    })
+
+
 def build_market_bundle(rows: object, *, data_cutoff_at: str,
                         max_index_bytes: int = 8192,
                         max_blob_bytes: int = 8 * 1024 * 1024,
-                        page_size: int = 50) -> MarketBundle:
+                        page_size: int = 50,
+                        audit: dict | None = None) -> MarketBundle:
     normalized = validate_market_rows(rows, data_cutoff_at=data_cutoff_at)
     if not normalized:
         raise ValueError("Licensed market publication requires at least one market row")
@@ -128,8 +180,66 @@ def build_market_bundle(rows: object, *, data_cutoff_at: str,
         sha = digest(content)
         files[f"market-pages/{sha}.json"] = content
         page_shas.append(sha)
+    if audit is not None:
+        files[CACHE_WINDOW] = _cache_window(audit, normalized)
     return MarketBundle(files, tuple(row["ticker"] for row in normalized),
                         tuple(page_shas), data_cutoff_at)
+
+
+def load_published_market_cache(main_root: Path, market_root: Path,
+                                *, market_commit: str) -> PublishedMarketCache | None:
+    """Read only a market version already referenced by the published main tree.
+
+    The first publication predates cache metadata and legitimately returns None.
+    Once metadata exists, malformed indexes or blobs are integrity failures.
+    """
+    manifest_path = main_root / "manifest.json"
+    window_path = market_root / CACHE_WINDOW
+    if not manifest_path.exists() or not window_path.exists():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("market_commit") != market_commit:
+        return None
+    if manifest.get("is_demo") is not False:
+        raise ValueError("Market cache requires a published production manifest")
+    window = json.loads(window_path.read_text(encoding="utf-8"))
+    if window.get("schema_version") != CACHE_WINDOW_SCHEMA \
+            or window.get("source_id") != SOURCE_ID \
+            or (window.get("feed"), window.get("timeframe"),
+                window.get("adjustment")) != ("sip", "1Day", "split"):
+        raise ValueError("Published market cache metadata is invalid")
+    try:
+        start = date.fromisoformat(window["requested_start_date"])
+        as_of = date.fromisoformat(window["requested_as_of_date"])
+        full_refresh = date.fromisoformat(window["full_history_verified_at"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("Published market cache window is invalid") from None
+    mappings = window.get("provider_symbols")
+    if start > as_of or full_refresh > as_of or not isinstance(mappings, dict) or not mappings \
+            or any(not TICKER.fullmatch(str(ticker))
+                   or not TICKER.fullmatch(str(provider))
+                   for ticker, provider in mappings.items()):
+        raise ValueError("Published market cache mappings are invalid")
+    rows: dict[str, dict] = {}
+    for ticker in sorted(mappings):
+        index_path = market_root / "market" / bucket("market", ticker) / "index.json"
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        sha = index.get("shards", {}).get(ticker)
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise ValueError(f"Published market cache index is invalid for {ticker}")
+        blob = index_path.parent / f"{sha}.json"
+        content = blob.read_bytes()
+        if digest(content) != sha:
+            raise ValueError(f"Published market cache hash mismatch for {ticker}")
+        value = json.loads(content)
+        listed = value.get("security_market_data")
+        normalized = validate_market_rows(listed, data_cutoff_at=as_of.isoformat() + "T23:59:59Z")
+        if len(normalized) != 1 or normalized[0]["ticker"] != ticker:
+            raise ValueError(f"Published market cache row is invalid for {ticker}")
+        rows[ticker] = normalized[0]
+    if manifest.get("coverage", {}).get("market_ticker_count") != len(rows):
+        raise ValueError("Published market cache count does not match main")
+    return PublishedMarketCache(rows, start, as_of, mappings, full_refresh)
 
 
 def _atomic(path: Path, content: bytes) -> None:
@@ -144,7 +254,8 @@ def _atomic(path: Path, content: bytes) -> None:
 def materialize_market(root: Path, bundle: MarketBundle) -> MarketMaterializeResult:
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=True)
-    if any(not (MUTABLE.fullmatch(path) or IMMUTABLE.fullmatch(path)) for path in bundle.files):
+    if any(not (MUTABLE.fullmatch(path) or IMMUTABLE.fullmatch(path)
+                or path == CACHE_WINDOW) for path in bundle.files):
         raise ValueError("Market bundle contains a path outside the public contract")
     written: list[str] = []
     for relative, content in sorted(bundle.files.items()):

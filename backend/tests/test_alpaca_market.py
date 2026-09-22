@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import json
 from pathlib import Path
 import sys
@@ -19,6 +19,7 @@ from unison_snapshot.alpaca_market import (
     latest_safe_session,
 )
 from unison_snapshot.legacy import load
+from unison_snapshot.market_store import PublishedMarketCache
 
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
@@ -76,6 +77,103 @@ class Response:
 
 
 class AlpacaMarketTests(unittest.TestCase):
+    def test_incremental_history_reuses_verified_older_closes(self):
+        snapshot = production_candidate()
+        snapshot["meta"]["data_cutoff_at"] = "2026-09-22T23:59:59Z"
+        cached = PublishedMarketCache(
+            rows={"ZZDEMO": {
+                "price_history": [
+                    {"date": "2024-09-02", "close": 80.0},
+                    {"date": "2026-09-18", "close": 110.0},
+                ]}},
+            requested_start_date=date(2024, 8, 1),
+            requested_as_of_date=date(2026, 9, 18),
+            provider_symbols={"ZZDEMO": "ZZDEMO"},
+        )
+
+        class DateFilteredClient(FakeMarketClient):
+            def daily_bars(self, symbols, *, start, end, asof=None):
+                self.calls.append((symbols, start, end, asof))
+                return {symbol: [bar for bar in self.response.get(symbol, [])
+                                 if start.date() <= date.fromisoformat(bar["t"][:10])
+                                 and date.fromisoformat(bar["t"][:10]) <= end.date()]
+                        for symbol in symbols}
+
+        client = DateFilteredClient({"ZZDEMO": [
+            {"t": "2026-09-18T04:00:00Z", "c": 110},
+            {"t": "2026-09-21T04:00:00Z", "c": 111},
+            {"t": "2026-09-22T04:00:00Z", "c": 112},
+        ]})
+        result = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-22T21:00:00Z",
+            distribution_authorized=True, previous_market=cached)
+        self.assertEqual(result.audit["incremental_ticker_count"], 1)
+        self.assertEqual(result.audit["full_refresh_ticker_count"], 0)
+        self.assertEqual(result.snapshot["security_market_data"][0]["price_history"][0],
+                         {"date": "2024-09-02", "close": 80.0})
+        self.assertEqual(client.calls[0][1].date(), date(2026, 8, 4))
+        full = DateFilteredClient({"ZZDEMO": [
+            {"t": "2024-09-02T04:00:00Z", "c": 80}, *client.response["ZZDEMO"],
+        ]})
+        full_result = build_market_validation(
+            snapshot, client=full, checked_at="2026-09-22T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(result.snapshot["security_market_data"],
+                         full_result.snapshot["security_market_data"])
+
+    def test_changed_split_adjusted_overlap_forces_full_refetch(self):
+        snapshot = production_candidate()
+        snapshot["meta"]["data_cutoff_at"] = "2026-09-22T23:59:59Z"
+        cached = PublishedMarketCache(
+            rows={"ZZDEMO": {"price_history": [
+                {"date": "2024-09-02", "close": 80.0},
+                {"date": "2026-09-18", "close": 110.0}]}},
+            requested_start_date=date(2024, 8, 1),
+            requested_as_of_date=date(2026, 9, 18),
+            provider_symbols={"ZZDEMO": "ZZDEMO"},
+        )
+
+        class DateFilteredClient(FakeMarketClient):
+            def daily_bars(self, symbols, *, start, end, asof=None):
+                self.calls.append((symbols, start, end, asof))
+                return {symbol: [bar for bar in self.response.get(symbol, [])
+                                 if start.date() <= date.fromisoformat(bar["t"][:10])]
+                        for symbol in symbols}
+
+        client = DateFilteredClient({"ZZDEMO": [
+            {"t": "2024-09-02T04:00:00Z", "c": 40},
+            {"t": "2026-09-18T04:00:00Z", "c": 55},
+            {"t": "2026-09-21T04:00:00Z", "c": 56},
+        ]})
+        result = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-22T21:00:00Z",
+            distribution_authorized=True, previous_market=cached)
+        self.assertEqual(result.audit["split_refresh_ticker_count"], 1)
+        self.assertEqual(result.audit["incremental_ticker_count"], 0)
+        self.assertEqual(len(client.calls), 2)
+        self.assertEqual(result.snapshot["security_market_data"][0]["price_history"][0],
+                         {"date": "2024-09-02", "close": 40.0})
+
+    def test_old_cache_falls_back_to_full_history(self):
+        snapshot = production_candidate()
+        snapshot["meta"]["data_cutoff_at"] = "2026-09-22T23:59:59Z"
+        cached = PublishedMarketCache(
+            rows={"ZZDEMO": {"price_history": [
+                {"date": "2026-09-10", "close": 100.0}]}},
+            requested_start_date=date(2024, 8, 1),
+            requested_as_of_date=date(2026, 9, 10),
+            provider_symbols={"ZZDEMO": "ZZDEMO"},
+        )
+        client = FakeMarketClient({
+            "ZZDEMO": [{"t": "2026-09-22T04:00:00Z", "c": 110}],
+        })
+        result = build_market_validation(
+            snapshot, client=client, checked_at="2026-09-22T21:00:00Z",
+            distribution_authorized=True, previous_market=cached)
+        self.assertEqual(result.audit["cache_status"], "ineligible")
+        self.assertEqual(result.audit["full_refresh_ticker_count"], 1)
+        self.assertLess(client.calls[0][1].date(), date(2025, 1, 1))
+
     def test_safe_session_waits_past_basic_delay_and_skips_weekend(self):
         before_close = datetime(2026, 9, 18, 19, 0, tzinfo=timezone.utc)
         after_close = datetime(2026, 9, 18, 21, 0, tzinfo=timezone.utc)

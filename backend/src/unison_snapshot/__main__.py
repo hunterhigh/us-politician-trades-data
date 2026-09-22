@@ -11,7 +11,8 @@ from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_v
 from .builder import build
 from .codec import digest, encode
 from .materialize import materialize
-from .market_store import build_market_bundle, materialize_market
+from .market_store import (build_market_bundle, load_published_market_cache,
+                           materialize_market)
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_sync import plan_checkpoint, record_result
@@ -92,6 +93,7 @@ def main() -> None:
     prepare_market.add_argument("--input", type=Path, required=True)
     prepare_market.add_argument("--root", type=Path, required=True)
     prepare_market.add_argument("--metadata-output", type=Path, required=True)
+    prepare_market.add_argument("--audit", type=Path)
     fetch = sub.add_parser("fetch-public")
     fetch.add_argument("--owner", required=True)
     fetch.add_argument("--repo", required=True)
@@ -190,6 +192,9 @@ def main() -> None:
         "--assets-url", default="https://paper-api.alpaca.markets/v2/assets",
         help="Allowlisted Alpaca paper or live Assets API endpoint")
     market_validation.add_argument("--distribution-authorized", action="store_true")
+    market_validation.add_argument("--previous-main-root", type=Path)
+    market_validation.add_argument("--previous-market-root", type=Path)
+    market_validation.add_argument("--previous-market-commit")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -356,7 +361,9 @@ def main() -> None:
                 raise ValueError("Public market publication requires is_demo=false")
             bundle = build_market_bundle(
                 payload.get("security_market_data"),
-                data_cutoff_at=payload.get("meta", {}).get("data_cutoff_at"))
+                data_cutoff_at=payload.get("meta", {}).get("data_cutoff_at"),
+                audit=(json.loads(args.audit.read_text(encoding="utf-8"))
+                       if args.audit else None))
             result = materialize_market(args.root, bundle)
             _write_atomic(args.metadata_output, {
                 "schema_version": "market-publication-plan/v1",
@@ -538,10 +545,20 @@ def main() -> None:
                 timeout=args.timeout,
                 assets_url=args.assets_url,
             )
+            cache_options = (args.previous_main_root, args.previous_market_root,
+                             args.previous_market_commit)
+            if any(value is not None for value in cache_options) \
+                    and not all(value is not None for value in cache_options):
+                raise ValueError("Previous main, market and commit must be provided together")
+            cache = (load_published_market_cache(
+                args.previous_main_root, args.previous_market_root,
+                market_commit=args.previous_market_commit)
+                if all(value is not None for value in cache_options) else None)
             validation = build_market_validation(
                 payload, client=client, checked_at=checked_at,
                 as_of_date=args.as_of_date, batch_size=args.batch_size,
-                distribution_authorized=args.distribution_authorized)
+                distribution_authorized=args.distribution_authorized,
+                previous_market=cache)
             result = validation.snapshot
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"
@@ -564,6 +581,10 @@ def main() -> None:
                 args.html_output.write_text(html, encoding="utf-8")
             print(json.dumps({"symbols": audit["symbol_count"],
                               "market_rows": audit["market_row_count"],
+                              "cache_status": audit["cache_status"],
+                              "incremental_tickers": audit["incremental_ticker_count"],
+                              "full_refresh_tickers": audit["full_refresh_ticker_count"],
+                              "split_refresh_tickers": audit["split_refresh_ticker_count"],
                               "historical_recovered": audit["historical_recovered_count"],
                               "historical_rejected": len(audit["historical_rejected_symbols"]),
                               "missing_tickers": audit["missing_ticker_count"],

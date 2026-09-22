@@ -28,6 +28,13 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}", complete)
         self.assertIn('if: github.event_name == \'schedule\'', complete)
         self.assertIn('run: test "$ENABLED" = "true"', complete)
+        # Environment-level vars are unavailable while a job-level if is evaluated.
+        job_header = complete.split("jobs:", 1)[1].split("environment: production", 1)[0]
+        self.assertNotIn("COMPLETE_PUBLICATION_ENABLED", job_header)
+        self.assertIn("if: github.ref == 'refs/heads/code'", job_header)
+        self.assertIn("--previous-main-root", complete)
+        self.assertIn("--previous-market-root", complete)
+        self.assertIn('--audit "$RUNNER_TEMP/market-audit.json"', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
 

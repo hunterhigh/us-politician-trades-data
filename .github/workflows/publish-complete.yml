@@ -89,6 +89,9 @@ jobs:
       - name: Build licensed five-array candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
@@ -105,6 +108,9 @@ jobs:
             --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
             --assets-url "$assets_url" \
+            --previous-main-root "$MAIN_ROOT" \
+            --previous-market-root "$MARKET_ROOT" \
+            --previous-market-commit "$MARKET_BASE" \
             --distribution-authorized
       - name: Select fixed published readback probes
         id: probes
@@ -135,6 +141,7 @@ jobs:
         run: |
           python -m unison_snapshot prepare-market-publication \
             --input "$RUNNER_TEMP/complete-candidate.json" --root "$MARKET_ROOT" \
+            --audit "$RUNNER_TEMP/market-audit.json" \
             --metadata-output "$RUNNER_TEMP/market-publication.json"
           git -C "$MARKET_ROOT" add -A -- market market-pages
           if ! git -C "$MARKET_ROOT" diff --cached --quiet; then
@@ -281,6 +288,7 @@ jobs:
           print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
           print(f"Historical symbols rejected by API: {len(audit['historical_rejected_symbols'])}")
           print(f"Price points: {audit['price_point_count']}")
+          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
@@ -297,6 +305,7 @@ jobs:
           print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
           print(f"Historical symbols rejected by API: {len(audit['historical_rejected_symbols'])}")
           print(f"Price points: {audit['price_point_count']}")
+          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
