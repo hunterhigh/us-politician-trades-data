@@ -10,7 +10,10 @@ class OgeWorkflowTests(unittest.TestCase):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
         self.assertIn("OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}", content)
         self.assertIn("OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}", content)
-        self.assertIn("github.event_name == 'workflow_dispatch' ||", content)
+        # Environment variables are available only after this job starts.
+        gate_job = content.split("  evaluate-gate:", 1)[1].split("  collect-direct-reports:", 1)[0]
+        self.assertNotIn("    if: ${{ github.event_name", gate_job)
+        self.assertIn("environment: production", gate_job)
         self.assertIn("needs.evaluate-gate.outputs.status == 'enabled'", content)
         self.assertIn("python -m unison_snapshot oge-gate", content)
         self.assertIn("python -m unison_snapshot discover-oge", content)
