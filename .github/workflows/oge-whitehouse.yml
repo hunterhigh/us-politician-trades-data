@@ -47,6 +47,8 @@ jobs:
           mkdir -p .local
           PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py coverage \
             --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-coverage.json
+          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py request-plan \
+            --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-request-plan.json
           batch_size="${OGE_ANNUAL_REPORT_BATCH_SIZE:-2}"
           if ! [[ "$batch_size" =~ ^([1-9]|1[0-2])$ ]]; then
             echo "OGE annual batch size must be between 1 and 12" >&2
@@ -106,6 +108,11 @@ jobs:
               'candidate_integration_status': 'not_started',
           }, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
               encoding='utf-8')
+          request_plan = json.loads(Path('.local/oge-whitehouse-request-plan.json').read_text(encoding='utf-8'))
+          request_target = root / 'oge/whitehouse/request-plan-current.json'
+          request_target.write_text(json.dumps(request_plan, ensure_ascii=False,
+                                               sort_keys=True, separators=(',', ':')),
+                                    encoding='utf-8')
           PY
           git -C "$REVIEW_ROOT" add oge/whitehouse
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
