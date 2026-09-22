@@ -104,13 +104,17 @@ class SenateAnnualTests(unittest.TestCase):
             holding = result["reported_holdings"][0]
             self.assertEqual(holding["filing_id"], report_rows[1]["document_id"])
             self.assertEqual((holding["value_low"], holding["value_high"]), (15001, 50000))
-            base = {"people": [], "reported_holdings": [],
+            base = {"people": [], "transactions": [], "reported_holdings": [],
                     "source_health": [{"source_id": "senate_efd", "detail": "PTR"}]}
             combined, audit = overlay_annual_candidate(
                 base, review, expected_roster_sha256=members["metadata"]["sha256"])
             self.assertEqual(len(combined["people"]), 1)
             self.assertEqual(len(combined["reported_holdings"]), 1)
             self.assertEqual(audit["annual_holding_count"], 1)
+            combined, audit = overlay_annual_candidate(
+                combined, review, expected_roster_sha256=members["metadata"]["sha256"])
+            self.assertEqual(len(combined["reported_holdings"]), 1)
+            self.assertEqual(len(combined["people"]), 1)
 
 
 if __name__ == "__main__":

@@ -11,8 +11,9 @@ from unison_snapshot.senate import (SenateEfdClient, SenateEfdError,
                                    source_config_from_environment, require_collection_enabled)
 from unison_snapshot.senate_annual import (
     archive_selected_annuals, build_annual_review, discover_annuals,
-    select_current_annual_versions, _json, _write_once,
+    overlay_annual_candidate, select_current_annual_versions, _json, _write_once,
 )
+from unison_snapshot.builder import build as build_snapshot
 
 
 def _read(path: Path) -> dict:
@@ -34,10 +35,14 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--evidence-root", type=Path, required=True)
     build.add_argument("--review-root", type=Path, required=True)
     build.add_argument("--roster", type=Path, required=True)
+    overlay = commands.add_parser("overlay")
+    overlay.add_argument("--review-root", type=Path, required=True)
+    overlay.add_argument("--candidate", type=Path, required=True)
+    overlay.add_argument("--audit-output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        roster = _read(args.roster)
         if args.command == "collect":
+            roster = _read(args.roster)
             config = source_config_from_environment()
             require_collection_enabled(config)
             client = SenateEfdClient()
@@ -56,11 +61,26 @@ def main(argv: list[str] | None = None) -> int:
                               "catalog_record_count": discovery["catalog_record_count"],
                               "annual_report_count": discovery["annual_report_count"]},
                              sort_keys=True))
-        else:
+        elif args.command == "build":
+            roster = _read(args.roster)
             result = build_annual_review(args.evidence_root, args.review_root, roster)
             print(json.dumps({"selected_report_count": result["selected_report_count"],
                               "qualified_report_count": result["qualified_report_count"],
                               "holding_count": result["holding_count"]}, sort_keys=True))
+        else:
+            status = _read(args.review_root / "status/senate_efd.json")
+            before = _read(args.candidate)
+            candidate, audit = overlay_annual_candidate(
+                before, args.review_root,
+                expected_roster_sha256=status["identity_roster_sha256"])
+            bundle = build_snapshot(candidate,
+                                    generated_at=candidate["meta"]["data_cutoff_at"],
+                                    allow_production=True)
+            candidate["meta"]["snapshot_id"] = bundle.manifest["snapshot_id"]
+            args.candidate.write_bytes(_json(candidate))
+            args.audit_output.parent.mkdir(parents=True, exist_ok=True)
+            args.audit_output.write_bytes(_json(audit))
+            print(json.dumps(audit, sort_keys=True))
     except (SenateEfdError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"Senate annual task failed: {exc}", file=sys.stderr)
         return 1

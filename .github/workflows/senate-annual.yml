@@ -80,12 +80,10 @@ jobs:
           python backend/scripts/senate_annual.py build \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --review-root "$review" --roster "$ROSTER"
-          python -m unison_snapshot build-senate-candidate \
+          python backend/scripts/senate_annual.py overlay \
             --review-root "$review" \
-            --state-status "$RUNNER_TEMP/senate-annual-state/status/senate_efd.json" \
-            --base ingest/current.json \
-            --output "$review/candidates/sources/senate_efd-current.json" \
-            --audit-output "$review/senate_efd/qualifications/current.json"
+            --candidate "$review/candidates/sources/senate_efd-current.json" \
+            --audit-output "$review/senate_efd/annual/candidate-audit-current.json"
           source_args=(--source "senate_efd=$review/candidates/sources/senate_efd-current.json")
           for source_id in house_clerk oge; do
             source="$review/candidates/sources/$source_id-current.json"
@@ -101,7 +99,7 @@ jobs:
       - name: Publish verified review and candidate
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
-          git -C "$review" add senate_efd/annual senate_efd/qualifications/current.json \
+          git -C "$review" add senate_efd/annual \
             candidates/sources/senate_efd-current.json \
             candidates/disclosure-current.json status/disclosure_cutoff.json
           if ! git -C "$review" diff --cached --quiet; then

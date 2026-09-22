@@ -430,7 +430,15 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
             not isinstance(annual.get("reported_holdings"), list) or
             annual.get("holding_count") != len(annual["reported_holdings"])):
         raise SenateEfdError("Senate annual review artifact is invalid")
-    existing = {person["id"]: person for person in candidate["people"]}
+    # Rebuild the annual projection from its current review artifact. A later
+    # annual run must replace, not accumulate, prior-year or amended rows.
+    candidate["reported_holdings"] = [
+        row for row in candidate["reported_holdings"]
+        if not str(row.get("id", "")).startswith("senate-annual:")]
+    retained_people = {row["person_id"] for row in candidate["transactions"]}
+    retained_people.update(row["person_id"] for row in candidate["reported_holdings"])
+    existing = {person["id"]: person for person in candidate["people"]
+                if person["id"] in retained_people}
     for person in annual["people"]:
         if person["id"] in existing:
             if any(existing[person["id"]].get(field) != person.get(field)
@@ -452,6 +460,7 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
         key=lambda row: row["id"])
     for row in candidate["source_health"]:
         if row.get("source_id") == "senate_efd":
+            row["detail"] = row["detail"].split("; annual eFD:", 1)[0]
             row["detail"] += (f"; annual eFD: {annual['qualified_report_count']} latest reports, "
                               f"{annual['holding_count']} holdings qualified")
     return candidate, {"annual_status": "included", "annual_review_sha256":
