@@ -1,0 +1,112 @@
+name: Senate eFD annual holdings
+
+on:
+  schedule:
+    - cron: '40 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum new annual reports to archive in this run
+        required: true
+        default: '200'
+
+permissions:
+  contents: write
+
+jobs:
+  annual:
+    if: github.ref == 'refs/heads/code'
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      REPORT_LIMIT: ${{ inputs.limit || '200' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check bounded authorized run
+        run: |
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+          test "$SENATE_EFD_COLLECTION_ENABLED" = true
+          test "$SENATE_EFD_TERMS_ACKNOWLEDGED" = true
+          case "$REPORT_LIMIT" in *[!0-9]*|'') exit 2 ;; esac
+          test "$REPORT_LIMIT" -ge 1 && test "$REPORT_LIMIT" -le 300
+      - name: Install producer and prepare fixed branches
+        run: |
+          python -m pip install -e backend
+          git fetch --no-tags origin evidence review state
+          git worktree add --detach "$RUNNER_TEMP/senate-annual-evidence" origin/evidence
+          git worktree add --detach "$RUNNER_TEMP/senate-annual-review" origin/review
+          git worktree add --detach "$RUNNER_TEMP/senate-annual-state" origin/state
+          roster_sha="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'senate-annual-state'
+          print(json.loads((root / 'status/senate_efd.json').read_text())['roster']['sha256'])
+          PY
+          )"
+          roster="$RUNNER_TEMP/senate-annual-evidence/senate_efd/members/$roster_sha.roster.json"
+          test -f "$roster"
+          echo "ROSTER=$roster" >> "$GITHUB_ENV"
+      - name: Discover and archive latest annual versions
+        run: |
+          python backend/scripts/senate_annual.py collect \
+            --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
+            --roster "$ROSTER" --submitted-start-date 2025-01-01 \
+            --limit "$REPORT_LIMIT"
+      - name: Publish official originals and catalog
+        run: |
+          evidence="$RUNNER_TEMP/senate-annual-evidence"
+          git -C "$evidence" add senate_efd/annual
+          if ! git -C "$evidence" diff --cached --quiet; then
+            git -C "$evidence" config user.name 'github-actions[bot]'
+            git -C "$evidence" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git -C "$evidence" commit -m "evidence: Senate annual reports ${{ github.run_id }}"
+            git -C "$evidence" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Extract and qualify latest annual holdings
+        run: |
+          review="$RUNNER_TEMP/senate-annual-review"
+          python backend/scripts/senate_annual.py build \
+            --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
+            --review-root "$review" --roster "$ROSTER"
+          python -m unison_snapshot build-senate-candidate \
+            --review-root "$review" \
+            --state-status "$RUNNER_TEMP/senate-annual-state/status/senate_efd.json" \
+            --base ingest/current.json \
+            --output "$review/candidates/sources/senate_efd-current.json" \
+            --audit-output "$review/senate_efd/qualifications/current.json"
+          source_args=(--source "senate_efd=$review/candidates/sources/senate_efd-current.json")
+          for source_id in house_clerk oge; do
+            source="$review/candidates/sources/$source_id-current.json"
+            if [ -f "$source" ]; then source_args+=(--source "$source_id=$source"); fi
+          done
+          python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --output "$review/candidates/disclosure-current.json" \
+            --audit-output "$review/status/disclosure_cutoff.json"
+          python -m unison_snapshot verify-first-launch \
+            --review-root "$review" --input "$review/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/senate-annual-readiness.json"
+      - name: Publish verified review and candidate
+        run: |
+          review="$RUNNER_TEMP/senate-annual-review"
+          git -C "$review" add senate_efd/annual senate_efd/qualifications/current.json \
+            candidates/sources/senate_efd-current.json \
+            candidates/disclosure-current.json status/disclosure_cutoff.json
+          if ! git -C "$review" diff --cached --quiet; then
+            git -C "$review" config user.name 'github-actions[bot]'
+            git -C "$review" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git -C "$review" commit -m "review: Senate annual holdings ${{ github.run_id }}"
+            git -C "$review" push origin HEAD:refs/heads/review
+          fi

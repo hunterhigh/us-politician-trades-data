@@ -788,6 +788,11 @@ def build_senate_candidate(
                                   for item in health]
     if not any(item.get("source_id") == "senate_efd" for item in health):
         candidate["source_health"].append(source_health)
+    # Annual holdings are a separate archived source path. Reapply them on
+    # every PTR refresh so the scheduled PTR producer cannot erase holdings.
+    from .senate_annual import overlay_annual_candidate
+    candidate, annual_audit = overlay_annual_candidate(
+        candidate, review_root, expected_roster_sha256=roster_sha)
     audit = {
         "schema_version": CANDIDATE_AUDIT_SCHEMA,
         "builder_version": CANDIDATE_BUILDER_VERSION,
@@ -823,8 +828,10 @@ def build_senate_candidate(
         "amendment_supplement_report_count": len(supplement_extractions),
         "amendment_supplement_transaction_count": sum(
             len(item["transactions"]) for item in supplement_extractions),
-        "candidate_person_count": len(people),
+        "candidate_person_count": len(candidate["people"]),
         "candidate_transaction_count": len(transactions),
+        "candidate_holding_count": len(candidate["reported_holdings"]),
+        **annual_audit,
         "qualified_rows": qualified_rows,
         "quarantined_report_count": len(quarantined_reports),
         "quarantined_report_reasons": dict(sorted(report_reasons.items())),

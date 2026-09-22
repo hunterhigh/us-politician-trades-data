@@ -238,12 +238,15 @@ class SenateEfdClient:
         self.csrf_token = cookie_token or _csrf_token(response)
 
     def download_search_page(self, *, start: int, length: int, draw: int,
-                             submitted_start_date: str) -> tuple[bytes, dict[str, str]]:
+                             submitted_start_date: str,
+                             report_types: str = "[11]") -> tuple[bytes, dict[str, str]]:
         if self.csrf_token is None:
             raise SenateEfdError("Senate eFD authorized session is not initialized")
+        if report_types not in {"[11]", "[7]"}:
+            raise SenateEfdError("Senate eFD report type filter is unsupported")
         payload = urlencode({
             "draw": str(draw), "start": str(start), "length": str(length),
-            "report_types": "[11]", "submitted_start_date": submitted_start_date,
+            "report_types": report_types, "submitted_start_date": submitted_start_date,
             "csrfmiddlewaretoken": self.csrf_token,
         }).encode("ascii")
         request = urllib.request.Request(SEARCH_URL, data=payload, headers={
