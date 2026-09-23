@@ -40,6 +40,17 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
 
+    def test_twelve_data_summaries_distinguish_batch_and_cumulative_counts(self):
+        complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
+            encoding="utf-8")
+        audit = (ROOT / ".github/workflows/audit-twelve-data.yml").read_text(
+            encoding="utf-8")
+        for content in (complete, audit):
+            self.assertIn("new_accepted_count", content)
+            self.assertIn("cached_accepted_count", content)
+            self.assertIn("backlog_count", content)
+            self.assertIn("deduplicated_row_count", content)
+
 
 if __name__ == "__main__":
     unittest.main()

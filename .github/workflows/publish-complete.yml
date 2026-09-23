@@ -340,7 +340,7 @@ jobs:
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
           print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
           twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
-          print(f"Twelve Data: {twelve['accepted_count']}/{twelve['attempted_count']} accepted in {twelve['request_count']} requests")
+          print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
           PY
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, os
@@ -360,5 +360,5 @@ jobs:
           print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
           print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
           twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
-          print(f"Twelve Data: {twelve['accepted_count']}/{twelve['attempted_count']} accepted in {twelve['request_count']} requests")
+          print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
           PY
