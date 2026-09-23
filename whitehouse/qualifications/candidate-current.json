@@ -89686,11 +89686,11 @@
   ],
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "3577181947b176d429f0783dd5e26babdf6b8e1234bd6f0aa20f93c516846881",
-    "whitehouse_annual_dedup_set_sha256": "40155bfe8093a2e328ea6138b028e3c0fd6f95286ba2e7bf2d01b5c5ba4ce133",
-    "whitehouse_coverage_sha256": "3855175e1dd1ce2a8977ac09d11e202fde0a5593b028b23b850ac7f01bf68145",
+    "whitehouse_annual_dedup_set_sha256": "dcb18f6606896c65947500226acadda3da0e0ca9b4d77ec8184acd44dd8e04f3",
+    "whitehouse_coverage_sha256": "08e47108da47b0ef59186e5dd5517ae50ea727d0b23903c603212874c5646b43",
     "whitehouse_extraction_failure_set_sha256": "f945fe102eb846138afef1115336dc894df547d905953d34c21855558a2e8833",
     "whitehouse_extraction_set_sha256": "d6b870a3f5f6f48fbd7476b055b312c3ec23d93dc8cb8dda7710eed05c14c12a",
-    "whitehouse_extraction_status_sha256": "789676208beee442372f9ef86c8498b412870646de6206b6b15f943baac318dc"
+    "whitehouse_extraction_status_sha256": "436efbb4142b07e9b472ce3876c45c74307d84b7fc218aaa1aa5c540d1fbcb1b"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
