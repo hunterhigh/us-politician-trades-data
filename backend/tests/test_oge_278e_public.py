@@ -12,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows,
-                                              _ocr_cover,
-                                              _parse_row, OcrCheckpointPending,
+                                              _ocr_cover, _parse_row, _raw_text_columns,
+                                              OcrCheckpointPending,
                                               extract_public_278e_pdf,
                                               extract_public_278e_pdf_checkpointed)
 from unison_snapshot.ocr_geometry import OcrPage
@@ -197,6 +197,37 @@ class Public278eTests(unittest.TestCase):
         self.assertEqual(destination, "quarantined")
         self.assertIn("holding_ocr_confidence_below_threshold", result["reasons"])
         self.assertEqual(result["ocr_min_confidence"], 55.0)
+
+    def test_duplicate_row_raw_columns_exclude_private_ocr_arrays(self):
+        row = {"description": ["SPY", "ETF"], "value": ["$1,001", "-", "$15,000"],
+               "_ocr_confidences": [96.0, 55.0],
+               "_row_reasons": ["row_number_ocr_unreadable"]}
+        self.assertEqual(_raw_text_columns(row), {
+            "description": "SPY ETF", "value": "$1,001 - $15,000"})
+
+    def test_duplicate_ocr_rows_keep_confidence_audit_private(self):
+        page = _Page([
+            "2. Filer's Employment Assets & Income and Retirement Accounts",
+            "# DESCRIPTION EIF VALUE INCOME TYPE INCOME AMOUNT",
+            "1 SPY ETF Yes $1,001 - $15,000",
+            "1 SPY ETF Yes $1,001 - $15,000",
+            "5. Spouse's Employment Assets & Income and Retirement Accounts", "None",
+            "6. Other Assets and Income", "None", "7. Transactions", "None",
+        ])
+        words = page.extract_words()
+        for word in words:
+            word["ocr_confidence"] = 96.0
+        page.extract_words = lambda: words
+        result = _extract_page_rows(
+            [page], _cover(_cover_text("Annual", "2026"), "Ada Example"),
+            initial_reasons=[])
+        self.assertEqual(result["printed_row_count"], 2)
+        self.assertEqual(len(result["holdings"]), 0)
+        self.assertEqual(len(result["quarantined"]), 2)
+        self.assertTrue(all(row["reasons"] == ["duplicate_section_row_number"]
+                            for row in result["quarantined"]))
+        self.assertTrue(all("_ocr_confidences" not in row["raw_columns"]
+                            for row in result["quarantined"]))
 
     def test_large_scanned_report_requires_checkpointed_ocr(self):
         pages = [_Page([""]) for _ in range(101)]
