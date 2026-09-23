@@ -11,9 +11,9 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _ocr_cover,
-                                              _parse_row, _raw_text_columns,
-                                              OcrCheckpointPending,
+from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows,
+                                              _ocr_cover,
+                                              _parse_row, OcrCheckpointPending,
                                               extract_public_278e_pdf,
                                               extract_public_278e_pdf_checkpointed)
 from unison_snapshot.ocr_geometry import OcrPage
@@ -51,6 +51,9 @@ class _Page:
             elif line.startswith("1 SPY ETF Yes"):
                 tokens = [("1", 35), ("SPY", 78), ("ETF", 100), ("Yes", 383),
                           ("$1,001", 469), ("-", 505), ("$15,000", 510)]
+            elif line.startswith("2 QQQ ETF Yes"):
+                tokens = [("2", 35), ("QQQ", 78), ("ETF", 100), ("Yes", 383),
+                          ("$15,001", 469), ("-", 505), ("$50,000", 510)]
             elif line.startswith("1 SPY ETF Purchase"):
                 tokens = [("1", 35), ("SPY", 78), ("ETF", 100), ("Purchase", 383),
                           ("03/20/2025", 469), ("$1,001", 556), ("-", 591),
@@ -195,13 +198,6 @@ class Public278eTests(unittest.TestCase):
         self.assertIn("holding_ocr_confidence_below_threshold", result["reasons"])
         self.assertEqual(result["ocr_min_confidence"], 55.0)
 
-    def test_duplicate_row_raw_columns_exclude_private_ocr_arrays(self):
-        row = {"description": ["SPY", "ETF"], "value": ["$1,001", "-", "$15,000"],
-               "_ocr_confidences": [96.0, 55.0],
-               "_row_reasons": ["row_number_ocr_unreadable"]}
-        self.assertEqual(_raw_text_columns(row), {
-            "description": "SPY ETF", "value": "$1,001 - $15,000"})
-
     def test_large_scanned_report_requires_checkpointed_ocr(self):
         pages = [_Page([""]) for _ in range(101)]
         content = b"%PDF-1.7\nfixture\n%%EOF"
@@ -304,6 +300,25 @@ class Public278eTests(unittest.TestCase):
         self.assertTrue(result["requires_cross_report_dedup"])
         self.assertEqual(result["production_qualification"],
                          "pending_identity_amendments_part7_dedup_and_quarantine")
+
+    def test_asset_table_continues_across_page_without_repeated_section_heading(self):
+        pages = [
+            _Page(["2. Filer's Employment Assets & Income and Retirement Accounts",
+                   "# DESCRIPTION EIF VALUE INCOME TYPE INCOME AMOUNT",
+                   "1 SPY ETF Yes $1,001 - $15,000"]),
+            _Page(["# DESCRIPTION EIF VALUE INCOME TYPE INCOME AMOUNT",
+                   "2 QQQ ETF Yes $15,001 - $50,000",
+                   "5. Spouse's Employment Assets & Income and Retirement Accounts", "None",
+                   "6. Other Assets and Income", "None",
+                   "7. Transactions", "None"]),
+        ]
+        result = _extract_page_rows(
+            pages, _cover(_cover_text("Annual", "2026"), "Ada Example"),
+            initial_reasons=[])
+        self.assertEqual(result["printed_row_count"], 2)
+        self.assertEqual([row["asset_name"] for row in result["holdings"]],
+                         ["SPY ETF", "QQQ ETF"])
+        self.assertEqual(result["document_reasons"], [])
 
 
 if __name__ == "__main__":
