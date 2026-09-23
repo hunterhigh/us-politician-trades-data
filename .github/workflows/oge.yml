@@ -312,6 +312,7 @@ jobs:
               'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
               'oge_direct_quarantined_row_count': audit['quarantined_row_count'],
               'whitehouse_public_qualified_transaction_count': whitehouse['promoted_transaction_count'],
+              'whitehouse_public_extraction_failure_count': whitehouse['extraction_failure_count'],
               'quarantined_row_count': (audit['quarantined_row_count'] +
                                         whitehouse['quarantined_row_count']),
           }
