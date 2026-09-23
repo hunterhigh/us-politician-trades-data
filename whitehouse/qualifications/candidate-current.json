@@ -9,7 +9,7 @@
   "extraction_failure_count": 1,
   "promoted_report_count": 11,
   "promoted_transaction_count": 83,
-  "pure_oge_candidate_sha256": "7dbcd9aeb71dacce2e3b0dd5a2e1f96f282fa0ad5b0a7bbc0f47e5024a0435c1",
+  "pure_oge_candidate_sha256": "74364abf5e3653f9ae9a387df8dc9cabc8238c9cd472d806ba94c701b9c5da93",
   "quarantined_row_count": 5464,
   "report_count": 79,
   "reports": [
@@ -89686,11 +89686,11 @@
   ],
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "3577181947b176d429f0783dd5e26babdf6b8e1234bd6f0aa20f93c516846881",
-    "whitehouse_annual_dedup_set_sha256": "8edafeaacf49e90e735d4fd8f4605e5dc2485ca73d0c6778f42f55d3969b4fd5",
-    "whitehouse_coverage_sha256": "77f807f8e65d65808b041b5b254e808fe3bfcdc925e277d4f612c3f5d7967c54",
+    "whitehouse_annual_dedup_set_sha256": "40155bfe8093a2e328ea6138b028e3c0fd6f95286ba2e7bf2d01b5c5ba4ce133",
+    "whitehouse_coverage_sha256": "3855175e1dd1ce2a8977ac09d11e202fde0a5593b028b23b850ac7f01bf68145",
     "whitehouse_extraction_failure_set_sha256": "f945fe102eb846138afef1115336dc894df547d905953d34c21855558a2e8833",
     "whitehouse_extraction_set_sha256": "d6b870a3f5f6f48fbd7476b055b312c3ec23d93dc8cb8dda7710eed05c14c12a",
-    "whitehouse_extraction_status_sha256": "ae0df8c05c9a2fa1d1a524adf516dc0e57087aa6349dbaa4590292d6ded7642d"
+    "whitehouse_extraction_status_sha256": "789676208beee442372f9ef86c8498b412870646de6206b6b15f943baac318dc"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
