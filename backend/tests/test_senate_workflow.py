@@ -33,6 +33,7 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("group: disclosure-review-writer", content)
         self.assertIn("'entrypoint_count': report_batch['archived_total']", content)
         self.assertIn("'report_evidence_count': evidence_count", content)
+        self.assertIn("senate_efd/paper_report_failures/*/*/{parser_version}.json", content)
         self.assertIn(".local/senate-efd-state.json", content)
         self.assertIn("python -m unison_snapshot build-senate-candidate", content)
         self.assertIn("candidates/sources/senate_efd-current.json", content)

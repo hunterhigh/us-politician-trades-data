@@ -173,6 +173,25 @@ class OgeReportTests(unittest.TestCase):
             self.assertEqual((result["archived_count"], result["request_required_count"]), (1, 1))
             self.assertEqual(result["pending_count"], 0)
 
+    def test_batch_collapses_exact_catalog_occurrences_but_rejects_conflicts(self):
+        duplicate = record()
+        duplicate["catalog_index"] = 1
+        with tempfile.TemporaryDirectory() as folder:
+            result = archive_direct_batch(
+                Path(folder), {"transactions": [record(), duplicate]},
+                OgeSourceConfig(True, True), limit=1, client=Client())
+            self.assertEqual(result["catalog_direct_occurrence_count"], 2)
+            self.assertEqual(result["catalog_direct_count"], 1)
+            self.assertEqual(result["duplicate_catalog_occurrence_count"], 1)
+            self.assertEqual((result["archived_count"], len(result["reports"])), (1, 1))
+
+        conflict = dict(duplicate, agency="Different Agency")
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(OgeCatalogError, "conflicting catalog occurrences"):
+                archive_direct_batch(
+                    Path(folder), {"transactions": [record(), conflict]},
+                    OgeSourceConfig(True, True), limit=1, client=Client())
+
     def test_table_parser_promotes_supported_rows_and_quarantines_exchange(self):
         sha = "a" * 64
         rows = [

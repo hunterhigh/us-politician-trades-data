@@ -99,7 +99,9 @@ def extraction(document_id: str, rows=None, **updates):
 
 
 class SenateCandidateTests(unittest.TestCase):
-    def fixture(self, root: Path, identities: list[dict], extractions: list[dict]):
+    def fixture(self, root: Path, identities: list[dict], extractions: list[dict],
+                failures: list[dict] | None = None):
+        failures = failures or []
         identity_path = (root / "senate_efd" / "identities" / CATALOG_SHA /
                          f"{IDENTITY_BINDING}.json")
         identity_path.parent.mkdir(parents=True)
@@ -114,6 +116,11 @@ class SenateCandidateTests(unittest.TestCase):
         }), encoding="utf-8")
         for item in extractions:
             path = root / "senate_efd" / "extractions" / item["document_id"] / item["source_sha256"] / f"{PARSER}.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(item), encoding="utf-8")
+        for item in failures:
+            path = (root / "senate_efd" / "paper_report_failures" / item["document_id"] /
+                    item["source_sha256"] / f"{PARSER}.json")
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps(item), encoding="utf-8")
         extracted = sum(len(item["transactions"]) for item in extractions)
@@ -131,7 +138,7 @@ class SenateCandidateTests(unittest.TestCase):
             "report_entrypoint_pending_count": 0,
             "report_entrypoint_failure_count": 0,
             "report_evidence_count": len(extractions),
-            "report_extraction_failure_count": 0,
+            "report_extraction_failure_count": len(failures),
             "extracted_transaction_count": extracted,
         }
         status_path = root / "status" / "senate_efd.json"
@@ -156,9 +163,37 @@ class SenateCandidateTests(unittest.TestCase):
                 "entrypoint_count": len(identities),
                 "pending_count": 0,
                 "evidence_count": len(extractions),
+                "last_batch_extraction_failures": len(failures),
                 "last_batch_transactions": extracted,
             },
         }
+
+    def test_accounted_extraction_failure_does_not_block_valid_reports(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            valid_id = "11111111-1111-4111-8111-111111111111"
+            failed_id = "22222222-2222-4222-8222-222222222222"
+            failure = {
+                "schema_version": "senate-efd-paper-ptr-failure/v1",
+                "parser_version": PARSER,
+                "source_id": "senate_efd",
+                "document_id": failed_id,
+                "source_sha256": "e" * 64,
+                "reason": "paper amount mark is ambiguous",
+            }
+            state = self.fixture(
+                root, [identity(valid_id), identity(failed_id)],
+                [extraction(valid_id)], [failure])
+            # Source state describes this collector batch. Review status is cumulative
+            # and also includes durable paper parsing outcomes from earlier jobs.
+            state["reports"]["evidence_count"] = 0
+            state["reports"]["last_batch_extraction_failures"] = 0
+            state["reports"]["last_batch_transactions"] = 0
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(audit["extraction_failure_count"], 1)
+            self.assertIn("1 reports retained as extraction failures",
+                          candidate["source_health"][0]["detail"])
 
     def test_builds_contract_valid_candidate_and_option(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -480,12 +515,12 @@ class SenateCandidateTests(unittest.TestCase):
                              audit["quarantined_transaction_count"] +
                              audit["superseded_report_transaction_count"], 3)
 
-    def test_state_and_review_count_drift_fails_closed(self):
+    def test_state_and_review_entrypoint_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             document_id = "61111111-1111-4111-8111-111111111111"
             state = self.fixture(root, [identity(document_id)], [extraction(document_id)])
-            state["reports"]["last_batch_transactions"] = 2
+            state["reports"]["entrypoint_count"] = 2
             with self.assertRaises(SenateEfdError):
                 build_senate_candidate(root, state, deepcopy(BASE))
 

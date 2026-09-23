@@ -206,6 +206,8 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual(content, body)
         self.assertEqual((query["start"], query["length"], query["search[value]"]),
                          (["0"], ["100"], [""]))
+        self.assertEqual((query["order[0][column]"], query["order[0][dir]"]),
+                         (["0"], ["desc"]))
         self.assertEqual(headers["etag"], "example")
 
     def test_http_client_retries_transient_network_failures(self):

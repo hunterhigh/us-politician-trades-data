@@ -355,8 +355,10 @@ jobs:
                                for path in extraction_paths]
           evidence_count = sum(bool(item.get('evidence_complete')) for item in extraction_values)
           transaction_count = sum(len(item.get('transactions', [])) for item in extraction_values)
-          report_failure_count = len(list(review.glob(
-              f'senate_efd/report_failures/*/*/{parser_version}.json')))
+          report_failure_count = sum(len(list(review.glob(pattern))) for pattern in (
+              f'senate_efd/report_failures/*/*/{parser_version}.json',
+              f'senate_efd/paper_report_failures/*/*/{parser_version}.json',
+          ))
           status = {
               'schema_version': 'senate-review-run/v1',
               'source_id': 'senate_efd',

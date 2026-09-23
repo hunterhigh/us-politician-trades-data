@@ -35,7 +35,7 @@ _ROW_FIELDS = {"type", "name", "agency", "title", "level", "docDate", "amended"}
 _ALLOWED_HOSTS = {"oge.gov", "www.oge.gov", "extapps2.oge.gov"}
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_CATALOG_ROWS = 25_000
-MAX_CATALOG_PAGE_SIZE = 1_000
+MAX_CATALOG_PAGE_SIZE = MAX_CATALOG_ROWS
 MAX_CATALOG_ATTEMPTS = 3
 
 
@@ -346,8 +346,13 @@ class OgeCatalogClient:
         parameters: list[tuple[str, str]] = [
             ("draw", str(draw)), ("start", str(start)), ("length", str(length)),
             ("search[value]", ""), ("search[regex]", "false"),
-            ("order[0][column]", "0"), ("order[0][dir]", "desc"),
         ]
+        # The production request reads the bounded catalog in one response.  Keeping
+        # the official newest-first ordering is therefore safe from page-boundary ties.
+        parameters.extend([
+            ("order[0][column]", "0"),
+            ("order[0][dir]", "desc"),
+        ])
         for index, name in enumerate(self._COLUMNS):
             parameters.extend([
                 (f"columns[{index}][data]", name),
@@ -456,11 +461,12 @@ def archive_catalog(root: Path, raw_pages: list[tuple[int, int, bytes, dict[str,
     return metadata
 
 
-def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = 1_000,
+def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = MAX_CATALOG_PAGE_SIZE,
                      client: OgeCatalogClient | None = None) -> dict:
     require_collection_enabled(config)
     if type(page_size) is not int or not 1 <= page_size <= MAX_CATALOG_PAGE_SIZE:
-        raise OgeCatalogError("OGE catalog page size must be between 1 and 1000")
+        raise OgeCatalogError(
+            f"OGE catalog page size must be between 1 and {MAX_CATALOG_PAGE_SIZE}")
     selected = client or OgeCatalogClient()
     pages: list[OgeCatalogPage] = []
     raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []

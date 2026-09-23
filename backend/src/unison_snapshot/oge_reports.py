@@ -76,6 +76,27 @@ def _validate_direct_record(record: object) -> dict:
     return record
 
 
+def collapse_direct_catalog_records(records: list[dict]) -> tuple[list[dict], int]:
+    """Collapse exact catalog occurrences while rejecting document conflicts."""
+
+    unique: dict[str, dict] = {}
+    duplicate_occurrences = 0
+    for value in records:
+        record = _validate_direct_record(value)
+        document_id = record["source_document_id"]
+        prior = unique.get(document_id)
+        if prior is None:
+            unique[document_id] = record
+            continue
+        comparable = {key: item for key, item in record.items() if key != "catalog_index"}
+        prior_comparable = {key: item for key, item in prior.items() if key != "catalog_index"}
+        if comparable != prior_comparable:
+            raise OgeCatalogError(
+                "OGE direct report document ID has conflicting catalog occurrences")
+        duplicate_occurrences += 1
+    return [unique[key] for key in sorted(unique)], duplicate_occurrences
+
+
 class OgePdfClient:
     def __init__(self, timeout: float = 45.0, opener=None):
         self.timeout = timeout
@@ -173,8 +194,9 @@ def archive_direct_batch(root: Path, catalog: dict, config: OgeSourceConfig, *, 
     rows = catalog.get("transactions") if isinstance(catalog, dict) else None
     if not isinstance(rows, list) or type(limit) is not int or limit < 0:
         raise OgeCatalogError("OGE direct report batch input is invalid")
-    direct = [_validate_direct_record(row) for row in rows
-              if isinstance(row, dict) and row.get("access_method") == "direct_pdf"]
+    direct_occurrences = [row for row in rows
+                          if isinstance(row, dict) and row.get("access_method") == "direct_pdf"]
+    direct, duplicate_occurrences = collapse_direct_catalog_records(direct_occurrences)
     request_count = sum(isinstance(row, dict) and row.get("access_method") == "request_required"
                         for row in rows)
     attempted = archived = 0
@@ -197,7 +219,9 @@ def archive_direct_batch(root: Path, catalog: dict, config: OgeSourceConfig, *, 
     return {
         "schema_version": "oge-278t-archive-batch/v1",
         "source_id": "oge",
+        "catalog_direct_occurrence_count": len(direct_occurrences),
         "catalog_direct_count": len(direct),
+        "duplicate_catalog_occurrence_count": duplicate_occurrences,
         "request_required_count": request_count,
         "attempted_count": attempted,
         "archived_count": archived,
