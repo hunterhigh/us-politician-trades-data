@@ -77,6 +77,8 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("environment: production", content)
         self.assertIn("python backend/scripts/build_whitehouse_278t_candidate.py", content)
         self.assertIn("python -m unison_snapshot verify-first-launch", content)
+        self.assertLess(content.index("status['qualified_holding_count']"),
+                        content.index("python -m unison_snapshot verify-first-launch"))
         self.assertIn("git -C \"$REVIEW_ROOT\" push origin HEAD:refs/heads/review", content)
         self.assertNotIn("HEAD:refs/heads/main", content)
 

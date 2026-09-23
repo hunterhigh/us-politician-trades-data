@@ -50,19 +50,6 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
-          source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
-          for source_id in house_clerk senate_efd; do
-            candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
-            if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
-          done
-          python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
-            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
-          python -m unison_snapshot verify-first-launch \
-            --review-root "$REVIEW_ROOT" \
-            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --output "$RUNNER_TEMP/whitehouse-release-readiness.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -87,6 +74,19 @@ jobs:
           path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True,
                                      separators=(',', ':')), encoding='utf-8')
           PY
+          source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
+          for source_id in house_clerk senate_efd; do
+            candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
+            if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
+          done
+          python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
+          python -m unison_snapshot verify-first-launch \
+            --review-root "$REVIEW_ROOT" \
+            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --output "$RUNNER_TEMP/whitehouse-release-readiness.json"
       - name: Publish verified review candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
