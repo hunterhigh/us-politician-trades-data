@@ -103,6 +103,7 @@ jobs:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           PYTHONPATH: backend/src
           LIMIT: ${{ inputs.limit }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
         run: |
           checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           python -m unison_snapshot build-twelve-data-supplement \
@@ -110,6 +111,9 @@ jobs:
             --output "$RUNNER_TEMP/twelve-candidate.json" \
             --audit-output "$RUNNER_TEMP/twelve-audit.json" \
             --checked-at "$checked_at" --limit "$LIMIT" \
+            --previous-main-root "$RUNNER_TEMP/main" \
+            --previous-market-root "$RUNNER_TEMP/market" \
+            --previous-market-commit "$MARKET_BASE" \
             --distribution-authorized
       - name: Summarize coverage
         if: inputs.usage_only != true

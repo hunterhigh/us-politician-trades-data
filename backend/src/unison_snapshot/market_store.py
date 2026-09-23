@@ -34,6 +34,8 @@ MUTABLE = re.compile(r"market/[0-9a-f]{2}/index\.json")
 IMMUTABLE = re.compile(r"(?:market/[0-9a-f]{2}|market-pages)/[0-9a-f]{64}\.json")
 CACHE_WINDOW = "market/cache-window.json"
 CACHE_WINDOW_SCHEMA = "market-cache-window/v1"
+TWELVE_STATE = "market/twelve-data-state.json"
+TWELVE_STATE_SCHEMA = "twelve-data-market-state/v1"
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,12 @@ class PublishedMarketCache:
     requested_as_of_date: date
     provider_symbols: dict[str, str]
     full_refresh_date: date | None = None
+
+
+@dataclass(frozen=True)
+class PublishedTwelveDataCache:
+    rows: dict[str, dict]
+    state: dict
 
 
 def _timestamp(value: object) -> datetime:
@@ -159,7 +167,8 @@ def build_market_bundle(rows: object, *, data_cutoff_at: str,
                         max_index_bytes: int = 8192,
                         max_blob_bytes: int = 8 * 1024 * 1024,
                         page_size: int = 50,
-                        audit: dict | None = None) -> MarketBundle:
+                        audit: dict | None = None,
+                        twelve_audit: dict | None = None) -> MarketBundle:
     normalized = validate_market_rows(rows, data_cutoff_at=data_cutoff_at)
     if not normalized:
         raise ValueError("Licensed market publication requires at least one market row")
@@ -194,8 +203,58 @@ def build_market_bundle(rows: object, *, data_cutoff_at: str,
         # the published market branch but never inherit Alpaca's feed metadata.
         alpaca_rows = [row for row in normalized if row["source_id"] == SOURCE_ID]
         files[CACHE_WINDOW] = _cache_window(audit, alpaca_rows)
+    twelve_rows = [row for row in normalized if row["source_id"] == TWELVE_DATA_SOURCE_ID]
+    if twelve_rows or twelve_audit is not None:
+        state = twelve_audit.get("state") if isinstance(twelve_audit, dict) else None
+        if not isinstance(state, dict) or state.get("schema_version") != TWELVE_STATE_SCHEMA:
+            raise ValueError("Twelve Data publication requires persistent coverage state")
+        accepted = sorted(key for key, entry in state.get("entries", {}).items()
+                          if isinstance(entry, dict) and entry.get("status") == "accepted")
+        if accepted != [row["ticker"] for row in twelve_rows]:
+            raise ValueError("Twelve Data state does not match published market rows")
+        files[TWELVE_STATE] = encode(state)
     return MarketBundle(files, tuple(row["ticker"] for row in normalized),
                         tuple(page_shas), data_cutoff_at)
+
+
+def load_published_twelve_data_cache(main_root: Path, market_root: Path, *,
+                                     market_commit: str) -> PublishedTwelveDataCache | None:
+    manifest_path = main_root / "manifest.json"
+    state_path = market_root / TWELVE_STATE
+    if not manifest_path.exists() or not state_path.exists():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("market_commit") != market_commit or manifest.get("is_demo") is not False:
+        return None
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    entries = state.get("entries")
+    if state.get("schema_version") != TWELVE_STATE_SCHEMA or not isinstance(entries, dict):
+        raise ValueError("Published Twelve Data state is invalid")
+    rows: dict[str, dict] = {}
+    cutoff = manifest.get("data_cutoff_at")
+    for ticker, entry in sorted(entries.items()):
+        if not isinstance(entry, dict) or entry.get("status") not in {
+                "accepted", "identity_unresolved", "not_market_security",
+                "twelve_data_unavailable", "no_current_series"}:
+            raise ValueError("Published Twelve Data state contains an invalid entry")
+        if entry.get("status") != "accepted":
+            continue
+        index_path = market_root / "market" / bucket("market", ticker) / "index.json"
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        sha = index.get("shards", {}).get(ticker)
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise ValueError(f"Published Twelve Data index is invalid for {ticker}")
+        blob = index_path.parent / f"{sha}.json"
+        content = blob.read_bytes()
+        if digest(content) != sha:
+            raise ValueError(f"Published Twelve Data hash mismatch for {ticker}")
+        listed = json.loads(content).get("security_market_data")
+        normalized_row = validate_market_rows(listed, data_cutoff_at=cutoff)
+        if len(normalized_row) != 1 or normalized_row[0]["ticker"] != ticker \
+                or normalized_row[0]["source_id"] != TWELVE_DATA_SOURCE_ID:
+            raise ValueError(f"Published Twelve Data row is invalid for {ticker}")
+        rows[ticker] = normalized_row[0]
+    return PublishedTwelveDataCache(rows, state)
 
 
 def load_published_market_cache(main_root: Path, market_root: Path,
@@ -272,7 +331,7 @@ def materialize_market(root: Path, bundle: MarketBundle) -> MarketMaterializeRes
     root = root.resolve()
     root.mkdir(parents=True, exist_ok=True)
     if any(not (MUTABLE.fullmatch(path) or IMMUTABLE.fullmatch(path)
-                or path == CACHE_WINDOW) for path in bundle.files):
+                or path in {CACHE_WINDOW, TWELVE_STATE}) for path in bundle.files):
         raise ValueError("Market bundle contains a path outside the public contract")
     written: list[str] = []
     for relative, content in sorted(bundle.files.items()):

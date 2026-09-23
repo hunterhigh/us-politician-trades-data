@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.codec import bucket
 from unison_snapshot.market_store import (build_market_bundle,
                                           load_published_market_cache,
+                                          load_published_twelve_data_cache,
                                           materialize_market)
 
 
@@ -30,6 +31,36 @@ def row(ticker="AAPL"):
 
 
 class MarketStoreTests(unittest.TestCase):
+    def test_published_twelve_data_state_rehydrates_accepted_rows(self):
+        twelve = row("FUNDX")
+        twelve.update(source_id="twelve_data_split_adjusted_eod",
+                      price_source="Twelve Data split-adjusted EOD",
+                      source_url="https://twelvedata.com/docs", feed="twelve_data")
+        twelve_audit = {"state": {
+            "schema_version": "twelve-data-market-state/v1",
+            "updated_at": "2026-09-20T00:00:00Z",
+            "entries": {"FUNDX": {"status": "accepted",
+                                    "checked_at": "2026-09-20T00:00:00Z",
+                                    "fingerprint": "a" * 64}},
+        }}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            main, market = root / "main", root / "market-branch"
+            main.mkdir()
+            bundle = build_market_bundle([twelve],
+                                         data_cutoff_at="2026-09-20T23:59:59Z",
+                                         twelve_audit=twelve_audit)
+            materialize_market(market, bundle)
+            (main / "manifest.json").write_text(json.dumps({
+                "is_demo": False, "market_commit": "a" * 40,
+                "data_cutoff_at": "2026-09-20T23:59:59Z",
+            }), encoding="utf-8")
+            cache = load_published_twelve_data_cache(
+                main, market, market_commit="a" * 40)
+            self.assertEqual(cache.rows["FUNDX"]["source_id"],
+                             "twelve_data_split_adjusted_eod")
+            self.assertEqual(cache.state["entries"]["FUNDX"]["status"], "accepted")
+
     def test_published_cache_requires_matching_pointer_and_valid_shard_hash(self):
         audit = {
             "schema_version": "alpaca-market-validation/v2",

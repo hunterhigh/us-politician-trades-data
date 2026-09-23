@@ -130,7 +130,10 @@ jobs:
             --audit-output "$RUNNER_TEMP/twelve-audit.json" \
             --processed-output "$RUNNER_TEMP/complete-processed.json" \
             --html-output "$RUNNER_TEMP/complete-dashboard.html" \
-            --checked-at "$checked_at" --limit 10 \
+            --checked-at "$checked_at" --limit 100 \
+            --previous-main-root "${{ steps.trees.outputs.main_root }}" \
+            --previous-market-root "${{ steps.trees.outputs.market_root }}" \
+            --previous-market-commit "${{ steps.trees.outputs.market_base }}" \
             --distribution-authorized
           python - <<'PY'
           import json, os
@@ -175,6 +178,7 @@ jobs:
           python -m unison_snapshot prepare-market-publication \
             --input "$RUNNER_TEMP/complete-candidate.json" --root "$MARKET_ROOT" \
             --audit "$RUNNER_TEMP/market-audit.json" \
+            --twelve-audit "$RUNNER_TEMP/twelve-audit.json" \
             --metadata-output "$RUNNER_TEMP/market-publication.json"
           git -C "$MARKET_ROOT" add -A -- market market-pages
           if ! git -C "$MARKET_ROOT" diff --cached --quiet; then

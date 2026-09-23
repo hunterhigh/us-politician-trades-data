@@ -35,6 +35,8 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("--previous-main-root", complete)
         self.assertIn("--previous-market-root", complete)
         self.assertIn('--audit "$RUNNER_TEMP/market-audit.json"', complete)
+        self.assertIn('--twelve-audit "$RUNNER_TEMP/twelve-audit.json"', complete)
+        self.assertIn('--checked-at "$checked_at" --limit 100', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
 
