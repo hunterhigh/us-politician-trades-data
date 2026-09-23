@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _ocr_cover,
-                                              _parse_row, OcrCheckpointPending,
+                                              _parse_row, _raw_text_columns,
+                                              OcrCheckpointPending,
                                               extract_public_278e_pdf,
                                               extract_public_278e_pdf_checkpointed)
 from unison_snapshot.ocr_geometry import OcrPage
@@ -193,6 +194,13 @@ class Public278eTests(unittest.TestCase):
         self.assertEqual(destination, "quarantined")
         self.assertIn("holding_ocr_confidence_below_threshold", result["reasons"])
         self.assertEqual(result["ocr_min_confidence"], 55.0)
+
+    def test_duplicate_row_raw_columns_exclude_private_ocr_arrays(self):
+        row = {"description": ["SPY", "ETF"], "value": ["$1,001", "-", "$15,000"],
+               "_ocr_confidences": [96.0, 55.0],
+               "_row_reasons": ["row_number_ocr_unreadable"]}
+        self.assertEqual(_raw_text_columns(row), {
+            "description": "SPY ETF", "value": "$1,001 - $15,000"})
 
     def test_large_scanned_report_requires_checkpointed_ocr(self):
         pages = [_Page([""]) for _ in range(101)]
