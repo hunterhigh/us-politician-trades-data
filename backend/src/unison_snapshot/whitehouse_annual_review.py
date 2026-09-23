@@ -1,8 +1,8 @@
 """Materialize White House annual asset rows with truthful filer attribution.
 
-This is a review artifact. A source-complete asset set is not yet a canonical
-holding snapshot until person identity, report versions and publication gates
-are resolved.
+This is a review artifact. Complete reports and explicitly labeled,
+source-bound partial rows are not canonical holdings until person identity,
+report versions, and publication gates are resolved.
 """
 from __future__ import annotations
 
@@ -16,13 +16,31 @@ from .oge_278e_audit import audit_public_278e
 from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
                                SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last
+from .whitehouse_scanned_annual import (RECOVERY_METHOD,
+                                        apply_scanned_annual_corrections)
 
 
-SCHEMA = "whitehouse-annual-filer-reported/v1"
+SCHEMA = "whitehouse-annual-filer-reported/v2"
 _COVERAGE = "whitehouse-public-coverage/v1"
 _ID = re.compile(r"wh-url:([0-9a-f]{24})\Z")
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _EXTRACTED = {"extracted_review_only", "extracted_with_issues"}
+_PARTIAL_BLOCKERS = {
+    "asset_rows_quarantined",
+    "asset_sections_unverified",
+    "holding_rows_not_individually_qualified",
+    "document:table_header_unrecognized",
+}
+
+
+def _partial_candidate_allowed(audit: dict, extraction: dict) -> bool:
+    blockers = set(audit["holding_blocking_reasons"])
+    tolerated = set(_PARTIAL_BLOCKERS)
+    tolerated.update(reason for reason in blockers if reason.startswith(
+                     ("asset_section_unreconciled:", "document:asset_section_missing:")))
+    return (extraction.get("source_bound_correction_method") == RECOVERY_METHOD and
+            audit["printed_rows_conserved"] and
+            bool(audit["source_candidate_holding_count"]) and blockers <= tolerated)
 
 
 def build_annual_review(coverage: dict, review_root: Path, *,
@@ -64,7 +82,7 @@ def build_annual_review(coverage: dict, review_root: Path, *,
         if relative != expected_relative:
             raise ValueError("White House annual extraction path is invalid")
         raw = (review_root / relative).read_bytes()
-        extraction = json.loads(raw)
+        extraction = apply_scanned_annual_corrections(json.loads(raw))
         filer = extraction.get("filer_name")
         page_filer = source.get("filer_name_from_label")
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
@@ -78,6 +96,7 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             continue
         audit = audit_public_278e(extraction)
         report_eligible = audit["source_holdings_eligible"]
+        candidate_eligible = report_eligible or _partial_candidate_allowed(audit, extraction)
         source_holdings = extraction["holdings"]
         if len(source_holdings) != len(audit["holding_row_audit"]):
             raise ValueError("White House annual holding audit lost rows")
@@ -94,11 +113,17 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             "filing_date": extraction.get("filing_date"),
             "report_period_end": extraction.get("report_period_end"),
             "source_holdings_eligible": report_eligible,
+            "source_candidate_eligible": candidate_eligible,
+            "holding_coverage_status": ("complete" if report_eligible else
+                                        "partial" if candidate_eligible else "ineligible"),
             "holding_blocking_reasons": audit["holding_blocking_reasons"],
             "parsed_holding_count": len(source_holdings),
             "quarantined_asset_count": sum(row.get("section") in {"part2", "part5", "part6"}
                                            for row in extraction["quarantined"]),
             "printed_rows_conserved": audit["printed_rows_conserved"],
+            "source_bound_recovered_holding_count": extraction.get(
+                "source_bound_recovered_holding_count", 0),
+            "signature_evidence": extraction.get("signature_evidence"),
         }
         result_reports.append(report)
         for index, (row, decision) in enumerate(zip(source_holdings,
@@ -119,7 +144,7 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                 "report_period_end": row["report_period_end"],
                 "section": row["section"], "page_number": row["page_number"],
                 "row_number": row["row_number"],
-                "source_holdings_eligible": report_eligible and
+                "source_holdings_eligible": candidate_eligible and
                 decision["source_candidate_eligible"],
                 "row_blocking_reasons": decision["reasons"],
                 "source_url": url, "source_sha256": versions[0],
@@ -132,7 +157,10 @@ def build_annual_review(coverage: dict, review_root: Path, *,
         "report_count": len(result_reports), "holding_count": len(holdings),
         "owner_counts": dict(sorted(owner_counts.items())),
         "source_eligible_report_count": sum(r["source_holdings_eligible"] for r in result_reports),
+        "source_candidate_report_count": sum(r["source_candidate_eligible"] for r in result_reports),
+        "source_partial_report_count": sum(r["holding_coverage_status"] == "partial"
+                                           for r in result_reports),
         "source_eligible_holding_count": sum(r["source_holdings_eligible"] for r in holdings),
-        "production_status": "review_only_pending_identity_versions_and_snapshot_gate",
+        "production_status": "review_only_complete_or_source_bound_partial_rows",
         "reports": result_reports, "holdings": holdings,
     }

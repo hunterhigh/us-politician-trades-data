@@ -56,7 +56,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         self.assertIsNone(row["owner_is_filer"])
         self.assertTrue(row["source_holdings_eligible"])
         self.assertEqual(result["production_status"],
-                         "review_only_pending_identity_versions_and_snapshot_gate")
+                         "review_only_complete_or_source_bound_partial_rows")
 
     def test_quarantined_asset_blocks_entire_report_without_losing_parsed_row(self) -> None:
         extraction = _annual()
@@ -70,6 +70,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         self.assertEqual(result["reports"][0]["quarantined_asset_count"], 1)
         self.assertIn("asset_rows_quarantined",
                       result["reports"][0]["holding_blocking_reasons"])
+        self.assertFalse(result["reports"][0]["source_candidate_eligible"])
 
     def test_modified_archive_binding_is_rejected(self) -> None:
         extraction = _annual()
