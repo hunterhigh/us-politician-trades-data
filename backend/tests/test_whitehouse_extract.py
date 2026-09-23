@@ -11,6 +11,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from unison_snapshot.oge import OgeCatalogError
+from unison_snapshot.oge_278e_public import OcrCheckpointPending
 spec = importlib.util.spec_from_file_location(
     "whitehouse_extract_script", ROOT / "scripts/whitehouse_extract.py")
 script = importlib.util.module_from_spec(spec)
@@ -113,6 +114,25 @@ class WhiteHouseExtractTests(unittest.TestCase):
             result = script.extract_batch(self.evidence, self.review, limit=1)
         self.assertEqual(result["extraction_created_count"], 1)
         self.assertEqual(result["failure_count"], 0)
+
+    def test_checkpoint_progress_is_pending_not_a_parser_failure(self):
+        row = self.archive("d", kind="278e_annual")
+        status = {"schema_version": "whitehouse-278e-ocr-checkpoint/v1",
+                  "source_sha256": row["sha256"], "completed_page_count": 50,
+                  "pending_page_count": 877}
+        with patch.object(script, "extract_public_278e_pdf",
+                          side_effect=OgeCatalogError(
+                              "White House 278e requires checkpointed OCR")), patch.object(
+                          script, "extract_public_278e_pdf_checkpointed",
+                          side_effect=OcrCheckpointPending(status)):
+            result = script.extract_batch(self.evidence, self.review, limit=1)
+        self.assertEqual(result["checkpoint_pending_count"], 1)
+        self.assertEqual(result["pending_count"], 1)
+        self.assertEqual(result["failure_count"], 0)
+        failure = (self.review / "whitehouse/extractions" / row["document_id"][7:] /
+                   row["sha256"] /
+                   f"{script.ANNUAL_PARSER_VERSION.replace('/', '-')}.failure.json")
+        self.assertFalse(failure.exists())
 
 
 if __name__ == "__main__":

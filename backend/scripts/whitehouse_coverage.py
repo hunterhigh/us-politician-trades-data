@@ -8,8 +8,14 @@ from pathlib import Path
 import re
 
 from unison_snapshot.whitehouse_disclosures import INDEX_SCHEMA
-from unison_snapshot.oge_278e_public import PARSER_VERSION as ANNUAL_PARSER_VERSION
-from unison_snapshot.whitehouse_278t import PARSER_VERSION as TRADE_PARSER_VERSION
+from unison_snapshot.oge_278e_public import (
+    PARSER_VERSION as ANNUAL_PARSER_VERSION,
+    SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSER_VERSIONS,
+)
+from unison_snapshot.whitehouse_278t import (
+    PARSER_VERSION as TRADE_PARSER_VERSION,
+    SUPPORTED_PARSER_VERSIONS as TRADE_PARSER_VERSIONS,
+)
 
 
 SCHEMA = "whitehouse-public-coverage/v1"
@@ -54,6 +60,9 @@ def build_coverage(index: dict, batch: dict, review_root: Path) -> dict:
         versions = by_id.pop(document_id, [])
         states = []
         hashes = []
+        extraction_versions = []
+        extraction_paths = []
+        failure_paths = []
         quarantined_rows = 0
         for metadata in versions:
             sha = metadata.get("sha256")
@@ -63,16 +72,31 @@ def build_coverage(index: dict, batch: dict, review_root: Path) -> dict:
             hashes.append(sha)
             folder = (review_root / "whitehouse/extractions" /
                       document_id.split(":", 1)[1] / sha)
-            version = (TRADE_PARSER_VERSION if report.get("document_type_from_label") == "278t"
-                       else ANNUAL_PARSER_VERSION).replace("/", "-")
-            valid = folder / f"{version}.json"
-            failed = folder / f"{version}.failure.json"
-            if valid.is_file() and failed.is_file():
-                raise ValueError("White House archive version has conflicting review states")
-            if valid.is_file():
+            versions_to_check = (TRADE_PARSER_VERSIONS if
+                                 report.get("document_type_from_label") == "278t" else
+                                 ANNUAL_PARSER_VERSIONS)
+            valid_options = []
+            failed_options = []
+            for parser_version in versions_to_check:
+                stem = parser_version.replace("/", "-")
+                valid_path = folder / f"{stem}.json"
+                failed_path = folder / f"{stem}.failure.json"
+                if valid_path.is_file() and failed_path.is_file():
+                    raise ValueError("White House archive version has conflicting review states")
+                if valid_path.is_file():
+                    valid_options.append((parser_version, valid_path))
+                if failed_path.is_file():
+                    failed_options.append((parser_version, failed_path))
+            selected_valid = valid_options[0] if valid_options else None
+            current_failure = next((item for item in failed_options
+                                    if item[0] == versions_to_check[0]), None)
+            if selected_valid is not None and not (
+                    current_failure is not None and selected_valid[0] != versions_to_check[0]):
+                parser_version, valid = selected_valid
                 extraction = _load(valid)
                 if (extraction.get("source_sha256") != sha or
-                        extraction.get("source_url") != metadata["document_url"]):
+                        extraction.get("source_url") != metadata["document_url"] or
+                        extraction.get("parser_version") != parser_version):
                     raise ValueError("White House extraction is not archive-bound")
                 quarantined = extraction.get("quarantined", [])
                 if not isinstance(quarantined, list):
@@ -82,14 +106,25 @@ def build_coverage(index: dict, batch: dict, review_root: Path) -> dict:
                     extraction.get("document_reasons") or
                     extraction.get("evidence_complete") is False or quarantined
                 ) else "extracted_review_only")
-            elif failed.is_file():
+                extraction_versions.append(parser_version)
+                extraction_paths.append(valid.relative_to(review_root).as_posix())
+                failure_paths.append(None)
+            elif current_failure is not None:
+                parser_version, failed = current_failure
                 failure = _load(failed)
                 if (failure.get("source_sha256") != sha or
-                        failure.get("source_url") != metadata["document_url"]):
+                        failure.get("source_url") != metadata["document_url"] or
+                        failure.get("parser_version") != parser_version):
                     raise ValueError("White House extraction failure is not archive-bound")
                 states.append("extraction_quarantined")
+                extraction_versions.append(parser_version)
+                extraction_paths.append(None)
+                failure_paths.append(failed.relative_to(review_root).as_posix())
             else:
                 states.append("pending_extraction")
+                extraction_versions.append(None)
+                extraction_paths.append(None)
+                failure_paths.append(None)
         if not versions:
             state = "download_failed" if document_id in failed_download_ids else "not_archived"
         elif len(versions) > 1:
@@ -105,6 +140,9 @@ def build_coverage(index: dict, batch: dict, review_root: Path) -> dict:
             "document_url": report.get("document_url"),
             "archive_sha256_versions": sorted(hashes),
             "review_state": state,
+            "extraction_parser_version": extraction_versions[0] if len(versions) == 1 else None,
+            "extraction_path": extraction_paths[0] if len(versions) == 1 else None,
+            "failure_path": failure_paths[0] if len(versions) == 1 else None,
             "quarantined_row_count": quarantined_rows,
             "production_qualification": "not_evaluated",
         })

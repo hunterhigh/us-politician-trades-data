@@ -27,13 +27,17 @@ from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_278t import (
+    PARSER_VERSION as TRADE_PARSER,
+    SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
+)
 from unison_snapshot.oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
-                                             SCHEMA as ANNUAL_SCHEMA)
+                                             SCHEMA as ANNUAL_SCHEMA,
+                                             SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS)
 
 
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _DOCUMENT = re.compile(r"wh-url:([0-9a-f]{24})\Z")
-_EXTRACTION_FILE = "whitehouse-278t-pdf-v1.json"
 _COVERAGE_SCHEMA = "whitehouse-public-coverage/v1"
 _STATUS_SCHEMA = "whitehouse-public-extraction-status/v1"
 
@@ -78,6 +82,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         raise ValueError("White House 278-T report count differs from the expected batch")
     seen_ids = set()
     expected_paths = {}
+    expected_folders = set()
     for row in reports:
         document_id = row.get("document_id")
         match = _DOCUMENT.fullmatch(document_id) if isinstance(document_id, str) else None
@@ -97,19 +102,40 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
                 {"extracted_review_only", "extracted_with_issues"}):
             raise ValueError("White House 278-T coverage has an unarchived or unextracted report")
         seen_ids.add(document_id)
-        relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
-                    _EXTRACTION_FILE)
-        expected_paths[relative.as_posix()] = row
+        folder = Path("whitehouse/extractions") / match[1] / versions[0]
+        parser_version = row.get("extraction_parser_version")
+        if parser_version is None:
+            available = [version for version in TRADE_PARSERS
+                         if (review_root / folder /
+                             f"{version.replace('/', '-')}.json").is_file()]
+            parser_version = available[0] if available else TRADE_PARSER
+        if parser_version not in TRADE_PARSERS:
+            raise ValueError("White House 278-T extraction parser is unsupported")
+        expected_relative = folder / f"{parser_version.replace('/', '-')}.json"
+        relative_value = row.get("extraction_path")
+        relative = Path(relative_value) if isinstance(relative_value, str) else expected_relative
+        if relative != expected_relative:
+            raise ValueError("White House 278-T extraction path is invalid")
+        expected_paths[relative.as_posix()] = (row, parser_version)
+        expected_folders.add(folder.as_posix())
     root = review_root / "whitehouse/extractions"
-    actual_paths = {path.relative_to(review_root).as_posix(): path
-                    for path in root.glob(f"*/*/{_EXTRACTION_FILE}")}
-    if set(actual_paths) != set(expected_paths):
-        raise ValueError("White House 278-T extraction files do not match coverage exactly")
+    supported_names = {f"{version.replace('/', '-')}.json" for version in TRADE_PARSERS}
+    for path in root.glob("*/*/*.json"):
+        if path.name not in supported_names:
+            continue
+        relative = path.relative_to(review_root)
+        if (relative.as_posix() not in expected_paths and
+                relative.parent.as_posix() not in expected_folders):
+            raise ValueError("White House 278-T extraction files do not match coverage")
     extractions = []
     manifest = []
-    for relative, row in sorted(expected_paths.items()):
-        extraction, raw_sha = _read_object(actual_paths[relative])
+    for relative, (row, parser_version) in sorted(expected_paths.items()):
+        path = review_root / relative
+        if not path.is_file():
+            raise ValueError("White House 278-T extraction file is missing")
+        extraction, raw_sha = _read_object(path)
         if (extraction.get("document_id") != row["document_id"] or
+                extraction.get("parser_version") != parser_version or
                 extraction.get("source_url") != row["document_url"] or
                 extraction.get("source_sha256") != row["archive_sha256_versions"][0]):
             raise ValueError("White House 278-T extraction is not bound to coverage and archive SHA")
@@ -135,11 +161,18 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         if (match is None or not isinstance(versions, list) or len(versions) != 1 or
                 not isinstance(versions[0], str) or not _SHA256.fullmatch(versions[0])):
             raise ValueError("White House annual dedup source is not uniquely archived")
-        relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
-                    f"{ANNUAL_PARSER.replace('/', '-')}.json")
+        parser_version = row.get("extraction_parser_version") or ANNUAL_PARSER
+        if parser_version not in ANNUAL_PARSERS:
+            raise ValueError("White House annual dedup parser is unsupported")
+        expected_relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+                             f"{parser_version.replace('/', '-')}.json")
+        relative_value = row.get("extraction_path")
+        relative = Path(relative_value) if isinstance(relative_value, str) else expected_relative
+        if relative != expected_relative:
+            raise ValueError("White House annual dedup extraction path is invalid")
         annual, raw_sha = _read_object(review_root / relative)
         if (annual.get("schema_version") != ANNUAL_SCHEMA or
-                annual.get("parser_version") != ANNUAL_PARSER or
+                annual.get("parser_version") != parser_version or
                 annual.get("source_url") != row.get("document_url") or
                 annual.get("source_sha256") != versions[0]):
             raise ValueError("White House annual dedup extraction is not bound to its PDF")

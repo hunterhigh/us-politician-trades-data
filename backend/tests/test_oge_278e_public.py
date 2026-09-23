@@ -11,8 +11,11 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _parse_row,
-                                              extract_public_278e_pdf)
+from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _ocr_cover,
+                                              _parse_row, OcrCheckpointPending,
+                                              extract_public_278e_pdf,
+                                              extract_public_278e_pdf_checkpointed)
+from unison_snapshot.ocr_geometry import OcrPage
 
 
 def _cover_text(report: str, year: str = "", date_label: str = "Date of Appointment",
@@ -74,6 +77,20 @@ class _Document:
 
 
 class Public278eTests(unittest.TestCase):
+    @staticmethod
+    def ocr_page(lines):
+        words = []
+        for line_number, line in enumerate(lines, start=1):
+            x = 30.0
+            for token in line.split():
+                words.append({"text": token, "x0": x, "x1": x + len(token) * 5,
+                              "top": line_number * 10.0,
+                              "bottom": line_number * 10.0 + 8, "size": 8.0,
+                              "ocr_confidence": 96.0, "block_num": 1,
+                              "par_num": 1, "line_num": line_number})
+                x += len(token) * 5 + 4
+        return OcrPage(width=612.0, height=792.0, words=words)
+
     def test_cover_separates_report_year_from_reporting_period(self):
         annual = _cover(_cover_text("Annual", "2026"), "Ada Example")
         self.assertEqual(annual["report_period_end"], "2025-12-31")
@@ -95,6 +112,30 @@ class Public278eTests(unittest.TestCase):
         with self.assertRaises(OgeCatalogError):
             _cover(_cover_text("Annual", "2026").replace("by Example, Ada", "by Someone Else"),
                    "Ada Example")
+
+    def test_scanned_cover_preserves_identity_but_not_handwritten_filing_date(self):
+        page = _Page([
+            "OGE Form 278e (Updated 08/2024)",
+            "Report Type: Annual",
+            "Year (Annual Report only): 2025",
+            "Executive Branch Personnel Public Financial Disclosure Report (OGE Form 278e)",
+            "Filer’s Information",
+            "Last Name First Name MI Position Agency",
+            "Vance JD",
+            "Vice President of the United States",
+            "Other Federal Government Positions Held During the Preceding 12 Months:",
+            "Filer’s Certification",
+            "Signature: unreadable Date: unreadable",
+            "OGE Received 6/29/2026",
+        ])
+        meta, reasons = _ocr_cover(page, "Vice President JD Vance")
+        self.assertEqual(meta["filer_name"], "JD Vance")
+        self.assertEqual(meta["position_line_raw"], "Vice President of the United States")
+        self.assertEqual(meta["cover_report_year"], 2025)
+        self.assertEqual(meta["report_period_end"], "2025-12-31")
+        self.assertEqual(meta["holding_valuation_date"], "2025-12-31")
+        self.assertIsNone(meta["filing_date"])
+        self.assertEqual(reasons, ["filer_handwritten_signature_or_date_unverified"])
 
     def test_part6_owner_requires_explicit_parent_or_exact_endnote(self):
         def row(number, description, value=None):
@@ -141,6 +182,72 @@ class Public278eTests(unittest.TestCase):
         destination, result = _parse_row(row, meta, "1")
         self.assertEqual(destination, "quarantined")
         self.assertIn("nested_aggregate_may_double_count", result["reasons"])
+
+    def test_low_confidence_ocr_row_is_quarantined(self):
+        meta = _cover(_cover_text("Annual", "2026"), "Ada Example")
+        row = {"section": "part2", "page_number": 3, "row_number": "1",
+               "owner": "Self", "description": ["SPY", "ETF"], "eif": ["Yes"],
+               "value": ["$1,001", "-", "$15,000"],
+               "_ocr_confidences": [96.0, 55.0]}
+        destination, result = _parse_row(row, meta, None)
+        self.assertEqual(destination, "quarantined")
+        self.assertIn("holding_ocr_confidence_below_threshold", result["reasons"])
+        self.assertEqual(result["ocr_min_confidence"], 55.0)
+
+    def test_large_scanned_report_requires_checkpointed_ocr(self):
+        pages = [_Page([""]) for _ in range(101)]
+        content = b"%PDF-1.7\nfixture\n%%EOF"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.pdf"
+            path.write_bytes(content)
+            with patch.dict(sys.modules, {"pdfplumber": type("PDFPlumber", (), {
+                    "open": staticmethod(lambda _: _Document(pages))})}):
+                with self.assertRaisesRegex(OgeCatalogError, "checkpointed OCR"):
+                    extract_public_278e_pdf(
+                        path,
+                        source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
+                        source_sha256=hashlib.sha256(content).hexdigest(),
+                        expected_filer="Ada Example")
+
+    def test_large_ocr_report_resumes_immutable_page_shards(self):
+        pages = [_Page([""]) for _ in range(101)]
+        content = b"%PDF-1.7\nfixture\n%%EOF"
+        cover = self.ocr_page([
+            "OGE Form 278e (Updated 08/2024)", "Report Type: Annual",
+            "Year (Annual Report only): 2025",
+            "Executive Branch Personnel Public Financial Disclosure Report",
+            "Filer's Information", "Example Ada",
+            "Assistant to the President", "Other Federal Government Positions",
+        ])
+        blank = self.ocr_page([])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "report.pdf"
+            path.write_bytes(content)
+            def ocr(_document, *, page_numbers, **_kwargs):
+                return [cover if number == 1 else blank for number in page_numbers], "tesseract test"
+            with patch.dict(sys.modules, {"pdfplumber": type("PDFPlumber", (), {
+                    "open": staticmethod(lambda _: _Document(pages))})}), patch(
+                    "unison_snapshot.oge_278e_public.ocr_pdf_pages", side_effect=ocr):
+                with self.assertRaises(OcrCheckpointPending) as pending:
+                    extract_public_278e_pdf_checkpointed(
+                        path,
+                        source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
+                        source_sha256=hashlib.sha256(content).hexdigest(),
+                        expected_filer="Ada Example", checkpoint_root=root / "checkpoint",
+                        page_limit=100)
+                self.assertEqual(pending.exception.status["completed_page_count"], 100)
+                result = extract_public_278e_pdf_checkpointed(
+                    path,
+                    source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
+                    source_sha256=hashlib.sha256(content).hexdigest(),
+                    expected_filer="Ada Example", checkpoint_root=root / "checkpoint",
+                    page_limit=100)
+            self.assertEqual(result["page_count"], 101)
+            self.assertEqual(result["extraction_method"],
+                             "tesseract_ocr_geometry_checkpointed")
+            self.assertEqual(result["ocr_checkpoint"]["pending_page_count"], 0)
+            self.assertEqual(len(list((root / "checkpoint").glob("pages-*.json"))), 5)
 
     def test_unknown_table_header_leaves_numbered_row_visible(self):
         pages = [_Page(_cover_text("Annual", "2026").splitlines()),

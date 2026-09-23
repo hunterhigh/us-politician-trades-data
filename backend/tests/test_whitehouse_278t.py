@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t import (
-    parse_whitehouse_278t_pdf, quarantine_duplicate_report_groups,
+    _ocr_date, parse_whitehouse_278t_pdf, quarantine_duplicate_report_groups,
 )
 
 
@@ -94,9 +94,24 @@ class WhiteHouse278TTests(unittest.TestCase):
             "Filer's Signature /s/ Example, Ada Date 06/03/2025\nTransactions")
         self.assertEqual(handwritten["signature_method"], "handwritten_unverified")
         self.assertIsNone(handwritten["filed_at"])
-        garbled = self.extract("".join(f"(cid:{n})" for n in range(25)), rows=[])
+        garbled_text = "".join(f"(cid:{n})" for n in range(25))
+        with patch("unison_snapshot.whitehouse_278t._extract_ocr_pdf", return_value={
+                "text": garbled_text, "records": [], "engine": "tesseract test",
+                "page_count": 1, "pdf_filer_name": None,
+                "pdf_position_title": None, "pdf_agency_label": None,
+                "pdf_position_agency_raw": None,
+                "identity_reasons": ["pdf_filer_information_not_verified"],
+                "title_verified": False}):
+            garbled = self.extract(garbled_text, rows=[])
         self.assertEqual(garbled["signature_method"], "unreadable_pdf_text")
         self.assertIn("transaction_table_not_found", garbled["document_reasons"])
+
+    def test_ocr_date_repairs_only_unambiguous_digit_layout(self):
+        self.assertEqual(_ocr_date("11282025"), "11/28/2025")
+        self.assertEqual(_ocr_date("1/8/2025"), "01/08/2025")
+        self.assertEqual(_ocr_date("21612025"), "2/6/2025")
+        self.assertEqual(_ocr_date("112112025"), "1/21/2025")
+        self.assertEqual(_ocr_date("111112025"), "111112025")
 
     def test_source_hash_and_host_are_required(self):
         with tempfile.TemporaryDirectory() as folder:

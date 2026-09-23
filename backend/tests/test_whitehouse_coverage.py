@@ -37,6 +37,7 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                       f"{script.TRADE_PARSER_VERSION.replace('/', '-')}.json")
             target.parent.mkdir(parents=True)
             target.write_text(json.dumps({"source_url": url, "source_sha256": "d" * 64,
+                                          "parser_version": script.TRADE_PARSER_VERSION,
                                           "document_reasons": [], "quarantined": []}),
                               encoding="utf-8")
             result = script.build_coverage(index, batch, root)
@@ -47,6 +48,74 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
             batch["reports"][0]["document_url"] = "https://evil.example/a.pdf"
             with self.assertRaisesRegex(ValueError, "not index-bound"):
                 script.build_coverage(index, batch, root)
+
+    def test_legacy_annual_stays_visible_until_current_parser_finishes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "wh-url:" + "a" * 24
+            url = "https://www.whitehouse.gov/wp-content/uploads/2026/09/annual.pdf"
+            sha = "d" * 64
+            index = {"schema_version": script.INDEX_SCHEMA, "page_sha256": "c" * 64,
+                     "report_link_count": 1, "quarantine": [], "reports": [{
+                         "source_document_id": document_id, "link_label": "Annual",
+                         "filer_name_from_label": "Example, Ada",
+                         "document_type_from_label": "278e_annual", "document_url": url}]}
+            batch = {"schema_version": "whitehouse-public-disclosures-batch/v1",
+                     "indexed_count": 1, "failures": [], "reports": [{
+                         "document_id": document_id, "document_url": url, "sha256": sha}]}
+            legacy = script.ANNUAL_PARSER_VERSIONS[1]
+            directory = root / "whitehouse/extractions" / document_id[7:] / sha
+            directory.mkdir(parents=True)
+            legacy_path = directory / f"{legacy.replace('/', '-')}.json"
+            legacy_path.write_text(json.dumps({"source_url": url, "source_sha256": sha,
+                                               "parser_version": legacy,
+                                               "document_reasons": [], "quarantined": []}),
+                                   encoding="utf-8")
+            result = script.build_coverage(index, batch, root)
+            report = result["reports"][0]
+            self.assertEqual(report["review_state"], "extracted_review_only")
+            self.assertEqual(report["extraction_parser_version"], legacy)
+            self.assertEqual(report["extraction_path"], legacy_path.relative_to(root).as_posix())
+
+            current = script.ANNUAL_PARSER_VERSION
+            failure = directory / f"{current.replace('/', '-')}.failure.json"
+            failure.write_text(json.dumps({"source_url": url, "source_sha256": sha,
+                                           "parser_version": current}), encoding="utf-8")
+            blocked = script.build_coverage(index, batch, root)["reports"][0]
+            self.assertEqual(blocked["review_state"], "extraction_quarantined")
+            self.assertEqual(blocked["extraction_parser_version"], current)
+
+    def test_legacy_trade_stays_visible_until_geometry_parser_finishes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "wh-url:" + "a" * 24
+            url = "https://www.whitehouse.gov/wp-content/uploads/2026/09/trade.pdf"
+            sha = "d" * 64
+            index = {"schema_version": script.INDEX_SCHEMA, "page_sha256": "c" * 64,
+                     "report_link_count": 1, "quarantine": [], "reports": [{
+                         "source_document_id": document_id, "link_label": "Trade",
+                         "filer_name_from_label": "Example, Ada",
+                         "document_type_from_label": "278t", "document_url": url}]}
+            batch = {"schema_version": "whitehouse-public-disclosures-batch/v1",
+                     "indexed_count": 1, "failures": [], "reports": [{
+                         "document_id": document_id, "document_url": url, "sha256": sha}]}
+            legacy = script.TRADE_PARSER_VERSIONS[1]
+            directory = root / "whitehouse/extractions" / document_id[7:] / sha
+            directory.mkdir(parents=True)
+            legacy_path = directory / f"{legacy.replace('/', '-')}.json"
+            legacy_path.write_text(json.dumps({"source_url": url, "source_sha256": sha,
+                                               "parser_version": legacy,
+                                               "document_reasons": [], "quarantined": []}),
+                                   encoding="utf-8")
+            visible = script.build_coverage(index, batch, root)["reports"][0]
+            self.assertEqual(visible["extraction_parser_version"], legacy)
+            current = script.TRADE_PARSER_VERSION
+            failure = directory / f"{current.replace('/', '-')}.failure.json"
+            failure.write_text(json.dumps({"source_url": url, "source_sha256": sha,
+                                           "parser_version": current}), encoding="utf-8")
+            blocked = script.build_coverage(index, batch, root)["reports"][0]
+            self.assertEqual(blocked["review_state"], "extraction_quarantined")
+            self.assertEqual(blocked["extraction_parser_version"], current)
 
 
 if __name__ == "__main__":
