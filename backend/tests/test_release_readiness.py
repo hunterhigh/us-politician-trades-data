@@ -28,7 +28,8 @@ class ReleaseReadinessTests(unittest.TestCase):
             "schema_version": "oge-review-run/v1", "direct_pdf_count": 2,
             "archived_report_count": 2, "extraction_count": 2,
             "pending_direct_count": 0, "extraction_failure_count": 0,
-            "request_required_count": 99,
+            "request_required_count": 99, "qualified_transaction_count": 1,
+            "qualified_holding_count": 0,
         })
         self._write("status/senate_efd.json", {
             "schema_version": "senate-review-run/v1", "catalog_record_count": 3,
@@ -104,6 +105,14 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.candidate["transactions"].append({"id": "tampered"})
         self._write("candidates/disclosure-current.json", self.candidate)
         with self.assertRaisesRegex(ReleaseReadinessError, "does not match its cutoff audit"):
+            validate_first_launch(self.root, self.candidate_path)
+
+    def test_rejects_oge_candidate_that_omits_reported_holdings(self):
+        status = json.loads((self.root / "status/oge.json").read_text())
+        status["qualified_holding_count"] = 1
+        self._write("status/oge.json", status)
+        with self.assertRaisesRegex(ReleaseReadinessError,
+                                    "holding count does not match its source candidate"):
             validate_first_launch(self.root, self.candidate_path)
 
 
