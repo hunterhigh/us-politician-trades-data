@@ -13,7 +13,7 @@ from .builder import build
 from .codec import digest, encode
 from .materialize import materialize
 from .market_store import (build_market_bundle, load_published_market_cache,
-                           materialize_market)
+                           load_published_twelve_data_cache, materialize_market)
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_sync import plan_checkpoint, record_result
@@ -95,6 +95,7 @@ def main() -> None:
     prepare_market.add_argument("--root", type=Path, required=True)
     prepare_market.add_argument("--metadata-output", type=Path, required=True)
     prepare_market.add_argument("--audit", type=Path)
+    prepare_market.add_argument("--twelve-audit", type=Path)
     fetch = sub.add_parser("fetch-public")
     fetch.add_argument("--owner", required=True)
     fetch.add_argument("--repo", required=True)
@@ -206,6 +207,9 @@ def main() -> None:
     twelve_market.add_argument("--limit", type=int)
     twelve_market.add_argument("--key-env", default="TWELVE_DATA_API_KEY")
     twelve_market.add_argument("--distribution-authorized", action="store_true")
+    twelve_market.add_argument("--previous-main-root", type=Path)
+    twelve_market.add_argument("--previous-market-root", type=Path)
+    twelve_market.add_argument("--previous-market-commit")
     senate_roster = sub.add_parser("parse-senate-members")
     senate_roster.add_argument("--input", type=Path, required=True)
     senate_roster.add_argument("--output", type=Path, required=True)
@@ -374,7 +378,9 @@ def main() -> None:
                 payload.get("security_market_data"),
                 data_cutoff_at=payload.get("meta", {}).get("data_cutoff_at"),
                 audit=(json.loads(args.audit.read_text(encoding="utf-8"))
-                       if args.audit else None))
+                       if args.audit else None),
+                twelve_audit=(json.loads(args.twelve_audit.read_text(encoding="utf-8"))
+                              if args.twelve_audit else None))
             result = materialize_market(args.root, bundle)
             _write_atomic(args.metadata_output, {
                 "schema_version": "market-publication-plan/v1",
@@ -553,8 +559,19 @@ def main() -> None:
             checked_at = args.checked_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             payload = json.loads(args.input.read_text(encoding="utf-8"))
             client = TwelveDataClient(os.environ.get(args.key_env, ""))
+            cache_options = (args.previous_main_root, args.previous_market_root,
+                             args.previous_market_commit)
+            if any(value is not None for value in cache_options) \
+                    and not all(value is not None for value in cache_options):
+                raise TwelveDataError(
+                    "Previous main, market and commit must be provided together")
+            previous_market = (load_published_twelve_data_cache(
+                args.previous_main_root, args.previous_market_root,
+                market_commit=args.previous_market_commit)
+                if all(value is not None for value in cache_options) else None)
             result, audit = supplement_twelve_data(payload, client=client,
-                                                   checked_at=checked_at, limit=args.limit)
+                                                   checked_at=checked_at, limit=args.limit,
+                                                   previous_market=previous_market)
             result["meta"].update(generated_at=checked_at,
                                   snapshot_id="prepublication-validation")
             version = ("v2" if audit["accepted_count"] else "v1")

@@ -8,8 +8,10 @@ from urllib.error import HTTPError
 
 from unison_snapshot.builder import build
 from unison_snapshot.legacy import PROCESSOR_V2_SHA256, load
+from unison_snapshot.market_store import PublishedTwelveDataCache
 from unison_snapshot.twelve_data_market import (TwelveDataClient, TwelveDataError,
-                                                 TwelveDataTransient, supplement)
+                                                 TwelveDataTransient, _fingerprint,
+                                                 supplement)
 
 
 class Response:
@@ -56,6 +58,34 @@ def candidate():
 
 
 class TwelveDataMarketTests(unittest.TestCase):
+    def test_published_acceptance_is_reused_without_spending_credits(self):
+        source = candidate()
+        cached_row = {
+            "ticker": "FUNDX", "company_name": "Example Fund Class A",
+            "source_id": "twelve_data_split_adjusted_eod",
+            "price_source": "Twelve Data split-adjusted EOD",
+            "source_url": "https://twelvedata.com/docs", "feed": "twelve_data",
+            "timeframe": "1Day", "adjustment": "split",
+            "price_history": [{"date": "2026-09-17", "close": 12.6}],
+        }
+        cache = PublishedTwelveDataCache({"FUNDX": cached_row}, {
+            "schema_version": "twelve-data-market-state/v1",
+            "entries": {"FUNDX": {
+                "status": "accepted", "checked_at": "2026-09-18T00:00:00Z",
+                "fingerprint": _fingerprint({"Example Fund"}),
+            }},
+        })
+        client = TwelveDataClient("test", opener=lambda *_args, **_kwargs: self.fail(
+            "cached row should not call Twelve Data"), pace_seconds=0)
+        data, audit = supplement(source, client=client,
+                                 checked_at="2026-09-19T00:01:00Z",
+                                 previous_market=cache)
+        self.assertEqual(audit["accepted_count"], 1)
+        self.assertEqual(audit["request_count"], 0)
+        self.assertEqual(data["security_market_data"][-1]["ticker"], "ZZDEMO")
+        self.assertEqual({row["ticker"] for row in data["security_market_data"]},
+                         {"FUNDX", "ZZDEMO"})
+
     def test_mixed_candidate_and_price_provenance(self):
         urls = []
 
@@ -111,12 +141,27 @@ class TwelveDataMarketTests(unittest.TestCase):
         payload = {"meta": {"symbol": "FUNDX", "interval": "1day"},
                    "values": [{"datetime": "2026-09-17", "close": "12.6"},
                               {"datetime": "2026-09-16", "close": "12.5"}]}
-        points = _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
-                         end=date(2026, 9, 18))
+        points, duplicates = _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
+                                     end=date(2026, 9, 18))
         self.assertEqual([row["date"] for row in points],
                          ["2026-09-16", "2026-09-17"])
+        self.assertEqual(duplicates, 0)
         payload["values"][0]["close"] = "0"
         with self.assertRaisesRegex(TwelveDataInvalidSeries, "nonpositive"):
+            _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
+                    end=date(2026, 9, 18))
+
+    def test_identical_duplicate_daily_bars_are_deduplicated(self):
+        from unison_snapshot.twelve_data_market import _points, TwelveDataInvalidSeries
+        payload = {"meta": {"symbol": "FUNDX", "interval": "1day"},
+                   "values": [{"datetime": "2026-09-17", "close": "12.60000"},
+                              {"datetime": "2026-09-17", "close": "12.6"}]}
+        points, duplicates = _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
+                                     end=date(2026, 9, 18))
+        self.assertEqual(points, [{"date": "2026-09-17", "close": 12.6}])
+        self.assertEqual(duplicates, 1)
+        payload["values"][1]["close"] = "12.7"
+        with self.assertRaisesRegex(TwelveDataInvalidSeries, "conflicting_duplicate"):
             _points(payload, ticker="FUNDX", start=date(2026, 9, 1),
                     end=date(2026, 9, 18))
 

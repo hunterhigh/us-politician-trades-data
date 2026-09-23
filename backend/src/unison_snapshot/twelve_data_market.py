@@ -15,7 +15,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from .market_store import MIXED_MARKET_COVERAGE_SCHEMA, TWELVE_DATA_SOURCE_ID
+from .codec import digest, encode
+from .market_store import (MIXED_MARKET_COVERAGE_SCHEMA, PublishedTwelveDataCache,
+                           TWELVE_DATA_SOURCE_ID, TWELVE_STATE_SCHEMA)
 
 
 SOURCE_URL = "https://twelvedata.com/docs"
@@ -136,13 +138,14 @@ def _identity_match(names: set[str], provider_name: object) -> bool:
     return bool(words and any(_name_words(name) & words for name in names))
 
 
-def _points(value: dict, *, ticker: str, start: date, end: date) -> list[dict]:
+def _points(value: dict, *, ticker: str, start: date, end: date) -> tuple[list[dict], int]:
     meta = value.get("meta")
     rows = value.get("values")
     if not isinstance(meta, dict) or meta.get("symbol") != ticker \
             or meta.get("interval") != "1day" or not isinstance(rows, list):
         raise TwelveDataTransient("Twelve Data daily response identity is malformed")
-    points: list[dict] = []
+    points_by_date: dict[str, float] = {}
+    duplicate_count = 0
     for row in rows:
         if not isinstance(row, dict):
             raise TwelveDataInvalidSeries("non_object_bar")
@@ -155,15 +158,32 @@ def _points(value: dict, *, ticker: str, start: date, end: date) -> list[dict]:
             raise TwelveDataInvalidSeries("bar_outside_requested_window")
         if not math.isfinite(close) or close <= 0:
             raise TwelveDataInvalidSeries("nonpositive_or_nonfinite_close")
-        points.append({"date": day.isoformat(), "close": round(close, 4)})
-    points.sort(key=lambda row: row["date"])
-    if any(left["date"] == right["date"] for left, right in zip(points, points[1:])):
-        raise TwelveDataInvalidSeries("duplicate_session_date")
-    return points
+        key = day.isoformat()
+        close = round(close, 4)
+        if key in points_by_date:
+            if points_by_date[key] != close:
+                raise TwelveDataInvalidSeries("conflicting_duplicate_session_date")
+            duplicate_count += 1
+        points_by_date[key] = close
+    return ([{"date": day, "close": points_by_date[day]}
+             for day in sorted(points_by_date)], duplicate_count)
+
+
+def _fingerprint(names: set[str]) -> str:
+    return digest(encode(sorted(names)))
+
+
+def _checked_day(entry: dict) -> date | None:
+    try:
+        return datetime.fromisoformat(str(entry["checked_at"]).replace("Z", "+00:00")).date()
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
-               limit: int | None = None) -> tuple[dict, dict]:
+               limit: int | None = None,
+               previous_market: PublishedTwelveDataCache | None = None,
+               refresh_days: int = 7, retry_days: int = 30) -> tuple[dict, dict]:
     if snapshot.get("meta", {}).get("is_demo") is not False:
         raise TwelveDataError("Supplementation requires a real disclosure candidate")
     coverage = snapshot["meta"].get("market_coverage", {})
@@ -191,57 +211,134 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
         raise TwelveDataError("Alpaca coverage lacks unsupported tickers")
     if limit is not None and limit < 1:
         raise TwelveDataError("limit must be positive")
+    if refresh_days < 1 or retry_days < 1:
+        raise TwelveDataError("refresh and retry intervals must be positive")
     result = deepcopy(snapshot)
-    accepted: list[dict] = []
+    accepted: dict[str, dict] = {}
     audit: list[dict] = []
     remaining: list[dict] = []
-    for index, item in enumerate(missing):
+    previous_entries = (previous_market.state.get("entries", {})
+                        if previous_market else {})
+    previous_rows = previous_market.rows if previous_market else {}
+    state_entries: dict[str, dict] = {}
+    new_work: list[tuple[dict, str, dict | None]] = []
+    refresh_work: list[tuple[dict, str, dict | None]] = []
+    deferred: list[dict] = []
+    for item in missing:
         ticker = item["ticker"]
-        if limit is not None and index >= limit:
-            remaining.append(item)
-            continue
+        fingerprint = _fingerprint(names.get(ticker, set()))
+        prior = previous_entries.get(ticker)
+        if not isinstance(prior, dict) or prior.get("fingerprint") != fingerprint:
+            prior = None
         if item["reason"] in {"non_equity_debt", "private_entity"}:
             remaining.append({"ticker": ticker, "reason": "not_market_security"})
-            audit.append({"ticker": ticker, "status": "not_market_security"})
+            state_entries[ticker] = {"status": "not_market_security",
+                                     "checked_at": checked_at,
+                                     "fingerprint": fingerprint}
             continue
+        if prior and prior.get("status") == "accepted" and ticker in previous_rows:
+            accepted[ticker] = previous_rows[ticker]
+            state_entries[ticker] = prior
+            last = _checked_day(prior)
+            if last is None or last <= end - timedelta(days=refresh_days):
+                refresh_work.append((item, fingerprint, prior))
+            continue
+        if prior and prior.get("status") in {"identity_unresolved", "twelve_data_unavailable",
+                                              "no_current_series"}:
+            last = _checked_day(prior)
+            if last is not None and last > end - timedelta(days=retry_days):
+                reason = ("identity_unresolved" if prior["status"] == "identity_unresolved"
+                          else "twelve_data_unavailable")
+                remaining.append({"ticker": ticker, "reason": reason})
+                state_entries[ticker] = prior
+                continue
+        new_work.append((item, fingerprint, prior))
+
+    work = new_work + refresh_work
+    selected = work[:limit] if limit is not None else work
+    selected_tickers = {item[0]["ticker"] for item in selected}
+    for item, fingerprint, prior in work:
+        if item["ticker"] not in selected_tickers:
+            deferred.append(item)
+    new_accepted = 0
+    duplicate_rows = 0
+    for item, fingerprint, prior in selected:
+        ticker = item["ticker"]
+        refreshing = prior is not None and prior.get("status") == "accepted" \
+            and ticker in previous_rows
         try:
-            matches = [row for row in client.search(ticker)
-                       if row.get("symbol") == ticker
-                       and row.get("country") == "United States"]
+            matches = ([{"symbol": ticker,
+                         "instrument_name": previous_rows[ticker]["company_name"],
+                         "country": "United States"}]
+                       if refreshing else
+                       [row for row in client.search(ticker)
+                        if row.get("symbol") == ticker
+                        and row.get("country") == "United States"])
         except TwelveDataUnavailable:
             matches = []
         if len(matches) != 1 or not _identity_match(names.get(ticker, set()),
                                                      matches[0].get("instrument_name")):
+            if refreshing:
+                state_entries[ticker] = prior
+                audit.append({"ticker": ticker, "status": "refresh_identity_kept"})
+                continue
             remaining.append({"ticker": ticker, "reason": "identity_unresolved"})
+            state_entries[ticker] = {"status": "identity_unresolved",
+                                     "checked_at": checked_at,
+                                     "fingerprint": fingerprint}
             audit.append({"ticker": ticker, "status": "identity_unresolved",
                           "match_count": len(matches)})
             continue
         identity = matches[0]
         try:
-            points = _points(client.daily(ticker, start=earliest, end=end),
-                             ticker=ticker, start=earliest, end=end)
+            points, duplicates = _points(client.daily(ticker, start=earliest, end=end),
+                                         ticker=ticker, start=earliest, end=end)
         except TwelveDataUnavailable:
-            points = []
+            points, duplicates = [], 0
         except TwelveDataInvalidSeries as error:
+            if refreshing:
+                state_entries[ticker] = prior
+                audit.append({"ticker": ticker, "status": "refresh_invalid_kept",
+                              "reason": str(error)})
+                continue
             remaining.append({"ticker": ticker, "reason": "twelve_data_unavailable"})
+            state_entries[ticker] = {"status": "twelve_data_unavailable",
+                                     "checked_at": checked_at,
+                                     "fingerprint": fingerprint,
+                                     "reason": str(error)}
             audit.append({"ticker": ticker, "status": "invalid_series",
                           "reason": str(error)})
             continue
         if not points or date.fromisoformat(points[-1]["date"]) < end - timedelta(days=7):
+            if refreshing:
+                state_entries[ticker] = prior
+                audit.append({"ticker": ticker, "status": "refresh_stale_kept",
+                              "last_date": points[-1]["date"] if points else None})
+                continue
             remaining.append({"ticker": ticker, "reason": "twelve_data_unavailable"})
+            state_entries[ticker] = {"status": "no_current_series",
+                                     "checked_at": checked_at,
+                                     "fingerprint": fingerprint}
             audit.append({"ticker": ticker, "status": "no_current_series",
                           "last_date": points[-1]["date"] if points else None})
             continue
-        accepted.append({"ticker": ticker, "company_name": identity["instrument_name"],
-                         "source_id": TWELVE_DATA_SOURCE_ID,
-                         "price_source": "Twelve Data split-adjusted EOD",
-                         "source_url": SOURCE_URL, "feed": "twelve_data",
-                         "timeframe": "1Day", "adjustment": "split",
-                         "price_history": points})
+        accepted[ticker] = {"ticker": ticker, "company_name": identity["instrument_name"],
+                            "source_id": TWELVE_DATA_SOURCE_ID,
+                            "price_source": "Twelve Data split-adjusted EOD",
+                            "source_url": SOURCE_URL, "feed": "twelve_data",
+                            "timeframe": "1Day", "adjustment": "split",
+                            "price_history": points}
+        state_entries[ticker] = {"status": "accepted", "checked_at": checked_at,
+                                 "fingerprint": fingerprint}
+        new_accepted += 0 if refreshing else 1
+        duplicate_rows += duplicates
         audit.append({"ticker": ticker, "status": "accepted", "point_count": len(points),
-                      "first_date": points[0]["date"], "last_date": points[-1]["date"]})
+                      "first_date": points[0]["date"], "last_date": points[-1]["date"],
+                      "deduplicated_rows": duplicates, "refresh": refreshing})
+    remaining.extend(deferred)
     if accepted:
-        result["security_market_data"] = sorted(result["security_market_data"] + accepted,
+        result["security_market_data"] = sorted(result["security_market_data"]
+                                                + list(accepted.values()),
                                                 key=lambda row: row["ticker"])
         result["meta"]["market_coverage"] = {
             "schema_version": MIXED_MARKET_COVERAGE_SCHEMA,
@@ -256,13 +353,21 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
             "source": "Twelve Data split-adjusted EOD", "source_type": "market_data",
             "source_url": SOURCE_URL, "status": "ok", "last_checked_at": checked_at,
             "last_successful_sync_at": checked_at,
-            "data_cutoff_at": max(row["price_history"][-1]["date"] for row in accepted)
+            "data_cutoff_at": max(row["price_history"][-1]["date"]
+                                  for row in accepted.values())
                               + "T23:59:59Z",
-            "detail": f"{len(accepted)}/{min(len(missing),limit or len(missing))}_attempted",
+            "detail": f"{len(accepted)}_covered;{len(selected)}_checked",
         }], key=lambda row: row["source_id"])
+    state = {"schema_version": TWELVE_STATE_SCHEMA, "updated_at": checked_at,
+             "entries": dict(sorted(state_entries.items()))}
     return result, {"schema_version": AUDIT_SCHEMA,
                     "source_id": TWELVE_DATA_SOURCE_ID, "checked_at": checked_at,
                     "start_date": earliest.isoformat(), "end_date": end.isoformat(),
-                    "attempted_count": min(len(missing), limit or len(missing)),
-                    "accepted_count": len(accepted), "remaining_count": len(remaining),
-                    "request_count": client.request_count, "results": audit}
+                    "attempted_count": len(selected), "accepted_count": len(accepted),
+                    "new_accepted_count": new_accepted,
+                    "cached_accepted_count": len(accepted) - new_accepted,
+                    "remaining_count": len(missing) - len(accepted),
+                    "backlog_count": len(deferred),
+                    "deduplicated_row_count": duplicate_rows,
+                    "request_count": client.request_count, "results": audit,
+                    "state": state}
