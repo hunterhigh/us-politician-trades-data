@@ -129,6 +129,9 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
                     not failure["reason"].strip()):
                 raise ValueError("White House 278-T failure is not bound to coverage and archive SHA")
             failure_manifest.append(f"{expected_failure.as_posix()} {raw_sha}")
+            # Older parser outputs are immutable evidence. They may remain beside a
+            # current-parser failure, but are never selected or promoted here.
+            expected_folders.add(folder.as_posix())
             continue
         if row.get("review_state") not in {"extracted_review_only", "extracted_with_issues"}:
             raise ValueError("White House 278-T coverage has an unaccounted disposition")

@@ -170,6 +170,7 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
             "source_sha256": source_sha,
             "reason": "White House 278-T requires checkpointed OCR",
         })
+        _write(self.review / failure_path.parent / "whitehouse-278t-pdf-v1.json", self.report)
         self._write_inputs()
         result = self._run(expected_report_count=2)
         audit = json.loads(self.audit_out.read_text(encoding="utf-8"))
