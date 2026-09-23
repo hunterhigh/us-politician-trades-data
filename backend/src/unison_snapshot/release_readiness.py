@@ -110,6 +110,19 @@ def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
     for source_id, source_audit in cutoff["sources"].items():
         source_path = review_root / "candidates" / "sources" / f"{source_id}-current.json"
         source_candidate = _read(source_path, f"{source_id} source candidate")
+        if source_id == "oge":
+            source_transactions = source_candidate.get("transactions")
+            source_holdings = source_candidate.get("reported_holdings")
+            if not isinstance(source_transactions, list) or not isinstance(source_holdings, list):
+                raise ReleaseReadinessError("OGE source candidate row arrays are invalid")
+            if len(source_transactions) != _count(
+                    oge, "qualified_transaction_count", "OGE status"):
+                raise ReleaseReadinessError(
+                    "OGE qualified transaction count does not match its source candidate")
+            if len(source_holdings) != _count(
+                    oge, "qualified_holding_count", "OGE status"):
+                raise ReleaseReadinessError(
+                    "OGE qualified holding count does not match its source candidate")
         if source_audit.get("candidate_sha256") != digest(encode(source_candidate)):
             raise ReleaseReadinessError(f"{source_id} source candidate does not match cutoff audit")
         retained = source_audit.get("retained_counts")
