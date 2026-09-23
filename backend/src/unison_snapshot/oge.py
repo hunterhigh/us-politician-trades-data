@@ -347,8 +347,9 @@ class OgeCatalogClient:
             ("draw", str(draw)), ("start", str(start)), ("length", str(length)),
             ("search[value]", ""), ("search[regex]", "false"),
         ]
-        # The production request reads the bounded catalog in one response.  Keeping
-        # the official newest-first ordering is therefore safe from page-boundary ties.
+        # Production reads the bounded catalog data in one response after a count
+        # probe. Keeping the official newest-first ordering is therefore safe from
+        # page-boundary ties.
         parameters.extend([
             ("order[0][column]", "0"),
             ("order[0][dir]", "desc"),
@@ -384,7 +385,10 @@ class OgeCatalogClient:
                                if name.lower() in {"etag", "last-modified", "content-type"}}
                 break
             except urllib.error.HTTPError as exc:
-                if exc.code not in {429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
+                # The official DataTables endpoint intermittently returns 400
+                # for an unchanged request and then succeeds on retry. Keep the
+                # retry bounded; response validation below still fails closed.
+                if exc.code not in {400, 429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
                     raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
             except (urllib.error.URLError, TimeoutError, ConnectionError,
                     http.client.HTTPException):
@@ -470,6 +474,34 @@ def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = MA
     selected = client or OgeCatalogClient()
     pages: list[OgeCatalogPage] = []
     raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []
+    if page_size == MAX_CATALOG_PAGE_SIZE:
+        probe_content, probe_headers = selected.download_page(start=0, length=1, draw=1)
+        try:
+            probe_payload = json.loads(probe_content)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise OgeCatalogError("OGE catalog response is invalid JSON") from None
+        probe = parse_catalog_page(probe_payload, start=0, length=1)
+        total = probe.records_total
+        if total > MAX_CATALOG_ROWS:
+            raise OgeCatalogError("OGE catalog exceeds its safety limit")
+        if total == 0:
+            pages.append(probe)
+            raw_pages.append((0, 1, probe_content, probe_headers))
+        else:
+            content, headers = selected.download_page(start=0, length=total, draw=2)
+            try:
+                payload = json.loads(content)
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                raise OgeCatalogError("OGE catalog response is invalid JSON") from None
+            page = parse_catalog_page(payload, start=0, length=total)
+            if page.records_total != total:
+                raise OgeCatalogError("OGE catalog changed during collection")
+            pages.append(page)
+            raw_pages.append((0, total, content, headers))
+        catalog = build_catalog(pages)
+        metadata = archive_catalog(root, raw_pages, catalog)
+        return {"metadata": metadata, **catalog}
+
     start = 0
     draw = 1
     while True:

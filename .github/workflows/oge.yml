@@ -274,6 +274,10 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          PYTHONPATH=backend/src python backend/scripts/overlay_whitehouse_annual_candidate.py \
+            --review-root "$REVIEW_ROOT" \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
           source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           for source_id in house_clerk senate_efd; do
             candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
@@ -293,6 +297,7 @@ jobs:
           extraction = json.loads(Path('.local/oge-extraction-batch.json').read_text(encoding='utf-8'))
           audit = json.loads((review / 'oge/qualifications/current.json').read_text(encoding='utf-8'))
           whitehouse = json.loads((review / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
+          annual = json.loads((review / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
           combined = json.loads((review / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
           value = {
               'schema_version': 'oge-review-run/v1', 'source_id': 'oge',
@@ -312,6 +317,10 @@ jobs:
               'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
               'oge_direct_quarantined_row_count': audit['quarantined_row_count'],
               'whitehouse_public_qualified_transaction_count': whitehouse['promoted_transaction_count'],
+              'whitehouse_public_extraction_failure_count': whitehouse['extraction_failure_count'],
+              'whitehouse_public_qualified_annual_report_count': annual['annual_qualified_report_count'],
+              'whitehouse_public_qualified_holding_count': annual['annual_holding_count'],
+              'qualified_holding_count': len(combined['reported_holdings']),
               'quarantined_row_count': (audit['quarantined_row_count'] +
                                         whitehouse['quarantined_row_count']),
           }
@@ -320,7 +329,7 @@ jobs:
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                        separators=(',', ':')), encoding='utf-8')
           PY
-          git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications status/oge.json status/disclosure_cutoff.json
+          git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications whitehouse/annual/candidate-current.json status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -35,12 +35,19 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn('--catalog-history-dir "$REVIEW_ROOT/oge/discoveries"', content)
         self.assertIn('--extractions-dir "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'retained_historical_direct_count':", content)
+        self.assertIn("'whitehouse_public_extraction_failure_count':", content)
         self.assertIn("candidates/sources/oge-current.json", content)
         self.assertIn("python backend/scripts/build_whitehouse_278t_candidate.py", content)
+        self.assertIn("python backend/scripts/overlay_whitehouse_annual_candidate.py", content)
         self.assertIn("whitehouse/qualifications/candidate-current.json", content)
+        self.assertIn("whitehouse/annual/candidate-current.json", content)
+        self.assertIn("'whitehouse_public_qualified_holding_count':", content)
+        self.assertIn("'qualified_holding_count': len(combined['reported_holdings'])", content)
         self.assertLess(content.index("python -m unison_snapshot build-oge-candidate"),
                         content.index("python backend/scripts/build_whitehouse_278t_candidate.py"))
         self.assertLess(content.index("python backend/scripts/build_whitehouse_278t_candidate.py"),
+                        content.index("python backend/scripts/overlay_whitehouse_annual_candidate.py"))
+        self.assertLess(content.index("python backend/scripts/overlay_whitehouse_annual_candidate.py"),
                         content.index("python -m unison_snapshot build-disclosure-candidate"))
         self.assertIn("python -m unison_snapshot build-disclosure-candidate", content)
         self.assertIn("--harmonize-cutoffs", content)

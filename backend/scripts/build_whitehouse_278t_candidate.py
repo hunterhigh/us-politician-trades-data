@@ -40,6 +40,7 @@ _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _DOCUMENT = re.compile(r"wh-url:([0-9a-f]{24})\Z")
 _COVERAGE_SCHEMA = "whitehouse-public-coverage/v1"
 _STATUS_SCHEMA = "whitehouse-public-extraction-status/v1"
+_FAILURE_SCHEMA = "whitehouse-public-extraction-failure/v1"
 
 
 def _read_object(path: Path) -> tuple[dict, str]:
@@ -55,7 +56,8 @@ def _json_bytes(value: dict) -> bytes:
                        allow_nan=False) + "\n").encode("utf-8")
 
 
-def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[list[dict], list[dict], dict, dict]:
+def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[
+        list[dict], list[dict], dict, dict, int]:
     coverage, coverage_sha = _read_object(review_root / "whitehouse/coverage-current.json")
     status, status_sha = _read_object(review_root / "whitehouse/extraction-status.json")
     oge_coverage, oge_coverage_sha = _read_object(
@@ -83,6 +85,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
     seen_ids = set()
     expected_paths = {}
     expected_folders = set()
+    failure_manifest = []
     for row in reports:
         document_id = row.get("document_id")
         match = _DOCUMENT.fullmatch(document_id) if isinstance(document_id, str) else None
@@ -97,9 +100,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
                 not source.path.startswith("/wp-content/uploads/") or
                 not source.path.lower().endswith(".pdf") or
                 not isinstance(versions, list) or len(versions) != 1 or
-                not isinstance(versions[0], str) or not _SHA256.fullmatch(versions[0]) or
-                row.get("review_state") not in
-                {"extracted_review_only", "extracted_with_issues"}):
+                not isinstance(versions[0], str) or not _SHA256.fullmatch(versions[0])):
             raise ValueError("White House 278-T coverage has an unarchived or unextracted report")
         seen_ids.add(document_id)
         folder = Path("whitehouse/extractions") / match[1] / versions[0]
@@ -111,6 +112,29 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
             parser_version = available[0] if available else TRADE_PARSER
         if parser_version not in TRADE_PARSERS:
             raise ValueError("White House 278-T extraction parser is unsupported")
+        if row.get("review_state") == "extraction_quarantined":
+            expected_failure = folder / f"{parser_version.replace('/', '-')}.failure.json"
+            failure_value = row.get("failure_path")
+            failure_relative = Path(failure_value) if isinstance(failure_value, str) else None
+            if row.get("extraction_path") is not None or failure_relative != expected_failure:
+                raise ValueError("White House 278-T failure path is invalid")
+            failure, raw_sha = _read_object(review_root / expected_failure)
+            if (failure.get("schema_version") != _FAILURE_SCHEMA or
+                    failure.get("status") != "quarantined_until_parser_revision" or
+                    failure.get("document_id") != document_id or
+                    failure.get("parser_version") != parser_version or
+                    failure.get("source_url") != source_url or
+                    failure.get("source_sha256") != versions[0] or
+                    not isinstance(failure.get("reason"), str) or
+                    not failure["reason"].strip()):
+                raise ValueError("White House 278-T failure is not bound to coverage and archive SHA")
+            failure_manifest.append(f"{expected_failure.as_posix()} {raw_sha}")
+            # Older parser outputs are immutable evidence. They may remain beside a
+            # current-parser failure, but are never selected or promoted here.
+            expected_folders.add(folder.as_posix())
+            continue
+        if row.get("review_state") not in {"extracted_review_only", "extracted_with_issues"}:
+            raise ValueError("White House 278-T coverage has an unaccounted disposition")
         expected_relative = folder / f"{parser_version.replace('/', '-')}.json"
         relative_value = row.get("extraction_path")
         relative = Path(relative_value) if isinstance(relative_value, str) else expected_relative
@@ -147,6 +171,8 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         "oge_whitehouse_coverage_sha256": oge_coverage_sha,
         "whitehouse_extraction_set_sha256": hashlib.sha256(
             "\n".join(manifest).encode("utf-8")).hexdigest(),
+        "whitehouse_extraction_failure_set_sha256": hashlib.sha256(
+            "\n".join(failure_manifest).encode("utf-8")).hexdigest(),
     }
     annual_extractions = []
     annual_manifest = []
@@ -180,7 +206,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         annual_manifest.append(f"{relative.as_posix()} {raw_sha}")
     provenance["whitehouse_annual_dedup_set_sha256"] = hashlib.sha256(
         "\n".join(sorted(annual_manifest)).encode("utf-8")).hexdigest()
-    return extractions, annual_extractions, oge_coverage, provenance
+    return extractions, annual_extractions, oge_coverage, provenance, len(failure_manifest)
 
 
 def _stage(path: Path, content: bytes) -> Path:
@@ -260,7 +286,7 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
         raise ValueError("Expected White House report count must be positive")
-    extractions, annual_extractions, oge_coverage, provenance = _verify_review(
+    extractions, annual_extractions, oge_coverage, provenance, failure_count = _verify_review(
         review_root, expected_report_count=expected_report_count)
     base, base_sha = _read_object(oge_candidate)
     if any(urlsplit(row.get("source_url") or "").hostname in
@@ -275,7 +301,8 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                       allow_market=bool(base.get("security_market_data")))
             return {"idempotent": True, "report_count": prior["report_count"],
                     "promoted_transaction_count": prior["promoted_transaction_count"],
-                    "quarantined_row_count": prior["quarantined_row_count"]}
+                    "quarantined_row_count": prior["quarantined_row_count"],
+                    "extraction_failure_count": prior.get("extraction_failure_count", 0)}
         base = _strip_prior_whitehouse(base, prior)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
     eligibility = audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions)
@@ -283,6 +310,14 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         base, extractions, eligibility, oge_coverage,
         data_cutoff_at=base["meta"]["data_cutoff_at"],
         annual_extractions=annual_extractions)
+    conservation["catalog_report_count"] = len(extractions) + failure_count
+    conservation["extraction_failure_count"] = failure_count
+    if failure_count:
+        health = [row for row in candidate["source_health"] if row.get("source_id") == "oge"]
+        if len(health) != 1 or not isinstance(health[0].get("detail"), str):
+            raise ValueError("White House failure accounting needs one OGE health record")
+        health[0]["detail"] += (
+            f" {failure_count} White House 278-T reports retained as extraction failures.")
     normalized = normalize(candidate, allow_production=True,
                            allow_market=bool(candidate["security_market_data"]))
     if normalized != candidate:
@@ -295,7 +330,8 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     _write_pair(candidate_out, candidate_raw, audit_out, audit_raw)
     return {"idempotent": False, "report_count": conservation["report_count"],
             "promoted_transaction_count": conservation["promoted_transaction_count"],
-            "quarantined_row_count": conservation["quarantined_row_count"]}
+            "quarantined_row_count": conservation["quarantined_row_count"],
+            "extraction_failure_count": failure_count}
 
 
 def main(argv: list[str] | None = None) -> int:

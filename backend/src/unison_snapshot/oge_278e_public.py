@@ -20,8 +20,9 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
-PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v4"
-LEGACY_PARSER_VERSIONS = ("whitehouse-278e-positioned-text/v2",)
+PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v5"
+LEGACY_PARSER_VERSIONS = ("whitehouse-278e-hybrid-geometry/v4",
+                          "whitehouse-278e-positioned-text/v2")
 SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
@@ -425,11 +426,12 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     known_columns: dict[str, dict[str, float]] = {}
     reached_summary = False
     for page_number, page in enumerate(pages, 1):
-        current_part = None
-        current_owner = "Unknown"
         lines = page.extract_text_lines() or []
         words = page.extract_words() or []
-        columns: dict[str, float] | None = None
+        # Integrity.gov continuation pages repeat the table header but omit the
+        # numbered section heading.  Preserve the active section and its column
+        # geometry until an explicit new section, endnotes, or summary changes it.
+        columns: dict[str, float] | None = known_columns.get(current_part)
         row: dict | None = None
         for line in lines:
             text = _compact(line.get("text", ""))

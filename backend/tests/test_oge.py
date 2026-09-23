@@ -169,6 +169,36 @@ class OgeCatalogTests(unittest.TestCase):
                              result["transactions"])
             self.assertEqual(len(list((Path(folder) / "oge/catalog/pages").glob("*.json"))), 2)
 
+    def test_default_discovery_probes_total_then_fetches_one_complete_page(self):
+        class Client:
+            def __init__(self):
+                self.calls = []
+
+            def download_page(self, *, start, length, draw):
+                self.calls.append((start, length, draw))
+                rows = [row(DIRECT)] if length == 1 else [row(DIRECT), row(REQUEST)]
+                content = json.dumps(payload(rows, total=2), separators=(",", ":")).encode()
+                return content, {"content-type": "application/json"}
+
+        with tempfile.TemporaryDirectory() as folder:
+            client = Client()
+            result = discover_catalog(Path(folder), OgeSourceConfig(True, True), client=client)
+            self.assertEqual(client.calls, [(0, 1, 1), (0, 2, 2)])
+            self.assertEqual(result["catalog_rows_covered"], 2)
+            self.assertEqual(result["metadata"]["page_count"], 1)
+
+    def test_default_discovery_rejects_catalog_change_after_probe(self):
+        class Client:
+            def download_page(self, *, start, length, draw):
+                total = 2 if draw == 1 else 3
+                rows = [row(DIRECT)] if draw == 1 else [row(DIRECT), row(REQUEST)]
+                return json.dumps(payload(rows, total=total)).encode(), {
+                    "content-type": "application/json"}
+
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(OgeCatalogError, "changed during collection"):
+                discover_catalog(Path(folder), OgeSourceConfig(True, True), client=Client())
+
     def test_http_client_uses_bounded_unfiltered_datatables_get(self):
         body = json.dumps(payload([row(DIRECT)])).encode()
 
@@ -246,6 +276,47 @@ class OgeCatalogTests(unittest.TestCase):
         content, _ = OgeCatalogClient(
             timeout=7, opener=opener, sleeper=delays.append).download_page(
                 start=0, length=1000, draw=1)
+        self.assertEqual(content, body)
+        self.assertEqual(opener.attempts, 3)
+        self.assertEqual(delays, [1, 2])
+
+    def test_http_client_retries_transient_http_400(self):
+        body = json.dumps(payload([row(DIRECT)])).encode()
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json"}
+
+            def __init__(self, request):
+                self.request = request
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def geturl(self):
+                return self.request.full_url
+
+            def read(self, _):
+                return body
+
+        class Opener:
+            attempts = 0
+
+            def open(self, request, timeout):
+                self.attempts += 1
+                if self.attempts < 3:
+                    raise urllib.error.HTTPError(
+                        request.full_url, 400, "Bad Request", {}, None)
+                return Response(request)
+
+        opener = Opener()
+        delays = []
+        content, _ = OgeCatalogClient(
+            timeout=7, opener=opener, sleeper=delays.append).download_page(
+                start=0, length=1, draw=1)
         self.assertEqual(content, body)
         self.assertEqual(opener.attempts, 3)
         self.assertEqual(delays, [1, 2])

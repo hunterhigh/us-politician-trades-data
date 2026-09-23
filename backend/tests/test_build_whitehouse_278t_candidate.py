@@ -139,6 +139,49 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self._write_inputs()
         self.assertEqual(self._run()["promoted_transaction_count"], 3)
 
+    def test_accounted_278t_extraction_failure_does_not_block_complete_reports(self):
+        url = ("https://www.whitehouse.gov/wp-content/uploads/2026/05/"
+               "President-Periodic-Transaction-Report.pdf")
+        document_id = "wh-url:" + hashlib.sha256(url.encode()).hexdigest()[:24]
+        source_sha = "e" * 64
+        parser_version = "whitehouse-278t-hybrid-geometry/v2"
+        failure_path = (Path("whitehouse/extractions") / document_id.split(":", 1)[1] /
+                        source_sha / "whitehouse-278t-hybrid-geometry-v2.failure.json")
+        self.coverage["reports"].append({
+            "document_id": document_id,
+            "document_url": url,
+            "document_type_from_label": "278t",
+            "archive_sha256_versions": [source_sha],
+            "review_state": "extraction_quarantined",
+            "extraction_parser_version": parser_version,
+            "extraction_path": None,
+            "failure_path": failure_path.as_posix(),
+        })
+        self.coverage["report_link_count"] = 2
+        self.coverage["counts_by_review_state"] = {
+            "extracted_review_only": 1, "extraction_quarantined": 1,
+        }
+        _write(self.review / failure_path, {
+            "schema_version": "whitehouse-public-extraction-failure/v1",
+            "status": "quarantined_until_parser_revision",
+            "document_id": document_id,
+            "parser_version": parser_version,
+            "source_url": url,
+            "source_sha256": source_sha,
+            "reason": "White House 278-T requires checkpointed OCR",
+        })
+        _write(self.review / failure_path.parent / "whitehouse-278t-pdf-v1.json", self.report)
+        self._write_inputs()
+        result = self._run(expected_report_count=2)
+        audit = json.loads(self.audit_out.read_text(encoding="utf-8"))
+        candidate = json.loads(self.oge.read_text(encoding="utf-8"))
+        self.assertEqual(result["extraction_failure_count"], 1)
+        self.assertEqual(audit["catalog_report_count"], 2)
+        self.assertEqual(audit["extraction_failure_count"], 1)
+        self.assertEqual(len(candidate["transactions"]), 3)
+        self.assertIn("1 White House 278-T reports retained as extraction failures",
+                      candidate["source_health"][0]["detail"])
+
     def test_unaccounted_extraction_and_wrong_url_fail_closed(self):
         original = self.oge.read_bytes()
         extra = (self.extraction.parent.parent.parent / ("e" * 24) / ("d" * 64) /
