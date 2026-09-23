@@ -97,6 +97,17 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.assertTrue(self._run()["idempotent"])
         self.assertEqual(self.oge.read_bytes(), candidate_raw)
 
+    def test_changed_review_rebuilds_from_hash_bound_direct_oge_base(self):
+        self.assertFalse(self._run()["idempotent"])
+        first = json.loads(self.oge.read_bytes())
+        self.coverage["reports"][0]["production_qualification"] = "replayed"
+        self._write_inputs()
+        result = self._run()
+        rebuilt = json.loads(self.oge.read_bytes())
+        self.assertFalse(result["idempotent"])
+        self.assertEqual(len(rebuilt["transactions"]), 3)
+        self.assertEqual(rebuilt["transactions"], first["transactions"])
+
     def test_wrong_archive_hash_or_count_blocks_all_outputs(self):
         original = self.oge.read_bytes()
         self.coverage["reports"][0]["archive_sha256_versions"] = ["c" * 64]

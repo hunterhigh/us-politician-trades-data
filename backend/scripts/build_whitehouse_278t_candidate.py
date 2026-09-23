@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import sys
 import tempfile
+from copy import deepcopy
 from urllib.parse import urlsplit
 
 from unison_snapshot.builder import normalize
@@ -178,6 +179,48 @@ def _write_pair(candidate_out: Path, candidate_raw: bytes,
             path.unlink(missing_ok=True)
 
 
+def _strip_prior_whitehouse(candidate: dict, audit: dict) -> dict:
+    """Recover the hash-bound direct OGE base before rebuilding overlays."""
+    base = deepcopy(candidate)
+    base["reported_holdings"] = [
+        row for row in base["reported_holdings"]
+        if not str(row.get("id", "")).startswith("wh-annual:")]
+    annual_referenced = {row["person_id"] for name in ("transactions", "reported_holdings")
+                         for row in base[name]}
+    base["people"] = [row for row in base["people"] if row.get("id") in annual_referenced]
+    oge_health = [row for row in base.get("source_health", []) if row.get("source_id") == "oge"]
+    if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
+        raise ValueError("Prior White House OGE health record is invalid")
+    oge_health[0]["detail"] = oge_health[0]["detail"].split("; White House annual:", 1)[0]
+    if hashlib.sha256(_json_bytes(base)).hexdigest() != audit.get("candidate_sha256"):
+        raise ValueError("Prior White House transaction overlay differs from its audit")
+    promoted = {row.get("extraction_id") for report in audit.get("reports", [])
+                for row in report.get("rows", []) if row.get("status") == "promoted"}
+    whitehouse_transactions = {row.get("id") for row in base.get("transactions", [])
+                               if urlsplit(row.get("source_url") or "").hostname in
+                               {"whitehouse.gov", "www.whitehouse.gov"}}
+    if (None in promoted or whitehouse_transactions != promoted or
+            len(promoted) != audit.get("promoted_transaction_count")):
+        raise ValueError("Prior White House candidate cannot be safely separated")
+    base["transactions"] = [row for row in base["transactions"] if row.get("id") not in promoted]
+    referenced = {row["person_id"] for name in ("transactions", "reported_holdings")
+                  for row in base[name]}
+    base["people"] = [row for row in base["people"] if row.get("id") in referenced]
+    detail = oge_health[0]["detail"]
+    prefix, separator, remainder = detail.partition("Prior direct OGE status: ")
+    direct, marker, _ = remainder.partition("; White House public 278-T:")
+    if prefix or not separator or not marker or not direct:
+        raise ValueError("Prior direct OGE status cannot be recovered")
+    oge_health[0]["detail"] = direct
+    normalized = normalize(base, allow_production=True, allow_empty_production=True,
+                           allow_market=bool(base.get("security_market_data")))
+    if normalized != base:
+        raise ValueError("Recovered direct OGE candidate changed during normalization")
+    if len(base["transactions"]) != audit.get("base_transaction_count"):
+        raise ValueError("Recovered direct OGE transaction count differs from prior base")
+    return base
+
+
 def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         audit_out: Path, expected_report_count: int | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
@@ -193,14 +236,15 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         if not audit_out.is_file() or candidate_out.resolve() != oge_candidate.resolve():
             raise ValueError("White House rows already exist without an idempotent audit pair")
         prior, _ = _read_object(audit_out)
-        if (prior.get("candidate_sha256") != base_sha or
-                prior.get("review_input_sha256") != provenance):
-            raise ValueError("Prior White House candidate differs from current review inputs")
-        normalize(base, allow_production=True,
-                  allow_market=bool(base.get("security_market_data")))
-        return {"idempotent": True, "report_count": prior["report_count"],
-                "promoted_transaction_count": prior["promoted_transaction_count"],
-                "quarantined_row_count": prior["quarantined_row_count"]}
+        if (prior.get("candidate_sha256") == base_sha and
+                prior.get("review_input_sha256") == provenance):
+            normalize(base, allow_production=True,
+                      allow_market=bool(base.get("security_market_data")))
+            return {"idempotent": True, "report_count": prior["report_count"],
+                    "promoted_transaction_count": prior["promoted_transaction_count"],
+                    "quarantined_row_count": prior["quarantined_row_count"]}
+        base = _strip_prior_whitehouse(base, prior)
+        base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
     eligibility = audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions)
     candidate, conservation = build_whitehouse_278t_review_candidate(
         base, extractions, eligibility, oge_coverage,
