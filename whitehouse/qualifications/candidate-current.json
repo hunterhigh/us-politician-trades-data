@@ -1,15 +1,15 @@
 {
   "added_person_count": 6,
   "base_transaction_count": 4696,
-  "candidate_sha256": "501785cc4e106fe0b09b9261ec23e6e3197546bc9206a4bdee8e1aa141d06ec8",
+  "candidate_sha256": "066088cf07a21050d65c50af7cb068b0030352f8dbd8b0535d9349db8ff38fed",
   "candidate_transaction_count": 4779,
   "catalog_report_count": 80,
   "catalog_sha256": "1488a6d13396247228918a1021fc4395056c24a5bae4856dab2c7e1a20ec3896",
-  "data_cutoff_at": "2026-09-23T07:39:54Z",
+  "data_cutoff_at": "2026-09-23T12:19:59Z",
   "extraction_failure_count": 1,
   "promoted_report_count": 11,
   "promoted_transaction_count": 83,
-  "pure_oge_candidate_sha256": "74364abf5e3653f9ae9a387df8dc9cabc8238c9cd472d806ba94c701b9c5da93",
+  "pure_oge_candidate_sha256": "e9919efd6b86f2a45e9517e55d49190911a017598c919a2ee4e2d09cc5c5aa5e",
   "quarantined_row_count": 5464,
   "report_count": 79,
   "reports": [
