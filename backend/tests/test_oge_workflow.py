@@ -35,6 +35,7 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn('--catalog-history-dir "$REVIEW_ROOT/oge/discoveries"', content)
         self.assertIn('--extractions-dir "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'retained_historical_direct_count':", content)
+        self.assertIn("'whitehouse_public_extraction_failure_count':", content)
         self.assertIn("candidates/sources/oge-current.json", content)
         self.assertIn("python backend/scripts/build_whitehouse_278t_candidate.py", content)
         self.assertIn("whitehouse/qualifications/candidate-current.json", content)
