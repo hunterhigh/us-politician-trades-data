@@ -13,7 +13,8 @@ from pathlib import Path
 import re
 
 from .oge_278e_audit import audit_public_278e
-from .oge_278e_public import PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA
+from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
+                               SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last
 
 
@@ -53,14 +54,21 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                 hashlib.sha256(url.encode("utf-8")).hexdigest()[:24] or url in seen_urls):
             raise ValueError("White House annual archive binding is invalid")
         seen_urls.add(url)
-        relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
-                    f"{PARSER_VERSION.replace('/', '-')}.json")
+        parser_version = source.get("extraction_parser_version") or PARSER_VERSION
+        if parser_version not in SUPPORTED_PARSER_VERSIONS:
+            raise ValueError("White House annual extraction parser is unsupported")
+        expected_relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+                             f"{parser_version.replace('/', '-')}.json")
+        relative_value = source.get("extraction_path")
+        relative = Path(relative_value) if isinstance(relative_value, str) else expected_relative
+        if relative != expected_relative:
+            raise ValueError("White House annual extraction path is invalid")
         raw = (review_root / relative).read_bytes()
         extraction = json.loads(raw)
         filer = extraction.get("filer_name")
         page_filer = source.get("filer_name_from_label")
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
-                extraction.get("parser_version") != PARSER_VERSION or
+                extraction.get("parser_version") != parser_version or
                 extraction.get("source_url") != url or
                 extraction.get("source_sha256") != versions[0] or
                 not isinstance(filer, str) or not isinstance(page_filer, str) or

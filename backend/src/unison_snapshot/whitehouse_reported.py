@@ -13,8 +13,13 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-from .oge_278e_public import PARSER_VERSION as ANNUAL_PARSER, SCHEMA as ANNUAL_SCHEMA
-from .whitehouse_278t import PARSER_VERSION as TRADE_PARSER, EXTRACTION_SCHEMA as TRADE_SCHEMA, _first_last
+from .oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
+                               SCHEMA as ANNUAL_SCHEMA,
+                               SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS)
+from .whitehouse_278t import (PARSER_VERSION as TRADE_PARSER,
+                              EXTRACTION_SCHEMA as TRADE_SCHEMA,
+                              SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
+                              _first_last)
 
 
 SCHEMA = "whitehouse-filer-reported-index/v1"
@@ -83,10 +88,20 @@ def build_filer_reported_index(coverage: dict, review_root: Path,
         if state in _EXTRACTED:
             if len(versions) != 1:
                 raise ValueError("Extracted White House report has no unique archived PDF")
-            parser, schema = ((TRADE_PARSER, TRADE_SCHEMA) if form_type == "278t"
-                              else (ANNUAL_PARSER, ANNUAL_SCHEMA))
-            relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+            parser = report.get("extraction_parser_version") or (
+                TRADE_PARSER if form_type == "278t" else ANNUAL_PARSER)
+            schema = TRADE_SCHEMA if form_type == "278t" else ANNUAL_SCHEMA
+            supported = TRADE_PARSERS if form_type == "278t" else ANNUAL_PARSERS
+            if parser not in supported:
+                raise ValueError("White House extraction parser is unsupported")
+            relative_value = report.get("extraction_path")
+            relative = (Path(relative_value) if isinstance(relative_value, str) else
+                        Path("whitehouse/extractions") / match[1] / versions[0] /
                         f"{parser.replace('/', '-')}.json")
+            expected_relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+                                 f"{parser.replace('/', '-')}.json")
+            if relative != expected_relative:
+                raise ValueError("White House extraction path is invalid")
             extraction = _read(review_root / relative)
             if (extraction.get("schema_version") != schema or
                     extraction.get("parser_version") != parser or
@@ -125,9 +140,19 @@ def build_filer_reported_index(coverage: dict, review_root: Path,
         elif state == "extraction_quarantined":
             if len(versions) != 1:
                 raise ValueError("Failed White House extraction has no unique archived PDF")
-            parser = TRADE_PARSER if form_type == "278t" else ANNUAL_PARSER
-            relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+            parser = report.get("extraction_parser_version") or (
+                TRADE_PARSER if form_type == "278t" else ANNUAL_PARSER)
+            supported = TRADE_PARSERS if form_type == "278t" else ANNUAL_PARSERS
+            if parser not in supported:
+                raise ValueError("White House extraction failure parser is unsupported")
+            relative_value = report.get("failure_path")
+            relative = (Path(relative_value) if isinstance(relative_value, str) else
+                        Path("whitehouse/extractions") / match[1] / versions[0] /
                         f"{parser.replace('/', '-')}.failure.json")
+            expected_relative = (Path("whitehouse/extractions") / match[1] / versions[0] /
+                                 f"{parser.replace('/', '-')}.failure.json")
+            if relative != expected_relative:
+                raise ValueError("White House failure path is invalid")
             failure = _read(review_root / relative)
             if (failure.get("schema_version") != _FAILURE or
                     failure.get("document_id") != document_id or

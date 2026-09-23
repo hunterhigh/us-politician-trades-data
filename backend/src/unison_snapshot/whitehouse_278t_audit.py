@@ -14,7 +14,8 @@ from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, PARSER_VERSION, _first_last,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, PARSER_VERSION,
+    SUPPORTED_PARSER_VERSIONS, _first_last,
     quarantine_duplicate_report_groups,
 )
 
@@ -144,7 +145,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                                for row in catalog_rows):
         raise OgeCatalogError("White House 278-T catalog identities are invalid")
     if any(not isinstance(item, dict) or item.get("schema_version") != EXTRACTION_SCHEMA or
-           item.get("parser_version") != PARSER_VERSION or item.get("source_id") != "oge" or
+           item.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+           item.get("source_id") != "oge" or
            not isinstance(item.get("filer_name"), str) or not item["filer_name"].strip() or
            not isinstance(item.get("transactions"), list) or
            any(not isinstance(row, dict) for row in item["transactions"]) or
@@ -154,6 +156,21 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
            any(not isinstance(reason, str) for reason in item["document_reasons"])
            for item in extractions):
         raise OgeCatalogError("White House 278-T extraction contract is invalid")
+    for item in extractions:
+        if item.get("parser_version") != PARSER_VERSION:
+            continue
+        rows = [*item["transactions"], *item["quarantined"]]
+        if item.get("extraction_method") == "tesseract_ocr_geometry":
+            geometry = [row.get("geometry_row_index") for row in rows]
+            if (not isinstance(item.get("ocr_engine"), str) or
+                    not item["ocr_engine"].casefold().startswith("tesseract ") or
+                    item.get("source_row_count") != len(rows) or
+                    any(type(value) is not int for value in geometry) or
+                    sorted(geometry) != list(range(1, len(rows) + 1)) or
+                    any(not isinstance(row.get("ocr_confidence"), (int, float)) or
+                        row["ocr_confidence"] < MIN_OCR_ROW_CONFIDENCE
+                        for row in item["transactions"])):
+                raise OgeCatalogError("White House 278-T OCR geometry contract is invalid")
 
     screened = quarantine_duplicate_report_groups(extractions)
     existing_keys = set()

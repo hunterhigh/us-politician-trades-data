@@ -14,8 +14,10 @@ import tempfile
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (
+    OcrCheckpointPending,
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
     extract_public_278e_pdf,
+    extract_public_278e_pdf_checkpointed,
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
@@ -62,9 +64,12 @@ def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path | None]]:
 
 
 def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
-                  start_after_id: str | None = None) -> dict:
+                  start_after_id: str | None = None,
+                  ocr_page_limit: int = 50) -> dict:
     if type(limit) is not int or not 0 <= limit <= 100:
         raise ValueError("White House extraction limit must be between 0 and 100")
+    if type(ocr_page_limit) is not int or not 25 <= ocr_page_limit <= 100:
+        raise ValueError("White House OCR page limit must be between 25 and 100")
     rows = _archive_rows(evidence_root)
     if start_after_id:
         if ID.fullmatch(start_after_id) is None:
@@ -79,6 +84,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     skipped = 0
     known_failures = 0
     recorded_failures = 0
+    checkpoint_pending = []
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
@@ -104,8 +110,11 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     prior.get("source_url") != metadata.get("document_url") or
                     prior.get("parser_version") != version):
                 raise ValueError(f"White House extraction failure evidence conflict: {failure_target}")
-            known_failures += 1
-            continue
+            resumable = (kind != "278t" and
+                         prior.get("reason") == "White House 278e requires checkpointed OCR")
+            if not resumable:
+                known_failures += 1
+                continue
         if attempted >= limit:
             continue
         attempted += 1
@@ -122,7 +131,17 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                         path, **common, document_id=metadata["document_id"],
                         filer_name=name,
                         amended_label=metadata.get("link_label"))
-                return extract_public_278e_pdf(path, **common, expected_filer=name)
+                try:
+                    return extract_public_278e_pdf(path, **common, expected_filer=name)
+                except OgeCatalogError as exc:
+                    if str(exc) != "White House 278e requires checkpointed OCR":
+                        raise
+                checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
+                              metadata["document_id"].split(":", 1)[1] /
+                              metadata["sha256"] / suffix)
+                return extract_public_278e_pdf_checkpointed(
+                    path, **common, expected_filer=name,
+                    checkpoint_root=checkpoint, page_limit=ocr_page_limit)
             if pdf is None:
                 with tempfile.TemporaryDirectory(prefix="whitehouse-pdf-") as temporary:
                     assembled = Path(temporary) / "original.pdf"
@@ -135,7 +154,12 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     result.get("parser_version") != version):
                 raise ValueError("White House parser returned unbound evidence")
             _write(target, result)
+            failure_target.unlink(missing_ok=True)
             created += 1
+        except OcrCheckpointPending as exc:
+            failure_target.unlink(missing_ok=True)
+            checkpoint_pending.append({"document_id": metadata["document_id"],
+                                       **exc.status})
         except (OgeCatalogError, ValueError, OSError) as exc:
             failures.append({"document_id": metadata["document_id"],
                              "sha256": metadata["sha256"],
@@ -157,6 +181,8 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
             "extraction_created_count": created, "existing_extraction_count": skipped,
             "existing_failure_count": known_failures,
             "recorded_failure_count": recorded_failures,
+            "checkpoint_pending_count": len(checkpoint_pending),
+            "checkpoint_pending": checkpoint_pending,
             "pending_count": len(rows) - skipped - created - known_failures - recorded_failures,
             "failure_count": len(failures), "failures": failures,
             "production_qualification": "not_attempted"}
@@ -168,10 +194,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review-root", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--start-after-id")
+    parser.add_argument("--ocr-page-limit", type=int, default=50)
     args = parser.parse_args(argv)
     try:
         status = extract_batch(args.evidence_root, args.review_root, limit=args.limit,
-                               start_after_id=args.start_after_id)
+                               start_after_id=args.start_after_id,
+                               ocr_page_limit=args.ocr_page_limit)
         _write(args.review_root / "whitehouse/extraction-status.json", status)
         print(json.dumps({key: status[key] for key in (
             "archived_version_count", "attempted_count", "extraction_created_count",

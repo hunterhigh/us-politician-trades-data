@@ -10,8 +10,10 @@ from datetime import date, datetime
 import re
 from urllib.parse import urlsplit
 
-from .oge_278e_public import (PARSER_VERSION, SCHEMA, _SIGNATURE, _explicit_part6_owner,
-                               _name_key)
+from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
+                               OCR_MINIMUM_ROW_MEAN_CONFIDENCE, SCHEMA,
+                               SUPPORTED_PARSER_VERSIONS, _SIGNATURE,
+                               _explicit_part6_owner, _name_key)
 from .oge_annual import _VALUE_RANGES
 
 
@@ -90,8 +92,12 @@ def audit_public_278e(extraction: dict) -> dict:
     report_type = extraction.get("report_type")
     holding_reasons: set[str] = set()
     report_reasons: set[str] = set()
-    if extraction.get("schema_version") != SCHEMA or extraction.get("parser_version") != PARSER_VERSION:
+    if (extraction.get("schema_version") != SCHEMA or
+            extraction.get("parser_version") not in SUPPORTED_PARSER_VERSIONS):
         report_reasons.add("untrusted_extraction_version")
+    ocr_method = extraction.get("extraction_method") == "tesseract_ocr_geometry"
+    if ocr_method and not str(extraction.get("ocr_engine", "")).casefold().startswith("tesseract "):
+        report_reasons.add("ocr_engine_unverified")
     source_url = extraction.get("source_url")
     parsed_url = urlsplit(source_url) if isinstance(source_url, str) else None
     if (not parsed_url or parsed_url.scheme != "https" or
@@ -183,6 +189,11 @@ def audit_public_278e(extraction: dict) -> dict:
                 (report_type == "Annual" and period_end and trade_date.year != period_end.year) or
                 type(low) is not int or type(high) is not int or (low, high) not in _VALUE_RANGES):
             report_reasons.add("part7_row_invalid")
+        if ocr_method and (not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
+                           not isinstance(row.get("ocr_min_confidence"), (int, float)) or
+                           row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
+                           row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
+            report_reasons.add("part7_ocr_confidence_invalid")
     if quarantined:
         report_reasons.add("rows_quarantined")
     row_audit: list[dict] = []
@@ -216,6 +227,11 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_valuation_status_invalid")
         if valuation is None:
             reasons.append("holding_valuation_date_not_exact")
+        if ocr_method and (not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
+                           not isinstance(row.get("ocr_min_confidence"), (int, float)) or
+                           row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
+                           row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
+            reasons.append("holding_ocr_confidence_invalid")
         row_audit.append({"section": row.get("section"), "page_number": row.get("page_number"),
                           "row_number": row.get("row_number"), "asset_name": row.get("asset_name"),
                           "owner": row.get("owner"), "value_low": low, "value_high": high,
