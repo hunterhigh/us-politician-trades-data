@@ -46,14 +46,17 @@ class Public278eAuditTests(unittest.TestCase):
                          "not_assessed_external_identity_amendments_and_snapshot_gate")
         self.assertEqual(extraction, before)
 
-    def test_unknown_owner_blocks_full_holdings_without_guessing(self):
+    def test_part6_unknown_owner_is_kept_as_filer_reported(self):
         extraction = _annual()
         extraction["holdings"][0].update(section="part6", owner="Unknown")
+        extraction["explicit_empty_sections"] = ["part2", "part5", "part7"]
         audit = audit_public_278e(extraction)
-        self.assertFalse(audit["source_holdings_eligible"])
-        self.assertEqual(audit["source_candidate_holding_count"], 0)
-        self.assertEqual(audit["holding_row_audit"][0]["reasons"],
-                         ["holding_owner_not_disclosed"])
+        self.assertTrue(audit["source_holdings_eligible"])
+        self.assertEqual(audit["source_candidate_holding_count"], 1)
+        self.assertEqual(audit["holding_row_audit"][0]["owner"], "Unknown")
+        extraction["holdings"][0]["owner_evidence_conflict"] = [{"owner": "Self"}]
+        self.assertIn("holding_owner_evidence_invalid",
+                      audit_public_278e(extraction)["holding_row_audit"][0]["reasons"])
 
     def test_part6_owner_requires_traceable_account_evidence(self):
         extraction = _annual()

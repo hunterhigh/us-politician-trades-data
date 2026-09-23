@@ -193,10 +193,16 @@ def audit_public_278e(extraction: dict) -> dict:
                 not row["row_number"] or not isinstance(row.get("asset_name"), str) or
                 not row["asset_name"].strip() or not isinstance(row.get("raw_columns"), dict)):
             reasons.append("holding_row_evidence_invalid")
-        if row.get("owner") not in _OWNERS:
+        owner = row.get("owner")
+        if owner == "Unknown" and row.get("section") == "part6":
+            # Part 6 is filer-reported, but the form does not always identify
+            # which family member owns the asset. Preserve that distinction.
+            if row.get("owner_evidence") or row.get("owner_evidence_conflict"):
+                reasons.append("holding_owner_evidence_invalid")
+        elif owner not in _OWNERS:
             reasons.append("holding_owner_not_disclosed")
-        elif ((row.get("section") == "part2" and row["owner"] != "Self") or
-              (row.get("section") == "part5" and row["owner"] != "Spouse") or
+        elif ((row.get("section") == "part2" and owner != "Self") or
+              (row.get("section") == "part5" and owner != "Spouse") or
               (row.get("section") == "part6" and not _part6_owner_evidence_valid(row))):
             reasons.append("holding_owner_evidence_invalid")
         low, high = row.get("value_low"), row.get("value_high")

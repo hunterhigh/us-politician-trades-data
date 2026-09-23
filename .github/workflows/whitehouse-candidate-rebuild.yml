@@ -46,6 +46,10 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          python backend/scripts/overlay_whitehouse_annual_candidate.py \
+            --review-root "$REVIEW_ROOT" \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
           source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           for source_id in house_clerk senate_efd; do
             candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
@@ -65,6 +69,7 @@ jobs:
           root = Path(os.environ['REVIEW_ROOT'])
           candidate = json.loads((root / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
           audit = json.loads((root / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
+          annual = json.loads((root / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
           path = root / 'status/oge.json'
           status = json.loads(path.read_text(encoding='utf-8'))
           direct_count = status.get('oge_direct_qualified_transaction_count', status['qualified_transaction_count'])
@@ -74,7 +79,10 @@ jobs:
           status['oge_direct_qualified_transaction_count'] = direct_count
           status['oge_direct_quarantined_row_count'] = direct_quarantined
           status['whitehouse_public_qualified_transaction_count'] = audit['promoted_transaction_count']
+          status['whitehouse_public_qualified_annual_report_count'] = annual['annual_qualified_report_count']
+          status['whitehouse_public_qualified_holding_count'] = annual['annual_holding_count']
           status['qualified_transaction_count'] = len(candidate['transactions'])
+          status['qualified_holding_count'] = len(candidate['reported_holdings'])
           status['quarantined_row_count'] = direct_quarantined + audit['quarantined_row_count']
           path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True,
                                      separators=(',', ':')), encoding='utf-8')
@@ -83,7 +91,7 @@ jobs:
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
         run: |
-          git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications status/oge.json status/disclosure_cutoff.json
+          git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications whitehouse/annual/candidate-current.json status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
