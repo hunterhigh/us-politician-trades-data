@@ -5,6 +5,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
+from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_reports import EXTRACTION_SCHEMA, PARSER_VERSION
 
@@ -85,10 +86,62 @@ class OgeCandidateTests(unittest.TestCase):
         value = catalog()
         value["transactions"].append(other)
         value["records_total"] = value["catalog_rows_covered"] = 2
+        other_extraction = deepcopy(extraction())
+        other_extraction["document_id"] = other["source_document_id"]
+        other_extraction["source_url"] = other["document_url"]
+        other_extraction["source_sha256"] = "c" * 64
+        other_extraction["agency"] = other["agency"]
+        other_extraction["transactions"][0]["extraction_id"] = "oge-278t:" + "d" * 24
         candidate, audit = build_oge_candidate(
-            value, [extraction()], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+            value, [extraction(), other_extraction], base(),
+            data_cutoff_at="2025-06-04T00:00:00Z")
         self.assertEqual(candidate["transactions"], [])
         self.assertIn("identity_ambiguous", audit["reports"][0]["document_reasons"])
+
+    def test_exact_catalog_occurrences_share_one_document_candidate(self):
+        duplicate = deepcopy(direct())
+        duplicate["catalog_index"] = 1
+        value = catalog()
+        value["transactions"].append(duplicate)
+        value["records_total"] = value["catalog_rows_covered"] = 2
+        candidate, audit = build_oge_candidate(
+            value, [extraction()], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+        self.assertEqual(len(candidate["transactions"]), 1)
+        self.assertEqual(audit["catalog_direct_occurrence_count"], 2)
+        self.assertEqual(audit["catalog_direct_count"], 1)
+        self.assertEqual(audit["duplicate_catalog_occurrence_count"], 1)
+
+    def test_conflicting_catalog_occurrences_fail_closed(self):
+        conflict = deepcopy(direct())
+        conflict["catalog_index"] = 1
+        conflict["agency"] = "Different Agency"
+        value = catalog()
+        value["transactions"].append(conflict)
+        value["records_total"] = value["catalog_rows_covered"] = 2
+        with self.assertRaisesRegex(OgeCatalogError, "conflicting catalog occurrences"):
+            build_oge_candidate(
+                value, [extraction()], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+
+    def test_archived_catalog_history_preserves_disappearing_direct_document(self):
+        historical_document_id = "f" * 32
+        historical_url = URL.replace(DOCUMENT_ID, historical_document_id)
+        historical_record = deepcopy(direct())
+        historical_record["source_document_id"] = historical_document_id
+        historical_record["document_url"] = historical_url
+        historical = catalog(historical_record)
+        historical_extraction = extraction()
+        historical_extraction["document_id"] = historical_document_id
+        historical_extraction["source_url"] = historical_url
+        historical_extraction["source_sha256"] = "c" * 64
+        historical_extraction["transactions"][0]["extraction_id"] = "oge-278t:" + "d" * 24
+
+        candidate, audit = build_oge_candidate(
+            catalog(), [extraction(), historical_extraction], base(),
+            data_cutoff_at="2025-06-04T00:00:00Z", catalog_history=[historical])
+        self.assertEqual(len(candidate["transactions"]), 2)
+        self.assertEqual(audit["catalog_direct_count"], 2)
+        self.assertEqual(audit["current_catalog_direct_count"], 1)
+        self.assertEqual(audit["retained_historical_direct_count"], 1)
 
 
 if __name__ == "__main__":

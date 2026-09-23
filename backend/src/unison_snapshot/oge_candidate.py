@@ -8,7 +8,9 @@ import re
 
 from .builder import timestamp
 from .oge import OgeCatalogError, SCHEMA as CATALOG_SCHEMA
-from .oge_reports import EXTRACTION_SCHEMA, PARSER_VERSION
+from .oge_reports import (
+    EXTRACTION_SCHEMA, PARSER_VERSION, collapse_direct_catalog_records,
+)
 
 
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
@@ -53,7 +55,8 @@ def _instrument(asset_name: str, ticker: str | None) -> str:
 
 
 def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
-                        data_cutoff_at: str) -> tuple[dict, dict]:
+                        data_cutoff_at: str,
+                        catalog_history: list[dict] | None = None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -70,7 +73,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     catalog_rows = catalog.get("transactions")
     if not isinstance(catalog_rows, list):
         raise OgeCatalogError("OGE candidate catalog has no transaction rows")
-    direct_by_id: dict[str, dict] = {}
+    direct_occurrences = []
     request_required = 0
     for record in catalog_rows:
         if not isinstance(record, dict):
@@ -80,10 +83,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             continue
         if record.get("access_method") != "direct_pdf":
             raise OgeCatalogError("OGE candidate catalog access method is invalid")
-        document_id = record.get("source_document_id")
-        if not isinstance(document_id, str) or document_id in direct_by_id:
-            raise OgeCatalogError("OGE candidate catalog document ID is missing or duplicated")
-        direct_by_id[document_id] = record
+        direct_occurrences.append(record)
+    current_direct, duplicate_occurrences = collapse_direct_catalog_records(direct_occurrences)
+    current_direct_by_id = {record["source_document_id"]: record for record in current_direct}
+    all_direct = list(current_direct)
+    history_count = 0
+    for historical in catalog_history or []:
+        if not isinstance(historical, dict) or historical.get("schema_version") != CATALOG_SCHEMA:
+            raise OgeCatalogError("OGE candidate catalog history is invalid")
+        rows = historical.get("transactions")
+        if not isinstance(rows, list):
+            raise OgeCatalogError("OGE candidate catalog history has no transaction rows")
+        historical_direct = [record for record in rows if isinstance(record, dict) and
+                             record.get("access_method") == "direct_pdf"]
+        all_direct.extend(historical_direct)
+        history_count += 1
+    direct, _ = collapse_direct_catalog_records(all_direct)
+    direct_by_id = {record["source_document_id"]: record for record in direct}
+    retained_from_history = len(set(direct_by_id) - set(current_direct_by_id))
 
     identity_variants: dict[str, set[tuple[str, str, str]]] = {}
     for record in direct_by_id.values():
@@ -94,9 +111,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     people: dict[str, dict] = {}
     audit_reports = []
     seen_extractions: set[str] = set()
+    seen_document_ids: set[str] = set()
     promoted_ids: set[str] = set()
     for extraction in sorted(extractions, key=lambda row: str(row.get("document_id"))):
         document_id = extraction.get("document_id")
+        if not isinstance(document_id, str) or document_id in seen_document_ids:
+            raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
+        seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
         reasons = []
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
@@ -223,6 +244,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             "quarantined": row_quarantines,
         })
 
+    if seen_document_ids != set(direct_by_id):
+        raise OgeCatalogError("OGE candidate extractions do not close over direct report history")
+
     candidate = deepcopy(base)
     candidate["meta"]["data_cutoff_at"] = data_cutoff_at
     candidate["meta"]["subtitle"] = "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离"
@@ -239,9 +263,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "last_checked_at": data_cutoff_at,
         "last_successful_sync_at": data_cutoff_at,
         "data_cutoff_at": data_cutoff_at,
-        "detail": (f"{len(direct_by_id)} direct 278-T catalog entries; {len(extractions)} PDFs extracted; "
+        "detail": (f"{len(direct_by_id)} direct 278-T documents; {len(extractions)} PDFs extracted; "
                    f"{len(transactions)} transactions qualified; {request_required} request-required "
-                   "catalog entries were not automated."),
+                   f"catalog entries were not automated; {retained_from_history} direct documents "
+                   "were retained from archived catalog history."),
     }
     current_health = candidate.get("source_health")
     if not isinstance(current_health, list):
@@ -255,6 +280,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "source_id": "oge",
         "data_cutoff_at": data_cutoff_at,
         "catalog_direct_count": len(direct_by_id),
+        "catalog_direct_occurrence_count": len(direct_occurrences),
+        "current_catalog_direct_count": len(current_direct_by_id),
+        "current_catalog_direct_occurrence_count": len(direct_occurrences),
+        "duplicate_catalog_occurrence_count": duplicate_occurrences,
+        "retained_historical_direct_count": retained_from_history,
+        "catalog_history_count": history_count,
         "request_required_count": request_required,
         "extraction_count": len(extractions),
         "promoted_transaction_count": len(transactions),

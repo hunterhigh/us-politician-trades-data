@@ -43,12 +43,16 @@ from .senate_history import (
     load_amendment_predecessor_plan, load_amendment_supplement,
 )
 from .oge import (
+    MAX_CATALOG_PAGE_SIZE as OGE_MAX_CATALOG_PAGE_SIZE,
     OgeCatalogError, collection_gate_status as oge_collection_gate_status,
     discover_catalog as discover_oge_catalog,
     source_config_from_environment as oge_source_config_from_environment,
 )
-from .oge_reports import archive_direct_batch as archive_oge_direct_batch, \
-    parse_archived_pdf as parse_oge_archived_pdf
+from .oge_reports import (
+    PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
+    archive_direct_batch as archive_oge_direct_batch,
+    parse_archived_pdf as parse_oge_archived_pdf,
+)
 from .oge_candidate import build_oge_candidate
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .release_readiness import ReleaseReadinessError, validate_first_launch
@@ -292,7 +296,7 @@ def main() -> None:
     oge_discovery = sub.add_parser("discover-oge")
     oge_discovery.add_argument("--archive", type=Path, required=True)
     oge_discovery.add_argument("--output", type=Path, required=True)
-    oge_discovery.add_argument("--page-size", type=int, default=1000)
+    oge_discovery.add_argument("--page-size", type=int, default=OGE_MAX_CATALOG_PAGE_SIZE)
     oge_discovery.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
     oge_discovery.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
     oge_reports = sub.add_parser("archive-oge-direct-pdfs")
@@ -309,6 +313,7 @@ def main() -> None:
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
     oge_candidate.add_argument("--catalog", type=Path, required=True)
+    oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
@@ -865,11 +870,22 @@ def main() -> None:
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
-            extractions = [json.loads(path.read_text(encoding="utf-8"))
-                           for path in sorted(args.extractions_dir.rglob("*.json"))]
+            extractions = []
+            for path in sorted(args.extractions_dir.rglob("*.json")):
+                value = json.loads(path.read_text(encoding="utf-8"))
+                if value.get("parser_version") == OGE_REPORT_PARSER_VERSION:
+                    extractions.append(value)
+            catalog_history = []
+            if args.catalog_history_dir:
+                current_bytes = encode(catalog)
+                for path in sorted(args.catalog_history_dir.glob("*.json")):
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    if encode(value) != current_bytes:
+                        catalog_history.append(value)
             base = json.loads(args.base.read_text(encoding="utf-8"))
             result, audit = build_oge_candidate(
-                catalog, extractions, base, data_cutoff_at=args.data_cutoff_at)
+                catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
+                catalog_history=catalog_history)
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
                            allow_empty_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],

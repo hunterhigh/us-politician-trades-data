@@ -485,6 +485,12 @@ def build_senate_candidate(
     status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
     state_catalog = state_status.get("catalog")
     state_reports = state_status.get("reports")
+    catalog_record_count = status.get("catalog_record_count")
+    report_evidence_count = status.get("report_evidence_count")
+    report_failure_count = status.get("report_extraction_failure_count")
+    if any(type(value) is not int or value < 0 for value in (
+            catalog_record_count, report_evidence_count, report_failure_count)):
+        raise SenateEfdError("Senate review accounting counts are invalid")
     if (status.get("schema_version") != "senate-review-run/v1" or
             status.get("source_id") != "senate_efd" or
             status.get("status") != "catalog_ready_for_review" or
@@ -498,11 +504,9 @@ def build_senate_candidate(
             status.get("catalog_sha256") != state_catalog.get("sha256") or
             status.get("report_entrypoint_count") != state_reports.get("entrypoint_count") or
             status.get("report_entrypoint_pending_count") != state_reports.get("pending_count") or
-            status.get("report_evidence_count") != state_reports.get("evidence_count") or
-            status.get("extracted_transaction_count") != state_reports.get("last_batch_transactions") or
+            catalog_record_count != report_evidence_count + report_failure_count or
             status.get("report_entrypoint_pending_count") != 0 or
-            status.get("report_entrypoint_failure_count") != 0 or
-            status.get("report_extraction_failure_count") != 0):
+            status.get("report_entrypoint_failure_count") != 0):
         raise SenateEfdError("Senate review queue is not ready for a candidate")
     catalog_sha = status.get("catalog_sha256")
     roster_sha = status.get("identity_roster_sha256")
@@ -573,6 +577,31 @@ def build_senate_candidate(
         raise SenateEfdError("Senate extractions do not map uniquely to the identity batch")
     if sum(len(item["transactions"]) for item in extraction_values) != status.get("extracted_transaction_count"):
         raise SenateEfdError("Senate extracted transaction count does not match review status")
+    failure_paths = sorted([
+        *(review_root / "senate_efd" / "report_failures").glob(
+            f"*/*/{parser_version}.json"),
+        *(review_root / "senate_efd" / "paper_report_failures").glob(
+            f"*/*/{parser_version}.json"),
+    ])
+    if len(failure_paths) != report_failure_count:
+        raise SenateEfdError("Senate extraction failure count does not match review status")
+    failure_document_ids = []
+    for path in failure_paths:
+        failure = _read_json(path, "Senate extraction failure artifact")
+        document_id = failure.get("document_id")
+        source_sha = failure.get("source_sha256")
+        if (path.parent.parent.name != document_id or path.parent.name != source_sha or
+                path.stem != failure.get("parser_version") or
+                failure.get("parser_version") != parser_version or
+                failure.get("source_id") not in {None, "senate_efd"} or
+                not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha) or
+                not isinstance(failure.get("reason"), str) or not failure["reason"].strip()):
+            raise SenateEfdError("Senate extraction failure artifact is invalid")
+        failure_document_ids.append(document_id)
+    if (len(set(failure_document_ids)) != len(failure_document_ids) or
+            set(failure_document_ids) & set(extraction_document_ids) or
+            set(failure_document_ids) | set(extraction_document_ids) != set(identity_by_document)):
+        raise SenateEfdError("Senate extraction dispositions do not close over the catalog")
     primary_by_document = {item["document_id"]: item for item in extraction_values}
     supplement = _load_active_amendment_supplement(review_root, parser_version)
     supplement_extractions = supplement["extractions"]
@@ -779,7 +808,8 @@ def build_senate_candidate(
                    f"{report_quarantined_transaction_count + len(quarantined_rows)} transactions quarantined "
                    f"across {len(quarantined_reports) + partially_qualified_reports + row_only_quarantined_reports} affected reports; "
                    f"{superseded_report_transaction_count} transactions superseded by verified amendments; "
-                   f"{status['catalog_record_count'] - status['report_evidence_count']} reports pending extraction."),
+                   f"{report_failure_count} reports retained as extraction failures; "
+                   "0 reports pending extraction."),
     }
     health = candidate.get("source_health")
     if not isinstance(health, list):
@@ -806,6 +836,7 @@ def build_senate_candidate(
         "data_cutoff_at": cutoff,
         "catalog_record_count": status["catalog_record_count"],
         "extracted_report_count": len(extraction_paths),
+        "extraction_failure_count": report_failure_count,
         "electronic_report_count": sum(
             item.get("schema_version") == ELECTRONIC_EXTRACTION_SCHEMA
             for item in extraction_values),

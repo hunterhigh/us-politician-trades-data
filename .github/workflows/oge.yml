@@ -263,7 +263,9 @@ jobs:
           cutoff="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
           PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate \
-            --catalog .local/oge-catalog.json --extractions-dir .local/oge-extractions \
+            --catalog .local/oge-catalog.json \
+            --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
+            --extractions-dir "$REVIEW_ROOT/oge/extractions" \
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json"
@@ -297,11 +299,14 @@ jobs:
               'generated_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
               'catalog_sha256': catalog['metadata']['sha256'],
               'catalog_record_count': catalog['records_total'],
-              'direct_pdf_count': catalog['metadata']['direct_pdf_count'],
+              'direct_pdf_count': audit['catalog_direct_count'],
+              'direct_pdf_occurrence_count': batch['catalog_direct_occurrence_count'],
+              'duplicate_direct_occurrence_count': batch['duplicate_catalog_occurrence_count'],
               'request_required_count': catalog['metadata']['request_required_count'],
-              'archived_report_count': len(batch['reports']),
-              'pending_direct_count': batch['pending_count'],
-              'extraction_count': extraction['extraction_count'],
+              'retained_historical_direct_count': audit['retained_historical_direct_count'],
+              'archived_report_count': audit['catalog_direct_count'],
+              'pending_direct_count': 0,
+              'extraction_count': audit['extraction_count'],
               'extraction_failure_count': extraction['failure_count'],
               'qualified_transaction_count': len(combined['transactions']),
               'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
