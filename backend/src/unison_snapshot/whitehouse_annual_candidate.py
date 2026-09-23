@@ -33,7 +33,7 @@ def _person(report: dict) -> dict:
 
 
 def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> tuple[dict, dict]:
-    """Add only report-complete annual assets; keep Unknown owner unchanged."""
+    """Add complete reports and source-bound partial rows; keep Unknown unchanged."""
     path = review_root / "whitehouse/annual/filer-reported-current.json"
     if not path.is_file():
         return candidate, {"annual_status": "not_available", "annual_holding_count": 0}
@@ -43,15 +43,17 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
     holdings = annual.get("holdings")
     if (annual.get("schema_version") != SCHEMA or
             annual.get("production_status") !=
-            "review_only_pending_identity_versions_and_snapshot_gate" or
+            "review_only_complete_or_source_bound_partial_rows" or
             not isinstance(reports, list) or not isinstance(holdings, list) or
             annual.get("report_count") != len(reports) or
             annual.get("holding_count") != len(holdings)):
         raise OgeCatalogError("White House annual review artifact is invalid")
+    complete_reports = [row for row in reports if row.get("source_holdings_eligible") is True]
     eligible_reports = {row["document_id"]: row for row in reports
-                        if row.get("source_holdings_eligible") is True}
-    if len(eligible_reports) != annual.get("source_eligible_report_count"):
-        raise OgeCatalogError("White House annual eligible report count changed")
+                        if row.get("source_candidate_eligible") is True}
+    if (len(complete_reports) != annual.get("source_eligible_report_count") or
+            len(eligible_reports) != annual.get("source_candidate_report_count")):
+        raise OgeCatalogError("White House annual candidate report count changed")
     eligible_rows = [row for row in holdings if row.get("source_holdings_eligible") is True]
     if len(eligible_rows) != annual.get("source_eligible_holding_count"):
         raise OgeCatalogError("White House annual eligible holding count changed")
@@ -119,8 +121,11 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
     for health in result["source_health"]:
         if health.get("source_id") == "oge":
             health["detail"] = health["detail"].split("; White House annual:", 1)[0]
-            health["detail"] += (f"; White House annual: {len(eligible_reports)} filer-reported "
-                                 f"reports, {len(added)} holdings")
+            partial_count = sum(row.get("holding_coverage_status") == "partial"
+                                for row in eligible_reports.values())
+            health["detail"] += (f"; White House annual: {len(complete_reports)} complete and "
+                                 f"{partial_count} partial filer-reported reports, "
+                                 f"{len(added)} holdings")
     normalized = normalize(result, allow_production=True,
                            allow_market=bool(result["security_market_data"]))
     if normalized != result:
@@ -129,6 +134,9 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
         "annual_status": "included",
         "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
         "annual_qualified_report_count": len(eligible_reports),
+        "annual_complete_report_count": len(complete_reports),
+        "annual_partial_report_count": sum(row.get("holding_coverage_status") == "partial"
+                                           for row in eligible_reports.values()),
         "annual_holding_count": len(added),
         "annual_unknown_owner_count": sum(row["asset_owner"] == "Unknown" for row in eligible_rows),
     }

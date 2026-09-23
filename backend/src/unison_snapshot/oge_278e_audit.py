@@ -15,6 +15,8 @@ from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
                                SUPPORTED_PARSER_VERSIONS, _SIGNATURE,
                                _explicit_part6_owner, _name_key)
 from .oge_annual import _VALUE_RANGES
+from .whitehouse_scanned_annual import (recovered_ocr_holding_valid,
+                                        scanned_signature_evidence_valid)
 
 
 AUDIT_SCHEMA = "whitehouse-public-278e-qualification/v1"
@@ -95,7 +97,8 @@ def audit_public_278e(extraction: dict) -> dict:
     if (extraction.get("schema_version") != SCHEMA or
             extraction.get("parser_version") not in SUPPORTED_PARSER_VERSIONS):
         report_reasons.add("untrusted_extraction_version")
-    ocr_method = extraction.get("extraction_method") == "tesseract_ocr_geometry"
+    ocr_method = str(extraction.get("extraction_method", "")).startswith(
+        "tesseract_ocr_geometry")
     if ocr_method and not str(extraction.get("ocr_engine", "")).casefold().startswith("tesseract "):
         report_reasons.add("ocr_engine_unverified")
     source_url = extraction.get("source_url")
@@ -115,15 +118,21 @@ def audit_public_278e(extraction: dict) -> dict:
     signature_text = extraction.get("signature_text")
     signature = _SIGNATURE.fullmatch(signature_text) if isinstance(signature_text, str) else None
     signature_date = _signature_date(signature[2]) if signature else None
-    if (signature is None or filed is None or signature_date != filed or
-            _name_key(signature[1]) != _name_key(extraction.get("filer_name", "")) or
-            _name_key(signature[3]) != _name_key(extraction.get("filer_name", ""))):
+    electronic_signature_valid = (
+        signature is not None and filed is not None and signature_date == filed and
+        _name_key(signature[1]) == _name_key(extraction.get("filer_name", "")) and
+        _name_key(signature[3]) == _name_key(extraction.get("filer_name", "")))
+    if not electronic_signature_valid and not scanned_signature_evidence_valid(extraction):
         report_reasons.add("filer_signature_unverified")
     period_end = _date(extraction.get("report_period_end"))
     valuation = _date(extraction.get("holding_valuation_date"))
     if report_type == "Annual":
         year = extraction.get("cover_report_year")
-        expected = date(year - 1, 12, 31) if type(year) is int and 2000 <= year <= 2200 else None
+        # Scanned public forms print the reporting calendar year itself.  The
+        # native Integrity export prints the filing cycle and is one year ahead.
+        annual_year = year if ocr_method else year - 1 if type(year) is int else None
+        expected = (date(annual_year, 12, 31) if type(annual_year) is int and
+                    2000 <= annual_year <= 2200 else None)
         if period_end != expected or valuation != expected or expected is None or (filed and filed < expected):
             holding_reasons.add("annual_period_or_valuation_unverified")
     elif report_type == "New Entrant":
@@ -227,10 +236,11 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_valuation_status_invalid")
         if valuation is None:
             reasons.append("holding_valuation_date_not_exact")
-        if ocr_method and (not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
-                           not isinstance(row.get("ocr_min_confidence"), (int, float)) or
-                           row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
-                           row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
+        if ocr_method and not recovered_ocr_holding_valid(row, extraction) and (
+                not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
+                not isinstance(row.get("ocr_min_confidence"), (int, float)) or
+                row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
+                row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
             reasons.append("holding_ocr_confidence_invalid")
         row_audit.append({"section": row.get("section"), "page_number": row.get("page_number"),
                           "row_number": row.get("row_number"), "asset_name": row.get("asset_name"),

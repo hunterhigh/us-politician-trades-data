@@ -94,6 +94,19 @@ class Public278eAuditTests(unittest.TestCase):
         self.assertIn("printed_rows_not_conserved", audit["holding_blocking_reasons"])
         self.assertIn("filer_signature_unverified", audit["report_blocking_reasons"])
 
+    def test_scanned_annual_year_is_the_reporting_calendar_year(self):
+        extraction = _annual()
+        extraction.update(extraction_method="tesseract_ocr_geometry",
+                          ocr_engine="tesseract test", cover_report_year=2025,
+                          report_period_end="2025-12-31",
+                          holding_valuation_date="2025-12-31")
+        extraction["holdings"][0].update(
+            report_period_end="2025-12-31", holding_valuation_date="2025-12-31",
+            ocr_mean_confidence=96.0, ocr_min_confidence=90.0)
+        audit = audit_public_278e(extraction)
+        self.assertNotIn("annual_period_or_valuation_unverified",
+                         audit["holding_blocking_reasons"])
+
     def test_entrant_and_termination_cannot_invent_valuation_date(self):
         entrant = _annual()
         entrant.update(report_type="New Entrant", cover_report_year=None,

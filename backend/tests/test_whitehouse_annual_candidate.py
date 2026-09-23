@@ -42,10 +42,12 @@ def _annual() -> dict:
                "value_low": 1001, "value_high": 15000,
                "report_period_end": "2025-12-31", "source_holdings_eligible": True,
                "source_url": report["source_url"], "source_sha256": report["source_sha256"]}
-    return {"schema_version": "whitehouse-annual-filer-reported/v1",
-            "production_status": "review_only_pending_identity_versions_and_snapshot_gate",
+    report.update(source_candidate_eligible=True, holding_coverage_status="complete")
+    return {"schema_version": "whitehouse-annual-filer-reported/v2",
+            "production_status": "review_only_complete_or_source_bound_partial_rows",
             "report_count": 1, "holding_count": 1,
-            "source_eligible_report_count": 1, "source_eligible_holding_count": 1,
+            "source_eligible_report_count": 1, "source_candidate_report_count": 1,
+            "source_partial_report_count": 0, "source_eligible_holding_count": 1,
             "reports": [report], "holdings": [holding]}
 
 
@@ -89,6 +91,18 @@ class WhiteHouseAnnualCandidateTests(unittest.TestCase):
         result, _ = overlay_whitehouse_annual_candidate(base, self.root)
         self.assertEqual(len(result["people"]), 1)
         self.assertEqual(result["reported_holdings"][0]["person_id"], person["id"])
+
+    def test_partial_report_is_labeled_without_claiming_completeness(self) -> None:
+        annual = _annual()
+        report = annual["reports"][0]
+        report.update(source_holdings_eligible=False, holding_coverage_status="partial")
+        annual.update(source_eligible_report_count=0, source_partial_report_count=1)
+        path = self.root / "whitehouse/annual/filer-reported-current.json"
+        path.write_text(json.dumps(annual), encoding="utf-8")
+        candidate, audit = overlay_whitehouse_annual_candidate(_base(), self.root)
+        self.assertEqual(audit["annual_complete_report_count"], 0)
+        self.assertEqual(audit["annual_partial_report_count"], 1)
+        self.assertIn("0 complete and 1 partial", candidate["source_health"][0]["detail"])
 
 
 if __name__ == "__main__":
