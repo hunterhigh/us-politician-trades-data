@@ -148,6 +148,11 @@ jobs:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
         run: |
           python backend/scripts/build_whitehouse_reported_index.py --review-root "$REVIEW_ROOT"
+      - name: Materialize White House annual filer-reported holdings
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
+        run: |
+          python backend/scripts/build_whitehouse_annual_review.py --review-root "$REVIEW_ROOT"
       - name: Publish bounded review audit
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
