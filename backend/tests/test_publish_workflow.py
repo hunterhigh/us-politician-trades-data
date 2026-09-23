@@ -36,9 +36,24 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("--previous-market-root", complete)
         self.assertIn('--audit "$RUNNER_TEMP/market-audit.json"', complete)
         self.assertIn('--twelve-audit "$RUNNER_TEMP/twelve-audit.json"', complete)
-        self.assertIn('--checked-at "$checked_at" --limit 100', complete)
+        self.assertIn('--checked-at "$checked_at" --limit "$TWELVE_LIMIT"', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
+
+    def test_market_cache_uses_a_consistent_published_main_market_pair(self):
+        complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("cache_main_ref", complete)
+        self.assertIn("cache_market_ref", complete)
+        self.assertIn("cache_main_root=$cache_main_root", complete)
+        self.assertIn("cache_market_root=$cache_market_root", complete)
+        self.assertIn("cache_market_commit=$cache_market_ref", complete)
+        self.assertIn("Cache main and market commits are not a published pair", complete)
+        self.assertIn('--previous-main-root "$CACHE_MAIN_ROOT"', complete)
+        self.assertIn('--previous-market-root "$CACHE_MARKET_ROOT"', complete)
+        self.assertIn('--previous-market-commit "$CACHE_MARKET_COMMIT"', complete)
+        self.assertIn('git merge-base --is-ancestor "$cache_market_ref" origin/market',
+                      complete)
 
     def test_twelve_data_summaries_distinguish_batch_and_cumulative_counts(self):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
