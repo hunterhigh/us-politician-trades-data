@@ -55,6 +55,19 @@ def _compact(value: str) -> str:
     return " ".join(value.split())
 
 
+def _raw_text_columns(row: dict) -> dict[str, str]:
+    """Serialize visible cell lists without mixing private OCR audit arrays."""
+
+    columns: dict[str, str] = {}
+    for name, value in row.items():
+        if not isinstance(value, list) or name.startswith("_"):
+            continue
+        if not all(isinstance(item, str) for item in value):
+            raise OgeCatalogError("White House 278e row contains a non-text cell value")
+        columns[name] = _compact(" ".join(value))
+    return columns
+
+
 def _date(value: str) -> str | None:
     if not _DAY.fullmatch(value):
         return None
@@ -499,8 +512,7 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     for row in raw_rows:
         key = row["section"], row["row_number"]
         if counts[key] > 1:
-            row["raw_columns"] = {name: _compact(" ".join(value)) for name, value in row.items()
-                                  if isinstance(value, list)}
+            row["raw_columns"] = _raw_text_columns(row)
             quarantined.append(_quarantine(row, ["duplicate_section_row_number"]))
             continue
         parent = row["row_number"]
