@@ -125,8 +125,10 @@ jobs:
           from collections import Counter
           counts=Counter(row['status'] for row in audit['results'])
           print('### Twelve Data coverage audit')
-          print(f"Attempted: {audit['attempted_count']}; accepted: {audit['accepted_count']}")
-          print(f"Requests: {audit['request_count']}")
+          print(f"Attempted: {audit['attempted_count']}; newly accepted: {audit['new_accepted_count']}")
+          print(f"Cached accepted: {audit['cached_accepted_count']}; cumulative accepted: {audit['accepted_count']}")
+          print(f"Deferred backlog: {audit['backlog_count']}; requests: {audit['request_count']}")
+          print(f"Exact duplicate rows removed: {audit['deduplicated_row_count']}")
           for status,count in sorted(counts.items()):
               print(f"- {status}: {count}")
           print('No market data was published by this run.')
