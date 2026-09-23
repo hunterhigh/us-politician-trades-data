@@ -280,6 +280,47 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual(opener.attempts, 3)
         self.assertEqual(delays, [1, 2])
 
+    def test_http_client_retries_transient_http_400(self):
+        body = json.dumps(payload([row(DIRECT)])).encode()
+
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json"}
+
+            def __init__(self, request):
+                self.request = request
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def geturl(self):
+                return self.request.full_url
+
+            def read(self, _):
+                return body
+
+        class Opener:
+            attempts = 0
+
+            def open(self, request, timeout):
+                self.attempts += 1
+                if self.attempts < 3:
+                    raise urllib.error.HTTPError(
+                        request.full_url, 400, "Bad Request", {}, None)
+                return Response(request)
+
+        opener = Opener()
+        delays = []
+        content, _ = OgeCatalogClient(
+            timeout=7, opener=opener, sleeper=delays.append).download_page(
+                start=0, length=1, draw=1)
+        self.assertEqual(content, body)
+        self.assertEqual(opener.attempts, 3)
+        self.assertEqual(delays, [1, 2])
+
 
 if __name__ == "__main__":
     unittest.main()

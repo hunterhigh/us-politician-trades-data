@@ -385,7 +385,10 @@ class OgeCatalogClient:
                                if name.lower() in {"etag", "last-modified", "content-type"}}
                 break
             except urllib.error.HTTPError as exc:
-                if exc.code not in {429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
+                # The official DataTables endpoint intermittently returns 400
+                # for an unchanged request and then succeeds on retry. Keep the
+                # retry bounded; response validation below still fails closed.
+                if exc.code not in {400, 429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
                     raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
             except (urllib.error.URLError, TimeoutError, ConnectionError,
                     http.client.HTTPException):
