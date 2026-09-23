@@ -89690,7 +89690,7 @@
     "whitehouse_coverage_sha256": "08e47108da47b0ef59186e5dd5517ae50ea727d0b23903c603212874c5646b43",
     "whitehouse_extraction_failure_set_sha256": "f945fe102eb846138afef1115336dc894df547d905953d34c21855558a2e8833",
     "whitehouse_extraction_set_sha256": "d6b870a3f5f6f48fbd7476b055b312c3ec23d93dc8cb8dda7710eed05c14c12a",
-    "whitehouse_extraction_status_sha256": "436efbb4142b07e9b472ce3876c45c74307d84b7fc218aaa1aa5c540d1fbcb1b"
+    "whitehouse_extraction_status_sha256": "2213a9550d36adbac6ba9f944256c6a0f94a9fc539aa55c167384e07d024baa4"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
