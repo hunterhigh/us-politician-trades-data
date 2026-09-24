@@ -297,9 +297,45 @@ def _trump_part6_header(words: list[dict]) -> dict[str, float] | None:
     return {key: anchors[key] for key in ("#", "description", "eif", "value", "income")}
 
 
-def _header(words: list[dict], part: str, *, trump_part6: bool = False) -> dict[str, float] | None:
+def _trump_part7_header(words: list[dict]) -> dict[str, float] | None:
+    """Recognize the fixed scan's 687-page transaction header by geometry.
+
+    Tesseract 5.3.4 consistently reads the printed ``#`` as ``*`` on 212 pages
+    and ``=`` on 475 pages of this one source.  The four named columns remain
+    exact and fixed, so accepting either damaged marker is narrower than
+    guessing a layout from transaction-looking body text.
+    """
+
+    anchors: dict[str, float] = {}
+    marker: float | None = None
+    for word in sorted(words, key=lambda item: float(item["x0"])):
+        raw = str(word["text"])
+        name = re.sub(r"[^a-z]", "", raw.casefold())
+        x = float(word["x0"])
+        if raw in {"*", "="} and 0 <= x <= 10:
+            marker = x
+        elif name == "description" and 30 <= x <= 45:
+            anchors["description"] = x
+        elif name == "type" and 600 <= x <= 625:
+            anchors["type"] = x
+        elif name == "date" and 650 <= x <= 670:
+            anchors["date"] = x
+        elif name == "amount" and 695 <= x <= 715:
+            anchors["amount"] = x
+    if marker is None or set(anchors) != {"description", "type", "date", "amount"}:
+        return None
+    columns = {"#": marker, **anchors}
+    if list(columns.values()) != sorted(columns.values()):
+        return None
+    return columns
+
+
+def _header(words: list[dict], part: str, *, trump_part6: bool = False,
+            trump_part7: bool = False) -> dict[str, float] | None:
     if trump_part6 and part == "part6":
         return _trump_part6_header(words)
+    if trump_part7 and part == "part7":
+        return _trump_part7_header(words)
     by_name: dict[str, float] = {}
     for word in words:
         raw = word["text"].casefold()
@@ -321,6 +357,47 @@ def _words_at(words: list[dict], top: float) -> list[dict]:
                   key=lambda word: float(word["x0"]))
 
 
+def _merge_trump_part7_lines(lines: list[dict], words: list[dict]) -> list[dict]:
+    """Join only disjoint OCR fragments occupying the same printed row.
+
+    Some bottom rows are returned as separate number, description, date, and
+    amount TSV lines with identical vertical coordinates.  Overlapping lines
+    are deliberately left separate so duplicate OCR rows retain the same
+    physical locator and are quarantined by the disposition census.
+    """
+
+    prepared = []
+    for line in lines:
+        line_words = line.get("words") or _words_at(words, float(line["top"]))
+        prepared.append({**line, "words": line_words})
+    merged: list[dict] = []
+    index = 0
+    ordered = sorted(prepared, key=lambda line: (float(line["top"]),
+                                                  str(line.get("text", ""))))
+    while index < len(ordered):
+        top = float(ordered[index]["top"])
+        group = []
+        while index < len(ordered) and abs(float(ordered[index]["top"]) - top) < 2.5:
+            group.append(ordered[index])
+            index += 1
+        intervals = [(min(float(word["x0"]) for word in line["words"]),
+                      max(float(word.get("x1", word["x0"])) for word in line["words"]),
+                      line)
+                     for line in group if line["words"]]
+        intervals.sort(key=lambda item: (item[0], item[1]))
+        if (len(intervals) > 1 and
+                all(left[1] < right[0] for left, right in zip(intervals, intervals[1:]))):
+            combined = sorted((word for _, _, line in intervals for word in line["words"]),
+                              key=lambda word: float(word["x0"]))
+            merged.append({"text": " ".join(str(word["text"]) for word in combined),
+                           "top": min(float(word["top"]) for word in combined),
+                           "words": combined})
+        else:
+            merged.extend(group)
+    return sorted(merged, key=lambda line: (float(line["top"]),
+                                             str(line.get("text", ""))))
+
+
 def _append_line(row: dict, line_words: list[dict], columns: dict[str, float]) -> None:
     keys = [key for key in columns if key != "#"]
     starts = [columns[key] for key in keys]
@@ -333,6 +410,50 @@ def _append_line(row: dict, line_words: list[dict], columns: dict[str, float]) -
             row[keys[index]].append(word["text"])
             if isinstance(word.get("ocr_confidence"), (int, float)):
                 row.setdefault("_ocr_confidences", []).append(float(word["ocr_confidence"]))
+
+
+def _append_trump_part7_line(row: dict, line_words: list[dict],
+                             columns: dict[str, float]) -> None:
+    """Split the fixed transaction table while retaining every source word."""
+
+    fields = ("description", "type", "date", "amount")
+    starts = [columns[field] for field in fields]
+    for word in line_words:
+        x = float(word["x0"])
+        if x < starts[0] - 6:
+            if 0 <= x < columns["description"] - 8:
+                raw = str(word["text"])
+                row.setdefault("_part7_word_evidence", []).append({
+                    "field": "row_number", "original_text": raw,
+                    "x0": x, "x1": float(word.get("x1", x)),
+                    "top": float(word["top"]),
+                    "ocr_confidence": word.get("ocr_confidence"),
+                    "included_in_raw_column": True, "repair_method": None})
+                if isinstance(word.get("ocr_confidence"), (int, float)):
+                    score = float(word["ocr_confidence"])
+                    row.setdefault("_ocr_confidences", []).append(score)
+                    row.setdefault("_ocr_field_confidences", {}).setdefault(
+                        "row_number", []).append(score)
+            continue
+        field = fields[max(i for i, start in enumerate(starts) if x >= start - 6)]
+        raw = str(word["text"])
+        # The vertical border lies just left of the Amount start and is often
+        # emitted as its own word.  Keep it in geometry evidence but never let
+        # it become part of the disclosed amount.
+        border = field == "amount" and raw in {"|", "¦"} and x < columns["amount"]
+        if not border:
+            row[field].append(raw)
+        row.setdefault("_part7_word_evidence", []).append({
+            "field": field, "original_text": raw,
+            "x0": x, "x1": float(word.get("x1", x)),
+            "top": float(word["top"]),
+            "ocr_confidence": word.get("ocr_confidence"),
+            "included_in_raw_column": not border,
+            "repair_method": "drop_printed_amount_border" if border else None})
+        if not border and isinstance(word.get("ocr_confidence"), (int, float)):
+            score = float(word["ocr_confidence"])
+            row.setdefault("_ocr_confidences", []).append(score)
+            row.setdefault("_ocr_field_confidences", {}).setdefault(field, []).append(score)
 
 
 def _append_trump_part6_line(row: dict, line_words: list[dict],
@@ -399,6 +520,45 @@ def _trump_value_geometry_evidence(row: dict) -> dict | None:
             "column_bounds": columns, "words": words}
 
 
+def _trump_part7_geometry_evidence(row: dict) -> dict | None:
+    columns = row.get("_part7_column_bounds")
+    words = row.get("_part7_word_evidence")
+    if not isinstance(columns, dict) or not isinstance(words, list) or not words:
+        return None
+    return {"method": "source_bound_part7_columns/v1",
+            "column_bounds": columns, "words": words}
+
+
+def _trump_part7_repair(row: dict, field: str, raw: str) -> tuple[str, list[dict]]:
+    """Apply only reversible lexical repairs backed by Part 7 coordinates."""
+
+    if _trump_part7_geometry_evidence(row) is None:
+        return raw, []
+    repaired = raw
+    repairs: list[dict] = []
+    compacted = repaired.replace(" ", "")
+    if field in {"type", "date"} and compacted != repaired:
+        valid = (compacted.casefold() in {"purchase", "sale", "exchange"}
+                 if field == "type" else _date(compacted) is not None)
+        if valid:
+            repairs.append({"field": field, "original_text": repaired,
+                            "repaired_text": compacted,
+                            "method": f"join_split_{field}_tokens"})
+            repaired = compacted
+    if field == "amount" and _range(repaired) is None:
+        match = re.fullmatch(
+            r"(\$\d{1,3}(?:[,.]\d{3})*)\s*-\s*(\$\d{1,3}(?:[,.]\d{3})*)",
+            repaired)
+        if match:
+            normalized = f'{match[1].replace(".", ",")} - {match[2].replace(".", ",")}'
+            if normalized != repaired and _range(normalized) is not None:
+                repairs.append({"field": field, "original_text": repaired,
+                                "repaired_text": normalized,
+                                "method": "normalize_thousands_separator"})
+                repaired = normalized
+    return repaired, repairs
+
+
 def _trump_value_geometry_valid(row: dict) -> bool:
     """A Value band must be assembled only from this source's Value cell."""
 
@@ -458,6 +618,9 @@ def _quarantine(row: dict, reasons: list[str]) -> dict:
     geometry = _trump_value_geometry_evidence(row)
     if geometry:
         result["value_geometry_evidence"] = geometry
+    transaction_geometry = _trump_part7_geometry_evidence(row)
+    if transaction_geometry:
+        result["transaction_geometry_evidence"] = transaction_geometry
     if row.get("owner_evidence_conflict"):
         result["owner_evidence_conflict"] = row["owner_evidence_conflict"]
     confidences = row.get("_ocr_confidences", [])
@@ -532,7 +695,8 @@ def _assign_part6_owners(raw_rows: list[dict], pages: list[object]) -> None:
 
 
 def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
-               trump_source_bound: bool = False) -> tuple[str, dict]:
+               trump_source_bound: bool = False,
+               trump_part7_source_bound: bool = False) -> tuple[str, dict]:
     cells = {key: _compact(" ".join(value)) for key, value in row.items()
              if key in {"description", "eif", "value", "type", "date", "amount"}}
     row["raw_columns"] = cells
@@ -551,6 +715,9 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
     geometry = _trump_value_geometry_evidence(row)
     if geometry:
         evidence["value_geometry_evidence"] = geometry
+    transaction_geometry = _trump_part7_geometry_evidence(row)
+    if transaction_geometry:
+        evidence["transaction_geometry_evidence"] = transaction_geometry
     confidences = row.get("_ocr_confidences", [])
     if confidences:
         evidence["ocr_mean_confidence"] = round(sum(confidences) / len(confidences), 2)
@@ -558,9 +725,18 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
     if row.get("owner_evidence"):
         evidence["owner_evidence"] = row["owner_evidence"]
     if row["section"] == "part7":
-        kind = cells.get("type", "").casefold()
-        when = _date(cells.get("date", ""))
-        band = _range(cells.get("amount", ""))
+        type_text, type_repairs = _trump_part7_repair(
+            row, "type", cells.get("type", "")) if trump_part7_source_bound else (
+                cells.get("type", ""), [])
+        date_text, date_repairs = _trump_part7_repair(
+            row, "date", cells.get("date", "")) if trump_part7_source_bound else (
+                cells.get("date", ""), [])
+        amount_text, amount_repairs = _trump_part7_repair(
+            row, "amount", cells.get("amount", "")) if trump_part7_source_bound else (
+                cells.get("amount", ""), [])
+        kind = type_text.casefold()
+        when = _date(date_text)
+        band = _range(amount_text)
         reasons = list(row.get("_row_reasons", []))
         if not evidence["asset_name"] or "see endnote" in evidence["asset_name"].casefold():
             reasons.append("transaction_asset_unresolved")
@@ -576,9 +752,14 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
             reasons.append("transaction_ocr_confidence_below_threshold")
         if reasons:
             return "quarantined", _quarantine(row, reasons)
-        return "transactions", {**evidence, "transaction_type": kind,
-                                "transaction_date": when, "amount_low": band[0],
-                                "amount_high": band[1]}
+        transaction = {**evidence, "transaction_type": kind,
+                       "transaction_date": when, "amount_low": band[0],
+                       "amount_high": band[1]}
+        if trump_part7_source_bound:
+            transaction["parser_recovery"] = {
+                "method": "source_bound_part7_structured_row/v1",
+                "field_repairs": type_repairs + date_repairs + amount_repairs}
+        return "transactions", transaction
     value_text = cells.get("value", "")
     if not evidence["asset_name"]:
         return "quarantined", _quarantine(row, ["asset_unreadable"])
@@ -631,9 +812,13 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
 
 def _extract_page_rows(pages: list[object], meta: dict, *,
                        initial_reasons: list[str], source_url: str | None = None,
-                       source_sha256: str | None = None) -> dict:
+                       source_sha256: str | None = None,
+                       enable_trump_part7_recovery: bool = False) -> dict:
     trump_layout = (parser_version_for_source(source_url, source_sha256) ==
                     TRUMP_2025_PARSER_VERSION)
+    # Keep the deployed v7 semantics unchanged.  Qualification/integration must
+    # explicitly opt in before these candidates can enter a versioned pipeline.
+    trump_part7_recovery = trump_layout and enable_trump_part7_recovery
     raw_rows: list[dict] = []
     unparsed_rows: list[dict] = []
     document_reasons = list(initial_reasons)
@@ -659,6 +844,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
         if transaction_page:
             current_part, current_owner, current_scope = "part7", "Unknown", None
             section_pages["part7"] += 1
+            if trump_part7_recovery:
+                lines = _merge_trump_part7_lines(lines, words)
         # Integrity.gov continuation pages repeat the table header but omit the
         # numbered section heading.  Preserve the active section and its column
         # geometry until an explicit new section, endnotes, or summary changes it.
@@ -691,7 +878,9 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                 continue
             line_words = line.get("words") or _words_at(words, float(line["top"]))
             header = (_header(line_words, current_part,
-                              trump_part6=trump_layout) if line_words else None)
+                              trump_part6=trump_layout,
+                              trump_part7=trump_part7_recovery)
+                      if line_words else None)
             if header:
                 if row:
                     raw_rows.append(row)
@@ -699,10 +888,13 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                 columns = header
                 known_columns[current_part] = header
                 continue
-            if trump_layout and current_part == "part6":
+            if trump_layout and (current_part == "part6" or
+                                 current_part == "part7" and trump_part7_recovery):
                 account = _TRUMP_ACCOUNT.fullmatch(text)
-                other_scope = _TRUMP_OTHER_SCOPES.get(text.upper())
-                weak_account = _TRUMP_WEAK_ACCOUNT.fullmatch(text)
+                other_scope = (_TRUMP_OTHER_SCOPES.get(text.upper())
+                               if current_part == "part6" else None)
+                weak_account = (_TRUMP_WEAK_ACCOUNT.fullmatch(text)
+                                if current_part == "part6" else None)
                 if account or other_scope or weak_account:
                     if row:
                         raw_rows.append(row)
@@ -754,8 +946,19 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                                       columns["eif"] - 8 for word in line_words) and
                                   any(columns["eif"] - 8 <= float(word["x0"]) <
                                       columns["income"] - 8 for word in line_words))
+            trump_transaction_row = (trump_part7_recovery and current_part == "part7" and
+                                     any(columns["description"] - 6 <= float(word["x0"]) <
+                                         columns["type"] - 8 for word in line_words) and
+                                     sum(any(columns[field] - 8 <= float(word["x0"]) <
+                                             (columns[next_field] - 8 if next_field else
+                                              float("inf"))
+                                             for word in line_words)
+                                         for field, next_field in (
+                                             ("type", "date"), ("date", "amount"),
+                                             ("amount", None))) >= 2)
             if ((first_in_number_column and len(line_words) > 1 and
-                 (number or looks_numbered)) or trump_geometry_row):
+                 (number or looks_numbered)) or trump_geometry_row or
+                    trump_transaction_row):
                 if row:
                     raw_rows.append(row)
                 top = int(round(float(line["top"]) * 10))
@@ -776,7 +979,20 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                         row["account_scope_evidence"] = current_scope["evidence"]
                     if not current_scope or not current_scope["verified"]:
                         row.setdefault("_row_reasons", []).append("account_heading_unverified")
-                if ((not trump_layout or current_part != "part6" or first_in_number_column) and
+                elif trump_part7_recovery and current_part == "part7":
+                    row["source_row_locator"] = f"p{page_number}-y{top}"
+                    row["_part7_column_bounds"] = {
+                        "description_start": columns["description"],
+                        "type_start": columns["type"],
+                        "date_start": columns["date"],
+                        "amount_start": columns["amount"]}
+                    if current_scope:
+                        row["account_scope"] = current_scope["id"]
+                        row["account_scope_evidence"] = current_scope["evidence"]
+                    if not current_scope or not current_scope["verified"]:
+                        row.setdefault("_row_reasons", []).append("account_heading_unverified")
+                if (not (trump_part7_recovery and current_part == "part7") and
+                        (not trump_layout or current_part != "part6" or first_in_number_column) and
                         isinstance(line_words[0].get("ocr_confidence"), (int, float))):
                     score = float(line_words[0]["ocr_confidence"])
                     row["_ocr_confidences"] = [score]
@@ -785,6 +1001,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
             if row:
                 if trump_layout and current_part == "part6":
                     _append_trump_part6_line(row, line_words, columns)
+                elif trump_part7_recovery and current_part == "part7":
+                    _append_trump_part7_line(row, line_words, columns)
                 else:
                     _append_line(row, line_words, columns)
         if row:
@@ -799,26 +1017,34 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     counts: dict[tuple[str, str], int] = {}
     for row in raw_rows:
         key = (row["section"], row["source_row_locator"] if trump_layout and
-               row["section"] == "part6" else row["row_number"])
+               (row["section"] == "part6" or
+                row["section"] == "part7" and trump_part7_recovery)
+               else row["row_number"])
         counts[key] = counts.get(key, 0) + 1
     if not trump_layout:
         _assign_part6_owners(raw_rows, pages)
     for row in raw_rows:
-        scope = row.get("account_scope") if trump_layout and row["section"] == "part6" else None
+        scope = row.get("account_scope") if trump_layout and (
+            row["section"] == "part6" or
+            row["section"] == "part7" and trump_part7_recovery) else None
         key = (row["section"], row["source_row_locator"] if trump_layout and
-               row["section"] == "part6" else row["row_number"])
+               (row["section"] == "part6" or
+                row["section"] == "part7" and trump_part7_recovery)
+               else row["row_number"])
         if counts[key] > 1:
             row["raw_columns"] = _raw_text_columns(row)
             quarantined.append(_quarantine(row, ["duplicate_section_row_number"]))
             continue
         parent = row["row_number"]
         child_parent = parent if any(other["section"] == row["section"] and
-                                     (not trump_layout or row["section"] != "part6" or
+                                     (not trump_layout or row["section"] != "part6" and
+                                      not (row["section"] == "part7" and trump_part7_recovery) or
                                       other.get("account_scope") == scope) and
                                      other["row_number"].startswith(parent + ".")
                                      for other in raw_rows) else None
         destination, parsed = _parse_row(row, meta, child_parent,
-                                         trump_source_bound=trump_layout)
+                                         trump_source_bound=trump_layout,
+                                         trump_part7_source_bound=trump_part7_recovery)
         {"holdings": holdings, "transactions": transactions,
          "quarantined": quarantined, "excluded": excluded}[destination].append(parsed)
     for part in ("part2", "part5", "part6"):
