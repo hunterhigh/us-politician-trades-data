@@ -17,6 +17,7 @@ jobs:
     env:
       DOCUMENT_ID: wh-url:0c14d3849ca60768024e470b
       SOURCE_SHA256: 1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3
+      TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v7
       LEGACY_TREE: c57ecdcd0e780fa7dc256fae6d0fe728735c8f09
       LEGACY_AUDIT_SHA256: 291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b
     steps:
@@ -71,15 +72,15 @@ jobs:
         run: |
           base="whitehouse/ocr-checkpoints/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256"
           legacy_path="$base/whitehouse-278e-hybrid-geometry-v5"
-          v6_path="$base/whitehouse-278e-hybrid-geometry-v6"
-          test ! -e "$REVIEW_ROOT/$v6_path"
+          target_checkpoint_path="$base/$TARGET_PARSER_SLUG"
+          test ! -e "$REVIEW_ROOT/$target_checkpoint_path"
           test -z "$(git -C "$REVIEW_ROOT" status --porcelain --untracked-files=all -- "$legacy_path")"
           test "$(git -C "$REVIEW_ROOT" rev-parse "HEAD:$legacy_path")" = "$LEGACY_TREE"
           python backend/scripts/audit_trump_ocr_checkpoints.py \
             --root "$REVIEW_ROOT/$legacy_path" \
             --output "$RUNNER_TEMP/checkpoint-after.json"
           cmp "$RUNNER_TEMP/checkpoint-before.json" "$RUNNER_TEMP/checkpoint-after.json"
-          extraction="$REVIEW_ROOT/whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/whitehouse-278e-hybrid-geometry-v6.json"
+          extraction="$REVIEW_ROOT/whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json"
           python backend/scripts/audit_trump_annual_replay.py \
             --input "$extraction" \
             --output "$REVIEW_ROOT/whitehouse/annual/trump-2025-replay-audit.json" \
@@ -104,7 +105,7 @@ jobs:
             exit 1
           }
           git -C "$REVIEW_ROOT" add \
-            "whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/whitehouse-278e-hybrid-geometry-v6.json" \
+            "whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json" \
             whitehouse/coverage-current.json \
             whitehouse/filer-reported-current.json \
             whitehouse/annual/filer-reported-current.json \

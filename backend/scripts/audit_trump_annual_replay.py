@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+import re
 
 from unison_snapshot.codec import encode
 from unison_snapshot.oge_278e_public import (
@@ -21,17 +22,19 @@ SCHEMA = "whitehouse-trump-annual-replay-audit/v1"
 LEGACY_TREE = "c57ecdcd0e780fa7dc256fae6d0fe728735c8f09"
 LEGACY_AUDIT_SHA256 = "291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b"
 EXPECTED_COUNTS = {
-    "holdings": 10,
+    "holdings": 3999,
     "transactions": 0,
     "excluded": 21,
-    "quarantined": 27626,
+    "quarantined": 23637,
 }
 EXPECTED_PART6_COUNTS = {
-    "holdings": 9,
+    "holdings": 3998,
     "transactions": 0,
     "excluded": 4,
-    "quarantined": 6309,
+    "quarantined": 2320,
 }
+EXPECTED_PART6_NUMERIC_HOLDING_COUNT = 2075
+EXPECTED_PART6_SYNTHETIC_HOLDING_COUNT = 1923
 
 
 def _rows(extraction: dict, name: str) -> list[dict]:
@@ -92,6 +95,17 @@ def audit_replay(extraction: dict, *, extraction_sha256: str,
     qualified_holding_duplicate_count = len(holding_keys) - len(set(holding_keys))
     if qualified_holding_duplicate_count:
         raise ValueError("Trump qualified Part 6 holdings contain duplicate evidence")
+    numeric_holding_count = sum(
+        1 for row in part6["holdings"]
+        if re.fullmatch(r"\d+(?:\.\d+)?", str(row.get("row_number", ""))))
+    synthetic_holding_count = sum(
+        1 for row in part6["holdings"]
+        if str(row.get("row_number", "")).startswith("ocr-p"))
+    if (numeric_holding_count != EXPECTED_PART6_NUMERIC_HOLDING_COUNT or
+            synthetic_holding_count != EXPECTED_PART6_SYNTHETIC_HOLDING_COUNT or
+            numeric_holding_count + synthetic_holding_count !=
+            len(part6["holdings"])):
+        raise ValueError("Trump Part 6 printed/synthetic holding census changed")
 
     printed_keys = Counter((row.get("account_scope"), row.get("row_number"))
                            for row in part6_rows)
@@ -128,6 +142,8 @@ def audit_replay(extraction: dict, *, extraction_sha256: str,
             cross_account_repeated_row_number_count,
         "qualified_part6_holding_duplicate_count":
             qualified_holding_duplicate_count,
+        "part6_numeric_printed_holding_count": numeric_holding_count,
+        "part6_synthetic_row_number_holding_count": synthetic_holding_count,
         "exact_json_duplicate_count": exact_json_duplicate_count,
         "quarantine_reason_counts": dict(sorted(reasons.items())),
         "source_row_census_status": extraction["source_row_census_status"],
