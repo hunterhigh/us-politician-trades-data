@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge_278e_audit import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
 from unison_snapshot.whitehouse_scanned_annual import (
-    TRUMP_2025_PARSER_VERSION, TRUMP_2025_SOURCE_SHA256,
+    TRUMP_2025_PARSER_VERSION, TRUMP_2025_PREVIOUS_PARSER_VERSION,
+    TRUMP_2025_SOURCE_SHA256,
     apply_scanned_annual_corrections)
 
 
@@ -36,6 +37,67 @@ def _annual() -> dict:
                 "holding_valuation_status": "exact_period_end"}],
             "transactions": [], "excluded": [], "quarantined": [],
             "document_reasons": [], "requires_cross_report_dedup": False}
+
+
+def _v7_holding(*, row_number: str = "222", locator: str = "p27-y1753",
+                asset_name: str = "IRON MTN INC NEW COM") -> dict:
+    return {
+        "section": "part6", "page_number": 27, "row_number": row_number,
+        "asset_name": asset_name, "owner": "Unknown",
+        "raw_columns": {"description": asset_name, "eif": "NIA",
+                        "value": "$1,001 - $15,000"},
+        "value_low": 1001, "value_high": 15000,
+        "report_period_end": "2025-12-31",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "source_row_locator": locator,
+        "account_scope": "investment-account-3",
+        "account_scope_evidence": {"page_number": 27,
+                                   "text": "INVESTMENT ACCOUNT #3"},
+        "ocr_field_confidence": {
+            "row_number": {"mean": 0.0, "min": 0.0, "word_count": 1},
+            "description": {"mean": 92.75, "min": 80.58, "word_count": 5},
+            "value": {"mean": 45.0, "min": 10.0, "word_count": 3},
+        },
+        "ocr_word_repairs": [],
+        "value_geometry_evidence": {
+            "method": "source_bound_part6_value_column/v1",
+            "column_bounds": {"eif_start": 452.52, "value_start": 476.64,
+                              "income_start": 562.68},
+            "words": [
+                {"original_text": "$1,001", "value_text": "$1,001",
+                 "x0": 480.0, "x1": 495.0, "top": 175.3,
+                 "ocr_confidence": 10.0, "repair_method": None},
+                {"original_text": "-", "value_text": "-",
+                 "x0": 500.0, "x1": 502.0, "top": 175.3,
+                 "ocr_confidence": 30.0, "repair_method": None},
+                {"original_text": "$15,000", "value_text": "$15,000",
+                 "x0": 506.0, "x1": 525.0, "top": 175.3,
+                 "ocr_confidence": 95.0, "repair_method": None},
+            ],
+        },
+        "parser_recovery": {
+            "method": "source_bound_part6_structured_row/v1",
+            "original_quarantine_reasons": ["holding_ocr_confidence_below_threshold"],
+        },
+    }
+
+
+def _trump_v7(*rows: dict) -> dict:
+    extraction = _annual()
+    extraction.update(
+        parser_version=TRUMP_2025_PARSER_VERSION,
+        source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+                    "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
+        source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+        position_line_raw="President", cover_report_year=2025,
+        extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
+        filing_date=None, signature_text=None,
+        explicit_empty_sections=["part2", "part5", "part7"],
+        document_reasons=["filer_handwritten_signature_or_date_unverified"],
+        holdings=list(rows), printed_row_count=len(rows),
+    )
+    return apply_scanned_annual_corrections(extraction)
 
 
 class Public278eAuditTests(unittest.TestCase):
@@ -133,16 +195,16 @@ class Public278eAuditTests(unittest.TestCase):
         self.assertFalse(audit["source_report_eligible"])
 
     def test_trump_v6_parser_version_is_bound_to_the_fixed_pdf(self):
-        supported = {PARSER_VERSION, TRUMP_2025_PARSER_VERSION}
+        supported = {PARSER_VERSION, TRUMP_2025_PREVIOUS_PARSER_VERSION}
         wrong_source = _annual()
-        wrong_source["parser_version"] = TRUMP_2025_PARSER_VERSION
+        wrong_source["parser_version"] = TRUMP_2025_PREVIOUS_PARSER_VERSION
         with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
             self.assertIn("untrusted_extraction_version",
                           audit_public_278e(wrong_source)["report_blocking_reasons"])
 
         fixed = _annual()
         fixed.update(
-            parser_version=TRUMP_2025_PARSER_VERSION,
+            parser_version=TRUMP_2025_PREVIOUS_PARSER_VERSION,
             source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                         "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
             source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
@@ -179,7 +241,7 @@ class Public278eAuditTests(unittest.TestCase):
     def test_trump_part6_physical_identity_replaces_weak_printed_number_confidence(self):
         extraction = _annual()
         extraction.update(
-            parser_version=TRUMP_2025_PARSER_VERSION,
+            parser_version=TRUMP_2025_PREVIOUS_PARSER_VERSION,
             source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                         "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
             source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
@@ -221,6 +283,52 @@ class Public278eAuditTests(unittest.TestCase):
         decision = audit_public_278e(weak_value)["holding_row_audit"][0]
         self.assertFalse(decision["source_candidate_eligible"])
         self.assertIn("holding_critical_field_confidence_invalid", decision["reasons"])
+
+    def test_trump_v7_numeric_investment_row_uses_geometry_not_value_score(self):
+        decision = audit_public_278e(_trump_v7(_v7_holding()))["holding_row_audit"][0]
+        self.assertTrue(decision["source_candidate_eligible"])
+
+    def test_trump_v7_synthetic_identity_and_tampered_geometry_fail_closed(self):
+        synthetic = _v7_holding(row_number="ocr-p27-y1753")
+        decision = audit_public_278e(_trump_v7(synthetic))["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_v7_outside_numeric_investment_account_pool",
+                      decision["reasons"])
+
+        geometry = _v7_holding()
+        geometry["value_geometry_evidence"]["words"][2]["x1"] = 570.0
+        decision = audit_public_278e(_trump_v7(geometry))["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_value_geometry_evidence_invalid", decision["reasons"])
+
+    def test_trump_v7_duplicate_and_incomplete_names_remain_ineligible(self):
+        first = _v7_holding(asset_name="AIRBNB INC CLASS A")
+        second = _v7_holding(row_number="223", locator="p27-y1874",
+                             asset_name="AIRBNB INC CLASS A")
+        decisions = audit_public_278e(_trump_v7(first, second))["holding_row_audit"]
+        self.assertTrue(all(not row["source_candidate_eligible"] for row in decisions))
+        self.assertTrue(all("possible_same_asset_multiple_disclosed_rows" in row["reasons"]
+                            for row in decisions))
+
+        incomplete = _v7_holding(asset_name="CORP")
+        decision = audit_public_278e(_trump_v7(incomplete))["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_asset_description_incomplete_or_noisy", decision["reasons"])
+
+    def test_trump_v7_description_relation_and_recovery_trace_are_required(self):
+        fragment = _v7_holding(asset_name="SYSTEMS INC")
+        complete = _v7_holding(row_number="223", locator="p27-y1874",
+                               asset_name="CISCO SYSTEMS INC")
+        decisions = audit_public_278e(_trump_v7(fragment, complete))["holding_row_audit"]
+        self.assertIn("holding_asset_description_relation_unresolved",
+                      decisions[0]["reasons"])
+
+        tampered = _v7_holding()
+        tampered["parser_recovery"]["original_quarantine_reasons"] = [
+            "row_number_ocr_unreadable"]
+        decision = audit_public_278e(_trump_v7(tampered))["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_parser_recovery_trace_invalid", decision["reasons"])
 
 
 if __name__ == "__main__":

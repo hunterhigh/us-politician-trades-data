@@ -11,8 +11,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from test_oge_278e_audit import _annual
-from unison_snapshot.oge_278e_public import PARSER_VERSION, TRUMP_2025_PARSER_VERSION
+from test_oge_278e_audit import _annual, _trump_v7, _v7_holding
+from unison_snapshot.oge_278e_public import TRUMP_2025_PREVIOUS_PARSER_VERSION
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
 
@@ -141,7 +141,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
             "Asset: U.S. bank account Location: Jupiter, FL (value represents bank account only)")
         extraction = _annual()
         extraction.update(
-            parser_version=TRUMP_2025_PARSER_VERSION,
+            parser_version=TRUMP_2025_PREVIOUS_PARSER_VERSION,
             source_url=TRUMP_URL, source_sha256=TRUMP_SHA,
             filer_name="Donald Trump", position_line_raw="President",
             cover_report_year=2025, extraction_method="tesseract_ocr_geometry",
@@ -191,6 +191,24 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         self.assertTrue(by_number["332"]["source_holdings_eligible"])
         self.assertEqual(by_number["332"]["source_bound_holding_evidence"][
             "source_row_locator"], "p864-y2772")
+
+    def test_v7_materialization_keeps_every_source_bound_row_field(self) -> None:
+        extraction = _trump_v7(_v7_holding())
+        coverage, _ = self.fixture(extraction)
+        result = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        row = result["holdings"][0]
+        self.assertTrue(row["source_holdings_eligible"])
+        self.assertEqual(row["source_row_locator"], "p27-y1753")
+        self.assertEqual(row["raw_columns"], extraction["holdings"][0]["raw_columns"])
+        self.assertEqual(row["account_scope"], "investment-account-3")
+        self.assertEqual(row["account_scope_evidence"]["text"],
+                         "INVESTMENT ACCOUNT #3")
+        self.assertEqual(row["ocr_field_confidence"],
+                         extraction["holdings"][0]["ocr_field_confidence"])
+        self.assertEqual(row["source_bound_value_geometry_evidence"],
+                         extraction["holdings"][0]["value_geometry_evidence"])
+        self.assertEqual(row["source_bound_parser_recovery"],
+                         extraction["holdings"][0]["parser_recovery"])
 
 
 if __name__ == "__main__":
