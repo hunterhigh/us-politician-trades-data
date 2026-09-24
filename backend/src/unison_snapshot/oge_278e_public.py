@@ -26,6 +26,8 @@ TRUMP_2025_PREVIOUS_PARSER_VERSIONS = (
     "whitehouse-278e-hybrid-geometry/v6",
     "whitehouse-278e-hybrid-geometry/v7",
 )
+# The qualification layer names its immediately preceding reviewed parser.
+TRUMP_2025_PREVIOUS_PARSER_VERSION = TRUMP_2025_PREVIOUS_PARSER_VERSIONS[-1]
 TRUMP_2025_SOURCE_SHA256 = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
 TRUMP_2025_SOURCE_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                          "President-Donald-J.-Trump-2025-Annual-Report.pdf")
