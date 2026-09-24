@@ -5,11 +5,15 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge_278e_audit import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
+from unison_snapshot.whitehouse_scanned_annual import (
+    TRUMP_2025_PARSER_VERSION, TRUMP_2025_SOURCE_SHA256,
+    apply_scanned_annual_corrections)
 
 
 def _annual() -> dict:
@@ -26,7 +30,8 @@ def _annual() -> dict:
             "printed_row_count": 1, "holdings": [{
                 "section": "part2", "page_number": 3, "row_number": "1",
                 "asset_name": "SPY ETF", "owner": "Self", "value_low": 1001,
-                "value_high": 15000, "raw_columns": {"description": "SPY ETF"},
+                "value_high": 15000, "raw_columns": {
+                    "description": "SPY ETF", "value": "$1,001 - $15,000"},
                 "report_period_end": "2025-12-31", "holding_valuation_date": "2025-12-31",
                 "holding_valuation_status": "exact_period_end"}],
             "transactions": [], "excluded": [], "quarantined": [],
@@ -126,6 +131,96 @@ class Public278eAuditTests(unittest.TestCase):
         audit = audit_public_278e(term)
         self.assertIn("termination_signed_before_effective_date", audit["report_blocking_reasons"])
         self.assertFalse(audit["source_report_eligible"])
+
+    def test_trump_v6_parser_version_is_bound_to_the_fixed_pdf(self):
+        supported = {PARSER_VERSION, TRUMP_2025_PARSER_VERSION}
+        wrong_source = _annual()
+        wrong_source["parser_version"] = TRUMP_2025_PARSER_VERSION
+        with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
+            self.assertIn("untrusted_extraction_version",
+                          audit_public_278e(wrong_source)["report_blocking_reasons"])
+
+        fixed = _annual()
+        fixed.update(
+            parser_version=TRUMP_2025_PARSER_VERSION,
+            source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+                        "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
+            source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+            position_line_raw="President", cover_report_year=2025,
+            extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
+            filing_date=None, signature_text=None,
+            document_reasons=["filer_handwritten_signature_or_date_unverified"],
+        )
+        description = (
+            "Trump Marks Philippines LLC Location: Century City Makati, Philippines Licensee: "
+            "Century Luxury Properties, Inc. Additional Underlying Assets: Registered "
+            "Trademark(s) (values not readily ascertainable).* (See Exhibit A). Underlying "
+            "Asset: U.S. bank account Location: Jupiter, FL (value represents bank account only)")
+        fixed["holdings"][0].update(page_number=864, row_number="332",
+                                     asset_name=description,
+                                     raw_columns={"description": description, "eif": "No",
+                                                  "value": "$1,001 to $15,000"},
+                                     ocr_mean_confidence=96.0,
+                                     ocr_min_confidence=90.0)
+        fixed = apply_scanned_annual_corrections(fixed)
+        with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
+            audit = audit_public_278e(fixed)
+            self.assertNotIn("untrusted_extraction_version", audit["report_blocking_reasons"])
+            self.assertTrue(audit["holding_row_audit"][0]["source_candidate_eligible"])
+            self.assertEqual(fixed["holdings"][0]["source_row_locator"], "p864-y2772")
+
+            weak_cell = deepcopy(fixed)
+            weak_cell["holdings"][0]["critical_field_confidence"]["description"][
+                "minimum"] = 40.0
+            decision = audit_public_278e(weak_cell)["holding_row_audit"][0]
+            self.assertFalse(decision["source_candidate_eligible"])
+            self.assertIn("holding_critical_field_confidence_invalid", decision["reasons"])
+
+    def test_trump_part6_physical_identity_replaces_weak_printed_number_confidence(self):
+        extraction = _annual()
+        extraction.update(
+            parser_version=TRUMP_2025_PARSER_VERSION,
+            source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+                        "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
+            source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+            position_line_raw="President", cover_report_year=2025,
+            extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
+            filing_date=None, signature_text=None,
+            explicit_empty_sections=["part2", "part5", "part7"],
+            document_reasons=["filer_handwritten_signature_or_date_unverified"],
+        )
+        row = extraction["holdings"][0]
+        row.update(
+            section="part6", page_number=27, row_number="222", owner="Unknown",
+            asset_name="IRON MTN INC NEW COM",
+            raw_columns={"description": "IRON MTN INC NEW COM", "eif": "NIA",
+                         "value": "$1,001 - $15,000"},
+            source_row_locator="p27-y1753", account_scope="investment-account-3",
+            account_scope_evidence={"page_number": 27,
+                                    "text": "INVESTMENT ACCOUNT #3"},
+            ocr_field_confidence={
+                "row_number": {"mean": 75.2, "min": 75.2, "word_count": 1},
+                "description": {"mean": 92.75, "min": 80.58, "word_count": 5},
+                "value": {"mean": 84.24, "min": 69.49, "word_count": 3},
+            },
+            ocr_mean_confidence=80.0, ocr_min_confidence=20.0,
+        )
+        corrected = apply_scanned_annual_corrections(extraction)
+        decision = audit_public_278e(corrected)["holding_row_audit"][0]
+        self.assertTrue(decision["source_candidate_eligible"])
+
+        wrong_account = deepcopy(corrected)
+        wrong_account["holdings"][0]["account_scope_evidence"]["text"] = (
+            "INVESTMENT ACCOUNT #4")
+        decision = audit_public_278e(wrong_account)["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_row_evidence_invalid", decision["reasons"])
+
+        weak_value = deepcopy(corrected)
+        weak_value["holdings"][0]["ocr_field_confidence"]["value"]["min"] = 40.0
+        decision = audit_public_278e(weak_value)["holding_row_audit"][0]
+        self.assertFalse(decision["source_candidate_eligible"])
+        self.assertIn("holding_critical_field_confidence_invalid", decision["reasons"])
 
 
 if __name__ == "__main__":
