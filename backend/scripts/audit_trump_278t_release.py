@@ -22,6 +22,7 @@ from unison_snapshot.whitehouse_278t_audit import (
     TRUMP_TARGET_SOURCE_SHA256 as TARGET_SOURCE_SHA256,
     TRUMP_TARGET_SOURCE_URL as TARGET_SOURCE_URL,
 )
+from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
 
 
 SCHEMA = "whitehouse-trump-278t-release-audit/v1"
@@ -220,8 +221,29 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
 
     if any(after_people.get(key) != row for key, row in before_people.items()):
         raise ValueError("Trump 278-T release changed or removed an existing person")
-    if any(after_transactions.get(key) != row for key, row in before_transactions.items()):
+    ticker_upgrades = sorted(
+        key for key, row in before_transactions.items()
+        if after_transactions.get(key) != row and after_transactions.get(key) is not None and
+        is_allowed_ticker_upgrade(row, after_transactions[key]))
+    changed_transactions = sorted(
+        key for key, row in before_transactions.items()
+        if after_transactions.get(key) != row and key not in ticker_upgrades)
+    if changed_transactions:
         raise ValueError("Trump 278-T release changed or removed an existing transaction")
+    oge_ticker_upgrades = sorted(
+        key for key, row in before_oge_transactions.items()
+        if after_oge_transactions.get(key) != row and
+        after_oge_transactions.get(key) is not None and
+        is_allowed_ticker_upgrade(row, after_oge_transactions[key]))
+    changed_oge_transactions = sorted(
+        key for key, row in before_oge_transactions.items()
+        if after_oge_transactions.get(key) != row and key not in oge_ticker_upgrades)
+    if changed_oge_transactions:
+        raise ValueError("Trump 278-T release changed or removed an existing OGE transaction")
+    if ticker_upgrades != oge_ticker_upgrades or any(
+            after_transactions[key] != after_oge_transactions[key]
+            for key in ticker_upgrades):
+        raise ValueError("Annual ticker upgrades differ between unified and OGE candidates")
     if before_holdings != after_holdings or before_oge_holdings != after_oge_holdings:
         raise ValueError("Trump 278-T release changed reported holdings")
     if before["security_market_data"] != after["security_market_data"] or \
@@ -280,6 +302,8 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         "removed_person_count": 0,
         "removed_transaction_count": 0,
         "existing_transaction_mutation_count": 0,
+        "annual_ticker_upgrade_count": len(ticker_upgrades),
+        "annual_ticker_upgrade_ids": ticker_upgrades,
         "duplicate_person_id_count": 0,
         "duplicate_transaction_id_count": 0,
         "duplicate_holding_id_count": 0,

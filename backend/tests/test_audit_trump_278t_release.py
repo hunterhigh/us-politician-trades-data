@@ -92,6 +92,20 @@ def frontend(after):
 
 
 class Trump278TReleaseAuditTests(unittest.TestCase):
+    def test_existing_annual_transaction_may_gain_only_a_unique_ticker(self):
+        annual = {
+            "id": "wh-annual-tx:" + "c" * 24,
+            "ticker": None, "ticker_mapping_basis": None,
+            "asset_name": "KRAFT HEINZ CO",
+        }
+        before, after = candidate(), candidate(added=True)
+        before["transactions"] = [deepcopy(annual)]
+        upgraded = dict(annual, ticker="KHC",
+                        ticker_mapping_basis="alpaca_unique_asset_name")
+        after["transactions"] = [upgraded, *after["transactions"]]
+        result = script.audit_release(before, after, before, after, conservation())
+        self.assertEqual(result["annual_ticker_upgrade_count"], 1)
+
     def test_append_only_delta_and_four_frontend_modes_pass(self):
         before, after = candidate(), candidate(added=True)
         result = script.audit_release(

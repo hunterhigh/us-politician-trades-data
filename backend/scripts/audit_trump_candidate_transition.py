@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode
+from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
 
 
 SCHEMA = "whitehouse-trump-candidate-transition-audit/v1"
@@ -52,13 +53,16 @@ def _official_whitehouse_pdf(value: object) -> bool:
 
 
 def _require_unchanged_subset(before: dict[str, dict], after: dict[str, dict],
-                              label: str) -> None:
+                              label: str, *, allow_ticker_upgrade: bool = False) -> list[str]:
     removed = sorted(before.keys() - after.keys())
     changed = sorted(key for key in before.keys() & after.keys()
                      if before[key] != after[key])
-    if removed or changed:
+    rejected = [key for key in changed if not allow_ticker_upgrade or not
+                is_allowed_ticker_upgrade(before[key], after[key])]
+    if removed or rejected:
         raise ValueError(
-            f"Trump rebuild removed or changed existing {label}: {removed or changed}")
+            f"Trump rebuild removed or changed existing {label}: {removed or rejected}")
+    return changed
 
 
 def audit_transition(before: dict, after: dict,
@@ -85,9 +89,16 @@ def audit_transition(before: dict, after: dict,
 
     if not before_people.keys() <= after_people.keys():
         raise ValueError("Candidate rebuild removed an existing person")
-    _require_unchanged_subset(before_transactions, after_transactions, "transactions")
-    _require_unchanged_subset(before_oge_transactions, after_oge_transactions,
-                              "OGE transactions")
+    ticker_upgrades = _require_unchanged_subset(
+        before_transactions, after_transactions, "transactions",
+        allow_ticker_upgrade=True)
+    oge_ticker_upgrades = _require_unchanged_subset(
+        before_oge_transactions, after_oge_transactions, "OGE transactions",
+        allow_ticker_upgrade=True)
+    if ticker_upgrades != oge_ticker_upgrades or any(
+            after_transactions[key] != after_oge_transactions[key]
+            for key in ticker_upgrades):
+        raise ValueError("Annual ticker upgrades differ between unified and OGE candidates")
     removed = sorted(before_holdings.keys() - after_holdings.keys())
     removed_oge = sorted(before_oge_holdings.keys() - after_oge_holdings.keys())
     if removed or removed_oge:
@@ -143,6 +154,8 @@ def audit_transition(before: dict, after: dict,
         "published_trump_holding_retained": True,
         "oge_holding_delta_matches_unified": True,
         "oge_transaction_delta_matches_unified": True,
+        "annual_ticker_upgrade_count": len(ticker_upgrades),
+        "annual_ticker_upgrade_ids": ticker_upgrades,
     }
 
 

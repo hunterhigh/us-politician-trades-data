@@ -40,6 +40,10 @@ jobs:
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
           PYTHONPATH: backend/src
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
+          MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
         run: |
           cp "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             "$RUNNER_TEMP/oge-candidate-before.json"
@@ -54,6 +58,13 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
+          test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
+          assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
+          python backend/scripts/enrich_whitehouse_annual_tickers.py \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --checked-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --assets-url "$assets_url" --distribution-authorized
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -117,6 +128,7 @@ jobs:
           git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications \
             whitehouse/annual/candidate-current.json \
             whitehouse/annual/candidate-transition-current.json \
+            whitehouse/annual/ticker-mapping-current.json \
             status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
