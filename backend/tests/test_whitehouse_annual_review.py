@@ -76,6 +76,25 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         self.assertEqual(row["source_row_locator"], "p159-y2531")
         self.assertEqual(row["asset_owner"], "Unknown")
 
+    def test_legacy_transaction_without_locator_stays_out_of_new_review_scope(self) -> None:
+        extraction = _annual()
+        extraction["holdings"] = []
+        extraction["transactions"] = [{
+            "section": "part7", "page_number": 4, "row_number": "1",
+            "asset_name": "Legacy Fund", "owner": "Unknown",
+            "raw_columns": {"description": "Legacy Fund", "type": "purchase",
+                            "date": "1/2/2025", "amount": "$1,001 - $15,000"},
+            "transaction_type": "purchase", "transaction_date": "2025-01-02",
+            "amount_low": 1001, "amount_high": 15000,
+        }]
+        extraction["printed_row_count"] = 1
+        extraction["explicit_empty_sections"] = ["part2", "part5", "part6"]
+        extraction["requires_cross_report_dedup"] = True
+        coverage, _ = self.fixture(extraction)
+        result = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        self.assertEqual(result["transaction_count"], 0)
+        self.assertEqual(result["source_eligible_transaction_count"], 0)
+
     def test_quarantined_asset_blocks_entire_report_without_losing_parsed_row(self) -> None:
         extraction = _annual()
         extraction["printed_row_count"] = 2
