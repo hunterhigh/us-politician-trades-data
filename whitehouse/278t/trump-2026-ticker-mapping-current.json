@@ -26,16 +26,16 @@
       "record_id": "oge-278t:d2dd18f8b3efb0f4adb58795"
     }
   ],
-  "asset_master_sha256": "2bee2e19815edbf78fcf8478654636a220b6fe9d6d36b94e314acaf2fef31f67",
-  "candidate_before_sha256": "c2c136524fa9f454bcfe1fd219c2b073c56fd014e389a975b8c6a2d73c1fdb42",
-  "checked_at": "2026-09-24T09:41:39Z",
+  "asset_master_sha256": "8bb9f71f34c816ec81510e836c47b0c8e01d864f6f170a7350d5bf0f59215169",
+  "candidate_before_sha256": "5b6baa038b297a683de11f936ef4fe6eec4a12b50d051e1bb2df469ff550a532",
+  "checked_at": "2026-09-24T10:47:49Z",
   "correction_count": 2,
   "correction_ids": [
     "oge-278t:a7c80f885cd05cec50f6d714",
     "oge-278t:d759ad330b8f427cec8d85ba"
   ],
   "explicit_ticker_count": 0,
-  "mapping_count": 516,
+  "mapping_count": 579,
   "mappings": [
     {
       "asset_name": "TRIMBLE INC",
@@ -157,6 +157,24 @@
       "ticker": "RCL"
     },
     {
+      "asset_name": "GODADDY INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "GoDaddy Inc",
+      "record_id": "oge-278t:09b09c87715fbc7c7cdaac8d",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:70332eaeec766a1d",
+      "ticker": "GDDY"
+    },
+    {
+      "asset_name": "CHARTER COMMUNICATIONS | CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Charter Communications, Inc. Class A Common Stock New",
+      "record_id": "oge-278t:09c153263d468c38cf0188aa",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:dd698b7c93d50462",
+      "ticker": "CHTR"
+    },
+    {
       "asset_name": "STRYKER CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Stryker Corporation",
@@ -225,6 +243,15 @@
       "provider_asset_name": "Lowe's Companies Inc.",
       "record_id": "oge-278t:0f1f55a48067fed007a1164a",
       "ticker": "LOW"
+    },
+    {
+      "asset_name": "GLOBAL PMTS INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Global Payments, Inc.",
+      "record_id": "oge-278t:0fdd2b4380cab32335e779dd",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:19c6878fcfded8aa",
+      "ticker": "GPN"
     },
     {
       "asset_name": "SHERWIN WILLIAMS CO",
@@ -416,6 +443,24 @@
       "ticker": "META"
     },
     {
+      "asset_name": "COPART INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Copart, Inc. (DE) Common Stock",
+      "record_id": "oge-278t:20e0aab61ca418799a7e3a36",
+      "semantic_evidence_url": "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf",
+      "semantic_rule_id": "semantic:a83b91c183814b92",
+      "ticker": "CPRT"
+    },
+    {
+      "asset_name": "CHESAPEAKE UTILS CORP",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Chesapeake Utilities",
+      "record_id": "oge-278t:217304bde820e8e2496ad218",
+      "semantic_evidence_url": "https://www.chpk.com/investors/",
+      "semantic_rule_id": "semantic:8bff69debf9c8ab6",
+      "ticker": "CPK"
+    },
+    {
       "asset_name": "NEWMONT CORPORATION",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Newmont Corporation",
@@ -463,6 +508,15 @@
       "provider_asset_name": "Fidelity National Information Services, Inc.",
       "record_id": "oge-278t:23595574150cdd3805c7bc36",
       "ticker": "FIS"
+    },
+    {
+      "asset_name": "ITRON INC EQUITY CLASS EQUITY",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Itron, Inc. Common Stock",
+      "record_id": "oge-278t:244970bb5dacfebc65b92fc3",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:6af299337e0238b3",
+      "ticker": "ITRI"
     },
     {
       "asset_name": "PATHWARD FINL INC",
@@ -689,11 +743,29 @@
       "ticker": "TSN"
     },
     {
+      "asset_name": "GALLAGHER ARTHUR J & CO",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Arthur J. Gallagher & Co.",
+      "record_id": "oge-278t:31332d427fe70b8dbeff8d4e",
+      "semantic_evidence_url": "https://investor.ajg.com/news/news-details/2026/Arthur-J--Gallagher--Co--Announces-Second-Quarter-2026-Financial-Results/default.aspx",
+      "semantic_rule_id": "semantic:1d35caa0153370ac",
+      "ticker": "AJG"
+    },
+    {
       "asset_name": "WORKDAY INC CLASS A",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Workday, Inc. Class A Common Stock",
       "record_id": "oge-278t:3231732189a233dcf3213994",
       "ticker": "WDAY"
+    },
+    {
+      "asset_name": "META PLATFORMS INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Meta Platforms, Inc. Class A Common Stock",
+      "record_id": "oge-278t:3244e9ff34d9d55ded323a4b",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:ebffc07f8b9df7ef",
+      "ticker": "META"
     },
     {
       "asset_name": "Cadence Design Sys Inc",
@@ -708,6 +780,15 @@
       "provider_asset_name": "Albemarle Corporation",
       "record_id": "oge-278t:33e7c957c4556c9433fdbaed",
       "ticker": "ALB"
+    },
+    {
+      "asset_name": "BRIGHT HORIZONS FAMILY S",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "BRIGHT HORIZONS FAMILY SOLUTIONS INC.",
+      "record_id": "oge-278t:34279341b0dd0ed3d2659d0e",
+      "semantic_evidence_url": "https://investors.brighthorizons.com/",
+      "semantic_rule_id": "semantic:338774d5a077c6aa",
+      "ticker": "BFAM"
     },
     {
       "asset_name": "BECTON DICKINSON & CO",
@@ -750,6 +831,24 @@
       "provider_asset_name": "Insulet Corporation Common Stock",
       "record_id": "oge-278t:35e80b5e009c8cb4f7ac7258",
       "ticker": "PODD"
+    },
+    {
+      "asset_name": "CBRE GROUP INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "CBRE GROUP, INC.",
+      "record_id": "oge-278t:36bd24252558a7e74bb72c0a",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:9715fb99b80e5e4c",
+      "ticker": "CBRE"
+    },
+    {
+      "asset_name": "AST SPACEMOBILE INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "AST SpaceMobile, Inc. Class A Common Stock",
+      "record_id": "oge-278t:36e7a95a315020ebff0033e5",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:05271b7c572adeec",
+      "ticker": "ASTS"
     },
     {
       "asset_name": "PTC INC",
@@ -885,11 +984,29 @@
       "ticker": "L"
     },
     {
+      "asset_name": "EXXON MOBIL CORP",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "ExxonMobil Holdings Corporation",
+      "record_id": "oge-278t:43f00b588d8d7c773d2d6660",
+      "semantic_evidence_url": "https://investor.exxonmobil.com/company-information/press-releases/detail/1208/exxonmobil-announces-second-quarter-2026-results",
+      "semantic_rule_id": "semantic:d643113df081b6a8",
+      "ticker": "XOM"
+    },
+    {
       "asset_name": "ROLLINS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Rollins, Inc.",
       "record_id": "oge-278t:441c916ac3da8315ec893b16",
       "ticker": "ROL"
+    },
+    {
+      "asset_name": "[SOUTHERN CO COM",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "The Southern Company",
+      "record_id": "oge-278t:443855672a6e6423a682dd97",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:e3839652276b68b1",
+      "ticker": "SO"
     },
     {
       "asset_name": "EQT CORPORATION",
@@ -969,6 +1086,15 @@
       "ticker": "RAL"
     },
     {
+      "asset_name": "EXXON MOBIL CORP",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "ExxonMobil Holdings Corporation",
+      "record_id": "oge-278t:4aa39c324a7b971581cfb8ef",
+      "semantic_evidence_url": "https://investor.exxonmobil.com/company-information/press-releases/detail/1208/exxonmobil-announces-second-quarter-2026-results",
+      "semantic_rule_id": "semantic:d643113df081b6a8",
+      "ticker": "XOM"
+    },
+    {
       "asset_name": "DOLLAR TREE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Dollar Tree Inc. Common Stock",
@@ -1030,6 +1156,15 @@
       "provider_asset_name": "Parker-Hannifin Corporation",
       "record_id": "oge-278t:4d8cba34660444f13d84a0ee",
       "ticker": "PH"
+    },
+    {
+      "asset_name": "CHARTER COMMUNICATIONS INC NEW CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Charter Communications, Inc. Class A Common Stock New",
+      "record_id": "oge-278t:4db36dda09604b389b7bd4ca",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:3785c52267528518",
+      "ticker": "CHTR"
     },
     {
       "asset_name": "PTC INC",
@@ -1100,6 +1235,15 @@
       "provider_asset_name": "EQT CORP",
       "record_id": "oge-278t:50707b1734e10185c6683bee",
       "ticker": "EQT"
+    },
+    {
+      "asset_name": "CBRE GROUP INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "CBRE GROUP, INC.",
+      "record_id": "oge-278t:509b443015370d4525c58bd8",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:9715fb99b80e5e4c",
+      "ticker": "CBRE"
     },
     {
       "asset_name": "PRIMORIS SVCS CORP.",
@@ -1200,6 +1344,15 @@
       "ticker": "GILD"
     },
     {
+      "asset_name": "AIRBNB INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Airbnb, Inc. Class A Common Stock",
+      "record_id": "oge-278t:5a8a5d02b263926c6ef3ab4f",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:f5558f09e4100daf",
+      "ticker": "ABNB"
+    },
+    {
       "asset_name": "BECTON DICKINSON & CO",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Becton, Dickinson and Co.",
@@ -1291,6 +1444,15 @@
       "ticker": "UCTT"
     },
     {
+      "asset_name": "SMURFIT WESTROCK PLC F",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Smurfit WestRock plc",
+      "record_id": "oge-278t:607b27bc1773248779fa0c5c",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:e3b4212e59f82b85",
+      "ticker": "SW"
+    },
+    {
       "asset_name": "CHIPOTLE MEXICAN GRILL INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Chipotle Mexican Grill, Inc.",
@@ -1317,6 +1479,15 @@
       "provider_asset_name": "ON Semiconductor Corporation Common Stock",
       "record_id": "oge-278t:6127b67ec161e3b0a7a801c3",
       "ticker": "ON"
+    },
+    {
+      "asset_name": "CONSTELLATION BRANDS INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Constellation Brands, Inc.",
+      "record_id": "oge-278t:61b6f4dffe113923849380e3",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:504c19518f273df9",
+      "ticker": "STZ"
     },
     {
       "asset_name": "ZSCALER INC",
@@ -1382,6 +1553,15 @@
       "ticker": "BANF"
     },
     {
+      "asset_name": "VISA INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "VISA Inc.",
+      "record_id": "oge-278t:669b3e912cd5c43fc9beb9ca",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:c732eb4c626bf296",
+      "ticker": "V"
+    },
+    {
       "asset_name": "UNITED AIRLINES HOLDINGS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "United Airlines Holdings, Inc. Common Stock",
@@ -1394,6 +1574,15 @@
       "provider_asset_name": "Plexus Corp. Common Stock",
       "record_id": "oge-278t:677210e2d82b2308de4c355f",
       "ticker": "PLXS"
+    },
+    {
+      "asset_name": "BLACKSTONE INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Blackstone Inc.",
+      "record_id": "oge-278t:67e995a86a0f2c0ae4895232",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:0cec57c422ffd77e",
+      "ticker": "BX"
     },
     {
       "asset_name": "CONMED CORP",
@@ -1501,6 +1690,15 @@
       "ticker": "GOGO"
     },
     {
+      "asset_name": "PALANTIR TECHNOLOGIES INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Palantir Technologies Inc. Class A Common Stock",
+      "record_id": "oge-278t:6e3d2a1fbde3f4b0db3ff59a",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:929f6c4b39f4c610",
+      "ticker": "PLTR"
+    },
+    {
       "asset_name": "HUNTINGTON BANCSHARES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Huntington Bancshares Incorporated Common Stock",
@@ -1527,6 +1725,15 @@
       "provider_asset_name": "The Hershey Company",
       "record_id": "oge-278t:6f4f1ff043a16960aa6dbe0b",
       "ticker": "HSY"
+    },
+    {
+      "asset_name": "COGNIZANT TECHNOLOGY SOLUTIONS CORP CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Cognizant Technology Solutions Corporation Class A Common Stock",
+      "record_id": "oge-278t:6f9400469aabf17e0eab8625",
+      "semantic_evidence_url": "https://investors.cognizant.com/investor-resources/stock-information/default.aspx",
+      "semantic_rule_id": "semantic:566c6144d915d99a",
+      "ticker": "CTSH"
     },
     {
       "asset_name": "CONSTELLATION ENERGY CORP",
@@ -1592,6 +1799,15 @@
       "ticker": "FRPT"
     },
     {
+      "asset_name": "Lowes Cos Inc Com",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Lowe's Companies Inc.",
+      "record_id": "oge-278t:75515d27e9ab472494da9ec6",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:2e26dfc11f2f871d",
+      "ticker": "LOW"
+    },
+    {
       "asset_name": "AGILENT TECHNOLOGIES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Agilent Technologies Inc.",
@@ -1625,6 +1841,15 @@
       "provider_asset_name": "Intercontinental Exchange  Inc.",
       "record_id": "oge-278t:77a2084f05394ea54555da4b",
       "ticker": "ICE"
+    },
+    {
+      "asset_name": "COGNIZANT TECHNOLOGY SOLUTIONS CORP CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Cognizant Technology Solutions Corporation Class A Common Stock",
+      "record_id": "oge-278t:77af0ea3ad55b31648f09eb4",
+      "semantic_evidence_url": "https://investors.cognizant.com/investor-resources/stock-information/default.aspx",
+      "semantic_rule_id": "semantic:566c6144d915d99a",
+      "ticker": "CTSH"
     },
     {
       "asset_name": "ADOBE INC",
@@ -1744,6 +1969,24 @@
       "provider_asset_name": "McDonald's Corporation",
       "record_id": "oge-278t:7f620ab4a0d750a5cfe75960",
       "ticker": "MCD"
+    },
+    {
+      "asset_name": "NIKE INC CLASS CLASS B",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Nike, Inc.",
+      "record_id": "oge-278t:7f7b5adcfa1da371b2e92353",
+      "semantic_evidence_url": "https://investors.nike.com/investors/news-events-and-reports/investor-news/investor-news-details/2026/NIKE-Inc--Declares-0-41-Quarterly-Dividend-f1997578c/default.aspx",
+      "semantic_rule_id": "semantic:cff64efcc461a005",
+      "ticker": "NKE"
+    },
+    {
+      "asset_name": "WILLIAMS COS INC DEL",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Williams Companies Inc.",
+      "record_id": "oge-278t:7fb0c3e1b1919fa7e0b64ab6",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:de6c3213fcc31b3e",
+      "ticker": "WMB"
     },
     {
       "asset_name": "VICI Properties Inc.",
@@ -1886,6 +2129,15 @@
       "ticker": "BA"
     },
     {
+      "asset_name": "PALANTIR TECHNOLOGIES IN CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Palantir Technologies Inc. Class A Common Stock",
+      "record_id": "oge-278t:881a1118ac68206fee80b8e7",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:09660891a95a7f84",
+      "ticker": "PLTR"
+    },
+    {
       "asset_name": "UNITED THERAPEUTICS CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "United Therapeutics Corporation Common Stock",
@@ -1926,6 +2178,15 @@
       "provider_asset_name": "NVIDIA Corporation Common Stock",
       "record_id": "oge-278t:89ed652369d59aac4f1f147f",
       "ticker": "NVDA"
+    },
+    {
+      "asset_name": "MERCK & CO INC COM",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Merck & Co., Inc.",
+      "record_id": "oge-278t:8a87c05cf11c7c23f82f1932",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:55898373a9889927",
+      "ticker": "MRK"
     },
     {
       "asset_name": "HUMANA INC",
@@ -1975,6 +2236,24 @@
       "provider_asset_name": "Home Depot, Inc.",
       "record_id": "oge-278t:8d5fd1956d15a948d0ded9d0",
       "ticker": "HD"
+    },
+    {
+      "asset_name": "COPART INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Copart, Inc. (DE) Common Stock",
+      "record_id": "oge-278t:8d76635c0c16f05bbcedd690",
+      "semantic_evidence_url": "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf",
+      "semantic_rule_id": "semantic:a83b91c183814b92",
+      "ticker": "CPRT"
+    },
+    {
+      "asset_name": "AIRBNB INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Airbnb, Inc. Class A Common Stock",
+      "record_id": "oge-278t:8dad03cebae0e35b34b90e5f",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:f5558f09e4100daf",
+      "ticker": "ABNB"
     },
     {
       "asset_name": "MOLINA HEALTHCARE INC",
@@ -2082,6 +2361,15 @@
       "ticker": "KKR"
     },
     {
+      "asset_name": "BLUE OWL CAPITAL INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Blue Owl Capital Inc.",
+      "record_id": "oge-278t:953f8fe572041618b4962a75",
+      "semantic_evidence_url": "https://www.sec.gov/Archives/edgar/data/1823945/000182394526000009/owl-20251231.htm",
+      "semantic_rule_id": "semantic:d90f1611d935f05e",
+      "ticker": "OWL"
+    },
+    {
       "asset_name": "KENVUE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Kenvue Inc.",
@@ -2103,6 +2391,15 @@
       "ticker": "VRSK"
     },
     {
+      "asset_name": "EMERSON ELECTRIC COM",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Emerson Electric Co.",
+      "record_id": "oge-278t:95836bb129621f24415e918c",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:39da050ff6abb07d",
+      "ticker": "EMR"
+    },
+    {
       "asset_name": "N-ABLE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "N-able, Inc.",
@@ -2122,6 +2419,15 @@
       "provider_asset_name": "Cintas Corporation Common Stock",
       "record_id": "oge-278t:96407ef88e6c889975b84564",
       "ticker": "CTAS"
+    },
+    {
+      "asset_name": "MARSH & MCLENNAN COS INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Marsh",
+      "record_id": "oge-278t:965972c53b824d77402d4dcb",
+      "semantic_evidence_url": "https://www.marsh.com/en/corp/about/news/marsh-mclennan-to-change-nyse-symbol-to-mrsh.html",
+      "semantic_rule_id": "semantic:40cb45c57abf257e",
+      "ticker": "MRSH"
     },
     {
       "asset_name": "AUTODESK INC",
@@ -2348,6 +2654,15 @@
       "ticker": "QCOM"
     },
     {
+      "asset_name": "ITRON INC EQUITY CLASS EQUITY",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Itron, Inc. Common Stock",
+      "record_id": "oge-278t:a436b6bd085a91d0a5fa0dab",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:6af299337e0238b3",
+      "ticker": "ITRI"
+    },
+    {
       "asset_name": "APPLE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Apple Inc. Common Stock",
@@ -2430,6 +2745,24 @@
       "provider_asset_name": "CoStar Group, Inc. Common Stock",
       "record_id": "oge-278t:aa0d15d75a043a85b20e4b9e",
       "ticker": "CSGP"
+    },
+    {
+      "asset_name": "WORKDAY INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Workday, Inc. Class A Common Stock",
+      "record_id": "oge-278t:aa32428bdc3f389c2d9cff4c",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:38c693532d68e131",
+      "ticker": "WDAY"
+    },
+    {
+      "asset_name": "CHESAPEAKE UTILS CORP",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Chesapeake Utilities",
+      "record_id": "oge-278t:aaffec4e28a69dc1a11f0b6a",
+      "semantic_evidence_url": "https://www.chpk.com/investors/",
+      "semantic_rule_id": "semantic:8bff69debf9c8ab6",
+      "ticker": "CPK"
     },
     {
       "asset_name": "EXELON CORPORATION",
@@ -2523,6 +2856,15 @@
       "ticker": "CHD"
     },
     {
+      "asset_name": "COPART INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Copart, Inc. (DE) Common Stock",
+      "record_id": "oge-278t:b2b677b913f596d2dd8e543b",
+      "semantic_evidence_url": "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf",
+      "semantic_rule_id": "semantic:a83b91c183814b92",
+      "ticker": "CPRT"
+    },
+    {
       "asset_name": "COINBASE GLOBAL INC",
       "mapping_basis": "alpaca_unique_classless_asset_name",
       "provider_asset_name": "Coinbase Global, Inc. Class A Common Stock",
@@ -2530,11 +2872,29 @@
       "ticker": "COIN"
     },
     {
+      "asset_name": "BRIGHT HORIZONS FAMILY S",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "BRIGHT HORIZONS FAMILY SOLUTIONS INC.",
+      "record_id": "oge-278t:b3148dc47ca2568ea82ac280",
+      "semantic_evidence_url": "https://investors.brighthorizons.com/",
+      "semantic_rule_id": "semantic:338774d5a077c6aa",
+      "ticker": "BFAM"
+    },
+    {
       "asset_name": "Emerson Elec Co",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Emerson Electric Co.",
       "record_id": "oge-278t:b35711b09da562f433a71910",
       "ticker": "EMR"
+    },
+    {
+      "asset_name": "WORKDAY INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Workday, Inc. Class A Common Stock",
+      "record_id": "oge-278t:b3a24eca76ce913c39724c33",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:4a14afcfe898f913",
+      "ticker": "WDAY"
     },
     {
       "asset_name": "HCA HEALTHCARE INC",
@@ -2670,6 +3030,15 @@
       "ticker": "CHDN"
     },
     {
+      "asset_name": "Boeing Co Com",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Boeing Company",
+      "record_id": "oge-278t:be90d08d2cd4ed38ff43529f",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:2291cfe0692d3ff4",
+      "ticker": "BA"
+    },
+    {
       "asset_name": "MARVELL TECHNOLOGY INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Marvell Technology, Inc. Common Stock",
@@ -2705,11 +3074,38 @@
       "ticker": "REGN"
     },
     {
+      "asset_name": "NIKE INC CLASS CLASS B",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Nike, Inc.",
+      "record_id": "oge-278t:c2369a827da5aece6cc797f6",
+      "semantic_evidence_url": "https://investors.nike.com/investors/news-events-and-reports/investor-news/investor-news-details/2026/NIKE-Inc--Declares-0-41-Quarterly-Dividend-f1997578c/default.aspx",
+      "semantic_rule_id": "semantic:cff64efcc461a005",
+      "ticker": "NKE"
+    },
+    {
       "asset_name": "REPUBLIC SVCS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Republic Services Inc.",
       "record_id": "oge-278t:c2fd6ea5772b282e727947a5",
       "ticker": "RSG"
+    },
+    {
+      "asset_name": "MEDTRONIC PLC F.",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Medtronic plc",
+      "record_id": "oge-278t:c4539f50a887cd8e4de3d428",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:c5d01ff89c22f700",
+      "ticker": "MDT"
+    },
+    {
+      "asset_name": "DOORDASH INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "DoorDash, Inc. Class A Common Stock",
+      "record_id": "oge-278t:c47558c308666c7e544916b4",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:1f73198165078bb3",
+      "ticker": "DASH"
     },
     {
       "asset_name": "CONSTELLATION ENERGY CORPORATION",
@@ -2906,6 +3302,15 @@
       "provider_asset_name": "Wabtec Inc.",
       "record_id": "oge-278t:ce58c9b7c1b93c9786135707",
       "ticker": "WAB"
+    },
+    {
+      "asset_name": "Arista Networks Inc Com New.",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Arista Networks",
+      "record_id": "oge-278t:cf3e01a5e8a1c1056e1f1388",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:0fc4972f815fb740",
+      "ticker": "ANET"
     },
     {
       "asset_name": "HORMEL FOODS CORP",
@@ -3111,6 +3516,15 @@
       "ticker": "CRM"
     },
     {
+      "asset_name": "GODADDY INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "GoDaddy Inc",
+      "record_id": "oge-278t:dd5d03e0c61e103c7cf0b953",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:70332eaeec766a1d",
+      "ticker": "GDDY"
+    },
+    {
       "asset_name": "Snap On Inc",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Snap-on Incorporated",
@@ -3146,6 +3560,15 @@
       "ticker": "YUM"
     },
     {
+      "asset_name": "GLOBAL PMTS INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Global Payments, Inc.",
+      "record_id": "oge-278t:e0b24c7da7d057993af48d30",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:19c6878fcfded8aa",
+      "ticker": "GPN"
+    },
+    {
       "asset_name": "CMS ENERGY CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "CMS Energy Corporation",
@@ -3172,6 +3595,15 @@
       "provider_asset_name": "The Kroger Co.",
       "record_id": "oge-278t:e21624c8ee9324f21d7bd81a",
       "ticker": "KR"
+    },
+    {
+      "asset_name": "MARSH & MCLENNAN COS INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Marsh",
+      "record_id": "oge-278t:e23094d883e0af3e7a40fd15",
+      "semantic_evidence_url": "https://www.marsh.com/en/corp/about/news/marsh-mclennan-to-change-nyse-symbol-to-mrsh.html",
+      "semantic_rule_id": "semantic:40cb45c57abf257e",
+      "ticker": "MRSH"
     },
     {
       "asset_name": "PAYCOM SOFTWARE INC",
@@ -3251,6 +3683,15 @@
       "ticker": "SPY"
     },
     {
+      "asset_name": "MARSH & MCLENNAN COS INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Marsh",
+      "record_id": "oge-278t:e77d44218e8a8922e6115180",
+      "semantic_evidence_url": "https://www.marsh.com/en/corp/about/news/marsh-mclennan-to-change-nyse-symbol-to-mrsh.html",
+      "semantic_rule_id": "semantic:40cb45c57abf257e",
+      "ticker": "MRSH"
+    },
+    {
       "asset_name": "AXON ENTERPRISE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Axon Enterprise, Inc. Common Stock",
@@ -3286,6 +3727,15 @@
       "ticker": "SSNC"
     },
     {
+      "asset_name": "PALANTIR TECHNOLOGIES IN CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Palantir Technologies Inc. Class A Common Stock",
+      "record_id": "oge-278t:e927c926dce083f190001d29",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:09660891a95a7f84",
+      "ticker": "PLTR"
+    },
+    {
       "asset_name": "SKYWEST INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "SkyWest, Inc. Common Stock",
@@ -3312,6 +3762,15 @@
       "provider_asset_name": "State Street Industrial Select Sector SPDR ETF",
       "record_id": "oge-278t:ea39e8a71317f51bb8d287c8",
       "ticker": "XLI"
+    },
+    {
+      "asset_name": "COPART INC",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Copart, Inc. (DE) Common Stock",
+      "record_id": "oge-278t:ea3c582e55aa75c149c38fe0",
+      "semantic_evidence_url": "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf",
+      "semantic_rule_id": "semantic:a83b91c183814b92",
+      "ticker": "CPRT"
     },
     {
       "asset_name": "TRADE DESK INC",
@@ -3377,6 +3836,15 @@
       "ticker": "MRK"
     },
     {
+      "asset_name": "GALLAGHER ARTHUR J & CO",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Arthur J. Gallagher & Co.",
+      "record_id": "oge-278t:edd8b34b427eb2b32db49ff4",
+      "semantic_evidence_url": "https://investor.ajg.com/news/news-details/2026/Arthur-J--Gallagher--Co--Announces-Second-Quarter-2026-Financial-Results/default.aspx",
+      "semantic_rule_id": "semantic:1d35caa0153370ac",
+      "ticker": "AJG"
+    },
+    {
       "asset_name": "EXELON CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Exelon Corporation Common Stock",
@@ -3389,6 +3857,15 @@
       "provider_asset_name": "TransDigm Group Incorporated",
       "record_id": "oge-278t:ee5c2d5a2710c1cbac9580fb",
       "ticker": "TDG"
+    },
+    {
+      "asset_name": "APPLOVIN CORP CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Applovin Corporation Class A Common Stock",
+      "record_id": "oge-278t:ef03716b2c3af4ebc4e64f10",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:794c285f1ec5ae79",
+      "ticker": "APP"
     },
     {
       "asset_name": "Broadcom Inc",
@@ -3417,6 +3894,15 @@
       "provider_asset_name": "Verizon Communications",
       "record_id": "oge-278t:f2461384993025bff7c16686",
       "ticker": "VZ"
+    },
+    {
+      "asset_name": "ZOETIS INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "ZOETIS INC.",
+      "record_id": "oge-278t:f281ba3337c02d479992303e",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:bb13b8c8c8a661bf",
+      "ticker": "ZTS"
     },
     {
       "asset_name": "MICROSOFT CORP",
@@ -3454,6 +3940,15 @@
       "ticker": "UAL"
     },
     {
+      "asset_name": "FOX CORP CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Fox Corporation Class A Common Stock",
+      "record_id": "oge-278t:f51a16a4a6148715da3a8a1f",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:cd7e07de3df001f1",
+      "ticker": "FOXA"
+    },
+    {
       "asset_name": "INGERSOLL RAND INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Ingersoll Rand Inc. Common Stock",
@@ -3473,6 +3968,15 @@
       "provider_asset_name": "Fortinet, Inc. Common Stock",
       "record_id": "oge-278t:f679c861f2d1e44e5ab336ce",
       "ticker": "FTNT"
+    },
+    {
+      "asset_name": "BOSTON SCIENTIFIC CORP COM",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Boston Scientific Corp.",
+      "record_id": "oge-278t:f69b5139ec0b277b01c9dc47",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:8f661a10324c7329",
+      "ticker": "BSX"
     },
     {
       "asset_name": "CONSOLIDATED EDISON INC",
@@ -3503,6 +4007,15 @@
       "ticker": "CME"
     },
     {
+      "asset_name": "UNIVERSAL CORP VA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Universal Corporation",
+      "record_id": "oge-278t:f800efab0699fe0be065792a",
+      "semantic_evidence_url": "https://investor.universalcorp.com/news/news-details/2026/Universal-Corporation-Reports-Fiscal-Year-and-Fourth-Quarter-2026-Results/",
+      "semantic_rule_id": "semantic:37b5d5bc12a3c8fd",
+      "ticker": "UVV"
+    },
+    {
       "asset_name": "BRISTOL MYERS SQUIBB CO",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Bristol-Myers Squibb Co.",
@@ -3522,6 +4035,15 @@
       "provider_asset_name": "Moody's Corporation",
       "record_id": "oge-278t:f87cf06012ca4ea71aa13556",
       "ticker": "MCO"
+    },
+    {
+      "asset_name": "WORKDAY INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Workday, Inc. Class A Common Stock",
+      "record_id": "oge-278t:f88c4722d1ede02dbc59f1c3",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:4a14afcfe898f913",
+      "ticker": "WDAY"
     },
     {
       "asset_name": "INGREDION INC",
@@ -3550,6 +4072,15 @@
       "provider_asset_name": "The Trade Desk, Inc. Class A Common Stock",
       "record_id": "oge-278t:f94d9eaefdb272b4db4c383a",
       "ticker": "TTD"
+    },
+    {
+      "asset_name": "CHARTER COMMUNICATIONS | CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Charter Communications, Inc. Class A Common Stock New",
+      "record_id": "oge-278t:f95c4283a6f7b1e847fd63bb",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:dd698b7c93d50462",
+      "ticker": "CHTR"
     },
     {
       "asset_name": "BRINKER INTL INC",
@@ -3594,6 +4125,24 @@
       "ticker": "URI"
     },
     {
+      "asset_name": "KINDER MORGAN INC DEL",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Kinder Morgan, Inc.",
+      "record_id": "oge-278t:fafa6b696264d9ea4a605095",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:5c4f7dccfce802a2",
+      "ticker": "KMI"
+    },
+    {
+      "asset_name": "DOORDASH INC CLASS CLASS A",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "DoorDash, Inc. Class A Common Stock",
+      "record_id": "oge-278t:fb2265eecf1451486dc1fd99",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:ae0718fdcfbd9cad",
+      "ticker": "DASH"
+    },
+    {
       "asset_name": "S&P GLOBAL INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "S&P Global Inc.",
@@ -3606,6 +4155,24 @@
       "provider_asset_name": "Constellation Energy Corporation Common Stock",
       "record_id": "oge-278t:fbb1aa500efd0aefc555d112",
       "ticker": "CEG"
+    },
+    {
+      "asset_name": "BLUE OWL CAPITAL INC CLA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Blue Owl Capital Inc.",
+      "record_id": "oge-278t:fbdbf93c02cb6ee0a85d0628",
+      "semantic_evidence_url": "https://www.sec.gov/Archives/edgar/data/1823945/000182394526000009/owl-20251231.htm",
+      "semantic_rule_id": "semantic:d90f1611d935f05e",
+      "ticker": "OWL"
+    },
+    {
+      "asset_name": "UNIVERSAL CORP VA",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Universal Corporation",
+      "record_id": "oge-278t:fcc1a248d415ac2c5fde9bad",
+      "semantic_evidence_url": "https://investor.universalcorp.com/news/news-details/2026/Universal-Corporation-Reports-Fiscal-Year-and-Fourth-Quarter-2026-Results/",
+      "semantic_rule_id": "semantic:37b5d5bc12a3c8fd",
+      "ticker": "UVV"
     },
     {
       "asset_name": "DIEBOLD NIXDORF INC",
@@ -3650,9 +4217,10 @@
       "ticker": "GEHC"
     }
   ],
-  "new_mapping_count": 516,
-  "retained_mapping_count": 0,
+  "new_mapping_count": 63,
+  "retained_mapping_count": 516,
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
+  "semantic_mapping_count": 63,
   "source_transaction_count": 843,
-  "unmatched_record_count": 324
+  "unmatched_record_count": 261
 }
