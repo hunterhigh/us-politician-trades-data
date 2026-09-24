@@ -11,6 +11,8 @@ from unison_snapshot.whitehouse_disclosures import INDEX_SCHEMA
 from unison_snapshot.oge_278e_public import (
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSER_VERSIONS,
+    TRUMP_2025_PARSER_VERSION,
+    parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
@@ -20,6 +22,14 @@ from unison_snapshot.whitehouse_278t import (
 
 SCHEMA = "whitehouse-public-coverage/v1"
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
+
+
+def _annual_versions(source_url: str, source_sha256: str) -> tuple[str, ...]:
+    """Select v6 only for its exact source while retaining older fallbacks."""
+
+    current = parser_version_for_source(source_url, source_sha256)
+    return (current, *(version for version in ANNUAL_PARSER_VERSIONS
+                       if version not in {current, TRUMP_2025_PARSER_VERSION}))
 
 
 def _load(path: Path) -> dict:
@@ -74,7 +84,12 @@ def build_coverage(index: dict, batch: dict, review_root: Path) -> dict:
                       document_id.split(":", 1)[1] / sha)
             versions_to_check = (TRADE_PARSER_VERSIONS if
                                  report.get("document_type_from_label") == "278t" else
-                                 ANNUAL_PARSER_VERSIONS)
+                                 _annual_versions(metadata["document_url"], sha))
+            forbidden_v6 = folder / f"{TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json"
+            if (report.get("document_type_from_label") != "278t" and
+                    versions_to_check[0] != TRUMP_2025_PARSER_VERSION and
+                    forbidden_v6.is_file()):
+                raise ValueError("Source-bound White House v6 extraction has the wrong source")
             valid_options = []
             failed_options = []
             for parser_version in versions_to_check:

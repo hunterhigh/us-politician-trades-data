@@ -209,13 +209,25 @@ jobs:
                           if row['source_id'] == 'twelve_data_split_adjusted_eod')
           if not twelve:
               raise SystemExit('Twelve Data probe is missing from the candidate')
-          transaction = next(
-              row for row in candidate['transactions']
-              if row.get('ticker') in covered)
+          person_id = 'oge:076544f8ba0638cf'
+          person_holdings = [row for row in candidate['reported_holdings']
+                             if row['person_id'] == person_id]
+          if not person_holdings:
+              raise SystemExit('Trump holding-only person probe is missing')
+          ticker = 'MSFT'
+          if ticker not in covered or not any(
+                  row.get('ticker') == ticker for row in candidate['transactions']):
+              raise SystemExit('MSFT transaction and market probe is missing')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f"person_id={transaction['person_id']}\n")
-              output.write(f"ticker={transaction['ticker']}\n")
+              output.write(f"person_id={person_id}\n")
+              output.write(f"person_holding_count={len(person_holdings)}\n")
+              output.write(f"ticker={ticker}\n")
               output.write(f"twelve_ticker={twelve[0]}\n")
+              output.write(f"people_count={len(candidate['people'])}\n")
+              output.write(f"transaction_count={len(candidate['transactions'])}\n")
+              output.write(f"holding_count={len(candidate['reported_holdings'])}\n")
+              output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
+              output.write(f"source_health_count={len(candidate['source_health'])}\n")
           PY
       - name: Verify complete candidate in the frozen browser frontend
         env:
@@ -243,22 +255,6 @@ jobs:
           fi
           market_sha="$(git -C "$MARKET_ROOT" rev-parse HEAD)"
           echo "market_sha=$market_sha" >> "$GITHUB_OUTPUT"
-      - name: Publish market before disclosure pointer
-        env:
-          MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
-          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
-          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
-        run: |
-          if ! git ls-remote --exit-code origin "refs/tags/published-market/$MARKET_SHA" >/dev/null 2>&1; then
-            remote_market="$(git ls-remote origin refs/heads/market | cut -f1)"
-            test "$remote_market" = "$MARKET_BASE" || {
-              echo "market moved after the candidate was built; refusing stale publication" >&2
-              exit 1
-            }
-            git -C "$MARKET_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
-            git -C "$MARKET_ROOT" push --atomic origin \
-              HEAD:refs/heads/market "refs/tags/published-market/$MARKET_SHA"
-          fi
       - name: Prepare complete main snapshot
         id: main
         env:
@@ -274,102 +270,65 @@ jobs:
           git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers
           if git -C "$MAIN_ROOT" diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          else
+            git -C "$MAIN_ROOT" config user.name "github-actions[bot]"
+            git -C "$MAIN_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            snapshot_id="$(python -c "import json; print(json.load(open('$MAIN_ROOT/manifest.json'))['snapshot_id'])")"
+            git -C "$MAIN_ROOT" commit -m "snapshot $snapshot_id"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-          git -C "$MAIN_ROOT" config user.name "github-actions[bot]"
-          git -C "$MAIN_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          snapshot_id="$(python -c "import json; print(json.load(open('$MAIN_ROOT/manifest.json'))['snapshot_id'])")"
-          git -C "$MAIN_ROOT" commit -m "snapshot $snapshot_id"
           main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
-          git -C "$MAIN_ROOT" tag "published/$main_sha" "$main_sha"
-          echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
-      - name: Atomically publish complete main snapshot
-        if: steps.main.outputs.changed == 'true'
+      - name: Publish immutable preflight commits without moving production
+        id: preflight
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
           MAIN_SHA: ${{ steps.main.outputs.main_sha }}
           MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
         run: |
           remote_main="$(git ls-remote origin refs/heads/main | cut -f1)"
+          remote_market="$(git ls-remote origin refs/heads/market | cut -f1)"
           test "$remote_main" = "$MAIN_BASE" || {
             echo "main moved after the candidate was built; refusing stale publication" >&2
             exit 1
           }
+          test "$remote_market" = "$MARKET_BASE" || {
+            echo "market moved after the candidate was built; refusing stale publication" >&2
+            exit 1
+          }
+          main_ref="refs/heads/preflight/${{ github.run_id }}/main"
+          market_ref="refs/heads/preflight/${{ github.run_id }}/market"
           git -C "$MAIN_ROOT" push --atomic origin \
-            HEAD:refs/heads/main "refs/tags/published/$MAIN_SHA"
-      - name: Read back the published main and market commits
+            "$MAIN_SHA:$main_ref" "$MARKET_SHA:$market_ref"
+          echo "main_ref=$main_ref" >> "$GITHUB_OUTPUT"
+          echo "market_ref=$market_ref" >> "$GITHUB_OUTPUT"
+      - name: Read back immutable prepared main and market commits
         env:
-          EXPECTED_MAIN: ${{ steps.main.outputs.main_sha || steps.trees.outputs.main_base }}
+          EXPECTED_MAIN: ${{ steps.main.outputs.main_sha }}
+          EXPECTED_MARKET: ${{ steps.market.outputs.market_sha }}
           PERSON_ID: ${{ steps.probes.outputs.person_id }}
           TICKER: ${{ steps.probes.outputs.ticker }}
           TWELVE_TICKER: ${{ steps.probes.outputs.twelve_ticker }}
           GITHUB_TOKEN: ${{ github.token }}
           PYTHONPATH: backend/src
         run: |
-          fetch_selection() {
-            mode="$1"
-            key="$2"
-            output="$3"
-            for attempt in 1 2 3 4; do
-              args=(--owner hunterhigh --repo us-politician-trades-data --ref main \
-                    --mode "$mode" --output "$output")
-              if [ -n "$key" ]; then args+=(--key "$key"); fi
-              if python -m unison_snapshot fetch-public "${args[@]}"; then return 0; fi
-              sleep $((attempt * 2))
-            done
-            return 1
-          }
-          fetch_selection dashboard '' "$RUNNER_TEMP/readback-dashboard.json"
-          fetch_selection search '' "$RUNNER_TEMP/readback-search.json"
-          fetch_selection person "$PERSON_ID" "$RUNNER_TEMP/readback-person.json"
-          fetch_selection ticker "$TICKER" "$RUNNER_TEMP/readback-ticker.json"
-          fetch_selection ticker "$TWELVE_TICKER" "$RUNNER_TEMP/readback-twelve.json"
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          from unison_snapshot.legacy import load
-
-          root = Path(os.environ['RUNNER_TEMP'])
-          expected = os.environ['EXPECTED_MAIN']
-          person_id = os.environ['PERSON_ID']
-          ticker = os.environ['TICKER']
-          twelve_ticker = os.environ['TWELVE_TICKER']
-          values = {
-              mode: json.loads((root / f'readback-{mode}.json').read_text(encoding='utf-8'))
-              for mode in ('dashboard', 'search', 'person', 'ticker', 'twelve')
-          }
-          for mode, value in values.items():
-              if value['meta']['snapshot_commit'] != expected:
-                  raise SystemExit(f'{mode} resolved an unexpected main commit')
-              if value['meta']['selection_scope']['mode'] != ('ticker' if mode == 'twelve' else mode):
-                  raise SystemExit(f'{mode} returned an unexpected selection scope')
-          for mode in ('dashboard', 'search'):
-              for key in ('people', 'transactions', 'reported_holdings',
-                          'security_market_data', 'source_health'):
-                  if not values[mode].get(key):
-                      raise SystemExit(f'{mode} returned an empty {key} array')
-          if values['person']['meta']['selection_scope']['key'] != person_id \
-                  or not values['person']['transactions']:
-              raise SystemExit('Published person readback is incomplete')
-          if values['ticker']['meta']['selection_scope']['key'] != ticker \
-                  or not values['ticker']['transactions'] \
-                  or not values['ticker']['security_market_data']:
-              raise SystemExit('Published ticker readback is incomplete')
-          if values['twelve']['meta']['selection_scope']['key'] != twelve_ticker \
-                  or not any(row['ticker'] == twelve_ticker
-                             and row['source_id'] == 'twelve_data_split_adjusted_eod'
-                             for row in values['twelve']['security_market_data']):
-              raise SystemExit('Published Twelve Data ticker readback is incomplete')
-
-          renderer = load('render_dashboard', version='v2')
-          html = renderer.render_html(renderer.load_dashboard_data(
-              root / 'readback-dashboard.json'))
-          (root / 'readback-dashboard.html').write_text(html, encoding='utf-8')
-          PY
-      - name: Verify the published result in the frozen browser frontend
+          python backend/scripts/verify_prepared_publication.py \
+            --owner hunterhigh --repo us-politician-trades-data \
+            --main-commit "$EXPECTED_MAIN" --market-commit "$EXPECTED_MARKET" \
+            --person-id "$PERSON_ID" --ticker "$TICKER" \
+            --twelve-ticker "$TWELVE_TICKER" \
+            --expected-people "${{ steps.probes.outputs.people_count }}" \
+            --expected-transactions "${{ steps.probes.outputs.transaction_count }}" \
+            --expected-holdings "${{ steps.probes.outputs.holding_count }}" \
+            --expected-market-rows "${{ steps.probes.outputs.market_row_count }}" \
+            --expected-source-health "${{ steps.probes.outputs.source_health_count }}" \
+            --expected-person-holdings "${{ steps.probes.outputs.person_holding_count }}" \
+            --output-dir "$RUNNER_TEMP/prepared-readback"
+      - name: Verify the prepared result in the frozen browser frontend
         env:
-          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/readback-dashboard.html
+          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
         run: npm run test:production
         working-directory: frontend-e2e
       - name: Record auditable coverage
@@ -408,7 +367,7 @@ jobs:
           print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
           print(f"Historical symbols rejected by API: {len(audit['historical_rejected_symbols'])}")
           print(f"Price points: {audit['price_point_count']}")
-          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']}")
+          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']} tickers")
           print(f"Alpaca request attempts: {audit.get('request_attempt_count')}; bar response pages: {audit.get('response_page_count')}")
           print(f"Missing tickers: {audit['missing_ticker_count']}")
           print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
@@ -417,3 +376,24 @@ jobs:
           twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
           print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
           PY
+      - name: Atomically publish the verified main, market, and tags
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+          PREFLIGHT_MAIN_REF: ${{ steps.preflight.outputs.main_ref }}
+          PREFLIGHT_MARKET_REF: ${{ steps.preflight.outputs.market_ref }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
+          test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
+          test "$(git ls-remote origin "$PREFLIGHT_MAIN_REF" | cut -f1)" = "$MAIN_SHA"
+          test "$(git ls-remote origin "$PREFLIGHT_MARKET_REF" | cut -f1)" = "$MARKET_SHA"
+          git -C "$MAIN_ROOT" tag "published/$MAIN_SHA" "$MAIN_SHA"
+          git -C "$MAIN_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
+          git -C "$MAIN_ROOT" push --atomic origin \
+            "$MAIN_SHA:refs/heads/main" "$MARKET_SHA:refs/heads/market" \
+            "refs/tags/published/$MAIN_SHA" \
+            "refs/tags/published-market/$MARKET_SHA" \
+            ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"

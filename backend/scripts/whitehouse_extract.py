@@ -16,8 +16,10 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (
     OcrCheckpointPending,
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
+    TRUMP_2025_PARSER_VERSION,
     extract_public_278e_pdf,
     extract_public_278e_pdf_checkpointed,
+    parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
@@ -63,14 +65,39 @@ def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path | None]]:
     ))
 
 
+def _select_fixed_source(
+        rows: list[tuple[dict, Path | None]], *, document_id: str | None,
+        source_sha256: str | None) -> list[tuple[dict, Path | None]]:
+    """Select one immutable archived source or preserve the normal full queue."""
+
+    if document_id is None and source_sha256 is None:
+        return rows
+    if (not isinstance(document_id, str) or ID.fullmatch(document_id) is None or
+            not isinstance(source_sha256, str) or SHA.fullmatch(source_sha256) is None):
+        raise ValueError(
+            "Fixed White House replay requires a valid document id and source SHA-256")
+    selected = [item for item in rows
+                if item[0]["document_id"] == document_id and
+                item[0]["sha256"] == source_sha256]
+    if len(selected) != 1:
+        raise ValueError("Fixed White House replay source is missing or ambiguous")
+    return selected
+
+
 def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                   start_after_id: str | None = None,
-                  ocr_page_limit: int = 50) -> dict:
+                  ocr_page_limit: int = 50,
+                  document_id: str | None = None,
+                  source_sha256: str | None = None) -> dict:
     if type(limit) is not int or not 0 <= limit <= 100:
         raise ValueError("White House extraction limit must be between 0 and 100")
     if type(ocr_page_limit) is not int or not 25 <= ocr_page_limit <= 100:
         raise ValueError("White House OCR page limit must be between 25 and 100")
-    rows = _archive_rows(evidence_root)
+    all_rows = _archive_rows(evidence_root)
+    rows = _select_fixed_source(all_rows, document_id=document_id,
+                                source_sha256=source_sha256)
+    if document_id is not None and start_after_id is not None:
+        raise ValueError("Fixed White House replay does not accept a queue cursor")
     if start_after_id:
         if ID.fullmatch(start_after_id) is None:
             raise ValueError("White House extraction cursor is invalid")
@@ -88,7 +115,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
-        version = TRADE_PARSER_VERSION if kind == "278t" else ANNUAL_PARSER_VERSION
+        version = (TRADE_PARSER_VERSION if kind == "278t" else
+                   parser_version_for_source(metadata.get("document_url"),
+                                             metadata.get("sha256")))
         suffix = version.replace("/", "-")
         target = (review_root / "whitehouse/extractions" /
                   metadata["document_id"].split(":", 1)[1] /
@@ -139,9 +168,16 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
                               metadata["document_id"].split(":", 1)[1] /
                               metadata["sha256"] / suffix)
+                legacy_checkpoint = None
+                if version == TRUMP_2025_PARSER_VERSION:
+                    legacy_checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
+                                         metadata["document_id"].split(":", 1)[1] /
+                                         metadata["sha256"] /
+                                         ANNUAL_PARSER_VERSION.replace("/", "-"))
                 return extract_public_278e_pdf_checkpointed(
                     path, **common, expected_filer=name,
-                    checkpoint_root=checkpoint, page_limit=ocr_page_limit)
+                    checkpoint_root=checkpoint, page_limit=ocr_page_limit,
+                    legacy_checkpoint_root=legacy_checkpoint)
             if pdf is None:
                 with tempfile.TemporaryDirectory(prefix="whitehouse-pdf-") as temporary:
                     assembled = Path(temporary) / "original.pdf"
@@ -176,7 +212,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 })
                 recorded_failures += 1
     return {"schema_version": STATUS_SCHEMA, "source_id": "whitehouse_public_disclosures",
-            "archived_version_count": len(rows), "attempted_count": attempted,
+            "archived_version_count": len(all_rows), "selected_version_count": len(rows),
+            "fixed_document_id": document_id, "fixed_source_sha256": source_sha256,
+            "attempted_count": attempted,
             "last_attempted_id": last_attempted_id,
             "extraction_created_count": created, "existing_extraction_count": skipped,
             "existing_failure_count": known_failures,
@@ -195,12 +233,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--start-after-id")
     parser.add_argument("--ocr-page-limit", type=int, default=50)
+    parser.add_argument("--document-id")
+    parser.add_argument("--source-sha256")
+    parser.add_argument("--status-output", type=Path)
     args = parser.parse_args(argv)
     try:
         status = extract_batch(args.evidence_root, args.review_root, limit=args.limit,
                                start_after_id=args.start_after_id,
-                               ocr_page_limit=args.ocr_page_limit)
-        _write(args.review_root / "whitehouse/extraction-status.json", status)
+                               ocr_page_limit=args.ocr_page_limit,
+                               document_id=args.document_id,
+                               source_sha256=args.source_sha256)
+        status_output = (args.status_output or
+                         args.review_root / "whitehouse/extraction-status.json")
+        if args.document_id is not None and args.status_output is None:
+            raise ValueError("Fixed White House replay requires a separate status output")
+        _write(status_output, status)
         print(json.dumps({key: status[key] for key in (
             "archived_version_count", "attempted_count", "extraction_created_count",
             "pending_count", "failure_count")}))

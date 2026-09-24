@@ -41,6 +41,10 @@ jobs:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
           PYTHONPATH: backend/src
         run: |
+          cp "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            "$RUNNER_TEMP/oge-candidate-before.json"
+          cp "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            "$RUNNER_TEMP/disclosure-candidate-before.json"
           python backend/scripts/build_whitehouse_278t_candidate.py \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \
@@ -87,11 +91,20 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --output "$RUNNER_TEMP/whitehouse-release-readiness.json"
+          python backend/scripts/audit_trump_candidate_transition.py \
+            --before "$RUNNER_TEMP/disclosure-candidate-before.json" \
+            --after "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --before-oge "$RUNNER_TEMP/oge-candidate-before.json" \
+            --after-oge "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --output "$REVIEW_ROOT/whitehouse/annual/candidate-transition-current.json"
       - name: Publish verified review candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
         run: |
-          git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications whitehouse/annual/candidate-current.json status/oge.json status/disclosure_cutoff.json
+          git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications \
+            whitehouse/annual/candidate-current.json \
+            whitehouse/annual/candidate-transition-current.json \
+            status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

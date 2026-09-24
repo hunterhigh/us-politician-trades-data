@@ -164,7 +164,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: disclosure-review-writer
+      group: disclosure-source-writer
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
@@ -216,7 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: disclosure-review-writer
+      group: disclosure-source-writer
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7

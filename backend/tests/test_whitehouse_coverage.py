@@ -117,6 +117,38 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
             self.assertEqual(blocked["review_state"], "extraction_quarantined")
             self.assertEqual(blocked["extraction_parser_version"], current)
 
+    def test_v6_is_selected_only_for_the_exact_trump_source(self):
+        fixed = script._annual_versions(
+            "https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+            "President-Donald-J.-Trump-2025-Annual-Report.pdf",
+            "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3")
+        ordinary = script._annual_versions(
+            "https://www.whitehouse.gov/wp-content/uploads/2026/09/annual.pdf",
+            "d" * 64)
+        self.assertEqual(fixed[0], script.TRUMP_2025_PARSER_VERSION)
+        self.assertNotIn(script.TRUMP_2025_PARSER_VERSION, ordinary)
+
+    def test_nonfixed_source_rejects_v6_extraction(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "wh-url:" + "a" * 24
+            url, sha = ("https://www.whitehouse.gov/wp-content/uploads/2026/09/annual.pdf",
+                        "d" * 64)
+            index = {"schema_version": script.INDEX_SCHEMA, "page_sha256": "c" * 64,
+                     "report_link_count": 1, "quarantine": [], "reports": [{
+                         "source_document_id": document_id, "link_label": "Annual",
+                         "filer_name_from_label": "Example, Ada",
+                         "document_type_from_label": "278e_annual", "document_url": url}]}
+            batch = {"schema_version": "whitehouse-public-disclosures-batch/v1",
+                     "indexed_count": 1, "failures": [], "reports": [{
+                         "document_id": document_id, "document_url": url, "sha256": sha}]}
+            path = (root / "whitehouse/extractions" / document_id[7:] / sha /
+                    f"{script.TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json")
+            path.parent.mkdir(parents=True)
+            path.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "wrong source"):
+                script.build_coverage(index, batch, root)
+
 
 if __name__ == "__main__":
     unittest.main()
