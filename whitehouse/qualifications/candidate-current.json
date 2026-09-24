@@ -4,11 +4,11 @@
   "annual_part7_overlap_count": 0,
   "base_transaction_count": 4696,
   "candidate_is_append_only": true,
-  "candidate_sha256": "118c36e46705efac410789b1d0fc23c21cbe98e9b13bf1dee9f6e7d0a3e14dfa",
+  "candidate_sha256": "658a860c5080b589e33f90431694d82e51188f96e40796e44d759bd93f404753",
   "candidate_transaction_count": 6087,
   "catalog_report_count": 80,
   "catalog_sha256": "1488a6d13396247228918a1021fc4395056c24a5bae4856dab2c7e1a20ec3896",
-  "data_cutoff_at": "2026-09-24T12:17:10Z",
+  "data_cutoff_at": "2026-09-24T17:39:12Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 18,
@@ -1406,7 +1406,7 @@
     "oge-278t:ff8f888240875ac49b6b32ef",
     "oge-278t:ff92b09ef985b0f6804ce92f"
   ],
-  "pure_oge_candidate_sha256": "55f9626161196ffaa5e33a20e863642991b4ca3064bb44fc19d66803132cd34f",
+  "pure_oge_candidate_sha256": "844be694676c8f50a50578fc9ecfbb9c1e19aabba19e736c2afc1409234a82dc",
   "quarantined_row_count": 7757,
   "report_count": 80,
   "reports": [
@@ -95899,10 +95899,10 @@
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "3577181947b176d429f0783dd5e26babdf6b8e1234bd6f0aa20f93c516846881",
     "whitehouse_annual_dedup_set_sha256": "464e3814247ad35ef935dfe838f4f6b764637e07646f69c6a686089290a64075",
-    "whitehouse_coverage_sha256": "38a68d251f8952513bd535d025f3298fc270f6d044dff1b1d668f1ea3b994aaa",
+    "whitehouse_coverage_sha256": "64a87702151ea06e3c6bb4b335f05e10ed2c90126a55c99a8aeb18f1b2620a3d",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "whitehouse_extraction_set_sha256": "ff433cc731ce00fa2828287bfb53a72ce0aa70b0d1da533a7f8851cdfbaff558",
-    "whitehouse_extraction_status_sha256": "2213a9550d36adbac6ba9f944256c6a0f94a9fc539aa55c167384e07d024baa4"
+    "whitehouse_extraction_status_sha256": "c47af0187253b3495866c6b42841b6255ae261c1a349a912e71309c24d0abc3d"
   },
   "schema_version": "whitehouse-278t-candidate-conservation/v1",
   "source_id": "oge",
