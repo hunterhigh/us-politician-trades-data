@@ -6,15 +6,87 @@ import hashlib
 import json
 import re
 
-from .alpaca_market import TICKER, _recover_unique_asset_name_tickers
+from .alpaca_market import (
+    SIP_EXCHANGES, TICKER, _asset_registry, _recover_unique_asset_name_tickers,
+)
 from .codec import encode
 from .whitehouse_278t import TRUMP_2026_PROFILES
 
 
 SCHEMA = "whitehouse-trump-2026-278t-ticker-mapping/v1"
 TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
-ALLOWED_BASES = {"alpaca_unique_asset_name", "alpaca_unique_classless_asset_name"}
+SEMANTIC_BASIS = "alpaca_source_bound_semantic_alias"
+ALLOWED_BASES = {"alpaca_unique_asset_name", "alpaca_unique_classless_asset_name",
+                 SEMANTIC_BASIS}
 REPORTS = {profile["document_id"]: profile for profile in TRUMP_2026_PROFILES}
+ANNUAL_MAPPING_EVIDENCE = (
+    "https://github.com/hunterhigh/us-politician-trades-data/blob/"
+    "10bd7a05b68ce52b9d8650a2a669639c4d46b314/"
+    "whitehouse/annual/ticker-mapping-current.json")
+# Exact filing labels only. Each ticker has a prior mapped annual identity or
+# issuer-published symbol evidence; the live Alpaca SIP asset must still exist.
+SEMANTIC_ALIASES = {
+    "ITRON INC EQUITY CLASS EQUITY": ("ITRI", ANNUAL_MAPPING_EVIDENCE),
+    "AIRBNB INC CLA": ("ABNB", ANNUAL_MAPPING_EVIDENCE),
+    "WORKDAY INC CLASS CLASS A": ("WDAY", ANNUAL_MAPPING_EVIDENCE),
+    "META PLATFORMS INC CLASS CLASS A": ("META", ANNUAL_MAPPING_EVIDENCE),
+    "AST SPACEMOBILE INC CLA": ("ASTS", ANNUAL_MAPPING_EVIDENCE),
+    "[SOUTHERN CO COM": ("SO", ANNUAL_MAPPING_EVIDENCE),
+    "CHARTER COMMUNICATIONS INC NEW CLA": ("CHTR", ANNUAL_MAPPING_EVIDENCE),
+    "SMURFIT WESTROCK PLC F": ("SW", ANNUAL_MAPPING_EVIDENCE),
+    "CONSTELLATION BRANDS INC CLA": ("STZ", ANNUAL_MAPPING_EVIDENCE),
+    "VISA INC CLA": ("V", ANNUAL_MAPPING_EVIDENCE),
+    "BLACKSTONE INC CLA": ("BX", ANNUAL_MAPPING_EVIDENCE),
+    "PALANTIR TECHNOLOGIES INC CLA": ("PLTR", ANNUAL_MAPPING_EVIDENCE),
+    "Lowes Cos Inc Com": ("LOW", ANNUAL_MAPPING_EVIDENCE),
+    "WILLIAMS COS INC DEL": ("WMB", ANNUAL_MAPPING_EVIDENCE),
+    "MERCK & CO INC COM": ("MRK", ANNUAL_MAPPING_EVIDENCE),
+    "EMERSON ELECTRIC COM": ("EMR", ANNUAL_MAPPING_EVIDENCE),
+    "WORKDAY INC CLA": ("WDAY", ANNUAL_MAPPING_EVIDENCE),
+    "Boeing Co Com": ("BA", ANNUAL_MAPPING_EVIDENCE),
+    "MEDTRONIC PLC F.": ("MDT", ANNUAL_MAPPING_EVIDENCE),
+    "DOORDASH INC CLA": ("DASH", ANNUAL_MAPPING_EVIDENCE),
+    "Arista Networks Inc Com New.": ("ANET", ANNUAL_MAPPING_EVIDENCE),
+    "APPLOVIN CORP CLA": ("APP", ANNUAL_MAPPING_EVIDENCE),
+    "ZOETIS INC CLA": ("ZTS", ANNUAL_MAPPING_EVIDENCE),
+    "FOX CORP CLASS A": ("FOXA", ANNUAL_MAPPING_EVIDENCE),
+    "BOSTON SCIENTIFIC CORP COM": ("BSX", ANNUAL_MAPPING_EVIDENCE),
+    "KINDER MORGAN INC DEL": ("KMI", ANNUAL_MAPPING_EVIDENCE),
+    "DOORDASH INC CLASS CLASS A": ("DASH", ANNUAL_MAPPING_EVIDENCE),
+    "COPART INC": (
+        "CPRT", "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf"),
+    "EXXON MOBIL CORP": (
+        "XOM", "https://investor.exxonmobil.com/company-information/"
+        "press-releases/detail/1208/exxonmobil-announces-second-quarter-2026-results"),
+    "MARSH & MCLENNAN COS INC": (
+        "MRSH", "https://www.marsh.com/en/corp/about/news/"
+        "marsh-mclennan-to-change-nyse-symbol-to-mrsh.html"),
+    "CHESAPEAKE UTILS CORP": ("CPK", "https://www.chpk.com/investors/"),
+    "BRIGHT HORIZONS FAMILY S": (
+        "BFAM", "https://investors.brighthorizons.com/"),
+    "GALLAGHER ARTHUR J & CO": (
+        "AJG", "https://investor.ajg.com/news/news-details/2026/"
+        "Arthur-J--Gallagher--Co--Announces-Second-Quarter-2026-Financial-Results/"
+        "default.aspx"),
+    "COGNIZANT TECHNOLOGY SOLUTIONS CORP CLA": (
+        "CTSH", "https://investors.cognizant.com/investor-resources/"
+        "stock-information/default.aspx"),
+    "NIKE INC CLASS CLASS B": (
+        "NKE", "https://investors.nike.com/investors/news-events-and-reports/"
+        "investor-news/investor-news-details/2026/"
+        "NIKE-Inc--Declares-0-41-Quarterly-Dividend-f1997578c/default.aspx"),
+    "UNIVERSAL CORP VA": (
+        "UVV", "https://investor.universalcorp.com/news/news-details/2026/"
+        "Universal-Corporation-Reports-Fiscal-Year-and-Fourth-Quarter-2026-Results/"),
+    "BLUE OWL CAPITAL INC CLA": (
+        "OWL", "https://www.sec.gov/Archives/edgar/data/1823945/"
+        "000182394526000009/owl-20251231.htm"),
+    "GODADDY INC CLASS CLASS A": ("GDDY", ANNUAL_MAPPING_EVIDENCE),
+    "CBRE GROUP INC CLASS CLASS A": ("CBRE", ANNUAL_MAPPING_EVIDENCE),
+    "GLOBAL PMTS INC": ("GPN", ANNUAL_MAPPING_EVIDENCE),
+    "CHARTER COMMUNICATIONS | CLASS A": ("CHTR", ANNUAL_MAPPING_EVIDENCE),
+    "PALANTIR TECHNOLOGIES IN CLASS A": ("PLTR", ANNUAL_MAPPING_EVIDENCE),
+}
 FALSE_EXPLICIT = {
     ("wh-url:7e17c4be2b42f563d37df173", "CIGNA GROUP"): "THE",
     ("wh-url:01475dee0bcffa4e79f7f58c", "KROGER CO"): "THE",
@@ -56,6 +128,38 @@ def _eligible_name(row: dict) -> bool:
             not DEBT_LABEL.search(asset_name))
 
 
+def _semantic_rule_id(asset_name: str) -> str:
+    return "semantic:" + hashlib.sha256(asset_name.encode("utf-8")).hexdigest()[:16]
+
+
+def _apply_semantic_aliases(proposed: dict, assets: list[dict],
+                            ambiguous_ids: set[str]) -> list[dict]:
+    registry = _asset_registry(assets)
+    recovered = []
+    for row in proposed["transactions"]:
+        if (not _eligible_name(row) or row.get("ticker") or
+                row["id"] in ambiguous_ids):
+            continue
+        rule = SEMANTIC_ALIASES.get(row["asset_name"])
+        if rule is None:
+            continue
+        ticker, evidence_url = rule
+        asset = registry.get(ticker)
+        if (asset is None or asset["status"] != "active" or
+                asset["exchange"] not in SIP_EXCHANGES):
+            continue
+        row["ticker"] = ticker
+        row["ticker_mapping_basis"] = SEMANTIC_BASIS
+        recovered.append({
+            "record_id": row["id"], "asset_name": row["asset_name"],
+            "ticker": ticker, "mapping_basis": SEMANTIC_BASIS,
+            "provider_asset_name": asset["name"],
+            "semantic_rule_id": _semantic_rule_id(row["asset_name"]),
+            "semantic_evidence_url": evidence_url,
+        })
+    return recovered
+
+
 def is_allowed_2026_ticker_change(before: dict, after: dict) -> bool:
     """Accept only a mapped ticker or correction of a known OCR suffix error."""
     if not _source_row(before) or not _source_row(after):
@@ -90,6 +194,12 @@ def _previous(previous: dict | None) -> dict[str, dict]:
                 row.get("mapping_basis") not in ALLOWED_BASES or
                 row["record_id"] in result):
             raise ValueError("Previous Trump 2026 ticker mapping row is invalid")
+        if row["mapping_basis"] == SEMANTIC_BASIS:
+            rule = SEMANTIC_ALIASES.get(row["asset_name"])
+            if (rule is None or rule[0] != row["ticker"] or
+                    row.get("semantic_rule_id") != _semantic_rule_id(row["asset_name"]) or
+                    row.get("semantic_evidence_url") != rule[1]):
+                raise ValueError("Previous Trump 2026 semantic rule changed")
         result[row["record_id"]] = row
     return result
 
@@ -142,9 +252,10 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
             corrections.append(row["id"])
     proposed, recovered, current = _recover_unique_asset_name_tickers(
         corrected, assets, eligible=_eligible_name)
+    ambiguous_ids = {row["record_id"] for row in current["ambiguous_records"]}
+    recovered.extend(_apply_semantic_aliases(proposed, assets, ambiguous_ids))
     proposed_by_id = {row["record_id"]: row for row in recovered}
     prior_by_id = _previous(previous)
-    ambiguous_ids = {row["record_id"] for row in current["ambiguous_records"]}
     if prior_by_id.keys() & ambiguous_ids:
         raise ValueError("A sticky Trump 2026 ticker mapping is now ambiguous")
     rows_by_id = {row["id"]: row for row in proposed["transactions"] if _source_row(row)}
@@ -154,9 +265,10 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         if row is None or row["asset_name"] != old["asset_name"]:
             raise ValueError("A sticky Trump 2026 ticker mapping lost its source row")
         current_mapping = proposed_by_id.get(record_id)
-        if current_mapping is not None and (
-                current_mapping["ticker"] != old["ticker"] or
-                current_mapping["mapping_basis"] != old["mapping_basis"]):
+        if current_mapping is not None and any(
+                current_mapping.get(key) != old.get(key) for key in (
+                    "ticker", "mapping_basis", "semantic_rule_id",
+                    "semantic_evidence_url")):
             raise ValueError("Alpaca identity conflicts with a sticky Trump 2026 mapping")
         row["ticker"] = old["ticker"]
         row["ticker_mapping_basis"] = old["mapping_basis"]
@@ -165,7 +277,8 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         if record_id not in prior_by_id:
             mappings.append({key: current_mapping[key] for key in (
                 "record_id", "asset_name", "ticker", "mapping_basis",
-                "provider_asset_name")})
+                "provider_asset_name", "semantic_rule_id",
+                "semantic_evidence_url") if key in current_mapping})
     mappings.sort(key=lambda row: row["record_id"])
     for old, new in zip(before["transactions"], proposed["transactions"], strict=True):
         if old["id"] != new["id"]:
@@ -195,6 +308,8 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         "correction_count": len(corrections),
         "correction_ids": sorted(corrections),
         "mapping_count": len(mappings),
+        "semantic_mapping_count": sum(
+            row["mapping_basis"] == SEMANTIC_BASIS for row in mappings),
         "retained_mapping_count": len(prior_by_id),
         "new_mapping_count": len(mappings) - len(prior_by_id),
         "ambiguous_record_count": len(ambiguous),
