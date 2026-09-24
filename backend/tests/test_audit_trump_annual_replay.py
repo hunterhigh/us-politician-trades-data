@@ -25,10 +25,15 @@ class TrumpReplayAuditTests(unittest.TestCase):
         locator = 0
         for name, count in counts.items():
             rows = []
-            for _ in range(part6_counts[name]):
+            for part6_index in range(part6_counts[name]):
                 locator += 1
                 value = row("part6", source_row_locator=f"p1-y{locator}",
                             account_scope=f"account-{locator % 3}")
+                if (name == "holdings" and part6_index >=
+                        script.EXPECTED_PART6_NUMERIC_HOLDING_COUNT):
+                    value["row_number"] = f"ocr-p1-y{locator}"
+                else:
+                    value["row_number"] = str(locator)
                 if name == "quarantined":
                     value["reasons"] = ["fixture"]
                 rows.append(value)
@@ -59,11 +64,13 @@ class TrumpReplayAuditTests(unittest.TestCase):
 
     def test_fixed_replay_is_conserved_and_deduplicated(self):
         audit = script.audit_replay(
-            self.fixture(), extraction_sha256="a" * 64,
+            self.fixture(), extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
             legacy_tree=script.LEGACY_TREE,
             legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
         self.assertEqual(audit["printed_row_count"], 27657)
         self.assertEqual(audit["part6_physical_row_count"], 6322)
+        self.assertEqual(audit["part6_numeric_printed_holding_count"], 2075)
+        self.assertEqual(audit["part6_synthetic_row_number_holding_count"], 1923)
         self.assertEqual(audit["part6_duplicate_source_row_locator_excess"], 0)
         self.assertEqual(audit["qualified_part6_holding_duplicate_count"], 0)
 
@@ -72,7 +79,7 @@ class TrumpReplayAuditTests(unittest.TestCase):
         value["quarantined"].pop()
         with self.assertRaisesRegex(ValueError, "disposition counts changed"):
             script.audit_replay(
-                value, extraction_sha256="a" * 64,
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
                 legacy_tree=script.LEGACY_TREE,
                 legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
         value = self.fixture()
@@ -80,7 +87,21 @@ class TrumpReplayAuditTests(unittest.TestCase):
             "source_row_locator"]
         with self.assertRaisesRegex(ValueError, "physical row locator is duplicated"):
             script.audit_replay(
-                value, extraction_sha256="a" * 64,
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
+                legacy_tree=script.LEGACY_TREE,
+                legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
+        value = self.fixture()
+        value["holdings"][0]["row_number"] = "ocr-p1-y1"
+        with self.assertRaisesRegex(ValueError, "printed/synthetic holding census changed"):
+            script.audit_replay(
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
+                legacy_tree=script.LEGACY_TREE,
+                legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
+
+    def test_changed_extraction_bytes_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "fixed extraction bytes changed"):
+            script.audit_replay(
+                self.fixture(), extraction_sha256="a" * 64,
                 legacy_tree=script.LEGACY_TREE,
                 legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
 
