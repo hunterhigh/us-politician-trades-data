@@ -40,9 +40,10 @@ class PreparedPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "main commit"):
             script.FixedCommitTransport("main")
 
-    def test_holding_only_person_and_fixed_market_commit_pass_preflight(self):
+    def test_trump_person_transactions_and_fixed_market_commit_pass_preflight(self):
         main, market = "a" * 40, "b" * 40
-        base = {"people": [{"id": "person"}], "transactions": [{"ticker": "MSFT"}],
+        base = {"people": [{"id": "trump"}],
+                "transactions": [{"id": "trump-tx", "ticker": "MSFT"}],
                 "reported_holdings": [{"person_id": "trump"}],
                 "security_market_data": [{"ticker": "MSFT"}],
                 "source_health": [{"source_id": "oge"}]}
@@ -52,7 +53,11 @@ class PreparedPublicationTests(unittest.TestCase):
             value["meta"] = {"market_commit": market,
                              "selection_scope": {"mode": mode, "key": key}}
             if mode == "person":
-                value["transactions"] = []
+                value["transactions"] = [{
+                    "id": "trump-tx",
+                    "person_id": key, "source_id": "oge",
+                    "filing_id": "wh-url:fixed", "verification_status": "official_matched",
+                    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/08/report.pdf"}]
                 value["reported_holdings"] = [{
                     "person_id": key, "source_url": script.TRUMP_2025_SOURCE_URL,
                     "report_period_end": "2025-12-31",
@@ -83,8 +88,11 @@ class PreparedPublicationTests(unittest.TestCase):
                 output_dir=Path(folder), expected_people=1,
                 expected_transactions=1, expected_holdings=1,
                 expected_market_rows=1, expected_source_health=1,
-                expected_person_holdings=1, transport=object())
+                expected_person_holdings=1, expected_person_transactions=1,
+                transport=object())
             self.assertEqual(result["reported_holding_count"], 1)
+            self.assertEqual(result["person_transaction_count"], 1)
+            self.assertTrue(result["trump_transactions_visible_in_dashboard_search"])
             self.assertTrue((Path(folder) / "dashboard.html").is_file())
 
 

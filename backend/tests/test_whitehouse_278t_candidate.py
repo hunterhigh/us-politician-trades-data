@@ -7,7 +7,11 @@ import unittest
 
 from unison_snapshot.builder import FIELDS
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_audit import (
+    TRUMP_TARGET_DOCUMENT_ID, TRUMP_TARGET_SOURCE_SHA256, TRUMP_TARGET_SOURCE_URL,
+    audit_whitehouse_278t,
+)
+from unison_snapshot.whitehouse_278t import TRUMP_081225_PARSER_VERSION
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
 
 
@@ -83,6 +87,51 @@ def _build(base=None, reports=None, cutoff="2025-06-14T00:00:00Z"):
         base, reports, audit, catalog, data_cutoff_at=cutoff)
 
 
+def _trump_source_bound():
+    report = _wiles()
+    report.update({
+        "document_id": TRUMP_TARGET_DOCUMENT_ID,
+        "source_url": TRUMP_TARGET_SOURCE_URL,
+        "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
+        "parser_version": TRUMP_081225_PARSER_VERSION,
+        "filer_name": "Trump, Donald J.", "pdf_filer_name": "Donald J Trump",
+        "pdf_position_title": "President of the United States of America",
+        "pdf_agency_label": None,
+        "filed_at": "2025-08-12", "signature_method": "handwritten_source_bound",
+        "filer_signature_name": None, "filer_signature_evidence": None,
+        "filing_date_evidence": {
+            "page_number": 1, "label": "Filer's Certification Date",
+            "raw": "8/12/25", "normalized": "2025-08-12",
+            "geometry": {"x0": 10.0, "top": 20.0, "x1": 40.0, "bottom": 30.0,
+                         "coordinate_space": "pdf_points"},
+            "source_url": TRUMP_TARGET_SOURCE_URL,
+            "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
+        },
+        "filer_identity_evidence": {
+            "page_number": 1, "pdf_filer_name": "Donald J Trump",
+            "pdf_position_title": "President of the United States of America",
+            "agency_basis": "exact_sha_official_oge_catalog_alias",
+            "source_url": TRUMP_TARGET_SOURCE_URL,
+            "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
+        },
+    })
+    report["transactions"] = [{
+        "extraction_id": "oge-278t:" + hashlib.sha256(
+            f"{TRUMP_TARGET_SOURCE_SHA256}:{index}".encode()).hexdigest()[:24],
+        "row_number": index, "owner": "Self", "asset_name": f"Asset {index}",
+        "ticker": None, "transaction_type": "sale",
+        "transaction_date": "2025-01-01", "amount_low": 1001,
+        "amount_high": 15000, "geometry_row_index": index,
+        "geometry_top": float(index), "ocr_confidence": 90.0,
+    } for index in range(1, 508)]
+    report.update({
+        "quarantined": [], "source_row_count": 507,
+        "extraction_method": "tesseract_ocr_geometry", "ocr_engine": "Tesseract 5.3.4",
+        "page_count": 22,
+    })
+    return report
+
+
 class WhiteHouse278TCandidateTests(unittest.TestCase):
     def test_wiles_three_rows_append_with_five_array_contract(self):
         base, report = _base(), _wiles()
@@ -94,6 +143,11 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         self.assertEqual(audit["promoted_transaction_count"], 3)
         self.assertEqual(audit["quarantined_row_count"], 0)
         self.assertEqual(audit["added_person_count"], 1)
+        self.assertEqual(audit["promoted_transaction_ids"],
+                         sorted(row["id"] for row in candidate["transactions"]))
+        self.assertTrue(audit["candidate_is_append_only"])
+        self.assertTrue(audit["source_row_conservation_complete"])
+        self.assertEqual(audit["existing_transaction_mutation_count"], 0)
         self.assertEqual(len(candidate["people"]), 1)
         self.assertEqual({item["filing_id"] for item in candidate["transactions"]},
                          {report["document_id"]})
@@ -183,6 +237,33 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         candidate, audit = _build(cutoff="2025-06-12T00:00:00Z")
         self.assertFalse(candidate["transactions"])
         self.assertIn("filing_exceeds_cutoff", audit["reports"][0]["document_reasons"])
+
+    def test_fixed_trump_source_bound_cover_date_can_promote(self):
+        base, report = _base(), _trump_source_bound()
+        trump_id = "oge:076544f8ba0638cf"
+        directory = {
+            "schema_version": "oge-whitehouse-coverage/v1", "catalog_sha256": "a" * 64,
+            "reports": [{"document_type": "278t", "filer_name": "Trump, Donald J.",
+                         "position_title": "President", "agency": "White House Office",
+                         "catalog_entry_id": "oge-trump"}],
+        }
+        audit = audit_whitehouse_278t([report], directory, base)
+        self.assertEqual(audit["reports"][0]["matched_catalog_identity"]["person_id"],
+                         trump_id)
+        candidate, conservation = build_whitehouse_278t_review_candidate(
+            base, [report], audit, directory, data_cutoff_at="2025-08-13T00:00:00Z")
+        self.assertEqual(conservation["promoted_transaction_count"], 507)
+        self.assertEqual({row["person_id"] for row in candidate["transactions"]},
+                         {trump_id})
+        self.assertEqual({row["filed_at"] for row in candidate["transactions"]},
+                         {"2025-08-12T00:00:00Z"})
+        report["filing_date_evidence"]["raw"] = "8/13/25"
+        with self.assertRaisesRegex(OgeCatalogError, "source-bound contract"):
+            audit_whitehouse_278t([report], directory, base)
+        report["filing_date_evidence"]["raw"] = "8/12/25"
+        report["filer_identity_evidence"]["agency_basis"] = "pdf_agency_cell"
+        with self.assertRaisesRegex(OgeCatalogError, "source-bound contract"):
+            audit_whitehouse_278t([report], directory, base)
 
     def test_stale_audit_and_demo_base_fail_closed(self):
         base, report, catalog = _base(), _wiles(), _catalog()

@@ -19,8 +19,16 @@ from .ocr_geometry import OcrGeometryError, ocr_pdf_pages
 
 EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
 PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
+TRUMP_081225_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v3"
+TRUMP_081225_DOCUMENT_ID = "wh-url:1a6bbff2a684fedd76ac9f59"
+TRUMP_081225_SOURCE_URL = (
+    "https://www.whitehouse.gov/wp-content/uploads/2025/08/"
+    "President-Donald-J.-Trump-Periodic-Transaction-Report-8.12.25-1.pdf")
+TRUMP_081225_SOURCE_SHA256 = (
+    "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043")
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
-SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS)
+SUPPORTED_PARSER_VERSIONS = (
+    PARSER_VERSION, TRUMP_081225_PARSER_VERSION, *LEGACY_PARSER_VERSIONS)
 MAX_INLINE_OCR_PAGES = 100
 MIN_OCR_ROW_CONFIDENCE = 70.0
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -111,6 +119,94 @@ def _validate_source(source_url: str, source_sha256: str, document_id: str,
         raise OgeCatalogError("White House 278-T document ID is missing")
     if not isinstance(filer_name, str) or not filer_name.strip():
         raise OgeCatalogError("White House 278-T filer name is missing")
+
+
+def parser_version_for_source(source_url: object, source_sha256: object) -> str:
+    """Select a source-bound parser without changing other White House scans."""
+
+    if (source_url == TRUMP_081225_SOURCE_URL and
+            source_sha256 == TRUMP_081225_SOURCE_SHA256):
+        return TRUMP_081225_PARSER_VERSION
+    return PARSER_VERSION
+
+
+def _trump_081225_profile(document_id: str, source_url: str,
+                          source_sha256: str) -> bool:
+    selected = parser_version_for_source(source_url, source_sha256)
+    if selected != TRUMP_081225_PARSER_VERSION:
+        return False
+    if document_id != TRUMP_081225_DOCUMENT_ID:
+        raise OgeCatalogError("Trump 08/12/25 278-T document binding is invalid")
+    return True
+
+
+def _apply_trump_081225_geometry(records: list[dict]) -> list[dict]:
+    """Resolve printed row numbers for one visually audited immutable scan.
+
+    The fixed PDF has 507 physical rows. Its pages contain rows 1-27,
+    eighteen pages of 26 rows, and rows 496-507. Tesseract v2 found every
+    physical row but frequently merged adjacent glyphs in the narrow number
+    column, creating false gaps and duplicates. Geometry order is therefore
+    the source-bound row-number evidence; no row is added or removed.
+    """
+
+    expected_pages = {2: 27, **{page: 26 for page in range(3, 21)}, 21: 12}
+    counts: dict[int, int] = {}
+    previous: tuple[int, float] | None = None
+    for record in records:
+        page = record.get("page_number")
+        top = record.get("geometry_top")
+        if type(page) is not int or not isinstance(top, (int, float)):
+            raise OgeCatalogError("Trump 08/12/25 278-T geometry is invalid")
+        counts[page] = counts.get(page, 0) + 1
+        if previous is not None and (page < previous[0] or
+                                     (page == previous[0] and top <= previous[1])):
+            raise OgeCatalogError("Trump 08/12/25 278-T geometry order is invalid")
+        previous = (page, float(top))
+    if len(records) != 507 or counts != expected_pages:
+        raise OgeCatalogError("Trump 08/12/25 278-T row conservation failed")
+
+    revised = []
+    for row_number, source in enumerate(records, start=1):
+        cells = source.get("cells")
+        if not isinstance(cells, list) or len(cells) != 6 or any(
+                not isinstance(value, str) for value in cells):
+            raise OgeCatalogError("Trump 08/12/25 278-T row cells are invalid")
+        record = {**source, "raw_cells": list(cells), "cells": list(cells),
+                  "printed_row_number_raw": cells[0],
+                  "printed_row_number_resolution": "source_bound_geometry_order"}
+        record["cells"][0] = str(row_number)
+        if row_number == 2:
+            if (record["page_number"] != 2 or
+                    not record["cells"][1].startswith("ALACHUA CNTY FL HLTH FAC REV") or
+                    record["cells"][3] not in {"11/28/2025", "1/28/2025", "01/28/2025"}):
+                raise OgeCatalogError("Trump 08/12/25 278-T row 2 evidence changed")
+            record["cells"][3] = "01/28/2025"
+            record["source_bound_corrections"] = [{
+                "field": "transaction_date",
+                "raw": cells[3],
+                "normalized": "2025-01-28",
+                "page_number": 2,
+                "geometry": {
+                    "x0": 515.0, "top": float(record["geometry_top"]) - 7.0,
+                    "x1": 552.0, "bottom": float(record["geometry_top"]) + 8.0,
+                    "coordinate_space": "pdf_points",
+                },
+                "basis": "fixed_source_visual_audit",
+            }]
+        revised.append(record)
+
+    anchors = {
+        496: "KENTUCKY ASSET LIABILITY COMMN AGY",
+        497: "SNOHOMISH CNTY WA SCH DIST 306",
+        507: "COOK CNTY ILL CM 4.25%",
+    }
+    for row_number, prefix in anchors.items():
+        record = revised[row_number - 1]
+        if record["page_number"] != 21 or not record["cells"][1].startswith(prefix):
+            raise OgeCatalogError(
+                f"Trump 08/12/25 278-T row {row_number} evidence changed")
+    return revised
 
 
 def _ocr_date(value: str) -> str:
@@ -390,7 +486,13 @@ def _attach_ocr_evidence(transactions: list[dict], quarantined: list[dict],
             evidence = {"geometry_row_index": geometry_index,
                         "geometry_top": record["geometry_top"],
                         "ocr_confidence": record["ocr_confidence"],
-                        "ocr_raw_cells": list(record["cells"])}
+                        "ocr_raw_cells": list(record.get("raw_cells", record["cells"]))}
+            if record.get("raw_cells") != record["cells"]:
+                evidence["source_bound_normalized_cells"] = list(record["cells"])
+            for field in ("printed_row_number_raw", "printed_row_number_resolution",
+                          "source_bound_corrections"):
+                if field in record:
+                    evidence[field] = deepcopy(record[field])
         updated = {**row, **evidence}
         if updated["ocr_confidence"] < MIN_OCR_ROW_CONFIDENCE:
             reasons = sorted(set(updated.get("reasons", []) +
@@ -415,6 +517,9 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     """
 
     _validate_source(source_url, source_sha256, document_id, filer_name)
+    source_bound_trump = _trump_081225_profile(
+        document_id, source_url, source_sha256)
+    parser_version = parser_version_for_source(source_url, source_sha256)
     if amended_label is not None and not isinstance(amended_label, str):
         raise OgeCatalogError("White House 278-T amendment label is invalid")
     content = Path(pdf_path).read_bytes()
@@ -431,6 +536,8 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     ocr_engine = None
     page_count = None
     ocr_records = None
+    filing_date_evidence = None
+    filer_identity_evidence = None
     native_cover_incomplete = not title_verified or pdf_filer_name is None
     needs_ocr = ((not rows and native_cover_incomplete) or
                  (bool(rows) and (not title_verified or
@@ -451,6 +558,44 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         page_count = ocr["page_count"]
         filed_at, signature_method, signature_raw, signature_name, reasons = _filer_signature(
             first_page)
+    if source_bound_trump:
+        if (not title_verified or _first_last(pdf_filer_name or "") != ("donald", "trump") or
+                _name_key(pdf_position_title or "") !=
+                "president of the united states of america"):
+            reasons.append("source_bound_filer_identity_not_verified")
+        else:
+            reasons = [reason for reason in reasons
+                       if reason not in {"filer_signature_not_electronically_verified",
+                                         "pdf_filer_agency_not_verified"}]
+            identity_reasons = [reason for reason in identity_reasons
+                                if reason != "pdf_filer_agency_not_verified"]
+            filed_at = "2025-08-12"
+            signature_method = "handwritten_source_bound"
+            signature_name = pdf_filer_name
+            filing_date_evidence = {
+                "page_number": 1,
+                "label": "Filer's Certification Date",
+                "raw": "8/12/25",
+                "normalized": filed_at,
+                "geometry": {
+                    "x0": 548.0, "top": 252.0, "x1": 687.0, "bottom": 294.0,
+                    "coordinate_space": "pdf_points",
+                },
+                "source_url": source_url,
+                "source_sha256": source_sha256,
+            }
+            filer_identity_evidence = {
+                "page_number": 1,
+                "pdf_filer_name": pdf_filer_name,
+                "pdf_position_title": pdf_position_title,
+                "agency_basis": "exact_sha_official_oge_catalog_alias",
+                "source_url": source_url,
+                "source_sha256": source_sha256,
+            }
+        if ocr_records is None:
+            raise OgeCatalogError("Trump 08/12/25 278-T requires OCR geometry")
+        ocr_records = _apply_trump_081225_geometry(ocr_records)
+        rows = [(record["page_number"], record["cells"]) for record in ocr_records]
     reasons.extend(identity_reasons)
     if signature_name is not None and _first_last(signature_name) != _first_last(filer_name):
         reasons.append("filer_signature_name_mismatch")
@@ -489,7 +634,7 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
 
     return {
         "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": PARSER_VERSION,
+        "parser_version": parser_version,
         "source_id": "oge",
         "document_id": document_id,
         "source_url": source_url,
@@ -504,6 +649,8 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         "signature_method": signature_method,
         "filer_signature_evidence": signature_raw,
         "filer_signature_name": signature_name,
+        "filing_date_evidence": filing_date_evidence,
+        "filer_identity_evidence": filer_identity_evidence,
         "extraction_method": extraction_method,
         "ocr_engine": ocr_engine,
         "page_count": page_count,

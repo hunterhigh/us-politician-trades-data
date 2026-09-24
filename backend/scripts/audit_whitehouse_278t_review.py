@@ -30,13 +30,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t  # noqa: E402
+from unison_snapshot.whitehouse_278t import SUPPORTED_PARSER_VERSIONS  # noqa: E402
+from unison_snapshot.oge_278e_public import SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS  # noqa: E402
 
 
 REPO = "hunterhigh/us-politician-trades-data"
 API = f"https://api.github.com/repos/{REPO}"
 _SHA1 = re.compile(r"[0-9a-f]{40}")
-_EXTRACTION_PATH = re.compile(
-    r"whitehouse/extractions/[^/]+/[0-9a-f]{64}/whitehouse-278t-pdf-v1\.json")
 _KEY_FIGURES = {
     "Trump": ("donald", "trump"),
     "Vance": ("jd", "vance"),
@@ -94,6 +94,38 @@ def _names(records: list[dict], field: str) -> set[str]:
             if isinstance(record.get(field), str) and record[field].strip()}
 
 
+def _current_extraction_path(row: dict, blobs: dict[str, str],
+                             parsers: tuple[str, ...]) -> str | None:
+    """Resolve only the coverage-selected extraction, never a stale sibling."""
+    if row.get("review_state") not in {"extracted_review_only", "extracted_with_issues"}:
+        return None
+    explicit = row.get("extraction_path")
+    if isinstance(explicit, str):
+        if explicit not in blobs:
+            raise RuntimeError("Coverage-selected White House extraction is missing")
+        return explicit
+    document_id = row.get("document_id")
+    versions = row.get("archive_sha256_versions")
+    if (not isinstance(document_id, str) or ":" not in document_id or
+            not isinstance(versions, list) or len(versions) != 1 or
+            not isinstance(versions[0], str)):
+        raise RuntimeError("White House extraction coverage identity is invalid")
+    folder = f"whitehouse/extractions/{document_id.split(':', 1)[1]}/{versions[0]}"
+    declared = row.get("extraction_parser_version")
+    if declared is not None:
+        if declared not in parsers:
+            raise RuntimeError("White House coverage selects an unsupported parser")
+        path = f"{folder}/{declared.replace('/', '-')}.json"
+        if path not in blobs:
+            raise RuntimeError("Coverage-selected White House extraction is missing")
+        return path
+    matches = [f"{folder}/{parser.replace('/', '-')}.json" for parser in parsers
+               if f"{folder}/{parser.replace('/', '-')}.json" in blobs]
+    if not matches:
+        raise RuntimeError("White House current extraction is missing")
+    return matches[0]
+
+
 def _key_figure_counts(coverage_rows: list[dict], index_quarantine: list[dict],
                        audit_reports: list[dict]) -> dict:
     summary = {}
@@ -142,11 +174,9 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
     }
     if not required.issubset(blobs):
         raise RuntimeError("Pinned review tree lacks required audit inputs")
-    extraction_paths = sorted(path for path in blobs if _EXTRACTION_PATH.fullmatch(path))
-    selected = sorted(required | set(extraction_paths))
     contents = {}
     with ThreadPoolExecutor(max_workers=5) as pool:
-        futures = {pool.submit(_blob, blobs[path], token): path for path in selected}
+        futures = {pool.submit(_blob, blobs[path], token): path for path in sorted(required)}
         for future in as_completed(futures):
             contents[futures[future]] = future.result()
     coverage = contents["whitehouse/coverage-current.json"]
@@ -157,6 +187,20 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         raise RuntimeError("White House coverage schema is unexpected")
     coverage_rows = [row for row in coverage["reports"]
                      if row.get("document_type_from_label") == "278t"]
+    extraction_paths = sorted(path for row in coverage_rows
+                              if (path := _current_extraction_path(
+                                  row, blobs, SUPPORTED_PARSER_VERSIONS)) is not None)
+    annual_rows = [row for row in coverage["reports"] if isinstance(row, dict) and
+                   str(row.get("document_type_from_label", "")).startswith("278e_")]
+    annual_paths = sorted(path for row in annual_rows
+                          if (path := _current_extraction_path(
+                              row, blobs, ANNUAL_PARSERS)) is not None)
+    selected = sorted(required | set(extraction_paths) | set(annual_paths))
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(_blob, blobs[path], token): path
+                   for path in [*extraction_paths, *annual_paths]}
+        for future in as_completed(futures):
+            contents[futures[future]] = future.result()
     by_id = {row["document_id"]: row for row in coverage_rows}
     if len(by_id) != len(coverage_rows):
         raise RuntimeError("White House 278-T coverage IDs are duplicated")
@@ -168,7 +212,9 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         if (record is None or item["source_sha256"] not in record["archive_sha256_versions"] or
                 item["source_url"] != record["document_url"]):
             raise RuntimeError("Extraction is not bound to current White House coverage")
-    audit = audit_whitehouse_278t(extractions, oge_catalog, oge_candidate)
+    annual_extractions = [contents[path] for path in annual_paths]
+    audit = audit_whitehouse_278t(
+        extractions, oge_catalog, oge_candidate, annual_extractions)
     if audit_output is not None:
         audit_output.parent.mkdir(parents=True, exist_ok=True)
         audit_output.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -210,6 +256,11 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
                                            for row in eligible if row["matched_catalog_identity"]}),
         "eligible_row_count": audit["eligible_row_count"],
         "quarantined_row_count": audit["quarantined_row_count"],
+        "source_row_count": audit["source_row_count"],
+        "row_conservation_complete": audit["row_conservation_complete"],
+        "annual_part7_comparable_row_count": audit["annual_part7_comparable_row_count"],
+        "annual_part7_incomparable_row_count": audit["annual_part7_incomparable_row_count"],
+        "annual_part7_overlap_count": audit["annual_part7_overlap_count"],
         "document_reason_counts": dict(sorted(reason_counts.items())),
         "key_figures": _key_figure_counts(coverage_rows, index_quarantine, audit["reports"]),
     }

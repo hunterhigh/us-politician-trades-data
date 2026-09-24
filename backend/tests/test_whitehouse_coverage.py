@@ -99,7 +99,9 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
             batch = {"schema_version": "whitehouse-public-disclosures-batch/v1",
                      "indexed_count": 1, "failures": [], "reports": [{
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
-            legacy = script.TRADE_PARSER_VERSIONS[1]
+            legacy = next(version for version in script.TRADE_PARSER_VERSIONS
+                          if version not in {script.TRADE_PARSER_VERSION,
+                                             script.TRUMP_081225_PARSER_VERSION})
             directory = root / "whitehouse/extractions" / document_id[7:] / sha
             directory.mkdir(parents=True)
             legacy_path = directory / f"{legacy.replace('/', '-')}.json"
@@ -116,6 +118,39 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
             blocked = script.build_coverage(index, batch, root)["reports"][0]
             self.assertEqual(blocked["review_state"], "extraction_quarantined")
             self.assertEqual(blocked["extraction_parser_version"], current)
+
+    def test_v3_is_selected_only_for_the_exact_trump_278t_source(self):
+        fixed = script._trade_versions(
+            "https://www.whitehouse.gov/wp-content/uploads/2025/08/"
+            "President-Donald-J.-Trump-Periodic-Transaction-Report-8.12.25-1.pdf",
+            "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043")
+        ordinary = script._trade_versions(
+            "https://www.whitehouse.gov/wp-content/uploads/2026/09/trade.pdf",
+            "d" * 64)
+        self.assertEqual(fixed[0], script.TRUMP_081225_PARSER_VERSION)
+        self.assertEqual(ordinary[0], script.TRADE_PARSER_VERSION)
+        self.assertNotIn(script.TRUMP_081225_PARSER_VERSION, ordinary)
+
+    def test_nonfixed_source_rejects_v3_trade_extraction(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "wh-url:" + "a" * 24
+            url = "https://www.whitehouse.gov/wp-content/uploads/2026/09/trade.pdf"
+            sha = "d" * 64
+            index = {"schema_version": script.INDEX_SCHEMA, "page_sha256": "c" * 64,
+                     "report_link_count": 1, "quarantine": [], "reports": [{
+                         "source_document_id": document_id, "link_label": "Trade",
+                         "filer_name_from_label": "Example, Ada",
+                         "document_type_from_label": "278t", "document_url": url}]}
+            batch = {"schema_version": "whitehouse-public-disclosures-batch/v1",
+                     "indexed_count": 1, "failures": [], "reports": [{
+                         "document_id": document_id, "document_url": url, "sha256": sha}]}
+            path = (root / "whitehouse/extractions" / document_id[7:] / sha /
+                    f"{script.TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json")
+            path.parent.mkdir(parents=True)
+            path.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "wrong source"):
+                script.build_coverage(index, batch, root)
 
     def test_v6_is_selected_only_for_the_exact_trump_source(self):
         fixed = script._annual_versions(
