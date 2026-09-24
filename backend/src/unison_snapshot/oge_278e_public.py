@@ -21,8 +21,13 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
 PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v5"
-TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
-TRUMP_2025_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v6"
+TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v8"
+TRUMP_2025_PREVIOUS_PARSER_VERSIONS = (
+    "whitehouse-278e-hybrid-geometry/v6",
+    "whitehouse-278e-hybrid-geometry/v7",
+)
+# The qualification layer names its immediately preceding reviewed parser.
+TRUMP_2025_PREVIOUS_PARSER_VERSION = TRUMP_2025_PREVIOUS_PARSER_VERSIONS[-1]
 TRUMP_2025_SOURCE_SHA256 = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
 TRUMP_2025_SOURCE_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                          "President-Donald-J.-Trump-2025-Annual-Report.pdf")
@@ -31,7 +36,7 @@ TRUMP_2025_LEGACY_OCR_ENGINE = "tesseract 5.3.4"
 LEGACY_PARSER_VERSIONS = ("whitehouse-278e-hybrid-geometry/v4",
                           "whitehouse-278e-positioned-text/v2")
 SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS,
-                             TRUMP_2025_PREVIOUS_PARSER_VERSION,
+                             *TRUMP_2025_PREVIOUS_PARSER_VERSIONS,
                              TRUMP_2025_PARSER_VERSION)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
@@ -347,6 +352,13 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
         raw = str(word["text"])
         field = ("description", "eif", "value", "income")[max(
             i for i, start in enumerate(starts) if x >= start - 6)]
+        if field == "description":
+            anchor = {
+                "original_text": str(word["text"]), "x0": x,
+                "x1": float(word["x1"]), "top": float(word["top"]),
+                "ocr_confidence": word.get("ocr_confidence")}
+            row.setdefault("_description_cell_anchor", anchor)
+            row.setdefault("_description_anchor", anchor)
         split = raw.find("$")
         if (field == "eif" and split > 0 and
                 float(word.get("x1", x)) >= starts[2] - 6 and
@@ -388,6 +400,103 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
             row.setdefault("_ocr_confidences", []).append(score)
             for name in fields:
                 row.setdefault("_ocr_field_confidences", {}).setdefault(name, []).append(score)
+
+
+def _recover_trump_number_border_prefix(row: dict, word: dict,
+                                        columns: dict[str, float]) -> None:
+    """Keep a printed asset-name prefix fused into the numbered table border.
+
+    This does not certify the printed row number: OCR can drop its leading
+    digits, so the physical locator remains the row identity.
+    """
+
+    raw = str(word["text"])
+    match = re.fullmatch(r"([0-9]{1,4})_{2,4}\|(\*{0,2})([A-Za-z][A-Za-z.&-]*)", raw)
+    if not match or float(word["x0"]) >= columns["description"] - 8:
+        return
+    prefix = match[3]
+    row["description"].append(prefix)
+    row["_description_border_split_evidence"] = {
+        "method": "source_bound_part6_number_border_split/v1",
+        "original_text": raw, "number_glyph": match[1],
+        "footnote_marker": match[2] or None, "description_prefix": prefix,
+        "x0": float(word["x0"]), "x1": float(word["x1"]),
+        "top": float(word["top"]),
+        "ocr_confidence": word.get("ocr_confidence")}
+    row["_description_anchor"] = {
+        "original_text": raw, "x0": float(word["x0"]),
+        "x1": float(word["x1"]), "top": float(word["top"]),
+        "ocr_confidence": word.get("ocr_confidence"),
+        "embedded_in_number_border": True}
+    if isinstance(word.get("ocr_confidence"), (int, float)):
+        row.setdefault("_ocr_field_confidences", {}).setdefault(
+            "description", []).append(float(word["ocr_confidence"]))
+
+
+def _trump_part6_row_relationships(rows: list[dict]) -> None:
+    """Record source-bound neighbors without changing a damaged row number."""
+
+    scopes: dict[str, list[dict]] = {}
+    for row in rows:
+        if row["section"] == "part6" and row.get("account_scope"):
+            scopes.setdefault(row["account_scope"], []).append(row)
+    for scope, scope_rows in scopes.items():
+        nested_visible = any(re.fullmatch(r"[0-9]+\.[0-9]+", row["row_number"])
+                             for row in scope_rows)
+        for index, row in enumerate(scope_rows):
+            number_word = row.get("_number_column_word")
+            raw_number = number_word["original_text"] if number_word else ""
+            body_glyph = (bool(re.fullmatch(r"[0-9]{1,4}(?:_{2,4}\|?)?",
+                                            raw_number)) or
+                          bool(re.fullmatch(
+                              r"[0-9]{1,4}_{2,4}\|\*{0,2}[A-Za-z][A-Za-z.&-]*",
+                              raw_number)))
+            description = " ".join(row.get("description", []))
+            aggregate = bool(re.search(r"\b(?:SUBTOTAL|TOTAL)\b", description, re.I))
+            anchor = row.get("_description_anchor")
+            cell_anchor = row.get("_description_cell_anchor")
+
+            def neighbor(other: dict | None) -> dict | None:
+                if other is None:
+                    return None
+                word = other.get("_number_column_word")
+                return {"source_row_locator": other["source_row_locator"],
+                        "row_number": other["row_number"],
+                        "number_column_text": word["original_text"] if word else None,
+                        "description_anchor": other.get("_description_anchor"),
+                        "description_cell_anchor": other.get("_description_cell_anchor")}
+
+            previous = scope_rows[index - 1] if index else None
+            following = scope_rows[index + 1] if index + 1 < len(scope_rows) else None
+            basis = []
+            if body_glyph:
+                basis.append("printed_number_column_body_glyph")
+            if cell_anchor:
+                basis.append("separate_description_cell")
+            if row.get("_value_word_evidence"):
+                basis.append("separate_value_cell")
+            if not nested_visible:
+                basis.append("no_visible_decimal_hierarchy_in_account_scope")
+            if aggregate:
+                basis.append("aggregate_label_detected")
+            if "account_heading_unverified" in row.get("_row_reasons", []):
+                basis.append("account_heading_unverified")
+            flat_candidate = (body_glyph and cell_anchor and
+                              bool(row.get("_value_word_evidence")) and
+                              not nested_visible and not aggregate and
+                              "account_heading_unverified" not in
+                              row.get("_row_reasons", []))
+            row["_row_relationship_evidence"] = {
+                "method": "source_bound_part6_neighbor_geometry/v1",
+                "classification": ("flat_numbered_item_candidate" if flat_candidate
+                                   else "unresolved"),
+                "basis": basis, "source_row_locator": row["source_row_locator"],
+                "account_scope": scope, "number_column_word": number_word,
+                "description_anchor": anchor,
+                "description_cell_anchor": cell_anchor,
+                "previous_row": neighbor(previous), "next_row": neighbor(following),
+                "parent_source_row_locator": None,
+                "scope_has_visible_decimal_numbering": nested_visible}
 
 
 def _trump_value_geometry_evidence(row: dict) -> dict | None:
@@ -458,6 +567,10 @@ def _quarantine(row: dict, reasons: list[str]) -> dict:
     geometry = _trump_value_geometry_evidence(row)
     if geometry:
         result["value_geometry_evidence"] = geometry
+    if row.get("_row_relationship_evidence"):
+        result["row_relationship_evidence"] = row["_row_relationship_evidence"]
+    if row.get("_description_border_split_evidence"):
+        result["description_border_split_evidence"] = row["_description_border_split_evidence"]
     if row.get("owner_evidence_conflict"):
         result["owner_evidence_conflict"] = row["owner_evidence_conflict"]
     confidences = row.get("_ocr_confidences", [])
@@ -551,6 +664,10 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
     geometry = _trump_value_geometry_evidence(row)
     if geometry:
         evidence["value_geometry_evidence"] = geometry
+    if row.get("_row_relationship_evidence"):
+        evidence["row_relationship_evidence"] = row["_row_relationship_evidence"]
+    if row.get("_description_border_split_evidence"):
+        evidence["description_border_split_evidence"] = row["_description_border_split_evidence"]
     confidences = row.get("_ocr_confidences", [])
     if confidences:
         evidence["ocr_mean_confidence"] = round(sum(confidences) / len(confidences), 2)
@@ -776,12 +893,21 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                         row["account_scope_evidence"] = current_scope["evidence"]
                     if not current_scope or not current_scope["verified"]:
                         row.setdefault("_row_reasons", []).append("account_heading_unverified")
+                    if first_in_number_column:
+                        first_word = line_words[0]
+                        row["_number_column_word"] = {
+                            "original_text": str(first_word["text"]),
+                            "x0": float(first_word["x0"]),
+                            "x1": float(first_word["x1"]),
+                            "top": float(first_word["top"]),
+                            "ocr_confidence": first_word.get("ocr_confidence")}
+                        _recover_trump_number_border_prefix(row, first_word, columns)
                 if ((not trump_layout or current_part != "part6" or first_in_number_column) and
                         isinstance(line_words[0].get("ocr_confidence"), (int, float))):
                     score = float(line_words[0]["ocr_confidence"])
                     row["_ocr_confidences"] = [score]
                     if trump_layout and current_part == "part6":
-                        row["_ocr_field_confidences"] = {"row_number": [score]}
+                        row.setdefault("_ocr_field_confidences", {})["row_number"] = [score]
             if row:
                 if trump_layout and current_part == "part6":
                     _append_trump_part6_line(row, line_words, columns)
@@ -796,6 +922,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     transactions: list[dict] = []
     quarantined: list[dict] = list(unparsed_rows)
     excluded: list[dict] = []
+    if trump_layout:
+        _trump_part6_row_relationships(raw_rows)
     counts: dict[tuple[str, str], int] = {}
     for row in raw_rows:
         key = (row["section"], row["source_row_locator"] if trump_layout and
