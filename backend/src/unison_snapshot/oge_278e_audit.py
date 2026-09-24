@@ -18,6 +18,7 @@ from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
 from .oge_annual import _VALUE_RANGES, _range
 from .whitehouse_scanned_annual import (recovered_ocr_holding_valid,
                                         scanned_signature_evidence_valid,
+                                        source_bound_existing_holding_valid,
                                         source_bound_holding_section_page_valid,
                                         source_bound_parser_version_valid)
 
@@ -27,6 +28,9 @@ _OWNERS = {"Self", "Spouse", "Dependent Child", "Joint"}
 _HOLDING_PARTS = {"part2", "part5", "part6"}
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SOURCE_ROW_LOCATOR = re.compile(r"p([1-9]\d*)-y([1-9]\d*)\Z")
+_ACCOUNT_SCOPE = re.compile(r"investment-account-([1-9]\d*)\Z")
+_ACCOUNT_HEADING = re.compile(r"INVESTMENT\s+ACCOUNT\s*#\s*([1-9]\d*)\Z", re.I)
+_PRINTED_ROW_NUMBER = re.compile(r"[1-9]\d*(?:\.[1-9]\d*)*\Z")
 
 
 def _date(value: object) -> date | None:
@@ -78,28 +82,72 @@ def _part6_owner_evidence_valid(row: dict, extraction: dict) -> bool:
     return True
 
 
+def _account_scope_evidence_valid(row: dict, extraction: dict) -> bool:
+    scope = row.get("account_scope")
+    evidence = row.get("account_scope_evidence")
+    scope_match = _ACCOUNT_SCOPE.fullmatch(scope) if isinstance(scope, str) else None
+    heading_match = (_ACCOUNT_HEADING.fullmatch(" ".join(evidence.get("text", "").split()))
+                     if isinstance(evidence, dict) and
+                     isinstance(evidence.get("text"), str) else None)
+    return bool(
+        scope_match is not None and heading_match is not None and
+        scope_match[1] == heading_match[1] and
+        type(evidence.get("page_number")) is int and
+        type(row.get("page_number")) is int and
+        evidence["page_number"] <= row["page_number"] and
+        source_bound_holding_section_page_valid(
+            {"section": row.get("section"),
+             "page_number": evidence["page_number"]}, extraction)
+    )
+
+
 def _critical_field_confidence_valid(row: dict, extraction: dict) -> bool:
     """Require confidence on the cells that determine a v6 holding fact."""
 
     if extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION:
         return True
-    recovered = recovered_ocr_holding_valid(row, extraction)
-    fields = row.get("critical_field_confidence" if recovered else
+    source_bound = (recovered_ocr_holding_valid(row, extraction) or
+                    source_bound_existing_holding_valid(row, extraction))
+    fields = row.get("critical_field_confidence" if source_bound else
                      "ocr_field_confidence")
     if not isinstance(fields, dict):
         return False
-    minimum_key = "minimum" if recovered else "min"
-    for name in ("row_number", "description", "value"):
+    minimum_key = "minimum" if source_bound else "min"
+    for name in ("description", "value"):
         confidence = fields.get(name)
         if (not isinstance(confidence, dict) or
                 not isinstance(confidence.get("mean"), (int, float)) or
                 not isinstance(confidence.get(minimum_key), (int, float)) or
-                confidence["mean"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
                 confidence[minimum_key] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
             return False
-        if not recovered and (type(confidence.get("word_count")) is not int or
-                              confidence["word_count"] <= 0):
+        # Asset names still need a readable field-wide signal.  The Value
+        # cell instead has an exact closed-band grammar check below; a low-
+        # scoring currency token must not outweigh three unambiguous tokens.
+        if name == "description" and confidence["mean"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE:
             return False
+        if not source_bound and (type(confidence.get("word_count")) is not int or
+                                 confidence["word_count"] <= 0):
+            return False
+    row_confidence = fields.get("row_number")
+    printed_number_valid = bool(
+        isinstance(row_confidence, dict) and
+        isinstance(row_confidence.get("mean"), (int, float)) and
+        isinstance(row_confidence.get(minimum_key), (int, float)) and
+        row_confidence["mean"] >= OCR_MINIMUM_ROW_MEAN_CONFIDENCE and
+        row_confidence[minimum_key] >= OCR_MINIMUM_CRITICAL_CONFIDENCE and
+        (source_bound or (type(row_confidence.get("word_count")) is int and
+                          row_confidence["word_count"] > 0))
+    )
+    physical_identity_valid = bool(
+        row.get("section") == "part6" and
+        isinstance(row.get("row_number"), str) and
+        _PRINTED_ROW_NUMBER.fullmatch(row["row_number"]) and
+        isinstance(row.get("source_row_locator"), str) and
+        _SOURCE_ROW_LOCATOR.fullmatch(row["source_row_locator"]) and
+        _account_scope_evidence_valid(row, extraction)
+    )
+    if not printed_number_valid and not physical_identity_valid:
+        return False
     return True
 
 
@@ -270,14 +318,7 @@ def audit_public_278e(extraction: dict) -> dict:
         account_scope = row.get("account_scope")
         account_evidence = row.get("account_scope_evidence")
         if account_scope is not None or account_evidence is not None:
-            if (not isinstance(account_scope, str) or not account_scope.strip() or
-                    not isinstance(account_evidence, dict) or
-                    type(account_evidence.get("page_number")) is not int or
-                    not isinstance(account_evidence.get("text"), str) or
-                    not account_evidence["text"].strip() or
-                    not source_bound_holding_section_page_valid(
-                        {"section": row.get("section"),
-                         "page_number": account_evidence.get("page_number")}, extraction)):
+            if not _account_scope_evidence_valid(row, extraction):
                 reasons.append("holding_row_evidence_invalid")
         if index in valued_parent_indexes:
             reasons.append("holding_parent_child_double_count")
@@ -308,11 +349,12 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_valuation_status_invalid")
         if valuation is None:
             reasons.append("holding_valuation_date_not_exact")
-        if ocr_method and not recovered_ocr_holding_valid(row, extraction) and (
+        if (ocr_method and extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION and
+                not recovered_ocr_holding_valid(row, extraction) and (
                 not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
                 not isinstance(row.get("ocr_min_confidence"), (int, float)) or
                 row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
-                row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
+                row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE)):
             reasons.append("holding_ocr_confidence_invalid")
         row_audit.append({"section": row.get("section"), "page_number": row.get("page_number"),
                           "row_number": row.get("row_number"), "asset_name": row.get("asset_name"),

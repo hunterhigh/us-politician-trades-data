@@ -23,6 +23,11 @@ _TRUMP_CHECKPOINT_PATH = (
     "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3/"
     "whitehouse-278e-hybrid-geometry-v5/pages-0851-0875.json")
 _TRUMP_CHECKPOINT_BLOB = "bb1f45bd8f8ff54c6179cf4d5c44a44dd3cf0373"
+_TRUMP_ROW_332_DESCRIPTION = (
+    "Trump Marks Philippines LLC Location: Century City Makati, Philippines Licensee: "
+    "Century Luxury Properties, Inc. Additional Underlying Assets: Registered Trademark(s) "
+    "(values not readily ascertainable).* (See Exhibit A). Underlying Asset: U.S. bank account "
+    "Location: Jupiter, FL (value represents bank account only)")
 
 _ATTESTATIONS = {
     TRUMP_2025_SOURCE_SHA256: {
@@ -37,6 +42,28 @@ _ATTESTATIONS = {
         # bound guard in the qualification layer even after parser replay so
         # an older extraction can never publish those transactions as assets.
         "holding_page_ranges": {"part6": (7, 158), "part2": (848, 870)},
+        # v6 is source-bound for the whole PDF, while its new physical locator
+        # and per-field confidence fields are emitted only for Part 6.  Bind the
+        # one already-published Part 2 holding to the same immutable checkpoint
+        # so a parser-version change cannot make that existing fact disappear.
+        "qualified_holding_evidence": {
+            ("part2", 864, "332"): {
+                "asset_name": _TRUMP_ROW_332_DESCRIPTION,
+                "owner": "Self",
+                "raw_columns": {
+                    "description": _TRUMP_ROW_332_DESCRIPTION,
+                    "eif": "No", "value": "$1,001 to $15,000",
+                },
+                "value_low": 1001, "value_high": 15000,
+                "source_row_locator": "p864-y2772",
+                "geometry_top": 277.2,
+                "critical_field_confidence": {
+                    "row_number": {"mean": 96.53, "minimum": 96.53},
+                    "description": {"mean": 94.89, "minimum": 85.43},
+                    "value": {"mean": 95.90, "minimum": 95.41},
+                },
+            },
+        },
         # The only Part 2 rows independently closed against the immutable OCR
         # checkpoint. Exact raw cells make this an allowlist, not a wider
         # confidence-threshold exception.
@@ -147,6 +174,40 @@ def source_bound_parser_version_valid(extraction: dict) -> bool:
             _attestation(extraction) is not None)
 
 
+def _qualified_holding_approval(row: dict, extraction: dict) -> dict | None:
+    attestation = _attestation(extraction)
+    approved = attestation.get("qualified_holding_evidence") if attestation else None
+    approval = approved.get((row.get("section"), row.get("page_number"),
+                             row.get("row_number"))) if isinstance(approved, dict) else None
+    if (not isinstance(approval, dict) or row.get("asset_name") != approval.get("asset_name") or
+            row.get("owner") != approval.get("owner") or
+            row.get("raw_columns") != approval.get("raw_columns") or
+            row.get("value_low") != approval.get("value_low") or
+            row.get("value_high") != approval.get("value_high")):
+        return None
+    return approval
+
+
+def source_bound_existing_holding_valid(row: dict, extraction: dict) -> bool:
+    """Validate fixed evidence added to an already-qualified legacy holding."""
+
+    approval = _qualified_holding_approval(row, extraction)
+    evidence = row.get("source_bound_holding_evidence")
+    return bool(
+        approval is not None and isinstance(evidence, dict) and
+        row.get("source_row_locator") == approval.get("source_row_locator") and
+        row.get("critical_field_confidence") == approval.get("critical_field_confidence") and
+        evidence.get("source_sha256") == extraction.get("source_sha256") and
+        evidence.get("checkpoint_path") == _TRUMP_CHECKPOINT_PATH and
+        evidence.get("checkpoint_git_blob") == _TRUMP_CHECKPOINT_BLOB and
+        evidence.get("source_row_locator") == approval.get("source_row_locator") and
+        evidence.get("geometry_top") == approval.get("geometry_top") and
+        evidence.get("critical_field_confidence") == approval.get("critical_field_confidence") and
+        _range(row.get("raw_columns", {}).get("value", "")) ==
+        (row.get("value_low"), row.get("value_high"))
+    )
+
+
 def _recover_holding(row: dict, extraction: dict) -> dict | None:
     attestation = _attestation(extraction)
     if attestation is None:
@@ -246,6 +307,22 @@ def apply_scanned_annual_corrections(extraction: dict) -> dict:
         "source_sha256": corrected["source_sha256"],
         "method": RECOVERY_METHOD,
     }
+    for row in corrected.get("holdings", []):
+        approval = _qualified_holding_approval(row, corrected)
+        if approval is None or row.get("source_row_locator") not in (
+                None, approval["source_row_locator"]):
+            continue
+        row["source_row_locator"] = approval["source_row_locator"]
+        row["critical_field_confidence"] = approval["critical_field_confidence"]
+        row["source_bound_holding_evidence"] = {
+            "method": RECOVERY_METHOD,
+            "source_sha256": corrected["source_sha256"],
+            "checkpoint_path": _TRUMP_CHECKPOINT_PATH,
+            "checkpoint_git_blob": _TRUMP_CHECKPOINT_BLOB,
+            "source_row_locator": approval["source_row_locator"],
+            "geometry_top": approval["geometry_top"],
+            "critical_field_confidence": approval["critical_field_confidence"],
+        }
     recovered = []
     remaining = []
     existing = {(row.get("section"), row.get("row_number"))

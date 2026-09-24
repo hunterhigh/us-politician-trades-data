@@ -12,7 +12,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from test_oge_278e_audit import _annual
-from unison_snapshot.oge_278e_public import PARSER_VERSION
+from unison_snapshot.oge_278e_public import PARSER_VERSION, TRUMP_2025_PARSER_VERSION
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
 
@@ -32,7 +32,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         document_id = "wh-url:" + hashlib.sha256(url.encode()).hexdigest()[:24]
         relative = (Path("whitehouse/extractions") / document_id[7:] /
                     extraction["source_sha256"] /
-                    f"{PARSER_VERSION.replace('/', '-')}.json")
+                    f"{extraction['parser_version'].replace('/', '-')}.json")
         path = self.root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(extraction), encoding="utf-8")
@@ -42,6 +42,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
             "reports": [{"document_id": document_id, "document_url": url,
                          "filer_name_from_label": extraction["filer_name"],
                          "document_type_from_label": "278e_annual",
+                         "extraction_parser_version": extraction["parser_version"],
                          "archive_sha256_versions": [extraction["source_sha256"]],
                          "review_state": "extracted_review_only"}],
         }
@@ -131,6 +132,65 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         third = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
         third_ids = {row["row_number"]: row["row_id"] for row in third["holdings"]}
         self.assertEqual(third_ids, second_ids)
+
+    def test_trump_v6_keeps_published_row_and_adds_two_part2_recoveries(self) -> None:
+        description = (
+            "Trump Marks Philippines LLC Location: Century City Makati, Philippines Licensee: "
+            "Century Luxury Properties, Inc. Additional Underlying Assets: Registered "
+            "Trademark(s) (values not readily ascertainable).* (See Exhibit A). Underlying "
+            "Asset: U.S. bank account Location: Jupiter, FL (value represents bank account only)")
+        extraction = _annual()
+        extraction.update(
+            parser_version=TRUMP_2025_PARSER_VERSION,
+            source_url=TRUMP_URL, source_sha256=TRUMP_SHA,
+            filer_name="Donald Trump", position_line_raw="President",
+            cover_report_year=2025, extraction_method="tesseract_ocr_geometry",
+            ocr_engine="tesseract test", filing_date=None, signature_text=None,
+            printed_row_count=3, explicit_empty_sections=["part5", "part6", "part7"],
+            document_reasons=["filer_handwritten_signature_or_date_unverified"],
+        )
+        extraction["holdings"] = [{
+            "section": "part2", "page_number": 864, "row_number": "332",
+            "asset_name": description, "owner": "Self",
+            "raw_columns": {"description": description, "eif": "No",
+                            "value": "$1,001 to $15,000"},
+            "value_low": 1001, "value_high": 15000,
+            "report_period_end": "2025-12-31",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 95.06, "ocr_min_confidence": 85.43,
+        }]
+        extraction["quarantined"] = [
+            {
+                "section": "part2", "page_number": 856, "row_number": "135",
+                "owner": "Self", "owner_evidence": None,
+                "raw_columns": {
+                    "description": ("DTW Venture LLC Underlying Assets: residential real estate "
+                                    "Location: Palm Beach, FL"),
+                    "eif": "N/A", "value": "|$5,000,001 to $25,000,000",
+                },
+                "reasons": ["holding_value_unreadable_or_open"],
+                "ocr_mean_confidence": 93.19, "ocr_min_confidence": 81.42,
+            },
+            {
+                "section": "part2", "page_number": 866, "row_number": "374.2",
+                "owner": "Self", "owner_evidence": None,
+                "raw_columns": {"description": "Receivable from Amazon MGM Studios",
+                                "eif": "N/A", "value": "| $250,001 to $500,000"},
+                "reasons": ["holding_value_unreadable_or_open"],
+                "ocr_mean_confidence": 94.39, "ocr_min_confidence": 80.0,
+            },
+        ]
+        coverage, _ = self.fixture(extraction)
+        result = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        by_number = {row["row_number"]: row for row in result["holdings"]}
+        self.assertEqual(result["source_eligible_holding_count"], 3)
+        self.assertEqual(set(by_number), {"332", "135", "374.2"})
+        self.assertEqual(by_number["332"]["row_id"],
+                         "wh-annual:8b95ffd94c805396cc7aa1d0")
+        self.assertTrue(by_number["332"]["source_holdings_eligible"])
+        self.assertEqual(by_number["332"]["source_bound_holding_evidence"][
+            "source_row_locator"], "p864-y2772")
 
 
 if __name__ == "__main__":

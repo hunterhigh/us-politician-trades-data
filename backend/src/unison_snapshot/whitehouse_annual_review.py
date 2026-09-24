@@ -177,6 +177,9 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                 # Preserve the original OCR cells and original quarantine
                 # reasons for every source-bound promoted row.
                 materialized["source_bound_ocr_recovery"] = row["ocr_recovery"]
+            if isinstance(row.get("source_bound_holding_evidence"), dict):
+                materialized["source_bound_holding_evidence"] = row[
+                    "source_bound_holding_evidence"]
             holdings.append(materialized)
     if len({row["row_id"] for row in holdings}) != len(holdings):
         raise ValueError("White House annual row identity collision")
