@@ -53,7 +53,10 @@ class PreparedPublicationTests(unittest.TestCase):
                              "selection_scope": {"mode": mode, "key": key}}
             if mode == "person":
                 value["transactions"] = []
-                value["reported_holdings"] = [{"person_id": key}]
+                value["reported_holdings"] = [{
+                    "person_id": key, "source_url": script.TRUMP_2025_SOURCE_URL,
+                    "report_period_end": "2025-12-31",
+                    "verification_status": "official_matched"}]
             if mode == "ticker":
                 value["transactions"] = [{"ticker": key}]
                 source = ("twelve_data_split_adjusted_eod" if key == "AAPL" else
@@ -77,7 +80,10 @@ class PreparedPublicationTests(unittest.TestCase):
             result = script.verify_prepared_publication(
                 owner="owner", repo="repo", main_commit=main, market_commit=market,
                 person_id="trump", ticker="MSFT", twelve_ticker="AAPL",
-                output_dir=Path(folder), transport=object())
+                output_dir=Path(folder), expected_people=1,
+                expected_transactions=1, expected_holdings=1,
+                expected_market_rows=1, expected_source_health=1,
+                expected_person_holdings=1, transport=object())
             self.assertEqual(result["reported_holding_count"], 1)
             self.assertTrue((Path(folder) / "dashboard.html").is_file())
 

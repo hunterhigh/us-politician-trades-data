@@ -30,6 +30,14 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
                 self.assertIn("group: disclosure-source-writer", content, path.name)
                 self.assertNotIn("group: disclosure-review-writer", content, path.name)
 
+    def test_candidate_rebuild_audits_only_additive_trump_holdings(self):
+        content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("disclosure-candidate-before.json", content)
+        self.assertIn("oge-candidate-before.json", content)
+        self.assertIn("audit_trump_candidate_transition.py", content)
+        self.assertIn("candidate-transition-current.json", content)
+
 
 if __name__ == "__main__":
     unittest.main()

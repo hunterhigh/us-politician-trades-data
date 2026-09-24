@@ -9,6 +9,7 @@ import re
 
 from unison_snapshot.codec import encode
 from unison_snapshot.legacy import load
+from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
 from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotRepository
 
 
@@ -33,6 +34,9 @@ class FixedCommitTransport:
 def verify_prepared_publication(
         *, owner: str, repo: str, main_commit: str, market_commit: str,
         person_id: str, ticker: str, twelve_ticker: str, output_dir: Path,
+        expected_people: int, expected_transactions: int,
+        expected_holdings: int, expected_market_rows: int,
+        expected_source_health: int, expected_person_holdings: int,
         transport=None) -> dict:
     if not SHA1.fullmatch(market_commit):
         raise ValueError("Prepared market commit is invalid")
@@ -58,10 +62,27 @@ def verify_prepared_publication(
                       "security_market_data", "source_health"):
             if not snapshot.get(field):
                 raise ValueError(f"Prepared {mode} selection has an empty {field} array")
+    dashboard = selections["dashboard"].snapshot
+    expected = {
+        "people": expected_people,
+        "transactions": expected_transactions,
+        "reported_holdings": expected_holdings,
+        "security_market_data": expected_market_rows,
+        "source_health": expected_source_health,
+    }
+    observed = {field: len(dashboard[field]) for field in expected}
+    if observed != expected:
+        raise ValueError(f"Prepared dashboard counts differ from the candidate: {observed}")
     person = selections["person"].snapshot
     if (person["meta"]["selection_scope"].get("key") != person_id or
-            not person["reported_holdings"]):
+            len(person["reported_holdings"]) != expected_person_holdings):
         raise ValueError("Prepared holding-only person readback is incomplete")
+    if (person["meta"].get("is_demo") is True or any(
+            row.get("source_url") != TRUMP_2025_SOURCE_URL or
+            row.get("report_period_end") != "2025-12-31" or
+            row.get("verification_status") != "official_matched"
+            for row in person["reported_holdings"])):
+        raise ValueError("Prepared Trump holding provenance is invalid")
     ticker_value = selections["ticker"].snapshot
     if (ticker_value["meta"]["selection_scope"].get("key") != ticker.upper() or
             not ticker_value["transactions"] or
@@ -98,12 +119,23 @@ def main() -> int:
     parser.add_argument("--ticker", required=True)
     parser.add_argument("--twelve-ticker", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--expected-people", type=int, required=True)
+    parser.add_argument("--expected-transactions", type=int, required=True)
+    parser.add_argument("--expected-holdings", type=int, required=True)
+    parser.add_argument("--expected-market-rows", type=int, required=True)
+    parser.add_argument("--expected-source-health", type=int, required=True)
+    parser.add_argument("--expected-person-holdings", type=int, required=True)
     args = parser.parse_args()
     result = verify_prepared_publication(
         owner=args.owner, repo=args.repo, main_commit=args.main_commit,
         market_commit=args.market_commit, person_id=args.person_id,
         ticker=args.ticker, twelve_ticker=args.twelve_ticker,
-        output_dir=args.output_dir)
+        output_dir=args.output_dir, expected_people=args.expected_people,
+        expected_transactions=args.expected_transactions,
+        expected_holdings=args.expected_holdings,
+        expected_market_rows=args.expected_market_rows,
+        expected_source_health=args.expected_source_health,
+        expected_person_holdings=args.expected_person_holdings)
     print(json.dumps(result, sort_keys=True))
     return 0
 

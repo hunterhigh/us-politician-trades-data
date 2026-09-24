@@ -210,8 +210,9 @@ jobs:
           if not twelve:
               raise SystemExit('Twelve Data probe is missing from the candidate')
           person_id = 'oge:076544f8ba0638cf'
-          if not any(row['person_id'] == person_id
-                     for row in candidate['reported_holdings']):
+          person_holdings = [row for row in candidate['reported_holdings']
+                             if row['person_id'] == person_id]
+          if not person_holdings:
               raise SystemExit('Trump holding-only person probe is missing')
           ticker = 'MSFT'
           if ticker not in covered or not any(
@@ -219,8 +220,14 @@ jobs:
               raise SystemExit('MSFT transaction and market probe is missing')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f"person_id={person_id}\n")
+              output.write(f"person_holding_count={len(person_holdings)}\n")
               output.write(f"ticker={ticker}\n")
               output.write(f"twelve_ticker={twelve[0]}\n")
+              output.write(f"people_count={len(candidate['people'])}\n")
+              output.write(f"transaction_count={len(candidate['transactions'])}\n")
+              output.write(f"holding_count={len(candidate['reported_holdings'])}\n")
+              output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
+              output.write(f"source_health_count={len(candidate['source_health'])}\n")
           PY
       - name: Verify complete candidate in the frozen browser frontend
         env:
@@ -312,6 +319,12 @@ jobs:
             --main-commit "$EXPECTED_MAIN" --market-commit "$EXPECTED_MARKET" \
             --person-id "$PERSON_ID" --ticker "$TICKER" \
             --twelve-ticker "$TWELVE_TICKER" \
+            --expected-people "${{ steps.probes.outputs.people_count }}" \
+            --expected-transactions "${{ steps.probes.outputs.transaction_count }}" \
+            --expected-holdings "${{ steps.probes.outputs.holding_count }}" \
+            --expected-market-rows "${{ steps.probes.outputs.market_row_count }}" \
+            --expected-source-health "${{ steps.probes.outputs.source_health_count }}" \
+            --expected-person-holdings "${{ steps.probes.outputs.person_holding_count }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
       - name: Verify the prepared result in the frozen browser frontend
         env:
