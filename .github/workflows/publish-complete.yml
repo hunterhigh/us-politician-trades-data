@@ -13,6 +13,11 @@ on:
         description: Twelve Data symbols to advance; 0 reuses the published cache without requests
         required: true
         default: '100'
+      skip_prepared_readback:
+        description: Skip remote prepared-commit readback and its second browser check
+        required: false
+        type: boolean
+        default: false
       cache_main_ref:
         description: Optional published main commit used only for cache recovery
         required: false
@@ -314,6 +319,7 @@ jobs:
           echo "main_ref=$main_ref" >> "$GITHUB_OUTPUT"
           echo "market_ref=$market_ref" >> "$GITHUB_OUTPUT"
       - name: Read back immutable prepared main and market commits
+        if: ${{ !inputs.skip_prepared_readback }}
         env:
           EXPECTED_MAIN: ${{ steps.main.outputs.main_sha }}
           EXPECTED_MARKET: ${{ steps.market.outputs.market_sha }}
@@ -337,6 +343,7 @@ jobs:
             --expected-person-transactions "${{ steps.probes.outputs.person_transaction_count }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
       - name: Verify the prepared result in the frozen browser frontend
+        if: ${{ !inputs.skip_prepared_readback }}
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
         run: npm run test:production
