@@ -59,12 +59,16 @@ def _holding_row_id(source_sha256: str, row: dict, legacy_index: int) -> str:
     return "wh-annual:" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
-def _transaction_row_id(source_sha256: str, row: dict) -> str:
+def _transaction_row_id(source_sha256: str, row: dict, legacy_index: int) -> str:
     locator = row.get("source_row_locator")
     match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
-    if match is None or int(match[1]) != row.get("page_number"):
-        raise ValueError("White House annual transaction has no stable physical identity")
-    identity = f"{source_sha256}|part7|{locator}"
+    if match is not None and int(match[1]) == row.get("page_number"):
+        identity = f"{source_sha256}|part7|{locator}"
+    else:
+        # Older review-only extractions predate physical OCR locators. Preserve
+        # them for audit without making them production eligible.
+        identity = (f"{source_sha256}|{legacy_index}|part7|"
+                    f"{row.get('page_number')}|{row.get('row_number')}")
     return "wh-annual-tx:" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
@@ -232,9 +236,10 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             if isinstance(row.get("parser_recovery"), dict):
                 materialized["source_bound_parser_recovery"] = row["parser_recovery"]
             holdings.append(materialized)
-        for row, decision in zip(source_transactions, audit["transaction_row_audit"], strict=True):
+        for index, (row, decision) in enumerate(zip(
+                source_transactions, audit["transaction_row_audit"], strict=True)):
             materialized = {
-                "row_id": _transaction_row_id(versions[0], row),
+                "row_id": _transaction_row_id(versions[0], row, index),
                 "document_id": document_id,
                 "filer_reported_name": extraction["filer_name"],
                 "asset_owner": row.get("owner", "Unknown"),
