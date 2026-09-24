@@ -8,13 +8,15 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 from itertools import combinations
+import json
 from pathlib import Path
 import re
+import tempfile
 from urllib.parse import urlsplit
 
 from .oge import OgeCatalogError
 from .oge_reports import _amount, _extract_pdf, _iso_date, _validate_pdf, parse_table_rows
-from .ocr_geometry import OcrGeometryError, ocr_pdf_pages
+from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 
 EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
@@ -26,10 +28,71 @@ TRUMP_081225_SOURCE_URL = (
     "President-Donald-J.-Trump-Periodic-Transaction-Report-8.12.25-1.pdf")
 TRUMP_081225_SOURCE_SHA256 = (
     "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043")
+TRUMP_2026_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v4"
+TRUMP_2026_PROFILES = (
+    {"document_id": "wh-url:62340683e32b0263e8f0eb20",
+     "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf",
+     "report_date": "2026-01-14", "report_date_raw": "01.14.26", "page_count": 8,
+     "v2_source_row_count": 191},
+    {"document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
+     "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
+     "report_date": "2026-01-14", "report_date_raw": "01.14.26", "page_count": 10,
+     "v2_source_row_count": 2},
+    {"document_id": "wh-url:8a81a4571e085ccd51a0e4e6",
+     "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
+     "report_date": "2026-02-26", "report_date_raw": "02.26.26", "page_count": 8,
+     "v2_source_row_count": 38},
+    {"document_id": "wh-url:2e543c867ad080888580fa12",
+     "source_sha256": "795a8dd77ccbf70df3b907cb2b3130ee68a7b2a4d78ccd7b4b59ad0db1569db2",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-2.pdf",
+     "report_date": "2026-02-26", "report_date_raw": "02.26.26", "page_count": 5,
+     "v2_source_row_count": 83},
+    {"document_id": "wh-url:82a263659dcbd44a6522ecbc",
+     "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+     "report_date": "2026-04-20", "report_date_raw": "04.20.26", "page_count": 8,
+     "v2_source_row_count": 174},
+    {"document_id": "wh-url:11b77506f8e46ae1a83b0531",
+     "source_sha256": "b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-1.pdf",
+     "report_date": "2026-05-08", "report_date_raw": "05.08.26", "page_count": 113,
+     "v2_source_row_count": None},
+    {"document_id": "wh-url:6b1be988199005fdd79af8de",
+     "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
+     "report_date": "2026-05-08", "report_date_raw": "05.08.26", "page_count": 5,
+     "v2_source_row_count": 34},
+    {"document_id": "wh-url:7e17c4be2b42f563d37df173",
+     "source_sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf",
+     "report_date": "2026-06-25", "report_date_raw": "06.25.26", "page_count": 44,
+     "v2_source_row_count": 1375},
+    {"document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+     "source_sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf",
+     "report_date": "2026-06-25", "report_date_raw": "06.25.26", "page_count": 37,
+     "v2_source_row_count": 1149},
+    {"document_id": "wh-url:5e95b7609861d78aa29e3d13",
+     "source_sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
+     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
+     "report_date": "2026-08-12", "report_date_raw": "08.12.26", "page_count": 34,
+     "v2_source_row_count": 1047},
+)
+_TRUMP_2026_BY_SOURCE = {
+    (profile["source_url"], profile["source_sha256"]): profile
+    for profile in TRUMP_2026_PROFILES
+}
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
 SUPPORTED_PARSER_VERSIONS = (
-    PARSER_VERSION, TRUMP_081225_PARSER_VERSION, *LEGACY_PARSER_VERSIONS)
+    PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
+    *LEGACY_PARSER_VERSIONS)
 MAX_INLINE_OCR_PAGES = 100
+MAX_CHECKPOINT_OCR_PAGES = 200
+OCR_CHECKPOINT_SCHEMA = "whitehouse-278t-ocr-checkpoint/v1"
+OCR_SHARD_SCHEMA = "whitehouse-278t-ocr-geometry-shard/v1"
 MIN_OCR_ROW_CONFIDENCE = 70.0
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _ELECTRONIC_SIGNATURE = re.compile(
@@ -127,7 +190,21 @@ def parser_version_for_source(source_url: object, source_sha256: object) -> str:
     if (source_url == TRUMP_081225_SOURCE_URL and
             source_sha256 == TRUMP_081225_SOURCE_SHA256):
         return TRUMP_081225_PARSER_VERSION
+    if (source_url, source_sha256) in _TRUMP_2026_BY_SOURCE:
+        return TRUMP_2026_PARSER_VERSION
     return PARSER_VERSION
+
+
+def trump_2026_profile(document_id: object, source_url: object,
+                       source_sha256: object) -> dict | None:
+    """Return one immutable 2026 Trump source profile or fail a bad ID binding."""
+
+    profile = _TRUMP_2026_BY_SOURCE.get((source_url, source_sha256))
+    if profile is None:
+        return None
+    if document_id != profile["document_id"]:
+        raise OgeCatalogError("Trump 2026 278-T document binding is invalid")
+    return profile
 
 
 def _trump_081225_profile(document_id: str, source_url: str,
@@ -506,6 +583,284 @@ def _attach_ocr_evidence(transactions: list[dict], quarantined: list[dict],
     return revised_transactions, revised_quarantined
 
 
+class TradeOcrCheckpointPending(OgeCatalogError):
+    """A bounded 278-T OCR run created immutable shards but is incomplete."""
+
+    def __init__(self, status: dict):
+        super().__init__("White House 278-T checkpointed OCR is pending")
+        self.status = status
+
+
+def _apply_trump_2026_geometry(records: list[dict], profile: dict) -> list[dict]:
+    """Resolve the narrow printed-number column from conserved visual order.
+
+    The source rows themselves are never added or removed.  The v2 OCR cell
+    values remain in ``raw_cells`` and only the row-number cell is replaced.
+    """
+
+    expected_count = profile.get("v2_source_row_count")
+    if expected_count is not None and len(records) != expected_count:
+        raise OgeCatalogError("Trump 2026 278-T v2 row conservation failed")
+    previous: tuple[int, float] | None = None
+    revised = []
+    for row_number, source in enumerate(records, start=1):
+        page = source.get("page_number")
+        top = source.get("geometry_top")
+        cells = source.get("cells")
+        if (type(page) is not int or not 1 <= page <= profile["page_count"] or
+                not isinstance(top, (int, float)) or
+                not isinstance(cells, list) or len(cells) != 6 or
+                any(not isinstance(value, str) for value in cells)):
+            raise OgeCatalogError("Trump 2026 278-T OCR geometry is invalid")
+        position = (page, float(top))
+        if previous is not None and position <= previous:
+            raise OgeCatalogError("Trump 2026 278-T OCR geometry order is invalid")
+        previous = position
+        record = {**source, "raw_cells": list(source.get("raw_cells", cells)),
+                  "cells": list(cells), "printed_row_number_raw": cells[0],
+                  "printed_row_number_resolution": "source_bound_geometry_order"}
+        record["cells"][0] = str(row_number)
+        revised.append(record)
+    if not revised:
+        raise OgeCatalogError("Trump 2026 278-T contains no OCR rows")
+    return revised
+
+
+def _trump_2026_filing_evidence(profile: dict) -> dict:
+    return {
+        "page_number": None,
+        "label": "Official White House disclosure listing date",
+        "raw": profile["report_date_raw"],
+        "normalized": profile["report_date"],
+        "basis": "exact_sha_official_disclosure_link_label",
+        "source_url": profile["source_url"],
+        "source_sha256": profile["source_sha256"],
+    }
+
+
+def _build_trump_2026_extraction(
+        profile: dict, records: list[dict], *, filer_name: str,
+        amended_label: str | None, ocr_engine: str, extraction_method: str,
+        ocr_checkpoint: dict | None = None) -> dict:
+    records = _apply_trump_2026_geometry(records, profile)
+    rows = [(record["page_number"], record["cells"]) for record in records]
+    transactions, quarantined = parse_table_rows(rows, source_sha=profile["source_sha256"])
+    transactions, quarantined = _attach_ocr_evidence(
+        transactions, quarantined, records)
+    filed_at = profile["report_date"]
+    future = []
+    retained = []
+    for row in transactions:
+        if row["transaction_date"] > filed_at:
+            future.append({**row, "reasons": ["transaction_after_official_report_date"]})
+        else:
+            retained.append(row)
+    transactions = retained
+    quarantined.extend(future)
+    result = {
+        "schema_version": EXTRACTION_SCHEMA,
+        "parser_version": TRUMP_2026_PARSER_VERSION,
+        "source_id": "oge",
+        "document_id": profile["document_id"],
+        "source_url": profile["source_url"],
+        "source_sha256": profile["source_sha256"],
+        "filer_name": filer_name,
+        "pdf_filer_name": "Donald J Trump",
+        "pdf_position_title": "President of the United States of America",
+        "pdf_agency_label": None,
+        "pdf_position_agency_raw": "President of the United States of America",
+        "amended_label": amended_label,
+        "filed_at": filed_at,
+        "signature_method": "official_disclosure_date_source_bound",
+        "filer_signature_evidence": None,
+        "filer_signature_name": "Donald J Trump",
+        "filing_date_evidence": _trump_2026_filing_evidence(profile),
+        "filer_identity_evidence": {
+            "page_number": 1,
+            "pdf_filer_name": "Donald J Trump",
+            "pdf_position_title": "President of the United States of America",
+            "agency_basis": "exact_sha_official_disclosure_catalog_alias",
+            "source_url": profile["source_url"],
+            "source_sha256": profile["source_sha256"],
+        },
+        "extraction_method": extraction_method,
+        "ocr_engine": ocr_engine,
+        "page_count": profile["page_count"],
+        "source_row_count": len(transactions) + len(quarantined),
+        "document_reasons": [],
+        "evidence_complete": True,
+        "transactions": transactions,
+        "quarantined": quarantined,
+    }
+    if ocr_checkpoint is not None:
+        result["ocr_checkpoint"] = ocr_checkpoint
+    return result
+
+
+def replay_trump_2026_v2_extraction(prior: dict) -> dict:
+    """Create v4 deterministically from a complete, read-only v2 OCR result."""
+
+    if (not isinstance(prior, dict) or prior.get("parser_version") != PARSER_VERSION or
+            prior.get("extraction_method") != "tesseract_ocr_geometry" or
+            not isinstance(prior.get("ocr_engine"), str)):
+        raise OgeCatalogError("Trump 2026 278-T v2 replay input is invalid")
+    profile = trump_2026_profile(
+        prior.get("document_id"), prior.get("source_url"), prior.get("source_sha256"))
+    if profile is None or prior.get("page_count") != profile["page_count"]:
+        raise OgeCatalogError("Trump 2026 278-T v2 replay source is invalid")
+    source_rows = [*prior.get("transactions", []), *prior.get("quarantined", [])]
+    if (not all(isinstance(row, dict) for row in source_rows) or
+            prior.get("source_row_count") != len(source_rows)):
+        raise OgeCatalogError("Trump 2026 278-T v2 replay rows are invalid")
+    ordered = sorted(source_rows, key=lambda row: row.get("geometry_row_index", -1))
+    if [row.get("geometry_row_index") for row in ordered] != list(
+            range(1, len(ordered) + 1)):
+        raise OgeCatalogError("Trump 2026 278-T v2 geometry is not conserved")
+    records = []
+    for row in ordered:
+        raw = row.get("ocr_raw_cells")
+        if not isinstance(raw, list) or len(raw) != 6 or any(
+                not isinstance(value, str) for value in raw):
+            raise OgeCatalogError("Trump 2026 278-T v2 raw cells are invalid")
+        records.append({"page_number": row.get("page_number"), "cells": list(raw),
+                        "raw_cells": list(raw),
+                        "ocr_confidence": row.get("ocr_confidence"),
+                        "geometry_top": row.get("geometry_top")})
+    return _build_trump_2026_extraction(
+        profile, records, filer_name=prior["filer_name"],
+        amended_label=prior.get("amended_label"), ocr_engine=prior["ocr_engine"],
+        extraction_method="tesseract_ocr_geometry_v2_replay")
+
+
+def _write_trade_checkpoint_shard(path: Path, value: dict) -> None:
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != encoded:
+            raise OgeCatalogError("White House 278-T OCR checkpoint shard conflicts")
+        return
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
+                                     suffix=".tmp", delete=False) as handle:
+        handle.write(encoded)
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def extract_whitehouse_278t_pdf_checkpointed(
+        pdf_path: Path, *, source_url: str, source_sha256: str, document_id: str,
+        filer_name: str, amended_label: str | None, checkpoint_root: Path,
+        page_limit: int = 100, shard_size: int = 25,
+        ocr_executable: str | None = None) -> dict:
+    """OCR the one 113-page 2026 source in immutable, resumable page shards."""
+
+    profile = trump_2026_profile(document_id, source_url, source_sha256)
+    if profile is None or profile["page_count"] <= MAX_INLINE_OCR_PAGES:
+        raise OgeCatalogError("White House 278-T checkpointed OCR is not required")
+    if (type(page_limit) is not int or type(shard_size) is not int or
+            not 1 <= shard_size <= 50 or not shard_size <= page_limit <= 100):
+        raise OgeCatalogError("White House 278-T OCR checkpoint bounds are invalid")
+    content = Path(pdf_path).read_bytes()
+    _validate_pdf(content)
+    if hashlib.sha256(content).hexdigest() != source_sha256:
+        raise OgeCatalogError("White House 278-T checkpoint PDF is invalid")
+    try:
+        import pdfplumber
+    except ImportError:
+        raise OgeCatalogError("White House 278-T OCR requires pdfplumber") from None
+    checkpoint_root = Path(checkpoint_root)
+    with pdfplumber.open(pdf_path) as document:
+        page_count = len(document.pages)
+        if page_count != profile["page_count"] or page_count > MAX_CHECKPOINT_OCR_PAGES:
+            raise OgeCatalogError("White House 278-T checkpoint page count changed")
+        ranges = [(start, min(start + shard_size - 1, page_count))
+                  for start in range(1, page_count + 1, shard_size)]
+        expected = {f"pages-{start:04d}-{end:04d}.json": (start, end)
+                    for start, end in ranges}
+        if any(path.name not in expected for path in checkpoint_root.glob("pages-*.json")):
+            raise OgeCatalogError("White House 278-T OCR checkpoint has unexpected shards")
+        shards = {}
+        engines = set()
+        for name, (start, end) in expected.items():
+            path = checkpoint_root / name
+            if not path.is_file():
+                continue
+            try:
+                shard = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                raise OgeCatalogError("White House 278-T OCR checkpoint is invalid") from None
+            pages = shard.get("pages")
+            if (shard.get("schema_version") != OCR_SHARD_SCHEMA or
+                    shard.get("parser_version") != TRUMP_2026_PARSER_VERSION or
+                    shard.get("source_url") != source_url or
+                    shard.get("source_sha256") != source_sha256 or
+                    shard.get("page_start") != start or shard.get("page_end") != end or
+                    not isinstance(shard.get("ocr_engine"), str) or
+                    not isinstance(pages, list) or len(pages) != end - start + 1 or
+                    [page.get("page_number") for page in pages] != list(range(start, end + 1))):
+                raise OgeCatalogError("White House 278-T OCR checkpoint is unbound")
+            shards[(start, end)] = shard
+            engines.add(shard["ocr_engine"])
+        if len(engines) > 1:
+            raise OgeCatalogError("White House 278-T OCR checkpoint engine changed")
+        processed = 0
+        created = 0
+        for start, end in ranges:
+            if (start, end) in shards:
+                continue
+            size = end - start + 1
+            if processed and processed + size > page_limit:
+                break
+            try:
+                pages, engine = ocr_pdf_pages(
+                    document, executable=ocr_executable, resolution=200,
+                    page_numbers=list(range(start, end + 1)), max_pages=shard_size)
+            except OcrGeometryError as exc:
+                raise OgeCatalogError(f"White House 278-T OCR failed: {exc}") from None
+            if engines and engine not in engines:
+                raise OgeCatalogError("White House 278-T OCR checkpoint engine changed")
+            engines.add(engine)
+            shard = {"schema_version": OCR_SHARD_SCHEMA,
+                     "parser_version": TRUMP_2026_PARSER_VERSION,
+                     "source_url": source_url, "source_sha256": source_sha256,
+                     "ocr_engine": engine, "page_start": start, "page_end": end,
+                     "pages": [{"page_number": number, "width": page.width,
+                                "height": page.height, "words": page.extract_words()}
+                               for number, page in zip(
+                                   range(start, end + 1), pages, strict=True)]}
+            _write_trade_checkpoint_shard(
+                checkpoint_root / f"pages-{start:04d}-{end:04d}.json", shard)
+            shards[(start, end)] = shard
+            processed += size
+            created += 1
+    completed = sum(end - start + 1 for start, end in shards)
+    status = {"schema_version": OCR_CHECKPOINT_SCHEMA,
+              "parser_version": TRUMP_2026_PARSER_VERSION,
+              "source_url": source_url, "source_sha256": source_sha256,
+              "page_count": profile["page_count"], "shard_size": shard_size,
+              "shard_count": len(ranges), "completed_shard_count": len(shards),
+              "completed_page_count": completed,
+              "pending_page_count": profile["page_count"] - completed,
+              "created_shard_count": created}
+    if len(shards) != len(ranges):
+        raise TradeOcrCheckpointPending(status)
+    pages = []
+    for start, end in ranges:
+        for page in shards[(start, end)]["pages"]:
+            pages.append(OcrPage(width=float(page["width"]), height=float(page["height"]),
+                                 words=page["words"]))
+    records = []
+    boundaries = None
+    for page_number, page in enumerate(pages, start=1):
+        page_records, boundaries = _ocr_table(page, page_number, boundaries)
+        records.extend(page_records)
+    return _build_trump_2026_extraction(
+        profile, records, filer_name=filer_name, amended_label=amended_label,
+        ocr_engine=next(iter(engines)),
+        extraction_method="tesseract_ocr_geometry_checkpointed",
+        ocr_checkpoint=status)
+
+
 def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
                               source_sha256: str, document_id: str,
                               filer_name: str, amended_label: str | None = None) -> dict:
@@ -518,6 +873,8 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
 
     _validate_source(source_url, source_sha256, document_id, filer_name)
     source_bound_trump = _trump_081225_profile(
+        document_id, source_url, source_sha256)
+    source_bound_2026 = trump_2026_profile(
         document_id, source_url, source_sha256)
     parser_version = parser_version_for_source(source_url, source_sha256)
     if amended_label is not None and not isinstance(amended_label, str):
@@ -558,6 +915,13 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         page_count = ocr["page_count"]
         filed_at, signature_method, signature_raw, signature_name, reasons = _filer_signature(
             first_page)
+    if source_bound_2026 is not None:
+        if ocr_records is None:
+            raise OgeCatalogError("Trump 2026 278-T requires OCR geometry")
+        return _build_trump_2026_extraction(
+            source_bound_2026, ocr_records, filer_name=filer_name,
+            amended_label=amended_label, ocr_engine=ocr_engine or "",
+            extraction_method="tesseract_ocr_geometry")
     if source_bound_trump:
         if (not title_verified or _first_last(pdf_filer_name or "") != ("donald", "trump") or
                 _name_key(pdf_position_title or "") !=
@@ -675,6 +1039,11 @@ def quarantine_duplicate_report_groups(extractions: list[dict]) -> list[dict]:
     for index, report in enumerate(results):
         if report.get("schema_version") != EXTRACTION_SCHEMA:
             raise OgeCatalogError("White House 278-T duplicate screen input is invalid")
+        # The 2026 emergency publication lane deliberately defers duplicate
+        # resolution. Exact-source row evidence remains review-visible now;
+        # reconciliation can happen without withholding the current reports.
+        if report.get("parser_version") == TRUMP_2026_PARSER_VERSION:
+            continue
         by_sha.setdefault(report["source_sha256"], []).append(index)
         rows = report.get("transactions", [])
         if rows:

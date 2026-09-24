@@ -101,7 +101,8 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
             legacy = next(version for version in script.TRADE_PARSER_VERSIONS
                           if version not in {script.TRADE_PARSER_VERSION,
-                                             script.TRUMP_081225_PARSER_VERSION})
+                                             script.TRUMP_081225_PARSER_VERSION,
+                                             script.TRUMP_2026_PARSER_VERSION})
             directory = root / "whitehouse/extractions" / document_id[7:] / sha
             directory.mkdir(parents=True)
             legacy_path = directory / f"{legacy.replace('/', '-')}.json"

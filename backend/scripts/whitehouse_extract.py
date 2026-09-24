@@ -23,8 +23,12 @@ from unison_snapshot.oge_278e_public import (
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
+    TRUMP_2026_PARSER_VERSION,
+    TradeOcrCheckpointPending,
+    extract_whitehouse_278t_pdf_checkpointed,
     parser_version_for_source as trade_parser_version_for_source,
     parse_whitehouse_278t_pdf,
+    replay_trump_2026_v2_extraction,
 )
 from unison_snapshot.whitehouse_disclosures import (
     PDF_ARCHIVE_SCHEMA, PDF_CHUNK_ARCHIVE_SCHEMA, read_archived_pdf,
@@ -43,7 +47,8 @@ def _write(path: Path, value: dict) -> None:
                                separators=(",", ":")), encoding="utf-8")
 
 
-def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path | None]]:
+def _archive_rows(evidence_root: Path, *, verify_document_id: str | None = None,
+                  verify_source_sha256: str | None = None) -> list[tuple[dict, Path | None]]:
     folder = evidence_root / "whitehouse/disclosures/reports"
     rows = []
     for metadata_path in sorted(folder.glob("*/*.json")):
@@ -57,7 +62,10 @@ def _archive_rows(evidence_root: Path) -> list[tuple[dict, Path | None]]:
                 not isinstance(sha, str) or not SHA.fullmatch(sha) or
                 metadata_path.name != f"{sha}.json"):
             raise ValueError(f"Invalid White House archive metadata: {metadata_path}")
-        read_archived_pdf(evidence_root, metadata)
+        if (verify_document_id is None or
+                (metadata["document_id"] == verify_document_id and
+                 metadata["sha256"] == verify_source_sha256)):
+            read_archived_pdf(evidence_root, metadata)
         pdf = metadata_path.with_suffix(".pdf") if metadata["schema_version"] == PDF_ARCHIVE_SCHEMA else None
         rows.append((metadata, pdf))
     return sorted(rows, key=lambda item: (
@@ -94,7 +102,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
         raise ValueError("White House extraction limit must be between 0 and 100")
     if type(ocr_page_limit) is not int or not 25 <= ocr_page_limit <= 100:
         raise ValueError("White House OCR page limit must be between 25 and 100")
-    all_rows = _archive_rows(evidence_root)
+    all_rows = _archive_rows(
+        evidence_root, verify_document_id=document_id,
+        verify_source_sha256=source_sha256)
     rows = _select_fixed_source(all_rows, document_id=document_id,
                                 source_sha256=source_sha256)
     if document_id is not None and start_after_id is not None:
@@ -159,10 +169,27 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                       "source_sha256": metadata["sha256"]}
             def parse(path: Path) -> dict:
                 if kind == "278t":
-                    return parse_whitehouse_278t_pdf(
+                    if version == TRUMP_2026_PARSER_VERSION:
+                        prior = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
+                        if prior.is_file():
+                            return replay_trump_2026_v2_extraction(
+                                json.loads(prior.read_text(encoding="utf-8")))
+                    try:
+                        return parse_whitehouse_278t_pdf(
+                            path, **common, document_id=metadata["document_id"],
+                            filer_name=name,
+                            amended_label=metadata.get("link_label"))
+                    except OgeCatalogError as exc:
+                        if (version != TRUMP_2026_PARSER_VERSION or
+                                str(exc) != "White House 278-T requires checkpointed OCR"):
+                            raise
+                    checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
+                                  metadata["document_id"].split(":", 1)[1] /
+                                  metadata["sha256"] / suffix)
+                    return extract_whitehouse_278t_pdf_checkpointed(
                         path, **common, document_id=metadata["document_id"],
-                        filer_name=name,
-                        amended_label=metadata.get("link_label"))
+                        filer_name=name, amended_label=metadata.get("link_label"),
+                        checkpoint_root=checkpoint, page_limit=ocr_page_limit)
                 try:
                     return extract_public_278e_pdf(path, **common, expected_filer=name)
                 except OgeCatalogError as exc:
@@ -195,7 +222,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
             _write(target, result)
             failure_target.unlink(missing_ok=True)
             created += 1
-        except OcrCheckpointPending as exc:
+        except (OcrCheckpointPending, TradeOcrCheckpointPending) as exc:
             failure_target.unlink(missing_ok=True)
             checkpoint_pending.append({"document_id": metadata["document_id"],
                                        **exc.status})
