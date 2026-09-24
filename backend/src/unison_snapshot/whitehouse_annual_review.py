@@ -180,6 +180,21 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             if isinstance(row.get("source_bound_holding_evidence"), dict):
                 materialized["source_bound_holding_evidence"] = row[
                     "source_bound_holding_evidence"]
+            if isinstance(row.get("source_row_locator"), str):
+                materialized["source_row_locator"] = row["source_row_locator"]
+            if isinstance(row.get("raw_columns"), dict):
+                materialized["raw_columns"] = row["raw_columns"]
+            if isinstance(row.get("account_scope"), str):
+                materialized["account_scope"] = row["account_scope"]
+            if isinstance(row.get("account_scope_evidence"), dict):
+                materialized["account_scope_evidence"] = row["account_scope_evidence"]
+            if isinstance(row.get("ocr_field_confidence"), dict):
+                materialized["ocr_field_confidence"] = row["ocr_field_confidence"]
+            if isinstance(row.get("value_geometry_evidence"), dict):
+                materialized["source_bound_value_geometry_evidence"] = row[
+                    "value_geometry_evidence"]
+            if isinstance(row.get("parser_recovery"), dict):
+                materialized["source_bound_parser_recovery"] = row["parser_recovery"]
             holdings.append(materialized)
     if len({row["row_id"] for row in holdings}) != len(holdings):
         raise ValueError("White House annual row identity collision")

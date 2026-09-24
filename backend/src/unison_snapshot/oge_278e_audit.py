@@ -6,6 +6,7 @@ transaction de-duplication on behalf of a downstream candidate builder.
 """
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date, datetime
 import re
 from urllib.parse import urlsplit
@@ -13,6 +14,7 @@ from urllib.parse import urlsplit
 from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
                                OCR_MINIMUM_ROW_MEAN_CONFIDENCE, SCHEMA,
                                SUPPORTED_PARSER_VERSIONS, TRUMP_2025_PARSER_VERSION,
+                               TRUMP_2025_PREVIOUS_PARSER_VERSION,
                                _SIGNATURE,
                                _explicit_part6_owner, _name_key)
 from .oge_annual import _VALUE_RANGES, _range
@@ -31,6 +33,44 @@ _SOURCE_ROW_LOCATOR = re.compile(r"p([1-9]\d*)-y([1-9]\d*)\Z")
 _ACCOUNT_SCOPE = re.compile(r"investment-account-([1-9]\d*)\Z")
 _ACCOUNT_HEADING = re.compile(r"INVESTMENT\s+ACCOUNT\s*#\s*([1-9]\d*)\Z", re.I)
 _PRINTED_ROW_NUMBER = re.compile(r"[1-9]\d*(?:\.[1-9]\d*)*\Z")
+_TRUMP_V7_PRINTED_ROW_NUMBER = re.compile(r"[1-9]\d*\Z")
+_TRUMP_V7_ACCOUNT_SCOPE = re.compile(r"investment-account-([1-8])\Z")
+_TRUMP_V7_DESCRIPTION_NOISE = re.compile(r"[|_*{}\[\]\ufffd]")
+# Fixed-v7 counterexamples whose high OCR score does not make the Description
+# cell an identifiable asset.  They are source-bound parser artifacts, not a
+# general company-name denylist.
+_TRUMP_V7_INCOMPLETE_DESCRIPTIONS = {
+    "ANALYTICS INC CLASS A",
+    "COM INC",
+    "COMMUNICATIONS CORP CLASS CLASS A",
+    "CORP",
+    "CORP CLASS A",
+    "CORP NEW CLASS A",
+    "CORPORATION",
+    "DIGITAL INC",
+    "ENERGY CORP NEW",
+    "ENERGY INC",
+    "GLOBAL INC",
+    "GLOBAL INC CLASS CLASS A",
+    "GROUP INC",
+    "HLDGS INC",
+    "INC",
+    "INC CLASS CLASS A",
+    "INDS INC",
+    "INDUSTRIAL TRUST REI",
+    "LABS INC",
+    "MORRIS INTL INC",
+    "OF AMER CORP",
+    "REIT",
+    "RESEARCH CORPORATION",
+    "STORES INC",
+    "SYS INC",
+    "SYSTEMS INC",
+    "TECHNOLOGIES INC",
+    "TREE INC",
+}
+_TRUMP_SOURCE_BOUND_PARSER_VERSIONS = {
+    TRUMP_2025_PREVIOUS_PARSER_VERSION, TRUMP_2025_PARSER_VERSION}
 
 
 def _date(value: object) -> date | None:
@@ -101,10 +141,172 @@ def _account_scope_evidence_valid(row: dict, extraction: dict) -> bool:
     )
 
 
-def _critical_field_confidence_valid(row: dict, extraction: dict) -> bool:
-    """Require confidence on the cells that determine a v6 holding fact."""
+def _asset_tokens(value: object) -> tuple[str, ...]:
+    return tuple(re.findall(r"[A-Z0-9]+", value.upper())) if isinstance(value, str) else ()
 
-    if extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION:
+
+def _trump_v7_description_confidence_valid(row: dict) -> bool:
+    confidence = row.get("ocr_field_confidence", {}).get("description")
+    return bool(
+        isinstance(confidence, dict) and
+        isinstance(confidence.get("mean"), (int, float)) and
+        isinstance(confidence.get("min"), (int, float)) and
+        confidence["mean"] >= OCR_MINIMUM_ROW_MEAN_CONFIDENCE and
+        confidence["min"] >= OCR_MINIMUM_CRITICAL_CONFIDENCE and
+        type(confidence.get("word_count")) is int and
+        confidence["word_count"] > 0
+    )
+
+
+def _trump_v7_initial_pool_row(row: dict, extraction: dict) -> bool:
+    """The deliberately narrow input pool; this is not an eligibility result."""
+
+    return bool(
+        extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+        row.get("section") == "part6" and
+        isinstance(row.get("row_number"), str) and
+        _TRUMP_V7_PRINTED_ROW_NUMBER.fullmatch(row["row_number"]) and
+        isinstance(row.get("account_scope"), str) and
+        _TRUMP_V7_ACCOUNT_SCOPE.fullmatch(row["account_scope"]) and
+        _trump_v7_description_confidence_valid(row)
+    )
+
+
+def _trump_v7_asset_description_valid(row: dict) -> bool:
+    asset_name = row.get("asset_name")
+    raw_description = row.get("raw_columns", {}).get("description")
+    tokens = _asset_tokens(asset_name)
+    normalized = " ".join(tokens)
+    return bool(
+        isinstance(asset_name, str) and asset_name.strip() == asset_name and
+        raw_description == asset_name and tokens and
+        not _TRUMP_V7_DESCRIPTION_NOISE.search(asset_name) and
+        normalized not in _TRUMP_V7_INCOMPLETE_DESCRIPTIONS and
+        not re.search(r"\b(?:TOTAL|SUBTOTAL)\b", normalized) and
+        not normalized.startswith("INVESTMENT ACCOUNT ")
+    )
+
+
+def _trump_v7_value_geometry_valid(row: dict) -> bool:
+    """Recheck the public Value-cell proof without trusting parser disposition."""
+
+    geometry = row.get("value_geometry_evidence")
+    if not isinstance(geometry, dict) or geometry.get(
+            "method") != "source_bound_part6_value_column/v1":
+        return False
+    bounds = geometry.get("column_bounds")
+    words = geometry.get("words")
+    if not isinstance(bounds, dict) or not isinstance(words, list) or not words:
+        return False
+    eif, value, income = (bounds.get(name) for name in
+                          ("eif_start", "value_start", "income_start"))
+    if (not all(isinstance(item, (int, float)) for item in (eif, value, income)) or
+            not 440 <= eif < value < income <= 580):
+        return False
+    raw_value = row.get("raw_columns", {}).get("value")
+    if not isinstance(raw_value, str):
+        return False
+    value_texts = []
+    expected_repairs = []
+    for word in words:
+        if not isinstance(word, dict):
+            return False
+        raw = word.get("original_text")
+        extracted = word.get("value_text")
+        x0, x1, top = word.get("x0"), word.get("x1"), word.get("top")
+        confidence = word.get("ocr_confidence")
+        repair = word.get("repair_method")
+        if (not isinstance(raw, str) or not isinstance(extracted, str) or not extracted or
+                not all(isinstance(item, (int, float)) for item in
+                        (x0, x1, top, confidence)) or
+                not x0 < x1 <= income - 2 or top <= 0):
+            return False
+        if repair == "split_eif_value_at_printed_dollar":
+            split = raw.find("$")
+            if (not eif - 8 <= x0 < value - 6 or x1 < value - 6 or split <= 0 or
+                    extracted != raw[split:] or
+                    not re.fullmatch(r"(?:N/A|Yes|No)?[_|\s]*", raw[:split], re.I)):
+                return False
+        elif repair == "strip_leading_table_border_before_dollar":
+            if (not value - 6 <= x0 < income - 8 or not re.match(r"^[_|]+\$", raw) or
+                    extracted != raw.lstrip("_|")):
+                return False
+        elif repair is None:
+            if not value - 6 <= x0 < income - 8 or extracted != raw:
+                return False
+        else:
+            return False
+        if repair is not None:
+            expected_repairs.append({
+                "page_number": row.get("page_number"), "original_text": raw,
+                "x0": x0, "x1": x1, "method": repair})
+        value_texts.append(extracted)
+    if " ".join(" ".join(value_texts).split()) != " ".join(raw_value.split()):
+        return False
+    value_confidence = row.get("ocr_field_confidence", {}).get("value")
+    if (not isinstance(value_confidence, dict) or
+            value_confidence.get("word_count") != len(words)):
+        return False
+    actual_repairs = row.get("ocr_word_repairs", [])
+    return isinstance(actual_repairs, list) and all(
+        repair in actual_repairs for repair in expected_repairs)
+
+
+def _trump_v7_parser_recovery_valid(row: dict) -> bool:
+    recovery = row.get("parser_recovery")
+    reasons = recovery.get("original_quarantine_reasons") if isinstance(recovery, dict) else None
+    return bool(
+        isinstance(recovery, dict) and
+        recovery.get("method") == "source_bound_part6_structured_row/v1" and
+        isinstance(reasons, list) and reasons == sorted(set(reasons)) and
+        set(reasons) <= {"holding_ocr_confidence_below_threshold"}
+    )
+
+
+def _asset_tokens_properly_contained(tokens: tuple[str, ...],
+                                     other_tokens: tuple[str, ...]) -> bool:
+    if not tokens or tokens == other_tokens:
+        return False
+    return any(other_tokens[index:index + len(tokens)] == tokens
+               for index in range(len(other_tokens) - len(tokens) + 1))
+
+
+def _trump_v7_holding_reasons(row: dict, extraction: dict, *,
+                              locator_counts: Counter[str],
+                              initial_name_counts: Counter[tuple[str, str]],
+                              unresolved_relation_locators: set[str]) -> list[str]:
+    if not _trump_v7_initial_pool_row(row, extraction):
+        return ["holding_v7_outside_numeric_investment_account_pool"]
+    reasons = []
+    locator = row.get("source_row_locator")
+    match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
+    if (match is None or int(match[1]) != row.get("page_number") or
+            locator_counts.get(locator, 0) != 1):
+        reasons.append("holding_row_identity_unverified")
+    if (not isinstance(row.get("account_scope"), str) or
+            not _TRUMP_V7_ACCOUNT_SCOPE.fullmatch(row["account_scope"]) or
+            not _account_scope_evidence_valid(row, extraction)):
+        reasons.append("holding_account_scope_unverified")
+    if not _trump_v7_description_confidence_valid(row):
+        reasons.append("holding_asset_description_confidence_invalid")
+    if not _trump_v7_asset_description_valid(row):
+        reasons.append("holding_asset_description_incomplete_or_noisy")
+    if not _trump_v7_value_geometry_valid(row):
+        reasons.append("holding_value_geometry_evidence_invalid")
+    if not _trump_v7_parser_recovery_valid(row):
+        reasons.append("holding_parser_recovery_trace_invalid")
+    name_key = (row.get("account_scope"), " ".join(_asset_tokens(row.get("asset_name"))))
+    if initial_name_counts.get(name_key, 0) > 1:
+        reasons.append("possible_same_asset_multiple_disclosed_rows")
+    if row.get("source_row_locator") in unresolved_relation_locators:
+        reasons.append("holding_asset_description_relation_unresolved")
+    return reasons
+
+
+def _critical_field_confidence_valid(row: dict, extraction: dict) -> bool:
+    """Require confidence on the cells that determine a source-bound fact."""
+
+    if extraction.get("parser_version") not in _TRUMP_SOURCE_BOUND_PARSER_VERSIONS:
         return True
     source_bound = (recovered_ocr_holding_valid(row, extraction) or
                     source_bound_existing_holding_valid(row, extraction))
@@ -297,6 +499,30 @@ def audit_public_278e(extraction: dict) -> dict:
             other["row_number"].startswith(row["row_number"] + ".")
             for other_index, other in enumerate(holdings))
     }
+    all_dispositions = holdings + transactions + excluded + quarantined
+    locator_counts: Counter[str] = Counter(
+        row["source_row_locator"] for row in all_dispositions
+        if row.get("section") == "part6" and isinstance(row.get("source_row_locator"), str))
+    part6_holdings = [row for row in holdings if row.get("section") == "part6"]
+    initial_pool_rows = [row for row in holdings
+                         if _trump_v7_initial_pool_row(row, extraction)]
+    initial_name_counts: Counter[tuple[str, str]] = Counter(
+        (row["account_scope"], " ".join(_asset_tokens(row.get("asset_name"))))
+        for row in initial_pool_rows)
+    part6_token_rows = [(row.get("source_row_locator"), _asset_tokens(row.get("asset_name")))
+                        for row in part6_holdings]
+    unresolved_relation_locators = set()
+    for row in initial_pool_rows:
+        locator = row["source_row_locator"]
+        tokens = _asset_tokens(row.get("asset_name"))
+        # A shorter Description wholly embedded in another Part 6 Description
+        # can be a clipped continuation (for example ``SYSTEMS INC`` versus
+        # ``CISCO SYSTEMS INC``).  Defer it until row-relationship evidence is
+        # available rather than guessing from the high OCR score.
+        if any(other_locator != locator and
+               _asset_tokens_properly_contained(tokens, other_tokens)
+               for other_locator, other_tokens in part6_token_rows):
+            unresolved_relation_locators.add(locator)
     for index, row in enumerate(holdings):
         reasons = []
         if row.get("section") not in _HOLDING_PARTS or type(row.get("page_number")) is not int or (
@@ -311,9 +537,17 @@ def audit_public_278e(extraction: dict) -> dict:
             match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
             if match is None or int(match[1]) != row.get("page_number"):
                 reasons.append("holding_row_evidence_invalid")
-        elif extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION:
+        elif extraction.get("parser_version") in _TRUMP_SOURCE_BOUND_PARSER_VERSIONS:
             reasons.append("holding_row_evidence_invalid")
-        if not _critical_field_confidence_valid(row, extraction):
+        source_bound_legacy_row = (recovered_ocr_holding_valid(row, extraction) or
+                                   source_bound_existing_holding_valid(row, extraction))
+        if (extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+                not source_bound_legacy_row):
+            reasons.extend(_trump_v7_holding_reasons(
+                row, extraction, locator_counts=locator_counts,
+                initial_name_counts=initial_name_counts,
+                unresolved_relation_locators=unresolved_relation_locators))
+        elif not _critical_field_confidence_valid(row, extraction):
             reasons.append("holding_critical_field_confidence_invalid")
         account_scope = row.get("account_scope")
         account_evidence = row.get("account_scope_evidence")
@@ -349,7 +583,8 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_valuation_status_invalid")
         if valuation is None:
             reasons.append("holding_valuation_date_not_exact")
-        if (ocr_method and extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION and
+        if (ocr_method and extraction.get("parser_version") not in
+                _TRUMP_SOURCE_BOUND_PARSER_VERSIONS and
                 not recovered_ocr_holding_valid(row, extraction) and (
                 not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
                 not isinstance(row.get("ocr_min_confidence"), (int, float)) or
