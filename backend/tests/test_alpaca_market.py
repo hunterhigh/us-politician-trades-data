@@ -20,7 +20,10 @@ from unison_snapshot.alpaca_market import (
 )
 from unison_snapshot.legacy import load
 from unison_snapshot.market_store import PublishedMarketCache
-from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
+from unison_snapshot.whitehouse_annual_tickers import (
+    SCHEMA as ANNUAL_TICKER_SCHEMA,
+    enrich_whitehouse_annual_tickers,
+)
 
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
@@ -449,6 +452,8 @@ class AlpacaMarketTests(unittest.TestCase):
             ("under-armour", "UNDER ARMOUR INC"),
             ("heico", "HEICO CORP NEW"),
             ("moog", "MOOG INC"),
+            ("rush", "RUSH ENTERPRISES INC"),
+            ("clearway", "CLEARWAY ENERGY INC"),
         ]
         for suffix, name in guarded:
             row = deepcopy(snapshot["transactions"][0])
@@ -461,6 +466,8 @@ class AlpacaMarketTests(unittest.TestCase):
             asset("UAA", name="Under Armour, Inc."),
             asset("HEI", name="HEICO Corporation"),
             asset("MOG.A", name="Moog Inc."),
+            asset("RUSHB", name="Rush Enterprises, Inc."),
+            asset("CWEN", name="Clearway Energy, Inc."),
         ])
 
         enriched, audit = enrich_whitehouse_annual_tickers(
@@ -475,9 +482,38 @@ class AlpacaMarketTests(unittest.TestCase):
         self.assertEqual(candidates["UNDER ARMOUR INC"], ["UA", "UAA"])
         self.assertEqual(candidates["HEICO CORP NEW"], ["HEI", "HEI.A"])
         self.assertEqual(candidates["MOOG INC"], ["MOG.A", "MOG.B"])
+        self.assertEqual(candidates["RUSH ENTERPRISES INC"], ["RUSHA", "RUSHB"])
+        self.assertEqual(candidates["CLEARWAY ENERGY INC"], ["CWEN.A", "CWEN"])
         self.assertEqual(audit["mapping_count"], 0)
-        self.assertEqual(audit["ambiguous_record_count"], 4)
+        self.assertEqual(audit["ambiguous_record_count"], 6)
         self.assertEqual(audit["unmatched_record_count"], 0)
+
+    def test_sticky_mapping_cannot_override_a_new_class_ambiguity(self):
+        snapshot = production_candidate()
+        row = deepcopy(snapshot["transactions"][0])
+        row.update(id="wh-annual-tx:berkshire", asset_name="BERKSHIRE HATHAWAY",
+                   instrument_type="Unspecified", ticker=None,
+                   ticker_mapping_basis=None)
+        snapshot["transactions"].append(row)
+        assets = [asset("BRK.A", name="Berkshire Hathaway Inc.")]
+        previous = {
+            "schema_version": ANNUAL_TICKER_SCHEMA,
+            "mappings": [{
+                "record_id": row["id"], "asset_name": row["asset_name"],
+                "ticker": "BRK.A", "mapping_basis": "alpaca_unique_asset_name",
+                "provider_asset_name": "Berkshire Hathaway Inc.",
+            }],
+        }
+
+        with self.assertRaisesRegex(ValueError, "now class-ambiguous"):
+            enrich_whitehouse_annual_tickers(
+                snapshot, assets, checked_at="2026-09-20T21:00:00Z",
+                previous=previous)
+        previous["schema_version"] = "whitehouse-annual-ticker-mapping/v1"
+        with self.assertRaisesRegex(ValueError, "mapping is invalid"):
+            enrich_whitehouse_annual_tickers(
+                snapshot, assets, checked_at="2026-09-20T21:00:00Z",
+                previous=previous)
 
     def test_production_accounts_for_symbol_absent_from_asset_master(self):
         snapshot = production_candidate()

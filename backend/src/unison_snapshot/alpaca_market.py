@@ -90,11 +90,13 @@ KNOWN_PUBLIC_MULTI_CLASS_ISSUERS = {
     "ALPHABET": ("GOOG", "GOOGL"),
     "BERKSHIREHATHAWAY": ("BRK.A", "BRK.B"),
     "BROWNFORMAN": ("BF.A", "BF.B"),
+    "CLEARWAYENERGY": ("CWEN.A", "CWEN"),
     "FOX": ("FOX", "FOXA"),
     "HEICO": ("HEI", "HEI.A"),
     "LENNAR": ("LEN", "LEN.B"),
     "MOOG": ("MOG.A", "MOG.B"),
     "NEWS": ("NWS", "NWSA"),
+    "RUSHENTERPRISES": ("RUSHA", "RUSHB"),
     "UNDERARMOUR": ("UA", "UAA"),
     "ZILLOWGROUP": ("Z", "ZG"),
 }
