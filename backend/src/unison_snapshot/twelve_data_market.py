@@ -209,8 +209,8 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
     missing = coverage.get("unsupported_tickers")
     if not isinstance(missing, list):
         raise TwelveDataError("Alpaca coverage lacks unsupported tickers")
-    if limit is not None and limit < 1:
-        raise TwelveDataError("limit must be positive")
+    if limit is not None and limit < 0:
+        raise TwelveDataError("limit must be nonnegative")
     if refresh_days < 1 or retry_days < 1:
         raise TwelveDataError("refresh and retry intervals must be positive")
     result = deepcopy(snapshot)
