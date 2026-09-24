@@ -66,7 +66,7 @@ def main() -> int:
     if trump_audit is not None:
         print(json.dumps({key: trump_audit[key] for key in (
             "source_transaction_count", "correction_count", "mapping_count",
-            "retained_mapping_count", "new_mapping_count",
+            "semantic_mapping_count", "retained_mapping_count", "new_mapping_count",
             "ambiguous_record_count", "unmatched_record_count")}, sort_keys=True))
     return 0
 
