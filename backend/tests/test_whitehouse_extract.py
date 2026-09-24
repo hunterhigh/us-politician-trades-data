@@ -134,6 +134,44 @@ class WhiteHouseExtractTests(unittest.TestCase):
                    f"{script.ANNUAL_PARSER_VERSION.replace('/', '-')}.failure.json")
         self.assertFalse(failure.exists())
 
+    def test_fixed_replay_selects_exact_immutable_source(self):
+        selected = self.archive("e")
+        other = self.archive("f")
+
+        def parse(_, *, source_url, source_sha256, **_kwargs):
+            self.assertEqual(source_url, selected["document_url"])
+            self.assertEqual(source_sha256, selected["sha256"])
+            return {"source_url": source_url, "source_sha256": source_sha256,
+                    "parser_version": script.TRADE_PARSER_VERSION}
+
+        with patch.object(script, "parse_whitehouse_278t_pdf", side_effect=parse) as parser:
+            result = script.extract_batch(
+                self.evidence, self.review, limit=1,
+                document_id=selected["document_id"], source_sha256=selected["sha256"])
+        self.assertEqual(parser.call_count, 1)
+        self.assertEqual(result["archived_version_count"], 2)
+        self.assertEqual(result["selected_version_count"], 1)
+        self.assertEqual(result["fixed_document_id"], selected["document_id"])
+        self.assertEqual(result["fixed_source_sha256"], selected["sha256"])
+        other_target = (self.review / "whitehouse/extractions" / other["document_id"][7:] /
+                        other["sha256"] /
+                        f"{script.TRADE_PARSER_VERSION.replace('/', '-')}.json")
+        self.assertFalse(other_target.exists())
+
+    def test_fixed_replay_rejects_partial_or_mismatched_binding(self):
+        row = self.archive("e")
+        with self.assertRaisesRegex(ValueError, "requires a valid document id"):
+            script.extract_batch(self.evidence, self.review, limit=1,
+                                 document_id=row["document_id"])
+        with self.assertRaisesRegex(ValueError, "missing or ambiguous"):
+            script.extract_batch(self.evidence, self.review, limit=1,
+                                 document_id=row["document_id"], source_sha256="0" * 64)
+        with self.assertRaisesRegex(ValueError, "does not accept a queue cursor"):
+            script.extract_batch(self.evidence, self.review, limit=1,
+                                 document_id=row["document_id"],
+                                 source_sha256=row["sha256"],
+                                 start_after_id=row["document_id"])
+
 
 if __name__ == "__main__":
     unittest.main()
