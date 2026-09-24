@@ -81,6 +81,23 @@ ASSET_NAME_SECURITY_SUFFIXES = (
     ("ORDINARY", "SHARES"),
     ("COMMON", "SHARES"),
 )
+# Alpaca sometimes omits the share class from one active security's display
+# name while another public class uses a different label.  A classless filing
+# must remain unresolved in those cases even when the provider directory looks
+# unique after name normalization.  These are conservative, public multi-class
+# issuer guards; an explicitly reported class still follows the normal matcher.
+KNOWN_PUBLIC_MULTI_CLASS_ISSUERS = {
+    "ALPHABET": ("GOOG", "GOOGL"),
+    "BERKSHIREHATHAWAY": ("BRK.A", "BRK.B"),
+    "BROWNFORMAN": ("BF.A", "BF.B"),
+    "FOX": ("FOX", "FOXA"),
+    "HEICO": ("HEI", "HEI.A"),
+    "LENNAR": ("LEN", "LEN.B"),
+    "MOOG": ("MOG.A", "MOG.B"),
+    "NEWS": ("NWS", "NWSA"),
+    "UNDERARMOUR": ("UA", "UAA"),
+    "ZILLOWGROUP": ("Z", "ZG"),
+}
 
 
 class AlpacaMarketError(ValueError):
@@ -340,6 +357,14 @@ def _recover_unique_asset_name_tickers(
                 continue
             evaluated_count += 1
             evaluated_names.add(asset_name)
+            known_classes = KNOWN_PUBLIC_MULTI_CLASS_ISSUERS.get(key)
+            if known_classes is not None:
+                ambiguous.append({
+                    "record_id": record_id,
+                    "asset_name": asset_name,
+                    "candidate_tickers": list(known_classes),
+                })
+                continue
             alternatives = exact.get(key, set())
             basis = "alpaca_unique_asset_name"
             if len(alternatives) != 1:

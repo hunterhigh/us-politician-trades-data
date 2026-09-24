@@ -442,6 +442,43 @@ class AlpacaMarketTests(unittest.TestCase):
         self.assertEqual(second_audit["asset_master_sha256"],
                          audit["asset_master_sha256"])
 
+    def test_provider_name_omission_cannot_select_one_public_share_class(self):
+        snapshot = production_candidate()
+        guarded = [
+            ("berkshire", "BERKSHIRE HATHAWAY"),
+            ("under-armour", "UNDER ARMOUR INC"),
+            ("heico", "HEICO CORP NEW"),
+            ("moog", "MOOG INC"),
+        ]
+        for suffix, name in guarded:
+            row = deepcopy(snapshot["transactions"][0])
+            row.update(id=f"wh-annual-tx:{suffix}", asset_name=name,
+                       instrument_type="Unspecified", ticker=None,
+                       ticker_mapping_basis=None)
+            snapshot["transactions"].append(row)
+        client = FakeMarketClient({}, assets=[
+            asset("BRK.A", name="Berkshire Hathaway Inc."),
+            asset("UAA", name="Under Armour, Inc."),
+            asset("HEI", name="HEICO Corporation"),
+            asset("MOG.A", name="Moog Inc."),
+        ])
+
+        enriched, audit = enrich_whitehouse_annual_tickers(
+            snapshot, client.assets(), checked_at="2026-09-20T21:00:00Z")
+
+        annual = {row["id"]: row for row in enriched["transactions"]
+                  if row["id"].startswith("wh-annual-tx:")}
+        self.assertTrue(all(row["ticker"] is None for row in annual.values()))
+        candidates = {row["asset_name"]: row["candidate_tickers"]
+                      for row in audit["ambiguous_records"]}
+        self.assertEqual(candidates["BERKSHIRE HATHAWAY"], ["BRK.A", "BRK.B"])
+        self.assertEqual(candidates["UNDER ARMOUR INC"], ["UA", "UAA"])
+        self.assertEqual(candidates["HEICO CORP NEW"], ["HEI", "HEI.A"])
+        self.assertEqual(candidates["MOOG INC"], ["MOG.A", "MOG.B"])
+        self.assertEqual(audit["mapping_count"], 0)
+        self.assertEqual(audit["ambiguous_record_count"], 4)
+        self.assertEqual(audit["unmatched_record_count"], 0)
+
     def test_production_accounts_for_symbol_absent_from_asset_master(self):
         snapshot = production_candidate()
         snapshot["transactions"][1]["ticker"] = "MISSING"
