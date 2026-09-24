@@ -681,7 +681,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                         row["account_scope_evidence"] = current_scope["evidence"]
                     if not current_scope or not current_scope["verified"]:
                         row.setdefault("_row_reasons", []).append("account_heading_unverified")
-                if isinstance(line_words[0].get("ocr_confidence"), (int, float)):
+                if ((not trump_layout or current_part != "part6" or first_in_number_column) and
+                        isinstance(line_words[0].get("ocr_confidence"), (int, float))):
                     score = float(line_words[0]["ocr_confidence"])
                     row["_ocr_confidences"] = [score]
                     if trump_layout and current_part == "part6":
