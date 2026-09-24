@@ -64,7 +64,7 @@ class TrumpReplayAuditTests(unittest.TestCase):
 
     def test_fixed_replay_is_conserved_and_deduplicated(self):
         audit = script.audit_replay(
-            self.fixture(), extraction_sha256="a" * 64,
+            self.fixture(), extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
             legacy_tree=script.LEGACY_TREE,
             legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
         self.assertEqual(audit["printed_row_count"], 27657)
@@ -79,7 +79,7 @@ class TrumpReplayAuditTests(unittest.TestCase):
         value["quarantined"].pop()
         with self.assertRaisesRegex(ValueError, "disposition counts changed"):
             script.audit_replay(
-                value, extraction_sha256="a" * 64,
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
                 legacy_tree=script.LEGACY_TREE,
                 legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
         value = self.fixture()
@@ -87,14 +87,21 @@ class TrumpReplayAuditTests(unittest.TestCase):
             "source_row_locator"]
         with self.assertRaisesRegex(ValueError, "physical row locator is duplicated"):
             script.audit_replay(
-                value, extraction_sha256="a" * 64,
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
                 legacy_tree=script.LEGACY_TREE,
                 legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
         value = self.fixture()
         value["holdings"][0]["row_number"] = "ocr-p1-y1"
         with self.assertRaisesRegex(ValueError, "printed/synthetic holding census changed"):
             script.audit_replay(
-                value, extraction_sha256="a" * 64,
+                value, extraction_sha256=script.EXPECTED_EXTRACTION_SHA256,
+                legacy_tree=script.LEGACY_TREE,
+                legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
+
+    def test_changed_extraction_bytes_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "fixed extraction bytes changed"):
+            script.audit_replay(
+                self.fixture(), extraction_sha256="a" * 64,
                 legacy_tree=script.LEGACY_TREE,
                 legacy_audit_sha256=script.LEGACY_AUDIT_SHA256)
 

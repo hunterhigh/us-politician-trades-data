@@ -21,6 +21,7 @@ from unison_snapshot.oge_278e_public import (
 SCHEMA = "whitehouse-trump-annual-replay-audit/v1"
 LEGACY_TREE = "c57ecdcd0e780fa7dc256fae6d0fe728735c8f09"
 LEGACY_AUDIT_SHA256 = "291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b"
+EXPECTED_EXTRACTION_SHA256 = "04800d61d8fd91c0eb9b2d57e5c13329068bd4d817d14a6dab6ab751c6c0317e"
 EXPECTED_COUNTS = {
     "holdings": 3999,
     "transactions": 0,
@@ -46,6 +47,8 @@ def _rows(extraction: dict, name: str) -> list[dict]:
 
 def audit_replay(extraction: dict, *, extraction_sha256: str,
                  legacy_tree: str, legacy_audit_sha256: str) -> dict:
+    if extraction_sha256 != EXPECTED_EXTRACTION_SHA256:
+        raise ValueError("Trump v7 fixed extraction bytes changed")
     if (extraction.get("source_url") != TRUMP_2025_SOURCE_URL or
             extraction.get("source_sha256") != TRUMP_2025_SOURCE_SHA256 or
             extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION or
