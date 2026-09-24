@@ -28,6 +28,7 @@ TRUMP_TARGET_DOCUMENT_ID = TRUMP_081225_DOCUMENT_ID
 TRUMP_TARGET_SOURCE_URL = TRUMP_081225_SOURCE_URL
 TRUMP_TARGET_SOURCE_SHA256 = TRUMP_081225_SOURCE_SHA256
 TRUMP_TARGET_FILED_AT = "2025-08-12"
+TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 _OFFICE_LABELS = {
     "white house": "white house office",
     "white house office": "white house office",
@@ -324,7 +325,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
             reasons.append("no_transaction_rows_found")
         if report.get("evidence_complete") is not True:
             reasons = sorted(set(reasons + ["source_extraction_incomplete"]))
-        person_id = _person_id(_identity_key(identity)) if identity else None
+        person_id = (TRUMP_PERSON_ID if identity and source_bound_filer_identity(report) else
+                     _person_id(_identity_key(identity)) if identity else None)
         catalog = ({"filer_name": identity["filer_name"],
                     "position_title": identity["position_title"],
                     "agency": identity["agency"],

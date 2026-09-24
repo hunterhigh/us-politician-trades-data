@@ -241,6 +241,9 @@ def _write_pair(candidate_out: Path, candidate_raw: bytes,
 def _strip_prior_whitehouse(candidate: dict, audit: dict) -> dict:
     """Recover the hash-bound direct OGE base before rebuilding overlays."""
     base = deepcopy(candidate)
+    base["transactions"] = [
+        row for row in base["transactions"]
+        if not str(row.get("id", "")).startswith("wh-annual-tx:")]
     base["reported_holdings"] = [
         row for row in base["reported_holdings"]
         if not str(row.get("id", "")).startswith("wh-annual:")]

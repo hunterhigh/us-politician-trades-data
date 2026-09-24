@@ -108,6 +108,31 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.assertEqual(len(rebuilt["transactions"]), 3)
         self.assertEqual(rebuilt["transactions"], first["transactions"])
 
+    def test_changed_review_strips_prior_annual_transactions_before_rebuild(self):
+        self.assertFalse(self._run()["idempotent"])
+        annualized = json.loads(self.oge.read_bytes())
+        person_id = annualized["people"][0]["id"]
+        annualized["transactions"].append({
+            **annualized["transactions"][0],
+            "id": "wh-annual-tx:example", "person_id": person_id,
+        })
+        annualized["reported_holdings"].append({
+            "id": "wh-annual:example", "person_id": person_id,
+            "source_id": "oge", "verification_status": "official_matched",
+        })
+        annualized["source_health"][0]["detail"] += "; White House annual: replayed"
+        _write(self.oge, annualized)
+        self.coverage["reports"][0]["production_qualification"] = "replayed"
+        self._write_inputs()
+        result = self._run()
+        rebuilt = json.loads(self.oge.read_bytes())
+        self.assertFalse(result["idempotent"])
+        self.assertEqual(len(rebuilt["transactions"]), 3)
+        self.assertFalse(any(row["id"].startswith("wh-annual-tx:")
+                             for row in rebuilt["transactions"]))
+        self.assertFalse(any(row["id"].startswith("wh-annual:")
+                             for row in rebuilt["reported_holdings"]))
+
     def test_wrong_archive_hash_or_count_blocks_all_outputs(self):
         original = self.oge.read_bytes()
         self.coverage["reports"][0]["archive_sha256_versions"] = ["c" * 64]

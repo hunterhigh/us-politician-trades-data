@@ -18,7 +18,7 @@ from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
 from .whitehouse_278t import _ELECTRONIC_SIGNATURE, _first_last
 from .whitehouse_278t_audit import (
-    AUDIT_SCHEMA, audit_whitehouse_278t, source_bound_filing_date,
+    AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
 )
 
 
@@ -64,10 +64,18 @@ def _signature_date(report: dict) -> str | None:
 
 def _person(identity: dict) -> dict:
     key = _identity_key(identity)
+    computed_id = _person_id(key)
+    person_id = identity.get("person_id", computed_id)
+    if person_id not in {computed_id, TRUMP_PERSON_ID}:
+        raise OgeCatalogError("White House 278-T person identity is unsupported")
+    is_trump = person_id == TRUMP_PERSON_ID
     person = {
-        "id": _person_id(key), "display_name": identity["filer_name"],
-        "short_name": _short_name(identity["filer_name"]),
-        "role": identity["position_title"], "office_type": identity["agency"],
+        "id": person_id,
+        "display_name": "Donald Trump" if is_trump else identity["filer_name"],
+        "short_name": "Trump" if is_trump else _short_name(identity["filer_name"]),
+        "role": ("President of the United States of America" if is_trump else
+                 identity["position_title"]),
+        "office_type": identity["agency"],
         "chamber": None, "party": None, "state": None,
         "disclosure_authority": "oge", "priority": False,
         "priority_reason": None, "portrait_url": None,
@@ -149,6 +157,11 @@ def build_whitehouse_278t_review_candidate(
     candidate = deepcopy(base_oge_candidate)
     candidate["meta"]["data_cutoff_at"] = data_cutoff_at
     existing_people = {person["id"]: person for person in candidate["people"]}
+    existing_people_by_name: dict[tuple[str, str], list[dict]] = {}
+    for existing_person in candidate["people"]:
+        name_key = _first_last(existing_person.get("display_name") or "")
+        if name_key is not None:
+            existing_people_by_name.setdefault(name_key, []).append(existing_person)
     existing_ids = {row["id"] for row in candidate["transactions"]}
     source_id_counts = Counter(
         row.get("extraction_id") for report in extractions
@@ -173,14 +186,25 @@ def build_whitehouse_278t_review_candidate(
                 not _SHA256.fullmatch(report["source_sha256"])):
             doc_reasons.append("source_sha256_invalid")
         identity = qualified["matched_catalog_identity"]
-        person = _person(identity) if identity is not None else None
-        if person is not None and person["id"] != identity["person_id"]:
+        proposed_person = _person(identity) if identity is not None else None
+        if proposed_person is not None and proposed_person["id"] != identity["person_id"]:
             raise OgeCatalogError("White House 278-T official identity changed")
-        if person is not None and person["id"] in existing_people:
-            prior = existing_people[person["id"]]
-            for field in ("display_name", "role", "office_type", "disclosure_authority"):
-                if prior.get(field) != person[field]:
-                    raise OgeCatalogError("White House 278-T identity conflicts with existing OGE person")
+        person = proposed_person
+        if identity is not None:
+            name_key = _first_last(identity["filer_name"])
+            matches = existing_people_by_name.get(name_key, []) if name_key else []
+            compatible = [row for row in matches
+                          if row.get("disclosure_authority") == "oge" and
+                          row.get("office_type", "").casefold() ==
+                          identity["agency"].casefold()]
+            if len(compatible) > 1:
+                raise OgeCatalogError(
+                    "White House 278-T filer matches multiple existing OGE people")
+            if len(compatible) == 1:
+                person = compatible[0]
+            elif matches:
+                raise OgeCatalogError(
+                    "White House 278-T identity conflicts with an existing person")
         if _signature_date(report) != report.get("filed_at"):
             doc_reasons.append("filer_signature_date_not_verified")
         try:

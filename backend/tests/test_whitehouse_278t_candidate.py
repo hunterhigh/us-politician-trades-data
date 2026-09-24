@@ -240,6 +240,7 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
 
     def test_fixed_trump_source_bound_cover_date_can_promote(self):
         base, report = _base(), _trump_source_bound()
+        trump_id = "oge:076544f8ba0638cf"
         directory = {
             "schema_version": "oge-whitehouse-coverage/v1", "catalog_sha256": "a" * 64,
             "reports": [{"document_type": "278t", "filer_name": "Trump, Donald J.",
@@ -247,9 +248,13 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
                          "catalog_entry_id": "oge-trump"}],
         }
         audit = audit_whitehouse_278t([report], directory, base)
+        self.assertEqual(audit["reports"][0]["matched_catalog_identity"]["person_id"],
+                         trump_id)
         candidate, conservation = build_whitehouse_278t_review_candidate(
             base, [report], audit, directory, data_cutoff_at="2025-08-13T00:00:00Z")
         self.assertEqual(conservation["promoted_transaction_count"], 507)
+        self.assertEqual({row["person_id"] for row in candidate["transactions"]},
+                         {trump_id})
         self.assertEqual({row["filed_at"] for row in candidate["transactions"]},
                          {"2025-08-12T00:00:00Z"})
         report["filing_date_evidence"]["raw"] = "8/13/25"
