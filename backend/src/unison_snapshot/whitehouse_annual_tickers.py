@@ -67,6 +67,10 @@ def enrich_whitehouse_annual_tickers(
     proposed, recovered, current_audit = _recover_unique_asset_name_tickers(candidate, assets)
     proposed_by_id = {row["record_id"]: row for row in recovered}
     prior_by_id = _previous_mappings(previous)
+    ambiguous_ids = {row["record_id"] for row in current_audit["ambiguous_records"]}
+    if prior_by_id.keys() & ambiguous_ids:
+        raise ValueError(
+            "A sticky White House annual ticker mapping is now class-ambiguous")
     transaction_by_id = {
         row.get("id"): row for row in proposed.get("transactions", [])
         if isinstance(row, dict) and isinstance(row.get("id"), str)
