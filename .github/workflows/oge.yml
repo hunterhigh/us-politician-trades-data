@@ -287,6 +287,7 @@ jobs:
           PYTHONPATH=backend/src python backend/scripts/enrich_whitehouse_annual_tickers.py \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
             --checked-at "$cutoff" --assets-url "$assets_url" --distribution-authorized
           source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           for source_id in house_clerk senate_efd; do
@@ -344,6 +345,7 @@ jobs:
           git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications \
             whitehouse/annual/candidate-current.json \
             whitehouse/annual/ticker-mapping-current.json \
+            whitehouse/278t/trump-2026-ticker-mapping-current.json \
             status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
