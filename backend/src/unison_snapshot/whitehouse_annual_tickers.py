@@ -13,7 +13,7 @@ from .alpaca_market import (
 from .codec import encode
 
 
-SCHEMA = "whitehouse-annual-ticker-mapping/v1"
+SCHEMA = "whitehouse-annual-ticker-mapping/v2"
 ALLOWED_BASES = {
     "alpaca_unique_asset_name",
     "alpaca_unique_classless_asset_name",
