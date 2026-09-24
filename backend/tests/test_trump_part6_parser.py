@@ -62,7 +62,7 @@ def _asset(number: str, name: str, *, band: str = "$1,001 - $15,000",
     placed: list[tuple[str, float, float]] = [(number, 16, 96.0),
                                               (name, 40, 96.0),
                                               ("Yes", 452, 96.0)]
-    placed += [(token, 480 + offset * 27, value_confidence)
+    placed += [(token, 480 + offset * 22, value_confidence)
                for offset, token in enumerate(band.split())]
     placed += [(token, 615 + offset * 27, 96.0)
                for offset, token in enumerate(income_band.split())]
@@ -194,7 +194,7 @@ class TrumpPart6ParserTests(unittest.TestCase):
         self.assertEqual({row["asset_name"] for row in result["holdings"]},
                          {"ALPHA", "BETA", "GAMMA"})
 
-    def test_low_critical_confidence_and_open_value_stay_quarantined(self):
+    def test_low_critical_confidence_is_retained_for_qualification_not_parser_veto(self):
         result = _extract([_page(
             "6. Other Assets and Income", _header(),
             "INVESTMENT ACCOUNT #1",
@@ -202,12 +202,38 @@ class TrumpPart6ParserTests(unittest.TestCase):
             _asset("2", "OPENVALUE", band="Over $50,000,000"),
             "7. Transactions", "None")])
         self.assertEqual(result["printed_row_count"], 2)
-        self.assertEqual(result["holdings"], [])
-        self.assertEqual(len(result["quarantined"]), 2)
+        self.assertEqual(len(result["holdings"]), 1)
+        self.assertEqual(result["holdings"][0]["asset_name"], "UNCERTAIN")
         self.assertIn("holding_ocr_confidence_below_threshold",
-                      result["quarantined"][0]["reasons"])
+                      result["holdings"][0]["parser_recovery"]["original_quarantine_reasons"])
+        self.assertEqual(result["holdings"][0]["ocr_field_confidence"]["value"]["min"], 40.0)
+        self.assertEqual(len(result["quarantined"]), 1)
         self.assertIn("holding_value_unreadable_or_open",
-                      result["quarantined"][1]["reasons"])
+                      result["quarantined"][0]["reasons"])
+
+    def test_physical_locator_replaces_unreadable_printed_number_only_in_verified_account(self):
+        result = _extract([_page(
+            "6. Other Assets and Income", _header(),
+            "INVESTMENT ACCOUNT #1",
+            [("ALPHA", 40), ("Yes", 452), ("$1,001", 480),
+             ("-", 502), ("$15,000", 524)],
+            "7. Transactions", "None")])
+        self.assertEqual(len(result["holdings"]), 1)
+        row = result["holdings"][0]
+        self.assertEqual(row["source_row_locator"], "p1-y480")
+        self.assertIn("row_number_ocr_unreadable",
+                      row["parser_recovery"]["original_quarantine_reasons"])
+
+    def test_value_word_crossing_income_boundary_is_not_structured_holding(self):
+        result = _extract([_page(
+            "6. Other Assets and Income", _header(),
+            "INVESTMENT ACCOUNT #1",
+            [("1", 16), ("ALPHA", 40), ("Yes", 452),
+             ("$1,001", 480), ("-", 510), ("$15,000", 550)],
+            "7. Transactions", "None")])
+        self.assertEqual(result["holdings"], [])
+        self.assertIn("holding_value_geometry_invalid",
+                      result["quarantined"][0]["reasons"])
 
     def test_page_159_part7_boundary_cannot_become_part6_holdings(self):
         # The fixed source's OCR has neither a normal "7. Transactions" title
