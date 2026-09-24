@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
                                OCR_MINIMUM_ROW_MEAN_CONFIDENCE, SCHEMA,
                                SUPPORTED_PARSER_VERSIONS, TRUMP_2025_PARSER_VERSION,
-                               TRUMP_2025_PREVIOUS_PARSER_VERSION,
+                               TRUMP_2025_LEGACY_PARSER_VERSIONS,
                                _SIGNATURE,
                                _explicit_part6_owner, _name_key)
 from .oge_annual import _VALUE_RANGES, _range
@@ -70,7 +70,7 @@ _TRUMP_V7_INCOMPLETE_DESCRIPTIONS = {
     "TREE INC",
 }
 _TRUMP_SOURCE_BOUND_PARSER_VERSIONS = {
-    TRUMP_2025_PREVIOUS_PARSER_VERSION, TRUMP_2025_PARSER_VERSION}
+    *TRUMP_2025_LEGACY_PARSER_VERSIONS, TRUMP_2025_PARSER_VERSION}
 
 
 def _date(value: object) -> date | None:
@@ -470,22 +470,74 @@ def audit_public_278e(extraction: dict) -> dict:
         holding_reasons.add("asset_rows_quarantined")
     if any(row.get("section") == "part7" for row in quarantined):
         report_reasons.add("part7_rows_quarantined")
+    transaction_locator_counts = Counter(
+        row["source_row_locator"] for row in transactions + quarantined
+        if row.get("section") == "part7" and
+        isinstance(row.get("source_row_locator"), str))
+    transaction_row_audit: list[dict] = []
     for row in transactions:
+        row_reasons = []
         trade_date = _date(row.get("transaction_date"))
         low, high = row.get("amount_low"), row.get("amount_high")
         if (row.get("section") != "part7" or type(row.get("page_number")) is not int or
                 row.get("page_number", 0) <= 0 or not isinstance(row.get("row_number"), str) or
+                not isinstance(row.get("asset_name"), str) or not row["asset_name"].strip() or
+                not isinstance(row.get("raw_columns"), dict) or
                 row.get("transaction_type") not in {"purchase", "sale", "exchange"} or
                 trade_date is None or (filed and trade_date > filed) or
                 (period_end and trade_date > period_end) or
                 (report_type == "Annual" and period_end and trade_date.year != period_end.year) or
                 type(low) is not int or type(high) is not int or (low, high) not in _VALUE_RANGES):
             report_reasons.add("part7_row_invalid")
+            row_reasons.append("part7_row_invalid")
         if ocr_method and (not isinstance(row.get("ocr_mean_confidence"), (int, float)) or
                            not isinstance(row.get("ocr_min_confidence"), (int, float)) or
                            row["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
                            row["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
             report_reasons.add("part7_ocr_confidence_invalid")
+            row_reasons.append("part7_ocr_confidence_invalid")
+        locator = row.get("source_row_locator")
+        locator_match = (_SOURCE_ROW_LOCATOR.fullmatch(locator)
+                         if isinstance(locator, str) else None)
+        if (extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+                (locator_match is None or int(locator_match[1]) != row.get("page_number") or
+                 transaction_locator_counts.get(locator, 0) != 1)):
+            row_reasons.append("part7_row_identity_unverified")
+        if (extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+                not _account_scope_evidence_valid(row, extraction)):
+            row_reasons.append("part7_account_scope_unverified")
+        recovery = row.get("parser_recovery")
+        repairs = recovery.get("field_repairs") if isinstance(recovery, dict) else None
+        allowed_repairs = {
+            "join_split_type_tokens", "join_split_date_tokens",
+            "normalize_thousands_separator"}
+        if (extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+                (not isinstance(recovery, dict) or recovery.get("method") !=
+                 "source_bound_part7_structured_row/v1" or
+                 not isinstance(repairs, list) or any(
+                     not isinstance(repair, dict) or
+                     repair.get("method") not in allowed_repairs
+                     for repair in repairs))):
+            row_reasons.append("part7_parser_recovery_trace_invalid")
+        geometry = row.get("transaction_geometry_evidence")
+        bounds = geometry.get("column_bounds") if isinstance(geometry, dict) else None
+        words = geometry.get("words") if isinstance(geometry, dict) else None
+        if (extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION and
+                (not isinstance(geometry, dict) or geometry.get("method") !=
+                 "source_bound_part7_columns/v1" or not isinstance(bounds, dict) or
+                 not isinstance(words, list) or not words or
+                 not all(isinstance(bounds.get(name), (int, float)) for name in
+                         ("description_start", "type_start", "date_start", "amount_start")))):
+            row_reasons.append("part7_geometry_evidence_invalid")
+        transaction_row_audit.append({
+            "section": row.get("section"), "page_number": row.get("page_number"),
+            "row_number": row.get("row_number"), "asset_name": row.get("asset_name"),
+            "owner": row.get("owner"), "transaction_type": row.get("transaction_type"),
+            "transaction_date": row.get("transaction_date"),
+            "amount_low": low, "amount_high": high,
+            "source_candidate_eligible": not row_reasons,
+            "reasons": sorted(set(row_reasons)),
+        })
     if quarantined:
         report_reasons.add("rows_quarantined")
     row_audit: list[dict] = []
@@ -632,6 +684,9 @@ def audit_public_278e(extraction: dict) -> dict:
             "source_holdings_eligible": holding_eligible,
             "source_report_eligible": report_eligible,
             "part7_cross_report_dedup_required": dedup_required,
+            "transaction_row_audit": transaction_row_audit,
+            "source_candidate_transaction_count": sum(
+                row["source_candidate_eligible"] for row in transaction_row_audit),
             "holding_blocking_reasons": sorted(holding_reasons),
             "report_blocking_reasons": sorted(report_reasons),
             "production_status": "not_assessed_external_identity_amendments_and_snapshot_gate"}

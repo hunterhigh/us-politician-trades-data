@@ -65,11 +65,17 @@ jobs:
           status = json.loads(path.read_text(encoding='utf-8'))
           direct_count = status.get('oge_direct_qualified_transaction_count', status['qualified_transaction_count'])
           direct_quarantined = status.get('oge_direct_quarantined_row_count', status['quarantined_row_count'])
-          if len(candidate['transactions']) != direct_count + audit['promoted_transaction_count']:
+          annual_transaction_count = annual.get('annual_transaction_count', 0)
+          if annual_transaction_count != 6759:
+              raise SystemExit('Trump annual transaction count is not the fixed audited total')
+          if len(candidate['transactions']) != (direct_count +
+                                                 audit['promoted_transaction_count'] +
+                                                 annual_transaction_count):
               raise SystemExit('OGE and White House transaction counts do not reconcile')
           status['oge_direct_qualified_transaction_count'] = direct_count
           status['oge_direct_quarantined_row_count'] = direct_quarantined
           status['whitehouse_public_qualified_transaction_count'] = audit['promoted_transaction_count']
+          status['whitehouse_public_qualified_annual_transaction_count'] = annual_transaction_count
           status['whitehouse_public_qualified_annual_report_count'] = annual['annual_qualified_report_count']
           status['whitehouse_public_qualified_holding_count'] = annual['annual_holding_count']
           status['qualified_transaction_count'] = len(candidate['transactions'])

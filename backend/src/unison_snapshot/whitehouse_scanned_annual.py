@@ -11,6 +11,7 @@ from datetime import date
 import re
 
 from .oge_278e_public import (TRUMP_2025_PARSER_VERSION,
+                              TRUMP_2025_LEGACY_PARSER_VERSIONS,
                               TRUMP_2025_PREVIOUS_PARSER_VERSION,
                               TRUMP_2025_SOURCE_SHA256,
                               TRUMP_2025_SOURCE_URL)
@@ -170,7 +171,7 @@ def source_bound_parser_version_valid(extraction: dict) -> bool:
     """Trump-only parser versions must never qualify another source."""
 
     if extraction.get("parser_version") not in {
-            TRUMP_2025_PREVIOUS_PARSER_VERSION, TRUMP_2025_PARSER_VERSION}:
+            *TRUMP_2025_LEGACY_PARSER_VERSIONS, TRUMP_2025_PARSER_VERSION}:
         return True
     return (extraction.get("source_sha256") == TRUMP_2025_SOURCE_SHA256 and
             _attestation(extraction) is not None)

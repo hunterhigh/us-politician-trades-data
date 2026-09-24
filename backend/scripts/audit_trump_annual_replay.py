@@ -21,12 +21,12 @@ from unison_snapshot.oge_278e_public import (
 SCHEMA = "whitehouse-trump-annual-replay-audit/v1"
 LEGACY_TREE = "c57ecdcd0e780fa7dc256fae6d0fe728735c8f09"
 LEGACY_AUDIT_SHA256 = "291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b"
-EXPECTED_EXTRACTION_SHA256 = "04800d61d8fd91c0eb9b2d57e5c13329068bd4d817d14a6dab6ab751c6c0317e"
+EXPECTED_EXTRACTION_SHA256 = "f44d6c7de59f16111a39a88d7993969e7ba609d08da8201fa36c605268d29547"
 EXPECTED_COUNTS = {
     "holdings": 3999,
-    "transactions": 0,
+    "transactions": 6759,
     "excluded": 21,
-    "quarantined": 23637,
+    "quarantined": 17320,
 }
 EXPECTED_PART6_COUNTS = {
     "holdings": 3998,
@@ -36,6 +36,21 @@ EXPECTED_PART6_COUNTS = {
 }
 EXPECTED_PART6_NUMERIC_HOLDING_COUNT = 2075
 EXPECTED_PART6_SYNTHETIC_HOLDING_COUNT = 1923
+EXPECTED_PART7_COUNTS = {
+    "holdings": 0,
+    "transactions": 6759,
+    "excluded": 0,
+    "quarantined": 14526,
+}
+EXPECTED_PART7_TRANSACTION_TYPES = {"purchase": 4754, "sale": 2005}
+EXPECTED_PART7_PAGE_RANGE = (159, 845)
+EXPECTED_PART7_QUARANTINE_REASONS = {
+    "row_number_ocr_unreadable": 442,
+    "transaction_amount_unreadable_or_open": 713,
+    "transaction_date_unreadable_or_outside_period": 630,
+    "transaction_ocr_confidence_below_threshold": 14201,
+    "transaction_type_unreadable": 274,
+}
 
 
 def _rows(extraction: dict, name: str) -> list[dict]:
@@ -48,7 +63,7 @@ def _rows(extraction: dict, name: str) -> list[dict]:
 def audit_replay(extraction: dict, *, extraction_sha256: str,
                  legacy_tree: str, legacy_audit_sha256: str) -> dict:
     if extraction_sha256 != EXPECTED_EXTRACTION_SHA256:
-        raise ValueError("Trump v7 fixed extraction bytes changed")
+        raise ValueError("Trump v8 fixed extraction bytes changed")
     if (extraction.get("source_url") != TRUMP_2025_SOURCE_URL or
             extraction.get("source_sha256") != TRUMP_2025_SOURCE_SHA256 or
             extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION or
@@ -74,7 +89,7 @@ def audit_replay(extraction: dict, *, extraction_sha256: str,
     if counts != EXPECTED_COUNTS:
         raise ValueError(f"Trump replay disposition counts changed: {counts}")
     printed = extraction.get("printed_row_count")
-    if printed != sum(counts.values()) or printed != 27657:
+    if printed != sum(counts.values()) or printed != 28099:
         raise ValueError("Trump replay row conservation failed")
 
     part6 = {name: [row for row in rows if row.get("section") == "part6"]
@@ -109,6 +124,32 @@ def audit_replay(extraction: dict, *, extraction_sha256: str,
             numeric_holding_count + synthetic_holding_count !=
             len(part6["holdings"])):
         raise ValueError("Trump Part 6 printed/synthetic holding census changed")
+
+    part7 = {name: [row for row in rows if row.get("section") == "part7"]
+             for name, rows in dispositions.items()}
+    part7_counts = {name: len(rows) for name, rows in part7.items()}
+    if part7_counts != EXPECTED_PART7_COUNTS:
+        raise ValueError(f"Trump Part 7 disposition counts changed: {part7_counts}")
+    part7_rows = [row for rows in part7.values() for row in rows]
+    part7_locators = [row.get("source_row_locator") for row in part7_rows]
+    part7_scopes = [row.get("account_scope") for row in part7_rows]
+    if (any(not isinstance(value, str) or not value for value in part7_locators) or
+            any(not isinstance(value, str) or not value for value in part7_scopes)):
+        raise ValueError("Trump Part 7 row locator or account scope is missing")
+    if len(part7_locators) != len(set(part7_locators)):
+        raise ValueError("Trump Part 7 physical row locator is duplicated")
+    part7_pages = [row.get("page_number") for row in part7_rows]
+    if (any(type(value) is not int for value in part7_pages) or
+            (min(part7_pages), max(part7_pages)) != EXPECTED_PART7_PAGE_RANGE):
+        raise ValueError("Trump Part 7 page range changed")
+    part7_types = Counter(row.get("transaction_type")
+                          for row in part7["transactions"])
+    if dict(part7_types) != EXPECTED_PART7_TRANSACTION_TYPES:
+        raise ValueError("Trump Part 7 transaction type counts changed")
+    part7_reasons = Counter(reason for row in part7["quarantined"]
+                            for reason in row.get("reasons", []))
+    if dict(part7_reasons) != EXPECTED_PART7_QUARANTINE_REASONS:
+        raise ValueError("Trump Part 7 quarantine reason counts changed")
 
     printed_keys = Counter((row.get("account_scope"), row.get("row_number"))
                            for row in part6_rows)
@@ -147,6 +188,11 @@ def audit_replay(extraction: dict, *, extraction_sha256: str,
             qualified_holding_duplicate_count,
         "part6_numeric_printed_holding_count": numeric_holding_count,
         "part6_synthetic_row_number_holding_count": synthetic_holding_count,
+        "part7_disposition_counts": part7_counts,
+        "part7_page_range": list(EXPECTED_PART7_PAGE_RANGE),
+        "part7_transaction_type_counts": dict(sorted(part7_types.items())),
+        "part7_quarantine_reason_counts": dict(sorted(part7_reasons.items())),
+        "part7_unique_source_row_locator_count": len(set(part7_locators)),
         "exact_json_duplicate_count": exact_json_duplicate_count,
         "quarantine_reason_counts": dict(sorted(reasons.items())),
         "source_row_census_status": extraction["source_row_census_status"],

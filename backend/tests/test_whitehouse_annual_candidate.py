@@ -69,6 +69,33 @@ class WhiteHouseAnnualCandidateTests(unittest.TestCase):
                          "official_matched")
         self.assertEqual(len(candidate["people"]), 1)
 
+    def test_source_bound_annual_transaction_is_published(self) -> None:
+        annual = _annual()
+        report = annual["reports"][0]
+        report["source_candidate_transaction_eligible"] = True
+        annual.update(
+            schema_version="whitehouse-annual-filer-reported/v3",
+            source_candidate_transaction_report_count=1,
+            transaction_count=1, source_eligible_transaction_count=1,
+            transactions=[{
+                "row_id": "wh-annual-tx:" + "d" * 24,
+                "document_id": report["document_id"],
+                "filer_reported_name": report["filer_reported_name"],
+                "asset_owner": "Unknown", "asset_name": "Vanguard Growth ETF",
+                "transaction_type": "purchase", "transaction_date": "2025-09-18",
+                "amount_low": 1001, "amount_high": 15000,
+                "source_transaction_eligible": True,
+                "source_url": report["source_url"],
+                "source_sha256": report["source_sha256"],
+            }])
+        path = self.root / "whitehouse/annual/filer-reported-current.json"
+        path.write_text(json.dumps(annual), encoding="utf-8")
+        candidate, audit = overlay_whitehouse_annual_candidate(_base(), self.root)
+        self.assertEqual(audit["annual_transaction_count"], 1)
+        self.assertEqual(candidate["transactions"][0]["owner"], "Unknown")
+        self.assertEqual(candidate["transactions"][0]["verification_status"],
+                         "official_matched")
+
     def test_overlay_replaces_prior_whitehouse_annual_rows(self) -> None:
         first, _ = overlay_whitehouse_annual_candidate(_base(), self.root)
         second, _ = overlay_whitehouse_annual_candidate(first, self.root)

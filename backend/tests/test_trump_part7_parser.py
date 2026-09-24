@@ -205,7 +205,7 @@ class TrumpPart7ParserTests(unittest.TestCase):
         self.assertEqual(result["quarantined"][0]["reasons"],
                          ["table_header_unrecognized"])
 
-    def test_default_v7_entrypoint_remains_inert_until_integration_review(self) -> None:
+    def test_recovery_remains_inert_without_source_bound_v8_opt_in(self) -> None:
         result = _extract([_transaction_page(_trade("1", "ALPHA"))], enabled=False)
         self.assertEqual(result["transactions"], [])
         self.assertEqual(result["quarantined"][0]["reasons"],

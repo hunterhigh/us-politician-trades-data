@@ -20,7 +20,8 @@ from .whitehouse_scanned_annual import (RECOVERY_METHOD, TRUMP_2025_SOURCE_SHA25
                                         apply_scanned_annual_corrections)
 
 
-SCHEMA = "whitehouse-annual-filer-reported/v2"
+SCHEMA = "whitehouse-annual-filer-reported/v3"
+LEGACY_SCHEMA = "whitehouse-annual-filer-reported/v2"
 _COVERAGE = "whitehouse-public-coverage/v1"
 _ID = re.compile(r"wh-url:([0-9a-f]{24})\Z")
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
@@ -58,6 +59,31 @@ def _holding_row_id(source_sha256: str, row: dict, legacy_index: int) -> str:
     return "wh-annual:" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
+def _transaction_row_id(source_sha256: str, row: dict) -> str:
+    locator = row.get("source_row_locator")
+    match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
+    if match is None or int(match[1]) != row.get("page_number"):
+        raise ValueError("White House annual transaction has no stable physical identity")
+    identity = f"{source_sha256}|part7|{locator}"
+    return "wh-annual-tx:" + hashlib.sha256(identity.encode()).hexdigest()[:24]
+
+
+def _transaction_candidate_allowed(audit: dict, extraction: dict) -> bool:
+    if (extraction.get("parser_version") != "whitehouse-278e-hybrid-geometry/v8" or
+            extraction.get("source_sha256") != TRUMP_2025_SOURCE_SHA256 or
+            not audit["printed_rows_conserved"]):
+        return False
+    blockers = set(audit["report_blocking_reasons"])
+    tolerated = {
+        "part7_cross_278t_dedup_pending", "part7_rows_quarantined", "rows_quarantined",
+        "asset_rows_quarantined", "asset_sections_unverified",
+        "holding_rows_not_individually_qualified",
+    }
+    tolerated.update(reason for reason in blockers if reason.startswith(
+                     ("asset_section_unreconciled:", "document:asset_")))
+    return blockers <= tolerated
+
+
 def _partial_candidate_allowed(audit: dict, extraction: dict) -> bool:
     blockers = set(audit["holding_blocking_reasons"])
     tolerated = set(_PARTIAL_BLOCKERS)
@@ -79,6 +105,7 @@ def build_annual_review(coverage: dict, review_root: Path, *,
         raise ValueError("White House annual coverage is invalid")
     result_reports = []
     holdings = []
+    transactions = []
     owner_counts: Counter[str] = Counter()
     seen_urls = set()
     for source in sorted(reports, key=lambda row: row.get("document_id", "")):
@@ -122,9 +149,13 @@ def build_annual_review(coverage: dict, review_root: Path, *,
         audit = audit_public_278e(extraction)
         report_eligible = audit["source_holdings_eligible"]
         candidate_eligible = report_eligible or _partial_candidate_allowed(audit, extraction)
+        transaction_candidate_eligible = _transaction_candidate_allowed(audit, extraction)
         source_holdings = extraction["holdings"]
+        source_transactions = extraction["transactions"]
         if len(source_holdings) != len(audit["holding_row_audit"]):
             raise ValueError("White House annual holding audit lost rows")
+        if len(source_transactions) != len(audit["transaction_row_audit"]):
+            raise ValueError("White House annual transaction audit lost rows")
         report = {
             "document_id": document_id,
             "filer_reported_name": extraction["filer_name"],
@@ -139,10 +170,15 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             "report_period_end": extraction.get("report_period_end"),
             "source_holdings_eligible": report_eligible,
             "source_candidate_eligible": candidate_eligible,
+            "source_candidate_transaction_eligible": transaction_candidate_eligible,
             "holding_coverage_status": ("complete" if report_eligible else
                                         "partial" if candidate_eligible else "ineligible"),
             "holding_blocking_reasons": audit["holding_blocking_reasons"],
             "parsed_holding_count": len(source_holdings),
+            "parsed_transaction_count": len(source_transactions),
+            "qualified_transaction_count": sum(
+                row["source_candidate_eligible"] for row in audit["transaction_row_audit"])
+                if transaction_candidate_eligible else 0,
             "quarantined_asset_count": sum(row.get("section") in {"part2", "part5", "part6"}
                                            for row in extraction["quarantined"]),
             "printed_rows_conserved": audit["printed_rows_conserved"],
@@ -196,17 +232,53 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             if isinstance(row.get("parser_recovery"), dict):
                 materialized["source_bound_parser_recovery"] = row["parser_recovery"]
             holdings.append(materialized)
+        for row, decision in zip(source_transactions, audit["transaction_row_audit"], strict=True):
+            materialized = {
+                "row_id": _transaction_row_id(versions[0], row),
+                "document_id": document_id,
+                "filer_reported_name": extraction["filer_name"],
+                "asset_owner": row.get("owner", "Unknown"),
+                "asset_name": row["asset_name"],
+                "transaction_type": row["transaction_type"],
+                "transaction_date": row["transaction_date"],
+                "amount_low": row["amount_low"], "amount_high": row["amount_high"],
+                "section": row["section"], "page_number": row["page_number"],
+                "row_number": row["row_number"],
+                "source_transaction_eligible": transaction_candidate_eligible and
+                decision["source_candidate_eligible"],
+                "row_blocking_reasons": decision["reasons"],
+                "source_url": url, "source_sha256": versions[0],
+                "extraction_path": relative.as_posix(),
+                "source_row_locator": row["source_row_locator"],
+                "account_scope": row["account_scope"],
+            }
+            for source_name, target_name in (
+                    ("raw_columns", "raw_columns"),
+                    ("account_scope_evidence", "account_scope_evidence"),
+                    ("ocr_field_confidence", "ocr_field_confidence"),
+                    ("transaction_geometry_evidence", "source_bound_transaction_geometry_evidence"),
+                    ("parser_recovery", "source_bound_parser_recovery")):
+                if isinstance(row.get(source_name), dict):
+                    materialized[target_name] = row[source_name]
+            transactions.append(materialized)
     if len({row["row_id"] for row in holdings}) != len(holdings):
         raise ValueError("White House annual row identity collision")
+    if len({row["row_id"] for row in transactions}) != len(transactions):
+        raise ValueError("White House annual transaction identity collision")
     return {
         "schema_version": SCHEMA, "coverage_sha256": coverage_sha256,
         "report_count": len(result_reports), "holding_count": len(holdings),
+        "transaction_count": len(transactions),
         "owner_counts": dict(sorted(owner_counts.items())),
         "source_eligible_report_count": sum(r["source_holdings_eligible"] for r in result_reports),
         "source_candidate_report_count": sum(r["source_candidate_eligible"] for r in result_reports),
+        "source_candidate_transaction_report_count": sum(
+            r["source_candidate_transaction_eligible"] for r in result_reports),
         "source_partial_report_count": sum(r["holding_coverage_status"] == "partial"
                                            for r in result_reports),
         "source_eligible_holding_count": sum(r["source_holdings_eligible"] for r in holdings),
+        "source_eligible_transaction_count": sum(
+            r["source_transaction_eligible"] for r in transactions),
         "production_status": "review_only_complete_or_source_bound_partial_rows",
-        "reports": result_reports, "holdings": holdings,
+        "reports": result_reports, "holdings": holdings, "transactions": transactions,
     }

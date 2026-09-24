@@ -21,8 +21,12 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
 PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v5"
-TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
-TRUMP_2025_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v6"
+TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v8"
+TRUMP_2025_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
+TRUMP_2025_LEGACY_PARSER_VERSIONS = (
+    "whitehouse-278e-hybrid-geometry/v6",
+    TRUMP_2025_PREVIOUS_PARSER_VERSION,
+)
 TRUMP_2025_SOURCE_SHA256 = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
 TRUMP_2025_SOURCE_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                          "President-Donald-J.-Trump-2025-Annual-Report.pdf")
@@ -31,7 +35,7 @@ TRUMP_2025_LEGACY_OCR_ENGINE = "tesseract 5.3.4"
 LEGACY_PARSER_VERSIONS = ("whitehouse-278e-hybrid-geometry/v4",
                           "whitehouse-278e-positioned-text/v2")
 SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS,
-                             TRUMP_2025_PREVIOUS_PARSER_VERSION,
+                             *TRUMP_2025_LEGACY_PARSER_VERSIONS,
                              TRUMP_2025_PARSER_VERSION)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
@@ -1128,10 +1132,13 @@ def extract_public_278e_pdf(pdf_path: Path, *, source_url: str, source_sha256: s
                 raise OgeCatalogError(f"White House 278e OCR failed: {exc}") from None
             meta, cover_reasons = _ocr_cover(pages[0], expected_filer)
             extraction_method = "tesseract_ocr_geometry"
-        rows = _extract_page_rows(pages, meta, initial_reasons=cover_reasons,
-                                  source_url=source_url, source_sha256=source_sha256)
+        version = parser_version_for_source(source_url, source_sha256)
+        rows = _extract_page_rows(
+            pages, meta, initial_reasons=cover_reasons,
+            source_url=source_url, source_sha256=source_sha256,
+            enable_trump_part7_recovery=version == TRUMP_2025_PARSER_VERSION)
         return {"schema_version": SCHEMA,
-                "parser_version": parser_version_for_source(source_url, source_sha256),
+                "parser_version": version,
                 "source_id": "whitehouse_public", "form_type": "278e",
                 "source_url": source_url, "source_sha256": source_sha256,
                 **meta, "page_count": len(document.pages),
@@ -1303,8 +1310,10 @@ def extract_public_278e_pdf_checkpointed(
             pages.append(OcrPage(width=float(row["width"]), height=float(row["height"]),
                                  words=row["words"]))
     meta, cover_reasons = _ocr_cover(pages[0], expected_filer)
-    rows = _extract_page_rows(pages, meta, initial_reasons=cover_reasons,
-                              source_url=source_url, source_sha256=source_sha256)
+    rows = _extract_page_rows(
+        pages, meta, initial_reasons=cover_reasons,
+        source_url=source_url, source_sha256=source_sha256,
+        enable_trump_part7_recovery=version == TRUMP_2025_PARSER_VERSION)
     return {"schema_version": SCHEMA, "parser_version": version,
             "source_id": "whitehouse_public", "form_type": "278e",
             "source_url": source_url, "source_sha256": source_sha256,

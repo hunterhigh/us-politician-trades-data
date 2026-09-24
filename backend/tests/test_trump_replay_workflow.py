@@ -16,10 +16,15 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
         self.assertIn("c57ecdcd0e780fa7dc256fae6d0fe728735c8f09", content)
         self.assertIn("audit_trump_ocr_checkpoints.py", content)
         self.assertIn("audit_trump_annual_replay.py", content)
-        self.assertIn("TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v7", content)
+        self.assertIn("TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v8", content)
         self.assertIn("test ! -e \"$REVIEW_ROOT/$target_checkpoint_path\"", content)
         self.assertIn("status --porcelain --untracked-files=all", content)
         self.assertNotIn("refs/heads/evidence", content)
+
+    def test_candidate_rebuild_requires_fixed_annual_transaction_total(self) -> None:
+        content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("annual_transaction_count != 6759", content)
         self.assertNotIn("refs/heads/main", content)
         self.assertNotIn("refs/heads/market", content)
         self.assertIn("HEAD:refs/heads/review", content)
@@ -31,7 +36,7 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
                 self.assertIn("group: disclosure-source-writer", content, path.name)
                 self.assertNotIn("group: disclosure-review-writer", content, path.name)
 
-    def test_candidate_rebuild_audits_only_additive_trump_holdings(self):
+    def test_candidate_rebuild_audits_only_additive_trump_annual_facts(self):
         content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
             encoding="utf-8")
         self.assertIn("disclosure-candidate-before.json", content)

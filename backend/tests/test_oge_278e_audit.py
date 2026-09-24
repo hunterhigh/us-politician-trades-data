@@ -100,7 +100,55 @@ def _trump_v7(*rows: dict) -> dict:
     return apply_scanned_annual_corrections(extraction)
 
 
+def _trump_v8_transaction() -> dict:
+    extraction = _annual()
+    extraction.update(
+        parser_version=TRUMP_2025_PARSER_VERSION,
+        source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+                    "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
+        source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+        position_line_raw="President", cover_report_year=2025,
+        extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
+        filing_date=None, signature_text=None, holdings=[],
+        explicit_empty_sections=["part2", "part5", "part6"],
+        document_reasons=["filer_handwritten_signature_or_date_unverified"],
+        printed_row_count=1, requires_cross_report_dedup=True,
+    )
+    extraction["transactions"] = [{
+        "section": "part7", "page_number": 159, "row_number": "10",
+        "asset_name": "VANGUARD GROWTH ETF", "owner": "Unknown",
+        "raw_columns": {"description": "VANGUARD GROWTH ETF", "type": "purchase",
+                        "date": "9/18/2025", "amount": "$1,001 - $15,000"},
+        "transaction_type": "purchase", "transaction_date": "2025-09-18",
+        "amount_low": 1001, "amount_high": 15000,
+        "source_row_locator": "p159-y2531",
+        "account_scope": "investment-account-1",
+        "account_scope_evidence": {"page_number": 159,
+                                   "text": "INVESTMENT ACCOUNT #1"},
+        "ocr_mean_confidence": 92.0, "ocr_min_confidence": 80.0,
+        "ocr_field_confidence": {},
+        "transaction_geometry_evidence": {
+            "method": "source_bound_part7_columns/v1",
+            "column_bounds": {"description_start": 37.44, "type_start": 612.36,
+                              "date_start": 660.24, "amount_start": 706.32},
+            "words": [{"field": "description", "original_text": "VANGUARD",
+                       "x0": 37.44, "x1": 66.6, "top": 255.24,
+                       "ocr_confidence": 95.0, "included_in_raw_column": True,
+                       "repair_method": None}],
+        },
+        "parser_recovery": {"method": "source_bound_part7_structured_row/v1",
+                            "field_repairs": []},
+    }]
+    return apply_scanned_annual_corrections(extraction)
+
+
 class Public278eAuditTests(unittest.TestCase):
+    def test_source_bound_part7_transaction_gets_row_level_qualification(self):
+        audit = audit_public_278e(_trump_v8_transaction())
+        self.assertEqual(audit["source_candidate_transaction_count"], 1)
+        self.assertTrue(audit["transaction_row_audit"][0]["source_candidate_eligible"])
+        self.assertIn("part7_cross_278t_dedup_pending", audit["report_blocking_reasons"])
+
     def test_complete_source_annual_is_eligible_but_not_production_assessed(self):
         extraction = _annual()
         before = deepcopy(extraction)
