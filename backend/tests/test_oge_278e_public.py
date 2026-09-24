@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -13,7 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows,
                                               _ocr_cover, _parse_row, _raw_text_columns,
-                                              OcrCheckpointPending,
+                                              OCR_SHARD_SCHEMA, OcrCheckpointPending,
+                                              PARSER_VERSION, TRUMP_2025_PARSER_VERSION,
+                                              TRUMP_2025_SOURCE_SHA256, TRUMP_2025_SOURCE_URL,
                                               extract_public_278e_pdf,
                                               extract_public_278e_pdf_checkpointed)
 from unison_snapshot.ocr_geometry import OcrPage
@@ -283,6 +286,64 @@ class Public278eTests(unittest.TestCase):
                              "tesseract_ocr_geometry_checkpointed")
             self.assertEqual(result["ocr_checkpoint"]["pending_page_count"], 0)
             self.assertEqual(len(list((root / "checkpoint").glob("pages-*.json"))), 5)
+
+    def test_trump_v6_reuses_complete_v5_geometry_without_writing_shards(self):
+        pages = [_Page([""]) for _ in range(927)]
+        content = b"%PDF-1.7\nfixture\n%%EOF"
+        meta = {"filer_name": "Donald Trump", "report_type": "Annual",
+                "report_period_end": "2025-12-31",
+                "holding_valuation_date": "2025-12-31"}
+        rows = {"section_pages": {"part2": 0, "part5": 0, "part6": 0, "part7": 0},
+                "explicit_empty_sections": [], "printed_row_count": 0,
+                "holdings": [], "transactions": [], "excluded": [], "quarantined": [],
+                "document_reasons": [], "requires_cross_report_dedup": False}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pdf = root / "source.pdf"
+            pdf.write_bytes(content)
+            legacy = root / "v5"
+            legacy.mkdir()
+            for start in range(1, 928, 25):
+                end = min(start + 24, 927)
+                shard = {"schema_version": OCR_SHARD_SCHEMA,
+                         "parser_version": PARSER_VERSION,
+                         "source_url": TRUMP_2025_SOURCE_URL,
+                         "source_sha256": TRUMP_2025_SOURCE_SHA256,
+                         "ocr_engine": "tesseract 5.3.4", "page_start": start,
+                         "page_end": end,
+                         "pages": [{"page_number": number, "width": 684,
+                                    "height": 792, "words": []}
+                                   for number in range(start, end + 1)]}
+                (legacy / f"pages-{start:04d}-{end:04d}.json").write_text(
+                    json.dumps(shard), encoding="utf-8")
+            with patch.dict(sys.modules, {"pdfplumber": type("PDFPlumber", (), {
+                    "open": staticmethod(lambda _: _Document(pages))})}), patch(
+                    "unison_snapshot.oge_278e_public.hashlib.sha256") as digest, patch(
+                    "unison_snapshot.oge_278e_public._ocr_cover",
+                    return_value=(meta, [])), patch(
+                    "unison_snapshot.oge_278e_public._extract_page_rows",
+                    return_value=rows), patch(
+                    "unison_snapshot.oge_278e_public.ocr_pdf_pages") as ocr:
+                digest.return_value.hexdigest.return_value = TRUMP_2025_SOURCE_SHA256
+                result = extract_public_278e_pdf_checkpointed(
+                    pdf, source_url=TRUMP_2025_SOURCE_URL,
+                    source_sha256=TRUMP_2025_SOURCE_SHA256,
+                    expected_filer="Donald Trump", checkpoint_root=root / "v6",
+                    legacy_checkpoint_root=legacy)
+                self.assertEqual(result["parser_version"], TRUMP_2025_PARSER_VERSION)
+                self.assertEqual(result["ocr_checkpoint"]["reused_shard_count"], 38)
+                self.assertEqual(result["ocr_checkpoint"]["reused_parser_version"],
+                                 PARSER_VERSION)
+                self.assertEqual(result["ocr_checkpoint"]["created_shard_count"], 0)
+                self.assertFalse((root / "v6").exists())
+                ocr.assert_not_called()
+                (legacy / "pages-0901-0925.json").unlink()
+                with self.assertRaisesRegex(OgeCatalogError, "legacy OCR checkpoint is incomplete"):
+                    extract_public_278e_pdf_checkpointed(
+                        pdf, source_url=TRUMP_2025_SOURCE_URL,
+                        source_sha256=TRUMP_2025_SOURCE_SHA256,
+                        expected_filer="Donald Trump", checkpoint_root=root / "v6",
+                        legacy_checkpoint_root=legacy)
 
     def test_unknown_table_header_leaves_numbered_row_visible(self):
         pages = [_Page(_cover_text("Annual", "2026").splitlines()),
