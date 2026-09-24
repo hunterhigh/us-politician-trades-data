@@ -63,6 +63,7 @@ jobs:
           python backend/scripts/enrich_whitehouse_annual_tickers.py \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
             --checked-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --assets-url "$assets_url" --distribution-authorized
           python - <<'PY'
@@ -129,6 +130,7 @@ jobs:
             whitehouse/annual/candidate-current.json \
             whitehouse/annual/candidate-transition-current.json \
             whitehouse/annual/ticker-mapping-current.json \
+            whitehouse/278t/trump-2026-ticker-mapping-current.json \
             status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"

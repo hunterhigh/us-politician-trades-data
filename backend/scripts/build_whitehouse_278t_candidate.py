@@ -27,6 +27,7 @@ from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
@@ -238,7 +239,8 @@ def _write_pair(candidate_out: Path, candidate_raw: bytes,
             path.unlink(missing_ok=True)
 
 
-def _strip_prior_whitehouse(candidate: dict, audit: dict) -> dict:
+def _strip_prior_whitehouse(candidate: dict, audit: dict,
+                            ticker_audit: dict | None = None) -> dict:
     """Recover the hash-bound direct OGE base before rebuilding overlays."""
     base = deepcopy(candidate)
     base["transactions"] = [
@@ -254,6 +256,8 @@ def _strip_prior_whitehouse(candidate: dict, audit: dict) -> dict:
     if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
         raise ValueError("Prior White House OGE health record is invalid")
     oge_health[0]["detail"] = oge_health[0]["detail"].split("; White House annual:", 1)[0]
+    if ticker_audit is not None:
+        base = restore_pre_enrichment(base, ticker_audit)
     if hashlib.sha256(_json_bytes(base)).hexdigest() != audit.get("candidate_sha256"):
         raise ValueError("Prior White House transaction overlay differs from its audit")
     promoted = {row.get("extraction_id") for report in audit.get("reports", [])
@@ -306,7 +310,10 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                     "promoted_transaction_count": prior["promoted_transaction_count"],
                     "quarantined_row_count": prior["quarantined_row_count"],
                     "extraction_failure_count": prior.get("extraction_failure_count", 0)}
-        base = _strip_prior_whitehouse(base, prior)
+        mapping_path = (review_root / "whitehouse/278t/"
+                        "trump-2026-ticker-mapping-current.json")
+        ticker_audit = (_read_object(mapping_path)[0] if mapping_path.is_file() else None)
+        base = _strip_prior_whitehouse(base, prior, ticker_audit)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
     eligibility = audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions)
     candidate, conservation = build_whitehouse_278t_review_candidate(

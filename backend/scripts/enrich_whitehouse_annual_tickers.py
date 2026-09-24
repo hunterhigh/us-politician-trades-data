@@ -9,6 +9,7 @@ from pathlib import Path
 import tempfile
 
 from unison_snapshot.alpaca_market import AlpacaMarketClient
+from unison_snapshot.whitehouse_2026_tickers import enrich_trump_2026_tickers
 from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
 
 
@@ -29,6 +30,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--mapping-output", type=Path, required=True)
+    parser.add_argument("--trump-2026-mapping-output", type=Path)
     parser.add_argument("--checked-at")
     parser.add_argument("--assets-url", default="https://paper-api.alpaca.markets/v2/assets")
     parser.add_argument("--distribution-authorized", action="store_true")
@@ -44,14 +46,28 @@ def main() -> int:
     previous = (json.loads(args.mapping_output.read_text(encoding="utf-8"))
                 if args.mapping_output.is_file() else None)
     checked_at = args.checked_at or datetime.now(timezone.utc).isoformat()
+    assets = client.assets()
     result, audit = enrich_whitehouse_annual_tickers(
-        candidate, client.assets(), checked_at=checked_at, previous=previous)
+        candidate, assets, checked_at=checked_at, previous=previous)
+    trump_audit = None
+    if args.trump_2026_mapping_output is not None:
+        previous_trump = (json.loads(args.trump_2026_mapping_output.read_text(encoding="utf-8"))
+                          if args.trump_2026_mapping_output.is_file() else None)
+        result, trump_audit = enrich_trump_2026_tickers(
+            result, assets, checked_at=checked_at, previous=previous_trump)
     _write(args.candidate, result)
     _write(args.mapping_output, audit)
+    if trump_audit is not None:
+        _write(args.trump_2026_mapping_output, trump_audit)
     print(json.dumps({key: audit[key] for key in (
         "annual_transaction_count", "mapping_count", "retained_mapping_count",
         "new_mapping_count", "ambiguous_record_count", "unmatched_record_count")},
         sort_keys=True))
+    if trump_audit is not None:
+        print(json.dumps({key: trump_audit[key] for key in (
+            "source_transaction_count", "correction_count", "mapping_count",
+            "retained_mapping_count", "new_mapping_count",
+            "ambiguous_record_count", "unmatched_record_count")}, sort_keys=True))
     return 0
 
 

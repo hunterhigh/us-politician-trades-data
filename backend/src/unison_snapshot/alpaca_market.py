@@ -317,8 +317,9 @@ def _asset_name_key(value: str, *, drop_class: bool = False) -> str:
 
 
 def _recover_unique_asset_name_tickers(
-        snapshot: dict, assets: object) -> tuple[dict, list[dict], dict]:
-    """Map White House annual labels only when Alpaca has one active SIP identity."""
+        snapshot: dict, assets: object, *,
+        eligible: Callable[[dict], bool] | None = None) -> tuple[dict, list[dict], dict]:
+    """Map selected disclosure labels only when Alpaca has one active SIP identity."""
     registry = _asset_registry(assets)
     exact: dict[str, set[str]] = defaultdict(set)
     classless: dict[str, set[str]] = defaultdict(set)
@@ -350,8 +351,9 @@ def _recover_unique_asset_name_tickers(
             if not isinstance(row, dict):
                 raise AlpacaMarketError(f"{kind} must contain objects")
             record_id = str(row.get("id") or "")
-            if not record_id.startswith(ANNUAL_TRANSACTION_PREFIX) or str(
-                    row.get("ticker") or "").strip():
+            selected = (eligible(row) if eligible is not None else
+                        record_id.startswith(ANNUAL_TRANSACTION_PREFIX))
+            if not selected or str(row.get("ticker") or "").strip():
                 continue
             asset_name = str(row.get("asset_name") or "").strip()
             key = _asset_name_key(asset_name)
