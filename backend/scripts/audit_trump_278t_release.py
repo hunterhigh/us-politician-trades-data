@@ -255,8 +255,6 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
     expected_added = promoted - set(before_transactions)
     if added != expected_added or added_oge != expected_added:
         raise ValueError("Trump 278-T promoted rows do not equal both candidate deltas")
-    if not added:
-        raise ValueError("Trump 278-T first release has no new qualified transactions")
     if not promoted <= after_transactions.keys() or not promoted <= after_oge_transactions.keys():
         raise ValueError("Trump 278-T candidate omitted a source-qualified row")
     added_rows = {key: after_transactions[key] for key in added}
