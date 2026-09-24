@@ -238,6 +238,11 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             holdings.append(materialized)
         for index, (row, decision) in enumerate(zip(
                 source_transactions, audit["transaction_row_audit"], strict=True)):
+            if not transaction_candidate_eligible:
+                # Preserve the existing scope for legacy annual reports. The
+                # production review expansion is deliberately bound to the
+                # fixed Trump v8 replay only.
+                continue
             materialized = {
                 "row_id": _transaction_row_id(versions[0], row, index),
                 "document_id": document_id,
@@ -254,16 +259,16 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                 "row_blocking_reasons": decision["reasons"],
                 "source_url": url, "source_sha256": versions[0],
                 "extraction_path": relative.as_posix(),
-                "source_row_locator": row["source_row_locator"],
-                "account_scope": row["account_scope"],
             }
             for source_name, target_name in (
+                    ("source_row_locator", "source_row_locator"),
+                    ("account_scope", "account_scope"),
                     ("raw_columns", "raw_columns"),
                     ("account_scope_evidence", "account_scope_evidence"),
                     ("ocr_field_confidence", "ocr_field_confidence"),
                     ("transaction_geometry_evidence", "source_bound_transaction_geometry_evidence"),
                     ("parser_recovery", "source_bound_parser_recovery")):
-                if isinstance(row.get(source_name), dict):
+                if isinstance(row.get(source_name), (dict, str)):
                     materialized[target_name] = row[source_name]
             transactions.append(materialized)
     if len({row["row_id"] for row in holdings}) != len(holdings):
