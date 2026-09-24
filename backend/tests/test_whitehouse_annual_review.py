@@ -16,6 +16,11 @@ from unison_snapshot.oge_278e_public import PARSER_VERSION
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
 
+TRUMP_SHA = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
+TRUMP_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
+             "President-Donald-J.-Trump-2025-Annual-Report.pdf")
+
+
 class WhiteHouseAnnualReviewTests(unittest.TestCase):
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory()
@@ -35,7 +40,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
             "schema_version": "whitehouse-public-coverage/v1",
             "source_id": "whitehouse_public_disclosures", "report_link_count": 1,
             "reports": [{"document_id": document_id, "document_url": url,
-                         "filer_name_from_label": "Example, Ada",
+                         "filer_name_from_label": extraction["filer_name"],
                          "document_type_from_label": "278e_annual",
                          "archive_sha256_versions": [extraction["source_sha256"]],
                          "review_state": "extracted_review_only"}],
@@ -80,6 +85,52 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         path.write_text(json.dumps(changed), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "not bound"):
             build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+
+    def test_trump_row_ids_survive_insert_and_reorder_without_changing_old_id(self) -> None:
+        def holding(page: int, number: str, name: str, locator: str | None = None) -> dict:
+            row = {
+                "section": "part2", "page_number": page, "row_number": number,
+                "asset_name": name, "owner": "Self",
+                "raw_columns": {"description": name, "eif": "N/A",
+                                "value": "$1,001 to $15,000"},
+                "value_low": 1001, "value_high": 15000,
+                "report_period_end": "2025-12-31",
+                "holding_valuation_date": "2025-12-31",
+                "holding_valuation_status": "exact_period_end",
+                "ocr_mean_confidence": 96.0, "ocr_min_confidence": 90.0,
+            }
+            if locator:
+                row["source_row_locator"] = locator
+            return row
+
+        old = holding(864, "332", "Existing published asset")
+        added = holding(856, "135", "Newly qualified asset", "p856-y5810")
+
+        def extraction(rows: list[dict]) -> dict:
+            result = _annual()
+            result.update(source_url=TRUMP_URL, source_sha256=TRUMP_SHA,
+                          filer_name="Donald Trump", position_line_raw="President",
+                          cover_report_year=2025, extraction_method="tesseract_ocr_geometry",
+                          ocr_engine="tesseract test", filing_date=None,
+                          signature_text=None, holdings=rows,
+                          printed_row_count=len(rows),
+                          explicit_empty_sections=["part5", "part6", "part7"],
+                          document_reasons=["filer_handwritten_signature_or_date_unverified"])
+            return result
+
+        coverage, _ = self.fixture(extraction([old]))
+        first = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        old_id = first["holdings"][0]["row_id"]
+
+        coverage, _ = self.fixture(extraction([added, old]))
+        second = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        second_ids = {row["row_number"]: row["row_id"] for row in second["holdings"]}
+        self.assertEqual(second_ids["332"], old_id)
+
+        coverage, _ = self.fixture(extraction([old, added]))
+        third = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        third_ids = {row["row_number"]: row["row_id"] for row in third["holdings"]}
+        self.assertEqual(third_ids, second_ids)
 
 
 if __name__ == "__main__":

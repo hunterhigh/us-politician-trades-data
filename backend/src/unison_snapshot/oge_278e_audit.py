@@ -12,17 +12,21 @@ from urllib.parse import urlsplit
 
 from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
                                OCR_MINIMUM_ROW_MEAN_CONFIDENCE, SCHEMA,
-                               SUPPORTED_PARSER_VERSIONS, _SIGNATURE,
+                               SUPPORTED_PARSER_VERSIONS, TRUMP_2025_PARSER_VERSION,
+                               _SIGNATURE,
                                _explicit_part6_owner, _name_key)
-from .oge_annual import _VALUE_RANGES
+from .oge_annual import _VALUE_RANGES, _range
 from .whitehouse_scanned_annual import (recovered_ocr_holding_valid,
-                                        scanned_signature_evidence_valid)
+                                        scanned_signature_evidence_valid,
+                                        source_bound_holding_section_page_valid,
+                                        source_bound_parser_version_valid)
 
 
 AUDIT_SCHEMA = "whitehouse-public-278e-qualification/v1"
 _OWNERS = {"Self", "Spouse", "Dependent Child", "Joint"}
 _HOLDING_PARTS = {"part2", "part5", "part6"}
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
+_SOURCE_ROW_LOCATOR = re.compile(r"p([1-9]\d*)-y([1-9]\d*)\Z")
 
 
 def _date(value: object) -> date | None:
@@ -45,7 +49,7 @@ def _signature_date(value: str) -> date | None:
         return None
 
 
-def _part6_owner_evidence_valid(row: dict) -> bool:
+def _part6_owner_evidence_valid(row: dict, extraction: dict) -> bool:
     evidence = row.get("owner_evidence")
     if not isinstance(evidence, list) or not evidence:
         return False
@@ -54,6 +58,9 @@ def _part6_owner_evidence_valid(row: dict) -> bool:
                 type(item.get("page_number")) is not int or item["page_number"] <= 0 or
                 not isinstance(item.get("row_number"), str) or
                 not isinstance(item.get("text"), str)):
+            return False
+        if not source_bound_holding_section_page_valid(
+                {"section": "part6", "page_number": item["page_number"]}, extraction):
             return False
         if item.get("basis") == "explicit_part6_parent_account":
             if (_explicit_part6_owner(item["text"]) != row["owner"] or
@@ -67,6 +74,31 @@ def _part6_owner_evidence_valid(row: dict) -> bool:
                                  r"\s+" + label + r"\.", item["text"], re.I)):
                 return False
         else:
+            return False
+    return True
+
+
+def _critical_field_confidence_valid(row: dict, extraction: dict) -> bool:
+    """Require confidence on the cells that determine a v6 holding fact."""
+
+    if extraction.get("parser_version") != TRUMP_2025_PARSER_VERSION:
+        return True
+    recovered = recovered_ocr_holding_valid(row, extraction)
+    fields = row.get("critical_field_confidence" if recovered else
+                     "ocr_field_confidence")
+    if not isinstance(fields, dict):
+        return False
+    minimum_key = "minimum" if recovered else "min"
+    for name in ("row_number", "description", "value"):
+        confidence = fields.get(name)
+        if (not isinstance(confidence, dict) or
+                not isinstance(confidence.get("mean"), (int, float)) or
+                not isinstance(confidence.get(minimum_key), (int, float)) or
+                confidence["mean"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
+                confidence[minimum_key] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
+            return False
+        if not recovered and (type(confidence.get("word_count")) is not int or
+                              confidence["word_count"] <= 0):
             return False
     return True
 
@@ -95,7 +127,8 @@ def audit_public_278e(extraction: dict) -> dict:
     holding_reasons: set[str] = set()
     report_reasons: set[str] = set()
     if (extraction.get("schema_version") != SCHEMA or
-            extraction.get("parser_version") not in SUPPORTED_PARSER_VERSIONS):
+            extraction.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+            not source_bound_parser_version_valid(extraction)):
         report_reasons.add("untrusted_extraction_version")
     ocr_method = str(extraction.get("extraction_method", "")).startswith(
         "tesseract_ocr_geometry")
@@ -206,13 +239,48 @@ def audit_public_278e(extraction: dict) -> dict:
     if quarantined:
         report_reasons.add("rows_quarantined")
     row_audit: list[dict] = []
-    for row in holdings:
+    valued_parent_indexes = {
+        index for index, row in enumerate(holdings)
+        if isinstance(row.get("row_number"), str) and any(
+            other_index != index and other.get("section") == row.get("section") and
+            (not row.get("account_scope") or not other.get("account_scope") or
+             row.get("account_scope") == other.get("account_scope")) and
+            isinstance(other.get("row_number"), str) and
+            other["row_number"].startswith(row["row_number"] + ".")
+            for other_index, other in enumerate(holdings))
+    }
+    for index, row in enumerate(holdings):
         reasons = []
         if row.get("section") not in _HOLDING_PARTS or type(row.get("page_number")) is not int or (
                 row.get("page_number", 0) <= 0 or not isinstance(row.get("row_number"), str) or
                 not row["row_number"] or not isinstance(row.get("asset_name"), str) or
                 not row["asset_name"].strip() or not isinstance(row.get("raw_columns"), dict)):
             reasons.append("holding_row_evidence_invalid")
+        if not source_bound_holding_section_page_valid(row, extraction):
+            reasons.append("holding_section_page_mismatch")
+        locator = row.get("source_row_locator")
+        if locator is not None:
+            match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
+            if match is None or int(match[1]) != row.get("page_number"):
+                reasons.append("holding_row_evidence_invalid")
+        elif extraction.get("parser_version") == TRUMP_2025_PARSER_VERSION:
+            reasons.append("holding_row_evidence_invalid")
+        if not _critical_field_confidence_valid(row, extraction):
+            reasons.append("holding_critical_field_confidence_invalid")
+        account_scope = row.get("account_scope")
+        account_evidence = row.get("account_scope_evidence")
+        if account_scope is not None or account_evidence is not None:
+            if (not isinstance(account_scope, str) or not account_scope.strip() or
+                    not isinstance(account_evidence, dict) or
+                    type(account_evidence.get("page_number")) is not int or
+                    not isinstance(account_evidence.get("text"), str) or
+                    not account_evidence["text"].strip() or
+                    not source_bound_holding_section_page_valid(
+                        {"section": row.get("section"),
+                         "page_number": account_evidence.get("page_number")}, extraction)):
+                reasons.append("holding_row_evidence_invalid")
+        if index in valued_parent_indexes:
+            reasons.append("holding_parent_child_double_count")
         owner = row.get("owner")
         if owner == "Unknown" and row.get("section") == "part6":
             # Part 6 is filer-reported, but the form does not always identify
@@ -223,11 +291,15 @@ def audit_public_278e(extraction: dict) -> dict:
             reasons.append("holding_owner_not_disclosed")
         elif ((row.get("section") == "part2" and owner != "Self") or
               (row.get("section") == "part5" and owner != "Spouse") or
-              (row.get("section") == "part6" and not _part6_owner_evidence_valid(row))):
+              (row.get("section") == "part6" and
+               not _part6_owner_evidence_valid(row, extraction))):
             reasons.append("holding_owner_evidence_invalid")
         low, high = row.get("value_low"), row.get("value_high")
         if type(low) is not int or type(high) is not int or (low, high) not in _VALUE_RANGES:
             reasons.append("holding_value_band_invalid")
+        raw_value = row.get("raw_columns", {}).get("value")
+        if not isinstance(raw_value, str) or _range(raw_value) != (low, high):
+            reasons.append("holding_value_evidence_invalid")
         if row.get("report_period_end") != extraction.get("report_period_end") or (
                 row.get("holding_valuation_date") != extraction.get("holding_valuation_date")):
             reasons.append("holding_period_conflicts_with_cover")

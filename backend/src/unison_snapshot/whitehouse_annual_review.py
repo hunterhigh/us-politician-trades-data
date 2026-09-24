@@ -16,7 +16,7 @@ from .oge_278e_audit import audit_public_278e
 from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
                                SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last
-from .whitehouse_scanned_annual import (RECOVERY_METHOD,
+from .whitehouse_scanned_annual import (RECOVERY_METHOD, TRUMP_2025_SOURCE_SHA256,
                                         apply_scanned_annual_corrections)
 
 
@@ -31,6 +31,31 @@ _PARTIAL_BLOCKERS = {
     "holding_rows_not_individually_qualified",
     "document:table_header_unrecognized",
 }
+_SOURCE_ROW_LOCATOR = re.compile(r"p([1-9]\d*)-y([1-9]\d*)\Z")
+_LEGACY_STABLE_ROW_IDS = {
+    # This row was published when row IDs included its array index 0. Preserve
+    # that public identity while future Trump rows use physical OCR locators.
+    (TRUMP_2025_SOURCE_SHA256, "part2", 864, "332"): "wh-annual:" + hashlib.sha256(
+        f"{TRUMP_2025_SOURCE_SHA256}|0|part2|332".encode()).hexdigest()[:24],
+}
+
+
+def _holding_row_id(source_sha256: str, row: dict, legacy_index: int) -> str:
+    key = (source_sha256, row.get("section"), row.get("page_number"),
+           row.get("row_number"))
+    if key in _LEGACY_STABLE_ROW_IDS:
+        return _LEGACY_STABLE_ROW_IDS[key]
+    locator = row.get("source_row_locator")
+    match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
+    if source_sha256 == TRUMP_2025_SOURCE_SHA256 and match is not None and int(match[1]) == row.get(
+            "page_number"):
+        identity = f"{source_sha256}|{row.get('section')}|{locator}"
+    else:
+        # Preserve existing IDs for reports whose extraction ordering is not
+        # being migrated in this change.
+        identity = (f"{source_sha256}|{legacy_index}|{row.get('section')}|"
+                    f"{row.get('row_number')}")
+    return "wh-annual:" + hashlib.sha256(identity.encode()).hexdigest()[:24]
 
 
 def _partial_candidate_allowed(audit: dict, extraction: dict) -> bool:
@@ -130,10 +155,8 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                                                       audit["holding_row_audit"], strict=True)):
             owner = row["owner"]
             owner_counts[owner] += 1
-            holdings.append({
-                "row_id": "wh-annual:" + hashlib.sha256(
-                    f"{versions[0]}|{index}|{row.get('section')}|{row.get('row_number')}".encode()
-                ).hexdigest()[:24],
+            materialized = {
+                "row_id": _holding_row_id(versions[0], row, index),
                 "document_id": document_id,
                 "filer_reported_name": extraction["filer_name"],
                 "asset_owner": owner,
@@ -149,7 +172,12 @@ def build_annual_review(coverage: dict, review_root: Path, *,
                 "row_blocking_reasons": decision["reasons"],
                 "source_url": url, "source_sha256": versions[0],
                 "extraction_path": relative.as_posix(),
-            })
+            }
+            if isinstance(row.get("ocr_recovery"), dict):
+                # Preserve the original OCR cells and original quarantine
+                # reasons for every source-bound promoted row.
+                materialized["source_bound_ocr_recovery"] = row["ocr_recovery"]
+            holdings.append(materialized)
     if len({row["row_id"] for row in holdings}) != len(holdings):
         raise ValueError("White House annual row identity collision")
     return {
