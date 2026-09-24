@@ -45,6 +45,8 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('--audit "$RUNNER_TEMP/market-audit.json"', complete)
         self.assertIn('--twelve-audit "$RUNNER_TEMP/twelve-audit.json"', complete)
         self.assertIn('--checked-at "$checked_at" --limit "$TWELVE_LIMIT"', complete)
+        self.assertIn('test "$TWELVE_LIMIT" -ge 0', complete)
+        self.assertIn('if [ "$TWELVE_LIMIT" -gt 0 ] && [ -z "$TWELVE_KEY" ]', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
         self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
 

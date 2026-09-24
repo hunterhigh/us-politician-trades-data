@@ -86,6 +86,34 @@ class TwelveDataMarketTests(unittest.TestCase):
         self.assertEqual({row["ticker"] for row in data["security_market_data"]},
                          {"FUNDX", "ZZDEMO"})
 
+    def test_zero_limit_reuses_stale_cache_without_provider_requests(self):
+        source = candidate()
+        cached_row = {
+            "ticker": "FUNDX", "company_name": "Example Fund Class A",
+            "source_id": "twelve_data_split_adjusted_eod",
+            "price_source": "Twelve Data split-adjusted EOD",
+            "source_url": "https://twelvedata.com/docs", "feed": "twelve_data",
+            "timeframe": "1Day", "adjustment": "split",
+            "price_history": [{"date": "2026-09-17", "close": 12.6}],
+        }
+        cache = PublishedTwelveDataCache({"FUNDX": cached_row}, {
+            "schema_version": "twelve-data-market-state/v1",
+            "entries": {"FUNDX": {
+                "status": "accepted", "checked_at": "2026-09-01T00:00:00Z",
+                "fingerprint": _fingerprint({"Example Fund"}),
+            }},
+        })
+        client = TwelveDataClient("cache-only", opener=lambda *_args, **_kwargs: self.fail(
+            "zero-limit publication must not call Twelve Data"), pace_seconds=0)
+        data, audit = supplement(source, client=client,
+                                 checked_at="2026-09-19T00:01:00Z", limit=0,
+                                 previous_market=cache)
+        self.assertEqual(audit["attempted_count"], 0)
+        self.assertEqual(audit["request_count"], 0)
+        self.assertEqual(audit["cached_accepted_count"], 1)
+        self.assertEqual({row["ticker"] for row in data["security_market_data"]},
+                         {"FUNDX", "ZZDEMO"})
+
     def test_mixed_candidate_and_price_provenance(self):
         urls = []
 

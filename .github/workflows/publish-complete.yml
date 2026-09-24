@@ -10,7 +10,7 @@ on:
         required: true
         default: '100'
       twelve_data_limit:
-        description: Twelve Data symbols to advance in this run
+        description: Twelve Data symbols to advance; 0 reuses the published cache without requests
         required: true
         default: '100'
       cache_main_ref:
@@ -77,14 +77,18 @@ jobs:
             echo "Alpaca production credentials are not configured." >&2
             exit 2
           }
-          test "$TWELVE_AUTHORIZED" = "true" && test -n "$TWELVE_KEY" || {
-            echo "Twelve Data production authorization or credential is missing." >&2
+          test "$TWELVE_AUTHORIZED" = "true" || {
+            echo "Twelve Data distribution authorization is missing." >&2
             exit 2
           }
           case "$BATCH_SIZE" in *[!0-9]*) exit 2 ;; esac
           test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 200
           case "$TWELVE_LIMIT" in *[!0-9]*) exit 2 ;; esac
-          test "$TWELVE_LIMIT" -ge 1 && test "$TWELVE_LIMIT" -le 100
+          test "$TWELVE_LIMIT" -ge 0 && test "$TWELVE_LIMIT" -le 100
+          if [ "$TWELVE_LIMIT" -gt 0 ] && [ -z "$TWELVE_KEY" ]; then
+            echo "Twelve Data credential is required when advancing its cache." >&2
+            exit 2
+          fi
           if { [ -z "$CACHE_MAIN_REF" ] && [ -n "$CACHE_MARKET_REF" ]; } \
               || { [ -n "$CACHE_MAIN_REF" ] && [ -z "$CACHE_MARKET_REF" ]; }; then
             echo "Cache recovery requires both main and market commits." >&2
@@ -172,7 +176,7 @@ jobs:
             --previous-market-root "$CACHE_MARKET_ROOT" \
             --previous-market-commit "$CACHE_MARKET_COMMIT" \
             --distribution-authorized
-      - name: Add licensed Twelve Data daily prices
+      - name: Reuse or advance licensed Twelve Data daily prices
         env:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           TWELVE_LIMIT: ${{ inputs.twelve_data_limit || '100' }}

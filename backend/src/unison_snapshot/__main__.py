@@ -563,7 +563,10 @@ def main() -> None:
                 raise TwelveDataError("Twelve Data distribution authorization is required")
             checked_at = args.checked_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             payload = json.loads(args.input.read_text(encoding="utf-8"))
-            client = TwelveDataClient(os.environ.get(args.key_env, ""))
+            # A zero limit is a cache-only publication: it carries forward
+            # already licensed rows and deliberately cannot issue a request.
+            key = "cache-only" if args.limit == 0 else os.environ.get(args.key_env, "")
+            client = TwelveDataClient(key)
             cache_options = (args.previous_main_root, args.previous_market_root,
                              args.previous_market_commit)
             if any(value is not None for value in cache_options) \
