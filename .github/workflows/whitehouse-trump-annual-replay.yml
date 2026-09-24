@@ -17,7 +17,7 @@ jobs:
     env:
       DOCUMENT_ID: wh-url:0c14d3849ca60768024e470b
       SOURCE_SHA256: 1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3
-      TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v7
+      TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v8
       LEGACY_TREE: c57ecdcd0e780fa7dc256fae6d0fe728735c8f09
       LEGACY_AUDIT_SHA256: 291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b
     steps:

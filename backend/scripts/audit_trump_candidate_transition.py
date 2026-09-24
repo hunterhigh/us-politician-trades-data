@@ -1,4 +1,4 @@
-"""Audit a review candidate rebuild for additive Trump holdings only."""
+"""Audit a review candidate rebuild for additive Trump annual facts."""
 
 from __future__ import annotations
 
@@ -59,8 +59,22 @@ def audit_transition(before: dict, after: dict,
 
     if not before_people.keys() <= after_people.keys():
         raise ValueError("Candidate rebuild removed an existing person")
-    if before_transactions != after_transactions or before_oge_transactions != after_oge_transactions:
-        raise ValueError("Trump annual rebuild changed transactions")
+    removed_transactions = sorted(before_transactions.keys() - after_transactions.keys())
+    removed_oge_transactions = sorted(
+        before_oge_transactions.keys() - after_oge_transactions.keys())
+    if removed_transactions or removed_oge_transactions:
+        raise ValueError("Trump annual rebuild removed transactions")
+    added_transactions = sorted(after_transactions.keys() - before_transactions.keys())
+    added_oge_transactions = sorted(
+        after_oge_transactions.keys() - before_oge_transactions.keys())
+    if added_transactions != added_oge_transactions:
+        raise ValueError("Unified transaction delta does not match the OGE source delta")
+    if any(not item.startswith("wh-annual-tx:") or
+           after_transactions[item].get("person_id") != TRUMP_PERSON_ID or
+           after_transactions[item].get("source_id") != "oge" or
+           after_transactions[item].get("verification_status") != "official_matched"
+           for item in added_transactions):
+        raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
     removed = sorted(before_holdings.keys() - after_holdings.keys())
     removed_oge = sorted(before_oge_holdings.keys() - after_oge_holdings.keys())
     if removed or removed_oge:
@@ -90,13 +104,17 @@ def audit_transition(before: dict, after: dict,
         "added_holding_count": len(added),
         "added_holding_ids": added,
         "removed_holding_count": 0,
-        "transaction_delta_count": 0,
+        "added_transaction_count": len(added_transactions),
+        "added_transaction_ids": added_transactions,
+        "removed_transaction_count": 0,
+        "transaction_delta_count": len(added_transactions),
         "duplicate_person_id_count": 0,
         "duplicate_transaction_id_count": 0,
         "duplicate_holding_id_count": 0,
         "cross_kind_fact_id_collision_count": 0,
         "published_trump_holding_retained": True,
         "oge_holding_delta_matches_unified": True,
+        "oge_transaction_delta_matches_unified": True,
     }
 
 

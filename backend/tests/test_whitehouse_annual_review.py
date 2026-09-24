@@ -11,7 +11,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from test_oge_278e_audit import _annual, _trump_v7, _v7_holding
+from test_oge_278e_audit import (_annual, _trump_v7, _trump_v8_transaction,
+                                 _v7_holding)
 from unison_snapshot.oge_278e_public import TRUMP_2025_PREVIOUS_PARSER_VERSION
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
@@ -63,6 +64,17 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         self.assertTrue(row["source_holdings_eligible"])
         self.assertEqual(result["production_status"],
                          "review_only_complete_or_source_bound_partial_rows")
+
+    def test_v8_part7_transaction_is_materialized_with_physical_identity(self) -> None:
+        coverage, _ = self.fixture(_trump_v8_transaction())
+        result = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
+        self.assertEqual(result["transaction_count"], 1)
+        self.assertEqual(result["source_eligible_transaction_count"], 1)
+        row = result["transactions"][0]
+        self.assertTrue(row["source_transaction_eligible"])
+        self.assertTrue(row["row_id"].startswith("wh-annual-tx:"))
+        self.assertEqual(row["source_row_locator"], "p159-y2531")
+        self.assertEqual(row["asset_owner"], "Unknown")
 
     def test_quarantined_asset_blocks_entire_report_without_losing_parsed_row(self) -> None:
         extraction = _annual()
