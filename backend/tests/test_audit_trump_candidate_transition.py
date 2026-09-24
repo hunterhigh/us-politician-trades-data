@@ -45,6 +45,25 @@ def candidate(*, added=False, added_transaction=None, keep_old=True,
 
 
 class TrumpCandidateTransitionTests(unittest.TestCase):
+    def test_allows_only_first_annual_ticker_upgrade_in_both_layers(self):
+        before, after = candidate(), candidate()
+        annual = {
+            "id": "wh-annual-tx:" + "a" * 24,
+            "ticker": None, "ticker_mapping_basis": None,
+            "asset_name": "KRAFT HEINZ CO",
+        }
+        before["transactions"].append(dict(annual))
+        after["transactions"].append(dict(
+            annual, ticker="KHC", ticker_mapping_basis="alpaca_unique_asset_name"))
+        result = script.audit_transition(before, after, before, after)
+        self.assertEqual(result["annual_ticker_upgrade_count"], 1)
+        changed = candidate()
+        changed["transactions"].append(dict(
+            annual, asset_name="Changed", ticker="KHC",
+            ticker_mapping_basis="alpaca_unique_asset_name"))
+        with self.assertRaisesRegex(ValueError, "removed or changed existing transactions"):
+            script.audit_transition(before, changed, before, changed)
+
     def test_additive_official_holding_passes(self):
         before, after = candidate(), candidate(added=True)
         result = script.audit_transition(before, after, before, after)

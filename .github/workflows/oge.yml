@@ -236,6 +236,10 @@ jobs:
       - name: Publish normalized review data and build source candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/oge-review
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
+          MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
         run: |
           REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
           import json, os
@@ -278,6 +282,12 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
+          test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
+          assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
+          PYTHONPATH=backend/src python backend/scripts/enrich_whitehouse_annual_tickers.py \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --checked-at "$cutoff" --assets-url "$assets_url" --distribution-authorized
           source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           for source_id in house_clerk senate_efd; do
             candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
@@ -331,7 +341,10 @@ jobs:
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                        separators=(',', ':')), encoding='utf-8')
           PY
-          git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications whitehouse/annual/candidate-current.json status/oge.json status/disclosure_cutoff.json
+          git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications \
+            whitehouse/annual/candidate-current.json \
+            whitehouse/annual/ticker-mapping-current.json \
+            status/oge.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

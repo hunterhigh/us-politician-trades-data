@@ -43,6 +43,44 @@ SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA"}
 # Keep this exception explicit: symbol length alone is not enough to classify a
 # security as foreign and must never turn an unresolved code into a silent skip.
 KNOWN_OUTSIDE_SIP_SYMBOLS = {"COLPAL": "outside_sip_foreign_exchange"}
+ANNUAL_TRANSACTION_PREFIX = "wh-annual-tx:"
+ASSET_NAME_TOKEN_ALIASES = {
+    "AMER": "AMERICA",
+    "COMMUN": "COMMUNICATIONS",
+    "COR": "CORPORATION",
+    "COS": "COMPANIES",
+    "ELEC": "ELECTRIC",
+    "FINL": "FINANCIAL",
+    "GRP": "GROUP",
+    "HLDG": "HOLDING",
+    "HLDGS": "HOLDINGS",
+    "INSTRS": "INSTRUMENTS",
+    "INTL": "INTERNATIONAL",
+    "LABS": "LABORATORIES",
+    "MTRLS": "MATERIALS",
+    "NATL": "NATIONAL",
+    "PPTYS": "PROPERTIES",
+    "PWR": "POWER",
+    "SVCS": "SERVICES",
+    "SVS": "SERVICES",
+    "SYS": "SYSTEMS",
+    "TECH": "TECHNOLOGY",
+    "TECHS": "TECHNOLOGIES",
+    "TRANSN": "TRANSPORTATION",
+    "WHSL": "WHOLESALE",
+    "WKS": "WORKS",
+    "WTR": "WATER",
+}
+ASSET_NAME_LEGAL_SUFFIXES = {
+    "CO", "COMPANY", "CORP", "CORPORATION", "INC", "INCORPORATED",
+    "LIMITED", "LTD", "PLC",
+}
+ASSET_NAME_SECURITY_SUFFIXES = (
+    ("COMMON", "STOCK"),
+    ("CAPITAL", "STOCK"),
+    ("ORDINARY", "SHARES"),
+    ("COMMON", "SHARES"),
+)
 
 
 class AlpacaMarketError(ValueError):
@@ -224,6 +262,129 @@ def _recover_explicit_name_tickers(snapshot: dict) -> tuple[dict, list[dict]]:
             row["ticker_mapping_basis"] = "filing_explicit_asset_name"
             recovered.append({"record_id": row.get("id"), "ticker": ticker, "array": kind})
     return result, recovered
+
+
+def _asset_name_key(value: str, *, drop_class: bool = False) -> str:
+    """Normalize filing/provider labels without using fuzzy similarity."""
+    tokens = re.findall(r"[A-Z0-9]+", value.upper().replace("&", " AND "))
+    expanded = []
+    for offset, token in enumerate(tokens):
+        if token == "CL" and offset + 1 < len(tokens) \
+                and re.fullmatch(r"[A-Z0-9]{1,3}", tokens[offset + 1]):
+            expanded.append("CLASS")
+        else:
+            expanded.append(ASSET_NAME_TOKEN_ALIASES.get(token, token))
+    if expanded and expanded[0] == "THE":
+        expanded.pop(0)
+    while expanded and expanded[-1] == "NEW":
+        expanded.pop()
+    for suffix in ASSET_NAME_SECURITY_SUFFIXES:
+        if tuple(expanded[-len(suffix):]) == suffix:
+            del expanded[-len(suffix):]
+            break
+    if drop_class:
+        classless: list[str] = []
+        offset = 0
+        while offset < len(expanded):
+            if expanded[offset] == "CLASS" and offset + 1 < len(expanded):
+                offset += 2
+                continue
+            classless.append(expanded[offset])
+            offset += 1
+        expanded = classless
+    while expanded and expanded[-1] in ASSET_NAME_LEGAL_SUFFIXES:
+        expanded.pop()
+    return "".join(expanded)
+
+
+def _recover_unique_asset_name_tickers(
+        snapshot: dict, assets: object) -> tuple[dict, list[dict], dict]:
+    """Map White House annual labels only when Alpaca has one active SIP identity."""
+    registry = _asset_registry(assets)
+    exact: dict[str, set[str]] = defaultdict(set)
+    classless: dict[str, set[str]] = defaultdict(set)
+    provider_names: dict[str, str] = {}
+    for symbol, asset in registry.items():
+        if asset["status"] != "active" or asset["exchange"] not in SIP_EXCHANGES:
+            continue
+        name = str(asset.get("name") or "").strip()
+        key = _asset_name_key(name)
+        if not key:
+            continue
+        exact[key].add(symbol)
+        base_key = _asset_name_key(name, drop_class=True)
+        if base_key:
+            classless[base_key].add(symbol)
+        provider_names[symbol] = name
+
+    result = deepcopy(snapshot)
+    recovered: list[dict] = []
+    ambiguous: list[dict] = []
+    unmatched_names: set[str] = set()
+    evaluated_names: set[str] = set()
+    evaluated_count = 0
+    for kind in ("transactions", "reported_holdings"):
+        rows = result.get(kind)
+        if not isinstance(rows, list):
+            raise AlpacaMarketError(f"{kind} must be an array")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise AlpacaMarketError(f"{kind} must contain objects")
+            record_id = str(row.get("id") or "")
+            if not record_id.startswith(ANNUAL_TRANSACTION_PREFIX) or str(
+                    row.get("ticker") or "").strip():
+                continue
+            asset_name = str(row.get("asset_name") or "").strip()
+            key = _asset_name_key(asset_name)
+            if not key:
+                continue
+            evaluated_count += 1
+            evaluated_names.add(asset_name)
+            alternatives = exact.get(key, set())
+            basis = "alpaca_unique_asset_name"
+            if len(alternatives) != 1:
+                base_key = _asset_name_key(asset_name, drop_class=True)
+                # Never discard a class explicitly stated by the filing.  The
+                # classless fallback exists for labels such as ZOETIS INC where
+                # Alpaca's sole active identity adds "Class A Common Stock".
+                if base_key != key:
+                    unmatched_names.add(asset_name)
+                    continue
+                alternatives = classless.get(base_key, set())
+                basis = "alpaca_unique_classless_asset_name"
+            if len(alternatives) != 1:
+                if alternatives:
+                    ambiguous.append({
+                        "record_id": record_id,
+                        "asset_name": asset_name,
+                        "candidate_tickers": sorted(alternatives),
+                    })
+                else:
+                    unmatched_names.add(asset_name)
+                continue
+            ticker = next(iter(alternatives))
+            row["ticker"] = ticker
+            row["ticker_mapping_basis"] = basis
+            recovered.append({
+                "record_id": record_id,
+                "ticker": ticker,
+                "array": kind,
+                "asset_name": asset_name,
+                "mapping_basis": basis,
+                "provider_asset_name": provider_names[ticker],
+            })
+    audit = {
+        "evaluated_record_count": evaluated_count,
+        "evaluated_asset_name_count": len(evaluated_names),
+        "recovered_record_count": len(recovered),
+        "recovered_asset_name_count": len({row["asset_name"] for row in recovered}),
+        "ambiguous_record_count": len(ambiguous),
+        "ambiguous_asset_name_count": len({row["asset_name"] for row in ambiguous}),
+        "ambiguous_records": ambiguous,
+        "unmatched_record_count": evaluated_count - len(recovered) - len(ambiguous),
+        "unmatched_asset_name_count": len(unmatched_names),
+    }
+    return result, recovered, audit
 
 
 def _symbols_and_names(snapshot: dict) -> tuple[list[str], dict[str, str], dict[str, list[dict]]]:

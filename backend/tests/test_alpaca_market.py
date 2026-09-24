@@ -20,6 +20,7 @@ from unison_snapshot.alpaca_market import (
 )
 from unison_snapshot.legacy import load
 from unison_snapshot.market_store import PublishedMarketCache
+from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
 
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
@@ -57,9 +58,10 @@ class FakeMarketClient:
         return {symbol: self.response[symbol] for symbol in symbols if symbol in self.response}
 
 
-def asset(symbol: str, *, exchange: str = "NASDAQ", status: str = "active") -> dict:
+def asset(symbol: str, *, exchange: str = "NASDAQ", status: str = "active",
+          name: str | None = None) -> dict:
     return {"symbol": symbol, "class": "us_equity", "exchange": exchange,
-            "status": status, "name": symbol}
+            "status": status, "name": name or symbol}
 
 
 class Response:
@@ -365,6 +367,80 @@ class AlpacaMarketTests(unittest.TestCase):
             [{"ticker": "ADRNY", "reason": "outside_sip_otc"},
              {"ticker": "BOND12345", "reason": "non_equity_debt"},
              {"ticker": "FXAIX", "reason": "outside_sip_fund"}])
+
+    def test_recovers_unique_alpaca_names_for_white_house_annual_rows(self):
+        snapshot = production_candidate()
+        examples = [
+            ("wh-annual-tx:kraft", "KRAFT HEINZ CO", "Unspecified"),
+            ("wh-annual-tx:texas", "TEXAS INSTRS INC", "Unspecified"),
+            ("wh-annual-tx:zoetis", "ZOETIS INC", "Unspecified"),
+            ("wh-annual-tx:synopsys", "SYNOPSYS INC", "Unspecified"),
+            ("wh-annual-tx:costco", "COSTCO WHSL CORP NEW", "Unspecified"),
+            ("wh-annual-tx:capital-one", "CAPITAL ONE FINANCIAL CORP", "Unspecified"),
+            ("wh-annual-tx:alphabet", "ALPHABET INC", "Unspecified"),
+            ("wh-annual-tx:berkshire", "BERKSHIRE HATHAWAY", "Unspecified"),
+            ("wh-annual-tx:under-armour", "UNDER ARMOUR INC", "Unspecified"),
+        ]
+        for record_id, name, instrument in examples:
+            row = deepcopy(snapshot["transactions"][0])
+            row.update(id=record_id, asset_name=name, instrument_type=instrument,
+                       ticker=None, ticker_mapping_basis=None)
+            snapshot["transactions"].append(row)
+        non_annual = deepcopy(snapshot["transactions"][0])
+        non_annual.update(id="oge:unmapped-kraft", asset_name="KRAFT HEINZ CO",
+                          ticker=None, ticker_mapping_basis=None)
+        snapshot["transactions"].append(non_annual)
+        bars = [{"t": "2026-09-18T04:00:00Z", "c": 100}]
+        client = FakeMarketClient(
+            {ticker: bars for ticker in ("ZZDEMO", "KHC", "TXN", "ZTS", "SNPS", "COST", "COF")},
+            assets=[
+                asset("ZZDEMO"),
+                asset("KHC", name="The Kraft Heinz Company Common Stock"),
+                asset("TXN", name="Texas Instruments Incorporated Common Stock"),
+                asset("ZTS", name="Zoetis Inc. Class A Common Stock"),
+                asset("SNPS", name="Synopsys, Inc. Common Stock"),
+                asset("COST", name="Costco Wholesale Corporation Common Stock"),
+                asset("COF", name="Capital One Financial Corporation Common Stock"),
+                asset("GOOG", name="Alphabet Inc. Class C Capital Stock"),
+                asset("GOOGL", name="Alphabet Inc. Class A Common Stock"),
+                asset("BRK.A", name="Berkshire Hathaway Inc. Class A Common Stock"),
+                asset("BRK.B", name="Berkshire Hathaway Inc. Class B Common Stock"),
+                asset("UA", name="Under Armour, Inc. Class C Common Stock"),
+                asset("UAA", name="Under Armour, Inc. Class A Common Stock"),
+            ],
+        )
+        enriched, audit = enrich_whitehouse_annual_tickers(
+            snapshot, client.assets(), checked_at="2026-09-20T21:00:00Z")
+        recovered = {row["id"]: row for row in enriched["transactions"]}
+        self.assertEqual(
+            (recovered["wh-annual-tx:kraft"]["ticker"],
+             recovered["wh-annual-tx:kraft"]["ticker_mapping_basis"]),
+            ("KHC", "alpaca_unique_asset_name"))
+        self.assertEqual(recovered["wh-annual-tx:texas"]["ticker"], "TXN")
+        self.assertEqual(recovered["wh-annual-tx:synopsys"]["ticker"], "SNPS")
+        self.assertEqual(recovered["wh-annual-tx:costco"]["ticker"], "COST")
+        self.assertEqual(recovered["wh-annual-tx:capital-one"]["ticker"], "COF")
+        self.assertEqual(
+            (recovered["wh-annual-tx:zoetis"]["ticker"],
+             recovered["wh-annual-tx:zoetis"]["ticker_mapping_basis"]),
+            ("ZTS", "alpaca_unique_classless_asset_name"))
+        self.assertIsNone(recovered["wh-annual-tx:alphabet"]["ticker"])
+        self.assertIsNone(recovered["wh-annual-tx:berkshire"]["ticker"])
+        self.assertIsNone(recovered["wh-annual-tx:under-armour"]["ticker"])
+        self.assertIsNone(recovered["oge:unmapped-kraft"]["ticker"])
+        self.assertEqual(audit["mapping_count"], 6)
+        self.assertEqual(audit["new_mapping_count"], 6)
+        self.assertEqual(audit["ambiguous_record_count"], 3)
+        self.assertEqual(audit["unmatched_record_count"], 0)
+
+        retained, second_audit = enrich_whitehouse_annual_tickers(
+            snapshot, list(reversed(client.assets())),
+            checked_at="2026-09-21T21:00:00Z", previous=audit)
+        self.assertEqual(retained, enriched)
+        self.assertEqual(second_audit["retained_mapping_count"], 6)
+        self.assertEqual(second_audit["new_mapping_count"], 0)
+        self.assertEqual(second_audit["asset_master_sha256"],
+                         audit["asset_master_sha256"])
 
     def test_production_accounts_for_symbol_absent_from_asset_master(self):
         snapshot = production_candidate()
