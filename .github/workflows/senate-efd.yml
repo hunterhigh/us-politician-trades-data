@@ -264,7 +264,7 @@ jobs:
   publish-review-catalog:
     needs: collect-catalog
     concurrency:
-      group: disclosure-review-writer
+      group: disclosure-source-writer
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest

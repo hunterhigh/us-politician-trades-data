@@ -16,8 +16,10 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (
     OcrCheckpointPending,
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
+    TRUMP_2025_PARSER_VERSION,
     extract_public_278e_pdf,
     extract_public_278e_pdf_checkpointed,
+    parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
@@ -113,7 +115,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
-        version = TRADE_PARSER_VERSION if kind == "278t" else ANNUAL_PARSER_VERSION
+        version = (TRADE_PARSER_VERSION if kind == "278t" else
+                   parser_version_for_source(metadata.get("document_url"),
+                                             metadata.get("sha256")))
         suffix = version.replace("/", "-")
         target = (review_root / "whitehouse/extractions" /
                   metadata["document_id"].split(":", 1)[1] /
@@ -164,9 +168,16 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
                               metadata["document_id"].split(":", 1)[1] /
                               metadata["sha256"] / suffix)
+                legacy_checkpoint = None
+                if version == TRUMP_2025_PARSER_VERSION:
+                    legacy_checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
+                                         metadata["document_id"].split(":", 1)[1] /
+                                         metadata["sha256"] /
+                                         ANNUAL_PARSER_VERSION.replace("/", "-"))
                 return extract_public_278e_pdf_checkpointed(
                     path, **common, expected_filer=name,
-                    checkpoint_root=checkpoint, page_limit=ocr_page_limit)
+                    checkpoint_root=checkpoint, page_limit=ocr_page_limit,
+                    legacy_checkpoint_root=legacy_checkpoint)
             if pdf is None:
                 with tempfile.TemporaryDirectory(prefix="whitehouse-pdf-") as temporary:
                     assembled = Path(temporary) / "original.pdf"

@@ -30,7 +30,7 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("identity_roster_sha256", content)
         self.assertIn("status/senate_efd.json", content)
         self.assertIn("group: disclosure-source-writer", content)
-        self.assertIn("group: disclosure-review-writer", content)
+        self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("'entrypoint_count': report_batch['archived_total']", content)
         self.assertIn("'report_evidence_count': evidence_count", content)
         self.assertIn("senate_efd/paper_report_failures/*/*/{parser_version}.json", content)

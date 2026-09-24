@@ -12,7 +12,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: disclosure-review-writer
+  group: disclosure-source-writer
   cancel-in-progress: false
 jobs:
   parse:
