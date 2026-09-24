@@ -21,7 +21,8 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
 PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v5"
-TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v6"
+TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
+TRUMP_2025_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v6"
 TRUMP_2025_SOURCE_SHA256 = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
 TRUMP_2025_SOURCE_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                          "President-Donald-J.-Trump-2025-Annual-Report.pdf")
@@ -30,6 +31,7 @@ TRUMP_2025_LEGACY_OCR_ENGINE = "tesseract 5.3.4"
 LEGACY_PARSER_VERSIONS = ("whitehouse-278e-hybrid-geometry/v4",
                           "whitehouse-278e-positioned-text/v2")
 SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS,
+                             TRUMP_2025_PREVIOUS_PARSER_VERSION,
                              TRUMP_2025_PARSER_VERSION)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
@@ -354,6 +356,8 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
                 row["eif"].append(prefix)
             row["value"].append(raw[split:])
             fields = ("eif", "value") if prefix else ("value",)
+            value_text = raw[split:]
+            value_repair = "split_eif_value_at_printed_dollar"
             row.setdefault("_ocr_word_repairs", []).append({
                 "page_number": row["page_number"], "original_text": raw,
                 "x0": x, "x1": float(word["x1"]),
@@ -361,6 +365,8 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
         elif field == "value" and re.match(r"^[_|]+\$", raw):
             row["value"].append(raw.lstrip("_|"))
             fields = ("value",)
+            value_text = raw.lstrip("_|")
+            value_repair = "strip_leading_table_border_before_dollar"
             row.setdefault("_ocr_word_repairs", []).append({
                 "page_number": row["page_number"], "original_text": raw,
                 "x0": x, "x1": float(word["x1"]),
@@ -368,11 +374,70 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
         else:
             row[field].append(raw)
             fields = (field,)
+            value_text = raw if field == "value" else None
+            value_repair = None
+        if value_text is not None:
+            row.setdefault("_value_word_evidence", []).append({
+                "original_text": raw, "value_text": value_text,
+                "x0": x, "x1": float(word["x1"]),
+                "top": float(word["top"]),
+                "ocr_confidence": word.get("ocr_confidence"),
+                "repair_method": value_repair})
         if isinstance(word.get("ocr_confidence"), (int, float)):
             score = float(word["ocr_confidence"])
             row.setdefault("_ocr_confidences", []).append(score)
             for name in fields:
                 row.setdefault("_ocr_field_confidences", {}).setdefault(name, []).append(score)
+
+
+def _trump_value_geometry_evidence(row: dict) -> dict | None:
+    columns = row.get("_value_column_bounds")
+    words = row.get("_value_word_evidence")
+    if not isinstance(columns, dict) or not isinstance(words, list) or not words:
+        return None
+    return {"method": "source_bound_part6_value_column/v1",
+            "column_bounds": columns, "words": words}
+
+
+def _trump_value_geometry_valid(row: dict) -> bool:
+    """A Value band must be assembled only from this source's Value cell."""
+
+    geometry = _trump_value_geometry_evidence(row)
+    if geometry is None:
+        return False
+    bounds = geometry["column_bounds"]
+    eif, value, income = (bounds[key] for key in
+                          ("eif_start", "value_start", "income_start"))
+    if not 440 <= eif < value < income <= 580:
+        return False
+    words = geometry["words"]
+    if _compact(" ".join(word["value_text"] for word in words)) != _compact(
+            " ".join(row["value"])):
+        return False
+    for word in words:
+        x0, x1 = word["x0"], word["x1"]
+        raw, extracted = word["original_text"], word["value_text"]
+        repair = word["repair_method"]
+        if not (x0 < x1 <= income - 2 and extracted):
+            return False
+        if repair == "split_eif_value_at_printed_dollar":
+            split = raw.find("$")
+            if (not eif - 8 <= x0 < value - 6 or x1 < value - 6 or
+                    split <= 0 or extracted != raw[split:] or
+                    not re.fullmatch(r"(?:N/A|Yes|No)?[_|\s]*",
+                                     raw[:split], re.I)):
+                return False
+        elif repair == "strip_leading_table_border_before_dollar":
+            if not (value - 6 <= x0 < income - 8 and
+                    re.match(r"^[_|]+\$", raw) and
+                    extracted == raw.lstrip("_|")):
+                return False
+        elif repair is None:
+            if not (value - 6 <= x0 < income - 8 and extracted == raw):
+                return False
+        else:
+            return False
+    return True
 
 
 def _quarantine(row: dict, reasons: list[str]) -> dict:
@@ -390,6 +455,9 @@ def _quarantine(row: dict, reasons: list[str]) -> dict:
         result["ocr_word_repairs"] = row["_ocr_word_repairs"]
     if row.get("_ocr_field_confidences"):
         result["ocr_field_confidence"] = _ocr_field_confidence(row)
+    geometry = _trump_value_geometry_evidence(row)
+    if geometry:
+        result["value_geometry_evidence"] = geometry
     if row.get("owner_evidence_conflict"):
         result["owner_evidence_conflict"] = row["owner_evidence_conflict"]
     confidences = row.get("_ocr_confidences", [])
@@ -463,7 +531,8 @@ def _assign_part6_owners(raw_rows: list[dict], pages: list[object]) -> None:
             row["owner_evidence_conflict"] = candidates
 
 
-def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, dict]:
+def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
+               trump_source_bound: bool = False) -> tuple[str, dict]:
     cells = {key: _compact(" ".join(value)) for key, value in row.items()
              if key in {"description", "eif", "value", "type", "date", "amount"}}
     row["raw_columns"] = cells
@@ -479,6 +548,9 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, di
         evidence["ocr_word_repairs"] = row["_ocr_word_repairs"]
     if row.get("_ocr_field_confidences"):
         evidence["ocr_field_confidence"] = _ocr_field_confidence(row)
+    geometry = _trump_value_geometry_evidence(row)
+    if geometry:
+        evidence["value_geometry_evidence"] = geometry
     confidences = row.get("_ocr_confidences", [])
     if confidences:
         evidence["ocr_mean_confidence"] = round(sum(confidences) / len(confidences), 2)
@@ -516,10 +588,20 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, di
         return "excluded", {**evidence, "reason": "no_disclosed_period_end_value"}
     band = _range(value_text)
     reasons = list(row.get("_row_reasons", []))
+    recovered_reasons: list[str] = []
+    if (trump_source_bound and row["section"] == "part6" and
+            "row_number_ocr_unreadable" in reasons and
+            row.get("source_row_locator") and row.get("account_scope") and
+            "account_heading_unverified" not in reasons):
+        reasons.remove("row_number_ocr_unreadable")
+        recovered_reasons.append("row_number_ocr_unreadable")
     if row.get("owner_evidence_conflict"):
         reasons.append("owner_evidence_conflicts")
     if band is None:
         reasons.append("holding_value_unreadable_or_open")
+    if trump_source_bound and row["section"] == "part6" and band is not None and (
+            not _trump_value_geometry_valid(row)):
+        reasons.append("holding_value_geometry_invalid")
     if "see endnote" in evidence["asset_name"].casefold() or "see endnote" in cells.get("eif", "").casefold():
         reasons.append("asset_endnote_unresolved")
     if "value not readily ascertainable" in evidence["asset_name"].casefold():
@@ -528,9 +610,18 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None) -> tuple[str, di
         reasons.append("nested_aggregate_may_double_count")
     if confidences and (evidence["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
                         evidence["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
-        reasons.append("holding_ocr_confidence_below_threshold")
+        if trump_source_bound and row["section"] == "part6":
+            recovered_reasons.append("holding_ocr_confidence_below_threshold")
+        else:
+            reasons.append("holding_ocr_confidence_below_threshold")
     if reasons:
         return "quarantined", _quarantine(row, reasons)
+    if trump_source_bound and row["section"] == "part6":
+        if geometry is None:
+            return "quarantined", _quarantine(row, ["holding_value_geometry_missing"])
+        evidence["parser_recovery"] = {
+            "method": "source_bound_part6_structured_row/v1",
+            "original_quarantine_reasons": sorted(recovered_reasons)}
     return "holdings", {**evidence, "value_low": band[0], "value_high": band[1],
                         "report_period_end": meta["report_period_end"],
                         "holding_valuation_date": meta["holding_valuation_date"],
@@ -676,6 +767,10 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                     row["_row_reasons"] = ["row_number_ocr_unreadable"]
                 if trump_layout and current_part == "part6":
                     row["source_row_locator"] = f"p{page_number}-y{top}"
+                    row["_value_column_bounds"] = {
+                        "eif_start": columns["eif"],
+                        "value_start": columns["value"],
+                        "income_start": columns["income"]}
                     if current_scope:
                         row["account_scope"] = current_scope["id"]
                         row["account_scope_evidence"] = current_scope["evidence"]
@@ -722,7 +817,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                                       other.get("account_scope") == scope) and
                                      other["row_number"].startswith(parent + ".")
                                      for other in raw_rows) else None
-        destination, parsed = _parse_row(row, meta, child_parent)
+        destination, parsed = _parse_row(row, meta, child_parent,
+                                         trump_source_bound=trump_layout)
         {"holdings": holdings, "transactions": transactions,
          "quarantined": quarantined, "excluded": excluded}[destination].append(parsed)
     for part in ("part2", "part5", "part6"):
