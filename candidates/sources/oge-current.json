@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-09-24T05:32:24Z",
+    "data_cutoff_at": "2026-09-24T12:17:10Z",
     "default_window_days": 30,
-    "generated_at": "2026-09-24T05:32:24Z",
+    "generated_at": "2026-09-24T12:17:10Z",
     "is_demo": false,
-    "snapshot_id": "ad89c3b7a9c817cd33a0ce6668657d275dfd9d1dc29b0489cda8f7323e647d5e",
+    "snapshot_id": "bbe469dc060a2e080fa2403ee411609a562dda20f68031b898628773fa28b0ad",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17122,10 +17122,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-09-24T05:32:24Z",
-      "detail": "Prior direct OGE status: Prior direct OGE status: 334 direct 278-T documents; 334 PDFs extracted; 4696 transactions qualified; 4761 request-required catalog entries were not automated; 5 direct documents were retained from archived catalog history.; White House public 278-T: 80 PDFs audited, 1391 new transactions qualified, 7757 rows quarantined; 6087 total OGE candidate transactions.; White House public 278-T: 80 PDFs audited, 1391 new transactions qualified, 7757 rows quarantined; 6087 total OGE candidate transactions.; White House annual: 26 complete and 2 partial filer-reported reports, 816 holdings and 6759 transactions",
-      "last_checked_at": "2026-09-24T05:32:24Z",
-      "last_successful_sync_at": "2026-09-24T05:32:24Z",
+      "data_cutoff_at": "2026-09-24T12:17:10Z",
+      "detail": "Prior direct OGE status: 334 direct 278-T documents; 334 PDFs extracted; 4696 transactions qualified; 4759 request-required catalog entries were not automated; 5 direct documents were retained from archived catalog history.; White House public 278-T: 80 PDFs audited, 1391 new transactions qualified, 7757 rows quarantined; 6087 total OGE candidate transactions.; White House annual: 26 complete and 2 partial filer-reported reports, 816 holdings and 6759 transactions",
+      "last_checked_at": "2026-09-24T12:17:10Z",
+      "last_successful_sync_at": "2026-09-24T12:17:10Z",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
