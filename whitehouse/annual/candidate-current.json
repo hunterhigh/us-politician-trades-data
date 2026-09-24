@@ -1,9 +1,9 @@
 {
   "annual_complete_report_count": 26,
-  "annual_holding_count": 504,
+  "annual_holding_count": 816,
   "annual_partial_report_count": 2,
   "annual_qualified_report_count": 28,
-  "annual_review_sha256": "532f262b3d704de8ccf3a1983e35c052943bacb14ba81621e8e666961181afb0",
+  "annual_review_sha256": "3d7c4c5e5a73aa2ccb5c718225aebb37fc17cd298eeb81a8ad23f29dc1d0833a",
   "annual_status": "included",
-  "annual_unknown_owner_count": 324
+  "annual_unknown_owner_count": 634
 }
