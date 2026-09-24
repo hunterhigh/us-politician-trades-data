@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows,
                                               _ocr_cover, _parse_row, _raw_text_columns,
+                                              _recover_trump_number_border_prefix,
+                                              _trump_part6_row_relationships,
                                               OCR_SHARD_SCHEMA, OcrCheckpointPending,
                                               PARSER_VERSION, TRUMP_2025_PARSER_VERSION,
                                               TRUMP_2025_SOURCE_SHA256, TRUMP_2025_SOURCE_URL,
@@ -411,6 +413,66 @@ class Public278eTests(unittest.TestCase):
         self.assertEqual([row["asset_name"] for row in result["holdings"]],
                          ["SPY ETF", "QQQ ETF"])
         self.assertEqual(result["document_reasons"], [])
+
+    def test_trump_number_border_split_restores_only_printed_name_prefix(self):
+        row = {"description": [],
+               "row_number": "ocr-p10-y1858", "_ocr_field_confidences": {}}
+        word = {"text": "27__|CISCO", "x0": 16.56, "x1": 54.0,
+                "top": 185.8, "ocr_confidence": 91.0}
+        _recover_trump_number_border_prefix(row, word, {"description": 40.0})
+        row["description"].extend(["SYSTEMS", "INC"])
+        self.assertEqual(row["description"], ["CISCO", "SYSTEMS", "INC"])
+        self.assertEqual(row["row_number"], "ocr-p10-y1858")
+        self.assertEqual(row["_description_border_split_evidence"]["original_text"],
+                         "27__|CISCO")
+        self.assertEqual(row["_description_border_split_evidence"]["number_glyph"],
+                         "27")
+        self.assertEqual(row["_description_border_split_evidence"]["description_prefix"],
+                         "CISCO")
+        for damaged in ("27__CISCO", "27__|", "27__|$15,000", "27__|C1SCO"):
+            unsafe = {"description": ["SYSTEMS", "INC"]}
+            _recover_trump_number_border_prefix(
+                unsafe, {**word, "text": damaged}, {"description": 40.0})
+            self.assertEqual(unsafe["description"], ["SYSTEMS", "INC"])
+            self.assertNotIn("_description_border_split_evidence", unsafe)
+
+    def test_trump_row_relationships_keep_physical_identity_and_uncertainty(self):
+        def row(locator, number, word, description, *, aggregate=False):
+            return {"section": "part6", "account_scope": "investment-account-1",
+                    "source_row_locator": locator, "row_number": number,
+                    "description": ["TOTAL" if aggregate else description],
+                    "_number_column_word": {"original_text": word},
+                    "_description_anchor": {"original_text": description, "x0": 40.0},
+                    "_description_cell_anchor": {"original_text": description,
+                                                 "x0": 40.0},
+                    "_value_word_evidence": [{"value_text": "$1,001"}]}
+        rows = [row("p10-y1737", "26", "26", "ADOBE"),
+                row("p10-y1858", "ocr-p10-y1858", "27__|CISCO", "CISCO"),
+                row("p10-y1976", "28", "28", "CITIGROUP"),
+                row("p10-y2102", "29", "29", "ACCOUNT", aggregate=True)]
+        _trump_part6_row_relationships(rows)
+        evidence = rows[1]["_row_relationship_evidence"]
+        self.assertEqual(evidence["classification"], "flat_numbered_item_candidate")
+        self.assertEqual(evidence["source_row_locator"], "p10-y1858")
+        self.assertEqual(evidence["number_column_word"]["original_text"],
+                         "27__|CISCO")
+        self.assertEqual(evidence["previous_row"]["source_row_locator"], "p10-y1737")
+        self.assertEqual(evidence["next_row"]["source_row_locator"], "p10-y1976")
+        self.assertIsNone(evidence["parent_source_row_locator"])
+        self.assertEqual(rows[3]["_row_relationship_evidence"]["classification"],
+                         "unresolved")
+        self.assertEqual(rows[1]["row_number"], "ocr-p10-y1858")
+        rows.append(row("p10-y2200", "1.1", "1", "NESTED"))
+        _trump_part6_row_relationships(rows)
+        self.assertTrue(rows[1]["_row_relationship_evidence"][
+            "scope_has_visible_decimal_numbering"])
+        self.assertEqual(rows[1]["_row_relationship_evidence"]["classification"],
+                         "unresolved")
+        rows.pop()
+        rows[1]["_row_reasons"] = ["account_heading_unverified"]
+        _trump_part6_row_relationships(rows)
+        self.assertEqual(rows[1]["_row_relationship_evidence"]["classification"],
+                         "unresolved")
 
 
 if __name__ == "__main__":
