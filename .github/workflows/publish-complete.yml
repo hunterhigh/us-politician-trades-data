@@ -213,7 +213,11 @@ jobs:
           person_holdings = [row for row in candidate['reported_holdings']
                              if row['person_id'] == person_id]
           if not person_holdings:
-              raise SystemExit('Trump holding-only person probe is missing')
+              raise SystemExit('Trump person holding probe is missing')
+          person_transactions = [row for row in candidate['transactions']
+                                 if row['person_id'] == person_id]
+          if not person_transactions:
+              raise SystemExit('Trump person transaction probe is missing')
           ticker = 'MSFT'
           if ticker not in covered or not any(
                   row.get('ticker') == ticker for row in candidate['transactions']):
@@ -221,6 +225,7 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f"person_id={person_id}\n")
               output.write(f"person_holding_count={len(person_holdings)}\n")
+              output.write(f"person_transaction_count={len(person_transactions)}\n")
               output.write(f"ticker={ticker}\n")
               output.write(f"twelve_ticker={twelve[0]}\n")
               output.write(f"people_count={len(candidate['people'])}\n")
@@ -325,6 +330,7 @@ jobs:
             --expected-market-rows "${{ steps.probes.outputs.market_row_count }}" \
             --expected-source-health "${{ steps.probes.outputs.source_health_count }}" \
             --expected-person-holdings "${{ steps.probes.outputs.person_holding_count }}" \
+            --expected-person-transactions "${{ steps.probes.outputs.person_transaction_count }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
       - name: Verify the prepared result in the frozen browser frontend
         env:

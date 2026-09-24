@@ -15,6 +15,10 @@ from unison_snapshot.oge_278e_public import (
     OcrCheckpointPending, TRUMP_2025_PARSER_VERSION,
     TRUMP_2025_SOURCE_SHA256, TRUMP_2025_SOURCE_URL,
 )
+from unison_snapshot.whitehouse_278t import (
+    TRUMP_081225_DOCUMENT_ID, TRUMP_081225_PARSER_VERSION,
+    TRUMP_081225_SOURCE_SHA256, TRUMP_081225_SOURCE_URL,
+)
 spec = importlib.util.spec_from_file_location(
     "whitehouse_extract_script", ROOT / "scripts/whitehouse_extract.py")
 script = importlib.util.module_from_spec(spec)
@@ -207,6 +211,38 @@ class WhiteHouseExtractTests(unittest.TestCase):
         target = (self.review / "whitehouse/extractions" / document_id[7:] /
                   TRUMP_2025_SOURCE_SHA256 / f"{v6}.json")
         self.assertTrue(target.is_file())
+
+    def test_fixed_trump_278t_selects_only_exact_source_bound_v3(self):
+        metadata = {
+            "document_id": TRUMP_081225_DOCUMENT_ID,
+            "document_url": TRUMP_081225_SOURCE_URL,
+            "sha256": TRUMP_081225_SOURCE_SHA256,
+            "filer_name_from_label": "President Donald J. Trump",
+            "document_type_from_label": "278t",
+            "link_label": "President Donald J. Trump Periodic Transaction Report 08.12.25 (1)",
+        }
+        pdf = self.root / "trump-278t.pdf"
+        pdf.write_bytes(b"fixture")
+        with patch.object(script, "_archive_rows", return_value=[(metadata, pdf)]), patch.object(
+                script, "parse_whitehouse_278t_pdf", return_value={
+                    "source_url": TRUMP_081225_SOURCE_URL,
+                    "source_sha256": TRUMP_081225_SOURCE_SHA256,
+                    "parser_version": TRUMP_081225_PARSER_VERSION,
+                }) as parser:
+            result = script.extract_batch(
+                self.evidence, self.review, limit=1,
+                document_id=TRUMP_081225_DOCUMENT_ID,
+                source_sha256=TRUMP_081225_SOURCE_SHA256)
+        self.assertEqual(result["extraction_created_count"], 1)
+        self.assertEqual(parser.call_count, 1)
+        target = (self.review / "whitehouse/extractions" /
+                  TRUMP_081225_DOCUMENT_ID.split(":", 1)[1] /
+                  TRUMP_081225_SOURCE_SHA256 /
+                  f"{TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json")
+        self.assertTrue(target.is_file())
+        generic = self.archive("g")
+        self.assertEqual(script.trade_parser_version_for_source(
+            generic["document_url"], generic["sha256"]), script.TRADE_PARSER_VERSION)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,10 @@ from unittest.mock import patch
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t import (
-    _ocr_date, parse_whitehouse_278t_pdf, quarantine_duplicate_report_groups,
+    PARSER_VERSION, TRUMP_081225_DOCUMENT_ID, TRUMP_081225_PARSER_VERSION,
+    TRUMP_081225_SOURCE_SHA256, TRUMP_081225_SOURCE_URL,
+    _apply_trump_081225_geometry, _ocr_date, parse_whitehouse_278t_pdf,
+    parser_version_for_source, quarantine_duplicate_report_groups,
 )
 
 
@@ -154,6 +157,89 @@ class WhiteHouse278TTests(unittest.TestCase):
         screened = quarantine_duplicate_report_groups([first, other_pdf])
         self.assertTrue(all("duplicate_report_content_unresolved" in row["document_reasons"]
                             for row in screened))
+
+    def test_fixed_trump_scan_recovers_cover_date_and_all_geometry_rows(self):
+        records = []
+        row_number = 0
+        counts = {2: 27, **{page: 26 for page in range(3, 21)}, 21: 12}
+        anchors = {
+            2: "ALACHUA CNTY FL HLTH FAC REV example",
+            496: "KENTUCKY ASSET LIABILITY COMMN AGY FD REV",
+            497: "SNOHOMISH CNTY WA SCH DIST 306 LAKEWOOD",
+            507: "COOK CNTY ILL CM 4.25% DUE 12/01/47",
+        }
+        for page_number, count in counts.items():
+            for page_index in range(count):
+                row_number += 1
+                asset = anchors.get(row_number, f"Example bond {row_number}")
+                raw_number = ("a" if row_number == 1 else
+                              "497 497" if row_number == 497 else str(row_number))
+                raw_date = "11/28/2025" if row_number == 2 else "01/28/2025"
+                records.append({
+                    "page_number": page_number,
+                    "cells": [raw_number, asset, "Purchase", raw_date, "No",
+                              "$1,001 - $15,000"],
+                    "ocr_confidence": 95.0,
+                    "geometry_top": 120.0 + page_index * 18.0,
+                })
+        ocr = {
+            "text": "Periodic Transaction Report (OGE Form 278-T)\nFiler's Certification",
+            "records": records, "engine": "tesseract 5.3.4", "page_count": 22,
+            "pdf_filer_name": "Donald J Trump",
+            "pdf_position_title": "President of the United States of America",
+            "pdf_agency_label": None,
+            "pdf_position_agency_raw": "President of the United States of America",
+            "identity_reasons": ["pdf_filer_agency_not_verified"],
+            "title_verified": True,
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "report.pdf"
+            path.write_bytes(PDF)
+            with patch("unison_snapshot.whitehouse_278t._extract_pdf",
+                       return_value=("", [])), patch(
+                       "unison_snapshot.whitehouse_278t._extract_ocr_pdf",
+                       return_value=ocr), patch(
+                       "unison_snapshot.whitehouse_278t.hashlib.sha256") as digest:
+                digest.return_value.hexdigest.return_value = TRUMP_081225_SOURCE_SHA256
+                result = parse_whitehouse_278t_pdf(
+                    path, source_url=TRUMP_081225_SOURCE_URL,
+                    source_sha256=TRUMP_081225_SOURCE_SHA256,
+                    document_id=TRUMP_081225_DOCUMENT_ID,
+                    filer_name="President Donald J. Trump")
+        self.assertEqual(result["parser_version"], TRUMP_081225_PARSER_VERSION)
+        self.assertEqual(result["filed_at"], "2025-08-12")
+        self.assertEqual(result["signature_method"], "handwritten_source_bound")
+        self.assertEqual(result["page_count"], 22)
+        self.assertEqual(result["document_reasons"], [])
+        self.assertTrue(result["evidence_complete"])
+        self.assertEqual((len(result["transactions"]), len(result["quarantined"])),
+                         (507, 0))
+        self.assertEqual([row["row_number"] for row in result["transactions"]],
+                         list(range(1, 508)))
+        second = result["transactions"][1]
+        self.assertEqual(second["transaction_date"], "2025-01-28")
+        self.assertEqual(second["ocr_raw_cells"][3], "11/28/2025")
+        self.assertEqual(second["source_bound_normalized_cells"][3], "01/28/2025")
+        self.assertEqual(second["source_bound_corrections"][0]["basis"],
+                         "fixed_source_visual_audit")
+        self.assertEqual(result["transactions"][495]["asset_name"], anchors[496])
+        self.assertEqual(result["transactions"][496]["row_number"], 497)
+        self.assertEqual(result["filing_date_evidence"]["normalized"], "2025-08-12")
+        self.assertEqual(result["filing_date_evidence"]["source_sha256"],
+                         TRUMP_081225_SOURCE_SHA256)
+        self.assertEqual(result["filer_identity_evidence"]["agency_basis"],
+                         "exact_sha_official_oge_catalog_alias")
+
+    def test_trump_geometry_profile_fails_closed_on_missing_physical_row(self):
+        with self.assertRaisesRegex(OgeCatalogError, "row conservation"):
+            _apply_trump_081225_geometry([])
+
+    def test_trade_parser_version_is_exact_source_bound(self):
+        self.assertEqual(parser_version_for_source(
+            TRUMP_081225_SOURCE_URL, TRUMP_081225_SOURCE_SHA256),
+            TRUMP_081225_PARSER_VERSION)
+        self.assertEqual(parser_version_for_source(
+            TRUMP_081225_SOURCE_URL, "0" * 64), PARSER_VERSION)
 
 
 if __name__ == "__main__":

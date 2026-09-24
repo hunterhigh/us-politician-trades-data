@@ -129,7 +129,7 @@ class WhiteHouse278TAuditTests(unittest.TestCase):
         self.assertTrue(all("possible_whitehouse_same_report_transaction_duplicate"
                             in row["reasons"] for row in result["reports"][0]["rows"]))
 
-    def test_annual_part7_match_is_quarantined_but_different_trade_remains(self):
+    def test_annual_part7_match_is_recorded_but_278t_remains_authoritative(self):
         source = extraction()
         other = deepcopy(source["transactions"][0])
         other["extraction_id"] = "oge-278t:" + "f" * 24
@@ -143,10 +143,67 @@ class WhiteHouse278TAuditTests(unittest.TestCase):
             "amount_low": 15001, "amount_high": 50000,
         }]}
         result = audit_whitehouse_278t([source], catalog(), candidate(), [annual])
-        self.assertEqual(result["eligible_row_count"], 1)
-        self.assertIn("possible_annual_part7_transaction_duplicate",
-                      result["reports"][0]["rows"][0]["reasons"])
+        self.assertEqual(result["eligible_row_count"], 2)
+        self.assertTrue(result["reports"][0]["rows"][0]["annual_part7_overlap"])
+        self.assertEqual(result["annual_part7_overlap_count"], 1)
         self.assertEqual(result["reports"][0]["rows"][1]["status"], "eligible")
+
+    def test_real_trump_part7_quarantine_rows_participate_in_dedup(self):
+        source = extraction(name="Trump, Donald J.", role="President",
+                            asset="Microsoft Corp.", ticker="MSFT")
+        directory = catalog(name="Trump, Donald J.", title="President")
+        annual = {
+            "filer_name": "Donald J. Trump", "transactions": [],
+            "quarantined": [{
+                "section": "part7", "owner": "Unknown",
+                "asset_name": "Microsoft Corp.", "transaction_type": "sale",
+                "transaction_date": "2025-06-09", "amount_low": 15001,
+                "amount_high": 50000, "reasons": ["part7_cross_278t_dedup_pending"],
+            }],
+        }
+        result = audit_whitehouse_278t([source], directory, candidate(), [annual])
+        self.assertEqual(result["annual_part7_comparable_row_count"], 1)
+        self.assertEqual(result["annual_part7_overlap_count"], 1)
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertTrue(result["reports"][0]["rows"][0]["annual_part7_overlap"])
+
+    def test_incomparable_annual_rows_do_not_block_authoritative_278t(self):
+        annual = {"filer_name": "", "transactions": [{"asset_name": "Unreadable"}],
+                  "quarantined": [{"section": "part7", "reasons": ["ocr_noise"]}]}
+        result = audit_whitehouse_278t(
+            [extraction()], catalog(), candidate(), [annual, {"bad": "shape"}])
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertEqual(result["annual_part7_comparable_row_count"], 0)
+        self.assertEqual(result["annual_part7_incomparable_row_count"], 3)
+
+    def test_unresolved_amendment_blocks_only_its_unresolved_report(self):
+        original = extraction()
+        amendment = extraction(document_id="amendment", sha="c" * 64,
+                               asset="Different Corp.", ticker="DIFF")
+        amendment["amended_label"] = "Amended Periodic Transaction Report"
+        amendment["document_reasons"] = ["amendment_relationship_unresolved"]
+        amendment["evidence_complete"] = False
+        result = audit_whitehouse_278t([original, amendment], catalog(), candidate())
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertEqual(result["reports"][0]["status"], "eligible")
+        self.assertIn("amendment_relationship_unresolved",
+                      result["reports"][1]["document_reasons"])
+
+    def test_file_and_batch_rows_are_explicitly_conserved(self):
+        source = extraction()
+        rejected = deepcopy(source["transactions"][0])
+        rejected["extraction_id"] = "oge-278t:" + "f" * 24
+        rejected["row_number"] = 2
+        rejected["reasons"] = ["amount_unparsed"]
+        source["quarantined"].append(rejected)
+        result = audit_whitehouse_278t([source], catalog(), candidate())
+        self.assertEqual(result["source_row_count"], 2)
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertEqual(result["quarantined_row_count"], 1)
+        self.assertTrue(result["row_conservation_complete"])
+        self.assertEqual(result["reports"][0]["source_row_count"], 2)
+        self.assertEqual(result["reports"][0]["eligible_row_count"], 1)
+        self.assertEqual(result["reports"][0]["quarantined_row_count"], 1)
 
     def test_tampered_transaction_fields_cannot_become_eligible(self):
         source = extraction()

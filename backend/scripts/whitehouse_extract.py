@@ -23,6 +23,7 @@ from unison_snapshot.oge_278e_public import (
 )
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION,
+    parser_version_for_source as trade_parser_version_for_source,
     parse_whitehouse_278t_pdf,
 )
 from unison_snapshot.whitehouse_disclosures import (
@@ -115,7 +116,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
-        version = (TRADE_PARSER_VERSION if kind == "278t" else
+        version = (trade_parser_version_for_source(
+                       metadata.get("document_url"), metadata.get("sha256"))
+                   if kind == "278t" else
                    parser_version_for_source(metadata.get("document_url"),
                                              metadata.get("sha256")))
         suffix = version.replace("/", "-")

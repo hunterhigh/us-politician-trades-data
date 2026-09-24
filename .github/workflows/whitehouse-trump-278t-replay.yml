@@ -1,0 +1,97 @@
+name: Replay fixed Trump 08/12/25 278-T
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  replay-review:
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DOCUMENT_ID: wh-url:1a6bbff2a684fedd76ac9f59
+      SOURCE_SHA256: 4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043
+      TARGET_PARSER_SLUG: whitehouse-278t-hybrid-geometry-v3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install PDF parser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          tesseract --version | head -1
+          python -m pip install -e 'backend[house-ingest]'
+      - name: Prepare immutable evidence and review trees
+        id: trees
+        run: |
+          git fetch --no-tags origin evidence review
+          evidence_root="$RUNNER_TEMP/trump-278t-evidence"
+          review_root="$RUNNER_TEMP/trump-278t-review"
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "review_base=$(git -C "$review_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Replay only the fixed archived source
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python backend/scripts/whitehouse_extract.py \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --limit 1 --ocr-page-limit 25 \
+            --document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256" \
+            --status-output "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-status.json"
+      - name: Conserve all rows while allowing row-level follow-up
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          extraction="$REVIEW_ROOT/whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json"
+          python backend/scripts/audit_trump_278t_replay.py \
+            --input "$extraction" \
+            --status "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-status.json" \
+            --output "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-audit.json"
+      - name: Rebuild review indexes from the fixed extraction
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT"
+          python backend/scripts/build_whitehouse_reported_index.py --review-root "$REVIEW_ROOT"
+      - name: Publish the review replay without moving production
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          REVIEW_BASE: ${{ steps.trees.outputs.review_base }}
+        run: |
+          remote_review="$(git ls-remote origin refs/heads/review | cut -f1)"
+          test "$remote_review" = "$REVIEW_BASE" || {
+            echo "review moved during replay; refusing a stale write" >&2
+            exit 1
+          }
+          git -C "$REVIEW_ROOT" add \
+            "whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json" \
+            whitehouse/coverage-current.json \
+            whitehouse/filer-reported-current.json \
+            whitehouse/278t/trump-2025-08-12-replay-audit.json \
+            whitehouse/278t/trump-2025-08-12-replay-status.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: fixed Trump 278-T replay ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi

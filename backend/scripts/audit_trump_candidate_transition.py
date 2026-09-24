@@ -1,4 +1,4 @@
-"""Audit a review candidate rebuild for additive Trump annual facts."""
+"""Audit a review candidate rebuild for additive Trump White House facts."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode
 
@@ -35,6 +36,31 @@ def _ids(value: dict, name: str, key: str) -> dict[str, dict]:
     return dict(zip(values, rows, strict=True))
 
 
+def _official_whitehouse_pdf(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+    return (parsed.scheme == "https" and
+            parsed.netloc.casefold() in {"whitehouse.gov", "www.whitehouse.gov"} and
+            parsed.username is None and parsed.password is None and not parsed.fragment and
+            not parsed.query and
+            parsed.path.startswith("/wp-content/uploads/") and
+            parsed.path.casefold().endswith(".pdf"))
+
+
+def _require_unchanged_subset(before: dict[str, dict], after: dict[str, dict],
+                              label: str) -> None:
+    removed = sorted(before.keys() - after.keys())
+    changed = sorted(key for key in before.keys() & after.keys()
+                     if before[key] != after[key])
+    if removed or changed:
+        raise ValueError(
+            f"Trump rebuild removed or changed existing {label}: {removed or changed}")
+
+
 def audit_transition(before: dict, after: dict,
                      before_oge: dict, after_oge: dict) -> dict:
     for value in (before, after, before_oge, after_oge):
@@ -59,22 +85,9 @@ def audit_transition(before: dict, after: dict,
 
     if not before_people.keys() <= after_people.keys():
         raise ValueError("Candidate rebuild removed an existing person")
-    removed_transactions = sorted(before_transactions.keys() - after_transactions.keys())
-    removed_oge_transactions = sorted(
-        before_oge_transactions.keys() - after_oge_transactions.keys())
-    if removed_transactions or removed_oge_transactions:
-        raise ValueError("Trump annual rebuild removed transactions")
-    added_transactions = sorted(after_transactions.keys() - before_transactions.keys())
-    added_oge_transactions = sorted(
-        after_oge_transactions.keys() - before_oge_transactions.keys())
-    if added_transactions != added_oge_transactions:
-        raise ValueError("Unified transaction delta does not match the OGE source delta")
-    if any(not item.startswith("wh-annual-tx:") or
-           after_transactions[item].get("person_id") != TRUMP_PERSON_ID or
-           after_transactions[item].get("source_id") != "oge" or
-           after_transactions[item].get("verification_status") != "official_matched"
-           for item in added_transactions):
-        raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
+    _require_unchanged_subset(before_transactions, after_transactions, "transactions")
+    _require_unchanged_subset(before_oge_transactions, after_oge_transactions,
+                              "OGE transactions")
     removed = sorted(before_holdings.keys() - after_holdings.keys())
     removed_oge = sorted(before_oge_holdings.keys() - after_oge_holdings.keys())
     if removed or removed_oge:
@@ -91,6 +104,21 @@ def audit_transition(before: dict, after: dict,
            after_holdings[item].get("verification_status") != "official_matched"
            for item in added):
         raise ValueError("Candidate rebuild added a non-Trump or non-official holding")
+    added_transactions = sorted(after_transactions.keys() - before_transactions.keys())
+    added_oge_transactions = sorted(
+        after_oge_transactions.keys() - before_oge_transactions.keys())
+    if added_transactions != added_oge_transactions:
+        raise ValueError("Unified transaction delta does not match the OGE source delta")
+    if any(after_transactions[item] != after_oge_transactions[item]
+           for item in added_transactions):
+        raise ValueError("Unified transaction rows differ from the OGE source rows")
+    if any(after_transactions[item].get("person_id") != TRUMP_PERSON_ID or
+           after_transactions[item].get("source_id") != "oge" or
+           after_transactions[item].get("verification_status") != "official_matched" or
+           not str(after_transactions[item].get("filing_id", "")).startswith("wh-url:") or
+           not _official_whitehouse_pdf(after_transactions[item].get("source_url"))
+           for item in added_transactions):
+        raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
     cross_kind = set(after_transactions) & set(after_holdings)
     if cross_kind:
         raise ValueError("Candidate contains a cross-kind fact identity collision")

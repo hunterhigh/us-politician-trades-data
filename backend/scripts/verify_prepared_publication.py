@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode
 from unison_snapshot.legacy import load
@@ -14,6 +15,21 @@ from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotRepository
 
 
 SHA1 = re.compile(r"[0-9a-f]{40}\Z")
+
+
+def _official_whitehouse_pdf(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return (parsed.scheme == "https" and parsed.hostname == "www.whitehouse.gov" and
+            parsed.username is None and parsed.password is None and
+            port is None and not parsed.query and not parsed.fragment and
+            parsed.path.startswith("/wp-content/uploads/") and
+            parsed.path.lower().endswith(".pdf"))
 
 
 class FixedCommitTransport:
@@ -37,6 +53,7 @@ def verify_prepared_publication(
         expected_people: int, expected_transactions: int,
         expected_holdings: int, expected_market_rows: int,
         expected_source_health: int, expected_person_holdings: int,
+        expected_person_transactions: int,
         transport=None) -> dict:
     if not SHA1.fullmatch(market_commit):
         raise ValueError("Prepared market commit is invalid")
@@ -75,14 +92,30 @@ def verify_prepared_publication(
         raise ValueError(f"Prepared dashboard counts differ from the candidate: {observed}")
     person = selections["person"].snapshot
     if (person["meta"]["selection_scope"].get("key") != person_id or
-            len(person["reported_holdings"]) != expected_person_holdings):
-        raise ValueError("Prepared holding-only person readback is incomplete")
+            len(person["reported_holdings"]) != expected_person_holdings or
+            len(person["transactions"]) != expected_person_transactions):
+        raise ValueError("Prepared Trump person readback is incomplete")
     if (person["meta"].get("is_demo") is True or any(
             row.get("source_url") != TRUMP_2025_SOURCE_URL or
             row.get("report_period_end") != "2025-12-31" or
             row.get("verification_status") != "official_matched"
             for row in person["reported_holdings"])):
         raise ValueError("Prepared Trump holding provenance is invalid")
+    if expected_person_transactions < 1 or any(
+            row.get("person_id") != person_id or
+            row.get("source_id") != "oge" or
+            row.get("verification_status") != "official_matched" or
+            not str(row.get("filing_id", "")).startswith("wh-url:") or
+            not _official_whitehouse_pdf(row.get("source_url"))
+            for row in person["transactions"]):
+        raise ValueError("Prepared Trump transaction provenance is invalid")
+    person_transaction_ids = {row.get("id") for row in person["transactions"]}
+    if (None in person_transaction_ids or
+            person_id not in {row.get("id") for row in selections["search"].snapshot["people"]} or
+            any(not person_transaction_ids <= {
+                    row.get("id") for row in selections[mode].snapshot["transactions"]}
+                for mode in ("dashboard", "search"))):
+        raise ValueError("Prepared dashboard/search omit Trump transactions")
     ticker_value = selections["ticker"].snapshot
     if (ticker_value["meta"]["selection_scope"].get("key") != ticker.upper() or
             not ticker_value["transactions"] or
@@ -106,7 +139,9 @@ def verify_prepared_publication(
             "people_count": len(selections["dashboard"].snapshot["people"]),
             "transaction_count": len(selections["dashboard"].snapshot["transactions"]),
             "reported_holding_count": len(
-                selections["dashboard"].snapshot["reported_holdings"])}
+                selections["dashboard"].snapshot["reported_holdings"]),
+            "person_transaction_count": len(person["transactions"]),
+            "trump_transactions_visible_in_dashboard_search": True}
 
 
 def main() -> int:
@@ -125,6 +160,7 @@ def main() -> int:
     parser.add_argument("--expected-market-rows", type=int, required=True)
     parser.add_argument("--expected-source-health", type=int, required=True)
     parser.add_argument("--expected-person-holdings", type=int, required=True)
+    parser.add_argument("--expected-person-transactions", type=int, required=True)
     args = parser.parse_args()
     result = verify_prepared_publication(
         owner=args.owner, repo=args.repo, main_commit=args.main_commit,
@@ -135,7 +171,8 @@ def main() -> int:
         expected_holdings=args.expected_holdings,
         expected_market_rows=args.expected_market_rows,
         expected_source_health=args.expected_source_health,
-        expected_person_holdings=args.expected_person_holdings)
+        expected_person_holdings=args.expected_person_holdings,
+        expected_person_transactions=args.expected_person_transactions)
     print(json.dumps(result, sort_keys=True))
     return 0
 

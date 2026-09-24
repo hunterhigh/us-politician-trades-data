@@ -17,7 +17,9 @@ from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
 from .whitehouse_278t import _ELECTRONIC_SIGNATURE, _first_last
-from .whitehouse_278t_audit import AUDIT_SCHEMA, audit_whitehouse_278t
+from .whitehouse_278t_audit import (
+    AUDIT_SCHEMA, audit_whitehouse_278t, source_bound_filing_date,
+)
 
 
 SCHEMA = "whitehouse-278t-candidate-conservation/v1"
@@ -40,7 +42,9 @@ def _official_pdf_url(value: object) -> bool:
 
 
 def _signature_date(report: dict) -> str | None:
-    """Use only the filer's electronic signature text, never an index date."""
+    """Use verified filer evidence for the exact source, never an index date."""
+    if report.get("signature_method") == "handwritten_source_bound":
+        return source_bound_filing_date(report)
     evidence = report.get("filer_signature_evidence")
     signer = report.get("filer_signature_name")
     if report.get("signature_method") != "electronic" or not isinstance(evidence, str) \
@@ -215,6 +219,7 @@ def build_whitehouse_278t_review_candidate(
                 "extraction_id": row_id, "row_number": source_row.get("row_number"),
                 "status": "promoted" if decision["status"] == "eligible" and not reasons
                           else "quarantined",
+                "annual_part7_overlap": decision.get("annual_part7_overlap") is True,
                 "reasons": sorted(set(reasons)),
             })
         promoted_count = sum(row["status"] == "promoted" for row in row_results)
@@ -222,6 +227,7 @@ def build_whitehouse_278t_review_candidate(
         audit_reports.append({
             "document_id": document_id, "source_url": report["source_url"],
             "source_sha256": report["source_sha256"],
+            "filed_at": report.get("filed_at"),
             "matched_person_id": person["id"] if person else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
@@ -239,6 +245,29 @@ def build_whitehouse_278t_review_candidate(
     quarantined = sum(row["quarantined_count"] for row in audit_reports)
     if promoted + quarantined != total_rows:
         raise OgeCatalogError("White House 278-T row conservation failed")
+    base_people = {row["id"]: row for row in base_oge_candidate["people"]}
+    candidate_people = {row["id"]: row for row in candidate["people"]}
+    base_transactions = {row["id"]: row for row in base_oge_candidate["transactions"]}
+    candidate_transactions = {row["id"]: row for row in candidate["transactions"]}
+    if (len(base_people) != len(base_oge_candidate["people"]) or
+            len(candidate_people) != len(candidate["people"]) or
+            any(candidate_people.get(key) != value for key, value in base_people.items())):
+        raise OgeCatalogError("White House 278-T candidate changed an existing person")
+    if (len(base_transactions) != len(base_oge_candidate["transactions"]) or
+            len(candidate_transactions) != len(candidate["transactions"]) or
+            any(candidate_transactions.get(key) != value
+                for key, value in base_transactions.items())):
+        raise OgeCatalogError("White House 278-T candidate changed an existing transaction")
+    if (candidate["reported_holdings"] != base_oge_candidate["reported_holdings"] or
+            candidate["security_market_data"] != base_oge_candidate["security_market_data"]):
+        raise OgeCatalogError("White House 278-T candidate changed a non-transaction array")
+    base_other_health = [row for row in base_oge_candidate["source_health"]
+                         if row.get("source_id") != "oge"]
+    candidate_other_health = [row for row in candidate["source_health"]
+                              if row.get("source_id") != "oge"]
+    if sorted(base_other_health, key=lambda row: row.get("source_id", "")) != \
+            sorted(candidate_other_health, key=lambda row: row.get("source_id", "")):
+        raise OgeCatalogError("White House 278-T candidate changed another source health record")
     oge_health = [row for row in candidate["source_health"] if row.get("source_id") == "oge"]
     if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
         raise OgeCatalogError("White House 278-T requires one existing OGE source health record")
@@ -256,9 +285,16 @@ def build_whitehouse_278t_review_candidate(
         "report_count": len(audit_reports), "source_row_count": total_rows,
         "promoted_report_count": sum(row["promoted_count"] > 0 for row in audit_reports),
         "promoted_transaction_count": promoted,
+        "promoted_transaction_ids": sorted(row["id"] for row in added_transactions),
         "quarantined_row_count": quarantined,
         "added_person_count": len(added_people),
         "base_transaction_count": len(base_oge_candidate["transactions"]),
         "candidate_transaction_count": len(candidate["transactions"]),
+        "annual_part7_overlap_count": expected_audit["annual_part7_overlap_count"],
+        "annual_part7_incomparable_row_count":
+            expected_audit["annual_part7_incomparable_row_count"],
+        "existing_transaction_mutation_count": 0,
+        "candidate_is_append_only": True,
+        "source_row_conservation_complete": True,
         "reports": audit_reports,
     }
