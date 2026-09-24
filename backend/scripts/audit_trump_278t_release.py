@@ -23,11 +23,17 @@ from unison_snapshot.whitehouse_278t_audit import (
     TRUMP_TARGET_SOURCE_URL as TARGET_SOURCE_URL,
 )
 from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
+from unison_snapshot.whitehouse_278t import TRUMP_2026_PROFILES
 
 
 SCHEMA = "whitehouse-trump-278t-release-audit/v1"
 TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 TARGET_FILED_AT = TRUMP_TARGET_FILED_AT + "T00:00:00Z"
+ALLOWED_REPORTS = {
+    (TARGET_DOCUMENT_ID, TARGET_SOURCE_URL, TARGET_SOURCE_SHA256): TRUMP_TARGET_FILED_AT,
+    **{(profile["document_id"], profile["source_url"], profile["source_sha256"]):
+       profile["report_date"] for profile in TRUMP_2026_PROFILES},
+}
 
 
 def _object(path: Path) -> dict:
@@ -132,6 +138,18 @@ def _promoted(conservation: dict) -> tuple[set[str], dict[str, dict], int]:
             sorted(row.get("row_number") for row in target[0]["rows"]
                    if type(row.get("row_number")) is int) != list(range(1, 508))):
         raise ValueError("Trump 278-T fixed source report is not fully conserved")
+    indexed = {(report.get("document_id"), report.get("source_url"),
+                report.get("source_sha256")): report
+               for report in conservation["reports"]}
+    expected_2026 = [key for key in ALLOWED_REPORTS if key[0] != TARGET_DOCUMENT_ID]
+    present_2026 = [key for key in expected_2026 if key in indexed]
+    missing_2026 = [key for key in expected_2026 if key not in indexed]
+    if present_2026 and missing_2026:
+        raise ValueError("Trump 2026 278-T source reports are not fully conserved")
+    for key, filed_at in ALLOWED_REPORTS.items():
+        report = indexed.get(key)
+        if report is not None and report.get("filed_at") != filed_at:
+            raise ValueError("Trump 278-T source report date binding changed")
     return promoted, evidence, annual_overlaps
 
 
@@ -264,15 +282,15 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         raise ValueError("Unified Trump 278-T rows differ from the OGE source rows")
     for identity, row in added_rows.items():
         report = evidence[identity]
-        if (report.get("document_id") != TARGET_DOCUMENT_ID or
-                report.get("source_url") != TARGET_SOURCE_URL or
-                report.get("source_sha256") != TARGET_SOURCE_SHA256 or
-                report.get("filed_at") != TARGET_FILED_AT[:10] or
+        source_key = (report.get("document_id"), report.get("source_url"),
+                      report.get("source_sha256"))
+        expected_date = ALLOWED_REPORTS.get(source_key)
+        if (expected_date is None or report.get("filed_at") != expected_date or
                 row.get("person_id") != TRUMP_PERSON_ID or row.get("source_id") != "oge" or
                 row.get("verification_status") != "official_matched" or
                 row.get("filing_id") != report["document_id"] or
                 row.get("source_url") != report["source_url"] or
-                row.get("filed_at") != TARGET_FILED_AT or
+                row.get("filed_at") != expected_date + "T00:00:00Z" or
                 not _official_whitehouse_pdf(row.get("source_url"))):
             raise ValueError("Trump 278-T release added a non-Trump or unbound transaction")
     added_people = set(after_people) - set(before_people)
@@ -312,6 +330,8 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         "target_document_id": TARGET_DOCUMENT_ID,
         "target_source_sha256": TARGET_SOURCE_SHA256,
         "target_filed_at": TARGET_FILED_AT,
+        "target_2026_document_ids": sorted(
+            profile["document_id"] for profile in TRUMP_2026_PROFILES),
         "frontend_verified": frontend is not None,
     }
     if frontend is not None:

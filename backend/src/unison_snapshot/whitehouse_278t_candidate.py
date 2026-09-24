@@ -42,9 +42,10 @@ def _official_pdf_url(value: object) -> bool:
 
 
 def _signature_date(report: dict) -> str | None:
-    """Use verified filer evidence for the exact source, never an index date."""
-    if report.get("signature_method") == "handwritten_source_bound":
-        return source_bound_filing_date(report)
+    """Use validated exact-source filing or official disclosure-date evidence."""
+    source_bound = source_bound_filing_date(report)
+    if source_bound is not None:
+        return source_bound
     evidence = report.get("filer_signature_evidence")
     signer = report.get("filer_signature_name")
     if report.get("signature_method") != "electronic" or not isinstance(evidence, str) \

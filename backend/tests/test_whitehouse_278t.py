@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -11,8 +13,12 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION, TRUMP_081225_DOCUMENT_ID, TRUMP_081225_PARSER_VERSION,
     TRUMP_081225_SOURCE_SHA256, TRUMP_081225_SOURCE_URL,
+    TRUMP_2026_PARSER_VERSION, TRUMP_2026_PROFILES,
+    TradeOcrCheckpointPending,
     _apply_trump_081225_geometry, _ocr_date, parse_whitehouse_278t_pdf,
+    extract_whitehouse_278t_pdf_checkpointed,
     parser_version_for_source, quarantine_duplicate_report_groups,
+    replay_trump_2026_v2_extraction,
 )
 
 
@@ -240,6 +246,91 @@ class WhiteHouse278TTests(unittest.TestCase):
             TRUMP_081225_PARSER_VERSION)
         self.assertEqual(parser_version_for_source(
             TRUMP_081225_SOURCE_URL, "0" * 64), PARSER_VERSION)
+
+    def test_trump_2026_v2_replay_conserves_every_geometry_row(self):
+        profile = TRUMP_2026_PROFILES[0]
+        rows = []
+        for index in range(1, profile["v2_source_row_count"] + 1):
+            page = 2 + (index - 1) // 30
+            top = 100.0 + ((index - 1) % 30) * 10.0
+            raw = ["bad", f"Example bond {index}", "Purchase", "01/01/2026",
+                   "No", "$1,001 - $15,000"]
+            rows.append({"page_number": page, "row_number": None,
+                         "geometry_row_index": index, "geometry_top": top,
+                         "ocr_confidence": 95.0, "ocr_raw_cells": raw,
+                         "cells": raw, "reasons": ["row_number_invalid"]})
+        prior = {"schema_version": "whitehouse-278t-extraction/v1",
+                 "parser_version": PARSER_VERSION, "source_id": "oge",
+                 "document_id": profile["document_id"],
+                 "source_url": profile["source_url"],
+                 "source_sha256": profile["source_sha256"],
+                 "filer_name": "President Donald J. Trump",
+                 "amended_label": "Periodic Transaction Report 01.14.26",
+                 "page_count": profile["page_count"],
+                 "source_row_count": len(rows),
+                 "extraction_method": "tesseract_ocr_geometry",
+                 "ocr_engine": "tesseract 5.3.4",
+                 "transactions": [], "quarantined": rows}
+        replay = replay_trump_2026_v2_extraction(prior)
+        self.assertEqual(replay["parser_version"], TRUMP_2026_PARSER_VERSION)
+        self.assertEqual(replay["filed_at"], profile["report_date"])
+        self.assertEqual(replay["source_row_count"], len(rows))
+        self.assertEqual(len(replay["transactions"]), len(rows))
+        self.assertEqual([row["row_number"] for row in replay["transactions"]],
+                         list(range(1, len(rows) + 1)))
+        self.assertTrue(all(row["ocr_raw_cells"][0] == "bad"
+                            for row in replay["transactions"]))
+
+    def test_trump_2026_parser_requires_exact_url_and_sha(self):
+        profile = TRUMP_2026_PROFILES[-1]
+        self.assertEqual(parser_version_for_source(
+            profile["source_url"], profile["source_sha256"]),
+            TRUMP_2026_PARSER_VERSION)
+        self.assertEqual(parser_version_for_source(
+            profile["source_url"], "0" * 64), PARSER_VERSION)
+
+    def test_trump_2026_long_report_writes_bounded_checkpoint(self):
+        profile = next(item for item in TRUMP_2026_PROFILES
+                       if item["page_count"] == 113)
+
+        class Document:
+            pages = [SimpleNamespace(width=612.0, height=792.0) for _ in range(113)]
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        def ocr(document, **kwargs):
+            selected = kwargs["page_numbers"]
+            self.assertEqual(len(document.pages), 113)
+            return ([SimpleNamespace(width=612.0, height=792.0,
+                                     extract_words=lambda: [])
+                     for _ in selected], "tesseract 5.3.4")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pdf = root / "report.pdf"
+            pdf.write_bytes(PDF)
+            fake_hash = SimpleNamespace(hexdigest=lambda: profile["source_sha256"])
+            with patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(
+                    open=lambda _path: Document())}), patch(
+                    "unison_snapshot.whitehouse_278t.hashlib.sha256",
+                    return_value=fake_hash), patch(
+                    "unison_snapshot.whitehouse_278t.ocr_pdf_pages",
+                    side_effect=ocr):
+                with self.assertRaises(TradeOcrCheckpointPending) as pending:
+                    extract_whitehouse_278t_pdf_checkpointed(
+                        pdf, source_url=profile["source_url"],
+                        source_sha256=profile["source_sha256"],
+                        document_id=profile["document_id"],
+                        filer_name="President Donald J. Trump",
+                        amended_label="Periodic Transaction Report 05.08.26 (1)",
+                        checkpoint_root=root / "checkpoints", page_limit=25)
+            self.assertEqual(pending.exception.status["completed_page_count"], 25)
+            self.assertEqual(pending.exception.status["pending_page_count"], 88)
+            self.assertEqual(len(list((root / "checkpoints").glob("pages-*.json"))), 1)
 
 
 if __name__ == "__main__":
