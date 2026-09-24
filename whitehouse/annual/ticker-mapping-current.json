@@ -749,9 +749,9 @@
     }
   ],
   "annual_transaction_count": 6759,
-  "asset_master_sha256": "a284afbaf3eae516a545e7d2e0a377dabd4c78a3b921c062b13f3a72d2300d65",
+  "asset_master_sha256": "2bee2e19815edbf78fcf8478654636a220b6fe9d6d36b94e314acaf2fef31f67",
   "candidate_before_sha256": "e8928227c8df09eabdfcf02c8596da96694a16b20e25d5f0f0e172139595fbc3",
-  "checked_at": "2026-09-24T08:48:08Z",
+  "checked_at": "2026-09-24T09:41:39Z",
   "mapped_asset_name_count": 1128,
   "mapping_count": 4540,
   "mappings": [
@@ -32536,8 +32536,8 @@
       "ticker": "URI"
     }
   ],
-  "new_mapping_count": 4540,
-  "retained_mapping_count": 0,
+  "new_mapping_count": 0,
+  "retained_mapping_count": 4540,
   "schema_version": "whitehouse-annual-ticker-mapping/v2",
   "unmatched_asset_name_count": 792,
   "unmatched_record_count": 2126
