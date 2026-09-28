@@ -548,9 +548,12 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
     return "\n".join(texts), rows
 
 
-def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
+def _read_archived_source(root: Path, metadata_path: Path) -> tuple[dict, Path, str]:
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    if metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA:
+    if (metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA or
+            metadata.get("source_id") != "oge" or
+            not isinstance(metadata.get("document_id"), str) or
+            not _DIRECT_ID.fullmatch(metadata["document_id"])):
         raise OgeCatalogError("OGE 278-T archive metadata is invalid")
     archive_path = metadata.get("archive_path")
     if not isinstance(archive_path, str):
@@ -564,9 +567,11 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
         raise OgeCatalogError("OGE 278-T bytes do not match archive metadata")
-    text, rows = _extract_pdf(pdf_path)
-    signatures = _SIGNATURE_DATE.findall(text)
-    fixed_source = (
+    return metadata, pdf_path, source_sha
+
+
+def _is_fixed_trump_september_source(metadata: dict, source_sha: str) -> bool:
+    return (
         metadata.get("document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
         and metadata.get("document_url") == TRUMP_SEPT_2026_SOURCE_URL
         and source_sha == TRUMP_SEPT_2026_SOURCE_SHA256
@@ -574,6 +579,61 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         and metadata.get("agency") == "White House Office"
         and metadata.get("position_title") == "President"
     )
+
+
+def load_reusable_extraction(root: Path, metadata_path: Path,
+                             reuse_root: Path) -> dict | None:
+    """Load a source- and parser-bound review result after re-hashing its PDF.
+
+    Review data is a durable checkpoint, not a substitute for evidence checks.
+    Every lookup first validates the immutable archive metadata, PDF envelope,
+    byte length and SHA-256. A missing or malformed checkpoint is a cache miss
+    so the caller can run the parser again.
+    """
+
+    metadata, _, source_sha = _read_archived_source(root, metadata_path)
+    fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
+    parser_version = (TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source else
+                      PARSER_VERSION)
+    checkpoint = (reuse_root / metadata["document_id"] / source_sha /
+                  f"{parser_version.replace('/', '-')}.json")
+    if not checkpoint.is_file():
+        return None
+    try:
+        value = json.loads(checkpoint.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    expected = {
+        "schema_version": EXTRACTION_SCHEMA,
+        "parser_version": parser_version,
+        "source_id": "oge",
+        "document_id": metadata["document_id"],
+        "source_url": metadata.get("document_url"),
+        "source_sha256": source_sha,
+        "catalog_filer_name": metadata.get("filer_name"),
+        "agency": metadata.get("agency"),
+        "position_title": metadata.get("position_title"),
+        "catalog_added_date": metadata.get("catalog_added_date"),
+    }
+    if not isinstance(value, dict) or any(value.get(key) != expected_value
+                                          for key, expected_value in expected.items()):
+        return None
+    if (not isinstance(value.get("transactions"), list) or
+            not isinstance(value.get("quarantined"), list) or
+            not isinstance(value.get("document_reasons"), list) or
+            type(value.get("evidence_complete")) is not bool):
+        return None
+    if fixed_source and value.get("filing_date_evidence") != \
+            TRUMP_SEPT_2026_FILING_DATE_EVIDENCE:
+        return None
+    return value
+
+
+def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
+    metadata, pdf_path, source_sha = _read_archived_source(root, metadata_path)
+    text, rows = _extract_pdf(pdf_path)
+    signatures = _SIGNATURE_DATE.findall(text)
+    fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
     if fixed_source:
         filed_at = TRUMP_SEPT_2026_FILING_DATE_EVIDENCE["filed_at"]
         filing_reasons = []

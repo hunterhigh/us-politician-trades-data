@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: code
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
@@ -40,7 +40,7 @@ jobs:
       - name: Record authorization gate state
         run: |
           state_root="$RUNNER_TEMP/oge-state"
-          git fetch --no-tags origin state
+          git fetch --no-tags --depth=1 origin state
           git worktree add --detach "$state_root" FETCH_HEAD
           STATE_ROOT="$state_root" python - <<'PY'
           import json, os
@@ -91,28 +91,33 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: code
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Install pinned PDF parser
         run: python -m pip install -e 'backend[house-ingest]'
-      - name: Prepare evidence and state branches
+      - name: Prepare evidence, review cache and state branches
         id: trees
         run: |
           evidence_root="$RUNNER_TEMP/oge-evidence"
+          review_root="$RUNNER_TEMP/oge-review-cache"
           state_root="$RUNNER_TEMP/oge-state"
-          git fetch --no-tags origin \
+          git fetch --no-tags --depth=1 origin \
             evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review \
             state:refs/remotes/origin/state
           git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
           git worktree add --detach "$state_root" origin/state
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
           echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
       - name: Discover, archive and parse direct PDFs
         id: collect
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
           mkdir -p .local/oge-extractions
           PYTHONPATH=backend/src python -m unison_snapshot discover-oge \
@@ -123,6 +128,7 @@ jobs:
             --limit "$batch_size" --output .local/oge-report-batch.json
           PYTHONPATH=backend/src python -m unison_snapshot extract-oge-direct-pdfs \
             --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
+            --reuse-root "$REVIEW_ROOT/oge/extractions" \
             --output-dir .local/oge-extractions --output .local/oge-extraction-batch.json
       - name: Publish immutable official evidence
         id: publish_evidence
@@ -173,6 +179,10 @@ jobs:
                   'failure_count': reports['failure_count'] if reports else None,
                   'request_required_count': reports['request_required_count'] if reports else None,
                   'extraction_count': extraction['extraction_count'] if extraction else None,
+                  'reused_extraction_count': (
+                      extraction['reused_extraction_count'] if extraction else None),
+                  'parsed_extraction_count': (
+                      extraction['parsed_extraction_count'] if extraction else None),
                   'extraction_failure_count': extraction['failure_count'] if extraction else None,
                   'transaction_count': extraction['transaction_count'] if extraction else None,
                   'quarantined_row_count': extraction['quarantined_row_count'] if extraction else None,
@@ -220,7 +230,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: code
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
@@ -231,7 +241,7 @@ jobs:
       - name: Prepare review branch
         run: |
           review_root="$RUNNER_TEMP/oge-review"
-          git fetch --no-tags origin review
+          git fetch --no-tags --depth=1 origin review
           git worktree add --detach "$review_root" FETCH_HEAD
       - name: Publish normalized review data and build source candidate
         env:

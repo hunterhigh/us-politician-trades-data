@@ -54,6 +54,7 @@ from .oge_reports import (
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     archive_direct_batch as archive_oge_direct_batch,
+    load_reusable_extraction as load_reusable_oge_extraction,
     parse_archived_pdf as parse_oge_archived_pdf,
 )
 from .oge_candidate import build_oge_candidate
@@ -312,6 +313,7 @@ def main() -> None:
     oge_extract = sub.add_parser("extract-oge-direct-pdfs")
     oge_extract.add_argument("--batch", type=Path, required=True)
     oge_extract.add_argument("--archive", type=Path, required=True)
+    oge_extract.add_argument("--reuse-root", type=Path)
     oge_extract.add_argument("--output-dir", type=Path, required=True)
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
@@ -851,13 +853,21 @@ def main() -> None:
             args.output_dir.mkdir(parents=True, exist_ok=True)
             extracted = []
             failures = []
+            reused_count = parsed_count = 0
             for metadata in reports:
                 if not isinstance(metadata, dict) or not isinstance(metadata.get("document_id"), str):
                     raise OgeCatalogError("OGE archive batch report is invalid")
                 metadata_path = args.archive / "oge" / "reports" / metadata["document_id"] / \
                     f"{metadata.get('sha256')}.json"
                 try:
-                    result = parse_oge_archived_pdf(args.archive, metadata_path)
+                    result = (load_reusable_oge_extraction(
+                        args.archive, metadata_path, args.reuse_root)
+                        if args.reuse_root else None)
+                    if result is None:
+                        result = parse_oge_archived_pdf(args.archive, metadata_path)
+                        parsed_count += 1
+                    else:
+                        reused_count += 1
                     _write_atomic(args.output_dir / f"{metadata['document_id']}.json", result)
                     extracted.append(result)
                 except (OgeCatalogError, OSError, json.JSONDecodeError) as exc:
@@ -865,6 +875,8 @@ def main() -> None:
             summary = {
                 "schema_version": "oge-278t-extraction-batch/v1", "source_id": "oge",
                 "report_count": len(reports), "extraction_count": len(extracted),
+                "reused_extraction_count": reused_count,
+                "parsed_extraction_count": parsed_count,
                 "failure_count": len(failures),
                 "transaction_count": sum(len(row["transactions"]) for row in extracted),
                 "quarantined_row_count": sum(len(row["quarantined"]) for row in extracted),
@@ -872,7 +884,8 @@ def main() -> None:
             }
             _write_atomic(args.output, summary)
             print(json.dumps({**{key: summary[key] for key in (
-                "report_count", "extraction_count", "failure_count", "transaction_count",
+                "report_count", "extraction_count", "reused_extraction_count",
+                "parsed_extraction_count", "failure_count", "transaction_count",
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))

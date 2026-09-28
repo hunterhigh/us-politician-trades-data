@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: code
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
@@ -114,7 +114,10 @@ jobs:
           CACHE_MAIN_OVERRIDE: ${{ inputs.cache_main_ref }}
           CACHE_MARKET_OVERRIDE: ${{ inputs.cache_market_ref }}
         run: |
-          git fetch --no-tags origin review main market
+          git fetch --no-tags --depth=1 origin \
+            review:refs/remotes/origin/review \
+            main:refs/remotes/origin/main \
+            market:refs/remotes/origin/market
           review_root="$RUNNER_TEMP/complete-review"
           market_root="$RUNNER_TEMP/complete-market"
           main_root="$RUNNER_TEMP/complete-main"
@@ -123,12 +126,24 @@ jobs:
           git worktree add --detach "$review_root" origin/review
           git worktree add --detach "$market_root" origin/market
           git worktree add --detach "$main_root" origin/main
-          cache_main_ref="${CACHE_MAIN_OVERRIDE:-$(git rev-parse origin/main)}"
-          if [ -n "$CACHE_MARKET_OVERRIDE" ]; then
+          if [ -n "$CACHE_MAIN_OVERRIDE" ]; then
+            # Historical cache recovery is intentionally allowed to pay for
+            # full main/market history. Routine publication keeps every
+            # checkout shallow because it only needs the current tips.
+            git fetch --no-tags --unshallow origin \
+              main:refs/remotes/origin/main \
+              market:refs/remotes/origin/market
+            cache_main_ref="$CACHE_MAIN_OVERRIDE"
             cache_market_ref="$CACHE_MARKET_OVERRIDE"
           else
+            cache_main_ref="$(git rev-parse origin/main)"
             cache_market_ref="$(git show "$cache_main_ref:manifest.json" | python -c \
               'import json,sys; print(json.load(sys.stdin)["market_commit"])')"
+            if [ "$cache_market_ref" != "$(git rev-parse origin/market)" ]; then
+              git fetch --no-tags --unshallow origin \
+                main:refs/remotes/origin/main \
+                market:refs/remotes/origin/market
+            fi
           fi
           git cat-file -e "$cache_main_ref^{commit}"
           git cat-file -e "$cache_market_ref^{commit}"

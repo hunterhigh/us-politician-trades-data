@@ -65,6 +65,18 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('git merge-base --is-ancestor "$cache_market_ref" origin/market',
                       complete)
 
+    def test_routine_publish_fetches_only_branch_tips_but_recovery_keeps_history(self):
+        complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("fetch-depth: 1", complete)
+        self.assertNotIn("fetch-depth: 0", complete)
+        self.assertIn("git fetch --no-tags --depth=1 origin", complete)
+        self.assertIn("review:refs/remotes/origin/review", complete)
+        self.assertIn("main:refs/remotes/origin/main", complete)
+        self.assertIn("market:refs/remotes/origin/market", complete)
+        self.assertIn('if [ -n "$CACHE_MAIN_OVERRIDE" ]; then', complete)
+        self.assertIn("git fetch --no-tags --unshallow origin", complete)
+
     def test_twelve_data_summaries_distinguish_batch_and_cumulative_counts(self):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
             encoding="utf-8")

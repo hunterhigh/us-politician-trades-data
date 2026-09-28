@@ -1,4 +1,5 @@
 """Exercise the public CLI process, including its real-data fail-closed boundary."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -58,6 +59,58 @@ class CliTests(unittest.TestCase):
         self.assertIn("plan-house-ptr-sync", result.stdout)
         self.assertIn("record-house-ptr-result", result.stdout)
         self.assertNotIn("publish-live", result.stdout)
+
+    def test_oge_extract_cli_reports_a_verified_checkpoint_hit(self):
+        document_id = "42300720a4227e9e85258e77002dd1b3"
+        pdf = b"%PDF-1.7\nminimal checkpoint envelope\n%%EOF\n"
+        sha = hashlib.sha256(pdf).hexdigest()
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            archive = folder / "evidence"
+            report = archive / "oge" / "reports" / document_id
+            report.mkdir(parents=True)
+            pdf_path = report / f"{sha}.pdf"
+            pdf_path.write_bytes(pdf)
+            metadata = {
+                "schema_version": "oge-278t-archive/v1", "source_id": "oge",
+                "document_id": document_id,
+                "document_url": ("https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/"
+                                 f"{document_id}/$FILE/Example-278T.pdf"),
+                "filer_name": "Example, Ada", "agency": "Example Agency",
+                "position_title": "Director", "catalog_added_date": "2026-09-19",
+                "sha256": sha, "byte_length": len(pdf),
+                "archive_path": pdf_path.relative_to(archive).as_posix(),
+            }
+            (report / f"{sha}.json").write_text(json.dumps(metadata), encoding="utf-8")
+            batch = folder / "batch.json"
+            batch.write_text(json.dumps({"reports": [metadata]}), encoding="utf-8")
+            cached = {
+                "schema_version": "oge-278t-extraction/v1",
+                "parser_version": "oge-278t-pdf/v2", "source_id": "oge",
+                "document_id": document_id, "source_url": metadata["document_url"],
+                "source_sha256": sha, "catalog_filer_name": "Example, Ada",
+                "agency": "Example Agency", "position_title": "Director",
+                "catalog_added_date": "2026-09-19", "filed_at": None,
+                "document_reasons": ["filer_signature_date_not_unique"],
+                "evidence_complete": False, "transactions": [], "quarantined": [],
+            }
+            reuse = folder / "review" / document_id / sha
+            reuse.mkdir(parents=True)
+            (reuse / "oge-278t-pdf-v2.json").write_text(
+                json.dumps(cached), encoding="utf-8")
+            summary = folder / "summary.json"
+            output_dir = folder / "output"
+            result = self.invoke(
+                "extract-oge-direct-pdfs", "--batch", str(batch),
+                "--archive", str(archive), "--reuse-root", str(folder / "review"),
+                "--output-dir", str(output_dir), "--output", str(summary))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            value = json.loads(summary.read_text(encoding="utf-8"))
+            self.assertEqual((value["extraction_count"], value["reused_extraction_count"],
+                              value["parsed_extraction_count"], value["failure_count"]),
+                             (1, 1, 0, 0))
+            self.assertEqual(json.loads((output_dir / f"{document_id}.json").read_text(
+                encoding="utf-8")), cached)
 
     def test_real_input_fails_before_creating_repository(self):
         with tempfile.TemporaryDirectory() as temp:
