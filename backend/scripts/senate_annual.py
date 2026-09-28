@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--roster", type=Path, required=True)
     overlay = commands.add_parser("overlay")
     overlay.add_argument("--review-root", type=Path, required=True)
+    overlay.add_argument("--evidence-root", type=Path)
     overlay.add_argument("--candidate", type=Path, required=True)
     overlay.add_argument("--audit-output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -72,7 +73,8 @@ def main(argv: list[str] | None = None) -> int:
             before = _read(args.candidate)
             candidate, audit = overlay_annual_candidate(
                 before, args.review_root,
-                expected_roster_sha256=status["identity_roster_sha256"])
+                expected_roster_sha256=status["identity_roster_sha256"],
+                evidence_root=args.evidence_root)
             bundle = build_snapshot(candidate,
                                     generated_at=candidate["meta"]["data_cutoff_at"],
                                     allow_production=True)

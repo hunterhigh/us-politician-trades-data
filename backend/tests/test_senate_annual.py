@@ -13,6 +13,7 @@ from unison_snapshot.senate_annual import (
 )
 from unison_snapshot.senate import SenateEfdError
 from tests.test_senate_identity import member, roster
+from tests.test_senate_members import ADA_CA, xml
 
 
 def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
@@ -30,6 +31,54 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
 
 
 class SenateAnnualTests(unittest.TestCase):
+    def test_overlay_accepts_timestamp_only_roster_change_with_archived_evidence(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = xml(ADA_CA, last_updated=b"yes")
+            second = first.replace(b"September 20, 2026", b"September 23, 2026")
+            old_sha = hashlib.sha256(first).hexdigest()
+            new_sha = hashlib.sha256(second).hexdigest()
+            self.assertNotEqual(old_sha, new_sha)
+            for raw, sha in ((first, old_sha), (second, new_sha)):
+                path = root / "evidence/senate_efd/members" / f"{sha}.xml"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(raw)
+            annual_path = root / "review/senate_efd/annual/current.json"
+            annual_path.parent.mkdir(parents=True, exist_ok=True)
+            annual_path.write_bytes(_json({
+                "schema_version": "senate-efd-annual-review/v1", "source_id": "senate_efd",
+                "roster_sha256": old_sha, "people": [], "reported_holdings": [],
+                "qualified_report_count": 0, "holding_count": 0,
+            }))
+            base = {"people": [], "transactions": [], "reported_holdings": [],
+                    "source_health": [{"source_id": "senate_efd", "detail": "PTR"}]}
+            result, audit = overlay_annual_candidate(
+                base, root / "review", expected_roster_sha256=new_sha,
+                evidence_root=root / "evidence")
+            self.assertEqual(audit["annual_roster_compatibility"], "same_members")
+            self.assertEqual((audit["annual_roster_sha256"], audit["ptr_roster_sha256"]),
+                             (old_sha, new_sha))
+            self.assertEqual(result["reported_holdings"], [])
+            self.assertEqual(json.loads(annual_path.read_bytes())["roster_sha256"], old_sha)
+
+            changed = second.replace(b"<party>D</party>", b"<party>R</party>")
+            changed_sha = hashlib.sha256(changed).hexdigest()
+            (root / "evidence/senate_efd/members" / f"{changed_sha}.xml").write_bytes(changed)
+            with self.assertRaisesRegex(SenateEfdError, "members differ"):
+                overlay_annual_candidate(
+                    base, root / "review", expected_roster_sha256=changed_sha,
+                    evidence_root=root / "evidence")
+
+            with self.assertRaisesRegex(SenateEfdError, "evidence is required"):
+                overlay_annual_candidate(
+                    base, root / "review", expected_roster_sha256=new_sha)
+
+            (root / "evidence/senate_efd/members" / f"{new_sha}.xml").write_bytes(first)
+            with self.assertRaisesRegex(SenateEfdError, "hash does not match"):
+                overlay_annual_candidate(
+                    base, root / "review", expected_roster_sha256=new_sha,
+                    evidence_root=root / "evidence")
+
     def test_catalog_filters_candidate_and_keeps_annual_amendment(self):
         value = {"draw": 1, "recordsTotal": 2, "recordsFiltered": 2,
                  "result": "ok", "data": [
@@ -134,6 +183,7 @@ class SenateAnnualTests(unittest.TestCase):
             self.assertEqual(len(combined["people"]), 1)
             self.assertEqual(len(combined["reported_holdings"]), 1)
             self.assertEqual(audit["annual_holding_count"], 1)
+            self.assertEqual(audit["annual_roster_compatibility"], "same_raw_source")
             combined, audit = overlay_annual_candidate(
                 combined, review, expected_roster_sha256=members["metadata"]["sha256"])
             self.assertEqual(len(combined["reported_holdings"]), 1)

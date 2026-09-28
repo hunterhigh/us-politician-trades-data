@@ -4,6 +4,7 @@ All notable changes follow Semantic Versioning.
 
 ## Unreleased
 
+- Allow Senate annual holdings to remain in the PTR candidate when archived official rosters have different raw XML hashes but identical normalized members; retain both original hashes and fail closed on missing or changed member evidence.
 - Recover White House 278-T hrefs containing genuine Unicode punctuation through exact UTF-8 URI encoding in the normal index/archive workflow, preserving the original official link and page hash in a review audit; validated all 11 previously quarantined links as official PDFs without filename substitution.
 - Added a bounded official White House public-disclosures adapter and CLI with content-addressed HTML/PDF evidence, incremental retries, unverified-link quarantine, and a conservative OGE request-catalog crosswalk that never equates same-name links with verified reports.
 - Reuse hash-verified published Alpaca history for active symbols, compare a 45-day split-adjusted overlap, refetch changed symbols, and force a full refresh after prolonged gaps or 30 days.
