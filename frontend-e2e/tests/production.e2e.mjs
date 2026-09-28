@@ -41,7 +41,7 @@ const septemberFilingId = 'e590116fc9631e9885258e7a002de209';
 const septemberRows = data.transactions.filter(row => row.filing_id === septemberFilingId);
 let septemberMarketTicker;
 if (requireTrumpSeptember) {
-  assert.equal(septemberRows.length, 358, 'September OGE filing must contribute 358 audited rows');
+  assert.equal(septemberRows.length, 383, 'September OGE filing must contribute 383 audited rows');
   assert.ok(septemberRows.every(row =>
     row.person_id === 'oge:076544f8ba0638cf' &&
     row.filed_at === '2026-09-08T00:00:00Z' &&
@@ -50,6 +50,10 @@ if (requireTrumpSeptember) {
   septemberMarketTicker = septemberRows.find(row =>
     row.ticker && marketTickers.has(row.ticker))?.ticker;
   assert.ok(septemberMarketTicker, 'A September OGE ticker must have real market data');
+  const kroger = septemberRows.find(row =>
+    row.id === 'oge-278t:6edb6800bfd420ed027f7f1c');
+  assert.equal(kroger?.ticker, 'KR', 'Kroger OCR suffix must resolve to KR');
+  assert.ok(marketTickers.has('KR'), 'Kroger must have a published daily market series');
 }
 
 const browser = await chromium.launch({
