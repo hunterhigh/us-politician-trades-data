@@ -20,8 +20,9 @@ SCHEMA = "whitehouse-trump-2026-278t-ticker-mapping/v1"
 TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 SEMANTIC_BASIS = "alpaca_source_bound_semantic_alias"
 PRIOR_TRUMP_BASIS = "prior_trump_exact_asset_name"
+SOURCE_DIRECTORY_BASIS = "official_source_row_security_directory"
 ALLOWED_BASES = {"alpaca_unique_asset_name", "alpaca_unique_classless_asset_name",
-                 SEMANTIC_BASIS, PRIOR_TRUMP_BASIS}
+                 SEMANTIC_BASIS, PRIOR_TRUMP_BASIS, SOURCE_DIRECTORY_BASIS}
 REPORTS = {profile["document_id"]: profile for profile in TRUMP_2026_PROFILES}
 REPORTS[TRUMP_SEPT_2026_DOCUMENT_ID] = {
     "source_url": TRUMP_SEPT_2026_SOURCE_URL,
@@ -31,6 +32,182 @@ ANNUAL_MAPPING_EVIDENCE = (
     "https://github.com/hunterhigh/us-politician-trades-data/blob/"
     "10bd7a05b68ce52b9d8650a2a669639c4d46b314/"
     "whitehouse/annual/ticker-mapping-current.json")
+NASDAQ_LISTED_URL = (
+    "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt")
+OTHER_LISTED_URL = (
+    "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt")
+SECURITY_DIRECTORY_CHECKED_ON = "2026-09-28"
+SOURCE_DIRECTORY_AMBIGUITY_GUARD = (
+    "fixed_official_row+single_security_directory_symbol+"
+    "single_active_sip_asset+no_debt_or_concatenated_asset")
+
+# The official Nasdaq Trader symbol directories identify the listed security;
+# the live Alpaca asset master remains the production gate for active SIP scope.
+SECURITY_DIRECTORY = {
+    "ACN": ("Accenture plc Class A Ordinary Shares (Ireland)", OTHER_LISTED_URL),
+    "AGX": ("Argan, Inc. Common Stock", OTHER_LISTED_URL),
+    "ALL": ("Allstate Corporation (The) Common Stock", OTHER_LISTED_URL),
+    "AMTM": ("Amentum Holdings, Inc. Common Stock", OTHER_LISTED_URL),
+    "ANDE": ("The Andersons, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "AOSL": ("Alpha and Omega Semiconductor Limited - Common Shares", NASDAQ_LISTED_URL),
+    "ARI": ("Apollo Commercial Real Estate Finance, Inc", OTHER_LISTED_URL),
+    "ASO": ("Academy Sports and Outdoors, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "AUB": ("Atlantic Union Bankshares Corporation Common Stock", OTHER_LISTED_URL),
+    "BGC": ("BGC Group, Inc. - Class A Common Stock", NASDAQ_LISTED_URL),
+    "BHE": ("Benchmark Electronics, Inc. Common Stock", OTHER_LISTED_URL),
+    "BSX": ("Boston Scientific Corporation Common Stock", OTHER_LISTED_URL),
+    "CCI": ("Crown Castle Inc. Common Stock", OTHER_LISTED_URL),
+    "CFG": ("Citizens Financial Group, Inc. Common Stock", OTHER_LISTED_URL),
+    "CHWY": ("Chewy, Inc. Class A Common Stock", OTHER_LISTED_URL),
+    "CMCSA": ("Comcast Corporation - Class A Common Stock", NASDAQ_LISTED_URL),
+    "CME": ("CME Group Inc. - Class A Common Stock", NASDAQ_LISTED_URL),
+    "CRDO": ("Credo Technology Group Holding Ltd - Ordinary Shares", NASDAQ_LISTED_URL),
+    "CRK": ("Comstock Resources, Inc. Common Stock", OTHER_LISTED_URL),
+    "CRVL": ("CorVel Corp. - Common Stock", NASDAQ_LISTED_URL),
+    "DGX": ("Quest Diagnostics Incorporated Common Stock", OTHER_LISTED_URL),
+    "DIS": ("Walt Disney Company (The) Common Stock", OTHER_LISTED_URL),
+    "DORM": ("Dorman Products, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "ECG": ("Everus Construction Group, Inc. Common Stock", OTHER_LISTED_URL),
+    "EFC": ("Ellington Financial Inc. Common Stock ", OTHER_LISTED_URL),
+    "EMN": ("Eastman Chemical Company Common Stock", OTHER_LISTED_URL),
+    "F": ("Ford Motor Company Common Stock", OTHER_LISTED_URL),
+    "FOXA": ("Fox Corporation - Class A Common Stock", NASDAQ_LISTED_URL),
+    "G": ("Genpact Limited Common Stock", OTHER_LISTED_URL),
+    "GOGO": ("Gogo Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "HCSG": ("Healthcare Services Group, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "HTZ": ("Hertz Global Holdings, Inc - Common Stock", NASDAQ_LISTED_URL),
+    "IDXX": ("IDEXX Laboratories, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "ISRG": ("Intuitive Surgical, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "LTC": ("LTC Properties, Inc. Common Stock", OTHER_LISTED_URL),
+    "LYFT": ("Lyft, Inc. - Class A Common Stock", NASDAQ_LISTED_URL),
+    "MATW": ("Matthews International Corporation - Class A Common Stock", NASDAQ_LISTED_URL),
+    "MDT": ("Medtronic plc. Ordinary Shares", OTHER_LISTED_URL),
+    "MSFT": ("Microsoft Corporation - Common Stock", NASDAQ_LISTED_URL),
+    "MWA": ("MUELLER WATER PRODUCTS Common Stock", OTHER_LISTED_URL),
+    "MXL": ("MaxLinear, Inc - Common Stock", NASDAQ_LISTED_URL),
+    "NBHC": ("National Bank Holdings Corporation Common Stock", OTHER_LISTED_URL),
+    "NFLX": ("Netflix, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "NTAP": ("NetApp, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "NVDA": ("NVIDIA Corporation - Common Stock", NASDAQ_LISTED_URL),
+    "NWN": ("Northwest Natural Holding Company Common Stock", OTHER_LISTED_URL),
+    "NXPI": ("NXP Semiconductors N.V. - Common Stock", NASDAQ_LISTED_URL),
+    "OFG": ("OFG Bancorp Common Stock", OTHER_LISTED_URL),
+    "OI": ("O-I Glass, Inc. Common Stock", OTHER_LISTED_URL),
+    "OMCL": ("Omnicell, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "OWL": ("Blue Owl Capital Inc. Class A Common Stock", OTHER_LISTED_URL),
+    "OXM": ("Oxford Industries, Inc. Common Stock", OTHER_LISTED_URL),
+    "PATK": ("Patrick Industries, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "PI": ("Impinj, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "PLTR": ("Palantir Technologies Inc. - Class A Common Stock", NASDAQ_LISTED_URL),
+    "PLUS": ("ePlus inc. - Common Stock", NASDAQ_LISTED_URL),
+    "POWL": ("Powell Industries, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "PRGO": ("Perrigo Company plc Ordinary Shares", OTHER_LISTED_URL),
+    "SAFE": ("Safehold Inc. New Common Stock ", OTHER_LISTED_URL),
+    "SEI": ("Solaris Energy Infrastructure, Inc. Class A Common Stock", OTHER_LISTED_URL),
+    "SHEN": ("Shenandoah Telecommunications Co - Common Stock", NASDAQ_LISTED_URL),
+    "SKT": ("Tanger Inc. Common Stock", OTHER_LISTED_URL),
+    "SLB": ("SLB Limited Common Shares", OTHER_LISTED_URL),
+    "STZ": ("Constellation Brands, Inc. Common Stock", OTHER_LISTED_URL),
+    "TEL": ("TE Connectivity plc Ordinary Shares", OTHER_LISTED_URL),
+    "TER": ("Teradyne, Inc. - Common Stock", NASDAQ_LISTED_URL),
+    "TKO": ("TKO Group Holdings, Inc. Class A Common Stock", OTHER_LISTED_URL),
+    "UA": ("Under Armour, Inc. Class C Common Stock", OTHER_LISTED_URL),
+    "UNH": ("UnitedHealth Group Incorporated Common Stock (DE)", OTHER_LISTED_URL),
+    "VMC": ("Vulcan Materials Company (Holding Company) Common Stock", OTHER_LISTED_URL),
+    "VST": ("Vistra Corp. Common Stock", OTHER_LISTED_URL),
+    "VZ": ("Verizon Communications Inc. Common Stock", OTHER_LISTED_URL),
+    "WOR": ("Worthington Enterprises, Inc. Common Shares", OTHER_LISTED_URL),
+    "WU": ("Western Union Company (The) Common Stock", OTHER_LISTED_URL),
+    "ZTS": ("Zoetis Inc. Class A Common Stock", OTHER_LISTED_URL),
+}
+
+# Fixed extraction IDs bind each correction to one official PDF row.  Do not
+# generalize these OCR spellings to other filings or split concatenated assets.
+SEPTEMBER_SOURCE_ALIASES = {
+    "oge-278t:3964baae4842fa5ec3ee3f95": ("BLUE OWL CAPITAL INC CL A", "OWL", 5, 101, "2026-07-17"),
+    "oge-278t:21a875558a6727b4bd24cf28": ("SLBLTD", "SLB", 5, 106, "2026-07-17"),
+    "oge-278t:bd5906c0369ece848f87c75c": ("TERADYNEINC", "TER", 5, 108, "2026-07-17"),
+    "oge-278t:5fd95629339329188e4c5fc4": ("Zoetislnc", "ZTS", 6, 134, "2026-07-17"),
+    "oge-278t:3d7cd58f0d79f36cf8f907ef": ("Disney Walt Co", "DIS", 6, 145, "2026-07-17"),
+    "oge-278t:07db8e523ed93a0df6d69be6": (". Te Connectivitv Pie", "TEL", 6, 149, "2026-07-17"),
+    "oge-278t:13fd8424391c313280f9526a": ("Cme Grouo Inc", "CME", 6, 151, "2026-07-17"),
+    "oge-278t:29aae8a187f25c215555d594": ("Palantir Technolnnies Inc", "PLTR", 6, 163, "2026-07-17"),
+    "oge-278t:5524024a8d96413ad081557a": ("Microsoft Coro", "MSFT", 7, 169, "2026-07-17"),
+    "oge-278t:d59e41965b3e363eb9d8968e": ("Nvidia Coll>", "NVDA", 7, 170, "2026-07-17"),
+    "oge-278t:141fd0054d8d646bb146806d": ("UNITEDHEALTH GROUP INC", "UNH", 7, 198, "2026-07-31"),
+    "oge-278t:e85ca2bab8ba56442e981af8": ("CITIZENS FINL GROCJP INC", "CFG", 9, 234, "2026-07-31"),
+    "oge-278t:d5f0f712cc372b7084d259a6": ("ZOETIS INC CLASS A", "ZTS", 9, 241, "2026-07-08"),
+    "oge-278t:528679fd0d6d9aae74f73d2d": ("CONSTELLATION BRANDS INC CLASS A", "STZ", 9, 245, "2026-07-08"),
+    "oge-278t:e2d4bf1c0422725206c7fb97": ("0-1 GLASS INC", "OI", 10, 287, "2026-07-08"),
+    "oge-278t:c256dc894365b20b4ba28da4": ("NTNL BK HLDGS CORP A CLASS A", "NBHC", 11, 316, "2026-07-29"),
+    "oge-278t:f4cc685d05109f65e40a5115": ("SHENANDOAH TELECOMMUNICA", "SHEN", 11, 328, "2026-07-29"),
+    "oge-278t:66537df312b02465ca96ca3c": ("EASTMAN CHEM CO", "EMN", 12, 341, "2026-07-08"),
+    "oge-278t:3d595c108c213babc4fed1d5": ("DORMAN PRODS INC", "DORM", 12, 347, "2026-07-29"),
+    "oge-278t:73ce53c22902d25e6a481101": ("HEALTHCARE SVCS GROUP IN", "HCSG", 12, 348, "2026-07-29"),
+    "oge-278t:15e0153498968421c47c9fe7": ("OXFORD INDS INC", "OXM", 12, 351, "2026-07-08"),
+    "oge-278t:f89a4fbea1b01afa6e2c545f": ("HERTZ GLOBAL HLDGS INC N", "HTZ", 12, 354, "2026-07-08"),
+    "oge-278t:9d601f38a1f99bc60c7da277": ("CORVELCORP", "CRVL", 12, 360, "2026-07-29"),
+    "oge-278t:36c83acf45941578ac94c19c": ("TANGER INC REIT", "SKT", 12, 362, "2026-07-29"),
+    "oge-278t:ea1a3eb46fd18bca55e12f20": ("LYFT INC CLASS CLASS A", "LYFT", 13, 376, "2026-07-08"),
+    "oge-278t:9432eaa8535a446e7e56e65a": ("ELLINGTON FINL INC REIT", "EFC", 13, 391, "2026-07-29"),
+    "oge-278t:817bbeaa9ad74f42d0c15291": ("BENCHMARK ELECTRS INC", "BHE", 13, 394, "2026-07-29"),
+    "oge-278t:ce049c6aa997d7dc1d7e8cfd": ("ANDERSONS INC", "ANDE", 13, 396, "2026-07-29"),
+    "oge-278t:dae18c4e7baff3bcdfc8e7a9": ("SAFEHOLD INC REIT REIT", "SAFE", 14, 400, "2026-07-29"),
+    "oge-278t:f0f92cd3e50de56ae12b825c": ("IMPINJINC", "PI", 14, 403, "2026-07-29"),
+    "oge-278t:f71fd36274ad6e6478c22959": ("LTC PPTYS INC REIT", "LTC", 14, 404, "2026-07-29"),
+    "oge-278t:9108556a4892f40533bb952c": ("WORTHINGTON ENTERPRI", "WOR", 14, 407, "2026-07-29"),
+    "oge-278t:93ab8dbab050af98b03596ad": ("EVERUS CONSTR GROUP INC", "ECG", 14, 420, "2026-07-29"),
+    "oge-278t:a207586ed125a0c81e766a5c": ("OFG BANCORP F", "OFG", 14, 421, "2026-07-29"),
+    "oge-278t:6d4ba8d63acf8a207c4d012b": ("AMENTIJM HLDGS INC EQUITY", "AMTM", 14, 422, "2026-07-08"),
+    "oge-278t:0d0720c7dc95de7293a46204": ("PERRIGO CO PLC F", "PRGO", 14, 424, "2026-07-29"),
+    "oge-278t:d0d58e2dac760227ed87a108": ("POWELL INDS INC", "POWL", 14, 426, "2026-07-08"),
+    "oge-278t:e014412f18b4114243a167e3": ("UNDER ARMOUR INC CLASS C", "UA", 15, 433, "2026-07-29"),
+    "oge-278t:a2cbf04260e5c3ee9b8d6557": ("GOGOINC", "GOGO", 15, 439, "2026-07-08"),
+    "oge-278t:c08e7fa18cbe5b141b245563": ("ALPHA & OMEGA SEMICOND F", "AOSL", 15, 449, "2026-07-29"),
+    "oge-278t:8389b9f25c36fd48a9d4910b": ("NORTHWEST NAT HLDG CO", "NWN", 15, 452, "2026-07-29"),
+    "oge-278t:f782d7f337210fc094bea6ff": ("COMSTOCK RES INC", "CRK", 15, 453, "2026-07-29"),
+    "oge-278t:317bdc3671714d9c6c4da2d8": ("MAXLINEAR INC CLASS A", "MXL", 15, 454, "2026-07-08"),
+    "oge-278t:a792d0f57b12f4d16c526bdd": ("MUELLER WATER PRODUC CLASS SERIES A", "MWA", 15, 456, "2026-07-08"),
+    "oge-278t:44138f6ef9c36fcd83ad1dcf": ("MATTHEWS INTL CORP CLASS A", "MATW", 15, 460, "2026-07-29"),
+    "oge-278t:15141742f9a9d3d335e4cb1e": ("APOLLO COML REAL ESTATE REIT", "ARI", 17, 515, "2026-07-29"),
+    "oge-278t:5304fbb4c2fb3503b44495cc": ("OMNICELL INC", "OMCL", 17, 516, "2026-07-29"),
+    "oge-278t:4e9fa32a2e06d6103b352447": ("• ACADEMY SPORTS & OUTDOOR", "ASO", 18, 546, "2026-07-29"),
+    "oge-278t:120ae3c89d3a86175400a421": ("EPLUSINC", "PLUS", 19, 575, "2026-07-29"),
+    "oge-278t:348f07f2bf7707f74a06c03d": ("ARGANINC", "AGX", 19, 576, "2026-07-08"),
+    "oge-278t:86c3d3d90c13f4fa7aae4124": ("SOLARI$ ENERGY INFRSTR CLASS A", "SEI", 19, 579, "2026-07-29"),
+    "oge-278t:53ee1a66f5b26f2d6ed1a7ab": ("MUELLER WATER PRODUC CI.J\\SS SERIES A", "MWA", 19, 580, "2026-07-29"),
+    "oge-278t:86e61da8fdf2907c2c945eda": ("BGC GROUP INC CI.J\\SS A", "BGC", 19, 584, "2026-07-29"),
+    "oge-278t:5e91e2714c8deca706659cae": ("ATI.J\\NTIC UN BANKSHARES C", "AUB", 19, 585, "2026-07-29"),
+    "oge-278t:64d1f52f9133deeef5712322": ("PATRICK INDS INC", "PATK", 21, 629, "2026-07-29"),
+    "oge-278t:20d89ff422dab33d977eb920": ("WESTERN UN CO", "WU", 22, 665, "2026-07-08"),
+    "oge-278t:3ca89c4b06cb5b7ef84c8b66": ("COMCAST CORP NEW CLASS CLASS A", "CMCSA", 22, 693, "2026-07-27"),
+    "oge-278t:b51afb66eaa7fe7e575489ca": ("CROWN CASTLE INC REIT REIT", "CCI", 24, 730, "2026-07-27"),
+    "oge-278t:c3186c0b77f76fb5d2ebf245": ("CREDO TECHNOLOGY GROUP F", "CRDO", 24, 731, "2026-07-27"),
+    "oge-278t:8f2bdc574feec76f7489106c": ("GENPACT LTD F", "G", 25, 782, "2026-07-24"),
+    "oge-278t:8b4bfc4528754e78b9945c8b": ("ZOETIS INC CLASS A", "ZTS", 25, 784, "2026-07-24"),
+    "oge-278t:26778fda9bbe7b93d326ddd3": ("CONSTELLATION BRANDS INC CLASS A", "STZ", 25, 791, "2026-07-24"),
+    "oge-278t:23c98410d69fcf0038e25066": ("FOX CORP CLASS CLASS A", "FOXA", 26, 797, "2026-07-24"),
+    "oge-278t:bd8bd85ea7c4e0adf3801b88": ("DISNEY WALT CO", "DIS", 26, 815, "2026-07-24"),
+    "oge-278t:3c02b1f259f5f882658a8181": ("VERIZON COMMUNICATIONS I", "VZ", 26, 820, "2026-07-24"),
+    "oge-278t:af1416d7d332cd8e665db18e": ("MEDTRONIC PLC F I", "MDT", 27, 840, "2026-07-08"),
+    "oge-278t:6e7b127baeef19b0727fa7c2": ("CHEWY INC CLASS A", "CHWY", 28, 873, "2026-07-08"),
+    "oge-278t:fc998ed361f00c1d98ed1bc8": ("CROWN CASTLE INC REIT REIT", "CCI", 28, 874, "2026-07-08"),
+    "oge-278t:7742ff55227eaa7447ee0916": ("!DE.XX LABS INC", "IDXX", 28, 883, "2026-07-08"),
+    "oge-278t:3322d2c8ea0feb47e8490cf9": ("VlSTRACORP", "VST", 28, 885, "2026-07-08"),
+    "oge-278t:cf2fa32f7936391a3b435a56": ("ACCENTURE PLC IRELAND F CLASS A", "ACN", 29, 899, "2026-07-08"),
+    "oge-278t:1fdf6bed65cef2663cb6f74a": ("MICROSOFT CORP I", "MSFT", 29, 910, "2026-07-08"),
+    "oge-278t:caadbbfefc5a6789c00dd0c6": ("TKO GROUP HLDGS INC CL A", "TKO", 30, 944, "2026-07-08"),
+    "oge-278t:00527b9c66d6218daa28cf6d": ("FORD MOTOR CO COM", "F", 30, 945, "2026-07-08"),
+    "oge-278t:a5e8ea525773021d19148454": ("NXP SEMICONDUCTORS N V COM EUR", "NXPI", 30, 950, "2026-07-08"),
+    "oge-278t:fb8db814ae185ef4c29e2dc0": ("NETAPPINC", "NTAP", 30, 954, "2026-07-08"),
+    "oge-278t:112ee0316021d8a85b79c2cb": ("ALISTATE CORP", "ALL", 35, 1118, "2026-07-23"),
+    "oge-278t:bc1cbf4a8274fe9e6f381ea7": ("QUEST DIAGNOSllCS INC", "DGX", 35, 1122, "2026-07-23"),
+    "oge-278t:4e5366beae2e2bc5708f6d9e": ("VULCAN MATERIALS CO", "VMC", 36, 1133, "2026-07-23"),
+    "oge-278t:8cced1376ffb161bd4d5d9f6": ("BOSTON SOENTIFIC CORP", "BSX", 36, 1141, "2026-07-23"),
+    "oge-278t:bbaeac29d4e0be338447c0c3": ("ACCENTIJRE PLC", "ACN", 36, 1148, "2026-07-23"),
+    "oge-278t:a70ca3db3d3f59d76f4dd9ba": ("INTlJITlVE SURGICAL INC", "ISRG", 36, 1150, "2026-07-23"),
+    "oge-278t:bbdeec042b5efd70b77ae28f": ("NETFLIXINC", "NFLX", 36, 1153, "2026-07-23"),
+}
 # Exact filing labels only. Each ticker has a prior mapped annual identity or
 # issuer-published symbol evidence; the live Alpaca SIP asset must still exist.
 SEMANTIC_ALIASES = {
@@ -140,6 +317,17 @@ def _semantic_rule_id(asset_name: str) -> str:
     return "semantic:" + hashlib.sha256(asset_name.encode("utf-8")).hexdigest()[:16]
 
 
+def _source_directory_rule_id(record_id: str, asset_name: str, ticker: str,
+                              page_number: int, row_number: int,
+                              transaction_date: str, directory_url: str) -> str:
+    evidence = "\x00".join((record_id, asset_name, ticker, str(page_number),
+                              str(row_number), transaction_date,
+                              TRUMP_SEPT_2026_SOURCE_URL,
+                              directory_url, SECURITY_DIRECTORY_CHECKED_ON))
+    return "source-directory:" + hashlib.sha256(
+        evidence.encode("utf-8")).hexdigest()[:16]
+
+
 def _apply_semantic_aliases(proposed: dict, assets: list[dict],
                             ambiguous_ids: set[str]) -> list[dict]:
     registry = _asset_registry(assets)
@@ -164,6 +352,69 @@ def _apply_semantic_aliases(proposed: dict, assets: list[dict],
             "provider_asset_name": asset["name"],
             "semantic_rule_id": _semantic_rule_id(row["asset_name"]),
             "semantic_evidence_url": evidence_url,
+        })
+    return recovered
+
+
+def _unique_active_sip_asset(assets: list[dict], ticker: str) -> dict | None:
+    matches = []
+    for row in assets:
+        if not isinstance(row, dict):
+            continue
+        if (str(row.get("symbol") or "").strip().upper() == ticker and
+                str(row.get("class") or "").strip().casefold() == "us_equity" and
+                str(row.get("status") or "").strip().casefold() == "active" and
+                str(row.get("exchange") or "").strip().upper() in SIP_EXCHANGES and
+                isinstance(row.get("id"), str) and row["id"].strip() and
+                isinstance(row.get("name"), str) and row["name"].strip()):
+            matches.append(dict(
+                row, symbol=ticker,
+                status=str(row["status"]).strip().casefold(),
+                exchange=str(row["exchange"]).strip().upper(),
+            ))
+    return matches[0] if len(matches) == 1 else None
+
+
+def _apply_september_source_aliases(proposed: dict, assets: list[dict]) -> list[dict]:
+    """Apply only fixed official-row mappings backed by current symbol directories."""
+    registry = _asset_registry(assets)
+    recovered = []
+    for row in proposed["transactions"]:
+        if (row.get("filing_id") != TRUMP_SEPT_2026_DOCUMENT_ID or
+                not _eligible_name(row) or row.get("ticker")):
+            continue
+        rule = SEPTEMBER_SOURCE_ALIASES.get(row["id"])
+        if rule is None:
+            continue
+        asset_name, ticker, page_number, row_number, transaction_date = rule
+        if row["asset_name"] != asset_name:
+            raise ValueError("A fixed September source row changed its asset label")
+        if row.get("transaction_date") != transaction_date:
+            raise ValueError("A fixed September source row changed its transaction date")
+        directory_name, directory_url = SECURITY_DIRECTORY[ticker]
+        asset = _unique_active_sip_asset(assets, ticker)
+        if asset is None or registry.get(ticker) != asset:
+            continue
+        row["ticker"] = ticker
+        row["ticker_mapping_basis"] = SOURCE_DIRECTORY_BASIS
+        recovered.append({
+            "record_id": row["id"], "asset_name": row["asset_name"],
+            "ticker": ticker, "mapping_basis": SOURCE_DIRECTORY_BASIS,
+            "provider_asset_name": asset["name"],
+            "provider_asset_id": asset["id"],
+            "provider_exchange": asset["exchange"],
+            "provider_active_sip_match_count": 1,
+            "source_evidence_url": TRUMP_SEPT_2026_SOURCE_URL,
+            "source_page_number": page_number,
+            "source_row_number": row_number,
+            "source_transaction_date": transaction_date,
+            "security_directory_name": directory_name,
+            "security_directory_url": directory_url,
+            "security_directory_checked_on": SECURITY_DIRECTORY_CHECKED_ON,
+            "ambiguity_exclusion_basis": SOURCE_DIRECTORY_AMBIGUITY_GUARD,
+            "source_rule_id": _source_directory_rule_id(
+                row["id"], row["asset_name"], ticker, page_number, row_number,
+                transaction_date, directory_url),
         })
     return recovered
 
@@ -259,6 +510,38 @@ def _previous(previous: dict | None) -> dict[str, dict]:
                 all(isinstance(item, str) and item for item in row["prior_record_ids"]) and
                 row["prior_record_ids"] == sorted(set(row["prior_record_ids"]))):
             raise ValueError("Previous Trump exact-name evidence is invalid")
+        if row["mapping_basis"] == SOURCE_DIRECTORY_BASIS:
+            rule = SEPTEMBER_SOURCE_ALIASES.get(row["record_id"])
+            if rule is None:
+                raise ValueError("Previous source-directory rule no longer exists")
+            if (not isinstance(row.get("provider_asset_id"), str) or
+                    not row["provider_asset_id"] or
+                    not isinstance(row.get("provider_asset_name"), str) or
+                    not row["provider_asset_name"] or
+                    not isinstance(row.get("provider_exchange"), str) or
+                    row["provider_exchange"] not in SIP_EXCHANGES):
+                raise ValueError("Previous source-directory provider evidence is invalid")
+            asset_name, ticker, page_number, row_number, transaction_date = rule
+            directory_name, directory_url = SECURITY_DIRECTORY[ticker]
+            if row.get("source_transaction_date") != transaction_date:
+                raise ValueError("Previous source-directory transaction date is invalid")
+            expected = {
+                "asset_name": asset_name, "ticker": ticker,
+                "source_evidence_url": TRUMP_SEPT_2026_SOURCE_URL,
+                "source_page_number": page_number,
+                "source_row_number": row_number,
+                "source_transaction_date": transaction_date,
+                "security_directory_name": directory_name,
+                "security_directory_url": directory_url,
+                "security_directory_checked_on": SECURITY_DIRECTORY_CHECKED_ON,
+                "ambiguity_exclusion_basis": SOURCE_DIRECTORY_AMBIGUITY_GUARD,
+                "provider_active_sip_match_count": 1,
+                "source_rule_id": _source_directory_rule_id(
+                    row["record_id"], asset_name, ticker, page_number, row_number,
+                    transaction_date, directory_url),
+            }
+            if any(row.get(key) != value for key, value in expected.items()):
+                raise ValueError("Previous source-directory evidence changed")
         result[row["record_id"]] = row
     return result
 
@@ -309,8 +592,10 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
             row["ticker"] = None
             row["ticker_mapping_basis"] = None
             corrections.append(row["id"])
+    source_recovered = _apply_september_source_aliases(corrected, assets)
     proposed, recovered, current = _recover_unique_asset_name_tickers(
         corrected, assets, eligible=_eligible_name)
+    recovered.extend(source_recovered)
     ambiguous_ids = {row["record_id"] for row in current["ambiguous_records"]}
     recovered.extend(_apply_semantic_aliases(proposed, assets, ambiguous_ids))
     recovered.extend(_apply_prior_trump_exact_names(proposed, assets, ambiguous_ids))
@@ -319,7 +604,9 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
     active_registry = _asset_registry(assets)
     references = {row["id"]: row for row in proposed["transactions"]
                   if isinstance(row.get("id"), str)}
-    if prior_by_id.keys() & ambiguous_ids:
+    source_rule_ids = {row["record_id"] for row in recovered
+                       if row["mapping_basis"] == SOURCE_DIRECTORY_BASIS}
+    if (prior_by_id.keys() & ambiguous_ids) - source_rule_ids:
         raise ValueError("A sticky Trump 2026 ticker mapping is now ambiguous")
     rows_by_id = {row["id"]: row for row in proposed["transactions"] if _source_row(row)}
     mappings = []
@@ -342,11 +629,25 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
                             SEMANTIC_BASIS,
                         } for prior_id in old["prior_record_ids"])):
                 raise ValueError("A sticky Trump exact-name source is no longer valid")
+        if old["mapping_basis"] == SOURCE_DIRECTORY_BASIS:
+            asset = _unique_active_sip_asset(assets, old["ticker"])
+            if (asset is None or active_registry.get(old["ticker"]) != asset or
+                    row.get("transaction_date") != old["source_transaction_date"] or
+                    old["provider_asset_id"] != asset["id"] or
+                    old["provider_asset_name"] != asset["name"] or
+                    old["provider_exchange"] != asset["exchange"]):
+                raise ValueError("A sticky source-directory security is no longer active SIP")
         current_mapping = proposed_by_id.get(record_id)
         if current_mapping is not None and any(
                 current_mapping.get(key) != old.get(key) for key in (
                     "ticker", "mapping_basis", "semantic_rule_id",
-                    "semantic_evidence_url")):
+                    "semantic_evidence_url", "source_rule_id",
+                    "source_evidence_url", "source_page_number",
+                    "source_row_number", "source_transaction_date",
+                    "provider_asset_id", "provider_asset_name",
+                    "provider_exchange", "provider_active_sip_match_count",
+                    "ambiguity_exclusion_basis", "security_directory_name",
+                    "security_directory_url", "security_directory_checked_on")):
             raise ValueError("Alpaca identity conflicts with a sticky Trump 2026 mapping")
         row["ticker"] = old["ticker"]
         row["ticker_mapping_basis"] = old["mapping_basis"]
@@ -356,7 +657,12 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
             mappings.append({key: current_mapping[key] for key in (
                 "record_id", "asset_name", "ticker", "mapping_basis",
                 "provider_asset_name", "semantic_rule_id",
-                "semantic_evidence_url", "prior_record_ids") if key in current_mapping})
+                "semantic_evidence_url", "prior_record_ids", "source_rule_id",
+                "source_evidence_url", "source_page_number", "source_row_number",
+                "source_transaction_date", "provider_asset_id", "provider_exchange",
+                "provider_active_sip_match_count", "ambiguity_exclusion_basis",
+                "security_directory_name", "security_directory_url",
+                "security_directory_checked_on") if key in current_mapping})
     mappings.sort(key=lambda row: row["record_id"])
     for old, new in zip(before["transactions"], proposed["transactions"], strict=True):
         if old["id"] != new["id"]:
@@ -388,6 +694,8 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         "mapping_count": len(mappings),
         "semantic_mapping_count": sum(
             row["mapping_basis"] == SEMANTIC_BASIS for row in mappings),
+        "source_directory_mapping_count": sum(
+            row["mapping_basis"] == SOURCE_DIRECTORY_BASIS for row in mappings),
         "retained_mapping_count": len(prior_by_id),
         "new_mapping_count": len(mappings) - len(prior_by_id),
         "ambiguous_record_count": len(ambiguous),
