@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -355,6 +356,23 @@ class MaterializeTests(unittest.TestCase):
                         materialize(root, bundle)
                     self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
                     self.assertFalse((root / "manifest.json").exists())
+
+    def test_relative_root_and_absolute_outer_alias_are_not_layout_redirects(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            actual, alias = base / "actual", base / "alias"
+            bundle = self.bundle()
+            relative_root = Path(os.path.relpath(actual, Path.cwd()))
+            self.assertTrue(materialize(relative_root, bundle).changed)
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                if sys.platform != "win32":
+                    self.skipTest(f"Directory symlinks unavailable: {exc}")
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(alias), str(actual)],
+                               check=True, capture_output=True)
+            self.assertFalse(materialize(alias, bundle).changed)
+            self.assertTrue((actual / "manifest.json").is_file())
 
     def test_immutable_collision_and_invalid_manifest_abort(self):
         bundle = self.bundle()

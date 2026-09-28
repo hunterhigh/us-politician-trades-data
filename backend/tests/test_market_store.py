@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -204,6 +205,23 @@ class MarketStoreTests(unittest.TestCase):
                     self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
                     self.assertFalse((root / "market-pages").is_dir() if kind == "market" else
                                      (root / "market").is_dir())
+
+    def test_relative_root_and_absolute_outer_alias_are_not_layout_redirects(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            actual, alias = base / "actual", base / "alias"
+            bundle = build_market_bundle([row()], data_cutoff_at="2026-09-20T23:59:59Z")
+            relative_root = Path(os.path.relpath(actual, Path.cwd()))
+            self.assertTrue(materialize_market(relative_root, bundle).changed)
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                if sys.platform != "win32":
+                    self.skipTest(f"Directory symlinks unavailable: {exc}")
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(alias), str(actual)],
+                               check=True, capture_output=True)
+            self.assertFalse(materialize_market(alias, bundle).changed)
+            self.assertTrue((actual / f"market-pages/{bundle.page_shas[0]}.json").is_file())
 
     def test_rejects_wrong_source_and_future_prices(self):
         bad = row()
