@@ -5544,8 +5544,8 @@
       "ticker": "GEHC"
     }
   ],
-  "new_mapping_count": 60,
-  "retained_mapping_count": 704,
+  "new_mapping_count": 0,
+  "retained_mapping_count": 764,
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
   "semantic_mapping_count": 67,
   "source_transaction_count": 1195,
