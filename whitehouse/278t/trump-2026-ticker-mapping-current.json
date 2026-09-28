@@ -51,7 +51,7 @@
     }
   ],
   "asset_master_sha256": "a4455d289599fd9d825d35969ef09d155724cdfbb204423e9ebbaa608e6df2ac",
-  "candidate_before_sha256": "9eae167c3ae6e6c0a2c6928449c352dafb7f697a37a434ab09e6e23621085e32",
+  "candidate_before_sha256": "0ed62b04bf7ae6316f100ed2db49a248d572eb54ad3f6a965d3d8da932ac63c5",
   "checked_at": "2026-09-25T04:58:54Z",
   "correction_count": 2,
   "correction_ids": [
@@ -59,7 +59,7 @@
     "oge-278t:d759ad330b8f427cec8d85ba"
   ],
   "explicit_ticker_count": 1,
-  "mapping_count": 847,
+  "mapping_count": 852,
   "mappings": [
     {
       "ambiguity_exclusion_basis": "fixed_official_row+single_security_directory_symbol+single_active_sip_asset+no_debt_or_concatenated_asset",
@@ -2351,6 +2351,13 @@
       "ticker": "FG"
     },
     {
+      "asset_name": "NATERA INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Natera, Inc. Common Stock",
+      "record_id": "oge-278t:55c5e492c058bc46ef81d643",
+      "ticker": "NTRA"
+    },
+    {
       "asset_name": "PAYPAL HOLDINGS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "PayPal Holdings, Inc. Common Stock",
@@ -3944,6 +3951,13 @@
       "ticker": "OTIS"
     },
     {
+      "asset_name": "DEXCOM INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "DexCom, Inc. Common Stock",
+      "record_id": "oge-278t:8fce140b9c3fca8985296c35",
+      "ticker": "DXCM"
+    },
+    {
       "asset_name": "S&p Global Inc",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "S&P Global Inc.",
@@ -5370,6 +5384,13 @@
       "provider_asset_name": "UFP Technologies, Inc. Common Stock",
       "record_id": "oge-278t:c3abe56aa4870fe01a1b9ac1",
       "ticker": "UFPT"
+    },
+    {
+      "asset_name": "MORGAN STANLEY",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Morgan Stanley",
+      "record_id": "oge-278t:c4493bc63478b78bdd77113b",
+      "ticker": "MS"
     },
     {
       "asset_name": "MEDTRONIC PLC F.",
@@ -6963,6 +6984,13 @@
       "ticker": "URI"
     },
     {
+      "asset_name": "ARTIVION INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Artivion, Inc.",
+      "record_id": "oge-278t:fac97da8e5025227ad0b9139",
+      "ticker": "AORT"
+    },
+    {
       "asset_name": "KINDER MORGAN INC DEL",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "Kinder Morgan, Inc.",
@@ -6970,6 +6998,13 @@
       "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
       "semantic_rule_id": "semantic:5c4f7dccfce802a2",
       "ticker": "KMI"
+    },
+    {
+      "asset_name": "BOOKING HLDGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Booking Holdings Inc. Common Stock",
+      "record_id": "oge-278t:faffe360fe76ed247b8c9921",
+      "ticker": "BKNG"
     },
     {
       "asset_name": "DOORDASH INC CLASS CLASS A",
@@ -7121,11 +7156,11 @@
       "ticker": "GEHC"
     }
   ],
-  "new_mapping_count": 83,
-  "retained_mapping_count": 764,
+  "new_mapping_count": 5,
+  "retained_mapping_count": 847,
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
   "semantic_mapping_count": 67,
   "source_directory_mapping_count": 83,
-  "source_transaction_count": 1195,
-  "unmatched_record_count": 341
+  "source_transaction_count": 1201,
+  "unmatched_record_count": 342
 }
