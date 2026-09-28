@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      require_trump_sept_oge:
+        description: Require the September Trump 278-T rows and market-backed ticker in the frozen frontend
+        required: false
+        type: boolean
+        default: false
       cache_main_ref:
         description: Optional published main commit used only for cache recovery
         required: false
@@ -246,6 +251,7 @@ jobs:
       - name: Verify complete candidate in the frozen browser frontend
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
+          REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}
         run: |
           npm ci
           npm run test:production

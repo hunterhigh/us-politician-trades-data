@@ -9,11 +9,33 @@ import re
 from .builder import timestamp
 from .oge import OgeCatalogError, SCHEMA as CATALOG_SCHEMA
 from .oge_reports import (
-    EXTRACTION_SCHEMA, PARSER_VERSION, collapse_direct_catalog_records,
+    EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
+    TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
+    collapse_direct_catalog_records,
 )
 
 
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
+
+
+def _fixed_trump_sept_source(extraction: dict, record: dict | None) -> bool:
+    return (
+        record is not None
+        and extraction.get("document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
+        and record.get("source_document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
+        and extraction.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL
+        and record.get("document_url") == TRUMP_SEPT_2026_SOURCE_URL
+        and extraction.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256
+        and extraction.get("catalog_filer_name") == record.get("filer_name") ==
+        "Trump, Donald J"
+        and extraction.get("agency") == record.get("agency") == "White House Office"
+        and extraction.get("position_title") == record.get("position_title") == "President"
+        and extraction.get("filed_at") == "2026-09-08"
+        and extraction.get("filing_date_evidence") ==
+        TRUMP_SEPT_2026_FILING_DATE_EVIDENCE
+    )
 
 
 def _identity_key(record: dict) -> tuple[str, str, str]:
@@ -120,8 +142,14 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
         reasons = []
+        fixed_trump = _fixed_trump_sept_source(extraction, record)
+        supported_parser = (
+            extraction.get("parser_version") == PARSER_VERSION
+            or (extraction.get("parser_version") == TRUMP_SEPT_2026_PARSER_VERSION
+                and fixed_trump)
+        )
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
-                extraction.get("parser_version") != PARSER_VERSION or
+                not supported_parser or
                 extraction.get("source_id") != "oge"):
             reasons.append("extraction_contract_invalid")
         if record is None:
@@ -192,12 +220,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"extraction_id": extraction_id,
                                         "reasons": sorted(set(row_reasons))})
                 continue
-            person_id = _person_id(key)
+            person_id = TRUMP_PERSON_ID if fixed_trump else _person_id(key)
             people.setdefault(person_id, {
                 "id": person_id,
-                "display_name": record["filer_name"],
-                "short_name": _short_name(record["filer_name"]),
-                "role": record["position_title"],
+                "display_name": "Donald Trump" if fixed_trump else record["filer_name"],
+                "short_name": "Trump" if fixed_trump else _short_name(record["filer_name"]),
+                "role": ("President of the United States of America" if fixed_trump else
+                         record["position_title"]),
                 "office_type": record["agency"],
                 "chamber": None,
                 "party": None,
@@ -238,6 +267,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             report_promoted += 1
         audit_reports.append({
             "document_id": document_id,
+            **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
+               if fixed_trump else {}),
             "promoted_count": report_promoted,
             "quarantined_count": len(row_quarantines),
             "document_reasons": sorted(set(reasons)),

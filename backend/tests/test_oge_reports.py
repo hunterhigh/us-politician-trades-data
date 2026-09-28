@@ -11,6 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_SOURCE_URL,
     _extract_borderless_transaction_tables, parse_archived_pdf, parse_table_rows,
     _extract_pdf,
 )
@@ -42,6 +44,30 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_fixed_trump_september_date_is_bound_to_original_bytes(self):
+        trump = record()
+        trump.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
+                     document_url=TRUMP_SEPT_2026_SOURCE_URL,
+                     filer_name="Trump, Donald J", agency="White House Office",
+                     position_title="President", catalog_added_date="2026-09-22")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            metadata = archive_direct_pdf(root, trump, OgeSourceConfig(True, True),
+                                          client=Client(), retrieved_at="2026-09-22T00:00:00Z")
+            metadata_path = root / "metadata.json"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            extracted = ("", [(2, ["1", "Example Inc.", "Purchase", "07/07/2026",
+                                  "No", "$1,001 - $15,000"])])
+            with (patch("unison_snapshot.oge_reports.TRUMP_SEPT_2026_SOURCE_SHA256",
+                        hashlib.sha256(PDF).hexdigest()),
+                  patch("unison_snapshot.oge_reports._extract_pdf", return_value=extracted)):
+                result = parse_archived_pdf(root, metadata_path)
+            self.assertEqual(result["parser_version"], TRUMP_SEPT_2026_PARSER_VERSION)
+            self.assertEqual(result["filed_at"], "2026-09-08")
+            self.assertTrue(result["evidence_complete"])
+            self.assertEqual(result["filing_date_evidence"]["raw"], "9/8/26")
+            self.assertEqual(len(result["transactions"]), 1)
+
     def test_long_official_filing_stays_bounded_above_one_hundred_pages(self):
         class Page:
             lines = []

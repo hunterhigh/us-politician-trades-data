@@ -50,6 +50,8 @@ from .oge import (
 )
 from .oge_reports import (
     PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     archive_direct_batch as archive_oge_direct_batch,
     parse_archived_pdf as parse_oge_archived_pdf,
 )
@@ -873,11 +875,28 @@ def main() -> None:
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
-            extractions = []
+            selected_extractions = {}
             for path in sorted(args.extractions_dir.rglob("*.json")):
                 value = json.loads(path.read_text(encoding="utf-8"))
-                if value.get("parser_version") == OGE_REPORT_PARSER_VERSION:
-                    extractions.append(value)
+                version = value.get("parser_version")
+                document_id = value.get("document_id")
+                if version not in {OGE_REPORT_PARSER_VERSION,
+                                   TRUMP_SEPT_2026_PARSER_VERSION}:
+                    continue
+                if version == TRUMP_SEPT_2026_PARSER_VERSION and not (
+                        document_id == TRUMP_SEPT_2026_DOCUMENT_ID and
+                        value.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
+                        value.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256):
+                    raise OgeCatalogError("Source-bound OGE extraction is not the fixed report")
+                previous = selected_extractions.get(document_id)
+                if previous is not None:
+                    if (document_id != TRUMP_SEPT_2026_DOCUMENT_ID or
+                            version == previous.get("parser_version")):
+                        raise OgeCatalogError("OGE extraction document ID is duplicated")
+                    if version == OGE_REPORT_PARSER_VERSION:
+                        continue
+                selected_extractions[document_id] = value
+            extractions = list(selected_extractions.values())
             catalog_history = []
             if args.catalog_history_dir:
                 current_bytes = encode(catalog)
