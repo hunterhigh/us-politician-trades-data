@@ -12,6 +12,7 @@ from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_URL,
     _extract_borderless_transaction_tables, load_reusable_extraction,
     parse_archived_pdf, parse_table_rows,
@@ -120,6 +121,17 @@ class OgeReportTests(unittest.TestCase):
                        hashlib.sha256(PDF).hexdigest()):
                 self.assertEqual(
                     load_reusable_extraction(root, metadata_path, reuse_root), result)
+
+            structural = dict(result, parser_version=TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION)
+            structural_checkpoint = checkpoint.with_name("oge-278t-pdf-v5.json")
+            structural_checkpoint.write_text(json.dumps(structural), encoding="utf-8")
+            source_sha = hashlib.sha256(PDF).hexdigest()
+            with (patch("unison_snapshot.oge_reports.TRUMP_SEPT_2026_SOURCE_SHA256",
+                        source_sha),
+                  patch("unison_snapshot.oge_reports."
+                        "_TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256", source_sha)):
+                self.assertEqual(
+                    load_reusable_extraction(root, metadata_path, reuse_root), structural)
 
     def test_fixed_trump_september_salo_replay_preserves_v3_rows_and_raw_cells(self):
         trump = record()

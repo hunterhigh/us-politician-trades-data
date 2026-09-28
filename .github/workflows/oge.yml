@@ -278,6 +278,8 @@ jobs:
             --review-root "$REVIEW_ROOT"
           PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_v4.py \
             --review-root "$REVIEW_ROOT"
+          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_v5.py \
+            --review-root "$REVIEW_ROOT"
           # Keep the OGE projection within the existing House/Senate native
           # cutoffs. A lagging source must not strand an otherwise complete
           # source-bound filing or make the unified snapshot appear fresher.

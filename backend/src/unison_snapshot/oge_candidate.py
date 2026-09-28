@@ -12,6 +12,7 @@ from .oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
     TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     collapse_direct_catalog_records,
 )
@@ -147,7 +148,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         supported_parser = (
             extraction.get("parser_version") == PARSER_VERSION
             or (extraction.get("parser_version") in {
-                TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION}
+                TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+                TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION}
                 and fixed_trump)
         )
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
