@@ -341,13 +341,14 @@ def materialize_market(root: Path, bundle: MarketBundle) -> MarketMaterializeRes
         if not target.exists() or target.read_bytes() != content:
             _atomic(target, content)
             written.append(relative)
-    expected = {path for path in bundle.files if MUTABLE.fullmatch(path)}
+    expected = set(bundle.files)
     removed: list[str] = []
-    directory = root / "market"
-    if directory.exists():
-        for existing in directory.glob("[0-9a-f][0-9a-f]/index.json"):
+    for directory, pattern in ((root / "market", "[0-9a-f][0-9a-f]/*.json"),
+                               (root / "market-pages", "*.json")):
+        for existing in directory.glob(pattern):
             relative = existing.relative_to(root).as_posix()
-            if relative not in expected:
+            if (MUTABLE.fullmatch(relative) or IMMUTABLE.fullmatch(relative)) \
+                    and relative not in expected:
                 existing.unlink()
                 removed.append(relative)
     return MarketMaterializeResult(bool(written or removed), tuple(written), tuple(removed))

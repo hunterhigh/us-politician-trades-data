@@ -49,15 +49,15 @@ def materialize(root: Path, bundle: Bundle) -> MaterializeResult:
         if not target.exists() or target.read_bytes() != content:
             _atomic(target, content)
             written.append(relative)
-    expected_indexes = {path for path in bundle.files if MUTABLE.fullmatch(path) and path != "manifest.json"}
+    expected_files = set(bundle.files)
     removed: list[str] = []
-    for kind in ("people", "tickers"):
-        directory = root / kind
-        if not directory.exists():
-            continue
-        for existing in directory.glob("[0-9a-f][0-9a-f]/index.json"):
+    for kind, pattern in (("board", "*.json"),
+                          ("people", "[0-9a-f][0-9a-f]/*.json"),
+                          ("tickers", "[0-9a-f][0-9a-f]/*.json")):
+        for existing in (root / kind).glob(pattern):
             relative = existing.relative_to(root).as_posix()
-            if relative not in expected_indexes:
+            if (MUTABLE.fullmatch(relative) or IMMUTABLE.fullmatch(relative)) \
+                    and relative not in expected_files:
                 existing.unlink()
                 removed.append(relative)
     manifest_bytes = bundle.files["manifest.json"]
