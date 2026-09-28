@@ -52,6 +52,7 @@ from .oge_reports import (
     PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     archive_direct_batch as archive_oge_direct_batch,
     load_reusable_extraction as load_reusable_oge_extraction,
@@ -896,10 +897,12 @@ def main() -> None:
                 document_id = value.get("document_id")
                 if version not in {OGE_REPORT_PARSER_VERSION,
                                    TRUMP_SEPT_2026_PARSER_VERSION,
-                                   TRUMP_SEPT_2026_SECOND_PASS_VERSION}:
+                                   TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+                                   TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION}:
                     continue
                 if version in {TRUMP_SEPT_2026_PARSER_VERSION,
-                               TRUMP_SEPT_2026_SECOND_PASS_VERSION} and not (
+                               TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+                               TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION} and not (
                         document_id == TRUMP_SEPT_2026_DOCUMENT_ID and
                         value.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
                         value.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256):
@@ -909,11 +912,13 @@ def main() -> None:
                     if (document_id != TRUMP_SEPT_2026_DOCUMENT_ID or
                             version == previous.get("parser_version")):
                         raise OgeCatalogError("OGE extraction document ID is duplicated")
-                    if version in {OGE_REPORT_PARSER_VERSION,
-                                   TRUMP_SEPT_2026_PARSER_VERSION} and (
-                            previous.get('parser_version') ==
-                            TRUMP_SEPT_2026_SECOND_PASS_VERSION or
-                            version == OGE_REPORT_PARSER_VERSION):
+                    priority = {
+                        OGE_REPORT_PARSER_VERSION: 0,
+                        TRUMP_SEPT_2026_PARSER_VERSION: 1,
+                        TRUMP_SEPT_2026_SECOND_PASS_VERSION: 2,
+                        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION: 3,
+                    }
+                    if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value
             extractions = list(selected_extractions.values())

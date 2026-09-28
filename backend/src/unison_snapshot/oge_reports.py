@@ -19,10 +19,14 @@ EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
 TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
 TRUMP_SEPT_2026_SECOND_PASS_VERSION = "oge-278t-pdf/v4"
+TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION = "oge-278t-pdf/v5"
 TRUMP_SEPT_2026_DOCUMENT_ID = "e590116fc9631e9885258e7a002de209"
 TRUMP_SEPT_2026_SOURCE_SHA256 = (
     "833c3b4810eaf2e83a3b27867af149634e65145dc4577c753ef20f6b6d515dcf"
 )
+# Keep the row-layout repair bound to the immutable production bytes even in
+# tests that patch the public source constant to exercise the generic replay.
+_TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256 = TRUMP_SEPT_2026_SOURCE_SHA256
 TRUMP_SEPT_2026_SOURCE_URL = (
     "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/"
     "E590116FC9631E9885258E7A002DE209/$FILE/Donald-J-Trump-09.8.2026-278T.pdf"
@@ -411,6 +415,135 @@ def _recover_fixed_trump_september_salo(
     return promoted, remaining
 
 
+def _recover_fixed_trump_september_structural_rows(
+        transactions: list[dict], quarantined: list[dict], *,
+        source_sha: str) -> tuple[list[dict], list[dict]]:
+    """Recover six visually closed rows without rewriting v4 transactions.
+
+    The archived scan omits four leading rows from the OCR table geometry,
+    treats the page-34 header as a transaction, and shifts the page-12 fields
+    for printed rows 337 and 338.  This repair is deliberately keyed to the
+    fixed source and the v4 extraction IDs.  All 352 v4 transaction objects
+    remain byte-equivalent; only two quarantined objects change disposition.
+    """
+
+    if len(transactions) != 352 or len(quarantined) != 801:
+        raise OgeCatalogError("Trump September v5 requires the fixed v4 row counts")
+    transaction_ids = [row.get("extraction_id") for row in transactions]
+    quarantine_ids = [row.get("extraction_id") for row in quarantined]
+    if (any(not isinstance(value, str) for value in transaction_ids + quarantine_ids) or
+            len(set(transaction_ids + quarantine_ids)) != 1153):
+        raise OgeCatalogError("Trump September v5 requires unique v4 extraction IDs")
+
+    targets = {
+        "oge-278t:fac97da8e5025227ad0b9139": {
+            "page_number": 12,
+            "row_number": 337,
+            "asset_name": "",
+            "transaction_type_raw": "sale sale",
+            "transaction_type": None,
+            "transaction_date": "2026-07-29",
+            "late_notification_raw": "no",
+            "amount_raw": "$1 001 -$15 000",
+            "amount_low": 1001,
+            "amount_high": 15000,
+            "cells": ["337", "", "sale sale", "7/29/2026", "no",
+                      "$1 001 -$15 000"],
+            "reasons": ["description_missing", "transaction_type_unsupported"],
+        },
+        "oge-278t:8b3bb35e34734a1102b4e41e": {
+            "page_number": 12,
+            "row_number": 336,
+            "asset_name": "WENDYS CO CLASS A",
+            "transaction_type_raw": "",
+            "transaction_type": None,
+            "transaction_date": "2026-07-29",
+            "late_notification_raw": "no",
+            "amount_raw": "$1 001 -$15 000",
+            "amount_low": 1001,
+            "amount_high": 15000,
+            "cells": ["336", "WENDYS CO CLASS A", "", "7/29/2026", "no",
+                      "$1 001 -$15 000"],
+            "reasons": ["row_number_duplicated", "transaction_type_unsupported"],
+        },
+    }
+    fake_header_id = "oge-278t:97438cd2efe2ba17cc80ccb4"
+    fake_header = {
+        "page_number": 34,
+        "row_number": 11,
+        "asset_name": "Deacrlpllon",
+        "transaction_type_raw": "",
+        "transaction_type": None,
+        "transaction_date": None,
+        "late_notification_raw": "Notlflcatlon Re. .l vedOver 30 0.V.Aao no",
+        "amount_raw": "Amount",
+        "amount_low": None,
+        "amount_high": None,
+        "cells": ["11", "Deacrlpllon", "", "Date",
+                  "Notlflcatlon Re. .l vedOver 30 0.V.Aao no", "Amount"],
+        "reasons": ["amount_range_unsupported", "row_number_duplicated",
+                    "transaction_date_invalid", "transaction_type_unsupported"],
+    }
+    by_id = {row["extraction_id"]: row for row in quarantined}
+    for identifier, expected in {**targets, fake_header_id: fake_header}.items():
+        row = by_id.get(identifier)
+        if row is None or any(row.get(key) != value for key, value in expected.items()):
+            raise OgeCatalogError("Trump September v5 source row evidence changed")
+
+    remaining = [row for row in quarantined
+                 if row["extraction_id"] not in {*targets, fake_header_id}]
+    recovered_transactions = list(transactions)
+    recovered_cells = [
+        (4, ["67", "NATERA INC", "purchase", "7/17/2026", "No",
+             "$1,001 - $15,000"]),
+        (4, ["68", "DEXCOM INC", "purchase", "7/17/2026", "No",
+             "$1,001 - $15,000"]),
+        (9, ["232", "MORGAN STANLEY", "sale", "7/31/2026", "no",
+             "$50,001 - $100,000"]),
+        (9, ["233", "BOOKING HLDGS INC", "sale", "7/31/2026", "no",
+             "$50,001 - $100,000"]),
+    ]
+    added, rejected = parse_table_rows(recovered_cells, source_sha=source_sha)
+    if len(added) != 4 or rejected:
+        raise OgeCatalogError("Trump September v5 recovered rows are not qualified")
+    for row in added:
+        row["source_bound_row_recovery"] = {
+            "basis": "fixed_source_visual_table_row_recovery",
+            "page_number": row["page_number"],
+            "printed_row_number": row["row_number"],
+        }
+    recovered_transactions.extend(added)
+
+    for identifier, resolved in (
+        ("oge-278t:fac97da8e5025227ad0b9139",
+         {"row_number": 337, "asset_name": "ARTIVION INC",
+          "transaction_type": "sale"}),
+        ("oge-278t:8b3bb35e34734a1102b4e41e",
+         {"row_number": 338, "asset_name": "WENDYS CO CLASS A",
+          "transaction_type": "sale"}),
+    ):
+        original = by_id[identifier]
+        corrected = {key: value for key, value in original.items() if key != "reasons"}
+        corrected.update(resolved)
+        corrected["source_bound_row_correction"] = {
+            "basis": "fixed_source_visual_table_alignment",
+            "original_row_number": original["row_number"],
+            "original_asset_name": original["asset_name"],
+            "original_transaction_type_raw": original["transaction_type_raw"],
+            "resolved_row_number": resolved["row_number"],
+            "resolved_asset_name": resolved["asset_name"],
+            "resolved_transaction_type": resolved["transaction_type"],
+        }
+        recovered_transactions.append(corrected)
+
+    if len(recovered_transactions) != 358 or len(remaining) != 798:
+        raise OgeCatalogError("Trump September v5 row conservation failed")
+    final_ids = [row["extraction_id"] for row in recovered_transactions + remaining]
+    if len(final_ids) != 1156 or len(set(final_ids)) != 1156:
+        raise OgeCatalogError("Trump September v5 extraction IDs are not conserved")
+    return recovered_transactions, remaining
+
+
 def _extract_borderless_transaction_tables(page) -> list[list[list[object]]]:
     """Recover current Integrity.gov tables that only draw horizontal rules."""
 
@@ -593,8 +726,12 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
 
     metadata, _, source_sha = _read_archived_source(root, metadata_path)
     fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
-    parser_version = (TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source else
-                      PARSER_VERSION)
+    parser_version = (
+        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
+        if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
+        else TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source
+        else PARSER_VERSION
+    )
     checkpoint = (reuse_root / metadata["document_id"] / source_sha /
                   f"{parser_version.replace('/', '-')}.json")
     if not checkpoint.is_file():
@@ -647,14 +784,21 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     if fixed_source:
         transactions, quarantined = _recover_fixed_trump_september_salo(
             transactions, quarantined)
+        if source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256:
+            transactions, quarantined = _recover_fixed_trump_september_structural_rows(
+                transactions, quarantined, source_sha=source_sha)
     if not rows:
         filing_reasons.append("transaction_table_not_found")
     if not transactions and not quarantined:
         filing_reasons.append("no_transaction_rows_found")
     return {
         "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": (TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source else
-                           PARSER_VERSION),
+        "parser_version": (
+            TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
+            if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
+            else TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source
+            else PARSER_VERSION
+        ),
         "source_id": "oge",
         "document_id": metadata["document_id"],
         "source_url": metadata["document_url"],
