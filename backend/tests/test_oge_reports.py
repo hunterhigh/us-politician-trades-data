@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_URL,
     _extract_borderless_transaction_tables, parse_archived_pdf, parse_table_rows,
     _extract_pdf,
@@ -62,11 +62,87 @@ class OgeReportTests(unittest.TestCase):
                         hashlib.sha256(PDF).hexdigest()),
                   patch("unison_snapshot.oge_reports._extract_pdf", return_value=extracted)):
                 result = parse_archived_pdf(root, metadata_path)
-            self.assertEqual(result["parser_version"], TRUMP_SEPT_2026_PARSER_VERSION)
+            self.assertEqual(result["parser_version"], TRUMP_SEPT_2026_SECOND_PASS_VERSION)
             self.assertEqual(result["filed_at"], "2026-09-08")
             self.assertTrue(result["evidence_complete"])
             self.assertEqual(result["filing_date_evidence"]["raw"], "9/8/26")
             self.assertEqual(len(result["transactions"]), 1)
+
+    def test_fixed_trump_september_salo_replay_preserves_v3_rows_and_raw_cells(self):
+        trump = record()
+        trump.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
+                     document_url=TRUMP_SEPT_2026_SOURCE_URL,
+                     filer_name="Trump, Donald J", agency="White House Office",
+                     position_title="President", catalog_added_date="2026-09-22")
+        rows = [
+            (4, ["84", "Already Valid Inc.", "Sale", "07/23/2026", "No",
+                 "$1,001 - $15,000"]),
+            (4, ["85", "Recovered Inc.", "salo", "07/23/2026", "No",
+                 "$15,001 - $50,000"]),
+            (4, ["86", "Still Unpriced Inc.", "SALO", "07/23/2026", "No",
+                 "$12 - $34"]),
+            (4, ["87", "Other OCR Inc.", "ourchaso", "07/23/2026", "No",
+                 "$15,001 - $50,000"]),
+        ]
+        source_sha = hashlib.sha256(PDF).hexdigest()
+        v3_transactions, v3_quarantined = parse_table_rows(rows, source_sha=source_sha)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            metadata = archive_direct_pdf(root, trump, OgeSourceConfig(True, True),
+                                          client=Client(), retrieved_at="2026-09-22T00:00:00Z")
+            metadata_path = root / "metadata.json"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            with (patch("unison_snapshot.oge_reports.TRUMP_SEPT_2026_SOURCE_SHA256",
+                        source_sha),
+                  patch("unison_snapshot.oge_reports._extract_pdf",
+                        return_value=("", rows))):
+                result = parse_archived_pdf(root, metadata_path)
+        self.assertEqual(result["parser_version"], TRUMP_SEPT_2026_SECOND_PASS_VERSION)
+        self.assertEqual(len(result["transactions"]), 2)
+        self.assertEqual(len(result["quarantined"]), 2)
+        self.assertEqual(result["transactions"][0], v3_transactions[0])
+        corrected = result["transactions"][1]
+        self.assertEqual(corrected["extraction_id"], v3_quarantined[0]["extraction_id"])
+        self.assertEqual(corrected["cells"], rows[1][1])
+        self.assertEqual(corrected["transaction_type_raw"], "salo")
+        self.assertEqual(corrected["transaction_type"], "sale")
+        self.assertEqual(corrected["type_ocr_correction"], {
+            "basis": "fixed_source_salo_ocr_normalization",
+            "raw_type": "salo", "resolved_type": "sale",
+            "original_reasons": ["transaction_type_unsupported"],
+        })
+        self.assertNotIn("reasons", corrected)
+        still_unpriced = result["quarantined"][0]
+        self.assertEqual(still_unpriced["extraction_id"],
+                         v3_quarantined[1]["extraction_id"])
+        self.assertEqual(still_unpriced["cells"], rows[2][1])
+        self.assertEqual(still_unpriced["transaction_type_raw"], "SALO")
+        self.assertEqual(still_unpriced["transaction_type"], "sale")
+        self.assertEqual(still_unpriced["reasons"], ["amount_range_unsupported"])
+        self.assertEqual(result["quarantined"][1], v3_quarantined[2])
+
+    def test_salo_correction_does_not_apply_without_exact_source_hash(self):
+        trump = record()
+        trump.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
+                     document_url=TRUMP_SEPT_2026_SOURCE_URL,
+                     filer_name="Trump, Donald J", agency="White House Office",
+                     position_title="President", catalog_added_date="2026-09-22")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            metadata = archive_direct_pdf(root, trump, OgeSourceConfig(True, True),
+                                          client=Client(), retrieved_at="2026-09-22T00:00:00Z")
+            metadata_path = root / "metadata.json"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            rows = [(4, ["85", "Not This Original Inc.", "salo", "07/23/2026",
+                         "No", "$15,001 - $50,000"])]
+            with patch("unison_snapshot.oge_reports._extract_pdf",
+                       return_value=("", rows)):
+                result = parse_archived_pdf(root, metadata_path)
+        self.assertEqual(result["parser_version"], PARSER_VERSION)
+        self.assertEqual(result["transactions"], [])
+        self.assertEqual(result["quarantined"][0]["transaction_type_raw"], "salo")
+        self.assertEqual(result["quarantined"][0]["reasons"],
+                         ["transaction_type_unsupported"])
 
     def test_long_official_filing_stays_bounded_above_one_hundred_pages(self):
         class Page:

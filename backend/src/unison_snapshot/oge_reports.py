@@ -18,6 +18,7 @@ REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
 TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
+TRUMP_SEPT_2026_SECOND_PASS_VERSION = "oge-278t-pdf/v4"
 TRUMP_SEPT_2026_DOCUMENT_ID = "e590116fc9631e9885258e7a002de209"
 TRUMP_SEPT_2026_SOURCE_SHA256 = (
     "833c3b4810eaf2e83a3b27867af149634e65145dc4577c753ef20f6b6d515dcf"
@@ -370,6 +371,46 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -
     return transactions, quarantined
 
 
+def _recover_fixed_trump_september_salo(
+        transactions: list[dict], quarantined: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Resolve one visually checked OCR token without changing original row IDs.
+
+    Only the exact archived Trump September source calls this function. The
+    original six cells and raw type remain attached to every corrected row so
+    later review can reconstruct the v3 decision without reading a new PDF.
+    """
+
+    promoted = list(transactions)
+    remaining = []
+    for original in quarantined:
+        cells = original.get("cells")
+        reasons = original.get("reasons")
+        raw_type = original.get("transaction_type_raw")
+        if (not isinstance(cells, list) or len(cells) != 6 or
+                not isinstance(raw_type, str) or raw_type.casefold() != "salo" or
+                cells[2] != raw_type or not isinstance(reasons, list) or
+                "transaction_type_unsupported" not in reasons):
+            remaining.append(original)
+            continue
+        corrected = dict(original)
+        corrected["transaction_type"] = "sale"
+        corrected["type_ocr_correction"] = {
+            "basis": "fixed_source_salo_ocr_normalization",
+            "raw_type": raw_type,
+            "resolved_type": "sale",
+            "original_reasons": list(reasons),
+        }
+        residual = [reason for reason in reasons
+                    if reason != "transaction_type_unsupported"]
+        if residual:
+            corrected["reasons"] = residual
+            remaining.append(corrected)
+        else:
+            corrected.pop("reasons")
+            promoted.append(corrected)
+    return promoted, remaining
+
+
 def _extract_borderless_transaction_tables(page) -> list[list[list[object]]]:
     """Recover current Integrity.gov tables that only draw horizontal rules."""
 
@@ -543,13 +584,16 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         filed_at = _iso_date(signatures[0])
         filing_reasons = []
     transactions, quarantined = parse_table_rows(rows, source_sha=source_sha)
+    if fixed_source:
+        transactions, quarantined = _recover_fixed_trump_september_salo(
+            transactions, quarantined)
     if not rows:
         filing_reasons.append("transaction_table_not_found")
     if not transactions and not quarantined:
         filing_reasons.append("no_transaction_rows_found")
     return {
         "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": (TRUMP_SEPT_2026_PARSER_VERSION if fixed_source else
+        "parser_version": (TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source else
                            PARSER_VERSION),
         "source_id": "oge",
         "document_id": metadata["document_id"],

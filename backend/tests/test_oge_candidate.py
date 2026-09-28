@@ -10,6 +10,7 @@ from unison_snapshot.oge_candidate import TRUMP_PERSON_ID, build_oge_candidate
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
     TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
 )
 
@@ -85,6 +86,11 @@ class OgeCandidateTests(unittest.TestCase):
             catalog(row), [parsed], base(), data_cutoff_at="2026-09-23T23:59:59Z")
         self.assertEqual(result["people"][0]["id"], TRUMP_PERSON_ID)
         self.assertEqual(result["people"][0]["display_name"], "Donald Trump")
+        self.assertEqual(result["transactions"][0]["person_id"], TRUMP_PERSON_ID)
+        self.assertEqual(audit["promoted_transaction_count"], 1)
+        parsed["parser_version"] = TRUMP_SEPT_2026_SECOND_PASS_VERSION
+        result, audit = build_oge_candidate(
+            catalog(row), [parsed], base(), data_cutoff_at="2026-09-23T23:59:59Z")
         self.assertEqual(result["transactions"][0]["person_id"], TRUMP_PERSON_ID)
         self.assertEqual(audit["promoted_transaction_count"], 1)
         parsed["filing_date_evidence"] = {"raw": "9/14/26"}
