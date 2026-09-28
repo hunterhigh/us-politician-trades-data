@@ -13,7 +13,8 @@ from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_URL,
-    _extract_borderless_transaction_tables, parse_archived_pdf, parse_table_rows,
+    _extract_borderless_transaction_tables, load_reusable_extraction,
+    parse_archived_pdf, parse_table_rows,
     _extract_pdf,
 )
 
@@ -44,6 +45,48 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_reuses_only_exact_source_and_parser_bound_extraction(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            metadata = archive_direct_pdf(root, record(), OgeSourceConfig(True, True),
+                                          client=Client(), retrieved_at="2026-09-20T00:00:00Z")
+            metadata_path = (root / "oge" / "reports" / DOCUMENT_ID /
+                             f"{metadata['sha256']}.json")
+            extracted_rows = (
+                "electronically signed on 09/20/2026",
+                [(2, ["1", "Example Inc.", "Purchase", "09/19/2026",
+                      "No", "$1,001 - $15,000"])],
+            )
+            with patch("unison_snapshot.oge_reports._extract_pdf",
+                       return_value=extracted_rows):
+                parsed = parse_archived_pdf(root, metadata_path)
+            reuse_root = root / "review" / "oge" / "extractions"
+            checkpoint = (reuse_root / DOCUMENT_ID / metadata["sha256"] /
+                          "oge-278t-pdf-v2.json")
+            checkpoint.parent.mkdir(parents=True)
+            checkpoint.write_text(json.dumps(parsed), encoding="utf-8")
+
+            with patch("unison_snapshot.oge_reports._extract_pdf",
+                       side_effect=AssertionError("cache hit must not parse the PDF")):
+                reused = load_reusable_extraction(root, metadata_path, reuse_root)
+            self.assertEqual(reused, parsed)
+
+            invalid = dict(parsed, agency="Different Agency")
+            checkpoint.write_text(json.dumps(invalid), encoding="utf-8")
+            self.assertIsNone(load_reusable_extraction(root, metadata_path, reuse_root))
+
+    def test_reuse_rehashes_archived_pdf_before_accepting_checkpoint(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            metadata = archive_direct_pdf(root, record(), OgeSourceConfig(True, True),
+                                          client=Client(), retrieved_at="2026-09-20T00:00:00Z")
+            metadata_path = (root / "oge" / "reports" / DOCUMENT_ID /
+                             f"{metadata['sha256']}.json")
+            pdf_path = root / metadata["archive_path"]
+            pdf_path.write_bytes(b"%PDF-1.7\nchanged bytes\n%%EOF\n")
+            with self.assertRaisesRegex(OgeCatalogError, "bytes do not match"):
+                load_reusable_extraction(root, metadata_path, root / "review")
+
     def test_fixed_trump_september_date_is_bound_to_original_bytes(self):
         trump = record()
         trump.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
@@ -67,6 +110,16 @@ class OgeReportTests(unittest.TestCase):
             self.assertTrue(result["evidence_complete"])
             self.assertEqual(result["filing_date_evidence"]["raw"], "9/8/26")
             self.assertEqual(len(result["transactions"]), 1)
+            reuse_root = root / "review" / "oge" / "extractions"
+            checkpoint = (reuse_root / TRUMP_SEPT_2026_DOCUMENT_ID /
+                          hashlib.sha256(PDF).hexdigest() /
+                          "oge-278t-pdf-v4.json")
+            checkpoint.parent.mkdir(parents=True)
+            checkpoint.write_text(json.dumps(result), encoding="utf-8")
+            with patch("unison_snapshot.oge_reports.TRUMP_SEPT_2026_SOURCE_SHA256",
+                       hashlib.sha256(PDF).hexdigest()):
+                self.assertEqual(
+                    load_reusable_extraction(root, metadata_path, reuse_root), result)
 
     def test_fixed_trump_september_salo_replay_preserves_v3_rows_and_raw_cells(self):
         trump = record()
