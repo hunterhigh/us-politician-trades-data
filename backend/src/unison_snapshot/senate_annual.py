@@ -22,6 +22,7 @@ from .senate import (HOME_URL, SEARCH_PAGE_URL, SenateEfdClient, SenateEfdError,
                      require_collection_enabled)
 from .senate_candidate import _person
 from .senate_identity import _member_rows, _without_suffix, _words, match_report_identity
+from .senate_members import SenateRosterError, build_roster
 from .senate_reports import _report_parser
 
 
@@ -418,19 +419,42 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
     return result
 
 
+def _archived_roster_members(evidence_root: Path, sha: str) -> list[dict]:
+    if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+        raise SenateEfdError("Senate annual roster evidence hash is invalid")
+    path = evidence_root / "senate_efd" / "members" / f"{sha}.xml"
+    try:
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha:
+            raise SenateEfdError("Senate annual roster evidence hash does not match")
+        return build_roster(raw)["members"]
+    except (OSError, SenateRosterError):
+        raise SenateEfdError("Senate annual roster evidence is unavailable or invalid") from None
+
+
 def overlay_annual_candidate(candidate: dict, review_root: Path, *,
-                             expected_roster_sha256: str) -> tuple[dict, dict]:
+                             expected_roster_sha256: str,
+                             evidence_root: Path | None = None) -> tuple[dict, dict]:
     path = review_root / "senate_efd/annual/current.json"
     if not path.is_file():
         return candidate, {"annual_status": "not_available", "annual_holding_count": 0}
     raw = path.read_bytes()
     annual = json.loads(raw)
+    annual_roster_sha = annual.get("roster_sha256")
     if (annual.get("schema_version") != SCHEMA or annual.get("source_id") != "senate_efd" or
-            annual.get("roster_sha256") != expected_roster_sha256 or
+            not isinstance(annual_roster_sha, str) or
+            not re.fullmatch(r"[0-9a-f]{64}", annual_roster_sha) or
             not isinstance(annual.get("people"), list) or
             not isinstance(annual.get("reported_holdings"), list) or
             annual.get("holding_count") != len(annual["reported_holdings"])):
         raise SenateEfdError("Senate annual review artifact is invalid")
+    if annual_roster_sha != expected_roster_sha256:
+        if evidence_root is None:
+            raise SenateEfdError("Senate annual roster evidence is required for compatibility")
+        annual_members = _archived_roster_members(evidence_root, annual_roster_sha)
+        ptr_members = _archived_roster_members(evidence_root, expected_roster_sha256)
+        if annual_members != ptr_members:
+            raise SenateEfdError("Senate annual roster members differ from PTR roster")
     # Rebuild the annual projection from its current review artifact. A later
     # annual run must replace, not accumulate, prior-year or amended rows.
     candidate["reported_holdings"] = [
@@ -464,7 +488,12 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
             row["detail"] = row["detail"].split("; annual eFD:", 1)[0]
             row["detail"] += (f"; annual eFD: {annual['qualified_report_count']} latest reports, "
                               f"{annual['holding_count']} holdings qualified")
-    return candidate, {"annual_status": "included", "annual_review_sha256":
-                       hashlib.sha256(raw).hexdigest(),
+    compatibility = ("same_raw_source" if annual_roster_sha == expected_roster_sha256
+                     else "same_members")
+    return candidate, {"annual_status": "included",
+                       "annual_roster_compatibility": compatibility,
+                       "annual_roster_sha256": annual_roster_sha,
+                       "ptr_roster_sha256": expected_roster_sha256,
+                       "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
                        "annual_qualified_report_count": annual["qualified_report_count"],
                        "annual_holding_count": annual["holding_count"]}

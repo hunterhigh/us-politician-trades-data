@@ -82,6 +82,7 @@ jobs:
             --review-root "$review" --roster "$ROSTER"
           python backend/scripts/senate_annual.py overlay \
             --review-root "$review" \
+            --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --candidate "$review/candidates/sources/senate_efd-current.json" \
             --audit-output "$review/senate_efd/annual/candidate-audit-current.json"
           source_args=(--source "senate_efd=$review/candidates/sources/senate_efd-current.json")

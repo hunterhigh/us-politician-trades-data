@@ -478,7 +478,8 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
 
 
 def build_senate_candidate(
-        review_root: Path, state_status: dict, base: dict) -> tuple[dict, dict]:
+        review_root: Path, state_status: dict, base: dict,
+        evidence_root: Path | None = None) -> tuple[dict, dict]:
     """Build a conservative Senate source candidate and its machine audit."""
 
     review_root = review_root.resolve()
@@ -822,7 +823,8 @@ def build_senate_candidate(
     # every PTR refresh so the scheduled PTR producer cannot erase holdings.
     from .senate_annual import overlay_annual_candidate
     candidate, annual_audit = overlay_annual_candidate(
-        candidate, review_root, expected_roster_sha256=roster_sha)
+        candidate, review_root, expected_roster_sha256=roster_sha,
+        evidence_root=evidence_root)
     audit = {
         "schema_version": CANDIDATE_AUDIT_SCHEMA,
         "builder_version": CANDIDATE_BUILDER_VERSION,
@@ -878,9 +880,11 @@ def build_senate_candidate(
 
 
 def load_senate_candidate(
-        review_root: Path, state_status_path: Path, base_path: Path) -> tuple[dict, dict]:
+        review_root: Path, state_status_path: Path, base_path: Path,
+        evidence_root: Path | None = None) -> tuple[dict, dict]:
     return build_senate_candidate(
         review_root,
         _read_json(state_status_path, "Senate source state"),
         _read_json(base_path, "Senate candidate base"),
+        evidence_root=evidence_root,
     )

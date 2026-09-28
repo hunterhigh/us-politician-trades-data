@@ -170,6 +170,7 @@ def main() -> None:
     candidate.add_argument("--html-output", type=Path)
     senate_candidate = sub.add_parser("build-senate-candidate")
     senate_candidate.add_argument("--review-root", type=Path, required=True)
+    senate_candidate.add_argument("--evidence-root", type=Path)
     senate_candidate.add_argument("--state-status", type=Path, required=True)
     senate_candidate.add_argument("--base", type=Path, required=True)
     senate_candidate.add_argument("--output", type=Path, required=True)
@@ -512,7 +513,8 @@ def main() -> None:
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "build-senate-candidate":
             result, audit = load_senate_candidate(
-                args.review_root, args.state_status, args.base)
+                args.review_root, args.state_status, args.base,
+                evidence_root=args.evidence_root)
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],

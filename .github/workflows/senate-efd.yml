@@ -398,9 +398,24 @@ jobs:
           identity_binding="$(python -c "import json; print(json.load(open('$status'))['identity_binding_sha256'])")"
           parser_version="$(python -c "import json; print(json.load(open('$status'))['report_parser_version'])")"
           audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
+          evidence_root="$RUNNER_TEMP/senate-roster-evidence"
+          annual_review="$REVIEW_ROOT/senate_efd/annual/current.json"
+          if [ -f "$annual_review" ]; then
+            annual_roster_sha="$(python -c "import json; print(json.load(open('$annual_review'))['roster_sha256'])")"
+            if [ "$roster_sha" != "$annual_roster_sha" ]; then
+              git fetch --no-tags origin evidence:refs/remotes/origin/evidence
+              mkdir -p "$evidence_root/senate_efd/members"
+              for sha in "$roster_sha" "$annual_roster_sha"; do
+                [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || exit 1
+                git show "origin/evidence:senate_efd/members/$sha.xml" > \
+                  "$evidence_root/senate_efd/members/$sha.xml"
+              done
+            fi
+          fi
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$evidence_root" \
             --state-status .local/senate-efd-state.json \
             --base ingest/current.json \
             --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
