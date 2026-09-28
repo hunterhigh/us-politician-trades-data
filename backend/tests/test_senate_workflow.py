@@ -52,6 +52,21 @@ class SenateWorkflowTests(unittest.TestCase):
             self.assertIn("--harmonize-cutoffs", content)
             self.assertIn("disclosure_candidate.json", content)
 
+    def test_source_waterlines_commit_before_unified_harmonization(self):
+        for workflow, source in (("house-review.yml", "House"),
+                                 ("senate-efd.yml", "Senate")):
+            with self.subTest(source=source):
+                content = (ROOT / ".github/workflows" / workflow).read_text(
+                    encoding="utf-8")
+                source_commit = content.index(f'review: {source} source candidate')
+                harmonize = content.index('python -m unison_snapshot build-disclosure-candidate')
+                unified_commit = content.index(f'review: unified {source} candidate')
+                self.assertLess(source_commit, harmonize)
+                self.assertLess(harmonize, unified_commit)
+                self.assertIn('git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review',
+                              content[source_commit:harmonize])
+                self.assertNotIn('continue-on-error', content[source_commit:unified_commit])
+
     def test_roster_refresh_preserves_catalog_gate_and_status(self):
         content = (ROOT / ".github/workflows/senate-roster.yml").read_text(encoding="utf-8")
         self.assertIn("gate = prior.get('gate'", content)

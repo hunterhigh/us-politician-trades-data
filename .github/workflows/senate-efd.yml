@@ -431,6 +431,17 @@ jobs:
           fi
           cp "$audit_temp" "$audit"
           cp "$audit_temp" "$REVIEW_ROOT/senate_efd/qualifications/current.json"
+          # Persist the validated Senate projection before cross-source assembly.
+          # A stale peer keeps this run red, but cannot strand the Senate waterline.
+          git -C "$REVIEW_ROOT" add senate_efd status/senate_efd.json \
+            candidates/sources/senate_efd-current.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: Senate source candidate ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
+          echo "Senate source candidate saved; unified candidate advances only after harmonization succeeds." >> "$GITHUB_STEP_SUMMARY"
           source_args=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
           if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
             source_args+=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
@@ -470,11 +481,11 @@ jobs:
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')
           PY
-          git -C "$REVIEW_ROOT" add candidates senate_efd status/senate_efd.json \
+          git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
             status/disclosure_candidate.json status/disclosure_cutoff.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$REVIEW_ROOT" commit -m "review: Senate eFD catalog ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" commit -m "review: unified Senate candidate ${{ github.run_id }}"
             git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
           fi

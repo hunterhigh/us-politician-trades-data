@@ -325,6 +325,18 @@ jobs:
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"
+          # Persist the validated House projection before cross-source assembly.
+          # A stale peer keeps this run red, but cannot strand the House waterline.
+          git -C "$REVIEW_ROOT" add README.md house_clerk status/house_clerk.json \
+            status/summary.json candidates/house-current.json \
+            candidates/sources/house_clerk-current.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: House source candidate ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
+          echo "House source candidate saved; unified candidate advances only after harmonization succeeds." >> "$GITHUB_STEP_SUMMARY"
           source_args=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
           if [ -f "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" ]; then
             source_args+=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
@@ -364,16 +376,17 @@ jobs:
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')
           PY
-      - name: Publish qualification queue
+      - name: Publish unified candidate after successful harmonization
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          git -C "$REVIEW_ROOT" add README.md candidates house_clerk status
+          git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
+            status/disclosure_candidate.json status/disclosure_cutoff.json
           if git -C "$REVIEW_ROOT" diff --cached --quiet; then
             echo "Review queue is unchanged." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
           git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$REVIEW_ROOT" commit -m "qualify: House PTR queue ${{ github.run_id }}"
+          git -C "$REVIEW_ROOT" commit -m "review: unified House candidate ${{ github.run_id }}"
           git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
