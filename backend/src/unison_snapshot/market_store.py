@@ -11,6 +11,7 @@ import tempfile
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
+from .layout_safety import reject_redirected_layout
 
 
 SOURCE_ID = "alpaca_sip_eod"
@@ -333,6 +334,7 @@ def materialize_market(root: Path, bundle: MarketBundle) -> MarketMaterializeRes
     if any(not (MUTABLE.fullmatch(path) or IMMUTABLE.fullmatch(path)
                 or path in {CACHE_WINDOW, TWELVE_STATE}) for path in bundle.files):
         raise ValueError("Market bundle contains a path outside the public contract")
+    reject_redirected_layout(root, flat=("market-pages",), bucketed=("market",))
     written: list[str] = []
     for relative, content in sorted(bundle.files.items()):
         target = root / relative

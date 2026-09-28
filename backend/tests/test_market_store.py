@@ -176,6 +176,35 @@ class MarketStoreTests(unittest.TestCase):
             self.assertEqual(set(cache.rows), {"AAPL"})
             self.assertEqual(cache.rows["AAPL"]["price_history"][-1]["close"], 101.25)
 
+    def test_redirected_layout_cannot_touch_files_outside_market_worktree(self):
+        bundle = build_market_bundle([row()], data_cutoff_at="2026-09-20T23:59:59Z")
+        for kind, bucket_name in (("market-pages", None), ("market", None),
+                                  ("market", bucket("market", "AAPL"))):
+            with self.subTest(kind=kind, bucket=bucket_name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    base = Path(temporary)
+                    root, outside = base / "worktree", base / "outside"
+                    root.mkdir()
+                    outside.mkdir()
+                    marker = outside / ("a" * 64 + ".json")
+                    marker.write_text("outside", encoding="utf-8")
+                    link = root / kind
+                    if bucket_name is not None:
+                        link.mkdir()
+                        link = link / bucket_name
+                    try:
+                        link.symlink_to(outside, target_is_directory=True)
+                    except (OSError, NotImplementedError) as exc:
+                        if sys.platform != "win32":
+                            self.skipTest(f"Directory symlinks unavailable: {exc}")
+                        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)],
+                                       check=True, capture_output=True)
+                    with self.assertRaisesRegex(ValueError, "redirected"):
+                        materialize_market(root, bundle)
+                    self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
+                    self.assertFalse((root / "market-pages").is_dir() if kind == "market" else
+                                     (root / "market").is_dir())
+
     def test_rejects_wrong_source_and_future_prices(self):
         bad = row()
         bad["source_id"] = "other"

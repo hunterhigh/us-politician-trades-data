@@ -326,6 +326,36 @@ class MaterializeTests(unittest.TestCase):
         new_high = current_repo.fetch("person", "house:DEMO001").snapshot["transactions"][0]["amount_high"]
         self.assertEqual(new_high, old_high + 1)
 
+    def test_redirected_layout_cannot_touch_files_outside_worktree(self):
+        bundle = self.bundle()
+        cases = (("board", None), ("people", None), ("tickers", None),
+                 ("people", bucket("people", "house:DEMO001")),
+                 ("tickers", bucket("tickers", "ZZDEMO")))
+        for kind, bucket_name in cases:
+            with self.subTest(kind=kind, bucket=bucket_name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    base = Path(temporary)
+                    root, outside = base / "worktree", base / "outside"
+                    root.mkdir()
+                    outside.mkdir()
+                    marker = outside / ("a" * 64 + ".json")
+                    marker.write_text("outside", encoding="utf-8")
+                    link = root / kind
+                    if bucket_name is not None:
+                        link.mkdir()
+                        link = link / bucket_name
+                    try:
+                        link.symlink_to(outside, target_is_directory=True)
+                    except (OSError, NotImplementedError) as exc:
+                        if sys.platform != "win32":
+                            self.skipTest(f"Directory symlinks unavailable: {exc}")
+                        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)],
+                                       check=True, capture_output=True)
+                    with self.assertRaisesRegex(ValueError, "redirected"):
+                        materialize(root, bundle)
+                    self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
+                    self.assertFalse((root / "manifest.json").exists())
+
     def test_immutable_collision_and_invalid_manifest_abort(self):
         bundle = self.bundle()
         materialize(self.root, bundle)
