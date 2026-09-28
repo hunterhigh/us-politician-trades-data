@@ -337,7 +337,7 @@ jobs:
             --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
-          REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          REVIEW_ROOT="$REVIEW_ROOT" BUILDER_COMMIT="${{ github.sha }}" python - <<'PY'
           import json, os
           from datetime import datetime, timezone
           from pathlib import Path
@@ -380,12 +380,33 @@ jobs:
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                        separators=(',', ':')), encoding='utf-8')
+          candidate = json.loads((review / 'candidates/disclosure-current.json').read_text(
+              encoding='utf-8'))
+          disclosure_sources = {'house_clerk', 'senate_efd', 'oge'}
+          included = sorted(row['source_id'] for row in candidate['source_health']
+                            if row.get('source_id') in disclosure_sources
+                            and row.get('status') in {'ok', 'partial'})
+          disclosure_status = {
+              'schema_version': 'disclosure-candidate-run/v1',
+              'builder_commit': os.environ['BUILDER_COMMIT'],
+              'data_cutoff_at': candidate['meta']['data_cutoff_at'],
+              'included_sources': included,
+              'pending_sources': sorted(disclosure_sources - set(included)),
+              'people_count': len(candidate['people']),
+              'transaction_count': len(candidate['transactions']),
+              'reported_holding_count': len(candidate['reported_holdings']),
+              'status': 'partial',
+              'cutoff_audit': 'status/disclosure_cutoff.json',
+          }
+          (review / 'status/disclosure_candidate.json').write_text(
+              json.dumps(disclosure_status, ensure_ascii=False, sort_keys=True,
+                         separators=(',', ':')), encoding='utf-8')
           PY
           git -C "$REVIEW_ROOT" add oge candidates whitehouse/qualifications \
             whitehouse/annual/candidate-current.json \
             whitehouse/annual/ticker-mapping-current.json \
             whitehouse/278t/trump-2026-ticker-mapping-current.json \
-            status/oge.json status/disclosure_cutoff.json
+            status/oge.json status/disclosure_cutoff.json status/disclosure_candidate.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
