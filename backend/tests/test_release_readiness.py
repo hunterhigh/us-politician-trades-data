@@ -107,6 +107,15 @@ class ReleaseReadinessTests(unittest.TestCase):
         with self.assertRaisesRegex(ReleaseReadinessError, "does not match its cutoff audit"):
             validate_first_launch(self.root, self.candidate_path)
 
+    def test_staged_source_cannot_publish_against_old_unified_audit(self):
+        source = json.loads((self.root / "candidates/sources/senate_efd-current.json")
+                            .read_text(encoding="utf-8"))
+        source["meta"]["data_cutoff_at"] = "2026-09-28T00:00:00Z"
+        self._write("candidates/sources/senate_efd-current.json", source)
+        with self.assertRaisesRegex(ReleaseReadinessError,
+                                    "source candidate does not match cutoff audit"):
+            validate_first_launch(self.root, self.candidate_path)
+
     def test_rejects_oge_candidate_that_omits_reported_holdings(self):
         status = json.loads((self.root / "status/oge.json").read_text())
         status["qualified_holding_count"] = 1
