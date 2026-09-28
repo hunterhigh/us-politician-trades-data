@@ -188,8 +188,8 @@ def audit(review_root: Path) -> dict:
         "recovered_missing_row_count": len(RECOVERED_ROWS),
         "promoted_aligned_row_count": len(CORRECTED_IDS),
         "removed_header_artifact_count": 1,
-        "physical_row_count": V5_TRANSACTIONS + V5_QUARANTINED,
-        "row_conservation_complete": True,
+        "disposition_entry_count": V5_TRANSACTIONS + V5_QUARANTINED,
+        "disposition_entry_conservation_complete": True,
     }
 
 

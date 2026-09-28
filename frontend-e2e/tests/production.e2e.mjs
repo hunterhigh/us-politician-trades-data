@@ -41,7 +41,7 @@ const septemberFilingId = 'e590116fc9631e9885258e7a002de209';
 const septemberRows = data.transactions.filter(row => row.filing_id === septemberFilingId);
 let septemberMarketTicker;
 if (requireTrumpSeptember) {
-  assert.equal(septemberRows.length, 352, 'September OGE filing must contribute 352 audited rows');
+  assert.equal(septemberRows.length, 358, 'September OGE filing must contribute 358 audited rows');
   assert.ok(septemberRows.every(row =>
     row.person_id === 'oge:076544f8ba0638cf' &&
     row.filed_at === '2026-09-08T00:00:00Z' &&

@@ -129,15 +129,15 @@ class TrumpSeptemberV5AuditTests(unittest.TestCase):
             _write(root, old, new)
             return audit(root)
 
-    def test_exact_replay_preserves_352_and_closes_1156_rows(self):
+    def test_exact_replay_preserves_352_and_conserves_1156_disposition_entries(self):
         old, new = _fixture()
         result = self._check(old, new)
         self.assertEqual(result["preserved_v4_transaction_count"], 352)
         self.assertEqual(result["recovered_missing_row_count"], 4)
         self.assertEqual(result["promoted_aligned_row_count"], 2)
         self.assertEqual(result["removed_header_artifact_count"], 1)
-        self.assertEqual(result["physical_row_count"], 1156)
-        self.assertTrue(result["row_conservation_complete"])
+        self.assertEqual(result["disposition_entry_count"], 1156)
+        self.assertTrue(result["disposition_entry_conservation_complete"])
 
     def test_existing_v4_transaction_cannot_change(self):
         old, new = _fixture()
