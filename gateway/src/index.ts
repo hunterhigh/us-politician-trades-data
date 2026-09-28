@@ -5,6 +5,7 @@ const DIGEST = /^[a-f0-9]{64}$/;
 const HEAD_LIMIT = 16 * 1024;
 const INDEX_LIMIT = 8 * 1024;
 const SHARD_LIMIT = 16 * 1024 * 1024;
+const BOARD_LIMIT = 24 * 1024 * 1024;
 const TIMEOUT_MS = 10_000;
 const MAX_PATH = 300;
 
@@ -261,7 +262,8 @@ export function createGateway(upstream: UpstreamFetch, timeoutMs = TIMEOUT_MS) {
         validateManifest(bytes, env);
         if (route.path === "manifest.json") return new Response(bytes, { headers });
       }
-      const limit = route.path.endsWith("/index.json") ? INDEX_LIMIT : SHARD_LIMIT;
+      const limit = route.path.endsWith("/index.json") ? INDEX_LIMIT
+        : route.path.startsWith("board/") ? BOARD_LIMIT : SHARD_LIMIT;
       const result = await get(`contents/${route.path}?ref=${commit}`, true, limit);
       return new Response(result.body, { headers });
     } catch (error) {

@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
@@ -80,6 +82,40 @@ class ProducerTests(unittest.TestCase):
             self.build(max_index_bytes=20)
         with self.assertRaisesRegex(ValueError, "Shard size"):
             self.build(max_blob_bytes=20)
+
+    def test_board_only_can_exceed_old_limit_but_not_24_mib(self):
+        data = deepcopy(self.data)
+        data["transactions"] = []
+        data["reported_holdings"] = []
+        processor = SimpleNamespace(build_snapshot=lambda _candidate: None)
+        with patch("unison_snapshot.builder.load", return_value=processor):
+            for name_bytes, accepted in ((8 * 1024 * 1024 + 1000, True),
+                                         (12 * 1024 * 1024 + 1000, False)):
+                with self.subTest(accepted=accepted):
+                    data["people"][0]["display_name"] = "A" * name_bytes
+                    data["people"][1]["display_name"] = "B" * name_bytes
+                    if not accepted:
+                        with self.assertRaisesRegex(ValueError, "Board size budget exceeded; no truncation"):
+                            self.build(data)
+                        continue
+                    bundle = self.build(data)
+                    board_path = f"board/{bundle.manifest['board']}.json"
+                    self.assertGreater(len(bundle.files[board_path]), 16 * 1024 * 1024)
+                    self.assertLessEqual(len(bundle.files[board_path]), 24 * 1024 * 1024)
+                    self.assertTrue(all(len(content) <= 16 * 1024 * 1024 for path, content
+                                        in bundle.files.items() if path.startswith(("people/", "tickers/"))))
+                    self.assertEqual(digest(bundle.files[board_path]), bundle.manifest["board"])
+
+    def test_board_and_entity_size_budgets_remain_independent(self):
+        bundle = self.build()
+        board_bytes = len(bundle.files[f"board/{bundle.manifest['board']}.json"])
+        entity_bytes = max(len(content) for path, content in bundle.files.items()
+                           if path.startswith(("people/", "tickers/")) and not path.endswith("index.json"))
+        self.build(max_board_bytes=board_bytes, max_blob_bytes=entity_bytes)
+        with self.assertRaisesRegex(ValueError, "Board size budget exceeded"):
+            self.build(max_board_bytes=board_bytes - 1, max_blob_bytes=entity_bytes)
+        with self.assertRaisesRegex(ValueError, "Shard size budget exceeded"):
+            self.build(max_board_bytes=board_bytes, max_blob_bytes=entity_bytes - 1)
 
     def test_option_contract_requires_complete_explicit_terms(self):
         data = deepcopy(self.data)

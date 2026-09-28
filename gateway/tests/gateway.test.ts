@@ -313,9 +313,26 @@ test("every index class enforces an 8 KiB streaming boundary", async () => {
   }
 });
 
-test("board, person, ticker and market shards enforce a 16 MiB streaming boundary", async () => {
-  for (const cls of ["board", "people", "tickers", "market"]) {
-    const path = cls === "board" ? `${cls}/${HASH}.json` : `${cls}/aa/${HASH}.json`;
+test("board alone accepts more than 16 MiB up to 24 MiB and rejects excess", async () => {
+  for (const size of [16 * 1024 * 1024 + 1, 24 * 1024 * 1024]) {
+    const bytes = `"${"x".repeat(size - 2)}"`;
+    const response = await createGateway(rawFileUpstream(bytes))(
+      request(`${COMMIT}/board/${HASH}.json`), env,
+    );
+    assert.equal(response.status, 200);
+    assert.equal((await response.arrayBuffer()).byteLength, size);
+  }
+  const excess = `"${"x".repeat(24 * 1024 * 1024 - 1)}"`;
+  const response = await createGateway(rawFileUpstream(excess))(
+    request(`${COMMIT}/board/${HASH}.json`), env,
+  );
+  assert.equal(response.status, 200);
+  await assert.rejects(response.arrayBuffer(), /upstream_too_large/);
+});
+
+test("person, ticker and market shards retain the 16 MiB streaming boundary", async () => {
+  for (const cls of ["people", "tickers", "market", "market-pages"]) {
+    const path = cls === "market-pages" ? `${cls}/${HASH}.json` : `${cls}/aa/${HASH}.json`;
     const bytes = `"${"x".repeat(16 * 1024 * 1024 - 1)}"`;
     const response = await createGateway(rawFileUpstream(bytes))(
       request(`${COMMIT}/${path}`), { ...env, ALLOW_MARKET: "true" },

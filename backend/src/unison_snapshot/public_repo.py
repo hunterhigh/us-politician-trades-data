@@ -16,7 +16,8 @@ from .codec import bucket
 SHA1 = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 NAME = re.compile(r"[A-Za-z0-9_.-]{1,100}")
-LIMITS = {"manifest": 16 * 1024, "index": 8 * 1024, "shard": 16 * 1024 * 1024}
+LIMITS = {"manifest": 16 * 1024, "index": 8 * 1024,
+          "shard": 16 * 1024 * 1024, "board": 24 * 1024 * 1024}
 
 
 class PublicSnapshotError(RuntimeError):
@@ -138,7 +139,8 @@ class PublicSnapshotRepository:
     def _content(self, commit: str, prefix: str, sha: str) -> dict:
         if not isinstance(sha, str) or not SHA256.fullmatch(sha):
             raise PublicSnapshotError("Invalid content address")
-        data = self._read(commit, f"{prefix}/{sha}.json", LIMITS["shard"])
+        limit = LIMITS["board"] if prefix == "board" else LIMITS["shard"]
+        data = self._read(commit, f"{prefix}/{sha}.json", limit)
         if hashlib.sha256(data).hexdigest() != sha:
             raise PublicSnapshotError("Content hash mismatch")
         return self._json(data, "content shard")

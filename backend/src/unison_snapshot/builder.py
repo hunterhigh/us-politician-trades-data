@@ -160,7 +160,8 @@ def normalize(payload: dict, *, allow_production: bool = False,
 
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
-          max_blob_bytes: int = 16 * 1024 * 1024, allow_production: bool = False,
+          max_blob_bytes: int = 16 * 1024 * 1024,
+          max_board_bytes: int = 24 * 1024 * 1024, allow_production: bool = False,
           allow_empty_production: bool = False, allow_market: bool = False,
           market_commit: str | None = None,
           market_pages: tuple[str, ...] | list[str] | None = None) -> Bundle:
@@ -225,8 +226,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
 
     def blob(prefix: str, value: dict) -> str:
         content = encode(value)
-        if len(content) > max_blob_bytes:
-            raise ValueError("Shard size budget exceeded; no truncation performed")
+        limit = max_board_bytes if prefix == "board" else max_blob_bytes
+        if len(content) > limit:
+            kind = "Board" if prefix == "board" else "Shard"
+            raise ValueError(f"{kind} size budget exceeded; no truncation performed")
         sha = digest(content)
         files[f"{prefix}/{sha}.json"] = content
         return sha

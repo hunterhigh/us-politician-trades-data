@@ -33,6 +33,7 @@ All notable changes follow Semantic Versioning.
 - Added complete annual-report archive and parse backlog counts plus strict mutual-state checks to the House holding production status.
 - Added licensed Alpaca market publication on a protected content-addressed `market` branch, frozen market commits in `main`, and a complete five-array production workflow.
 - Defined OGE Form 201 request-only reports as outside the first-release completion boundary.
+- Raised only the complete board content limit to 24 MiB across production, public reading, and the optional gateway; entity shard limits remain 16 MiB and oversized boards still fail without truncation.
 
 ## 0.1.0 - 2026-09-18
 

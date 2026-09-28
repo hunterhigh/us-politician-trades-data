@@ -11,7 +11,7 @@ from unison_snapshot.codec import bucket, digest, encode
 from unison_snapshot.materialize import materialize
 from unison_snapshot.legacy import load
 from unison_snapshot.market_store import build_market_bundle
-from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
+from unison_snapshot.public_repo import HTTPTransport, LIMITS, PublicSnapshotError, PublicSnapshotRepository
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
 COMMIT = "1" * 40
@@ -124,6 +124,44 @@ class PublicRepositoryTests(unittest.TestCase):
         self.assertTrue(all(f"/{COMMIT}/" in call[0] for call in self.transport.calls[1:]))
         with self.assertRaisesRegex(PublicSnapshotError, "not found"):
             self.repo.fetch("person", "No Such Person")
+
+    def test_board_24_mib_budget_preserves_hash_and_frozen_commit(self):
+        original_manifest = json.loads(self.files["manifest.json"])
+        original_board = json.loads(self.files[f"board/{original_manifest['board']}.json"])
+        self.assertEqual(LIMITS["board"], 24 * 1024 * 1024)
+        self.assertEqual(LIMITS["shard"], 16 * 1024 * 1024)
+        for size, accepted in ((16 * 1024 * 1024 + 1, True),
+                               (24 * 1024 * 1024 + 1, False)):
+            with self.subTest(size=size):
+                board = dict(original_board, padding="")
+                board["padding"] = "x" * (size - len(encode(board)))
+                content = encode(board)
+                self.assertEqual(len(content), size)
+                sha = digest(content)
+                manifest = dict(original_manifest, board=sha)
+                files = dict(self.files, **{"manifest.json": encode(manifest),
+                                            f"board/{sha}.json": content})
+                transport = FakeTransport(files)
+                repo = PublicSnapshotRepository("example", "data", transport=transport)
+                if accepted:
+                    selection = repo.fetch("dashboard")
+                    self.assertEqual(selection.commit, COMMIT)
+                    self.assertEqual(len(selection.snapshot["people"]), 2)
+                    board_call = next(call for call in transport.calls if f"board/{sha}.json" in call[0])
+                    self.assertIn(f"/{COMMIT}/", board_call[0])
+                    self.assertEqual(board_call[1], LIMITS["board"])
+                    corrupt_files = dict(files, **{f"board/{sha}.json": content[:-1] + b" "})
+                    with self.assertRaisesRegex(PublicSnapshotError, "hash"):
+                        PublicSnapshotRepository("example", "data",
+                                                 transport=FakeTransport(corrupt_files)).fetch("dashboard")
+                    entity_prefix = f"people/{bucket('people', 'house:DEMO001')}"
+                    files[f"{entity_prefix}/{sha}.json"] = content
+                    with self.assertRaisesRegex(PublicSnapshotError, "size limit"):
+                        repo._content(COMMIT, entity_prefix, sha)
+                    self.assertEqual(transport.calls[-1][1], LIMITS["shard"])
+                else:
+                    with self.assertRaisesRegex(PublicSnapshotError, "size limit"):
+                        repo.fetch("dashboard")
 
     def test_hash_demo_and_reference_fail_closed(self):
         board = json.loads(self.files["manifest.json"])["board"]
