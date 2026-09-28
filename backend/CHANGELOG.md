@@ -4,6 +4,7 @@ All notable changes follow Semantic Versioning.
 
 ## Unreleased
 
+- Accept the fixed, source-hash-bound September Trump OGE 278-T transactions alongside official White House PDF transactions in prepared publication checks, while retaining person/source/status, White House presence, and dashboard/search coverage gates; check person provenance before large board reads.
 - Refresh and commit the unified disclosure candidate status after a successful OGE harmonization, keeping its cutoff, counts, and builder commit aligned with the candidate and cutoff audit.
 - Persist validated House and Senate source candidates before unified cutoff harmonization, so a stale peer leaves the workflow failed and the published unified candidate unchanged while allowing the next source refresh to close the gap.
 - Allow Senate annual holdings to remain in the PTR candidate when archived official rosters have different raw XML hashes but identical normalized members; retain both original hashes and fail closed on missing or changed member evidence.

@@ -11,6 +11,9 @@ from urllib.parse import urlsplit
 from unison_snapshot.codec import encode
 from unison_snapshot.legacy import load
 from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
+from unison_snapshot.oge_reports import (
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_URL,
+)
 from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotRepository
 
 
@@ -30,6 +33,16 @@ def _official_whitehouse_pdf(value: object) -> bool:
             port is None and not parsed.query and not parsed.fragment and
             parsed.path.startswith("/wp-content/uploads/") and
             parsed.path.lower().endswith(".pdf"))
+
+
+def _official_trump_transaction_source(row: dict) -> bool:
+    filing_id = row.get("filing_id")
+    if isinstance(filing_id, str) and filing_id.startswith("wh-url:"):
+        return _official_whitehouse_pdf(row.get("source_url"))
+    return (filing_id == TRUMP_SEPT_2026_DOCUMENT_ID and
+            row.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
+            isinstance(row.get("id"), str) and
+            row["id"].startswith("oge-278t:"))
 
 
 class FixedCommitTransport:
@@ -61,10 +74,39 @@ def verify_prepared_publication(
     repository = PublicSnapshotRepository(
         owner, repo, ref="main",
         transport=transport or FixedCommitTransport(main_commit))
+    # The person shard is small enough to reject bad provenance before fetching
+    # the much larger dashboard and search snapshots.
+    person_selection = repository.fetch("person", person_id)
+    if person_selection.commit != main_commit:
+        raise ValueError("Prepared person selection resolved an unexpected main commit")
+    person = person_selection.snapshot
+    if person["meta"].get("market_commit") != market_commit:
+        raise ValueError("Prepared person selection references an unexpected market commit")
+    if (person["meta"]["selection_scope"].get("key") != person_id or
+            len(person["reported_holdings"]) != expected_person_holdings or
+            len(person["transactions"]) != expected_person_transactions):
+        raise ValueError("Prepared Trump person readback is incomplete")
+    if (person["meta"].get("is_demo") is True or any(
+            row.get("source_url") != TRUMP_2025_SOURCE_URL or
+            row.get("report_period_end") != "2025-12-31" or
+            row.get("verification_status") != "official_matched"
+            for row in person["reported_holdings"])):
+        raise ValueError("Prepared Trump holding provenance is invalid")
+    if (expected_person_transactions < 1 or
+            not any(isinstance(row.get("filing_id"), str) and
+                    row["filing_id"].startswith("wh-url:") and
+                    _official_whitehouse_pdf(row.get("source_url"))
+                    for row in person["transactions"]) or
+            any(row.get("person_id") != person_id or
+                row.get("source_id") != "oge" or
+                row.get("verification_status") != "official_matched" or
+                not _official_trump_transaction_source(row)
+                for row in person["transactions"])):
+        raise ValueError("Prepared Trump transaction provenance is invalid")
     selections = {
+        "person": person_selection,
         "dashboard": repository.fetch("dashboard"),
         "search": repository.fetch("search"),
-        "person": repository.fetch("person", person_id),
         "ticker": repository.fetch("ticker", ticker),
         "twelve": repository.fetch("ticker", twelve_ticker),
     }
@@ -90,25 +132,6 @@ def verify_prepared_publication(
     observed = {field: len(dashboard[field]) for field in expected}
     if observed != expected:
         raise ValueError(f"Prepared dashboard counts differ from the candidate: {observed}")
-    person = selections["person"].snapshot
-    if (person["meta"]["selection_scope"].get("key") != person_id or
-            len(person["reported_holdings"]) != expected_person_holdings or
-            len(person["transactions"]) != expected_person_transactions):
-        raise ValueError("Prepared Trump person readback is incomplete")
-    if (person["meta"].get("is_demo") is True or any(
-            row.get("source_url") != TRUMP_2025_SOURCE_URL or
-            row.get("report_period_end") != "2025-12-31" or
-            row.get("verification_status") != "official_matched"
-            for row in person["reported_holdings"])):
-        raise ValueError("Prepared Trump holding provenance is invalid")
-    if expected_person_transactions < 1 or any(
-            row.get("person_id") != person_id or
-            row.get("source_id") != "oge" or
-            row.get("verification_status") != "official_matched" or
-            not str(row.get("filing_id", "")).startswith("wh-url:") or
-            not _official_whitehouse_pdf(row.get("source_url"))
-            for row in person["transactions"]):
-        raise ValueError("Prepared Trump transaction provenance is invalid")
     person_transaction_ids = {row.get("id") for row in person["transactions"]}
     if (None in person_transaction_ids or
             person_id not in {row.get("id") for row in selections["search"].snapshot["people"]} or
