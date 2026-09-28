@@ -38,6 +38,7 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("python -m unison_snapshot build-oge-candidate", content)
         self.assertIn("python backend/scripts/audit_trump_sept_oge_v5.py", content)
+        self.assertIn("python backend/scripts/audit_trump_sept_oge_v6.py", content)
         self.assertIn('--catalog-history-dir "$REVIEW_ROOT/oge/discoveries"', content)
         self.assertIn('--extractions-dir "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'retained_historical_direct_count':", content)
