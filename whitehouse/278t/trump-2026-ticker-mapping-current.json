@@ -1,5 +1,5 @@
 {
-  "ambiguous_record_count": 3,
+  "ambiguous_record_count": 4,
   "ambiguous_records": [
     {
       "asset_name": "BERKSHIRE HATHAWAY INC",
@@ -18,6 +18,14 @@
       "record_id": "oge-278t:377010e05afb2ba5d37dbe5f"
     },
     {
+      "asset_name": "Alphabet Inc",
+      "candidate_tickers": [
+        "GOOG",
+        "GOOGL"
+      ],
+      "record_id": "oge-278t:b584b7b635cff65259453237"
+    },
+    {
       "asset_name": "WELLS FARGO & CO",
       "candidate_tickers": [
         "WFC",
@@ -26,16 +34,16 @@
       "record_id": "oge-278t:d2dd18f8b3efb0f4adb58795"
     }
   ],
-  "asset_master_sha256": "4d970a8fcae238b4d7b926cafcccf169e7e7f64e4f25d8666ddc444f58eb0170",
-  "candidate_before_sha256": "6ea138757e3cf4299029937b1b9a093b81779425df3b91e4ba504d3c98c3be42",
-  "checked_at": "2026-09-25T21:54:58Z",
+  "asset_master_sha256": "a4455d289599fd9d825d35969ef09d155724cdfbb204423e9ebbaa608e6df2ac",
+  "candidate_before_sha256": "273871af61ca6bf15d399d59d14ab2bfa8982ee290b222a541426550d33beb5f",
+  "checked_at": "2026-09-25T04:58:54Z",
   "correction_count": 2,
   "correction_ids": [
     "oge-278t:a7c80f885cd05cec50f6d714",
     "oge-278t:d759ad330b8f427cec8d85ba"
   ],
   "explicit_ticker_count": 0,
-  "mapping_count": 579,
+  "mapping_count": 704,
   "mappings": [
     {
       "asset_name": "TRIMBLE INC",
@@ -43,6 +51,13 @@
       "provider_asset_name": "Trimble Inc. Common Stock",
       "record_id": "oge-278t:009c996746516a47d775f040",
       "ticker": "TRMB"
+    },
+    {
+      "asset_name": "EOG RESOURCES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "EOG Resources, Inc.",
+      "record_id": "oge-278t:00f780b478b2f6803bbebf68",
+      "ticker": "EOG"
     },
     {
       "asset_name": "|ARLO TECHNOLOGIES INC",
@@ -87,6 +102,13 @@
       "ticker": "DG"
     },
     {
+      "asset_name": "NORTHROP GRUMMAN CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Northrop Grumman Corp.",
+      "record_id": "oge-278t:0310644ac2c088fb7f367480",
+      "ticker": "NOC"
+    },
+    {
       "asset_name": "BRISTOL MYERS SQUIBB CO",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Bristol-Myers Squibb Co.",
@@ -129,6 +151,13 @@
       "ticker": "LW"
     },
     {
+      "asset_name": "SYNOPSYS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Synopsys, Inc. Common Stock",
+      "record_id": "oge-278t:079ac64624d86229a0a37324",
+      "ticker": "SNPS"
+    },
+    {
       "asset_name": "VERTEX PHARMACEUTICALS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Vertex Pharmaceuticals Incorporated Common Stock",
@@ -141,6 +170,13 @@
       "provider_asset_name": "Tractor Supply Company Common Stock",
       "record_id": "oge-278t:07cf41a54c79ae22a03f707c",
       "ticker": "TSCO"
+    },
+    {
+      "asset_name": "CVS HEALTH CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CVS HEALTH CORPORATION",
+      "record_id": "oge-278t:08cbcce9ebf291a0db3ef989",
+      "ticker": "CVS"
     },
     {
       "asset_name": "QORVO INC",
@@ -175,11 +211,25 @@
       "ticker": "CHTR"
     },
     {
+      "asset_name": "ENERGIZER HLDGS INC NEW",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Energizer Holdings, Inc",
+      "record_id": "oge-278t:0aeba7e718c8e3f26a752454",
+      "ticker": "ENR"
+    },
+    {
       "asset_name": "STRYKER CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Stryker Corporation",
       "record_id": "oge-278t:0b1c30650e5925cae5654602",
       "ticker": "SYK"
+    },
+    {
+      "asset_name": "STRIDE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Stride, Inc.",
+      "record_id": "oge-278t:0c04c86a99c5523e0bd96ce3",
+      "ticker": "LRN"
     },
     {
       "asset_name": "GENERAL DYNAMICS CORP",
@@ -268,6 +318,13 @@
       "ticker": "MSFT"
     },
     {
+      "asset_name": "TG THERAPEUTICS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "TG Therapeutics, Inc. Common Stock",
+      "record_id": "oge-278t:1255dc9d34143685890bd60f",
+      "ticker": "TGTX"
+    },
+    {
       "asset_name": "FIRSTENERGY CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "FirstEnergy Corp.",
@@ -331,6 +388,34 @@
       "ticker": "CTAS"
     },
     {
+      "asset_name": "SANMINA CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Sanmina Corporation Common Stock",
+      "record_id": "oge-278t:171838556e9710723d298825",
+      "ticker": "SANM"
+    },
+    {
+      "asset_name": "CBRE GROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CBRE GROUP, INC.",
+      "record_id": "oge-278t:17a06b3c246127e0bc1bfb99",
+      "ticker": "CBRE"
+    },
+    {
+      "asset_name": "RADIAN GROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Radian Group Inc.",
+      "record_id": "oge-278t:17cec41a69a724d0599a74be",
+      "ticker": "RDN"
+    },
+    {
+      "asset_name": "MONDELEZ INTERNATIONAL INC",
+      "mapping_basis": "alpaca_unique_classless_asset_name",
+      "provider_asset_name": "Mondelez International, Inc. Class A Common Stock",
+      "record_id": "oge-278t:18c3e763830074156dfbb876",
+      "ticker": "MDLZ"
+    },
+    {
       "asset_name": "CINEMARK HLDGS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Cinemark Holdings, Inc.",
@@ -352,6 +437,20 @@
       "ticker": "TSLA"
     },
     {
+      "asset_name": "BOEING CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Boeing Company",
+      "record_id": "oge-278t:19c4c656ed764e7cbb76a111",
+      "ticker": "BA"
+    },
+    {
+      "asset_name": "BLACKROCK INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Blackrock, Inc.",
+      "record_id": "oge-278t:1a158349f7f4fdec915e9abe",
+      "ticker": "BLK"
+    },
+    {
       "asset_name": "AMAZON.COM INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Amazon.com, Inc. Common Stock",
@@ -371,6 +470,13 @@
       "provider_asset_name": "Palo Alto Networks, Inc. Common Stock",
       "record_id": "oge-278t:1a8b9ec2b50c2c4db878b7cf",
       "ticker": "PANW"
+    },
+    {
+      "asset_name": "DARDEN RE:STAURANTS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Darden Restaurants, Inc.",
+      "record_id": "oge-278t:1a943bb06a28587aadbbe807",
+      "ticker": "DRI"
     },
     {
       "asset_name": "HUNTINGTON BANCSHARES INC",
@@ -401,6 +507,13 @@
       "ticker": "VIAV"
     },
     {
+      "asset_name": "MARKETAXESS HLDGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "MarketAxess Holdings, Inc. Common Stock",
+      "record_id": "oge-278t:1c8c23e7841d41c367eab746",
+      "ticker": "MKTX"
+    },
+    {
       "asset_name": "FIDELITY NATIONAL INFORMATION SERVICES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Fidelity National Information Services, Inc.",
@@ -420,6 +533,20 @@
       "provider_asset_name": "Workday, Inc. Class A Common Stock",
       "record_id": "oge-278t:1d5af0c7d865256510a83a64",
       "ticker": "WDAY"
+    },
+    {
+      "asset_name": "CAPITAL ONE FINL CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Capital One Financial",
+      "record_id": "oge-278t:1d6cdc049c4d13d654f58d01",
+      "ticker": "COF"
+    },
+    {
+      "asset_name": "TELEPHONE & DATA SYS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Telephone and Data Systems Inc.",
+      "record_id": "oge-278t:1da6aca220ec205545c7103f",
+      "ticker": "TDS"
     },
     {
       "asset_name": "INTERNATIONAL PAPER",
@@ -475,11 +602,25 @@
       "ticker": "MCO"
     },
     {
+      "asset_name": "KRYSTAL BIOTECH INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Krystal Biotech, Inc. Common Stock",
+      "record_id": "oge-278t:220f33415bd3b7d47b8fd01c",
+      "ticker": "KRYS"
+    },
+    {
       "asset_name": "ALLIANT ENERGY CORPORATION",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Alliant Energy Corporation Common Stock",
       "record_id": "oge-278t:225ed1692d0b15e42f81c3b5",
       "ticker": "LNT"
+    },
+    {
+      "asset_name": "HUMANA INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Humana Inc.",
+      "record_id": "oge-278t:226c8765c66337f9583cc4e3",
+      "ticker": "HUM"
     },
     {
       "asset_name": "CROWDSTRIKE HLDGS INC",
@@ -503,11 +644,34 @@
       "ticker": "OLN"
     },
     {
+      "asset_name": "WILLIAMS COS INC DEL",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Williams Companies Inc.",
+      "record_id": "oge-278t:2356e39cef635819b87c49ca",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:de6c3213fcc31b3e",
+      "ticker": "WMB"
+    },
+    {
       "asset_name": "FIDELITY NATIONAL INFORMATION SERVICES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Fidelity National Information Services, Inc.",
       "record_id": "oge-278t:23595574150cdd3805c7bc36",
       "ticker": "FIS"
+    },
+    {
+      "asset_name": "TELEPHONE & DATA SYS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Telephone and Data Systems Inc.",
+      "record_id": "oge-278t:238c66a6888f15e01d5b806c",
+      "ticker": "TDS"
+    },
+    {
+      "asset_name": "BOOKING HLDGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Booking Holdings Inc. Common Stock",
+      "record_id": "oge-278t:2444fb457770bbbf6ea48589",
+      "ticker": "BKNG"
     },
     {
       "asset_name": "ITRON INC EQUITY CLASS EQUITY",
@@ -517,6 +681,20 @@
       "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
       "semantic_rule_id": "semantic:6af299337e0238b3",
       "ticker": "ITRI"
+    },
+    {
+      "asset_name": "Procter & Gamble Co",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Procter & Gamble Company",
+      "record_id": "oge-278t:248cba2a2c38c250312c9975",
+      "ticker": "PG"
+    },
+    {
+      "asset_name": "MOBILITY GLOBAL INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Mobility Global Inc.",
+      "record_id": "oge-278t:24bb4e77f612350f02adb94b",
+      "ticker": "MBGL"
     },
     {
       "asset_name": "PATHWARD FINL INC",
@@ -547,6 +725,13 @@
       "ticker": "IR"
     },
     {
+      "asset_name": "F&G ANNUITIES & LIFE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "F&G Annuities & Life, Inc.",
+      "record_id": "oge-278t:26b9065d167cec77860c5f38",
+      "ticker": "FG"
+    },
+    {
       "asset_name": "ILLINOIS TOOL WORKS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Illinois Tool Works Inc.",
@@ -573,6 +758,13 @@
       "provider_asset_name": "Otis Worldwide Corporation",
       "record_id": "oge-278t:2767a0929b48ffa9ad9afad3",
       "ticker": "OTIS"
+    },
+    {
+      "asset_name": "VERIZON COMMUNICATIONS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Verizon Communications",
+      "record_id": "oge-278t:27879348baed1ee2859b9569",
+      "ticker": "VZ"
     },
     {
       "asset_name": "WALMART INC",
@@ -622,6 +814,20 @@
       "provider_asset_name": "McDonald's Corporation",
       "record_id": "oge-278t:2a8624c7b46b0c6c34ec10c0",
       "ticker": "MCD"
+    },
+    {
+      "asset_name": "DANAHER CORPORATION",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Danaher Corporation",
+      "record_id": "oge-278t:2b18d566854ab8c73a35d762",
+      "ticker": "DHR"
+    },
+    {
+      "asset_name": "ARLO TECHNOLOGIES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Arlo Technologies, Inc.",
+      "record_id": "oge-278t:2c6b765bb65de480448ee12c",
+      "ticker": "ARLO"
     },
     {
       "asset_name": "PC CONNECTION INC",
@@ -685,6 +891,13 @@
       "provider_asset_name": "Clorox Company",
       "record_id": "oge-278t:2e53e2dcafc202175385f071",
       "ticker": "CLX"
+    },
+    {
+      "asset_name": "QUALCOMM INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "QUALCOMM Incorporated Common Stock",
+      "record_id": "oge-278t:2eae7af63cfc97d61863ad68",
+      "ticker": "QCOM"
     },
     {
       "asset_name": "ALNYLAM PHARMACEUTICALS INC",
@@ -775,6 +988,20 @@
       "ticker": "CDNS"
     },
     {
+      "asset_name": "SYNOPSYS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Synopsys, Inc. Common Stock",
+      "record_id": "oge-278t:3318e4fb0a7729b49012976c",
+      "ticker": "SNPS"
+    },
+    {
+      "asset_name": "ADOBE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Adobe Inc. Common Stock",
+      "record_id": "oge-278t:3372ced1b6146b994e417887",
+      "ticker": "ADBE"
+    },
+    {
       "asset_name": "ALBEMARLE CORPORATION",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Albemarle Corporation",
@@ -833,6 +1060,13 @@
       "ticker": "PODD"
     },
     {
+      "asset_name": "CMS ENERGY CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CMS Energy Corporation",
+      "record_id": "oge-278t:3656dc95b9597385e365f207",
+      "ticker": "CMS"
+    },
+    {
       "asset_name": "CBRE GROUP INC CLASS CLASS A",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "CBRE GROUP, INC.",
@@ -872,6 +1106,20 @@
       "ticker": "RTX"
     },
     {
+      "asset_name": "TESLA INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Tesla, Inc. Common Stock",
+      "record_id": "oge-278t:37befe0745197a8d5414b221",
+      "ticker": "TSLA"
+    },
+    {
+      "asset_name": "WALT DISNEY CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Walt Disney Company",
+      "record_id": "oge-278t:384374215697b863159f3a64",
+      "ticker": "DIS"
+    },
+    {
       "asset_name": "INGERSOLL RAND INC ;",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Ingersoll Rand Inc. Common Stock",
@@ -886,6 +1134,13 @@
       "ticker": "PG"
     },
     {
+      "asset_name": "MONRO INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Monro, Inc. Common Stock",
+      "record_id": "oge-278t:388f9f4676917482b00b368e",
+      "ticker": "MNRO"
+    },
+    {
       "asset_name": "ENOVIS CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Enovis Corporation",
@@ -898,6 +1153,20 @@
       "provider_asset_name": "Verizon Communications",
       "record_id": "oge-278t:38d0b8424a84ff9847685a0b",
       "ticker": "VZ"
+    },
+    {
+      "asset_name": "PDF SOLUTIONS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "PDF Solutions, Inc. Common Stock",
+      "record_id": "oge-278t:39e2d89aa239f7600688232e",
+      "ticker": "PDFS"
+    },
+    {
+      "asset_name": "ARCUS BIOSCIENCES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Arcus Biosciences, Inc.",
+      "record_id": "oge-278t:39fa17c76059bdad243e01ea",
+      "ticker": "RCUS"
     },
     {
       "asset_name": "ZOETIS INC",
@@ -928,6 +1197,13 @@
       "ticker": "BRK.B"
     },
     {
+      "asset_name": "THE COCA-COLA CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Coca-Cola Company",
+      "record_id": "oge-278t:3c2057a5c3a329ca612bac18",
+      "ticker": "KO"
+    },
+    {
       "asset_name": "DOW INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Dow Inc.",
@@ -949,6 +1225,13 @@
       "ticker": "RSG"
     },
     {
+      "asset_name": "CINCINNATI FINL CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Cincinnati Financial Corporation Common Stock",
+      "record_id": "oge-278t:3e71eaa1279ba9dbe97482c0",
+      "ticker": "CINF"
+    },
+    {
       "asset_name": "HUNTINGTON BANCSHARES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Huntington Bancshares Incorporated Common Stock",
@@ -963,11 +1246,25 @@
       "ticker": "EXLS"
     },
     {
+      "asset_name": "ALPHABET INC CL C",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Alphabet Inc. Class C Capital Stock",
+      "record_id": "oge-278t:41888894b8a715e8ffec9dcc",
+      "ticker": "GOOG"
+    },
+    {
       "asset_name": "THE CIGNA GROUP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "The Cigna Group",
       "record_id": "oge-278t:424ca3c025057c54804dd497",
       "ticker": "CI"
+    },
+    {
+      "asset_name": "BANKUNITED INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Bankunited, Inc.",
+      "record_id": "oge-278t:42b68a139e35fea89d76e5e5",
+      "ticker": "BKU"
     },
     {
       "asset_name": "LULULEMON ATHLETICA INC",
@@ -1044,6 +1341,27 @@
       "ticker": "BX"
     },
     {
+      "asset_name": "FISERV INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Fiserv, Inc. Common Stock",
+      "record_id": "oge-278t:46b221f875e2226747177b13",
+      "ticker": "FISV"
+    },
+    {
+      "asset_name": "PUBLIC SERVICE ENTERPRISE GROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Public Service Enterprise Group Incorporated",
+      "record_id": "oge-278t:471c4351cdd61a267e700aa4",
+      "ticker": "PEG"
+    },
+    {
+      "asset_name": "CSW INDUSTRIALS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CSW Industrials, Inc.",
+      "record_id": "oge-278t:4774ac97f7de17e156cc7716",
+      "ticker": "CSW"
+    },
+    {
       "asset_name": "AT&T INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "AT&T Inc.",
@@ -1102,6 +1420,13 @@
       "ticker": "DLTR"
     },
     {
+      "asset_name": "STONEX GROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "StoneX Group Inc. Common Stock",
+      "record_id": "oge-278t:4afe968993c20babd422aedc",
+      "ticker": "SNEX"
+    },
+    {
       "asset_name": "AIRBNB INC",
       "mapping_basis": "alpaca_unique_classless_asset_name",
       "provider_asset_name": "Airbnb, Inc. Class A Common Stock",
@@ -1109,11 +1434,25 @@
       "ticker": "ABNB"
     },
     {
+      "asset_name": "MERCK & CO. INC.",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Merck & Co., Inc.",
+      "record_id": "oge-278t:4c77a13bff14f625f23a6a92",
+      "ticker": "MRK"
+    },
+    {
       "asset_name": "BOEING CO",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Boeing Company",
       "record_id": "oge-278t:4c7c08980903a1627165590c",
       "ticker": "BA"
+    },
+    {
+      "asset_name": "GILEAD SCIENCES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Gilead Sciences, Inc. Common Stock",
+      "record_id": "oge-278t:4cc5b2fbb643bf1b94bd0371",
+      "ticker": "GILD"
     },
     {
       "asset_name": "KADANT INC",
@@ -1202,6 +1541,13 @@
       "ticker": "RCUS"
     },
     {
+      "asset_name": "MCDONALDS CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "McDonald's Corporation",
+      "record_id": "oge-278t:4ea18f7a3248c20bbea7eff6",
+      "ticker": "MCD"
+    },
+    {
       "asset_name": "LABCORP HOLDINGS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Labcorp Holdings Inc.",
@@ -1244,6 +1590,13 @@
       "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
       "semantic_rule_id": "semantic:9715fb99b80e5e4c",
       "ticker": "CBRE"
+    },
+    {
+      "asset_name": "GRID DYNAMICS HLDGS INC CLASS A",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Grid Dynamics Holdings, Inc. Class A Common Stock",
+      "record_id": "oge-278t:518b8794dce173c2819bda20",
+      "ticker": "GDYN"
     },
     {
       "asset_name": "PRIMORIS SVCS CORP.",
@@ -1344,6 +1697,13 @@
       "ticker": "GILD"
     },
     {
+      "asset_name": "ADAPT HEALTH CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "AdaptHealth Corp. Common Stock",
+      "record_id": "oge-278t:5a2bf4f92b442e577dc516bf",
+      "ticker": "AHCO"
+    },
+    {
       "asset_name": "AIRBNB INC CLA",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "Airbnb, Inc. Class A Common Stock",
@@ -1365,6 +1725,20 @@
       "provider_asset_name": "Alkermes plc Ordinary Shares",
       "record_id": "oge-278t:5beac18d1ac4f89e2fb6275c",
       "ticker": "ALKS"
+    },
+    {
+      "asset_name": "MICROSOFT CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Microsoft Corporation Common Stock",
+      "record_id": "oge-278t:5c0ba0ba0ab5e52123c60b4f",
+      "ticker": "MSFT"
+    },
+    {
+      "asset_name": "BRINKER INTL INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Brinker International, Inc.",
+      "record_id": "oge-278t:5c29c6e10781ccff6263d058",
+      "ticker": "EAT"
     },
     {
       "asset_name": "PFIZER INC",
@@ -1430,11 +1804,25 @@
       "ticker": "OTIS"
     },
     {
+      "asset_name": "GENERAL MOTORS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "General Motors Company",
+      "record_id": "oge-278t:5ec1b71c4785324915b60c72",
+      "ticker": "GM"
+    },
+    {
       "asset_name": "LULULEMON ATHLETICA INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "lululemon athletica inc. Common Stock",
       "record_id": "oge-278t:5f1e31b8232f2cb78e71c581",
       "ticker": "LULU"
+    },
+    {
+      "asset_name": "EXXONMOBIL HLDGS CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "ExxonMobil Holdings Corporation",
+      "record_id": "oge-278t:5f6d190c521515e8a1896b9f",
+      "ticker": "XOM"
     },
     {
       "asset_name": "ULTRA CLEAN HLDGS INC",
@@ -1606,11 +1994,32 @@
       "ticker": "PHIN"
     },
     {
+      "asset_name": "MOLINA HEALTHCARE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Molina Healthcare, Inc.",
+      "record_id": "oge-278t:687f1adafdf1e314feab802f",
+      "ticker": "MOH"
+    },
+    {
+      "asset_name": "CALIX INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CALIX, INC.",
+      "record_id": "oge-278t:68ccf9f310ab0c314d67978f",
+      "ticker": "CALX"
+    },
+    {
       "asset_name": "SALESFORCE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Salesforce, Inc.",
       "record_id": "oge-278t:69241a64ee5758e5f83bd8a2",
       "ticker": "CRM"
+    },
+    {
+      "asset_name": "UNITED AIRLINES HOLDINGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "United Airlines Holdings, Inc. Common Stock",
+      "record_id": "oge-278t:69e3401c4a8913868f929c51",
+      "ticker": "UAL"
     },
     {
       "asset_name": "[YUM BRANDS INC",
@@ -1676,6 +2085,13 @@
       "ticker": "PNW"
     },
     {
+      "asset_name": "DANAHER CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Danaher Corporation",
+      "record_id": "oge-278t:6d7218d5b56a6e92e523201b",
+      "ticker": "DHR"
+    },
+    {
       "asset_name": "CONOCOPHILLIPS,",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "ConocoPhillips",
@@ -1699,11 +2115,27 @@
       "ticker": "PLTR"
     },
     {
+      "asset_name": "LINDE PLC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Linde plc Ordinary Shares",
+      "record_id": "oge-278t:6e3fdf8beca9efd84d5e8af8",
+      "ticker": "LIN"
+    },
+    {
       "asset_name": "HUNTINGTON BANCSHARES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Huntington Bancshares Incorporated Common Stock",
       "record_id": "oge-278t:6e6f8f7578f1274ce1f07ce8",
       "ticker": "HBAN"
+    },
+    {
+      "asset_name": "GALLAGHER ARTHUR J & CO",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Arthur J. Gallagher & Co.",
+      "record_id": "oge-278t:6e9811d9100416942375f4b5",
+      "semantic_evidence_url": "https://investor.ajg.com/news/news-details/2026/Arthur-J--Gallagher--Co--Announces-Second-Quarter-2026-Financial-Results/default.aspx",
+      "semantic_rule_id": "semantic:1d35caa0153370ac",
+      "ticker": "AJG"
     },
     {
       "asset_name": "SKYWEST INC",
@@ -1757,6 +2189,13 @@
       "ticker": "SNPS"
     },
     {
+      "asset_name": "ALLEGIANT TRAVEL CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Allegiant Travel Company Common Stock",
+      "record_id": "oge-278t:70b4929d19ce9650f397ab7c",
+      "ticker": "ALGT"
+    },
+    {
       "asset_name": "GENERAL MILLS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "General Mills, Inc.",
@@ -1769,6 +2208,20 @@
       "provider_asset_name": "Kimberly-Clark Corporation Common Stock",
       "record_id": "oge-278t:71304810fbe6500b12c920b1",
       "ticker": "KMB"
+    },
+    {
+      "asset_name": "VITA COCO CO INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Vita Coco Company, Inc. Common Stock",
+      "record_id": "oge-278t:716a2f8b620e333ec6b959c0",
+      "ticker": "COCO"
+    },
+    {
+      "asset_name": "HORACE MANN EDUCATORS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Horace Mann Educators Corporation",
+      "record_id": "oge-278t:71e16b973d82863de0ed4adf",
+      "ticker": "HMN"
     },
     {
       "asset_name": "CENCORA INC",
@@ -1792,6 +2245,13 @@
       "ticker": "PFE"
     },
     {
+      "asset_name": "PEPSICO INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "PepsiCo, Inc. Common Stock",
+      "record_id": "oge-278t:75223842606f7632e949c279",
+      "ticker": "PEP"
+    },
+    {
       "asset_name": "FRESHPET INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Freshpet, Inc. Common Stock",
@@ -1813,6 +2273,13 @@
       "provider_asset_name": "Agilent Technologies Inc.",
       "record_id": "oge-278t:76977f620b0f723a906c6e99",
       "ticker": "A"
+    },
+    {
+      "asset_name": "BAXTER INTERNATIONAL INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Baxter International Inc.",
+      "record_id": "oge-278t:7731c6145a6b724d34bb61b6",
+      "ticker": "BAX"
     },
     {
       "asset_name": "DANAHER CORP",
@@ -1850,6 +2317,13 @@
       "semantic_evidence_url": "https://investors.cognizant.com/investor-resources/stock-information/default.aspx",
       "semantic_rule_id": "semantic:566c6144d915d99a",
       "ticker": "CTSH"
+    },
+    {
+      "asset_name": "SHERWIN-WILLIAMS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Sherwin-Williams Company",
+      "record_id": "oge-278t:78a2acecf56261847a2a7b51",
+      "ticker": "SHW"
     },
     {
       "asset_name": "ADOBE INC",
@@ -1908,6 +2382,13 @@
       "ticker": "HIG"
     },
     {
+      "asset_name": "PFIZER INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Pfizer Inc.",
+      "record_id": "oge-278t:7ac5e97f99f8c83ec1ecb6f8",
+      "ticker": "PFE"
+    },
+    {
       "asset_name": "COLGATE PALMOLIVE COMPANY",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Colgate-Palmolive Company",
@@ -1920,6 +2401,13 @@
       "provider_asset_name": "Palo Alto Networks, Inc. Common Stock",
       "record_id": "oge-278t:7b6a99469cb47e17b2332c34",
       "ticker": "PANW"
+    },
+    {
+      "asset_name": "SABRE CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Sabre Corporation Common Stock",
+      "record_id": "oge-278t:7ba1a9424029091b5cfdb460",
+      "ticker": "SABR"
     },
     {
       "asset_name": "COSTCO WHOLESALE CORP",
@@ -2080,6 +2568,13 @@
       "ticker": "CLX"
     },
     {
+      "asset_name": "GREENBRIER COS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Greenbrier Companies, Inc.",
+      "record_id": "oge-278t:832da1f565a41ebaa518a246",
+      "ticker": "GBX"
+    },
+    {
       "asset_name": "PFIZER INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Pfizer Inc.",
@@ -2101,11 +2596,25 @@
       "ticker": "APP"
     },
     {
+      "asset_name": "BERKSHIRE HATHAWAY CLASS B",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "BERKSHIRE HATHAWAY Class B",
+      "record_id": "oge-278t:841692e8529f7fc2d64eadc1",
+      "ticker": "BRK.B"
+    },
+    {
       "asset_name": "CERTARA INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Certara, Inc. Common Stock",
       "record_id": "oge-278t:84b0b8f56aea7f1f07c5f118",
       "ticker": "CERT"
+    },
+    {
+      "asset_name": "GENUINE PARTS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Genuine Parts Company",
+      "record_id": "oge-278t:850577135062cc506efebba4",
+      "ticker": "GPC"
     },
     {
       "asset_name": "GARTNER INC",
@@ -2127,6 +2636,13 @@
       "provider_asset_name": "Boeing Company",
       "record_id": "oge-278t:869ade07b228c15b19c99c5b",
       "ticker": "BA"
+    },
+    {
+      "asset_name": "PRIVIA HEALTH GROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Privia Health Group, Inc. Common Stock",
+      "record_id": "oge-278t:86b06d25044a45bc8bf4c116",
+      "ticker": "PRVA"
     },
     {
       "asset_name": "PALANTIR TECHNOLOGIES IN CLASS A",
@@ -2166,6 +2682,13 @@
       "ticker": "PG"
     },
     {
+      "asset_name": "APTARGROUP INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "AptarGroup, Inc.",
+      "record_id": "oge-278t:88d713e513c44a7d6230cd00",
+      "ticker": "ATR"
+    },
+    {
       "asset_name": "BROWN & BROWN INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Brown & Brown, Inc.",
@@ -2178,6 +2701,13 @@
       "provider_asset_name": "NVIDIA Corporation Common Stock",
       "record_id": "oge-278t:89ed652369d59aac4f1f147f",
       "ticker": "NVDA"
+    },
+    {
+      "asset_name": "BUCKLE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Buckle, Inc.",
+      "record_id": "oge-278t:8a02323fcd62662cb632c052",
+      "ticker": "BKE"
     },
     {
       "asset_name": "MERCK & CO INC COM",
@@ -2222,6 +2752,13 @@
       "provider_asset_name": "VISA Inc.",
       "record_id": "oge-278t:8d11ae83474446a21611b85b",
       "ticker": "V"
+    },
+    {
+      "asset_name": "PILGRIMS PRIDE CORP NEW",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Pilgrim's Pride Corporation Common Stock",
+      "record_id": "oge-278t:8d37e5ebb59c44f9f4a33d7d",
+      "ticker": "PPC"
     },
     {
       "asset_name": "ON SEMICONDUCTOR CORP.",
@@ -2326,6 +2863,13 @@
       "ticker": "CAH"
     },
     {
+      "asset_name": "FIRST HAWAIIAN INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "First Hawaiian, Inc. Common Stock",
+      "record_id": "oge-278t:923f1c032865d9377b4eabe7",
+      "ticker": "FHB"
+    },
+    {
       "asset_name": "PALO ALTO NETWORKS INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Palo Alto Networks, Inc. Common Stock",
@@ -2407,6 +2951,15 @@
       "ticker": "NABL"
     },
     {
+      "asset_name": "ITRON INC EQUITY CLASS EQUITY",
+      "mapping_basis": "alpaca_source_bound_semantic_alias",
+      "provider_asset_name": "Itron, Inc. Common Stock",
+      "record_id": "oge-278t:961816a93c3f05bf22dc9b5f",
+      "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+      "semantic_rule_id": "semantic:6af299337e0238b3",
+      "ticker": "ITRI"
+    },
+    {
       "asset_name": "XYLEM INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Xylem Inc",
@@ -2444,11 +2997,25 @@
       "ticker": "DHR"
     },
     {
+      "asset_name": "SHERWIN WILLIAMS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Sherwin-Williams Company",
+      "record_id": "oge-278t:9675288f8ff5695a509936bc",
+      "ticker": "SHW"
+    },
+    {
       "asset_name": "QUALCOMM INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "QUALCOMM Incorporated Common Stock",
       "record_id": "oge-278t:96e0f9e59409d6bf90b6d754",
       "ticker": "QCOM"
+    },
+    {
+      "asset_name": "CASELLA WASTE SYS INC CLASS A",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Casella Waste Systems, Inc. Class A Common Stock",
+      "record_id": "oge-278t:9793c6e00ff5d17e773a7f45",
+      "ticker": "CWST"
     },
     {
       "asset_name": "DIAMONDBACK ENERGY INC",
@@ -2484,6 +3051,13 @@
       "provider_asset_name": "Chipotle Mexican Grill, Inc.",
       "record_id": "oge-278t:9ad8daea7687aff141d9dcd3",
       "ticker": "CMG"
+    },
+    {
+      "asset_name": "BADGER METER INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Badger Meter, Inc.",
+      "record_id": "oge-278t:9b3c523a322c0d4b0beccfa0",
+      "ticker": "BMI"
     },
     {
       "asset_name": "ALIGNMENT HEALTHCARE INC",
@@ -2577,6 +3151,13 @@
       "ticker": "TSCO"
     },
     {
+      "asset_name": "LUMEN TECHNOLOGIES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Lumen Technologies, Inc.",
+      "record_id": "oge-278t:a03a7f00d9d6a526e7ccc60f",
+      "ticker": "LUMN"
+    },
+    {
       "asset_name": "BLACKSTONE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Blackstone Inc.",
@@ -2631,6 +3212,13 @@
       "provider_asset_name": "CALIX, INC.",
       "record_id": "oge-278t:a2e1f5ea11af3048c05f0fc9",
       "ticker": "CALX"
+    },
+    {
+      "asset_name": "Meta Platforms Inc",
+      "mapping_basis": "alpaca_unique_classless_asset_name",
+      "provider_asset_name": "Meta Platforms, Inc. Class A Common Stock",
+      "record_id": "oge-278t:a305577a4a532a02e9c6e193",
+      "ticker": "META"
     },
     {
       "asset_name": "VERIZON COMMUNICATIONS |",
@@ -2719,11 +3307,32 @@
       "ticker": "PFE"
     },
     {
+      "asset_name": "ADVANCED MICRO DEVICES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Advanced Micro Devices, Inc. Common Stock",
+      "record_id": "oge-278t:a89d334d318e48f7aa62cb6e",
+      "ticker": "AMD"
+    },
+    {
+      "asset_name": "MONRO INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Monro, Inc. Common Stock",
+      "record_id": "oge-278t:a981967eb248ac9bfd94f5c6",
+      "ticker": "MNRO"
+    },
+    {
       "asset_name": "EXPAND ENERGY CORPORATION",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Expand Energy Corporation Common Stock",
       "record_id": "oge-278t:a985a833821453da006a9c0d",
       "ticker": "EXE"
+    },
+    {
+      "asset_name": "HALLIBURTON COMPANY",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Halliburton Company",
+      "record_id": "oge-278t:a98ac4e1f0840138dec64f56",
+      "ticker": "HAL"
     },
     {
       "asset_name": "COSTCO WHOLESALE CORP",
@@ -2745,6 +3354,13 @@
       "provider_asset_name": "CoStar Group, Inc. Common Stock",
       "record_id": "oge-278t:aa0d15d75a043a85b20e4b9e",
       "ticker": "CSGP"
+    },
+    {
+      "asset_name": "BRIGHTSPRING HEALTH SVCS",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "BrightSpring Health Services, Inc. Common Stock",
+      "record_id": "oge-278t:aa247f7f5c6b04b23e7b989f",
+      "ticker": "BTSG"
     },
     {
       "asset_name": "WORKDAY INC CLA",
@@ -2835,6 +3451,27 @@
       "ticker": "VEEV"
     },
     {
+      "asset_name": "STEWART INFORMATION SVCS",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Stewart Information Services Corporation",
+      "record_id": "oge-278t:af16dc50f3f8414f37a8f23f",
+      "ticker": "STC"
+    },
+    {
+      "asset_name": "ORACLE CORPORATION",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Oracle Corp",
+      "record_id": "oge-278t:af406349f6e69d770f8cad8d",
+      "ticker": "ORCL"
+    },
+    {
+      "asset_name": "ROCKWELL AUTOMATION INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Rockwell Automation, Inc.",
+      "record_id": "oge-278t:af4ed47d8467b71dd7e9ea18",
+      "ticker": "ROK"
+    },
+    {
       "asset_name": "|AMERICAN ELECTRIC POWER COMPANY INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "American Electric Power Company, Inc. Common Stock",
@@ -2847,6 +3484,13 @@
       "provider_asset_name": "Netflix, Inc. Common Stock",
       "record_id": "oge-278t:b1a16e7e433ea24c21c6e2ce",
       "ticker": "NFLX"
+    },
+    {
+      "asset_name": "HAWKINS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Hawkins, Inc. Common Stock",
+      "record_id": "oge-278t:b20687a7be91ca828c2f6edd",
+      "ticker": "HWKN"
     },
     {
       "asset_name": "CHURCH & DWIGHT CO INC",
@@ -2923,6 +3567,20 @@
       "provider_asset_name": "BrightSpring Health Services, Inc. Common Stock",
       "record_id": "oge-278t:b5a01c35bc2dedc49b24a691",
       "ticker": "BTSG"
+    },
+    {
+      "asset_name": "CSW INDUSTRIALS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CSW Industrials, Inc.",
+      "record_id": "oge-278t:b6ab555bc7fa8453de96d1d8",
+      "ticker": "CSW"
+    },
+    {
+      "asset_name": "CONSTELLATION ENERGY CORPORATION",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Constellation Energy Corporation Common Stock",
+      "record_id": "oge-278t:b6c5d686b4cd5c6173017ed8",
+      "ticker": "CEG"
     },
     {
       "asset_name": "HOME DEPOT INC",
@@ -3009,6 +3667,13 @@
       "ticker": "SWKS"
     },
     {
+      "asset_name": "INNOVIVA INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Innoviva, Inc. Common Stock",
+      "record_id": "oge-278t:bc6975357f9fae580d0706aa",
+      "ticker": "INVA"
+    },
+    {
       "asset_name": "GE HEALTHCARE TECHNOLOGIES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "GE HealthCare Technologies Inc. Common Stock",
@@ -3039,6 +3704,13 @@
       "ticker": "BA"
     },
     {
+      "asset_name": "INTERCONTINENTALEXCHANGE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Intercontinental Exchange  Inc.",
+      "record_id": "oge-278t:beb5667cba82d04d4c3d50d0",
+      "ticker": "ICE"
+    },
+    {
       "asset_name": "MARVELL TECHNOLOGY INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Marvell Technology, Inc. Common Stock",
@@ -3051,6 +3723,13 @@
       "provider_asset_name": "International Business Machines Corporation",
       "record_id": "oge-278t:bf1dca63661e615c6eb81c61",
       "ticker": "IBM"
+    },
+    {
+      "asset_name": "ROCKWELL AUTOMATION INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Rockwell Automation, Inc.",
+      "record_id": "oge-278t:bf4111b790a7e473a544feae",
+      "ticker": "ROK"
     },
     {
       "asset_name": "|ALNYLAM PHARMACEUTICALS",
@@ -3074,6 +3753,20 @@
       "ticker": "REGN"
     },
     {
+      "asset_name": "MCDONALDS CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "McDonald's Corporation",
+      "record_id": "oge-278t:c137b97b8c71722cc5804e39",
+      "ticker": "MCD"
+    },
+    {
+      "asset_name": "QUIDELORTHO CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "QuidelOrtho Corporation Common Stock",
+      "record_id": "oge-278t:c1b1bb1622d87dea5e112ab2",
+      "ticker": "QDEL"
+    },
+    {
       "asset_name": "NIKE INC CLASS CLASS B",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "Nike, Inc.",
@@ -3088,6 +3781,13 @@
       "provider_asset_name": "Republic Services Inc.",
       "record_id": "oge-278t:c2fd6ea5772b282e727947a5",
       "ticker": "RSG"
+    },
+    {
+      "asset_name": "UFP TECHNOLOGIES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "UFP Technologies, Inc. Common Stock",
+      "record_id": "oge-278t:c3abe56aa4870fe01a1b9ac1",
+      "ticker": "UFPT"
     },
     {
       "asset_name": "MEDTRONIC PLC F.",
@@ -3106,6 +3806,13 @@
       "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
       "semantic_rule_id": "semantic:1f73198165078bb3",
       "ticker": "DASH"
+    },
+    {
+      "asset_name": "CARGURUS INC CLASS A",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "CarGurus, Inc. Class A Common Stock",
+      "record_id": "oge-278t:c492b2f7e3b595c8a7baecf7",
+      "ticker": "CARG"
     },
     {
       "asset_name": "CONSTELLATION ENERGY CORPORATION",
@@ -3150,6 +3857,13 @@
       "ticker": "NXPI"
     },
     {
+      "asset_name": "EXLSERVICE HLDGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "ExlService Holdings, Inc. Common Stock",
+      "record_id": "oge-278t:c5d08b736a575fcd7e4c325a",
+      "ticker": "EXLS"
+    },
+    {
       "asset_name": "SERVICENOW INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "SERVICENOW, INC.",
@@ -3185,6 +3899,13 @@
       "ticker": "FICO"
     },
     {
+      "asset_name": "Lowes Cos Inc",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Lowe's Companies Inc.",
+      "record_id": "oge-278t:c6bfb9769d870fdd1c0df8c1",
+      "ticker": "LOW"
+    },
+    {
       "asset_name": "PRIVIA HEALTH GROUP INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Privia Health Group, Inc. Common Stock",
@@ -3197,6 +3918,20 @@
       "provider_asset_name": "Northrop Grumman Corp.",
       "record_id": "oge-278t:c78427a68ea04fba15dc3b11",
       "ticker": "NOC"
+    },
+    {
+      "asset_name": "MCDONALDS CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "McDonald's Corporation",
+      "record_id": "oge-278t:c79f7f8135d6790022004315",
+      "ticker": "MCD"
+    },
+    {
+      "asset_name": "LUMENTUM HOLDINGS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Lumentum Holdings Inc. Common Stock",
+      "record_id": "oge-278t:c8702e016ec454620ea7a371",
+      "ticker": "LITE"
     },
     {
       "asset_name": "WALMART INC",
@@ -3218,6 +3953,13 @@
       "provider_asset_name": "O'Reilly Automotive, Inc. Common Stock",
       "record_id": "oge-278t:c89503bf52b5e089adb82688",
       "ticker": "ORLY"
+    },
+    {
+      "asset_name": "WISDOMTREE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "WisdomTree, Inc.",
+      "record_id": "oge-278t:c8cd687f81684bfce5f84392",
+      "ticker": "WT"
     },
     {
       "asset_name": "HONEYWELL INTL INC",
@@ -3255,6 +3997,13 @@
       "ticker": "WWW"
     },
     {
+      "asset_name": "STATE STREET COMMUNICATION SERVICES SELECT SECTOR SPDR ETF",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "State Street Communication Services Select Sector SPDR ETF",
+      "record_id": "oge-278t:cb69b026f0c26d0977004500",
+      "ticker": "XLC"
+    },
+    {
       "asset_name": "REPUBLIC SERVICES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Republic Services Inc.",
@@ -3267,6 +4016,13 @@
       "provider_asset_name": "Amcor plc Ordinary Shares",
       "record_id": "oge-278t:cc9b89532475666b8630a7c8",
       "ticker": "AMCR"
+    },
+    {
+      "asset_name": "SLB LIMITED",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "SLB Limited",
+      "record_id": "oge-278t:cca535209bb2f67c1c566c40",
+      "ticker": "SLB"
     },
     {
       "asset_name": "PILGRIMS PRIDE CORP NEW",
@@ -3297,6 +4053,13 @@
       "ticker": "MA"
     },
     {
+      "asset_name": "T-MOBILE US INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "T-Mobile US, Inc. Common Stock",
+      "record_id": "oge-278t:cdffe2ae229b6437bbdff61f",
+      "ticker": "TMUS"
+    },
+    {
       "asset_name": "WABTEC CORP",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Wabtec Inc.",
@@ -3318,6 +4081,13 @@
       "provider_asset_name": "Hormel Foods Corporation",
       "record_id": "oge-278t:cfa7952e717a09490182a5db",
       "ticker": "HRL"
+    },
+    {
+      "asset_name": "GREEN BRICK PARTNERS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Green Brick Partners, Inc",
+      "record_id": "oge-278t:cfb0dd9d8374cc2cac665166",
+      "ticker": "GRBK"
     },
     {
       "asset_name": "HOME DEPOT INC",
@@ -3369,6 +4139,13 @@
       "ticker": "MCD"
     },
     {
+      "asset_name": "STEEL DYNAMICS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Steel Dynamics, Inc.",
+      "record_id": "oge-278t:d3d1fa6c3a669e864eb964c3",
+      "ticker": "STLD"
+    },
+    {
       "asset_name": "ARCHER-DANIELS-MIDLAND CO",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Archer Daniels Midland Company",
@@ -3416,6 +4193,13 @@
       "provider_asset_name": "Stellantis N.V.",
       "record_id": "oge-278t:d62f706eca333fb179f75d1c",
       "ticker": "STLA"
+    },
+    {
+      "asset_name": "PROTAGONIST THERAPEUTICS",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Protagonist Therapeutics, Inc. Common Stock",
+      "record_id": "oge-278t:d6e174b49f38e6fd7948d05f",
+      "ticker": "PTGX"
     },
     {
       "asset_name": "Snowflake Inc",
@@ -3516,6 +4300,20 @@
       "ticker": "CRM"
     },
     {
+      "asset_name": "PIPER SANDLER COS",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Piper Sandler Companies",
+      "record_id": "oge-278t:dd0e80ca108cf0b5a1695dd6",
+      "ticker": "PIPR"
+    },
+    {
+      "asset_name": "THE CAMPBELLS CO",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "The Campbell's Company Common Stock",
+      "record_id": "oge-278t:dd1b121c8724d05d134d8aa8",
+      "ticker": "CPB"
+    },
+    {
       "asset_name": "GODADDY INC CLASS CLASS A",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "GoDaddy Inc",
@@ -3537,6 +4335,13 @@
       "provider_asset_name": "Ryman Hospitality Properties, Inc",
       "record_id": "oge-278t:de2001c5b8c20800e8737a03",
       "ticker": "RHP"
+    },
+    {
+      "asset_name": "APTIV PLC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Aptiv PLC",
+      "record_id": "oge-278t:de4a7a255f244dcaa43d5363",
+      "ticker": "APTV"
     },
     {
       "asset_name": "COINBASE GLOBAL INC",
@@ -3567,6 +4372,13 @@
       "semantic_evidence_url": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
       "semantic_rule_id": "semantic:19c6878fcfded8aa",
       "ticker": "GPN"
+    },
+    {
+      "asset_name": "WILLIAMS SONOMA INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Williams-Sonoma, Inc.",
+      "record_id": "oge-278t:e0f4ea987b02d0656ed59acb",
+      "ticker": "WSM"
     },
     {
       "asset_name": "CMS ENERGY CORP",
@@ -3606,6 +4418,13 @@
       "ticker": "MRSH"
     },
     {
+      "asset_name": "APPLOVIN CORPORATION",
+      "mapping_basis": "alpaca_unique_classless_asset_name",
+      "provider_asset_name": "Applovin Corporation Class A Common Stock",
+      "record_id": "oge-278t:e27338f3ba0f18b75f94f185",
+      "ticker": "APP"
+    },
+    {
       "asset_name": "PAYCOM SOFTWARE INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "PAYCOM SOFTWARE, INC.",
@@ -3625,6 +4444,13 @@
       "provider_asset_name": "Ares Management Corporation Class A Common Stock",
       "record_id": "oge-278t:e345c65ee5158e1f33a7666e",
       "ticker": "ARES"
+    },
+    {
+      "asset_name": "LOWES COMPANIES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Lowe's Companies Inc.",
+      "record_id": "oge-278t:e381a0cf12ad75d726bcf1dd",
+      "ticker": "LOW"
     },
     {
       "asset_name": "CARMAX INC",
@@ -3697,6 +4523,13 @@
       "provider_asset_name": "Axon Enterprise, Inc. Common Stock",
       "record_id": "oge-278t:e7a5802f827585b48211d7f3",
       "ticker": "AXON"
+    },
+    {
+      "asset_name": "WERNER ENTERPRISES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Werner Enterprises, Inc. Common Stock",
+      "record_id": "oge-278t:e7adb01e4837dae40b33efa0",
+      "ticker": "WERN"
     },
     {
       "asset_name": "SOUTHERN CO",
@@ -3827,6 +4660,13 @@
       "provider_asset_name": "Regeneron Pharmaceuticals, Inc. Common Stock",
       "record_id": "oge-278t:ed4f5c9a52eb498ac61d23ad",
       "ticker": "REGN"
+    },
+    {
+      "asset_name": "BRIGHTSPRING HEALTH SERVICES INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "BrightSpring Health Services, Inc. Common Stock",
+      "record_id": "oge-278t:ed52c694aaa7db7302fc4948",
+      "ticker": "BTSG"
     },
     {
       "asset_name": "MERCK & COMPANY INC",
@@ -3986,6 +4826,20 @@
       "ticker": "ED"
     },
     {
+      "asset_name": "VIAVI SOLUTIONS INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Viavi Solutions Inc. Common Stock",
+      "record_id": "oge-278t:f736ddde9e8b12b9998280f2",
+      "ticker": "VIAV"
+    },
+    {
+      "asset_name": "FRANKLIN ELEC INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Franklin Electric Co., Inc. Common Stock",
+      "record_id": "oge-278t:f74000e3891eba7671797a27",
+      "ticker": "FELE"
+    },
+    {
       "asset_name": "Medtronic Plc",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Medtronic plc",
@@ -4046,6 +4900,13 @@
       "ticker": "WDAY"
     },
     {
+      "asset_name": "POOL CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Pool Corporation Common Stock",
+      "record_id": "oge-278t:f8b546b3a240d2fde4c801b8",
+      "ticker": "POOL"
+    },
+    {
       "asset_name": "INGREDION INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "Ingredion Incorporated",
@@ -4095,6 +4956,13 @@
       "provider_asset_name": "Argan, Inc",
       "record_id": "oge-278t:f984b48589820748def0a4a8",
       "ticker": "AGX"
+    },
+    {
+      "asset_name": "POOL CORP",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Pool Corporation Common Stock",
+      "record_id": "oge-278t:f9b0b70ef4ddb6cf992fedac",
+      "ticker": "POOL"
     },
     {
       "asset_name": "ZIFF DAVIS INC",
@@ -4157,6 +5025,13 @@
       "ticker": "CEG"
     },
     {
+      "asset_name": "PAYCOM SOFTWARE INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "PAYCOM SOFTWARE, INC.",
+      "record_id": "oge-278t:fbd79c2050cf54e655bbfb18",
+      "ticker": "PAYC"
+    },
+    {
       "asset_name": "BLUE OWL CAPITAL INC CLA",
       "mapping_basis": "alpaca_source_bound_semantic_alias",
       "provider_asset_name": "Blue Owl Capital Inc.",
@@ -4180,6 +5055,13 @@
       "provider_asset_name": "Diebold Nixdorf, Incorporated",
       "record_id": "oge-278t:fcd75e51ae643a5185a03733",
       "ticker": "DBD"
+    },
+    {
+      "asset_name": "CONAGRA BRANDS, INC.",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Conagra Brands, Inc.",
+      "record_id": "oge-278t:fda30e2de7e760f377f917d1",
+      "ticker": "CAG"
     },
     {
       "asset_name": "UFP TECHNOLOGIES INC",
@@ -4210,6 +5092,13 @@
       "ticker": "AZO"
     },
     {
+      "asset_name": "PHILLIPS EDISON & CO INC",
+      "mapping_basis": "alpaca_unique_asset_name",
+      "provider_asset_name": "Phillips Edison & Company, Inc. Common Stock",
+      "record_id": "oge-278t:ff4e6165098701bc14e87880",
+      "ticker": "PECO"
+    },
+    {
       "asset_name": "GE HEALTHCARE TECHNOLOGIES INC",
       "mapping_basis": "alpaca_unique_asset_name",
       "provider_asset_name": "GE HealthCare Technologies Inc. Common Stock",
@@ -4217,10 +5106,10 @@
       "ticker": "GEHC"
     }
   ],
-  "new_mapping_count": 0,
+  "new_mapping_count": 125,
   "retained_mapping_count": 579,
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
-  "semantic_mapping_count": 63,
-  "source_transaction_count": 843,
-  "unmatched_record_count": 261
+  "semantic_mapping_count": 66,
+  "source_transaction_count": 1071,
+  "unmatched_record_count": 363
 }
