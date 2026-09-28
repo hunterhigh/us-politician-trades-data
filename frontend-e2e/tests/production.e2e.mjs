@@ -94,7 +94,7 @@ try {
     await page.evaluate(() => openPerson('oge:076544f8ba0638cf'));
     assert.equal(await page.locator('#personPage').getAttribute('aria-hidden'), 'false');
     assert.match(await page.locator('#personPage').textContent(), /Donald Trump/);
-    await page.evaluate(ticker => openTicker(ticker), septemberMarketTicker);
+    await page.evaluate(ticker => openTickerFromPerson(ticker), septemberMarketTicker);
     assert.equal(await page.locator('#stockPage').getAttribute('aria-hidden'), 'false');
     assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), septemberMarketTicker);
     assert.equal(await page.locator('.stock-price-chart').count(), 1);
