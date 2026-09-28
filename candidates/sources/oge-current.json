@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-09-28T08:06:55Z",
+    "data_cutoff_at": "2026-09-28T14:31:09Z",
     "default_window_days": 30,
-    "generated_at": "2026-09-28T08:06:55Z",
+    "generated_at": "2026-09-28T14:31:09Z",
     "is_demo": false,
-    "snapshot_id": "63538245954f26bd8872415d6645c2b74203a3c5f52fec5613c3780800d8fa10",
+    "snapshot_id": "91252980c1f9fc67cca2e841e23014511cdb80e9c75d1426e48fc35aec23fb39",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17122,10 +17122,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-09-28T08:06:55Z",
-      "detail": "Prior direct OGE status: 334 direct 278-T documents; 334 PDFs extracted; 5079 transactions qualified; 4766 request-required catalog entries were not automated; 5 direct documents were retained from archived catalog history.; White House public 278-T: 80 PDFs audited, 1391 new transactions qualified, 7757 rows quarantined; 6470 total OGE candidate transactions.; White House annual: 26 complete and 2 partial filer-reported reports, 816 holdings and 6759 transactions",
-      "last_checked_at": "2026-09-28T08:06:55Z",
-      "last_successful_sync_at": "2026-09-28T08:06:55Z",
+      "data_cutoff_at": "2026-09-28T14:31:09Z",
+      "detail": "Prior direct OGE status: 334 direct 278-T documents; 334 PDFs extracted; 5079 transactions qualified; 4767 request-required catalog entries were not automated; 5 direct documents were retained from archived catalog history.; White House public 278-T: 80 PDFs audited, 1391 new transactions qualified, 7757 rows quarantined; 6470 total OGE candidate transactions.; White House annual: 26 complete and 2 partial filer-reported reports, 816 holdings and 6759 transactions",
+      "last_checked_at": "2026-09-28T14:31:09Z",
+      "last_successful_sync_at": "2026-09-28T14:31:09Z",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
