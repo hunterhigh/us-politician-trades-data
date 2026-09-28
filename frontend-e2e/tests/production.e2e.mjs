@@ -36,6 +36,21 @@ for (const key of ['people', 'transactions', 'reported_holdings', 'security_mark
 const marketTickers = new Set(data.security_market_data.map(row => row.ticker));
 const marketTicker = data.transactions.find(row => row.ticker && marketTickers.has(row.ticker))?.ticker;
 assert.ok(marketTicker, 'At least one disclosed ticker must have a market series');
+const requireTrumpSeptember = process.env.REQUIRE_TRUMP_SEPT_OGE === 'true';
+const septemberFilingId = 'e590116fc9631e9885258e7a002de209';
+const septemberRows = data.transactions.filter(row => row.filing_id === septemberFilingId);
+let septemberMarketTicker;
+if (requireTrumpSeptember) {
+  assert.equal(septemberRows.length, 228, 'September OGE filing must contribute 228 qualified rows');
+  assert.ok(septemberRows.every(row =>
+    row.person_id === 'oge:076544f8ba0638cf' &&
+    row.filed_at === '2026-09-08T00:00:00Z' &&
+    row.source_id === 'oge' && row.transaction_date.startsWith('2026-07-')
+  ), 'September OGE facts must retain their filer, filing date and July trade dates');
+  septemberMarketTicker = septemberRows.find(row =>
+    row.ticker && marketTickers.has(row.ticker))?.ticker;
+  assert.ok(septemberMarketTicker, 'A September OGE ticker must have real market data');
+}
 
 const browser = await chromium.launch({
   executablePath: browserExecutable(),
@@ -75,6 +90,17 @@ try {
 
   await page.locator('#stockBack').click();
   await page.locator('#personBack').click();
+  if (requireTrumpSeptember) {
+    await page.evaluate(() => openPerson('oge:076544f8ba0638cf'));
+    assert.equal(await page.locator('#personPage').getAttribute('aria-hidden'), 'false');
+    assert.match(await page.locator('#personPage').textContent(), /Donald Trump/);
+    await page.evaluate(ticker => openTicker(ticker), septemberMarketTicker);
+    assert.equal(await page.locator('#stockPage').getAttribute('aria-hidden'), 'false');
+    assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), septemberMarketTicker);
+    assert.equal(await page.locator('.stock-price-chart').count(), 1);
+    await page.locator('#stockBack').click();
+    await page.locator('#personBack').click();
+  }
   await page.locator(`[data-ticker-link="${marketTicker}"]:visible`).first().click();
   assert.equal(await page.locator('#stockPage').getAttribute('aria-hidden'), 'false');
   assert.equal((await page.locator('.stock-ticker').textContent())?.trim(), marketTicker);
@@ -97,6 +123,7 @@ try {
     market: data.security_market_data.length,
     sources: data.source_health.length,
     browser: browserExecutable(),
+    trump_september_rows: septemberRows.length,
   }));
 } finally {
   await browser.close();

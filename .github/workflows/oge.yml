@@ -264,7 +264,30 @@ jobs:
                   raise SystemExit('Immutable OGE extraction collision')
               target.write_bytes(source.read_bytes())
           PY
-          cutoff="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_replay.py \
+            --review-root "$REVIEW_ROOT"
+          # Keep the OGE projection within the existing House/Senate native
+          # cutoffs. A lagging source must not strand an otherwise complete
+          # source-bound filing or make the unified snapshot appear fresher.
+          cutoff="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+          now = datetime.now(timezone.utc)
+          root = Path(os.environ['REVIEW_ROOT'])
+          others = []
+          for source in ('house_clerk', 'senate_efd'):
+              path = root / 'candidates/sources' / f'{source}-current.json'
+              if path.is_file():
+                  value = json.loads(path.read_text(encoding='utf-8'))
+                  others.append(datetime.fromisoformat(
+                      value['meta']['data_cutoff_at'].replace('Z', '+00:00')))
+          earliest = min(others) if others else now
+          cutoff = (earliest + timedelta(days=1)
+                    if now - earliest > timedelta(days=2) else now)
+          print(cutoff.isoformat(timespec='seconds').replace('+00:00', 'Z'))
+          PY
+          )"
           mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
           PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate \
             --catalog .local/oge-catalog.json \

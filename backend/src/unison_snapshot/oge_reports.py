@@ -17,6 +17,23 @@ from .oge import OgeCatalogError, OgeSourceConfig, require_collection_enabled
 REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
+TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
+TRUMP_SEPT_2026_DOCUMENT_ID = "e590116fc9631e9885258e7a002de209"
+TRUMP_SEPT_2026_SOURCE_SHA256 = (
+    "833c3b4810eaf2e83a3b27867af149634e65145dc4577c753ef20f6b6d515dcf"
+)
+TRUMP_SEPT_2026_SOURCE_URL = (
+    "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/"
+    "E590116FC9631E9885258E7A002DE209/$FILE/Donald-J-Trump-09.8.2026-278T.pdf"
+)
+TRUMP_SEPT_2026_FILING_DATE_EVIDENCE = {
+    "basis": "fixed_source_visual_filer_certification",
+    "page_number": 1,
+    "field": "Filer's Certification / Date",
+    "raw": "9/8/26",
+    "filed_at": "2026-09-08",
+    "bbox_pdf_points": [525, 260, 650, 290],
+}
 MAX_PDF_BYTES = 50 * 1024 * 1024
 MAX_PDF_PAGES = 500
 
@@ -508,7 +525,18 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         raise OgeCatalogError("OGE 278-T bytes do not match archive metadata")
     text, rows = _extract_pdf(pdf_path)
     signatures = _SIGNATURE_DATE.findall(text)
-    if len(signatures) != 1:
+    fixed_source = (
+        metadata.get("document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
+        and metadata.get("document_url") == TRUMP_SEPT_2026_SOURCE_URL
+        and source_sha == TRUMP_SEPT_2026_SOURCE_SHA256
+        and metadata.get("filer_name") == "Trump, Donald J"
+        and metadata.get("agency") == "White House Office"
+        and metadata.get("position_title") == "President"
+    )
+    if fixed_source:
+        filed_at = TRUMP_SEPT_2026_FILING_DATE_EVIDENCE["filed_at"]
+        filing_reasons = []
+    elif len(signatures) != 1:
         filed_at = None
         filing_reasons = ["filer_signature_date_not_unique"]
     else:
@@ -521,7 +549,8 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         filing_reasons.append("no_transaction_rows_found")
     return {
         "schema_version": EXTRACTION_SCHEMA,
-        "parser_version": PARSER_VERSION,
+        "parser_version": (TRUMP_SEPT_2026_PARSER_VERSION if fixed_source else
+                           PARSER_VERSION),
         "source_id": "oge",
         "document_id": metadata["document_id"],
         "source_url": metadata["document_url"],
@@ -531,6 +560,8 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         "position_title": metadata["position_title"],
         "catalog_added_date": metadata["catalog_added_date"],
         "filed_at": filed_at,
+        **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
+           if fixed_source else {}),
         "document_reasons": filing_reasons,
         "evidence_complete": not filing_reasons,
         "transactions": transactions,

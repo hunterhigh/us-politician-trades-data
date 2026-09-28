@@ -6,8 +6,12 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_candidate import build_oge_candidate
-from unison_snapshot.oge_reports import EXTRACTION_SCHEMA, PARSER_VERSION
+from unison_snapshot.oge_candidate import TRUMP_PERSON_ID, build_oge_candidate
+from unison_snapshot.oge_reports import (
+    EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
+    TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
+    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
+)
 
 
 DOCUMENT_ID = "42300720a4227e9e85258e77002dd1b3"
@@ -61,6 +65,34 @@ def base():
 
 
 class OgeCandidateTests(unittest.TestCase):
+    def test_fixed_trump_september_source_uses_existing_person_and_visual_date(self):
+        row = direct()
+        row.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
+                   document_url=TRUMP_SEPT_2026_SOURCE_URL,
+                   filer_name="Trump, Donald J", agency="White House Office",
+                   position_title="President", catalog_added_date="2026-09-22")
+        parsed = extraction()
+        parsed.update(parser_version=TRUMP_SEPT_2026_PARSER_VERSION,
+                      document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
+                      source_url=TRUMP_SEPT_2026_SOURCE_URL,
+                      source_sha256=TRUMP_SEPT_2026_SOURCE_SHA256,
+                      catalog_filer_name="Trump, Donald J",
+                      agency="White House Office", position_title="President",
+                      catalog_added_date="2026-09-22", filed_at="2026-09-08",
+                      filing_date_evidence=TRUMP_SEPT_2026_FILING_DATE_EVIDENCE)
+        parsed["transactions"][0]["transaction_date"] = "2026-07-07"
+        result, audit = build_oge_candidate(
+            catalog(row), [parsed], base(), data_cutoff_at="2026-09-23T23:59:59Z")
+        self.assertEqual(result["people"][0]["id"], TRUMP_PERSON_ID)
+        self.assertEqual(result["people"][0]["display_name"], "Donald Trump")
+        self.assertEqual(result["transactions"][0]["person_id"], TRUMP_PERSON_ID)
+        self.assertEqual(audit["promoted_transaction_count"], 1)
+        parsed["filing_date_evidence"] = {"raw": "9/14/26"}
+        result, audit = build_oge_candidate(
+            catalog(row), [parsed], base(), data_cutoff_at="2026-09-23T23:59:59Z")
+        self.assertEqual(result["transactions"], [])
+        self.assertIn("extraction_contract_invalid", audit["reports"][0]["document_reasons"])
+
     def test_builds_frontend_compatible_candidate(self):
         candidate, audit = build_oge_candidate(
             catalog(), [extraction()], base(), data_cutoff_at="2025-06-04T00:00:00Z")

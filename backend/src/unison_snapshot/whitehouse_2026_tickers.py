@@ -11,14 +11,22 @@ from .alpaca_market import (
 )
 from .codec import encode
 from .whitehouse_278t import TRUMP_2026_PROFILES
+from .oge_reports import (
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_URL,
+)
 
 
 SCHEMA = "whitehouse-trump-2026-278t-ticker-mapping/v1"
 TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 SEMANTIC_BASIS = "alpaca_source_bound_semantic_alias"
+PRIOR_TRUMP_BASIS = "prior_trump_exact_asset_name"
 ALLOWED_BASES = {"alpaca_unique_asset_name", "alpaca_unique_classless_asset_name",
-                 SEMANTIC_BASIS}
+                 SEMANTIC_BASIS, PRIOR_TRUMP_BASIS}
 REPORTS = {profile["document_id"]: profile for profile in TRUMP_2026_PROFILES}
+REPORTS[TRUMP_SEPT_2026_DOCUMENT_ID] = {
+    "source_url": TRUMP_SEPT_2026_SOURCE_URL,
+    "report_date": "2026-09-08",
+}
 ANNUAL_MAPPING_EVIDENCE = (
     "https://github.com/hunterhigh/us-politician-trades-data/blob/"
     "10bd7a05b68ce52b9d8650a2a669639c4d46b314/"
@@ -160,6 +168,51 @@ def _apply_semantic_aliases(proposed: dict, assets: list[dict],
     return recovered
 
 
+def _apply_prior_trump_exact_names(proposed: dict, assets: list[dict],
+                                   ambiguous_ids: set[str]) -> list[dict]:
+    """Reuse only a unique, already qualified Trump ticker for this fixed OGE PDF."""
+    registry = _asset_registry(assets)
+    prior_by_name: dict[str, dict[str, set[str]]] = {}
+    for row in proposed["transactions"]:
+        if (row.get("person_id") != TRUMP_PERSON_ID or
+                row.get("filing_id") == TRUMP_SEPT_2026_DOCUMENT_ID or
+                row.get("source_id") != "oge" or
+                row.get("verification_status") != "official_matched" or
+                not isinstance(row.get("ticker"), str) or
+                not TICKER.fullmatch(row["ticker"]) or
+                row.get("ticker_mapping_basis") not in {
+                    "alpaca_unique_asset_name", "alpaca_unique_classless_asset_name",
+                    SEMANTIC_BASIS,
+                } or
+                not isinstance(row.get("asset_name"), str)):
+            continue
+        prior_by_name.setdefault(row["asset_name"], {}).setdefault(
+            row["ticker"], set()).add(row["id"])
+    recovered = []
+    for row in proposed["transactions"]:
+        if (row.get("filing_id") != TRUMP_SEPT_2026_DOCUMENT_ID or
+                not _eligible_name(row) or row.get("ticker") or
+                row["id"] in ambiguous_ids):
+            continue
+        matches = prior_by_name.get(row["asset_name"], {})
+        if len(matches) != 1:
+            continue
+        ticker, prior_ids = next(iter(matches.items()))
+        asset = registry.get(ticker)
+        if (asset is None or asset["status"] != "active" or
+                asset["exchange"] not in SIP_EXCHANGES):
+            continue
+        row["ticker"] = ticker
+        row["ticker_mapping_basis"] = PRIOR_TRUMP_BASIS
+        recovered.append({
+            "record_id": row["id"], "asset_name": row["asset_name"],
+            "ticker": ticker, "mapping_basis": PRIOR_TRUMP_BASIS,
+            "provider_asset_name": asset["name"],
+            "prior_record_ids": sorted(prior_ids),
+        })
+    return recovered
+
+
 def is_allowed_2026_ticker_change(before: dict, after: dict) -> bool:
     """Accept only a mapped ticker or correction of a known OCR suffix error."""
     if not _source_row(before) or not _source_row(after):
@@ -200,6 +253,12 @@ def _previous(previous: dict | None) -> dict[str, dict]:
                     row.get("semantic_rule_id") != _semantic_rule_id(row["asset_name"]) or
                     row.get("semantic_evidence_url") != rule[1]):
                 raise ValueError("Previous Trump 2026 semantic rule changed")
+        if row["mapping_basis"] == PRIOR_TRUMP_BASIS and not (
+                isinstance(row.get("prior_record_ids"), list) and
+                row["prior_record_ids"] and
+                all(isinstance(item, str) and item for item in row["prior_record_ids"]) and
+                row["prior_record_ids"] == sorted(set(row["prior_record_ids"]))):
+            raise ValueError("Previous Trump exact-name evidence is invalid")
         result[row["record_id"]] = row
     return result
 
@@ -254,8 +313,12 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         corrected, assets, eligible=_eligible_name)
     ambiguous_ids = {row["record_id"] for row in current["ambiguous_records"]}
     recovered.extend(_apply_semantic_aliases(proposed, assets, ambiguous_ids))
+    recovered.extend(_apply_prior_trump_exact_names(proposed, assets, ambiguous_ids))
     proposed_by_id = {row["record_id"]: row for row in recovered}
     prior_by_id = _previous(previous)
+    active_registry = _asset_registry(assets)
+    references = {row["id"]: row for row in proposed["transactions"]
+                  if isinstance(row.get("id"), str)}
     if prior_by_id.keys() & ambiguous_ids:
         raise ValueError("A sticky Trump 2026 ticker mapping is now ambiguous")
     rows_by_id = {row["id"]: row for row in proposed["transactions"] if _source_row(row)}
@@ -264,6 +327,21 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         row = rows_by_id.get(record_id)
         if row is None or row["asset_name"] != old["asset_name"]:
             raise ValueError("A sticky Trump 2026 ticker mapping lost its source row")
+        if old["mapping_basis"] == PRIOR_TRUMP_BASIS:
+            asset = active_registry.get(old["ticker"])
+            if (asset is None or asset["status"] != "active" or
+                    asset["exchange"] not in SIP_EXCHANGES or
+                    any((reference := references.get(prior_id)) is None or
+                        reference.get("person_id") != TRUMP_PERSON_ID or
+                        reference.get("source_id") != "oge" or
+                        reference.get("verification_status") != "official_matched" or
+                        reference.get("asset_name") != old["asset_name"] or
+                        reference.get("ticker") != old["ticker"] or
+                        reference.get("ticker_mapping_basis") not in {
+                            "alpaca_unique_asset_name", "alpaca_unique_classless_asset_name",
+                            SEMANTIC_BASIS,
+                        } for prior_id in old["prior_record_ids"])):
+                raise ValueError("A sticky Trump exact-name source is no longer valid")
         current_mapping = proposed_by_id.get(record_id)
         if current_mapping is not None and any(
                 current_mapping.get(key) != old.get(key) for key in (
@@ -278,7 +356,7 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
             mappings.append({key: current_mapping[key] for key in (
                 "record_id", "asset_name", "ticker", "mapping_basis",
                 "provider_asset_name", "semantic_rule_id",
-                "semantic_evidence_url") if key in current_mapping})
+                "semantic_evidence_url", "prior_record_ids") if key in current_mapping})
     mappings.sort(key=lambda row: row["record_id"])
     for old, new in zip(before["transactions"], proposed["transactions"], strict=True):
         if old["id"] != new["id"]:
