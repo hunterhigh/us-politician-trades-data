@@ -70,9 +70,9 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         result, audit = enrich_trump_2026_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
 
-        self.assertEqual(len(SEPTEMBER_SOURCE_ALIASES), 83)
-        self.assertEqual(audit["new_mapping_count"], 83)
-        self.assertEqual(audit["source_directory_mapping_count"], 83)
+        self.assertEqual(len(SEPTEMBER_SOURCE_ALIASES), 155)
+        self.assertEqual(audit["new_mapping_count"], 155)
+        self.assertEqual(audit["source_directory_mapping_count"], 155)
         self.assertEqual(audit["unmatched_record_count"], 0)
         self.assertEqual(
             {row["ticker"] for row in result["transactions"]},
@@ -92,8 +92,40 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         repeated, repeated_audit = enrich_trump_2026_tickers(
             restored, assets, checked_at="2026-09-28T01:00:00Z", previous=audit)
         self.assertEqual(repeated["transactions"], result["transactions"])
-        self.assertEqual(repeated_audit["retained_mapping_count"], 83)
+        self.assertEqual(repeated_audit["retained_mapping_count"], 155)
         self.assertEqual(repeated_audit["new_mapping_count"], 0)
+
+    def test_fixed_september_kroger_false_explicit_ticker_is_corrected_only_on_its_row(self):
+        kroger_id = "oge-278t:6edb6800bfd420ed027f7f1c"
+        kroger = self.target(kroger_id, "KROGER CO", "2026-07-23")
+        kroger.update(ticker="THE", ticker_mapping_basis="filing_explicit")
+        unrelated = self.target("oge-278t:" + "9" * 24, "UNRELATED CORP")
+        unrelated.update(ticker="ZZZ", ticker_mapping_basis="filing_explicit")
+        candidate = {"meta": {"is_demo": False},
+                     "transactions": [kroger, unrelated],
+                     "reported_holdings": []}
+        assets = [self.asset("KR", "The Kroger Co.", exchange="NYSE")]
+
+        result, audit = enrich_trump_2026_tickers(
+            candidate, assets, checked_at="2026-09-28T00:00:00Z")
+        self.assertEqual(result["transactions"][0]["ticker"], "KR")
+        self.assertEqual(result["transactions"][0]["ticker_mapping_basis"],
+                         SOURCE_DIRECTORY_BASIS)
+        self.assertEqual(result["transactions"][1], unrelated)
+        self.assertEqual(audit["correction_ids"], [kroger_id])
+        mapping = next(row for row in audit["mappings"]
+                       if row["record_id"] == kroger_id)
+        self.assertEqual(mapping["source_page_number"], 36)
+        self.assertEqual(mapping["source_row_number"], 1129)
+        self.assertEqual(mapping["ticker"], "KR")
+
+        restored = restore_pre_enrichment(result, audit)
+        self.assertEqual(restored["transactions"], candidate["transactions"])
+        repeated, repeated_audit = enrich_trump_2026_tickers(
+            restored, assets, checked_at="2026-09-28T01:00:00Z", previous=audit)
+        self.assertEqual(repeated["transactions"], result["transactions"])
+        self.assertEqual(repeated_audit["retained_mapping_count"], 1)
+        self.assertEqual(repeated_audit["correction_ids"], [kroger_id])
 
     def test_fixed_source_mapping_fails_closed_outside_active_sip_scope(self):
         record_id = "oge-278t:bbaeac29d4e0be338447c0c3"
