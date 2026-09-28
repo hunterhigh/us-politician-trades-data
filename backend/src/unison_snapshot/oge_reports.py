@@ -21,6 +21,7 @@ TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
 TRUMP_SEPT_2026_SECOND_PASS_VERSION = "oge-278t-pdf/v4"
 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION = "oge-278t-pdf/v5"
 TRUMP_SEPT_2026_PAGE7_PASS_VERSION = "oge-278t-pdf/v6"
+TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION = "oge-278t-pdf/v7"
 TRUMP_SEPT_2026_DOCUMENT_ID = "e590116fc9631e9885258e7a002de209"
 TRUMP_SEPT_2026_SOURCE_SHA256 = (
     "833c3b4810eaf2e83a3b27867af149634e65145dc4577c753ef20f6b6d515dcf"
@@ -29,6 +30,13 @@ TRUMP_SEPT_2026_SOURCE_SHA256 = (
 # tests that patch the public source constant to exercise the generic replay.
 _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256 = TRUMP_SEPT_2026_SOURCE_SHA256
 _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256 = TRUMP_SEPT_2026_SOURCE_SHA256
+_TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256 = TRUMP_SEPT_2026_SOURCE_SHA256
+_TRUMP_SEPT_2026_GEOMETRY_PAGES = {2, 23, 31}
+_TRUMP_SEPT_2026_GEOMETRY_ROWS = {
+    2: set(range(1, 34)),
+    23: set(range(694, 728)),
+    31: set(range(959, 992)),
+}
 TRUMP_SEPT_2026_SOURCE_URL = (
     "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/"
     "E590116FC9631E9885258E7A002DE209/$FILE/Donald-J-Trump-09.8.2026-278T.pdf"
@@ -811,6 +819,278 @@ def _looks_like_transaction_table(table_rows: list[list[object]]) -> bool:
     return row_like >= 2
 
 
+def _extract_fixed_trump_september_geometry(pdf_path: Path) -> dict[tuple[int, int], dict]:
+    """Read row-first six-column cells from the three diagnosed fixed-source pages.
+
+    This is deliberately not a general PDF parser. It uses the printed row
+    number as the vertical anchor and page-local horizontal-rule endpoints as
+    column boundaries. Words remain raw; all semantic validation happens in
+    ``parse_table_rows``.
+    """
+    try:
+        import pdfplumber
+    except ImportError:
+        raise OgeCatalogError("OGE 278-T extraction requires the optional pdfplumber package") from None
+
+    page_ranges = (
+        (60, 84), (106, 128), (478, 504), (524, 554),
+        (584, 608), (624, 652), (712, 736),
+    )
+    recovered: dict[tuple[int, int], dict] = {}
+    try:
+        with pdfplumber.open(pdf_path) as document:
+            for page_number in sorted(_TRUMP_SEPT_2026_GEOMETRY_PAGES):
+                if page_number > len(document.pages):
+                    raise OgeCatalogError(
+                        f"Trump September v7 page {page_number} is missing from the fixed PDF")
+                page = document.pages[page_number - 1]
+                words = [word for word in (page.extract_words(
+                    use_text_flow=False, keep_blank_chars=False) or [])
+                         if isinstance(word, dict) and isinstance(word.get("text"), str)]
+                number_words = []
+                for word in words:
+                    try:
+                        x0 = float(word["x0"])
+                        top = float(word["top"])
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                    if (60 <= x0 <= 90 and _ROW_NUMBER.fullmatch(_compact(word["text"]))):
+                        number_words.append({**word, "row_number": int(_compact(word["text"])),
+                                             "center_y": (top + float(word.get("bottom", top))) / 2})
+                number_words.sort(key=lambda item: (item["center_y"], item["row_number"]))
+                if not number_words or len({item["row_number"] for item in number_words}) != len(number_words):
+                    raise OgeCatalogError(
+                        f"Trump September v7 page {page_number} row anchors are missing or duplicated")
+
+                endpoints: list[float] = []
+                first_y = min(float(item["top"]) for item in number_words) - 8
+                last_y = max(float(item.get("bottom", item["top"])) for item in number_words) + 20
+                for line in getattr(page, "lines", ()):
+                    if not isinstance(line, dict):
+                        continue
+                    try:
+                        top, bottom = float(line["top"]), float(line["bottom"])
+                        x0, x1 = float(line["x0"]), float(line["x1"])
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                    if abs(top - bottom) <= 1 and first_y <= top <= last_y:
+                        endpoints.extend((x0, x1))
+
+                boundaries = []
+                for boundary_index, (low, high) in enumerate(page_ranges):
+                    bins: dict[int, int] = {}
+                    for x in endpoints:
+                        if low <= x <= high:
+                            bucket = round(x / 2) * 2
+                            bins[bucket] = bins.get(bucket, 0) + 1
+                    if not bins:
+                        boundaries = []
+                        break
+                    bucket, count = max(bins.items(), key=lambda item: (item[1], -item[0]))
+                    # A few row rules stop just short of the type/date split;
+                    # its page-local endpoint may occur only once on these
+                    # otherwise geometrically stable fixed-source pages.
+                    if count < (1 if boundary_index == 3 else 3):
+                        boundaries = []
+                        break
+                    boundaries.append(float(bucket))
+                # Line endpoints can be asymmetric around the type column;
+                # use the left edge of the nearby endpoint cluster so an OCR
+                # token near x=487 cannot leak into the description cell.
+                if len(boundaries) == 7:
+                    type_mode = boundaries[2]
+                    nearby_type_edges = [x for x in endpoints
+                                         if type_mode - 4 <= x <= type_mode]
+                    if nearby_type_edges:
+                        boundaries[2] = min(nearby_type_edges)
+                    # Notification and amount text nearly touch. Their token
+                    # edges provide a safer split than noisy rule endpoints.
+                    notice_ends = []
+                    amount_starts = []
+                    for word in words:
+                        text = _compact(word.get("text")).casefold()
+                        try:
+                            x0, x1 = float(word["x0"]), float(word["x1"])
+                        except (KeyError, TypeError, ValueError):
+                            continue
+                        if 625 <= x0 <= 642 and text in {"no", "yes", "vos", "v"}:
+                            notice_ends.append(x1)
+                        if 640 <= x0 <= 660 and text.startswith("$"):
+                            amount_starts.append(x0)
+                    if notice_ends and amount_starts:
+                        boundaries[5] = (max(notice_ends) + min(amount_starts)) / 2
+                if (len(boundaries) != 7 or boundaries != sorted(boundaries) or
+                        any(right - left < 8 for left, right in zip(boundaries, boundaries[1:]))):
+                    raise OgeCatalogError(
+                        f"Trump September v7 page {page_number} column geometry is incomplete")
+
+                groups: dict[int, list[list[dict]]] = {
+                    item["row_number"]: [[] for _ in range(6)] for item in number_words
+                }
+                centers = [item["center_y"] for item in number_words]
+                for word in words:
+                    try:
+                        x_center = (float(word["x0"]) + float(word["x1"])) / 2
+                        y_center = (float(word["top"]) + float(word.get("bottom", word["top"]))) / 2
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                    column = next((index for index, (left, right) in enumerate(
+                        zip(boundaries, boundaries[1:])) if left <= x_center < right), None)
+                    if column is None or column == 0:
+                        continue
+                    row_index = min(range(len(centers)), key=lambda index: abs(centers[index] - y_center))
+                    if len(centers) > 1:
+                        gap = (centers[row_index + 1] - centers[row_index]
+                               if row_index + 1 < len(centers)
+                               else centers[row_index] - centers[row_index - 1])
+                    else:
+                        gap = 14.0
+                    if abs(centers[row_index] - y_center) <= max(5.0, min(9.0, gap * 0.62)):
+                        groups[number_words[row_index]["row_number"]][column].append(word)
+
+                for anchor in number_words:
+                    row_number = anchor["row_number"]
+                    cells = [str(row_number)]
+                    for column in range(1, 6):
+                        ordered = sorted(groups[row_number][column],
+                                         key=lambda word: (float(word["top"]), float(word["x0"])))
+                        cells.append(" ".join(_compact(word["text"]) for word in ordered))
+                    recovered[(page_number, row_number)] = {
+                        "cells": cells,
+                        "audit": {
+                            "basis": "fixed_source_pdf_word_geometry_v7",
+                            "source_sha256": _TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256,
+                            "page_number": page_number,
+                            "printed_row_number": row_number,
+                            "row_anchor_y": round(anchor["center_y"], 2),
+                            "column_boundaries_x": boundaries,
+                        },
+                    }
+                if {row_number for page, row_number in recovered if page == page_number} != \
+                        _TRUMP_SEPT_2026_GEOMETRY_ROWS[page_number]:
+                    raise OgeCatalogError(
+                        f"Trump September v7 page {page_number} printed rows are incomplete")
+        for page_number, expected_rows in _TRUMP_SEPT_2026_GEOMETRY_ROWS.items():
+            if {row_number for page, row_number in recovered if page == page_number} != expected_rows:
+                raise OgeCatalogError(
+                    f"Trump September v7 page {page_number} printed rows are incomplete")
+    except OgeCatalogError:
+        raise
+    except Exception:
+        raise OgeCatalogError("OGE 278-T geometric row extraction failed") from None
+    return recovered
+
+
+def _recover_fixed_trump_september_geometry(
+        pdf_path: Path, transactions: list[dict], quarantined: list[dict], *,
+        source_sha: str) -> tuple[list[dict], list[dict]]:
+    """Promote only strict-parser-valid geometry matches to old quarantine rows."""
+    if source_sha != _TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256:
+        return transactions, quarantined
+    if len(transactions) != 383 or len(quarantined) != 773:
+        raise OgeCatalogError("Trump September v7 requires the immutable 383-row v6 baseline")
+
+    old_transactions = list(transactions)
+    old_ids = [row.get("extraction_id") for row in transactions + quarantined]
+    if len(old_ids) != 1156 or any(not isinstance(value, str) for value in old_ids) or \
+            len(set(old_ids)) != 1156:
+        raise OgeCatalogError("Trump September v7 requires unique v6 extraction IDs")
+    old_transaction_keys = {(row.get("page_number"), row.get("row_number"))
+                            for row in transactions}
+    geometry_rows = _extract_fixed_trump_september_geometry(pdf_path)
+    targets: dict[tuple[int, int], list[dict]] = {}
+    promoted = list(transactions)
+    remaining = list(quarantined)
+    geometry_by_page: dict[int, list[tuple[tuple[int, int], dict]]] = {}
+    for key, value in geometry_rows.items():
+        geometry_by_page.setdefault(key[0], []).append((key, value))
+    for page_number, page_geometry in geometry_by_page.items():
+        page_geometry.sort(key=lambda item: item[0][1])
+        page_quarantine = [row for row in quarantined
+                           if row.get("page_number") == page_number]
+        if page_number == 2:
+            if (len(page_quarantine) != len(page_geometry) or
+                    any(row.get("page_number") == page_number for row in transactions)):
+                raise OgeCatalogError(
+                    "Trump September v7 page 2 does not match the fully quarantined row layout")
+            for (key, geometry), original in zip(page_geometry, page_quarantine):
+                row_number = key[1]
+                if original.get("row_number") not in {None, row_number}:
+                    raise OgeCatalogError(
+                        "Trump September v7 page 2 row order conflicts with printed labels")
+                cells = original.get("cells")
+                raw_label = _compact(cells[0]) if isinstance(cells, list) and cells else ""
+                labels = re.findall(r"(?<!\d)\d{1,4}(?!\d)", raw_label)
+                if original.get("row_number") is None and labels != [str(row_number)]:
+                    raise OgeCatalogError(
+                        "Trump September v7 page 2 unreadable row label cannot be aligned")
+                targets[key] = [original]
+                if original.get("row_number") is None:
+                    aligned = dict(original)
+                    aligned["row_number"] = row_number
+                    aligned["geometry_row_alignment"] = {
+                        **geometry["audit"],
+                        "basis": "fixed_source_pdf_row_order_and_label_v7",
+                        "original_row_number": None,
+                        "original_row_label": raw_label,
+                        "original_cells": list(cells),
+                        "original_reasons": list(original.get("reasons", [])),
+                    }
+                    aligned["reasons"] = [reason for reason in original.get("reasons", [])
+                                          if reason != "row_number_invalid"]
+                    position = next(i for i, row in enumerate(remaining)
+                                    if row.get("extraction_id") == original.get("extraction_id"))
+                    remaining[position] = aligned
+        else:
+            for row in page_quarantine:
+                row_number = row.get("row_number")
+                if type(row_number) is int:
+                    targets.setdefault((page_number, row_number), []).append(row)
+
+    for key, geometry in sorted(geometry_rows.items()):
+        matches = targets.get(key, [])
+        if len(matches) != 1 or key in old_transaction_keys:
+            continue
+        original = matches[0]
+        parsed, rejected = parse_table_rows(
+            [(key[0], geometry["cells"])], source_sha=source_sha)
+        parsed, rejected = _recover_fixed_trump_september_salo(parsed, rejected)
+        if len(parsed) != 1 or rejected:
+            continue
+        candidate = dict(parsed[0])
+        candidate["extraction_id"] = original["extraction_id"]
+        candidate["owner"] = original.get("owner", candidate["owner"])
+        candidate["cells"] = list(original.get("cells", []))
+        candidate["geometry_recovery"] = {
+            **geometry["audit"],
+            "original_cells": list(original.get("cells", [])),
+            "geometry_cells": list(geometry["cells"]),
+            "original_reasons": list(original.get("reasons", [])),
+        }
+        promoted.append(candidate)
+        remaining = [row for row in remaining
+                     if row.get("extraction_id") != original.get("extraction_id")]
+
+    ids = [row.get("extraction_id") for row in promoted + remaining]
+    keys = [(row.get("page_number"), row.get("row_number")) for row in promoted + remaining]
+    targeted_keys = [key for key in keys if key[0] in _TRUMP_SEPT_2026_GEOMETRY_PAGES and
+                     type(key[1]) is int]
+    if (any(not isinstance(value, str) for value in ids) or len(ids) != len(set(ids)) or
+            len(targeted_keys) != len(set(targeted_keys)) or set(ids) != set(old_ids)):
+        raise OgeCatalogError("Trump September v7 geometry row identity conservation failed")
+    if (len(promoted) + len(remaining) != 1156 or
+            promoted[:len(old_transactions)] != old_transactions):
+        raise OgeCatalogError("Trump September v7 changed the immutable v6 transactions")
+    for page_number in geometry_by_page:
+        expected_rows = _TRUMP_SEPT_2026_GEOMETRY_ROWS[page_number]
+        observed = [row.get("row_number") for row in promoted + remaining
+                    if row.get("page_number") == page_number]
+        if len(observed) != len(set(observed)) or not set(observed) <= expected_rows:
+            raise OgeCatalogError(
+                f"Trump September v7 page {page_number} disposition is incomplete")
+    return promoted, remaining
+
+
 def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]]]:
     try:
         import pdfplumber
@@ -899,7 +1179,9 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
     metadata, _, source_sha = _read_archived_source(root, metadata_path)
     fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
     parser_version = (
-        TRUMP_SEPT_2026_PAGE7_PASS_VERSION
+        TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION
+        if fixed_source and source_sha == _TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256
+        else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
         if fixed_source and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
         else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
         if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
@@ -964,6 +1246,9 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         if source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256:
             transactions, quarantined = _recover_fixed_trump_september_page7(
                 transactions, quarantined, source_sha=source_sha)
+        if source_sha == _TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256:
+            transactions, quarantined = _recover_fixed_trump_september_geometry(
+                pdf_path, transactions, quarantined, source_sha=source_sha)
     if not rows:
         filing_reasons.append("transaction_table_not_found")
     if not transactions and not quarantined:
@@ -971,7 +1256,9 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     return {
         "schema_version": EXTRACTION_SCHEMA,
         "parser_version": (
-            TRUMP_SEPT_2026_PAGE7_PASS_VERSION
+            TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION
+            if fixed_source and source_sha == _TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256
+            else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
             if fixed_source and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
             else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
             if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256

@@ -12,10 +12,10 @@ from unison_snapshot.oge import OgeCatalogError, OgeSourceConfig
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, OgePdfClient, archive_direct_batch, archive_direct_pdf,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
+    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION, TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_URL,
     _extract_borderless_transaction_tables, load_reusable_extraction,
-    parse_archived_pdf, parse_table_rows,
+    _recover_fixed_trump_september_geometry, parse_archived_pdf, parse_table_rows,
     _extract_pdf,
 )
 
@@ -46,6 +46,85 @@ class Client:
 
 
 class OgeReportTests(unittest.TestCase):
+    def test_geometry_recovery_only_promotes_strict_matches_and_preserves_v6_rows(self):
+        source_sha = "a" * 64
+        baseline_rows = [
+            (1, [str(number), f"Baseline {number} Inc.", "Purchase", "07/27/2026",
+                 "No", "$1,001 - $15,000"])
+            for number in range(1, 384)
+        ]
+        baseline, baseline_quarantine = parse_table_rows(baseline_rows, source_sha=source_sha)
+        self.assertEqual(len(baseline), 383)
+        self.assertEqual(baseline_quarantine, [])
+        original_rows = [
+            (23, ["697", "Old NIKE cells", "", "", "no", ""]),
+            (23, ["698", "Unclear type/date/amount", "Mystery", "13/40/2026", "no", "$12-$34"]),
+            (31, ["959", "Old row cells", "", "", "no", ""]),
+        ]
+        _, quarantined = parse_table_rows(original_rows, source_sha=source_sha)
+        quarantined.extend({
+            "extraction_id": f"oge-278t:q{number:024x}", "page_number": 99,
+            "row_number": number, "cells": [], "reasons": ["held"],
+        } for number in range(770))
+        geometry = {
+            (23, 697): {"cells": ["697", "NIKE INC CLASS B", "Purchase", "7/27/2026",
+                                  "no", "$50,001 - $100,000"],
+                        "audit": {"basis": "fixed_source_pdf_word_geometry_v7",
+                                  "source_sha256": source_sha, "page_number": 23,
+                                  "printed_row_number": 697, "row_anchor_y": 158.9,
+                                  "column_boundaries_x": [70, 114, 488, 538, 598, 642, 724]}},
+            (23, 698): {"cells": ["698", "Unclear type/date/amount", "Mystery", "13/40/2026",
+                                  "no", "$12-$34"],
+                        "audit": {"basis": "fixed_source_pdf_word_geometry_v7",
+                                  "source_sha256": source_sha, "page_number": 23,
+                                  "printed_row_number": 698, "row_anchor_y": 172.0,
+                                  "column_boundaries_x": [70, 114, 488, 538, 598, 642, 724]}},
+            (31, 959): {"cells": ["959", "TAKE-TWO INTERACTIVE SOFTWARE", "salo",
+                                  "7/8/2026", "no", "$50,001-$100,000"],
+                        "audit": {"basis": "fixed_source_pdf_word_geometry_v7",
+                                  "source_sha256": source_sha, "page_number": 31,
+                                  "printed_row_number": 959, "row_anchor_y": 158.9,
+                                  "column_boundaries_x": [70, 114, 488, 538, 598, 642, 724]}},
+        }
+        with patch("unison_snapshot.oge_reports._TRUMP_SEPT_2026_GEOMETRY_SOURCE_SHA256",
+                   source_sha), patch(
+                "unison_snapshot.oge_reports._extract_fixed_trump_september_geometry",
+                return_value=geometry):
+            promoted, remaining = _recover_fixed_trump_september_geometry(
+                Path("unused.pdf"), baseline, quarantined, source_sha=source_sha)
+
+        self.assertEqual(promoted[:383], baseline)
+        self.assertEqual(len(promoted), 385)
+        recovered = promoted[383]
+        self.assertEqual(recovered["extraction_id"], quarantined[0]["extraction_id"])
+        self.assertEqual(recovered["cells"], original_rows[0][1])
+        self.assertEqual(recovered["geometry_recovery"]["geometry_cells"], geometry[(23, 697)]["cells"])
+        self.assertEqual(recovered["transaction_type"], "purchase")
+        self.assertEqual(recovered["transaction_date"], "2026-07-27")
+        self.assertEqual((recovered["amount_low"], recovered["amount_high"]), (50001, 100000))
+        self.assertEqual(promoted[384]["transaction_type"], "sale")
+        self.assertEqual(promoted[384]["type_ocr_correction"]["raw_type"], "salo")
+        self.assertEqual(promoted[384]["extraction_id"], quarantined[2]["extraction_id"])
+        unresolved = next(row for row in remaining
+                          if row["extraction_id"] == quarantined[1]["extraction_id"])
+        self.assertEqual(set(unresolved["reasons"]), {
+            "transaction_type_unsupported", "transaction_date_invalid", "amount_range_unsupported"})
+        self.assertEqual(len(remaining), 771)
+        ids = [row["extraction_id"] for row in promoted + remaining]
+        keys = [(row["page_number"], row["row_number"]) for row in promoted + remaining]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(len(keys), len(set(keys)))
+
+    def test_geometry_recovery_is_bound_to_exact_fixed_source_hash(self):
+        transactions = [{"extraction_id": "kept", "page_number": 1, "row_number": 1}]
+        quarantined = [{"extraction_id": "q", "page_number": 23, "row_number": 697}]
+        with patch("unison_snapshot.oge_reports._extract_fixed_trump_september_geometry",
+                   side_effect=AssertionError("wrong hash must not open geometry path")):
+            got_transactions, got_quarantined = _recover_fixed_trump_september_geometry(
+                Path("unused.pdf"), transactions, quarantined, source_sha="b" * 64)
+        self.assertIs(got_transactions, transactions)
+        self.assertIs(got_quarantined, quarantined)
+
     def test_reuses_only_exact_source_and_parser_bound_extraction(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

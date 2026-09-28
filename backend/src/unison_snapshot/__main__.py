@@ -54,6 +54,7 @@ from .oge_reports import (
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
     TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
+    TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION,
     TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     archive_direct_batch as archive_oge_direct_batch,
     load_reusable_extraction as load_reusable_oge_extraction,
@@ -902,12 +903,14 @@ def main() -> None:
                                    TRUMP_SEPT_2026_PARSER_VERSION,
                                    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION}:
+                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
+                                   TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION}:
                     continue
                 if version in {TRUMP_SEPT_2026_PARSER_VERSION,
                                TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                               TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
+                               TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
+                               TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION} and not (
                         document_id == TRUMP_SEPT_2026_DOCUMENT_ID and
                         value.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
                         value.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256):
@@ -923,6 +926,7 @@ def main() -> None:
                         TRUMP_SEPT_2026_SECOND_PASS_VERSION: 2,
                         TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION: 3,
                         TRUMP_SEPT_2026_PAGE7_PASS_VERSION: 4,
+                        TRUMP_SEPT_2026_GEOMETRY_PASS_VERSION: 5,
                     }
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
