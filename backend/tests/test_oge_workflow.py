@@ -70,6 +70,24 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("'status': 'partial' if succeeded else 'failed'", content)
         self.assertIn("'workflow_run_url': os.environ['WORKFLOW_RUN_URL']", content)
 
+    def test_successful_unified_build_updates_and_commits_disclosure_status(self):
+        content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
+        build = content.index("python -m unison_snapshot build-disclosure-candidate")
+        status = content.index("(review / 'status/disclosure_candidate.json').write_text(")
+        staged = content.index("status/disclosure_cutoff.json status/disclosure_candidate.json")
+        self.assertLess(build, status)
+        self.assertLess(status, staged)
+        self.assertIn('BUILDER_COMMIT="${{ github.sha }}" python', content[build:status])
+        for field in ("'schema_version': 'disclosure-candidate-run/v1'",
+                      "'builder_commit': os.environ['BUILDER_COMMIT']",
+                      "'data_cutoff_at': candidate['meta']['data_cutoff_at']",
+                      "'people_count': len(candidate['people'])",
+                      "'transaction_count': len(candidate['transactions'])",
+                      "'reported_holding_count': len(candidate['reported_holdings'])",
+                      "'cutoff_audit': 'status/disclosure_cutoff.json'"):
+            self.assertIn(field, content[build:staged])
+        self.assertNotIn("continue-on-error", content[build:staged])
+
     def test_all_source_workflows_include_oge_when_available(self):
         for name in ("house-review.yml", "senate-efd.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
