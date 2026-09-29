@@ -14,6 +14,7 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("  contents: read", content)
         self.assertIn("if: github.ref == 'refs/heads/code'", content)
         self.assertIn("persist-credentials: false", content)
+        self.assertIn("SHADOW_ROOT: ${{ github.workspace }}/.local/senate-efd-shadow", content)
         self.assertIn("--code-commit \"$GITHUB_SHA\"", content)
         self.assertIn("--evidence-commit \"$EVIDENCE_COMMIT\"", content)
         self.assertIn("--review-commit \"$REVIEW_COMMIT\"", content)
