@@ -42,6 +42,17 @@ def payload(rows: list[list[str]], total: int | None = None) -> dict:
 
 
 class SenateDiscoveryTests(unittest.TestCase):
+    def test_duplicate_document_id_across_catalog_pages_fails_closed(self):
+        fixture_path = (Path(__file__).parent / "fixtures" / "senate_efd" /
+                        "duplicate-document-id.json")
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        self.assertEqual(fixture["fixture_kind"], "synthetic_adversarial_catalog")
+        pages = [parse_search_page(
+            item["payload"], start=item["start"], length=item["length"])
+            for item in fixture["pages"]]
+        with self.assertRaisesRegex(SenateEfdError, "duplicate report document id"):
+            build_discovery(pages)
+
     def test_source_gate_is_disabled_and_requires_both_explicit_flags(self):
         with self.assertRaisesRegex(SenateEfdError, "disabled"):
             require_collection_enabled()

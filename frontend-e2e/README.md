@@ -28,3 +28,13 @@ Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` when the browser is installed outside the k
 For a complete real candidate that has already passed the frozen processor and renderer, set
 `PRODUCTION_DASHBOARD_HTML` to the generated HTML and run `npm run test:production`. This path
 checks the real five-array page without changing the frozen handoff files.
+
+# Latest user HTML audit
+
+Run the read-only browser interaction audit against the user-designated HTML baseline (the script verifies its SHA-256 before launching Chrome):
+
+```powershell
+node frontend-e2e/tests/latest-html.e2e.mjs
+```
+
+Pass a different HTML path as the first argument only after updating the expected hash in the script to the user's newly designated baseline. Set `CHROME_PATH` when Chrome is installed elsewhere. The script uses a temporary Chrome profile and DevTools Protocol, requires Node 24+, does not use Playwright, and never edits the HTML. It checks dashboard blocks, independent 30-day filtering, the 90-day jump, disclosure drawer, person and ticker navigation, and visible missing-value labels for records in the 30-day window.

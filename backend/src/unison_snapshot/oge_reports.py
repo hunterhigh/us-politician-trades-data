@@ -369,6 +369,9 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -
             "amount_raw": raw_amount,
             "amount_low": amount[0] if amount else None,
             "amount_high": amount[1] if amount else None,
+            # Keep the exact parser input beside normalized fields so a later
+            # shadow adapter can account for every extracted physical row.
+            "cells": cells,
         }
         if reasons:
             quarantined.append({**row, "cells": cells, "reasons": sorted(set(reasons))})
@@ -811,13 +814,14 @@ def _looks_like_transaction_table(table_rows: list[list[object]]) -> bool:
     return row_like >= 2
 
 
-def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]]]:
+def _extract_pdf(content_path: Path, *, include_inventory: bool = False):
     try:
         import pdfplumber
     except ImportError:
         raise OgeCatalogError("OGE 278-T extraction requires the optional pdfplumber package") from None
     texts = []
     rows: list[tuple[int, list[object]]] = []
+    inventory: list[tuple[int, list[object]]] = []
     try:
         with pdfplumber.open(content_path) as document:
             if not 1 <= len(document.pages) <= MAX_PDF_PAGES:
@@ -827,8 +831,10 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
                 borderless_tables = _extract_borderless_transaction_tables(page)
                 if borderless_tables:
                     for table in borderless_tables:
-                        rows.extend((page_number, cells) for cells in (table or [])
-                                    if isinstance(cells, list))
+                        table_rows = [cells for cells in (table or [])
+                                      if isinstance(cells, list)]
+                        rows.extend((page_number, cells) for cells in table_rows)
+                        inventory.extend((page_number, cells) for cells in table_rows)
                     continue
                 tables = page.extract_tables() or []
                 for table in tables:
@@ -840,6 +846,7 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
                                    "notification" in signature)
                     if not has_headers and not _looks_like_transaction_table(table_rows):
                         continue
+                    inventory.extend((page_number, cells) for cells in table_rows)
                     first_transaction = next(
                         (index for index, cells in enumerate(table_rows)
                          if cells and _ROW_NUMBER.fullmatch(_compact(cells[0]))), None)
@@ -850,6 +857,8 @@ def _extract_pdf(content_path: Path) -> tuple[str, list[tuple[int, list[object]]
         raise
     except Exception:
         raise OgeCatalogError("OGE 278-T PDF could not be extracted") from None
+    if include_inventory:
+        return "\n".join(texts), rows, inventory
     return "\n".join(texts), rows
 
 
@@ -942,7 +951,12 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
 
 def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     metadata, pdf_path, source_sha = _read_archived_source(root, metadata_path)
-    text, rows = _extract_pdf(pdf_path)
+    extracted = _extract_pdf(pdf_path, include_inventory=True)
+    if len(extracted) == 2:  # Keep patched/offline callers using the old return shape compatible.
+        text, rows = extracted
+        inventory = rows
+    else:
+        text, rows, inventory = extracted
     signatures = _SIGNATURE_DATE.findall(text)
     fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
     if fixed_source:
@@ -993,4 +1007,10 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         "evidence_complete": not filing_reasons,
         "transactions": transactions,
         "quarantined": quarantined,
+        # The adapter ledger uses this bounded table extraction to account for
+        # headers, section labels, and rows the business parser cannot classify.
+        "source_rows": [
+            {"page_number": page, "cells": [_compact(cell) for cell in cells]}
+            for page, cells in inventory
+        ],
     }

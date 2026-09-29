@@ -1,0 +1,59 @@
+name: Senate eFD electronic PTR shadow
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  electronic-ptr-shadow:
+    if: github.ref == 'refs/heads/code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EVIDENCE_COMMIT: 80f086267677b8fde34314f24024bdc505d97cb0
+      REVIEW_COMMIT: 9749718e5ae837057db7c031d431714fc72988d1
+      IDENTITY_PATH: senate_efd/identities/8d8c5a7abbec9e3d956a9cceae78505f374b2237e156a4a9fcca7463d43e4619/984865a4a6e00af68c9617ea45f52b8939f49143780c832cb68c747fa4bfef5e.json
+      ROSTER_SOURCE_PATH: senate_efd/members/984865a4a6e00af68c9617ea45f52b8939f49143780c832cb68c747fa4bfef5e.xml
+      SHADOW_ROOT: ${{ runner.temp }}/senate-efd-shadow
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Fetch fixed archive commits without changing production refs
+        run: |
+          git fetch --no-tags origin \
+            refs/heads/evidence:refs/remotes/origin/evidence \
+            refs/heads/review:refs/remotes/origin/review
+          git cat-file -e "$EVIDENCE_COMMIT^{commit}"
+          git cat-file -e "$REVIEW_COMMIT^{commit}"
+      - name: Build selected electronic PTR shadow ledger
+        env:
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot.senate_shadow \
+            --repo . \
+            --code-commit "$GITHUB_SHA" \
+            --evidence-commit "$EVIDENCE_COMMIT" \
+            --review-commit "$REVIEW_COMMIT" \
+            --identity-path "$IDENTITY_PATH" \
+            --roster-source-path "$ROSTER_SOURCE_PATH" \
+            --document-id cce52b36-d00c-4710-a8ee-e84893fb4be1 \
+            --document-id 2b076d77-6bc1-4b67-8be9-8f45a787479f \
+            --run-id "senate-efd-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --output-root "$SHADOW_ROOT"
+      - name: Upload validated shadow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: senate-efd-shadow-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.SHADOW_ROOT }}/manifest.json
+            ${{ env.SHADOW_ROOT }}/candidate_rows.json
+          if-no-files-found: error
+          retention-days: 7

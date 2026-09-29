@@ -1,0 +1,113 @@
+name: House PTR fixed-ref shadow ledger
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_commit:
+        description: Full immutable evidence commit containing archived House PTR PDFs
+        required: true
+        default: '80f086267677b8fde34314f24024bdc505d97cb0'
+      review_commit:
+        description: Full immutable review commit containing House extraction/qualification/failure records
+        required: true
+        default: '9749718e5ae837057db7c031d431714fc72988d1'
+      document_ids:
+        description: Comma-separated 2026 House PTR document IDs, maximum 25
+        required: true
+        default: '20019182,8221321'
+
+permissions:
+  contents: read
+
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Fetch and validate immutable source commits
+        env:
+          EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
+          REVIEW_COMMIT: ${{ inputs.review_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$REVIEW_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review
+          git cat-file -e "$EVIDENCE_COMMIT^{commit}"
+          git cat-file -e "$REVIEW_COMMIT^{commit}"
+          git merge-base --is-ancestor "$EVIDENCE_COMMIT" refs/remotes/origin/evidence
+          git merge-base --is-ancestor "$REVIEW_COMMIT" refs/remotes/origin/review
+      - name: Build fixed-ref House shadow artifacts
+        env:
+          EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
+          REVIEW_COMMIT: ${{ inputs.review_commit }}
+          DOCUMENT_IDS: ${{ inputs.document_ids }}
+          RUN_ID: house-shadow-${{ github.run_id }}-${{ github.run_attempt }}
+          OUTPUT_DIR: ${{ runner.temp }}/house-shadow-run
+          PYTHONPATH: backend/src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import re
+          import subprocess
+
+          document_ids = [part.strip() for part in os.environ['DOCUMENT_IDS'].split(',')]
+          if not 1 <= len(document_ids) <= 25 or len(set(document_ids)) != len(document_ids):
+              raise SystemExit('Specify 1–25 unique House document IDs')
+          if any(not re.fullmatch(r'[0-9]+', value) for value in document_ids):
+              raise SystemExit('House document IDs must be numeric')
+          command = ['python', '-m', 'unison_snapshot.house_shadow',
+                     '--repo', '.', '--code-commit', subprocess.check_output(
+                         ['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                     '--evidence-commit', os.environ['EVIDENCE_COMMIT'],
+                     '--review-commit', os.environ['REVIEW_COMMIT'],
+                     '--run-id', os.environ['RUN_ID'],
+                     '--output-dir', os.environ['OUTPUT_DIR']]
+          for document_id in document_ids:
+              command.extend(['--document-id', document_id])
+          subprocess.run(command, check=True)
+          PY
+      - name: Verify artifact hash and summarize
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/house-shadow-run
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ['OUTPUT_DIR'])
+          manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+          rows = (root / 'candidate_rows.json').read_bytes()
+          expected = next(output['sha256'] for output in manifest['outputs']
+                          if output['path'] == 'candidate_rows.json')
+          if hashlib.sha256(rows).hexdigest() != expected:
+              raise SystemExit('House shadow row artifact hash mismatch')
+          counts = manifest['counts']
+          print('### House PTR fixed-ref shadow ledger')
+          print(f"Evidence: `{manifest['evidence_commit']}`; review: `{manifest['review_commit']}`")
+          print(f"Documents: {counts['discovered_documents']}; parsed: {counts['parsed_documents']}; "
+                f"failed: {counts['failed_documents']}; explicit no-row: {counts['no_row_documents']}")
+          print(f"Observed rows: {manifest['accounted_rows']}; qualified: {counts['qualified_rows']}; "
+                f"quarantined: {counts['quarantined_rows']}")
+          print('Failed document row counts remain unknown; this run did not publish data.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: house-shadow-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/house-shadow-run/
+          retention-days: 14
+          if-no-files-found: error

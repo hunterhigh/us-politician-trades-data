@@ -77,6 +77,11 @@ jobs:
   collect-direct-reports:
     needs: evaluate-gate
     if: ${{ needs.evaluate-gate.outputs.status == 'enabled' }}
+    outputs:
+      code_commit: ${{ steps.shadow_refs.outputs.code_commit }}
+      evidence_commit: ${{ steps.shadow_refs.outputs.evidence_commit }}
+      review_commit: ${{ steps.shadow_refs.outputs.review_commit }}
+      started_at: ${{ steps.collect.outputs.started_at }}
     concurrency:
       group: disclosure-source-writer
       cancel-in-progress: false
@@ -119,6 +124,7 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
+          echo "started_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
           mkdir -p .local/oge-extractions
           PYTHONPATH=backend/src python -m unison_snapshot discover-oge \
             --archive "$EVIDENCE_ROOT" --output .local/oge-catalog.json
@@ -143,6 +149,16 @@ jobs:
             git -C "$EVIDENCE_ROOT" commit -m "evidence: OGE direct 278-T ${{ github.run_id }}"
             git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
           fi
+      - name: Pin shadow input commits
+        id: shadow_refs
+        if: ${{ steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success' }}
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          echo "code_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "evidence_commit=$(git -C "$EVIDENCE_ROOT" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "review_commit=$(git -C "$REVIEW_ROOT" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Record source state
         if: ${{ always() }}
         env:
@@ -217,6 +233,53 @@ jobs:
             .local/oge-extractions
           include-hidden-files: true
           retention-days: 1
+
+  build-shadow-ledger:
+    needs: collect-direct-reports
+    if: ${{ github.event_name == 'workflow_dispatch' && needs.collect-direct-reports.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.collect-direct-reports.outputs.code_commit }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: oge-direct-${{ github.run_id }}
+          path: .local
+      - name: Build fixed-input shadow row ledger
+        env:
+          CODE_COMMIT: ${{ needs.collect-direct-reports.outputs.code_commit }}
+          EVIDENCE_COMMIT: ${{ needs.collect-direct-reports.outputs.evidence_commit }}
+          REVIEW_COMMIT: ${{ needs.collect-direct-reports.outputs.review_commit }}
+          STARTED_AT: ${{ needs.collect-direct-reports.outputs.started_at }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot.pipeline_qa.oge_run_cli \
+            --catalog .local/oge-catalog.json \
+            --archive-batch .local/oge-report-batch.json \
+            --extraction-batch .local/oge-extraction-batch.json \
+            --extractions-dir .local/oge-extractions \
+            --output-dir .local/oge-shadow \
+            --run-id "oge-direct-${{ github.run_id }}" \
+            --workflow-run-id "${{ github.run_id }}" \
+            --code-commit "$CODE_COMMIT" \
+            --evidence-commit "$EVIDENCE_COMMIT" \
+            --review-commit "$REVIEW_COMMIT" \
+            --started-at "$STARTED_AT" \
+            --completed-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --trigger workflow_dispatch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-ledger-oge-${{ github.run_id }}
+          path: .local/oge-shadow
+          include-hidden-files: true
+          retention-days: 7
 
   publish-review:
     needs: collect-direct-reports

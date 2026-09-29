@@ -383,6 +383,10 @@ class Public278eTests(unittest.TestCase):
                     path, source_url="https://www.whitehouse.gov/wp-content/uploads/2026/09/report.pdf",
                     source_sha256=hashlib.sha256(content).hexdigest(), expected_filer="Ada Example")
         self.assertEqual(result["printed_row_count"], 3)
+        self.assertEqual(result["recognized_source_row_counts"], {
+            "part2": 1, "part5": 0, "part6": 0, "part7": 2})
+        self.assertFalse(result["source_row_census_complete"])
+        self.assertEqual(result["source_row_census_status"], "parser_detected_rows_only")
         self.assertEqual(len(result["holdings"]), 1)
         self.assertEqual(result["holdings"][0]["owner"], "Self")
         self.assertEqual(len(result["transactions"]), 1)

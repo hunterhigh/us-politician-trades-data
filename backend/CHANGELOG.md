@@ -4,6 +4,10 @@ All notable changes follow Semantic Versioning.
 
 ## Unreleased
 
+- Route snapshots through the v2 processor when Twelve Data appears in source health, while keeping market coverage routing based on actual market rows.
+- Add an offline OGE 278-T adapter that maps archived extraction rows to the shared evidence ledger and fails closed when row inventory or exact catalog identity is missing.
+- Add Part 6/7 row-accounting, duplicate and owner-footnote diagnostics plus a validator-backed shadow ledger; distinguish parser-row conservation from independently attested source completeness, and keep incomplete coverage partial.
+- Add versioned shadow pipeline observations, source-row evidence locations, input-version idempotency keys, and run manifests with document/row disposition accounting; no production workflow consumes this schema yet.
 - Accept the fixed, source-hash-bound September Trump OGE 278-T transactions alongside official White House PDF transactions in prepared publication checks, while retaining person/source/status, White House presence, and dashboard/search coverage gates; check person provenance before large board reads.
 - Refresh and commit the unified disclosure candidate status after a successful OGE harmonization, keeping its cutoff, counts, and builder commit aligned with the candidate and cutoff audit.
 - Persist validated House and Senate source candidates before unified cutoff harmonization, so a stale peer leaves the workflow failed and the published unified candidate unchanged while allowing the next source refresh to close the gap.

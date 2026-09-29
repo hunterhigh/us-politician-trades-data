@@ -145,6 +145,117 @@ def _asset_tokens(value: object) -> tuple[str, ...]:
     return tuple(re.findall(r"[A-Z0-9]+", value.upper())) if isinstance(value, str) else ()
 
 
+def _source_row_census_valid(extraction: dict) -> bool:
+    census = extraction.get("source_row_census")
+    census_counts = census.get("row_counts") if isinstance(census, dict) else None
+    recognized_counts = extraction.get("recognized_source_row_counts")
+    return bool(
+        extraction.get("source_row_census_complete") is True and
+        isinstance(census, dict) and
+        census.get("schema_version") == "whitehouse-278e-source-row-census/v1" and
+        census.get("source_sha256") == extraction.get("source_sha256") and
+        census.get("method") == "independent_page_row_audit" and
+        isinstance(census.get("evidence_path"), str) and census["evidence_path"].strip() and
+        isinstance(census.get("evidence_sha256"), str) and
+        _SHA.fullmatch(census["evidence_sha256"]) is not None and
+        isinstance(census_counts, dict) and isinstance(recognized_counts, dict) and
+        all(type(census_counts.get(section)) is int and
+            census_counts.get(section) == recognized_counts.get(section)
+            for section in ("part2", "part5", "part6", "part7")))
+
+
+def _part_completeness(extraction: dict, part: str, dispositions: list[list[dict]],
+                       row_audit: list[dict], *, dedup_pending: bool = False) -> dict:
+    """Summarize one section's row accounting separately from source completeness.
+
+    A matching disposition count proves only that rows detected by the parser
+    were accounted for.  Full source capture requires an independent census
+    attestation; OCR geometry alone cannot provide that proof.
+    """
+    rows = [row for collection in dispositions for row in collection
+            if row.get("section") == part]
+    section_pages = extraction.get("section_pages")
+    page_count = (section_pages.get(part) if isinstance(section_pages, dict) and
+                  type(section_pages.get(part)) is int else None)
+    empty_sections = extraction.get("explicit_empty_sections")
+    declared_empty = isinstance(empty_sections, list) and part in empty_sections
+    empty_conflict = declared_empty and bool(rows)
+    census_rows = extraction.get("recognized_source_row_counts")
+    detected_count = (census_rows.get(part) if isinstance(census_rows, dict) and
+                      type(census_rows.get(part)) is int else None)
+    disposition_count = len(rows)
+    row_accounting_complete = (
+        page_count is not None and page_count > 0 and not empty_conflict and
+        detected_count is not None and detected_count == disposition_count and
+        (disposition_count > 0 or declared_empty))
+    locators = [row.get("source_row_locator") for row in rows
+                if isinstance(row.get("source_row_locator"), str)]
+    duplicate_locator_excess = len(locators) - len(set(locators))
+    census_complete = _source_row_census_valid(extraction)
+    row_decisions = [decision for decision in row_audit
+                     if decision.get("section") == part]
+    quarantined_count = sum(
+        row.get("section") == part for row in (dispositions[3] if len(dispositions) > 3 else []))
+    row_number_keys = [
+        (row.get("account_scope"), row.get("row_number")) for row in rows
+        if isinstance(row.get("account_scope"), str) and row.get("account_scope") and
+        isinstance(row.get("row_number"), str) and row.get("row_number")]
+    row_number_counts = Counter(row_number_keys)
+    duplicate_row_number_excess = sum(count - 1 for count in row_number_counts.values()
+                                      if count > 1)
+    name_keys = [
+        (row.get("account_scope"), _asset_tokens(row.get("asset_name"))) for row in rows
+        if isinstance(row.get("account_scope"), str) and row.get("account_scope") and
+        isinstance(row.get("asset_name"), str) and _asset_tokens(row.get("asset_name"))]
+    name_counts = Counter(name_keys)
+    possible_duplicate_asset_excess = sum(count - 1 for count in name_counts.values()
+                                          if count > 1)
+    owner_evidence = [row.get("owner_evidence", []) for row in rows
+                      if isinstance(row.get("owner_evidence"), list)]
+    summary = {
+        "section_pages": page_count,
+        "explicitly_empty": declared_empty,
+        "empty_declaration_conflicts_with_rows": empty_conflict,
+        "recognized_source_row_count": detected_count,
+        "disposition_row_count": disposition_count,
+        "row_accounting_complete": row_accounting_complete,
+        "source_row_census_complete": census_complete,
+        "duplicate_source_row_locator_excess": duplicate_locator_excess,
+        "duplicate_account_row_number_excess": duplicate_row_number_excess,
+        "possible_same_account_asset_name_duplicate_excess": possible_duplicate_asset_excess,
+        "rows_with_explicit_owner_evidence": sum(bool(items) for items in owner_evidence),
+        "parent_account_owner_evidence_count": sum(
+            item.get("basis") == "explicit_part6_parent_account"
+            for items in owner_evidence for item in items if isinstance(item, dict)),
+        "endnote_owner_evidence_count": sum(
+            item.get("basis") == "explicit_part6_endnote"
+            for items in owner_evidence for item in items if isinstance(item, dict)),
+        "rows_with_conflicting_owner_evidence": sum(
+            bool(row.get("owner_evidence_conflict")) for row in rows),
+        "unresolved_asset_endnote_row_count": sum(
+            "asset_endnote_unresolved" in row.get("reasons", []) for row in rows),
+        "quarantined_row_count": quarantined_count,
+        "individually_qualified_row_count": sum(
+            decision.get("source_candidate_eligible") is True for decision in row_decisions),
+        "individually_unqualified_row_count": sum(
+            decision.get("source_candidate_eligible") is not True for decision in row_decisions),
+    }
+    summary["source_capture_complete"] = bool(
+        row_accounting_complete and census_complete and duplicate_locator_excess == 0 and
+        duplicate_row_number_excess == 0)
+    if not summary["source_capture_complete"]:
+        summary["completeness_status"] = "partial_or_unverified"
+    elif quarantined_count:
+        summary["completeness_status"] = "captured_with_quarantined_rows"
+    elif dedup_pending:
+        summary["completeness_status"] = "captured_pending_cross_report_reconciliation"
+    elif summary["individually_unqualified_row_count"]:
+        summary["completeness_status"] = "captured_with_unqualified_rows"
+    else:
+        summary["completeness_status"] = "complete"
+    return summary
+
+
 def _trump_v7_description_confidence_valid(row: dict) -> bool:
     confidence = row.get("ocr_field_confidence", {}).get("description")
     return bool(
@@ -446,6 +557,13 @@ def audit_public_278e(extraction: dict) -> dict:
             any(not isinstance(part, str) for part in empty_sections)):
         report_reasons.add("explicit_empty_sections_invalid")
         empty_sections = []
+    elif len(empty_sections) != len(set(empty_sections)) or any(
+            part not in {"part2", "part5", "part6", "part7"}
+            for part in empty_sections):
+        report_reasons.add("explicit_empty_sections_invalid")
+        empty_sections = list(dict.fromkeys(
+            part for part in empty_sections
+            if part in {"part2", "part5", "part6", "part7"}))
     if not isinstance(sections, dict) or any(type(sections.get(part)) is not int or sections[part] <= 0
                                              for part in _HOLDING_PARTS):
         holding_reasons.add("asset_sections_unverified")
@@ -666,6 +784,11 @@ def audit_public_278e(extraction: dict) -> dict:
                           any(row.get("section") == "part7" for row in quarantined))
     if dedup_required:
         report_reasons.add("part7_cross_278t_dedup_pending")
+    part6_completeness = _part_completeness(
+        extraction, "part6", [holdings, transactions, excluded, quarantined], row_audit)
+    part7_completeness = _part_completeness(
+        extraction, "part7", [holdings, transactions, excluded, quarantined],
+        transaction_row_audit, dedup_pending=dedup_required)
     report_reasons.update(holding_reasons)
     holding_eligible = not holding_reasons
     report_eligible = not report_reasons
@@ -679,6 +802,7 @@ def audit_public_278e(extraction: dict) -> dict:
             "disposition_counts": {"holdings": len(holdings), "transactions": len(transactions),
                                    "excluded": len(excluded), "quarantined": len(quarantined)},
             "printed_rows_conserved": reconciled,
+            "source_row_census_attested": _source_row_census_valid(extraction),
             "holding_row_audit": row_audit,
             "source_candidate_holding_count": sum(row["source_candidate_eligible"] for row in row_audit),
             "source_holdings_eligible": holding_eligible,
@@ -687,6 +811,8 @@ def audit_public_278e(extraction: dict) -> dict:
             "transaction_row_audit": transaction_row_audit,
             "source_candidate_transaction_count": sum(
                 row["source_candidate_eligible"] for row in transaction_row_audit),
+            "part6_completeness": part6_completeness,
+            "part7_completeness": part7_completeness,
             "holding_blocking_reasons": sorted(holding_reasons),
             "report_blocking_reasons": sorted(report_reasons),
             "production_status": "not_assessed_external_identity_amendments_and_snapshot_gate"}

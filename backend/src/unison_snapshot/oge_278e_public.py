@@ -1051,6 +1051,9 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                                          trump_part7_source_bound=trump_part7_recovery)
         {"holdings": holdings, "transactions": transactions,
          "quarantined": quarantined, "excluded": excluded}[destination].append(parsed)
+    recognized_source_row_counts = {part: sum(
+        row.get("section") == part for row in raw_rows + unparsed_rows)
+        for part in ("part2", "part5", "part6", "part7")}
     for part in ("part2", "part5", "part6"):
         if section_pages[part] == 0:
             document_reasons.append(f"asset_section_missing:{part}")
@@ -1072,16 +1075,20 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
         document_reasons.append("termination_signed_before_effective_date")
     result = {"section_pages": section_pages,
             "explicit_empty_sections": sorted(explicit_empty),
+            # These are rows recognized by the parser, not an independent
+            # census of every row printed in the PDF.
+            "recognized_source_row_counts": recognized_source_row_counts,
             "printed_row_count": len(raw_rows) + len(unparsed_rows), "holdings": holdings,
             "transactions": transactions, "excluded": excluded,
             "quarantined": quarantined, "document_reasons": sorted(set(document_reasons)),
             "requires_cross_report_dedup": any(
                 row["section"] == "part7" for row in raw_rows + unparsed_rows)}
-    if trump_layout:
-        # Disposition conservation covers rows found in the OCR geometry; it
-        # does not prove that every row printed in the PDF was recognized.
-        result["source_row_census_status"] = "ocr_detected_rows_only"
-        result["source_row_census_complete"] = False
+    # Disposition conservation covers rows found by the parser; it does not
+    # prove that every row printed in the PDF was recognized.  A complete
+    # source census must be supplied by a separately verified page/row audit.
+    result["source_row_census_status"] = (
+        "ocr_detected_rows_only" if trump_layout else "parser_detected_rows_only")
+    result["source_row_census_complete"] = False
     return result
 
 
