@@ -179,7 +179,12 @@ def audit(review_root: Path) -> dict:
                 "printed_row_number": base["row_number"],
             },
         }
-        if new_bucket.get(identifier) != "transactions" or new_rows[identifier] != expected:
+        # Archived v5 rows predate the parser's explicit physical-cell field.
+        # Both fixed formats are exact; only this one later-added field differs.
+        legacy_expected = {key: value for key, value in expected.items()
+                           if key != "cells"}
+        if (new_bucket.get(identifier) != "transactions" or
+                new_rows[identifier] not in (expected, legacy_expected)):
             raise ValueError("September OGE v5 recovered row evidence changed")
 
     original_ids = [row["extraction_id"] for row in v4["transactions"]]
