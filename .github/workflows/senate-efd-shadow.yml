@@ -16,7 +16,7 @@ jobs:
       REVIEW_COMMIT: 9749718e5ae837057db7c031d431714fc72988d1
       IDENTITY_PATH: senate_efd/identities/8d8c5a7abbec9e3d956a9cceae78505f374b2237e156a4a9fcca7463d43e4619/984865a4a6e00af68c9617ea45f52b8939f49143780c832cb68c747fa4bfef5e.json
       ROSTER_SOURCE_PATH: senate_efd/members/984865a4a6e00af68c9617ea45f52b8939f49143780c832cb68c747fa4bfef5e.xml
-      SHADOW_ROOT: ${{ runner.temp }}/senate-efd-shadow
+      SHADOW_ROOT: ${{ github.workspace }}/.local/senate-efd-shadow
     steps:
       - uses: actions/checkout@v7
         with:
