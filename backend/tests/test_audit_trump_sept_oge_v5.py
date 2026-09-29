@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from audit_trump_sept_oge_v5 import audit
+from audit_trump_sept_oge_v5 import RECOVERED_ROWS, audit
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, TRUMP_SEPT_2026_DOCUMENT_ID,
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
@@ -138,6 +138,14 @@ class TrumpSeptemberV5AuditTests(unittest.TestCase):
         self.assertEqual(result["removed_header_artifact_count"], 1)
         self.assertEqual(result["disposition_entry_count"], 1156)
         self.assertTrue(result["disposition_entry_conservation_complete"])
+
+    def test_archived_v5_rows_without_later_cell_field_remain_exact(self):
+        old, new = _fixture()
+        recovered = {row["extraction_id"] for row in RECOVERED_ROWS}
+        for row in new["transactions"]:
+            if row["extraction_id"] in recovered:
+                row.pop("cells")
+        self.assertTrue(self._check(old, new)["disposition_entry_conservation_complete"])
 
     def test_existing_v4_transaction_cannot_change(self):
         old, new = _fixture()
