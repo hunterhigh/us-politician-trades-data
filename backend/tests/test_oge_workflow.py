@@ -22,7 +22,8 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn('--reuse-root "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'reused_extraction_count':", content)
         self.assertIn("'parsed_extraction_count':", content)
-        self.assertEqual(content.count("fetch-depth: 1"), 3)
+        # Three existing jobs plus the new read-only manual shadow job.
+        self.assertEqual(content.count("fetch-depth: 1"), 4)
         self.assertNotIn("fetch-depth: 0", content)
         self.assertNotIn("201 Request", content)
         self.assertNotIn("curl ", content)

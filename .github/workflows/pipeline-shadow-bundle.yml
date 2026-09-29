@@ -1,0 +1,77 @@
+name: Three-source shadow ledger bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      oge_run_id:
+        description: Successful manual OGE workflow run ID with a pipeline-ledger-oge artifact
+        required: true
+      house_run_id:
+        description: Successful House shadow workflow run ID
+        required: true
+      house_run_attempt:
+        description: House run attempt number
+        required: true
+        default: '1'
+      senate_run_id:
+        description: Successful Senate shadow workflow run ID
+        required: true
+      senate_run_attempt:
+        description: Senate run attempt number
+        required: true
+        default: '1'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  bundle:
+    if: github.ref == 'refs/heads/code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Download immutable source ledger artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OGE_RUN_ID: ${{ inputs.oge_run_id }}
+          HOUSE_RUN_ID: ${{ inputs.house_run_id }}
+          HOUSE_RUN_ATTEMPT: ${{ inputs.house_run_attempt }}
+          SENATE_RUN_ID: ${{ inputs.senate_run_id }}
+          SENATE_RUN_ATTEMPT: ${{ inputs.senate_run_attempt }}
+        run: |
+          set -euo pipefail
+          for value in "$OGE_RUN_ID" "$HOUSE_RUN_ID" "$HOUSE_RUN_ATTEMPT" \
+                       "$SENATE_RUN_ID" "$SENATE_RUN_ATTEMPT"; do
+            [[ "$value" =~ ^[1-9][0-9]*$ ]] || { echo 'Run IDs and attempts must be positive integers' >&2; exit 1; }
+          done
+          gh run download "$OGE_RUN_ID" --name "pipeline-ledger-oge-${OGE_RUN_ID}" --dir .local/shadow/oge
+          gh run download "$HOUSE_RUN_ID" --name "house-shadow-${HOUSE_RUN_ID}-${HOUSE_RUN_ATTEMPT}" --dir .local/shadow/house
+          gh run download "$SENATE_RUN_ID" --name "senate-efd-shadow-${SENATE_RUN_ID}-${SENATE_RUN_ATTEMPT}" --dir .local/shadow/senate
+      - name: Verify and combine source ledgers
+        env:
+          PYTHONPATH: backend/src
+        run: |
+          set -euo pipefail
+          python -m unison_snapshot.pipeline_qa.bundle_cli \
+            --run-dir .local/shadow/oge \
+            --run-dir .local/shadow/house \
+            --run-dir .local/shadow/senate \
+            --code-commit "$GITHUB_SHA" \
+            --run-id "pipeline-shadow-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --trigger workflow_dispatch \
+            --output-dir .local/shadow/bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-shadow-bundle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .local/shadow/bundle/
+          if-no-files-found: error
+          retention-days: 7

@@ -28,6 +28,10 @@ def _annual() -> dict:
             "report_period_end": "2025-12-31", "holding_valuation_date": "2025-12-31",
             "section_pages": {"part2": 1, "part5": 1, "part6": 1, "part7": 1},
             "explicit_empty_sections": ["part5", "part6", "part7"],
+            "recognized_source_row_counts": {"part2": 1, "part5": 0,
+                                              "part6": 0, "part7": 0},
+            "source_row_census_status": "fixed_test_fixture_only",
+            "source_row_census_complete": False,
             "printed_row_count": 1, "holdings": [{
                 "section": "part2", "page_number": 3, "row_number": "1",
                 "asset_name": "SPY ETF", "owner": "Self", "value_low": 1001,
@@ -198,6 +202,59 @@ class Public278eAuditTests(unittest.TestCase):
         self.assertFalse(audit["source_report_eligible"])
         self.assertIn("part7_cross_278t_dedup_pending", audit["report_blocking_reasons"])
         self.assertIn("part7_rows_quarantined", audit["report_blocking_reasons"])
+
+    def test_part_completeness_distinguishes_accounting_from_source_census(self):
+        extraction = _annual()
+        audit = audit_public_278e(extraction)
+        self.assertTrue(audit["part6_completeness"]["row_accounting_complete"])
+        self.assertTrue(audit["part6_completeness"]["explicitly_empty"])
+        self.assertFalse(audit["part6_completeness"]["source_row_census_complete"])
+        self.assertEqual(audit["part6_completeness"]["completeness_status"],
+                         "partial_or_unverified")
+        self.assertFalse(audit["part7_completeness"]["source_capture_complete"])
+        self.assertEqual(audit["part7_completeness"]["completeness_status"],
+                         "partial_or_unverified")
+
+    def test_part_source_census_requires_hash_bound_independent_counts(self):
+        extraction = _annual()
+        extraction["source_row_census_complete"] = True
+        audit = audit_public_278e(extraction)
+        self.assertFalse(audit["part6_completeness"]["source_row_census_complete"])
+        extraction["source_row_census"] = {
+            "schema_version": "whitehouse-278e-source-row-census/v1",
+            "source_sha256": extraction["source_sha256"],
+            "method": "independent_page_row_audit",
+            "evidence_path": "offline-fixture/census.json",
+            "evidence_sha256": "b" * 64,
+            "row_counts": {"part2": 1, "part5": 0, "part6": 0, "part7": 0},
+        }
+        audit = audit_public_278e(extraction)
+        self.assertTrue(audit["part6_completeness"]["source_capture_complete"])
+        self.assertEqual(audit["part6_completeness"]["completeness_status"], "complete")
+        self.assertTrue(audit["part7_completeness"]["source_capture_complete"])
+        self.assertEqual(audit["part7_completeness"]["completeness_status"], "complete")
+
+    def test_part6_duplicate_and_empty_marker_conflicts_are_explicit(self):
+        extraction = _annual()
+        first = extraction["holdings"][0]
+        first.update(section="part6", owner="Unknown", row_number="2.1",
+                     source_row_locator="p4-y101", account_scope="investment-account-1")
+        second = deepcopy(first)
+        second["asset_name"] = "SPY ETF"
+        second["raw_columns"]["description"] = "SPY ETF"
+        extraction["holdings"].append(second)
+        extraction["printed_row_count"] = 2
+        extraction["recognized_source_row_counts"]["part6"] = 2
+        extraction["source_row_census_complete"] = True
+        extraction["explicit_empty_sections"].append("part6")
+        audit = audit_public_278e(extraction)
+        summary = audit["part6_completeness"]
+        self.assertEqual(summary["duplicate_source_row_locator_excess"], 1)
+        self.assertEqual(summary["duplicate_account_row_number_excess"], 1)
+        self.assertEqual(summary["possible_same_account_asset_name_duplicate_excess"], 1)
+        self.assertTrue(summary["empty_declaration_conflicts_with_rows"])
+        self.assertFalse(summary["row_accounting_complete"])
+        self.assertFalse(summary["source_capture_complete"])
 
     def test_unconserved_rows_and_missing_signature_fail_closed(self):
         extraction = _annual()

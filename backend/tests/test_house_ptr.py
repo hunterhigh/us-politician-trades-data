@@ -6,7 +6,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr import (_words_from_tesseract_tsv, make_review_template,
-                                      parse_word_pages, promote_review, qualify_automatic)
+                                      parse_word_pages, promote_review, qualify_automatic,
+                                      _legacy_date)
 
 
 def word(text, x0, top, size=9):
@@ -185,6 +186,30 @@ IDENTITY = {"status": "matched_automatically", "document_id": "20000001",
 
 
 class HousePtrTests(unittest.TestCase):
+    def test_legacy_ocr_date_normalization_is_strictly_token_bounded(self):
+        cases = {
+            "O8-14/26": "2026-08-14",
+            "08.14.2026": "2026-08-14",
+            "08142026": "2026-08-14",
+            "08/14/2O26": "2026-08-14",
+            "[08/14/26]": "2026-08-14",
+        }
+        for raw, expected in cases.items():
+            with self.subTest(raw=raw):
+                self.assertEqual(_legacy_date(raw), expected)
+        for raw in ("08/14", "13/40/26", "08/14/20266", "08/14/2026 extra"):
+            with self.subTest(raw=raw):
+                self.assertIsNone(_legacy_date(raw))
+        pages = compact_legacy_checkbox_pages()
+        next(item for item in pages[0]["words"] if item["text"] == "08/14/26")["text"] = "O8-14/26"
+        next(item for item in pages[0]["words"] if item["text"] == "09/02/26")["text"] = "09.02.26"
+        extraction = parse_word_pages(META, "9" * 64, pages, copy_allowed=True,
+                                      ocr_engine="tesseract 5.3.0")
+        self.assertEqual(len(extraction["transactions"]), 1)
+        self.assertEqual((extraction["transactions"][0]["transaction_date"],
+                          extraction["transactions"][0]["notification_date"]),
+                         ("2026-08-14", "2026-09-02"))
+
     def test_tesseract_tsv_is_converted_to_pdf_word_geometry(self):
         tsv = ("level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
                "5\t1\t1\t1\t1\t1\t100\t200\t40\t20\t96.5\tPeriodic\n"
@@ -394,6 +419,18 @@ class HousePtrTests(unittest.TestCase):
         ocr_result = qualify_automatic(ocr_extraction, IDENTITY)
         self.assertTrue(all("ocr_confidence_below_threshold" in row["reasons"]
                             for row in ocr_result["quarantined"]))
+
+        low_confidence_missing_notice = parse_word_pages(
+            META, "a" * 64, legacy_checkbox_pages(), copy_allowed=True,
+            ocr_engine="tesseract 5.3.0")
+        for row in low_confidence_missing_notice["transactions"]:
+            row["ocr_confidence"] = 0
+            row["notification_date"] = None
+        guarded = qualify_automatic(low_confidence_missing_notice, IDENTITY)
+        self.assertEqual(guarded["qualification"]["qualified_count"], 0)
+        self.assertTrue(all("ocr_confidence_below_threshold" in row["reasons"]
+                            and "notification_date_invalid" in row["reasons"]
+                            for row in guarded["quarantined"]))
 
         impossible = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
         impossible["transactions"][0]["transaction_date"] = "2026-12-26"

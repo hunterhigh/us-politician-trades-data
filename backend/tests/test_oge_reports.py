@@ -238,6 +238,38 @@ class OgeReportTests(unittest.TestCase):
             with self.assertRaisesRegex(OgeCatalogError, "page count"):
                 _extract_pdf(Path("too-long.pdf"))
 
+    def test_pdf_extractor_retains_table_headers_for_row_accounting(self):
+        class Page:
+            def extract_text(self):
+                return "Transactions"
+
+            def extract_words(self, **_):
+                return []
+
+            def extract_tables(self):
+                return [[
+                    ["#", "Description", "Type", "Date", "Notification", "Amount"],
+                    ["1", "Example Inc.", "Purchase", "05/01/2025", "No",
+                     "$1,001 - $15,000"],
+                ]]
+
+        class Document:
+            pages = [Page()]
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+        with patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(
+                open=lambda _: Document())}):
+            _, rows, inventory = _extract_pdf(Path("table.pdf"), include_inventory=True)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][1][0], "1")
+        self.assertEqual(len(inventory), 2)
+        self.assertEqual(inventory[0][1][0], "#")
+
     def test_borderless_integrity_table_uses_header_and_rule_geometry(self):
         class Page:
             lines = [

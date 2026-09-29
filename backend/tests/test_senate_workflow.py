@@ -6,6 +6,25 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SenateWorkflowTests(unittest.TestCase):
+    def test_electronic_shadow_is_manual_read_only_and_fixed_to_archive_commits(self):
+        content = (ROOT / ".github/workflows/senate-efd-shadow.yml").read_text(
+            encoding="utf-8")
+        self.assertIn("  workflow_dispatch:", content)
+        self.assertNotIn("  schedule:", content)
+        self.assertIn("  contents: read", content)
+        self.assertIn("if: github.ref == 'refs/heads/code'", content)
+        self.assertIn("persist-credentials: false", content)
+        self.assertIn("--code-commit \"$GITHUB_SHA\"", content)
+        self.assertIn("--evidence-commit \"$EVIDENCE_COMMIT\"", content)
+        self.assertIn("--review-commit \"$REVIEW_COMMIT\"", content)
+        self.assertIn("--document-id cce52b36-d00c-4710-a8ee-e84893fb4be1", content)
+        self.assertIn("--document-id 2b076d77-6bc1-4b67-8be9-8f45a787479f", content)
+        self.assertIn("actions/upload-artifact@v4", content)
+        self.assertIn("${{ env.SHADOW_ROOT }}/manifest.json", content)
+        self.assertIn("${{ env.SHADOW_ROOT }}/candidate_rows.json", content)
+        self.assertNotIn("git push", content)
+        self.assertNotIn("environment: production", content)
+
     def test_catalog_collection_is_double_gated_and_default_closed(self):
         content = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
         self.assertIn("SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}", content)

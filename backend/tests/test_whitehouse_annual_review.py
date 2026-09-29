@@ -228,7 +228,14 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
         coverage, _ = self.fixture(extraction)
         result = build_annual_review(coverage, self.root, coverage_sha256="b" * 64)
         row = result["holdings"][0]
+        report = result["reports"][0]
         self.assertTrue(row["source_holdings_eligible"])
+        self.assertEqual(report["holding_coverage_status"], "partial")
+        self.assertFalse(report["part6_completeness"]["source_row_census_complete"])
+        self.assertEqual(report["part6_completeness"]["completeness_status"],
+                         "partial_or_unverified")
+        self.assertEqual(report["part7_completeness"]["completeness_status"],
+                         "partial_or_unverified")
         self.assertEqual(row["source_row_locator"], "p27-y1753")
         self.assertEqual(row["raw_columns"], extraction["holdings"][0]["raw_columns"])
         self.assertEqual(row["account_scope"], "investment-account-3")

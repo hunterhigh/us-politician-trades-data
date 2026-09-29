@@ -11,7 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
 from unison_snapshot.codec import bucket, digest, encode
-from unison_snapshot.legacy import load
+from unison_snapshot.legacy import PROCESSOR_V2_SHA256, load
 from unison_snapshot.store import GitStore, assemble
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples/synthetic.json"
@@ -174,6 +174,12 @@ class ProducerTests(unittest.TestCase):
             row["source_url"] = f"https://{hosts[row['source_id']]}/filing/{row['filing_id']}"
         for row in data["source_health"]:
             row["status"] = "ok"
+        data["source_health"].append({
+            "source_id": "twelve_data_split_adjusted_eod",
+            "source": "Twelve Data split-adjusted EOD",
+            "status": "ok",
+            "last_checked_at": NOW,
+        })
         data["security_market_data"] = [{
             "ticker": "ZZDEMO", "company_name": "Fictional Company Alpha",
             "source_id": "alpaca_sip_eod", "price_source": "Alpaca SIP EOD",
@@ -192,6 +198,7 @@ class ProducerTests(unittest.TestCase):
             build(data, generated_at=NOW, allow_production=True, allow_market=True)
         bundle = build(data, generated_at=NOW, allow_production=True, allow_market=True,
                        market_commit="1" * 40, market_pages=["2" * 64])
+        self.assertEqual(bundle.manifest["processor_sha256"], PROCESSOR_V2_SHA256)
         self.assertEqual(bundle.manifest["market_commit"], "1" * 40)
         self.assertTrue(bundle.manifest["coverage"]["market_enabled"])
         self.assertTrue(bundle.manifest["coverage"]["market_supported_complete"])

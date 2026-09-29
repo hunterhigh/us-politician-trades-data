@@ -17,10 +17,9 @@ from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-04"
-LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-03"
+LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
 PARSER_RETRY_VERSION = "house-parser-suite-2026-08"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
-LEGACY_DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/(?:\d{4}|\d{2})")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
 AMOUNT_OVER_RE = re.compile(r"^(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?$", re.I)
@@ -97,7 +96,7 @@ def _explicit_zero_transaction_declaration(pages: list[dict]) -> dict | None:
                     },
                 }
             dates = [word for word in ordered if DATE_RE.fullmatch(_clean(str(word["text"])))
-                     or LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))]
+                     or _legacy_date(_clean(str(word["text"]))) is not None]
             lower_form_line = top >= 0.45 * height
             has_amount = any("$" in str(word.get("text", "")) for word in ordered)
             has_asset_code = any(re.fullmatch(r"[\[{][A-Z0-9]{2}[\]}]",
@@ -244,10 +243,20 @@ def _is_mark(word: dict) -> bool:
 
 
 def _legacy_date(value: str) -> str | None:
+    # Scanned House check-box forms are small enough that OCR can confuse a date
+    # separator or a digit with a visually similar glyph. Normalize only the
+    # complete date token; qualification still requires both dates and its
+    # existing confidence threshold.
+    value = _clean(value).strip("[]{}()|.,;:")
+    value = value.translate(str.maketrans({"O": "0", "o": "0", "Q": "0",
+                                           "I": "1", "l": "1", "|": "1"}))
+    value = re.sub(r"(?<=\d)[.\-](?=\d)", "/", value)
+    if re.fullmatch(r"\d{6}|\d{8}", value):
+        value = f"{value[:2]}/{value[2:4]}/{value[4:]}"
     try:
         year = value.rsplit("/", 1)[-1]
         return datetime.strptime(value, "%m/%d/%Y" if len(year) == 4 else "%m/%d/%y").date().isoformat()
-    except ValueError:
+    except (ValueError, IndexError):
         return None
 
 
@@ -325,14 +334,14 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
         filing_year = int(metadata["filing_year"])
         wide_table = any(
             0.585 * width <= float(word["x0"]) < 0.665 * width
-            and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+            and _legacy_date(_clean(str(word["text"]))) is not None
             and (parsed := _legacy_date(_clean(str(word["text"])))) is not None
             and datetime.fromisoformat(parsed).year in {filing_year, filing_year - 1}
             for word in words
         )
         full_table = "CAPITAL" in page_text and "PARTIAL" in page_text
         compact = not full_table and any(0.42 * width <= float(word["x0"]) < 0.47 * width
-                      and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                      and _legacy_date(_clean(str(word["text"]))) is not None
                       for word in words)
         if wide_table:
             # Some hand-delivered scans devote roughly half the landscape page to the
@@ -361,7 +370,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
         filing_status = document_filing_status
         anchors = sorted({float(word["top"]) for word in words
                           if transaction_bounds[0] * width <= float(word["x0"]) < transaction_bounds[1] * width
-                          and LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                          and _legacy_date(_clean(str(word["text"]))) is not None
                           and float(word["top"]) >= 0.58 * height})
         for row_index, top in enumerate(anchors):
             transaction_raw = _line(words, x0=transaction_bounds[0] * width,
@@ -460,7 +469,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                      or large_heading[:3] == ["P", "T", "R"])
     has_legacy_table = ("FULLASSETNAME" in compact_all_text
                         and "AMOUNTOFTRANSACTION" in compact_all_text
-                        and any(LEGACY_DATE_RE.fullmatch(_clean(str(word["text"])))
+                        and any(_legacy_date(_clean(str(word["text"]))) is not None
                                 for page in pages for word in page.get("words", [])))
     legacy_form = (f"#{document_id}" not in first_text and ocr_engine is not None
                    and ((title_matches and "HOUSE" in compact_first_text) or has_legacy_table))

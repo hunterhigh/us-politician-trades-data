@@ -45,6 +45,8 @@ RECOVERED_ROWS = [
         "transaction_date": "2026-07-17", "late_notification_raw": "No",
         "amount_raw": "$1,001 - $15,000", "amount_low": 1001,
         "amount_high": 15000,
+        "cells": ["67", "NATERA INC", "purchase", "7/17/2026", "No",
+                  "$1,001 - $15,000"],
     },
     {
         "extraction_id": "oge-278t:8fce140b9c3fca8985296c35",
@@ -54,6 +56,8 @@ RECOVERED_ROWS = [
         "transaction_date": "2026-07-17", "late_notification_raw": "No",
         "amount_raw": "$1,001 - $15,000", "amount_low": 1001,
         "amount_high": 15000,
+        "cells": ["68", "DEXCOM INC", "purchase", "7/17/2026", "No",
+                  "$1,001 - $15,000"],
     },
     {
         "extraction_id": "oge-278t:c4493bc63478b78bdd77113b",
@@ -63,6 +67,8 @@ RECOVERED_ROWS = [
         "transaction_date": "2026-07-31", "late_notification_raw": "no",
         "amount_raw": "$50,001 - $100,000", "amount_low": 50001,
         "amount_high": 100000,
+        "cells": ["232", "MORGAN STANLEY", "sale", "7/31/2026", "no",
+                  "$50,001 - $100,000"],
     },
     {
         "extraction_id": "oge-278t:faffe360fe76ed247b8c9921",
@@ -72,6 +78,8 @@ RECOVERED_ROWS = [
         "transaction_date": "2026-07-31", "late_notification_raw": "no",
         "amount_raw": "$50,001 - $100,000", "amount_low": 50001,
         "amount_high": 100000,
+        "cells": ["233", "BOOKING HLDGS INC", "sale", "7/31/2026", "no",
+                  "$50,001 - $100,000"],
     },
 ]
 

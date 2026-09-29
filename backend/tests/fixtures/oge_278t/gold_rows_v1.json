@@ -1,0 +1,44 @@
+{
+  "schema_version": "oge-278t-gold-fixture/v1",
+  "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "catalog_record": {
+    "source_id": "oge",
+    "access_method": "direct_pdf",
+    "source_document_id": "0123456789abcdef0123456789abcdef",
+    "document_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/0123456789ABCDEF0123456789ABCDEF/$FILE/example.pdf",
+    "filer_name": "Example, Ada",
+    "agency": "Example Office",
+    "position_title": "Deputy Counsel",
+    "catalog_added_date": "2025-06-10",
+    "amended_label": null,
+    "pending_final_oge_disposition": false
+  },
+  "extraction": {
+    "schema_version": "oge-278t-extraction/v1",
+    "parser_version": "oge-278t-pdf/v2",
+    "source_id": "oge",
+    "document_id": "0123456789abcdef0123456789abcdef",
+    "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/0123456789ABCDEF0123456789ABCDEF/$FILE/example.pdf",
+    "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "catalog_filer_name": "Example, Ada",
+    "agency": "Example Office",
+    "position_title": "Deputy Counsel",
+    "filed_at": "2025-06-03",
+    "evidence_complete": true,
+    "document_reasons": [],
+    "source_rows": [
+      {"page_number": 2, "cells": ["#", "Description", "Type", "Date", "Notification", "Amount"]},
+      {"page_number": 2, "cells": ["1", "Example Inc. (EXM)", "Purchase", "05/01/2025", "No", "$1,001 - $15,000"]},
+      {"page_number": 2, "cells": ["2", "Unclear asset", "Transfer", "05/02/2025", "No", "$15,001 - $50,000"]},
+      {"page_number": 2, "cells": ["", "", "", "", "", ""]},
+      {"page_number": 2, "cells": ["x", "Unparsed physical row", "?", "??", "?", "?"]}
+    ],
+    "transactions": [
+      {"extraction_id": "oge-278t:000000000000000000000001", "page_number": 2, "row_number": 1, "owner": "Self", "asset_name": "Example Inc.", "ticker": "EXM", "transaction_type": "purchase", "transaction_date": "2025-05-01", "amount_low": 1001, "amount_high": 15000, "cells": ["1", "Example Inc. (EXM)", "Purchase", "05/01/2025", "No", "$1,001 - $15,000"]}
+    ],
+    "quarantined": [
+      {"extraction_id": "oge-278t:000000000000000000000002", "page_number": 2, "row_number": 2, "owner": "Self", "asset_name": "Unclear asset", "ticker": null, "transaction_type": null, "transaction_date": "2025-05-02", "amount_low": 15001, "amount_high": 50000, "cells": ["2", "Unclear asset", "Transfer", "05/02/2025", "No", "$15,001 - $50,000"], "reasons": ["transaction_type_unsupported"]}
+    ]
+  },
+  "expected_counts": {"qualified": 1, "quarantined": 1, "excluded": 2, "unrecognized": 1}
+}

@@ -175,8 +175,15 @@ def build_annual_review(coverage: dict, review_root: Path, *,
             "source_holdings_eligible": report_eligible,
             "source_candidate_eligible": candidate_eligible,
             "source_candidate_transaction_eligible": transaction_candidate_eligible,
-            "holding_coverage_status": ("complete" if report_eligible else
-                                        "partial" if candidate_eligible else "ineligible"),
+            # Row eligibility does not prove that OCR found every row on the
+            # source pages. Never label coverage complete without an independent
+            # source-row census attestation.
+            "holding_coverage_status": (
+                "complete" if report_eligible and
+                audit["source_row_census_attested"] else
+                "partial" if candidate_eligible else "ineligible"),
+            "part6_completeness": audit["part6_completeness"],
+            "part7_completeness": audit["part7_completeness"],
             "holding_blocking_reasons": audit["holding_blocking_reasons"],
             "parsed_holding_count": len(source_holdings),
             "parsed_transaction_count": len(source_transactions),

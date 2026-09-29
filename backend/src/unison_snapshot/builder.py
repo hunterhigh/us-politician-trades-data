@@ -168,10 +168,17 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     data = normalize(payload, allow_production=allow_production,
                      allow_empty_production=allow_empty_production,
                      allow_market=allow_market)
-    mixed_market = any(row["source_id"] == TWELVE_DATA_SOURCE_ID
-                       for row in data["security_market_data"])
-    processor_version = "v2" if mixed_market else "v1"
-    processor_sha = PROCESSOR_V2_SHA256 if mixed_market else PROCESSOR_SHA256
+    market_sources = {row["source_id"] for row in data["security_market_data"]}
+    mixed_market = TWELVE_DATA_SOURCE_ID in market_sources
+    # The v2 consumer is also needed when Twelve Data appears only in
+    # source_health (for example, as an excluded-ticker coverage source).
+    # Keep that routing decision separate from market coverage: an Alpaca-only
+    # market array still uses the Alpaca coverage schema.
+    processor_v2_required = mixed_market or any(
+        row["source_id"] == TWELVE_DATA_SOURCE_ID for row in data["source_health"]
+    )
+    processor_version = "v2" if processor_v2_required else "v1"
+    processor_sha = PROCESSOR_V2_SHA256 if processor_v2_required else PROCESSOR_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")

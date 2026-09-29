@@ -399,6 +399,7 @@ def build_discovery(pages: Iterable[SenateSearchPage]) -> dict:
     total = ordered[0].records_total
     expected_start = 0
     reports: list[dict] = []
+    seen_document_ids: set[str] = set()
     for page in ordered:
         if page.records_total != total:
             raise SenateEfdError("Senate eFD recordsTotal changed between pages")
@@ -407,7 +408,12 @@ def build_discovery(pages: Iterable[SenateSearchPage]) -> dict:
         expected_count = min(page.requested_length, total - page.start)
         if expected_count < 0 or page.row_count != expected_count:
             raise SenateEfdError("Senate eFD search page is incomplete")
-        reports.extend(asdict(report) for report in page.reports)
+        for report in page.reports:
+            if report.document_id in seen_document_ids:
+                raise SenateEfdError(
+                    "Senate eFD catalog contains a duplicate report document id")
+            seen_document_ids.add(report.document_id)
+            reports.append(asdict(report))
         expected_start += page.row_count
     if expected_start != total:
         raise SenateEfdError("Senate eFD pagination is incomplete")
