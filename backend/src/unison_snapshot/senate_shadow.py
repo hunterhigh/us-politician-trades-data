@@ -107,6 +107,81 @@ def _catalog_electronic(repo: Path, evidence_commit: str,
     return urls
 
 
+def _supplement_predecessors(repo: Path, evidence_commit: str,
+                             review_commit: str, extractions: list[dict],
+                             identities: dict[str, dict]) -> tuple[list[dict], dict[str, dict], str | None]:
+    pointer_path = "senate_efd/amendment_supplements/current.json"
+    if pointer_path not in _git_paths(repo, review_commit, pointer_path):
+        return [], {}, None
+    pointer = _json_blob(repo, review_commit, pointer_path)
+    digest = pointer.get("supplement_sha256")
+    manifest_path = f"senate_efd/amendment_supplements/manifests/{digest}.json"
+    if (pointer.get("status") != "active" or
+            pointer.get("manifest_path") != manifest_path or
+            not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest) or
+            pointer.get("parser_version") != PARSER_VERSION):
+        raise SenateShadowError("fixed amendment supplement pointer is invalid")
+    manifest = _json_blob(repo, review_commit, manifest_path)
+    canonical = json.dumps({k: v for k, v in manifest.items()
+                            if k != "supplement_sha256"}, sort_keys=True,
+                           separators=(",", ":"), ensure_ascii=False).encode()
+    if (manifest.get("supplement_sha256") != digest or
+            hashlib.sha256(canonical).hexdigest() != digest or
+            not isinstance(manifest.get("selected_document_ids"), list) or
+            not isinstance(manifest.get("targets"), list)):
+        raise SenateShadowError("fixed amendment supplement manifest is invalid")
+    selected = set(manifest["selected_document_ids"])
+    paths = _git_paths(repo, review_commit,
+                       "senate_efd/amendment_supplements/extractions")
+    predecessors = []
+    for path in paths:
+        if not re.fullmatch(r"senate_efd/amendment_supplements/extractions/[0-9a-f]{64}\.json", path):
+            continue
+        extraction = _json_blob(repo, review_commit, path)
+        if extraction.get("document_id") not in selected:
+            continue
+        document_id = extraction["document_id"]
+        sha = extraction.get("source_sha256")
+        if (extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA or
+                extraction.get("parser_version") != PARSER_VERSION or
+                not extraction.get("evidence_complete") or
+                not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha)):
+            raise SenateShadowError("fixed amendment predecessor extraction is invalid")
+        prefix = f"senate_efd/reports/{document_id}/{sha}"
+        if parse_electronic_ptr(_json_blob(repo, evidence_commit, prefix + ".metadata.json"),
+                                _git_blob(repo, evidence_commit, prefix + ".html")) != extraction:
+            raise SenateShadowError("fixed amendment predecessor differs from archived source")
+        predecessors.append(extraction)
+    if (len(predecessors) != len(selected) or
+            len({item["document_id"] for item in predecessors}) != len(selected)):
+        raise SenateShadowError("fixed amendment predecessors are incomplete")
+    by_id = {item["document_id"]: item for item in predecessors}
+    current_by_id = {item["document_id"]: item for item in extractions}
+    predecessor_identities = {}
+    for target in manifest["targets"]:
+        if not isinstance(target, dict):
+            raise SenateShadowError("fixed amendment target is invalid")
+        amendment = current_by_id.get(target.get("amendment_document_id"))
+        # A catalog report with missing extraction is already a file-level failure.
+        if amendment is None:
+            continue
+        matches = target.get("content_matches")
+        if (not isinstance(matches, list) or len(matches) != 1 or
+                amendment.get("source_sha256") != target.get("amendment_source_sha256") or
+                identities[amendment["document_id"]].get("person_id") != target.get("person_id")):
+            raise SenateShadowError("fixed amendment target conflicts with current extraction")
+        predecessor = by_id.get(matches[0].get("document_id"))
+        if (predecessor is None or
+                predecessor.get("source_sha256") != matches[0].get("source_sha256") or
+                predecessor.get("report_title_date") != target.get("report_title_date")):
+            raise SenateShadowError("fixed amendment predecessor conflicts with target")
+        predecessor_identities[predecessor["document_id"]] = {
+            "person_id": target["person_id"], "match_class": "exact",
+            "status": "matched_automatically"}
+    return [item for item in predecessors if item["document_id"] in predecessor_identities], \
+        predecessor_identities, digest
+
+
 def _observation(row_number: int, field: str, raw: object, normalized: object,
                  required: bool) -> dict:
     location = {"page": 1, "row_locator": f"transaction-{row_number}",
@@ -226,7 +301,10 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
             raise SenateShadowError(f"document {document_id} conflicts with fixed catalog URL")
         extractions.append(extraction)
 
-    resolution = _resolve_amendments(extractions, identity_by_id)
+    supplement, supplement_identities, supplement_sha = _supplement_predecessors(
+        repo, evidence_commit, review_commit, extractions, identity_by_id)
+    resolution = _resolve_amendments([*extractions, *supplement],
+                                     {**identity_by_id, **supplement_identities})
     superseded = resolution["superseded"]
     unresolved = resolution["unresolved"]
     if superseded & unresolved:
@@ -311,6 +389,7 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         },
         "accounted_rows": len(rows), "outputs": [],
         "unaccounted_source_row_count": None if failed_documents else 0,
+        "amendment_supplement_sha256": supplement_sha,
         "amendment_resolution": resolution["chains"],
     }
     validate_run_manifest(manifest)

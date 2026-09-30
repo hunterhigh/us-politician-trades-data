@@ -104,8 +104,14 @@ class SenateShadowTests(unittest.TestCase):
                                 catalog_path=CURRENT_CATALOG, document_ids=None)
         self.assertEqual(len(manifest["documents"]), 122)
         self.assertEqual(sum(item["row_count"] for item in manifest["documents"]), len(rows))
+        self.assertEqual(len(rows), 1647)
+        self.assertEqual(manifest["counts"]["qualified_rows"], 1435)
+        self.assertEqual(manifest["counts"]["quarantined_rows"], 171)
+        self.assertEqual(manifest["counts"]["excluded_rows"], 41)
         self.assertEqual(manifest["counts"]["failed_documents"], 0)
         self.assertEqual(manifest["unaccounted_source_row_count"], 0)
+        self.assertEqual(manifest["amendment_supplement_sha256"],
+                         "ebe495dde334280f83b169304e039b6b92b9cd604db6c128fd17024d6e6118f5")
         self.assertTrue(all("/ptr/" in item["source_url"] for item in manifest["documents"]))
 
     def test_missing_review_extraction_remains_file_failure_with_unknown_rows(self):
