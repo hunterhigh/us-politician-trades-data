@@ -1,0 +1,1790 @@
+{
+  "counts": {
+    "physical_rows": 8,
+    "qualified_rows": 0,
+    "quarantined_rows": 8
+  },
+  "document_id": "9116326",
+  "field_values_status": "unread_unverified",
+  "file_status": "failed_open",
+  "fingerprint_rule": "vertical_dark_pixel_coverage_gt_90_percent_and_amount_pitch_2.7_to_3.7_percent",
+  "pages": [
+    {
+      "action_columns": 4,
+      "amount_columns": 11,
+      "detected_layout_family": "legacy_checkbox_11_amount_columns",
+      "page": 1
+    },
+    {
+      "action_columns": 4,
+      "amount_columns": 11,
+      "detected_layout_family": "legacy_checkbox_11_amount_columns",
+      "page": 2
+    }
+  ],
+  "render_resolution_dpi": 150,
+  "rows": [
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              265.28,
+              422.88,
+              286.63,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              286.63,
+              422.88,
+              307.49,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.49,
+              422.88,
+              328.12,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.12,
+              422.88,
+              348.75,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.45,
+              422.88,
+              463.88,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              463.88,
+              422.88,
+              489.3,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.3,
+              422.88,
+              514.97,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              514.97,
+              422.88,
+              540.39,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.39,
+              422.88,
+              565.58,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.58,
+              422.88,
+              590.52,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              422.88,
+              615.95,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.95,
+              422.88,
+              641.61,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              422.88,
+              667.28,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.28,
+              422.88,
+              692.7,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.7,
+              422.88,
+              718.12,
+              447.6
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r1:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            130.48,
+            422.88,
+            265.28,
+            447.6
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r1:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.48,
+            422.88,
+            438.45,
+            447.6
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r1:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            110.81,
+            422.88,
+            130.48,
+            447.6
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r1:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            348.75,
+            422.88,
+            390.48,
+            447.6
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r1:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r1"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              265.28,
+              447.6,
+              286.63,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              286.63,
+              447.6,
+              307.49,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.49,
+              447.6,
+              328.12,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.12,
+              447.6,
+              348.75,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.45,
+              447.6,
+              463.88,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              463.88,
+              447.6,
+              489.3,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.3,
+              447.6,
+              514.97,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              514.97,
+              447.6,
+              540.39,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.39,
+              447.6,
+              565.58,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.58,
+              447.6,
+              590.52,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              447.6,
+              615.95,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.95,
+              447.6,
+              641.61,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              447.6,
+              667.28,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.28,
+              447.6,
+              692.7,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.7,
+              447.6,
+              718.12,
+              472.08
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r2:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            130.48,
+            447.6,
+            265.28,
+            472.08
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r2:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.48,
+            447.6,
+            438.45,
+            472.08
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r2:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            110.81,
+            447.6,
+            130.48,
+            472.08
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r2:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            348.75,
+            447.6,
+            390.48,
+            472.08
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r2:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r2"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              265.28,
+              472.08,
+              286.63,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              286.63,
+              472.08,
+              307.49,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.49,
+              472.08,
+              328.12,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.12,
+              472.08,
+              348.75,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.45,
+              472.08,
+              463.88,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              463.88,
+              472.08,
+              489.3,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.3,
+              472.08,
+              514.97,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              514.97,
+              472.08,
+              540.39,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.39,
+              472.08,
+              565.58,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.58,
+              472.08,
+              590.52,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              472.08,
+              615.95,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.95,
+              472.08,
+              641.61,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              472.08,
+              667.28,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.28,
+              472.08,
+              692.7,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.7,
+              472.08,
+              718.12,
+              496.32
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r3:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            130.48,
+            472.08,
+            265.28,
+            496.32
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r3:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.48,
+            472.08,
+            438.45,
+            496.32
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r3:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            110.81,
+            472.08,
+            130.48,
+            496.32
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r3:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            348.75,
+            472.08,
+            390.48,
+            496.32
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r3:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r3"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              265.28,
+              496.32,
+              286.63,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              286.63,
+              496.32,
+              307.49,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.49,
+              496.32,
+              328.12,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.12,
+              496.32,
+              348.75,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.45,
+              496.32,
+              463.88,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              463.88,
+              496.32,
+              489.3,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.3,
+              496.32,
+              514.97,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              514.97,
+              496.32,
+              540.39,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.39,
+              496.32,
+              565.58,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.58,
+              496.32,
+              590.52,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              496.32,
+              615.95,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.95,
+              496.32,
+              641.61,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              496.32,
+              667.28,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.28,
+              496.32,
+              692.7,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.7,
+              496.32,
+              718.12,
+              521.28
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p1:r4:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            130.48,
+            496.32,
+            265.28,
+            521.28
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r4:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.48,
+            496.32,
+            438.45,
+            521.28
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r4:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            110.81,
+            496.32,
+            130.48,
+            521.28
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r4:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            348.75,
+            496.32,
+            390.48,
+            521.28
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p1:r4:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r4"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              266.48,
+              247.68,
+              288.07,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              288.07,
+              247.68,
+              307.97,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.97,
+              247.68,
+              328.84,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.84,
+              247.68,
+              349.71,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.69,
+              247.68,
+              464.12,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              464.12,
+              247.68,
+              489.54,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.54,
+              247.68,
+              515.21,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              515.21,
+              247.68,
+              540.87,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.87,
+              247.68,
+              565.34,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.34,
+              247.68,
+              590.52,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              247.68,
+              615.71,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.71,
+              247.68,
+              641.61,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              247.68,
+              667.04,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.04,
+              247.68,
+              692.46,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.46,
+              247.68,
+              717.88,
+              273.84
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r1:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            131.68,
+            247.68,
+            266.48,
+            273.84
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r1:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.96,
+            247.68,
+            438.69,
+            273.84
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r1:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            112.25,
+            247.68,
+            131.68,
+            273.84
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r1:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            349.71,
+            247.68,
+            390.96,
+            273.84
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r1:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p2:r1"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              266.48,
+              273.84,
+              288.07,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              288.07,
+              273.84,
+              307.97,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.97,
+              273.84,
+              328.84,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.84,
+              273.84,
+              349.71,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.69,
+              273.84,
+              464.12,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              464.12,
+              273.84,
+              489.54,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.54,
+              273.84,
+              515.21,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              515.21,
+              273.84,
+              540.87,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.87,
+              273.84,
+              565.34,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.34,
+              273.84,
+              590.52,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              273.84,
+              615.71,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.71,
+              273.84,
+              641.61,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              273.84,
+              667.04,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.04,
+              273.84,
+              692.46,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.46,
+              273.84,
+              717.88,
+              299.76
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r2:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            131.68,
+            273.84,
+            266.48,
+            299.76
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r2:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.96,
+            273.84,
+            438.69,
+            299.76
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r2:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            112.25,
+            273.84,
+            131.68,
+            299.76
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r2:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            349.71,
+            273.84,
+            390.96,
+            299.76
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r2:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p2:r2"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              266.48,
+              299.76,
+              288.07,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              288.07,
+              299.76,
+              307.97,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.97,
+              299.76,
+              328.84,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.84,
+              299.76,
+              349.71,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.69,
+              299.76,
+              464.12,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              464.12,
+              299.76,
+              489.54,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.54,
+              299.76,
+              515.21,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              515.21,
+              299.76,
+              540.87,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.87,
+              299.76,
+              565.34,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.34,
+              299.76,
+              590.52,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              299.76,
+              615.71,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.71,
+              299.76,
+              641.61,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              299.76,
+              667.04,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.04,
+              299.76,
+              692.46,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.46,
+              299.76,
+              717.88,
+              325.2
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r3:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            131.68,
+            299.76,
+            266.48,
+            325.2
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r3:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.96,
+            299.76,
+            438.69,
+            325.2
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r3:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            112.25,
+            299.76,
+            131.68,
+            325.2
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r3:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            349.71,
+            299.76,
+            390.96,
+            325.2
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r3:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p2:r3"
+    },
+    {
+      "candidate_id": null,
+      "cells": {
+        "action": [
+          {
+            "bbox_points": [
+              266.48,
+              325.2,
+              288.07,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:action:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              288.07,
+              325.2,
+              307.97,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:action:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              307.97,
+              325.2,
+              328.84,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:action:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              328.84,
+              325.2,
+              349.71,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:action:4",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "amount": [
+          {
+            "bbox_points": [
+              438.69,
+              325.2,
+              464.12,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:1",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              464.12,
+              325.2,
+              489.54,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:2",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              489.54,
+              325.2,
+              515.21,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:3",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              515.21,
+              325.2,
+              540.87,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:4",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              540.87,
+              325.2,
+              565.34,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:5",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              565.34,
+              325.2,
+              590.52,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:6",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              590.52,
+              325.2,
+              615.71,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:7",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              615.71,
+              325.2,
+              641.61,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:8",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              641.61,
+              325.2,
+              667.04,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:9",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              667.04,
+              325.2,
+              692.46,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:10",
+            "status": "unread_unverified",
+            "value": null
+          },
+          {
+            "bbox_points": [
+              692.46,
+              325.2,
+              717.88,
+              351.12
+            ],
+            "locator": "house-ptr-grid:be114957d0348663:p2:r4:amount:11",
+            "status": "unread_unverified",
+            "value": null
+          }
+        ],
+        "asset": {
+          "bbox_points": [
+            131.68,
+            325.2,
+            266.48,
+            351.12
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r4:asset",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "notification_date": {
+          "bbox_points": [
+            390.96,
+            325.2,
+            438.69,
+            351.12
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r4:notification_date",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "owner": {
+          "bbox_points": [
+            112.25,
+            325.2,
+            131.68,
+            351.12
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r4:owner",
+          "status": "unread_unverified",
+          "value": null
+        },
+        "transaction_date": {
+          "bbox_points": [
+            349.71,
+            325.2,
+            390.96,
+            351.12
+          ],
+          "locator": "house-ptr-grid:be114957d0348663:p2:r4:transaction_date",
+          "status": "unread_unverified",
+          "value": null
+        }
+      },
+      "disposition": "quarantined_shadow_unverified_cells",
+      "physical_locator": "house-ptr-grid:be114957d0348663:p2:r4"
+    }
+  ],
+  "schema_version": "house-ptr-checkbox-cells-shadow/v1",
+  "source_sha256": "be114957d03486636e639fe9d6c124c71ba8634e2f38f5dfb672eee92502ad2d"
+}
