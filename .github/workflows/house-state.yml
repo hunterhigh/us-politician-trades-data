@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   checkpoint:
+    if: github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -204,3 +205,33 @@ jobs:
           git -C "$state_root" commit -m "state: House ${YEAR} ${{ steps.clock.outputs.run_at }}"
           git -C "$state_root" push origin HEAD:refs/heads/state
           printf 'Published House %s checkpoint to `state`.\n' "$YEAR" >> "$GITHUB_STEP_SUMMARY"
+      - name: Record immutable House source handoff
+        env:
+          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+          CODE_COMMIT: ${{ github.sha }}
+        run: |
+          EVIDENCE_COMMIT="$(git -C "$EVIDENCE_ROOT" rev-parse HEAD)" \
+          STATE_COMMIT="$(git -C "$RUNNER_TEMP/house-state" rev-parse HEAD)" \
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          value = {
+              'schema_version': 'house-source-handoff/v1',
+              'source_run_id': os.environ['SOURCE_RUN_ID'],
+              'code_commit': os.environ['CODE_COMMIT'],
+              'evidence_commit': os.environ['EVIDENCE_COMMIT'],
+              'state_commit': os.environ['STATE_COMMIT'],
+          }
+          if not all(re.fullmatch(r'[0-9a-f]{40}', value[key]) for key in
+                     ('code_commit', 'evidence_commit', 'state_commit')):
+              raise SystemExit('House source handoff has an invalid commit')
+          Path('.local/house-source-handoff.json').write_text(
+              json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf-8')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: house-source-handoff-${{ github.run_id }}
+          path: .local/house-source-handoff.json
+          retention-days: 7
+          if-no-files-found: error
