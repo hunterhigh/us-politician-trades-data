@@ -79,6 +79,13 @@ class OgeShadowRunTests(unittest.TestCase):
                 row["cells"] = ["1", "A", "purchase"]
         _assert_legacy_reparse_equivalent(cached, reparsed)
 
+        empty_cache = json.loads(json.dumps(cached))
+        empty_cache["transactions"] = []
+        empty_cache["quarantined"] = []
+        empty_reparse = json.loads(json.dumps(empty_cache))
+        empty_reparse["source_rows"] = []
+        _assert_legacy_reparse_equivalent(empty_cache, empty_reparse)
+
         changed_trade = json.loads(json.dumps(reparsed))
         changed_trade["transactions"][0]["transaction_date"] = "2025-01-01"
         with self.assertRaisesRegex(OgeShadowInputError, "changed cached value"):
