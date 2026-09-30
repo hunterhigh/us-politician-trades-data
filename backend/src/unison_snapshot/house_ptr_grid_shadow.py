@@ -24,7 +24,7 @@ def _require(condition: bool, message: str) -> None:
         raise HouseIndexError(message)
 
 
-def _grid_rows(image, region: dict) -> list[tuple[float, float, float]]:
+def _grid_rows(image, region: dict, *, min_line_coverage: float = .50) -> list[tuple[float, float, float]]:
     """Return (upper, lower, asset-ink density) in normalized page coordinates."""
     gray = image.convert("L")
     width, height = gray.size
@@ -32,7 +32,7 @@ def _grid_rows(image, region: dict) -> list[tuple[float, float, float]]:
     covered = []
     for y in range(height):
         dark = sum(gray.crop((x0, y, x1, y + 1)).histogram()[:100])
-        if dark / (x1 - x0) > .50:
+        if dark / (x1 - x0) > min_line_coverage:
             covered.append(y)
     clusters: list[list[int]] = []
     for y in covered:
