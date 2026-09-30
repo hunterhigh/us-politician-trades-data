@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-import csv
 import hashlib
-import io
 import json
 from pathlib import Path
 import re
@@ -811,8 +809,17 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
 def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:
     words: list[dict] = []
     try:
-        rows = csv.DictReader(io.StringIO(value), delimiter="\t")
-        for row in rows:
+        lines = value.splitlines()
+        if not lines:
+            return words
+        columns = lines[0].split("\t")
+        if not {"level", "text", "conf", "left", "top", "height"} <= set(columns):
+            raise HouseIndexError("House PTR OCR returned invalid word geometry")
+        for line in lines[1:]:
+            cells = line.split("\t", len(columns) - 1)
+            if len(cells) != len(columns):
+                raise HouseIndexError("House PTR OCR returned invalid word geometry")
+            row = dict(zip(columns, cells))
             text = _clean(row.get("text") or "")
             if row.get("level") != "5" or not text:
                 continue

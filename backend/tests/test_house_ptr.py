@@ -221,6 +221,13 @@ class HousePtrTests(unittest.TestCase):
         self.assertAlmostEqual(words[0]["size"], 7.2)
         self.assertEqual(words[0]["ocr_confidence"], 96.5)
 
+    def test_tesseract_literal_quote_does_not_swallow_following_words(self):
+        tsv = ("level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+               "5\t1\t1\t1\t1\t1\t10\t20\t5\t10\t90.0\t\"+\n"
+               "5\t1\t1\t1\t1\t2\t30\t20\t20\t10\t95.0\tNothing\n")
+        words = _words_from_tesseract_tsv(tsv, points_per_pixel=1.0)
+        self.assertEqual([word["text"] for word in words], ['"+', "Nothing"])
+
     def test_rows_wait_for_automatic_qualification_with_page_evidence(self):
         result = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
         self.assertEqual(len(result["transactions"]), 2)
