@@ -1,0 +1,36 @@
+{
+  "schema_version": "oge-278e-physical-census/v1",
+  "oge_source_sha256": "bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d",
+  "white_house_source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
+  "method": "rendered_page_visual_census_with_oge_text_and_table_crosscheck",
+  "pages": [
+    {"page": 1, "section": "cover", "filled_rows": 0, "adapter_scope": false},
+    {"page": 2, "section": "part1", "filled_rows": 2, "adapter_scope": false},
+    {"page": 3, "section": "part2", "filled_rows": 12, "adapter_scope": true},
+    {"page": 4, "section": "part2", "filled_rows": 9, "adapter_scope": true},
+    {"page": 5, "section": "part2", "filled_rows": 9, "adapter_scope": true},
+    {"page": 6, "section": "part2", "filled_rows": 10, "adapter_scope": true},
+    {"page": 7, "section": "part3", "filled_rows": 5, "adapter_scope": false},
+    {"page": 8, "section": "part4", "filled_rows": 0, "adapter_scope": false, "placeholder": "N/A"},
+    {"page": 9, "section": "part5", "filled_rows": 5, "adapter_scope": true},
+    {"page": 10, "section": "part6", "filled_rows": 22, "adapter_scope": true},
+    {"page": 11, "section": "part7", "filled_rows": 10, "adapter_scope": true},
+    {"page": 12, "section": "part8", "filled_rows": 2, "adapter_scope": false},
+    {"page": 13, "section": "part9", "filled_rows": 0, "adapter_scope": false, "placeholder": "None"},
+    {"page": 14, "section": "summary", "filled_rows": 0, "adapter_scope": false},
+    {"page": 15, "section": "summary", "filled_rows": 0, "adapter_scope": false},
+    {"page": 16, "section": "instructions", "filled_rows": 0, "adapter_scope": false},
+    {"page": 17, "section": "privacy_notice", "filled_rows": 0, "adapter_scope": false}
+  ],
+  "total_filled_rows": 86,
+  "adapter_scope_filled_rows": 77,
+  "outside_adapter_scope_filled_rows": 9,
+  "numbered_row_examples_requiring_visual_recovery": [
+    {"page": 3, "number": "3.2", "ocr_number": "-\"'��?-��"},
+    {"page": 4, "numbers": ["9", "10"], "ocr_number": "9. 10."},
+    {"page": 5, "number": "11", "issue": "first_description_merged_into_header"},
+    {"page": 6, "number": "23", "ocr_number": "_.,_"},
+    {"page": 9, "number": "1.1", "ocr_number": "I. 1."},
+    {"page": 10, "numbers": ["11", "12", "13"], "ocr_number": "11. 12. 13."}
+  ]
+}

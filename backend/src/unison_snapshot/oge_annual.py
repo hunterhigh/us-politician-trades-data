@@ -101,6 +101,19 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
     """Return strict rows, quarantines, and explicit non-holding exclusions."""
     header = _header(rows, section)
     if header is None:
+        if preserve_valued_unreadable and section != "part7":
+            # A scanned page can merge the first asset into its header cell.
+            # Preserve every populated body row as evidence, without guessing
+            # column positions or promoting any value from that page.
+            weak_header = next((index for index, row in enumerate(rows)
+                                if len(row) >= 4 and _compact(row[0]) == "#" and
+                                _compact(row[1]).casefold().startswith("description")), None)
+            if weak_header is not None:
+                pending = [[_compact(cell) for cell in row]
+                           for row in rows[weak_header + 1:]]
+                return [], [_quarantine(section, page_number, cells,
+                                        ["table_header_unrecognized"])
+                            for cells in pending if any(cells)], []
         return [], [_quarantine(section, page_number, [], ["table_header_unrecognized"])], []
     header_index, columns = header
     parsed: list[dict] = []

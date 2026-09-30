@@ -1,0 +1,201 @@
+{
+  "counts": {
+    "existing_qualified_rows": 1,
+    "existing_quarantined_rows": 3,
+    "observed_physical_rows": 11,
+    "shadow_quarantined_unrecognized_rows": 7,
+    "stored_extraction_rows": 4
+  },
+  "coverage": {
+    "basis": "independent_pdf_page_census_lower_bound",
+    "coverage_status": "known_incomplete",
+    "document_id": "9116290",
+    "handled_row_count": 4,
+    "observed_minimum_row_count": 11,
+    "observed_page_minimum_rows": [
+      5,
+      6
+    ],
+    "qualified_row_count": 1,
+    "quarantined_row_count": 3,
+    "retained_candidate_ids": [
+      "house-ptr:c2a121352254ef9a9983f263"
+    ],
+    "schema_version": "house-ptr-coverage-audit/v1",
+    "source_sha256": "7cc36ca57a26ba0331fff01f6210d58d41719f074017442c14fc47983b27b42d",
+    "unhandled_row_lower_bound": 7
+  },
+  "document_id": "9116290",
+  "grid_rule": "dark_pixels_lt_100_across_x_7_to_90_percent_gt_50_percent",
+  "physical_rows": [
+    {
+      "asset_ink_fraction": 0.1028,
+      "bbox_points": [
+        55.44,
+        413.28,
+        712.8,
+        442.32
+      ],
+      "disposition": "quarantined_existing",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p1:r1",
+      "page": 1,
+      "reason": null,
+      "row": 1,
+      "stored_extraction_id": "house-ptr:8fedb2c804d6948c3b3a3eb1"
+    },
+    {
+      "asset_ink_fraction": 0.0892,
+      "bbox_points": [
+        55.44,
+        442.32,
+        712.8,
+        471.36
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p1:r2",
+      "page": 1,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 2,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.0749,
+      "bbox_points": [
+        55.44,
+        471.36,
+        712.8,
+        500.4
+      ],
+      "disposition": "quarantined_existing",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p1:r3",
+      "page": 1,
+      "reason": null,
+      "row": 3,
+      "stored_extraction_id": "house-ptr:dcbf6b6318dad3729b08a114"
+    },
+    {
+      "asset_ink_fraction": 0.096,
+      "bbox_points": [
+        55.44,
+        500.4,
+        712.8,
+        529.44
+      ],
+      "disposition": "quarantined_existing",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p1:r4",
+      "page": 1,
+      "reason": null,
+      "row": 4,
+      "stored_extraction_id": "house-ptr:8cb47f235c49e67304bda7e5"
+    },
+    {
+      "asset_ink_fraction": 0.0849,
+      "bbox_points": [
+        55.44,
+        529.44,
+        712.8,
+        558.48
+      ],
+      "disposition": "qualified_existing",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p1:r5",
+      "page": 1,
+      "reason": null,
+      "row": 5,
+      "stored_extraction_id": "house-ptr:c2a121352254ef9a9983f263"
+    },
+    {
+      "asset_ink_fraction": 0.09,
+      "bbox_points": [
+        55.44,
+        260.4,
+        712.8,
+        289.44
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r1",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 1,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.0936,
+      "bbox_points": [
+        55.44,
+        289.44,
+        712.8,
+        318.0
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r2",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 2,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.0802,
+      "bbox_points": [
+        55.44,
+        318.0,
+        712.8,
+        346.8
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r3",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 3,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.0726,
+      "bbox_points": [
+        55.44,
+        346.8,
+        712.8,
+        375.6
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r4",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 4,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.0811,
+      "bbox_points": [
+        55.44,
+        375.6,
+        712.8,
+        404.4
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r5",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 5,
+      "stored_extraction_id": null
+    },
+    {
+      "asset_ink_fraction": 0.1005,
+      "bbox_points": [
+        55.44,
+        404.4,
+        712.8,
+        433.2
+      ],
+      "disposition": "quarantined_shadow_unrecognized",
+      "locator": "house-ptr-grid:7cc36ca57a26ba03:p2:r6",
+      "page": 2,
+      "reason": "stored_extraction_missing_physical_row",
+      "row": 6,
+      "stored_extraction_id": null
+    }
+  ],
+  "render_resolution_dpi": 150,
+  "row_count_status": "observed_grid_lower_bound",
+  "schema_version": "house-ptr-grid-shadow/v1",
+  "source_sha256": "7cc36ca57a26ba0331fff01f6210d58d41719f074017442c14fc47983b27b42d"
+}
