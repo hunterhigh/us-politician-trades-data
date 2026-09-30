@@ -1,0 +1,72 @@
+{
+  "amount_cell_ocr_words": [],
+  "amount_raw": null,
+  "asset_name_ocr": "(S) ELCM2 LLC",
+  "asset_words": [
+    {
+      "confidence": 91.120247,
+      "height": 33,
+      "left": 739,
+      "text": "(S)",
+      "top": 2271,
+      "width": 41
+    },
+    {
+      "confidence": 91.030975,
+      "height": 27,
+      "left": 793,
+      "text": "ELCM2",
+      "top": 2271,
+      "width": 110
+    },
+    {
+      "confidence": 96.907616,
+      "height": 27,
+      "left": 915,
+      "text": "LLC",
+      "top": 2271,
+      "width": 59
+    }
+  ],
+  "date_words": [
+    {
+      "confidence": 96.778008,
+      "height": 26,
+      "left": 1757,
+      "text": "1/9/26",
+      "top": 2269,
+      "width": 89
+    }
+  ],
+  "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+  "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
+  "ocr_version": "tesseract v5.4.0.20240606",
+  "page_number": 2,
+  "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+  "printed_row_number": 2,
+  "qualification_status": "quarantined",
+  "quarantine_reasons": [
+    "paper_transaction_type_mark_unverified",
+    "paper_amount_mark_unverified",
+    "paper_report_row_census_incomplete"
+  ],
+  "row_bounds_px": [
+    2210,
+    2355
+  ],
+  "row_locator_basis": "fixed GIF visual inspection; not machine census",
+  "schema_version": "senate-paper-fixed-row-observation/v1",
+  "source_id": "senate_efd",
+  "transaction_date_ocr": "1/9/26",
+  "transaction_type": null,
+  "type_cell_ocr_words": [
+    {
+      "confidence": 45.94463,
+      "height": 130,
+      "left": 1467,
+      "text": "Ba",
+      "top": 2219,
+      "width": 188
+    }
+  ]
+}

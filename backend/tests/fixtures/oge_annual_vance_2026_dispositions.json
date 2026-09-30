@@ -1,0 +1,373 @@
+{
+  "evidence_sha256": "bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d",
+  "part6_relationships": {
+    "aggregate_dedup": "not_verified",
+    "asset_endnotes": "not_verified",
+    "unresolved_parent_account_children": 8
+  },
+  "part7_opt_in": "not_enabled",
+  "part_counts": {
+    "part6": {
+      "excluded": 0,
+      "qualified": 0,
+      "quarantined": 20,
+      "unrecognized": 0
+    },
+    "part7": {
+      "excluded": 0,
+      "qualified": 0,
+      "quarantined": 10,
+      "unrecognized": 0
+    }
+  },
+  "report_completeness": {
+    "detected_part6_rows": 20,
+    "detected_part7_rows": 10,
+    "reason": "independent_source_row_census_missing",
+    "status": "not_verified_complete"
+  },
+  "revision_reconciliation": "not_verified",
+  "rows": [
+    {
+      "candidate_id": "oge-annual-row:5fc2b836cc0fddd9faefd221",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "2.1"
+    },
+    {
+      "candidate_id": "oge-annual-row:d57b01b164f338ac73ed0d81",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "3.1"
+    },
+    {
+      "candidate_id": "oge-annual-row:a476e08a4361c5083445ce38",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "4.1"
+    },
+    {
+      "candidate_id": "oge-annual-row:8d7f600ed339fb5b70313ed5",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "4.2"
+    },
+    {
+      "candidate_id": "oge-annual-row:7455eeccc2d0be4caa2efc98",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "4.3"
+    },
+    {
+      "candidate_id": "oge-annual-row:68c225c8c03c922551012216",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "4.4"
+    },
+    {
+      "candidate_id": "oge-annual-row:6d79d4c982964e50a1c1b8c1",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "4.5"
+    },
+    {
+      "candidate_id": "oge-annual-row:0fdaa791fa0ed083d18f9f5a",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified"
+      ],
+      "row_number": "5"
+    },
+    {
+      "candidate_id": "oge-annual-row:838ed7c514205913971b5689",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified",
+        "parent_account_row_unresolved"
+      ],
+      "row_number": "6.1"
+    },
+    {
+      "candidate_id": "oge-annual-row:eda2597acb664e3d65c3ed7c",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified"
+      ],
+      "row_number": "7"
+    },
+    {
+      "candidate_id": "oge-annual-row:13cad17a7e891d72e3fe6bf0",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified"
+      ],
+      "row_number": "8"
+    },
+    {
+      "candidate_id": "oge-annual-row:04d9cb698979b175522267f4",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "owner_unverified"
+      ],
+      "row_number": "10"
+    },
+    {
+      "candidate_id": "oge-annual-row:2c3e775b89ef610d3ce45031",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "1"
+    },
+    {
+      "candidate_id": "oge-annual-row:a05008203af1dc0893910b69",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "2"
+    },
+    {
+      "candidate_id": "oge-annual-row:c7a1a3a9735c51665adc583d",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "3"
+    },
+    {
+      "candidate_id": "oge-annual-row:6631f62e2e7fcd85b1404483",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "4"
+    },
+    {
+      "candidate_id": "oge-annual-row:361c3be68cf706bec32b0c8b",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "5"
+    },
+    {
+      "candidate_id": "oge-annual-row:5c16af9233f62d10af4af590",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "6"
+    },
+    {
+      "candidate_id": "oge-annual-row:8ce76709722b69bb40cef478",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "7"
+    },
+    {
+      "candidate_id": "oge-annual-row:ce3e81e2451a42b91849dd47",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "8"
+    },
+    {
+      "candidate_id": "oge-annual-row:2364f2938d8063168de0df41",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "9"
+    },
+    {
+      "candidate_id": "oge-annual-row:0e781d223ac38e25c587dfa2",
+      "disposition": "quarantined",
+      "page": 11,
+      "part": "part7",
+      "reasons": [
+        "filing_date_unverified",
+        "part7_numbering_unreconciled",
+        "part7_opt_in_not_enabled",
+        "pending_278t_reconciliation"
+      ],
+      "row_number": "10"
+    },
+    {
+      "candidate_id": "oge-annual-row:841a266880e235d902ff7a82",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "row_number_unreadable"
+      ],
+      "row_number": null
+    },
+    {
+      "candidate_id": "oge-annual-row:4a2a683844f0d71ee169ecdd",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "row_number_unreadable"
+      ],
+      "row_number": null
+    },
+    {
+      "candidate_id": "oge-annual-row:17432ac01671e75dd01a3cd4",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "holding_value_missing"
+      ],
+      "row_number": "2"
+    },
+    {
+      "candidate_id": "oge-annual-row:2af67843c51809c3cf347bd6",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "holding_value_missing"
+      ],
+      "row_number": "3"
+    },
+    {
+      "candidate_id": "oge-annual-row:9c225e09b325d4c4f083269c",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "holding_value_missing"
+      ],
+      "row_number": "4"
+    },
+    {
+      "candidate_id": "oge-annual-row:a33557b3bfe6d69e580649f0",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "holding_value_missing"
+      ],
+      "row_number": "6"
+    },
+    {
+      "candidate_id": "oge-annual-row:c7d420283e4a2d3668010328",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "holding_value_missing"
+      ],
+      "row_number": "9"
+    },
+    {
+      "candidate_id": "oge-annual-row:e687d6e6bfc942e1b3f7538a",
+      "disposition": "quarantined",
+      "page": 10,
+      "part": "part6",
+      "reasons": [
+        "row_number_unreadable"
+      ],
+      "row_number": null
+    }
+  ],
+  "source_review_blob": "e7a23303be33d0ef00a22b71b5ec7d89676930c1",
+  "source_review_commit": "a814fde2bb9664c2b97981a32ce86ab9b3daf223",
+  "source_review_path": "oge/annual/extractions/40ce0f66f853096985258e27002ddfbb/bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d/oge-278e-tables-v1.json"
+}
