@@ -1,0 +1,441 @@
+{
+  "annual_row_count": 6759,
+  "annual_rows_with_coarse_periodic_candidate": 361,
+  "candidate_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "candidate_sha256": "7bdd6b042b86088733b2dc13e57d59cb21743905adccf42df83276d9470415ba",
+  "document_count": 19,
+  "documents": [
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
+      "candidate_filed_at_values": [
+        "2026-06-25T00:00:00Z"
+      ],
+      "candidate_row_count": 69,
+      "candidate_transaction_date_span": [
+        "2026-05-05",
+        "2026-05-19"
+      ],
+      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf"
+    },
+    {
+      "archive_layout": "nine_ordered_parts",
+      "archive_pdf_sha256_from_path": "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3",
+      "candidate_filed_at_values": [
+        "2026-06-29T00:00:00Z"
+      ],
+      "candidate_row_count": 6759,
+      "candidate_transaction_date_span": [
+        "2025-01-06",
+        "2025-12-31"
+      ],
+      "document_id": "wh-url:0c14d3849ca60768024e470b",
+      "document_type_from_public_label": "278e_annual",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 5,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-2025-Annual-Report.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85",
+      "candidate_filed_at_values": [
+        "2026-05-08T00:00:00Z"
+      ],
+      "candidate_row_count": 1,
+      "candidate_transaction_date_span": [
+        "2026-03-18",
+        "2026-03-18"
+      ],
+      "document_id": "wh-url:11b77506f8e46ae1a83b0531",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "ba85f6c3fe9542415dbe91e128ea2b752d1372513b61ffde0609ba92445865fe",
+      "candidate_filed_at_values": [
+        "2025-10-30T00:00:00Z"
+      ],
+      "candidate_row_count": 1,
+      "candidate_transaction_date_span": [
+        "2025-10-27",
+        "2025-10-27"
+      ],
+      "document_id": "wh-url:12ef4412efaed41d7eccf79c",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:f10fc7e6e2cc32ba",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/02/Burrows-Daniel-Periodic-Transaction-Report-10.30.25.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043",
+      "candidate_filed_at_values": [
+        "2025-08-12T00:00:00Z"
+      ],
+      "candidate_row_count": 465,
+      "candidate_transaction_date_span": [
+        "2025-01-21",
+        "2025-06-13"
+      ],
+      "document_id": "wh-url:1a6bbff2a684fedd76ac9f59",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/08/President-Donald-J.-Trump-Periodic-Transaction-Report-8.12.25-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
+      "candidate_filed_at_values": [
+        "2026-08-12T00:00:00Z"
+      ],
+      "candidate_row_count": 517,
+      "candidate_transaction_date_span": [
+        "2025-06-12",
+        "2026-06-29"
+      ],
+      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "b58b081a0b117585833d5603d78f951c5e6e4bf3039916cea6a128b74bedb82d",
+      "candidate_filed_at_values": [
+        "2025-08-29T00:00:00Z"
+      ],
+      "candidate_row_count": 23,
+      "candidate_transaction_date_span": [
+        "2025-08-14",
+        "2025-08-14"
+      ],
+      "document_id": "wh-url:60d8d791c71b1049b30637fb",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:eb8400e31267bc2f",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Miller-Stephen-Periodic-Transaction-Report-08.29.26.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+      "candidate_filed_at_values": [
+        "2026-01-14T00:00:00Z"
+      ],
+      "candidate_row_count": 31,
+      "candidate_transaction_date_span": [
+        "2025-12-01",
+        "2025-12-29"
+      ],
+      "document_id": "wh-url:62340683e32b0263e8f0eb20",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "745da8aeaa0de12ee38c745e71dbc221b733ee6cad5f2bee874d6fd79a4cb4b3",
+      "candidate_filed_at_values": [
+        "2025-06-23T00:00:00Z"
+      ],
+      "candidate_row_count": 4,
+      "candidate_transaction_date_span": [
+        "2025-05-29",
+        "2025-06-03"
+      ],
+      "document_id": "wh-url:694c1212cac93c50d9cd4e60",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:9fa4fed7dd1d763e",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Kenny-Stephen-Periodic-Transaction-Report-06.23.25-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "d368a64d9db9c8838e6f2f9d98736d26b483f8436117da4f71528872e7159d7b",
+      "candidate_filed_at_values": [
+        "2025-09-02T00:00:00Z"
+      ],
+      "candidate_row_count": 3,
+      "candidate_transaction_date_span": [
+        "2025-06-27",
+        "2025-06-27"
+      ],
+      "document_id": "wh-url:72653c4f76818731d46fc7a2",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:9fa4fed7dd1d763e",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Kenny-Stephen-Periodic-Transaction-Report-09.02.25-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
+      "candidate_filed_at_values": [
+        "2026-06-25T00:00:00Z"
+      ],
+      "candidate_row_count": 220,
+      "candidate_transaction_date_span": [
+        "2026-04-07",
+        "2026-04-30"
+      ],
+      "document_id": "wh-url:7e17c4be2b42f563d37df173",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+      "candidate_filed_at_values": [
+        "2026-04-20T00:00:00Z"
+      ],
+      "candidate_row_count": 5,
+      "candidate_transaction_date_span": [
+        "2026-03-13",
+        "2026-03-26"
+      ],
+      "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 383,
+      "oge_same_person_date_span": [
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "person_id": "oge:076544f8ba0638cf",
+      "review_extraction_file_count": 3,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "93dc679974915fe82c10f6674ab7f2ec55eecc8f952f8690a8dcd4104df03f3b",
+      "candidate_filed_at_values": [
+        "2025-08-27T00:00:00Z"
+      ],
+      "candidate_row_count": 3,
+      "candidate_transaction_date_span": [
+        "2025-08-13",
+        "2025-08-14"
+      ],
+      "document_id": "wh-url:887036d7fdf2969a2dc7475d",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:f10fc7e6e2cc32ba",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Burrows-Daniel-Periodic-Transaction-Report-08.27.26-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc",
+      "candidate_filed_at_values": [
+        "2025-06-13T00:00:00Z"
+      ],
+      "candidate_row_count": 3,
+      "candidate_transaction_date_span": [
+        "2025-06-09",
+        "2025-06-10"
+      ],
+      "document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:81582a436ed263d3",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Wiles-Susie-Periodic-Transaction-Report%E2%80%93-06.13.25.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "0ae0c89fd146550447ac0a70c5aadf54dde653f7134df5897152344a4c492c01",
+      "candidate_filed_at_values": [
+        "2026-01-28T00:00:00Z"
+      ],
+      "candidate_row_count": 3,
+      "candidate_transaction_date_span": [
+        "2025-12-05",
+        "2026-01-09"
+      ],
+      "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:9fa4fed7dd1d763e",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Kenny-Stephen-Periodic-Transaction-Report-01.28.26-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "a7d65224d8fede1079d03e071102fd0f5c6f27bd544655103663d13eeb203681",
+      "candidate_filed_at_values": [
+        "2025-05-21T00:00:00Z"
+      ],
+      "candidate_row_count": 21,
+      "candidate_transaction_date_span": [
+        "2025-04-08",
+        "2025-05-12"
+      ],
+      "document_id": "wh-url:d06c8cad040b40daa6cb3e7d",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:9fa4fed7dd1d763e",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/Kenny-Stephen-Periodic-Transaction-Report-05.21.25-1.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "5ad89d0255fb12cc4daa4e33c089840ca2b51230bfa1ad41a87a9915e41c6d47",
+      "candidate_filed_at_values": [
+        "2025-12-03T00:00:00Z"
+      ],
+      "candidate_row_count": 20,
+      "candidate_transaction_date_span": [
+        "2025-09-09",
+        "2025-11-13"
+      ],
+      "document_id": "wh-url:d29106d7f68a511841ea93e3",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:9fa4fed7dd1d763e",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/02/Kenny-Stephen-Periodic-Transaction-Report-12.03.25.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "7416aae7a3af78c2fe6c2595130be200a05dbc6adfa6e07c679da67adb9da4b6",
+      "candidate_filed_at_values": [
+        "2025-05-20T00:00:00Z"
+      ],
+      "candidate_row_count": 1,
+      "candidate_transaction_date_span": [
+        "2025-03-27",
+        "2025-03-27"
+      ],
+      "document_id": "wh-url:d7f2ba91edf9da5e93edc7ae",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:34c9030e3c348fc1",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Gor-Sergio-Periodic-Transaction-Report-05.20.25.pdf"
+    },
+    {
+      "archive_layout": "single_pdf",
+      "archive_pdf_sha256_from_path": "9ac633ef94588fd8362ddaa222ab8e5a83626d8749d95e18a8c3ddcb26ac2ce6",
+      "candidate_filed_at_values": [
+        "2025-04-16T00:00:00Z"
+      ],
+      "candidate_row_count": 1,
+      "candidate_transaction_date_span": [
+        "2025-04-07",
+        "2025-04-07"
+      ],
+      "document_id": "wh-url:ec64753451a90fa978a6120d",
+      "document_type_from_public_label": "278t",
+      "exact_tuple_matches_oge_candidate": 0,
+      "exact_tuple_matches_other_wh_class": 0,
+      "oge_same_person_candidate_row_count": 0,
+      "oge_same_person_date_span": null,
+      "person_id": "oge:071235724aa9fa8a",
+      "review_extraction_file_count": 2,
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2025/11/Bresso-Gineen-Periodic-Transaction-Report-04.16.24.pdf"
+    }
+  ],
+  "evidence_commit": "5fe5f0adb3181c5d1552dff3f07336464c3043a7",
+  "exact_tuple_matches_oge_candidate": 0,
+  "oge_document_identity_status": "unverified_for_all_candidate_documents",
+  "periodic_row_count": 1391,
+  "promotion_or_deletion_authorized": false,
+  "schema_version": "whitehouse-wh-url-document-audit/v1",
+  "wh_url_row_count": 8150,
+  "white_house_index_sha256": "76b3b72bd9ce81d99b2fb0e3cfe139de508e94b024233791ccfd46e11fa0cc65",
+  "white_house_public_page_sha256": "80441b3dd909ca549d7340715824df83fc22fc7fdeb615dacd881620d60a364f"
+}
