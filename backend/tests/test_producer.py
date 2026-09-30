@@ -203,6 +203,15 @@ class ProducerTests(unittest.TestCase):
         self.assertTrue(bundle.manifest["coverage"]["market_enabled"])
         self.assertTrue(bundle.manifest["coverage"]["market_supported_complete"])
         self.assertEqual(bundle.manifest["coverage"]["market_missing_ticker_count"], 0)
+        alpaca_only = deepcopy(data)
+        alpaca_only["source_health"] = [
+            row for row in alpaca_only["source_health"]
+            if row["source_id"] != "twelve_data_split_adjusted_eod"
+        ]
+        alpaca_bundle = build(alpaca_only, generated_at=NOW, allow_production=True,
+                              allow_market=True, market_commit="3" * 40,
+                              market_pages=["4" * 64])
+        self.assertEqual(alpaca_bundle.manifest["processor_sha256"], PROCESSOR_V2_SHA256)
         person_index = json.loads(bundle.files[
             f"people/{bucket('people', 'house:DEMO001')}/index.json"])
         person_sha = person_index["shards"]["house:DEMO001"]

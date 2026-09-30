@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
-from .legacy import PROCESSOR_SHA256, PROCESSOR_V2_SHA256, load
+from .legacy import PROCESSOR_V2_SHA256, load
 from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
                            SOURCE_ID as MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID,
                            UNSUPPORTED_REASONS, MIXED_UNSUPPORTED_REASONS,
@@ -170,15 +170,11 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                      allow_market=allow_market)
     market_sources = {row["source_id"] for row in data["security_market_data"]}
     mixed_market = TWELVE_DATA_SOURCE_ID in market_sources
-    # The v2 consumer is also needed when Twelve Data appears only in
-    # source_health (for example, as an excluded-ticker coverage source).
-    # Keep that routing decision separate from market coverage: an Alpaca-only
-    # market array still uses the Alpaca coverage schema.
-    processor_v2_required = mixed_market or any(
-        row["source_id"] == TWELVE_DATA_SOURCE_ID for row in data["source_health"]
-    )
-    processor_version = "v2" if processor_v2_required else "v1"
-    processor_sha = PROCESSOR_V2_SHA256 if processor_v2_required else PROCESSOR_SHA256
+    # The v2 consumer carries current price-history semantics for every
+    # snapshot, including Alpaca-only production data. Keep processor routing
+    # independent from coverage validation, which still reflects market rows.
+    processor_version = "v2"
+    processor_sha = PROCESSOR_V2_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")

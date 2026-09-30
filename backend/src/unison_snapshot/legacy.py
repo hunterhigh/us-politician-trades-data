@@ -6,7 +6,7 @@ import sys
 from .codec import digest
 
 PROCESSOR_SHA256 = "a2cd37cbf447f591bf11f7f397f0fcb817ba1032f6ca5c9ca0efb967f50c7a4b"
-PROCESSOR_V2_SHA256 = "a1b86307dfe4aef3e4afda6f3f5b954cf18782edfc94edfc202d803be578456c"
+PROCESSOR_V2_SHA256 = "746e60177d65dc40504cb0bbd752a28c510627be6039e724b112ed6d46495c15"
 RENDERER_SHA256 = "ae3fc8a38cdc1df7c7ddff3b9f3f834401763d09d5b9891e56022b786f3f6c0c"
 SCRIPTS = Path(__file__).resolve().parents[3] / "review-input/us-politician-trades-watch/scripts"
 V2_SCRIPTS = Path(__file__).resolve().parents[3] / "frontend-contract-v2/scripts"

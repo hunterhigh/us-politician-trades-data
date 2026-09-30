@@ -58,6 +58,52 @@ def candidate():
 
 
 class TwelveDataMarketTests(unittest.TestCase):
+    def test_price_returns_require_an_event_date_inside_the_series(self):
+        processor = load("process_snapshot", version="v2")
+        market = {"ZZDEMO": {
+            "source_id": "alpaca_sip_eod", "as_of_date": "2025-09-26",
+            "current_price": 110,
+            "price_history": [
+                {"date": "2025-09-25", "close": 100},
+                {"date": "2025-09-26", "close": 110},
+            ],
+        }}
+        rows = [
+            {"id": "trade-before", "ticker": "ZZDEMO", "transaction_date": "2025-09-24",
+             "filed_at": "2025-09-25T12:00:00Z"},
+            {"id": "filing-before", "ticker": "ZZDEMO", "transaction_date": "2025-09-24",
+             "filed_at": "2025-09-24T12:00:00Z"},
+            {"id": "fully-covered", "ticker": "ZZDEMO", "transaction_date": "2025-09-25",
+             "filed_at": "2025-09-26T12:00:00Z"},
+            {"id": "filing-after-cutoff", "ticker": "ZZDEMO", "transaction_date": "2025-09-25",
+             "filed_at": "2025-09-27T12:00:00Z"},
+        ]
+
+        processor.enrich_transaction_prices(rows, market, demo=False)
+        by_id = {row["id"]: row for row in rows}
+
+        self.assertIsNone(by_id["trade-before"]["underlying_return_since_trade"])
+        self.assertEqual(by_id["trade-before"]["underlying_return_since_filing"], 10.0)
+        self.assertTrue(by_id["trade-before"]["performance_eligible"])
+        self.assertIsNone(by_id["trade-before"]["performance_ineligible_reason"])
+
+        self.assertIsNone(by_id["filing-before"]["underlying_return_since_trade"])
+        self.assertIsNone(by_id["filing-before"]["underlying_return_since_filing"])
+        self.assertFalse(by_id["filing-before"]["performance_eligible"])
+        self.assertEqual(by_id["filing-before"]["performance_ineligible_reason"],
+                         "filing_before_price_history")
+
+        self.assertEqual(by_id["fully-covered"]["underlying_return_since_trade"], 10.0)
+        self.assertEqual(by_id["fully-covered"]["underlying_return_since_filing"], 0.0)
+        self.assertTrue(by_id["fully-covered"]["performance_eligible"])
+        self.assertIsNone(by_id["fully-covered"]["performance_ineligible_reason"])
+
+        self.assertEqual(by_id["filing-after-cutoff"]["underlying_return_since_trade"], 10.0)
+        self.assertIsNone(by_id["filing-after-cutoff"]["underlying_return_since_filing"])
+        self.assertFalse(by_id["filing-after-cutoff"]["performance_eligible"])
+        self.assertEqual(by_id["filing-after-cutoff"]["performance_ineligible_reason"],
+                         "filing_after_price_cutoff")
+
     def test_published_acceptance_is_reused_without_spending_credits(self):
         source = candidate()
         cached_row = {

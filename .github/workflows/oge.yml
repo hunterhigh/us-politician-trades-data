@@ -238,7 +238,7 @@ jobs:
     needs: collect-direct-reports
     if: ${{ github.event_name == 'workflow_dispatch' && needs.collect-direct-reports.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
@@ -249,15 +249,24 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
+      - name: Install pinned PDF parser
+        run: python -m pip install -e 'backend[house-ingest]'
       - uses: actions/download-artifact@v4
         with:
           name: oge-direct-${{ github.run_id }}
           path: .local
+      - name: Check out the exact evidence commit read-only
+        env:
+          EVIDENCE_COMMIT: ${{ needs.collect-direct-reports.outputs.evidence_commit }}
+        run: |
+          git fetch --no-tags origin "$EVIDENCE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/oge-shadow-evidence" "$EVIDENCE_COMMIT"
       - name: Build fixed-input shadow row ledger
         env:
           CODE_COMMIT: ${{ needs.collect-direct-reports.outputs.code_commit }}
           EVIDENCE_COMMIT: ${{ needs.collect-direct-reports.outputs.evidence_commit }}
           REVIEW_COMMIT: ${{ needs.collect-direct-reports.outputs.review_commit }}
+          EVIDENCE_ROOT: ${{ runner.temp }}/oge-shadow-evidence
           STARTED_AT: ${{ needs.collect-direct-reports.outputs.started_at }}
         run: |
           PYTHONPATH=backend/src python -m unison_snapshot.pipeline_qa.oge_run_cli \
@@ -265,6 +274,7 @@ jobs:
             --archive-batch .local/oge-report-batch.json \
             --extraction-batch .local/oge-extraction-batch.json \
             --extractions-dir .local/oge-extractions \
+            --evidence-root "$EVIDENCE_ROOT" \
             --output-dir .local/oge-shadow \
             --run-id "oge-direct-${{ github.run_id }}" \
             --workflow-run-id "${{ github.run_id }}" \

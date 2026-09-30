@@ -405,12 +405,22 @@ def enrich_transaction_prices(rows: list[dict[str, Any]], market: dict[str, dict
             continue
         series = snapshot["price_history"]
         current = float(snapshot["current_price"])
-        trade_close = price_at_or_after(series, parse_date(row["transaction_date"], "transaction_date"))
-        filing_close = price_at_or_after(series, parse_date(row["filed_at"], "filed_at"))
+        first_price_date = parse_date(series[0].get("date"), "price_history.date")
+        trade_date = parse_date(row["transaction_date"], "transaction_date")
+        filing_date = parse_date(row["filed_at"], "filed_at")
+        # Never substitute the first available close for an event that predates
+        # this complete series: that would report a return from the wrong day.
+        trade_close = (price_at_or_after(series, trade_date)
+                       if trade_date >= first_price_date else None)
+        filing_close = (price_at_or_after(series, filing_date)
+                        if filing_date >= first_price_date else None)
         row["underlying_return_since_trade"] = return_pct(current, trade_close)
         row["underlying_return_since_filing"] = return_pct(current, filing_close)
         row["performance_eligible"] = filing_close is not None
-        row["performance_ineligible_reason"] = None if filing_close is not None else "filing_after_price_cutoff"
+        row["performance_ineligible_reason"] = (
+            None if filing_close is not None else
+            "filing_before_price_history" if filing_date < first_price_date else
+            "filing_after_price_cutoff")
         row["performance_basis"] = (
             "split_adjusted_sip_eod_close_on_or_after_event_date"
             if snapshot["source_id"] == MARKET_SOURCE_ID else

@@ -6,7 +6,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from unison_snapshot.pipeline_qa.oge_run import OgeShadowInputError, build_oge_shadow_run
+from unison_snapshot.pipeline_qa.oge_run import (
+    OgeShadowInputError, _assert_legacy_reparse_equivalent, build_oge_shadow_run,
+)
 from unison_snapshot.pipeline_qa.bundle import build_bundle
 from unison_snapshot.pipeline_qa.diff import verify_manifest_outputs
 
@@ -63,6 +65,44 @@ def _inputs(root: Path, *, failed: bool = False) -> dict:
 
 
 class OgeShadowRunTests(unittest.TestCase):
+    def test_legacy_cache_equivalence_allows_only_cells_and_source_rows_additions(self):
+        fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        cached = fixture["extraction"]
+        cached.pop("source_rows")
+        for name in ("transactions", "quarantined"):
+            for row in cached[name]:
+                row.pop("cells", None)
+        reparsed = json.loads(json.dumps(cached))
+        reparsed["source_rows"] = [{"page_number": 2, "cells": ["1", "A", "purchase"]}]
+        for name in ("transactions",):
+            for row in reparsed[name]:
+                row["cells"] = ["1", "A", "purchase"]
+        _assert_legacy_reparse_equivalent(cached, reparsed)
+
+        changed_trade = json.loads(json.dumps(reparsed))
+        changed_trade["transactions"][0]["transaction_date"] = "2025-01-01"
+        with self.assertRaisesRegex(OgeShadowInputError, "changed cached value"):
+            _assert_legacy_reparse_equivalent(cached, changed_trade)
+        changed_quarantine = json.loads(json.dumps(reparsed))
+        changed_quarantine["quarantined"][0]["reasons"] = ["different"]
+        with self.assertRaisesRegex(OgeShadowInputError, "changed cached value"):
+            _assert_legacy_reparse_equivalent(cached, changed_quarantine)
+        unexpected = json.loads(json.dumps(reparsed))
+        unexpected["transactions"][0]["guessed_row_number"] = "1"
+        with self.assertRaisesRegex(OgeShadowInputError, "unexpected fields"):
+            _assert_legacy_reparse_equivalent(cached, unexpected)
+
+    def test_legacy_cache_without_pinned_evidence_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            inputs = _inputs(Path(temp))
+            path = next(inputs["extractions_dir"].glob("*.json"))
+            cached = json.loads(path.read_text(encoding="utf-8"))
+            cached.pop("source_rows")
+            path.write_text(json.dumps(cached), encoding="utf-8")
+            with self.assertRaisesRegex(OgeShadowInputError, "pinned evidence is unavailable"):
+                build_oge_shadow_run(**inputs)
+            self.assertFalse(inputs["output_dir"].exists())
+
     def test_emits_exact_rows_and_hash_verified_manifest(self):
         with tempfile.TemporaryDirectory() as temp:
             inputs = _inputs(Path(temp))
