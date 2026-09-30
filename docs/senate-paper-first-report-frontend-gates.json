@@ -1,0 +1,1918 @@
+{
+  "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+  "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
+  "field_observations_sha256": "d9c964052f9d715decc58b414d1799f6b03e4c8eaeb50359215c9a162d9dc176",
+  "frontend_context": {
+    "current_document_transaction_count": 0,
+    "current_person_transaction_count": 1,
+    "matched_person_id": "senate:B001277",
+    "transaction_keys": [
+      "amount_high",
+      "amount_low",
+      "asset_name",
+      "disclosure_lag_days",
+      "filed_at",
+      "filing_id",
+      "id",
+      "instrument_type",
+      "owner",
+      "performance_eligible",
+      "performance_ineligible_reason",
+      "person",
+      "person_id",
+      "source",
+      "source_id",
+      "source_url",
+      "ticker",
+      "ticker_mapping_basis",
+      "transaction_date",
+      "transaction_type",
+      "underlying_return_since_filing",
+      "underlying_return_since_trade",
+      "verification_status"
+    ]
+  },
+  "frontend_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
+  "missing_field_counts": {
+    "asset_name": 36,
+    "filed_at": 36,
+    "id": 36,
+    "owner": 36,
+    "verification_status": 36
+  },
+  "report_context": {
+    "amendment_checkbox": {
+      "dark_pixels_below_160": 2,
+      "interior_crop": {
+        "box_px": [
+          1089,
+          829,
+          1105,
+          844
+        ],
+        "grayscale_sha256": "3dbaaf52d4a7d5422c59820365933dc56707dc6e084b2d2fde44861be099c215"
+      },
+      "observation": "no_mark_detected"
+    },
+    "amendment_number_in_entrypoint": null,
+    "catalog_listed_date": "2026-02-12",
+    "catalog_sha256": "0cf0622f563dbd276ed05b96424765f9a596515fd494e03bbb2c1b25ed611a63",
+    "cover_identity_crop": {
+      "box_px": [
+        350,
+        1250,
+        2300,
+        2000
+      ],
+      "grayscale_sha256": "d0f4fad8cec3265861e06819d5e48c3844657e887d6071d5a16698249845463e"
+    },
+    "cover_receipt_date": "2026-02-12",
+    "cross_report_equivalence": "unresolved",
+    "entrypoint_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+    "filing_time": null,
+    "form_identity_crop": {
+      "box_px": [
+        500,
+        750,
+        2950,
+        1150
+      ],
+      "grayscale_sha256": "61a08deb2c1d6c2d2c8bb32d9dd5c74301594b415a1d72e563f027fffeb5a89d"
+    },
+    "identity": {
+      "bioguide_id": "B001277",
+      "filer_name": "RICHARD BLUMENTHAL",
+      "official_roster_sha256": "7ed5a29def7139ac58a30b1e10e68f3c6059cf7938a7c5256c5374c94a5d1d8e",
+      "person_id": "senate:B001277",
+      "review_status": "matched_automatically"
+    },
+    "official_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+    "same_person_catalog_reports": [
+      {
+        "catalog_listed_date": "02/12/2026",
+        "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/"
+      },
+      {
+        "catalog_listed_date": "07/17/2026",
+        "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/3a4c5095-028a-4614-a692-836719da4e63/"
+      },
+      {
+        "catalog_listed_date": "08/31/2026",
+        "document_id": "929216d5-5dbd-429c-858c-1e9332924627",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/929216d5-5dbd-429c-858c-1e9332924627/"
+      },
+      {
+        "catalog_listed_date": "06/08/2026",
+        "document_id": "a0d25e8f-fe54-4328-a7ea-504da008742b",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/a0d25e8f-fe54-4328-a7ea-504da008742b/"
+      },
+      {
+        "catalog_listed_date": "05/19/2026",
+        "document_id": "d02263c3-381d-4ee9-8d84-2c44d9baa59e",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/d02263c3-381d-4ee9-8d84-2c44d9baa59e/"
+      },
+      {
+        "catalog_listed_date": "03/13/2026",
+        "document_id": "d337c392-e0aa-428e-be93-44a327b90d08",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/d337c392-e0aa-428e-be93-44a327b90d08/"
+      },
+      {
+        "catalog_listed_date": "08/21/2026",
+        "document_id": "ec20cd93-6702-4a29-b3a6-983f4b17f365",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/ec20cd93-6702-4a29-b3a6-983f4b17f365/"
+      },
+      {
+        "catalog_listed_date": "04/08/2026",
+        "document_id": "f028d2ce-4ab7-41a8-a67a-91675b6941d7",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/f028d2ce-4ab7-41a8-a67a-91675b6941d7/"
+      },
+      {
+        "catalog_listed_date": "01/20/2026",
+        "document_id": "f873aeb4-adbb-4934-a188-79416a2e4c76",
+        "kind": "paper",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/f873aeb4-adbb-4934-a188-79416a2e4c76/"
+      }
+    ],
+    "same_person_electronic_report_count": 0,
+    "verified_supplement_target": false
+  },
+  "review_commit": "9749718e5ae837057db7c031d431714fc72988d1",
+  "row_count": 36,
+  "rows": [
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 2,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 3,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 4,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 5,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 8,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "50001_100000",
+      "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 100000,
+        "amount_low": 50001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 9,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 10,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 11,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "row_crop_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Radar Private Fund 1 LP (1)",
+      "asset_text_without_code_observed": "Radar Private Fund 1 LP (1)",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-08",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 2,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 3,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 4,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 5,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_text_without_code_observed": "MH Northbound Train",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 6,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-27",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 7,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "250001_500000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 500000,
+        "amount_low": 250001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 8,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "100001_250000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 250000,
+        "amount_low": 100001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 11,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 12,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_text_without_code_observed": "MH Northbound Train",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 13,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-27",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 14,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "250001_500000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 500000,
+        "amount_low": 250001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 15,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "row_crop_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 2,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 3,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 4,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "50001_100000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 100000,
+        "amount_low": 50001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 5,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 8,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "250001_500000",
+      "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 500000,
+        "amount_low": 250001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 9,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 10,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 11,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_text_without_code_observed": "MH Northbound Train",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 12,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "100001_250000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 250000,
+        "amount_low": 100001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 13,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 16,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "row_crop_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 2,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "row_crop_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "15001_50000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 50000,
+        "amount_low": 15001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 3,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "row_crop_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_text_without_code_observed": "ELCM2 LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 6,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "row_crop_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "1001_15000",
+      "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_text_without_code_observed": "Not Fade Away LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 15000,
+        "amount_low": 1001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "verification_status": null
+      },
+      "grid_slot": 7,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "row_crop_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    },
+    {
+      "amount_band_observed": "50001_100000",
+      "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_text_without_code_observed": "MH Built to Last LLC",
+      "blocking_reasons": [
+        "owner_code_has_no_fixed_official_legend_binding",
+        "asset_normalization_depends_on_owner_code",
+        "filing_time_not_in_fixed_paper_evidence",
+        "stable_transaction_id_not_assigned",
+        "cross_report_relationship_unresolved",
+        "candidate_verification_not_run"
+      ],
+      "candidate_transaction_id": null,
+      "disposition": "quarantined_no_candidate",
+      "filed_at_precision": "date",
+      "filed_date_observed": "2026-02-12",
+      "frontend_projection_preview": {
+        "amount_high": 100000,
+        "amount_low": 50001,
+        "asset_name": null,
+        "filed_at": null,
+        "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+        "id": null,
+        "instrument_type": null,
+        "owner": null,
+        "person_id": "senate:B001277",
+        "source_id": "senate_efd",
+        "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "verification_status": null
+      },
+      "grid_slot": 8,
+      "missing_frontend_fields": [
+        "id",
+        "owner",
+        "asset_name",
+        "filed_at",
+        "verification_status"
+      ],
+      "owner_code_observed": "(S)",
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "row_crop_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef",
+      "unverified_optional_fields": [
+        "instrument_type",
+        "ticker"
+      ]
+    }
+  ],
+  "schema_version": "senate-paper-first-report-frontend-gates/v1"
+}
