@@ -153,7 +153,7 @@ def audit_fixed_missing_dispositions(identity_audit_path: str | Path,
                                      review_tree_sha: str) -> dict[str, Any]:
     """Verify exact files against a fixed Git tree and explain missing IDs."""
     raw_identity = Path(identity_audit_path).read_bytes()
-    if hashlib.sha256(raw_identity).hexdigest() != identity_audit_sha256:
+    if hashlib.sha256(raw_identity).hexdigest() != identity_audit_sha256.lower():
         raise ProjectionAuditError("OGE identity audit digest mismatch")
     tree = json.loads(Path(review_tree_path).read_text(encoding="utf-8"))
     if tree.get("sha") != review_tree_sha or tree.get("truncated") is not False:
