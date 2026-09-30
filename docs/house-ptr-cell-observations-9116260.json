@@ -1,0 +1,17 @@
+{
+  "schema_version": "house-ptr-cell-observations/v1",
+  "document_id": "9116260",
+  "source_sha256": "40abd1de969ff344fab5f3c8950a17ebb8ab5df993ded910f00e48d0d47e385d",
+  "rows": [
+    {
+      "physical_locator": "house-ptr-grid:40abd1de969ff344:p1:r1",
+      "image_observation": {
+        "asset": {"status": "clear", "text": "ADOBE INC"},
+        "transaction_date": {"status": "clear", "text": "6/9/26"},
+        "notification_date": {"status": "clear", "text": "7/24/26"},
+        "action": {"status": "clear", "selected_index": 1, "printed_label": "Purchase"},
+        "amount": {"status": "clear", "selected_index": 3, "printed_label": "C"}
+      }
+    }
+  ]
+}

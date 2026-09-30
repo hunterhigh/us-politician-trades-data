@@ -25,6 +25,11 @@ IDENTITY_PATH = (f"senate_efd/identities/{CATALOG_SHA256}/"
 ROSTER_SHA256 = "7ed5a29def7139ac58a30b1e10e68f3c6059cf7938a7c5256c5374c94a5d1d8e"
 REPORT_SHA256 = "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c"
 SOURCE_URL = f"https://efdsearch.senate.gov/search/view/paper/{DOCUMENT_ID}/"
+SENATE_FORM_URL = ("https://www.ethics.senate.gov/public/_cache/files/"
+                   "312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/"
+                   "periodic-disclosure-of-financial-transactions-form.pdf")
+# Official Senate Ethics paper PTR form, printed page 1, Identification of Assets legend.
+OWNER_LEGEND = {"S": "Spouse", "DC": "Dependent Child", "J": "Joint"}
 AMOUNT_BANDS = {
     "1001_15000": (1001, 15000),
     "15001_50000": (15001, 50000),
@@ -177,6 +182,17 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
         "catalog_listed_date": "2026-02-12",
         "cover_receipt_date": "2026-02-12",
         "filing_time": None,
+        "filing_date_evidence": ["fixed_catalog_listed_date", "fixed_cover_receipt_date"],
+        "filing_timestamp_disposition": "date_only_no_time_of_day",
+        "owner_legend_reference": {
+            "authority": "U.S. Senate Select Committee on Ethics",
+            "url": SENATE_FORM_URL,
+            "pdf_page_number": 2,
+            "section": "Identification of Assets",
+            "codes": {f"({code})": owner for code, owner in OWNER_LEGEND.items()},
+            "binding": "same_paper_PTR_form_layout_and_column_as_fixed_report",
+            "source_bytes_archived_in_code": False,
+        },
         "cover_identity_crop": _crop(pages[1], (350, 1250, 2300, 2000)),
         "form_identity_crop": _crop(pages[2], (500, 750, 2950, 1150)),
         "amendment_checkbox": {"interior_crop": _crop(pages[2], (1089, 829, 1105, 844)),
@@ -201,6 +217,10 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
         match = re.fullmatch(r"\((S|J|DC)\) (.+)", raw_asset)
         if match is None:
             raise ValueError("paper owner code observation changed")
+        owner = OWNER_LEGEND[match.group(1)]
+        asset_name = match.group(2).strip()
+        if not asset_name or asset_name != match.group(2):
+            raise ValueError("paper asset name lexical normalization changed")
         band = field["amount"]["observed_band"]
         if band not in AMOUNT_BANDS:
             raise ValueError("paper amount checkbox maps to unsupported range")
@@ -209,8 +229,8 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
             "id": None,
             "filing_id": DOCUMENT_ID,
             "person_id": identity["person_id"],
-            "owner": None,
-            "asset_name": None,
+            "owner": owner,
+            "asset_name": asset_name,
             "instrument_type": None,
             "transaction_type": field["direction"]["observed_label"],
             "transaction_date": field["date"]["normalized_date_if_legible"],
@@ -232,6 +252,8 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
             "asset_cell_verbatim": raw_asset,
             "owner_code_observed": f"({match.group(1)})",
             "asset_text_without_code_observed": match.group(2),
+            "owner_legend_url": SENATE_FORM_URL,
+            "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
             "amount_band_observed": band,
             "filed_date_observed": "2026-02-12",
             "filed_at_precision": "date",
@@ -239,8 +261,6 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
             "missing_frontend_fields": missing,
             "unverified_optional_fields": ["instrument_type", "ticker"],
             "blocking_reasons": [
-                "owner_code_has_no_fixed_official_legend_binding",
-                "asset_normalization_depends_on_owner_code",
                 "filing_time_not_in_fixed_paper_evidence",
                 "stable_transaction_id_not_assigned",
                 "cross_report_relationship_unresolved",
@@ -253,7 +273,7 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
                                     for item in rows}) != 36:
         raise ValueError("paper frontend gate row accounting changed")
     return {
-        "schema_version": "senate-paper-first-report-frontend-gates/v1",
+        "schema_version": "senate-paper-first-report-frontend-gates/v2",
         "evidence_commit": EVIDENCE_COMMIT,
         "review_commit": REVIEW_COMMIT,
         "frontend_sha256": FRONTEND_SHA256,
@@ -276,8 +296,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = audit(args.repo, args.fields, args.frontend)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True,
-                                      indent=2) + "\n", encoding="utf-8")
+    args.output.write_bytes((json.dumps(result, ensure_ascii=False, sort_keys=True,
+                                        indent=2) + "\n").encode("utf-8"))
     print(json.dumps({"rows": result["row_count"],
                       "missing_field_counts": result["missing_field_counts"],
                       "same_person_electronic_report_count": result["report_context"]["same_person_electronic_report_count"]},

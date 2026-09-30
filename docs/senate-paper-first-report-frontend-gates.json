@@ -34,10 +34,8 @@
   },
   "frontend_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
   "missing_field_counts": {
-    "asset_name": 36,
     "filed_at": 36,
     "id": 36,
-    "owner": 36,
     "verification_status": 36
   },
   "report_context": {
@@ -69,7 +67,12 @@
     "cover_receipt_date": "2026-02-12",
     "cross_report_equivalence": "unresolved",
     "entrypoint_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+    "filing_date_evidence": [
+      "fixed_catalog_listed_date",
+      "fixed_cover_receipt_date"
+    ],
     "filing_time": null,
+    "filing_timestamp_disposition": "date_only_no_time_of_day",
     "form_identity_crop": {
       "box_px": [
         500,
@@ -87,6 +90,19 @@
       "review_status": "matched_automatically"
     },
     "official_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+    "owner_legend_reference": {
+      "authority": "U.S. Senate Select Committee on Ethics",
+      "binding": "same_paper_PTR_form_layout_and_column_as_fixed_report",
+      "codes": {
+        "(DC)": "Dependent Child",
+        "(J)": "Joint",
+        "(S)": "Spouse"
+      },
+      "pdf_page_number": 2,
+      "section": "Identification of Assets",
+      "source_bytes_archived_in_code": false,
+      "url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf"
+    },
     "same_person_catalog_reports": [
       {
         "catalog_listed_date": "02/12/2026",
@@ -152,10 +168,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -168,12 +183,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -184,12 +199,11 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830",
@@ -201,10 +215,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -217,12 +230,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -233,12 +246,11 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999",
@@ -250,10 +262,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -266,12 +277,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -282,12 +293,11 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231",
@@ -299,10 +309,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -315,12 +324,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -331,12 +340,11 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad",
@@ -348,10 +356,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -364,12 +371,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -380,12 +387,11 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e",
@@ -397,10 +403,9 @@
     {
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -413,12 +418,12 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -429,12 +434,11 @@
       "grid_slot": 9,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef",
@@ -446,10 +450,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -462,12 +465,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -478,12 +481,11 @@
       "grid_slot": 10,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb",
@@ -495,10 +497,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -511,12 +512,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -527,12 +528,11 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 2,
       "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
       "row_crop_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6",
@@ -544,10 +544,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Radar Private Fund 1 LP (1)",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Radar Private Fund 1 LP (1)",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -560,12 +559,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Radar Private Fund 1 LP (1)",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -576,12 +575,11 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a",
@@ -593,10 +591,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -609,12 +606,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -625,12 +622,11 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f",
@@ -642,10 +638,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -658,12 +653,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -674,12 +669,11 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d",
@@ -691,10 +685,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -707,12 +700,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -723,12 +716,11 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac",
@@ -740,10 +732,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -756,12 +747,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "MH Northbound Train",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -772,12 +763,11 @@
       "grid_slot": 6,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec",
@@ -789,10 +779,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -805,12 +794,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -821,12 +810,11 @@
       "grid_slot": 7,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21",
@@ -838,10 +826,9 @@
     {
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -854,12 +841,12 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -870,12 +857,11 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580",
@@ -887,10 +873,9 @@
     {
       "amount_band_observed": "100001_250000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -903,12 +888,12 @@
       "frontend_projection_preview": {
         "amount_high": 250000,
         "amount_low": 100001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -919,12 +904,11 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15",
@@ -936,10 +920,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -952,12 +935,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -968,12 +951,11 @@
       "grid_slot": 12,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314",
@@ -985,10 +967,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1001,12 +982,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "MH Northbound Train",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1017,12 +998,11 @@
       "grid_slot": 13,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef",
@@ -1034,10 +1014,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1050,12 +1029,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1066,12 +1045,11 @@
       "grid_slot": 14,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22",
@@ -1083,10 +1061,9 @@
     {
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1099,12 +1076,12 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1115,12 +1092,11 @@
       "grid_slot": 15,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 3,
       "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
       "row_crop_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775",
@@ -1132,10 +1108,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1148,12 +1123,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1164,12 +1139,11 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c",
@@ -1181,10 +1155,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1197,12 +1170,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1213,12 +1186,11 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca",
@@ -1230,10 +1202,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1246,12 +1217,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1262,12 +1233,11 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279",
@@ -1279,10 +1249,9 @@
     {
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1295,12 +1264,12 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1311,12 +1280,11 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b",
@@ -1328,10 +1296,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1344,12 +1311,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1360,12 +1327,11 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60",
@@ -1377,10 +1343,9 @@
     {
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1393,12 +1358,12 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1409,12 +1374,11 @@
       "grid_slot": 9,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23",
@@ -1426,10 +1390,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1442,12 +1405,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1458,12 +1421,11 @@
       "grid_slot": 10,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e",
@@ -1475,10 +1437,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1491,12 +1452,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1507,12 +1468,11 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35",
@@ -1524,10 +1484,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1540,12 +1499,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "MH Northbound Train",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1556,12 +1515,11 @@
       "grid_slot": 12,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff",
@@ -1573,10 +1531,9 @@
     {
       "amount_band_observed": "100001_250000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1589,12 +1546,12 @@
       "frontend_projection_preview": {
         "amount_high": 250000,
         "amount_low": 100001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1605,12 +1562,11 @@
       "grid_slot": 13,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645",
@@ -1622,10 +1578,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1638,12 +1593,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1654,12 +1609,11 @@
       "grid_slot": 16,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 4,
       "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
       "row_crop_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d",
@@ -1671,10 +1625,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1687,12 +1640,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1703,12 +1656,11 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 5,
       "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
       "row_crop_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd",
@@ -1720,10 +1672,9 @@
     {
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1736,12 +1687,12 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1752,12 +1703,11 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 5,
       "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
       "row_crop_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020",
@@ -1769,10 +1719,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1785,12 +1734,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "ELCM2 LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1801,12 +1750,11 @@
       "grid_slot": 6,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 5,
       "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
       "row_crop_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14",
@@ -1818,10 +1766,9 @@
     {
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1834,12 +1781,12 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": null,
+        "asset_name": "Not Fade Away LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1850,12 +1797,11 @@
       "grid_slot": 7,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 5,
       "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
       "row_crop_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b",
@@ -1867,10 +1813,9 @@
     {
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
+      "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "owner_code_has_no_fixed_official_legend_binding",
-        "asset_normalization_depends_on_owner_code",
         "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
         "cross_report_relationship_unresolved",
@@ -1883,12 +1828,12 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": null,
+        "asset_name": "MH Built to Last LLC",
         "filed_at": null,
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
-        "owner": null,
+        "owner": "Spouse",
         "person_id": "senate:B001277",
         "source_id": "senate_efd",
         "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
@@ -1899,12 +1844,11 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "owner",
-        "asset_name",
         "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
+      "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
       "page_number": 5,
       "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
       "row_crop_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef",
@@ -1914,5 +1858,5 @@
       ]
     }
   ],
-  "schema_version": "senate-paper-first-report-frontend-gates/v1"
+  "schema_version": "senate-paper-first-report-frontend-gates/v2"
 }

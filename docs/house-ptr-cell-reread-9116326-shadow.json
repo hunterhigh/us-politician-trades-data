@@ -1,0 +1,174 @@
+{
+  "crop_render_dpi": 300,
+  "document_id": "9116326",
+  "file_status": "failed_open",
+  "ocr_engine": "tesseract v5.4.0.20240606",
+  "qualified_rows": 0,
+  "schema_version": "house-ptr-cell-reread-shadow/v1",
+  "selected_rows": [
+    {
+      "blocking_reasons": [
+        "action_checkbox_not_machine_verified",
+        "amount_checkbox_not_machine_verified",
+        "report_failed_open"
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_field_evidence_incomplete",
+      "fields": {
+        "action": {
+          "cell_locators": [
+            "house-ptr-grid:be114957d0348663:p1:r2:action:1",
+            "house-ptr-grid:be114957d0348663:p1:r2:action:2",
+            "house-ptr-grid:be114957d0348663:p1:r2:action:3",
+            "house-ptr-grid:be114957d0348663:p1:r2:action:4"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "Purchase",
+            "selected_index": 1,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.3532,
+            0.0862,
+            0.0961,
+            0.1944
+          ]
+        },
+        "amount": {
+          "cell_locators": [
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:1",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:2",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:3",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:4",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:5",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:6",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:7",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:8",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:9",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:10",
+            "house-ptr-grid:be114957d0348663:p1:r2:amount:11"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "B",
+            "selected_index": 2,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.2572,
+            0.3552,
+            0.1765,
+            0.1834,
+            0.1735,
+            0.1812,
+            0.1838,
+            0.1924,
+            0.1041,
+            0.0862,
+            0.0893
+          ]
+        },
+        "asset": {
+          "cell_locator": "house-ptr-grid:be114957d0348663:p1:r2:asset",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "SALESFORCE INC",
+          "crop_ocr_words": [
+            {
+              "confidence": 91.6,
+              "height": 45,
+              "left": 28,
+              "text": "SALESFORCE",
+              "top": 27,
+              "width": 389
+            },
+            {
+              "confidence": 95.25,
+              "height": 44,
+              "left": 439,
+              "text": "INC",
+              "top": 27,
+              "width": 96
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "SALESFORCE INC"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "SALESFORCE INC",
+          "original_page_ocr_words": [
+            {
+              "confidence": 92.15,
+              "text": "SALESFORCE"
+            },
+            {
+              "confidence": 95.65,
+              "text": "INC"
+            }
+          ]
+        },
+        "notification_date": {
+          "cell_locator": "house-ptr-grid:be114957d0348663:p1:r2:notification_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "09/02/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 96.63,
+              "height": 35,
+              "left": 7,
+              "text": "09/02/26",
+              "top": 30,
+              "width": 173
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "09/02/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "| 09/02/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 75.19,
+              "text": "|"
+            },
+            {
+              "confidence": 94.91,
+              "text": "09/02/26"
+            }
+          ]
+        },
+        "transaction_date": {
+          "cell_locator": "house-ptr-grid:be114957d0348663:p1:r2:transaction_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "08/14/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 96.69,
+              "height": 30,
+              "left": 9,
+              "text": "08/14/26",
+              "top": 33,
+              "width": 145
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "08/14/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "08/14/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 85.21,
+              "text": "08/14/26"
+            }
+          ]
+        }
+      },
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r2"
+    }
+  ],
+  "source_sha256": "be114957d03486636e639fe9d6c124c71ba8634e2f38f5dfb672eee92502ad2d"
+}

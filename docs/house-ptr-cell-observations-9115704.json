@@ -1,0 +1,27 @@
+{
+  "schema_version": "house-ptr-cell-observations/v1",
+  "document_id": "9115704",
+  "source_sha256": "c830ee046083e8894f0a360f011186e755f3bbf0d6b83c7084611e80e1776d81",
+  "rows": [
+    {
+      "physical_locator": "house-ptr-grid:c830ee046083e889:p1:r1",
+      "image_observation": {
+        "asset": {"status": "clear", "text": "Adobe Sys Inc Com (ADBE)"},
+        "transaction_date": {"status": "clear", "text": "02/20/26"},
+        "notification_date": {"status": "clear", "text": "03/02/26"},
+        "action": {"status": "clear", "selected_index": 1, "printed_label": "PURCHASE"},
+        "amount": {"status": "clear", "selected_index": 1, "printed_label": "A"}
+      }
+    },
+    {
+      "physical_locator": "house-ptr-grid:c830ee046083e889:p2:r1",
+      "image_observation": {
+        "asset": {"status": "ambiguous", "note": "Initial letters and Inc/Com boundary are degraded in the scan; UNH is visible."},
+        "transaction_date": {"status": "clear", "text": "02/20/26"},
+        "notification_date": {"status": "clear", "text": "03/02/26"},
+        "action": {"status": "clear", "selected_index": 1, "printed_label": "PURCHASE"},
+        "amount": {"status": "clear", "selected_index": 2, "printed_label": "B"}
+      }
+    }
+  ]
+}

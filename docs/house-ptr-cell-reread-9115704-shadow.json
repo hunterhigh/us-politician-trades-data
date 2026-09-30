@@ -1,0 +1,415 @@
+{
+  "crop_render_dpi": 300,
+  "document_id": "9115704",
+  "file_status": "failed_open",
+  "ocr_engine": "tesseract v5.4.0.20240606",
+  "qualified_rows": 0,
+  "schema_version": "house-ptr-cell-reread-shadow/v1",
+  "selected_rows": [
+    {
+      "blocking_reasons": [
+        "action_checkbox_not_machine_verified",
+        "amount_checkbox_not_machine_verified",
+        "report_failed_open"
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_field_evidence_incomplete",
+      "fields": {
+        "action": {
+          "cell_locators": [
+            "house-ptr-grid:c830ee046083e889:p1:r1:action:1",
+            "house-ptr-grid:c830ee046083e889:p1:r1:action:2",
+            "house-ptr-grid:c830ee046083e889:p1:r1:action:3"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "PURCHASE",
+            "selected_index": 1,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.2175,
+            0.0,
+            0.0
+          ]
+        },
+        "amount": {
+          "cell_locators": [
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:1",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:2",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:3",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:4",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:5",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:6",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:7",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:8",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:9",
+            "house-ptr-grid:c830ee046083e889:p1:r1:amount:10"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "A",
+            "selected_index": 1,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.1972,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "asset": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p1:r1:asset",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "Adobe Sys Inc Com (ADBE)",
+          "crop_ocr_words": [
+            {
+              "confidence": 94.62,
+              "height": 27,
+              "left": 8,
+              "text": "Adobe",
+              "top": 45,
+              "width": 112
+            },
+            {
+              "confidence": 95.29,
+              "height": 38,
+              "left": 132,
+              "text": "Sys",
+              "top": 43,
+              "width": 62
+            },
+            {
+              "confidence": 95.72,
+              "height": 27,
+              "left": 207,
+              "text": "Inc",
+              "top": 46,
+              "width": 50
+            },
+            {
+              "confidence": 84.51,
+              "height": 28,
+              "left": 269,
+              "text": "Com",
+              "top": 45,
+              "width": 79
+            },
+            {
+              "confidence": 90.99,
+              "height": 39,
+              "left": 362,
+              "text": "(ADBE)",
+              "top": 43,
+              "width": 129
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "Adobe Sys Inc Com (ADBE)"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "Adobe Sys Inc Com (ADBE)",
+          "original_page_ocr_words": [
+            {
+              "confidence": 69.46,
+              "text": "Adobe"
+            },
+            {
+              "confidence": 96.51,
+              "text": "Sys"
+            },
+            {
+              "confidence": 96.57,
+              "text": "Inc"
+            },
+            {
+              "confidence": 91.73,
+              "text": "Com"
+            },
+            {
+              "confidence": 91.73,
+              "text": "(ADBE)"
+            }
+          ]
+        },
+        "notification_date": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p1:r1:notification_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "03/02/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 86.47,
+              "height": 85,
+              "left": 25,
+              "text": "03/02/26",
+              "top": 0,
+              "width": 148
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "03/02/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "| 03/02/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 62.14,
+              "text": "|"
+            },
+            {
+              "confidence": 96.75,
+              "text": "03/02/26"
+            }
+          ]
+        },
+        "transaction_date": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p1:r1:transaction_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "02/20/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 96.65,
+              "height": 30,
+              "left": 21,
+              "text": "02/20/26",
+              "top": 42,
+              "width": 150
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "02/20/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "02/20/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 96.42,
+              "text": "02/20/26"
+            }
+          ]
+        }
+      },
+      "physical_locator": "house-ptr-grid:c830ee046083e889:p1:r1"
+    },
+    {
+      "blocking_reasons": [
+        "action_checkbox_not_machine_verified",
+        "amount_checkbox_not_machine_verified",
+        "asset_image_observation_unresolved",
+        "asset_original_crop_ocr_conflict",
+        "report_failed_open"
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_field_evidence_incomplete",
+      "fields": {
+        "action": {
+          "cell_locators": [
+            "house-ptr-grid:c830ee046083e889:p2:r1:action:1",
+            "house-ptr-grid:c830ee046083e889:p2:r1:action:2",
+            "house-ptr-grid:c830ee046083e889:p2:r1:action:3"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "PURCHASE",
+            "selected_index": 1,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.1983,
+            0.0,
+            0.0
+          ]
+        },
+        "amount": {
+          "cell_locators": [
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:1",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:2",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:3",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:4",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:5",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:6",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:7",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:8",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:9",
+            "house-ptr-grid:c830ee046083e889:p2:r1:amount:10"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "B",
+            "selected_index": 2,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.0,
+            0.1942,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "asset": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p2:r1:asset",
+          "comparison": "image_observation_unresolved",
+          "crop_ocr_raw": "United Health Group Inc Gom (UNH)",
+          "crop_ocr_words": [
+            {
+              "confidence": 31.11,
+              "height": 30,
+              "left": 11,
+              "text": "United",
+              "top": 41,
+              "width": 108
+            },
+            {
+              "confidence": 96.27,
+              "height": 30,
+              "left": 132,
+              "text": "Health",
+              "top": 43,
+              "width": 110
+            },
+            {
+              "confidence": 96.0,
+              "height": 36,
+              "left": 254,
+              "text": "Group",
+              "top": 43,
+              "width": 106
+            },
+            {
+              "confidence": 93.27,
+              "height": 30,
+              "left": 374,
+              "text": "Inc",
+              "top": 41,
+              "width": 51
+            },
+            {
+              "confidence": 90.03,
+              "height": 32,
+              "left": 437,
+              "text": "Gom",
+              "top": 41,
+              "width": 78
+            },
+            {
+              "confidence": 96.86,
+              "height": 39,
+              "left": 530,
+              "text": "(UNH)",
+              "top": 41,
+              "width": 106
+            }
+          ],
+          "image_observation": {
+            "note": "Initial letters and Inc/Com boundary are degraded in the scan; UNH is visible.",
+            "status": "ambiguous"
+          },
+          "ocr_pass_agreement": "conflict",
+          "original_page_ocr_raw": "Untted Health Group Inc Com (UNH)",
+          "original_page_ocr_words": [
+            {
+              "confidence": 73.25,
+              "text": "Untted"
+            },
+            {
+              "confidence": 96.17,
+              "text": "Health"
+            },
+            {
+              "confidence": 95.77,
+              "text": "Group"
+            },
+            {
+              "confidence": 95.77,
+              "text": "Inc"
+            },
+            {
+              "confidence": 90.4,
+              "text": "Com"
+            },
+            {
+              "confidence": 95.2,
+              "text": "(UNH)"
+            }
+          ]
+        },
+        "notification_date": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p2:r1:notification_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "03/02/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 96.22,
+              "height": 30,
+              "left": 25,
+              "text": "03/02/26",
+              "top": 40,
+              "width": 150
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "03/02/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "| 03/02/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 84.63,
+              "text": "|"
+            },
+            {
+              "confidence": 96.63,
+              "text": "03/02/26"
+            }
+          ]
+        },
+        "transaction_date": {
+          "cell_locator": "house-ptr-grid:c830ee046083e889:p2:r1:transaction_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "02/20/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 94.62,
+              "height": 48,
+              "left": 24,
+              "text": "02/20/26",
+              "top": 37,
+              "width": 148
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "02/20/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "02/20/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 96.41,
+              "text": "02/20/26"
+            }
+          ]
+        }
+      },
+      "physical_locator": "house-ptr-grid:c830ee046083e889:p2:r1"
+    }
+  ],
+  "source_sha256": "c830ee046083e8894f0a360f011186e755f3bbf0d6b83c7084611e80e1776d81"
+}
