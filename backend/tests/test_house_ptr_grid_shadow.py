@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import importlib.util
 import json
 from pathlib import Path
 import unittest
 
-from PIL import Image, ImageDraw
-
 from unison_snapshot.house import HouseIndexError
-from unison_snapshot.house_ptr_grid_shadow import _grid_rows, build_grid_shadow
+
+HAS_IMAGE_DEPS = (importlib.util.find_spec("PIL") is not None and
+                  importlib.util.find_spec("pdfplumber") is not None)
+if HAS_IMAGE_DEPS:
+    from PIL import Image, ImageDraw
+    from unison_snapshot.house_ptr_grid_shadow import _grid_rows, build_grid_shadow
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@unittest.skipUnless(HAS_IMAGE_DEPS, "optional House image audit dependencies unavailable")
 class HousePtrGridShadowTests(unittest.TestCase):
     def test_grid_lines_and_asset_ink_yield_physical_rows(self):
         image = Image.new("RGB", (1000, 1000), "white")

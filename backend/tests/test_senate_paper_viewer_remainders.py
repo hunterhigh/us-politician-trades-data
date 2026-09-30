@@ -11,14 +11,17 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = REPO / "backend" / "scripts"
 sys.path.insert(0, str(SCRIPT_DIR))
-SPEC = importlib.util.spec_from_file_location(
-    "audit_senate_paper_viewer_remainders",
-    SCRIPT_DIR / "audit_senate_paper_viewer_remainders.py")
-assert SPEC and SPEC.loader
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
+HAS_PIL = importlib.util.find_spec("PIL") is not None
+if HAS_PIL:
+    SPEC = importlib.util.spec_from_file_location(
+        "audit_senate_paper_viewer_remainders",
+        SCRIPT_DIR / "audit_senate_paper_viewer_remainders.py")
+    assert SPEC and SPEC.loader
+    MODULE = importlib.util.module_from_spec(SPEC)
+    SPEC.loader.exec_module(MODULE)
 
 
+@unittest.skipUnless(HAS_PIL, "optional Senate image audit dependency unavailable")
 class ViewerRemainderTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
