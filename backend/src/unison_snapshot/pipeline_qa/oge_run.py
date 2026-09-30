@@ -291,8 +291,6 @@ def _assert_legacy_reparse_equivalent(cached: dict, reparsed: dict) -> None:
             raise OgeShadowInputError(f"reparse changed cached value at {'.'.join(path)}")
 
     compare(cached, reparsed)
-    if not reparsed["source_rows"]:
-        raise OgeShadowInputError("fixed-evidence PDF produced no physical source rows")
 
 
 def _read_json(path: Path) -> Any:

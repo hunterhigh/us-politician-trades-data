@@ -15,6 +15,11 @@ order/count changes, new fields, missing archive bytes, or hash mismatches fail
 the run. Physical rows are never synthesized from transaction or quarantine
 arrays. The ledger is built only from the verified reparse. The job has
 `contents: read`; it does not publish review data or alter evidence.
+An empty physical-row inventory is valid when the fixed reparse and legacy
+cache both contain no transaction or quarantine rows; the document remains a
+`no_rows` result. The first remote replay exposed this case in document
+`174165f6e1e120b185258db000347f54`, whose cached reason was
+`transaction_table_not_found`.
 
 ## Offline evidence checked
 
