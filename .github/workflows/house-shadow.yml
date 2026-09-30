@@ -6,15 +6,27 @@ on:
       evidence_commit:
         description: Full immutable evidence commit containing archived House PTR PDFs
         required: true
-        default: '80f086267677b8fde34314f24024bdc505d97cb0'
+        default: '0bfde57073838652d58ed1fa814b42c49bf7bd5c'
       review_commit:
         description: Full immutable review commit containing House extraction/qualification/failure records
         required: true
-        default: '9749718e5ae837057db7c031d431714fc72988d1'
+        default: 'edd5f8081c3c068dbfc1350179cd00a21d5441a7'
+      scope:
+        description: Selected IDs or every archived 2026 PTR in the pinned evidence commit
+        required: true
+        type: choice
+        options:
+          - selected
+          - all_archived
+        default: selected
       document_ids:
         description: Comma-separated 2026 House PTR document IDs, maximum 25
         required: true
         default: '20019182,8221321'
+      expected_document_count:
+        description: Required exact count when scope is all_archived
+        required: true
+        default: '403'
 
 permissions:
   contents: read
@@ -22,7 +34,7 @@ permissions:
 jobs:
   shadow:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,6 +64,8 @@ jobs:
           EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
           REVIEW_COMMIT: ${{ inputs.review_commit }}
           DOCUMENT_IDS: ${{ inputs.document_ids }}
+          SCOPE: ${{ inputs.scope }}
+          EXPECTED_DOCUMENT_COUNT: ${{ inputs.expected_document_count }}
           RUN_ID: house-shadow-${{ github.run_id }}-${{ github.run_attempt }}
           OUTPUT_DIR: ${{ runner.temp }}/house-shadow-run
           PYTHONPATH: backend/src
@@ -62,9 +76,23 @@ jobs:
           import re
           import subprocess
 
-          document_ids = [part.strip() for part in os.environ['DOCUMENT_IDS'].split(',')]
-          if not 1 <= len(document_ids) <= 25 or len(set(document_ids)) != len(document_ids):
-              raise SystemExit('Specify 1–25 unique House document IDs')
+          if os.environ['SCOPE'] == 'all_archived':
+              paths = subprocess.check_output(
+                  ['git', 'ls-tree', '-r', '--name-only', os.environ['EVIDENCE_COMMIT'],
+                   '--', 'house_clerk/documents/2026/'], text=True).splitlines()
+              document_ids = sorted({match.group(1) for path in paths
+                  if (match := re.fullmatch(
+                      r'house_clerk/documents/2026/([0-9]+)/[0-9a-f]{64}\.json', path))})
+              expected = os.environ['EXPECTED_DOCUMENT_COUNT']
+              if (not re.fullmatch(r'[1-9][0-9]*', expected) or
+                      len(document_ids) != int(expected) or len(paths) != len(document_ids) * 2):
+                  raise SystemExit('Pinned House evidence inventory differs from exact expected count')
+          elif os.environ['SCOPE'] == 'selected':
+              document_ids = [part.strip() for part in os.environ['DOCUMENT_IDS'].split(',')]
+              if not 1 <= len(document_ids) <= 25 or len(set(document_ids)) != len(document_ids):
+                  raise SystemExit('Specify 1–25 unique House document IDs')
+          else:
+              raise SystemExit('Unsupported House shadow scope')
           if any(not re.fullmatch(r'[0-9]+', value) for value in document_ids):
               raise SystemExit('House document IDs must be numeric')
           command = ['python', '-m', 'unison_snapshot.house_shadow',

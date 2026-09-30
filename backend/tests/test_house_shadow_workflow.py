@@ -23,6 +23,9 @@ class HouseShadowWorkflowTests(unittest.TestCase):
         self.assertIn("actions/upload-artifact@v4", text)
         self.assertIn("root / 'manifest.json'", text)
         self.assertIn("if-no-files-found: error", text)
+        self.assertIn("all_archived", text)
+        self.assertIn("EXPECTED_DOCUMENT_COUNT", text)
+        self.assertIn("len(paths) != len(document_ids) * 2", text)
 
 
 if __name__ == "__main__":

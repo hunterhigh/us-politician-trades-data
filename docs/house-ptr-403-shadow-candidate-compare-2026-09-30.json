@@ -1,0 +1,23 @@
+{
+  "run_id": "house-ptr-403-20260930-58eb-0bfd-edd5",
+  "code_commit": "58eb265e35b291bbe72111501ee84ee65ab8d892",
+  "evidence_commit": "0bfde57073838652d58ed1fa814b42c49bf7bd5c",
+  "review_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "manifest_sha256": "0e97d62d0f64fcc3da4a467f7f753ff69a38d382e3c3d3d5c0d9e090c8b5abce",
+  "candidate_rows_sha256": "56a49d940234c7c9d41c259b8c993a785f74ad52a9179235b3f356635ed2cebe",
+  "review_candidate_blob_sha1": "ccea4afd5363b29a1858475a7d920dc34fe625ee",
+  "review_candidate_count": 3352,
+  "shadow_qualified_count": 3352,
+  "review_candidate_ids_absent_from_shadow": [],
+  "shadow_qualified_ids_absent_from_review_candidate": [],
+  "matched_id_required_projection_changes": [],
+  "matched_id_source_identity_changes": [],
+  "review_qualification_vs_source_candidate_full_row_changes": [],
+  "document_status_counts": {
+    "parsed": 378,
+    "failed": 21,
+    "no_rows": 4
+  },
+  "observed_row_count": 4868,
+  "failed_document_physical_row_count": "unknown"
+}
