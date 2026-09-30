@@ -1,0 +1,17 @@
+{
+  "schema_version": "house-ptr-cell-observations/v1",
+  "document_id": "9116326",
+  "source_sha256": "be114957d03486636e639fe9d6c124c71ba8634e2f38f5dfb672eee92502ad2d",
+  "rows": [
+    {
+      "physical_locator": "house-ptr-grid:be114957d0348663:p1:r2",
+      "image_observation": {
+        "asset": {"status": "clear", "text": "SALESFORCE INC"},
+        "transaction_date": {"status": "clear", "text": "08/14/26"},
+        "notification_date": {"status": "clear", "text": "09/02/26"},
+        "action": {"status": "clear", "selected_index": 1, "printed_label": "Purchase"},
+        "amount": {"status": "clear", "selected_index": 2, "printed_label": "B"}
+      }
+    }
+  ]
+}

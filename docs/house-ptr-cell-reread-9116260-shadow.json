@@ -1,0 +1,172 @@
+{
+  "crop_render_dpi": 300,
+  "document_id": "9116260",
+  "file_status": "failed_open",
+  "ocr_engine": "tesseract v5.4.0.20240606",
+  "qualified_rows": 0,
+  "schema_version": "house-ptr-cell-reread-shadow/v1",
+  "selected_rows": [
+    {
+      "blocking_reasons": [
+        "action_checkbox_not_machine_verified",
+        "amount_checkbox_not_machine_verified",
+        "notification_date_ocr_conflicts_with_image_observation",
+        "notification_date_original_crop_ocr_conflict",
+        "report_failed_open"
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_field_evidence_incomplete",
+      "fields": {
+        "action": {
+          "cell_locators": [
+            "house-ptr-grid:40abd1de969ff344:p1:r1:action:1",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:action:2",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:action:3",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:action:4"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "Purchase",
+            "selected_index": 1,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.3196,
+            0.0678,
+            0.1122,
+            0.1604
+          ]
+        },
+        "amount": {
+          "cell_locators": [
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:1",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:2",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:3",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:4",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:5",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:6",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:7",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:8",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:9",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:10",
+            "house-ptr-grid:40abd1de969ff344:p1:r1:amount:11"
+          ],
+          "comparison": "checkbox_value_unverified",
+          "image_observation": {
+            "printed_label": "C",
+            "selected_index": 3,
+            "status": "clear"
+          },
+          "inner_dark_fractions": [
+            0.2316,
+            0.1971,
+            0.3447,
+            0.1451,
+            0.1783,
+            0.1681,
+            0.1492,
+            0.1614,
+            0.1226,
+            0.0678,
+            0.1065
+          ]
+        },
+        "asset": {
+          "cell_locator": "house-ptr-grid:40abd1de969ff344:p1:r1:asset",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "ADOBE INC",
+          "crop_ocr_words": [
+            {
+              "confidence": 95.08,
+              "height": 46,
+              "left": 100,
+              "text": "ADOBE",
+              "top": 24,
+              "width": 218
+            },
+            {
+              "confidence": 96.4,
+              "height": 46,
+              "left": 342,
+              "text": "INC",
+              "top": 24,
+              "width": 100
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "ADOBE INC"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "ADOBE INC",
+          "original_page_ocr_words": [
+            {
+              "confidence": 92.44,
+              "text": "ADOBE"
+            },
+            {
+              "confidence": 95.82,
+              "text": "INC"
+            }
+          ]
+        },
+        "notification_date": {
+          "cell_locator": "house-ptr-grid:40abd1de969ff344:p1:r1:notification_date",
+          "comparison": "ocr_conflicts_with_image_observation",
+          "crop_ocr_raw": "TI2A126",
+          "crop_ocr_words": [
+            {
+              "confidence": 71.69,
+              "height": 67,
+              "left": 3,
+              "text": "TI2A126",
+              "top": 0,
+              "width": 179
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "7/24/26"
+          },
+          "ocr_pass_agreement": "conflict",
+          "original_page_ocr_raw": "7/24/26",
+          "original_page_ocr_words": [
+            {
+              "confidence": 94.61,
+              "text": "7/24/26"
+            }
+          ]
+        },
+        "transaction_date": {
+          "cell_locator": "house-ptr-grid:40abd1de969ff344:p1:r1:transaction_date",
+          "comparison": "ocr_agrees_with_image_observation",
+          "crop_ocr_raw": "6/9/26",
+          "crop_ocr_words": [
+            {
+              "confidence": 96.67,
+              "height": 42,
+              "left": 8,
+              "text": "6/9/26",
+              "top": 27,
+              "width": 146
+            }
+          ],
+          "image_observation": {
+            "status": "clear",
+            "text": "6/9/26"
+          },
+          "ocr_pass_agreement": "agree",
+          "original_page_ocr_raw": "6/9/26}",
+          "original_page_ocr_words": [
+            {
+              "confidence": 52.37,
+              "text": "6/9/26}"
+            }
+          ]
+        }
+      },
+      "physical_locator": "house-ptr-grid:40abd1de969ff344:p1:r1"
+    }
+  ],
+  "source_sha256": "40abd1de969ff344fab5f3c8950a17ebb8ab5df993ded910f00e48d0d47e385d"
+}

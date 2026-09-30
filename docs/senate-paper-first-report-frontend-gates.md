@@ -30,25 +30,32 @@
 ## 逐行字段门禁
 
 36 行的方向、金额档、日期及资产格原文已通过原图复核；
-全部资产格以字面 `(S)` 开头。审计保存 `(S)` 为观察值，
-同时保留去掉代码后的文字片段供定位，**没有把 `(S)` 自动认作
-标准 `owner`，也没有将片段直接写成正式 `asset_name`**。
-当前固定原件未提供可绑定的代码释义；旧解析器的约定不能代替
-该报告的字段证据。
+全部资产格以字面 `(S)` 开头。[Senate Ethics 官方纸面 PTR 表格](https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf)
+的 PDF 第 2 页在 `Identification of Assets` 栏明确写出
+`(S) Spouse`、`(DC) Dependent Child`、`(J) Joint`。该表格与归档原件
+同为纸面 PTR、资产栏布局相同。因此隔离预览中逐行将 `(S)` 对应为
+`owner = Spouse`。资产名仅删除此官方持有人前缀，保留余下原文的
+大小写、标点和后缀；不从 `LLC`/`LP` 推断证券类型，不合并实体，
+不创造 ticker。机器审计逐行保留原始资产格、去前缀文字、表格
+来源 URL、原图裁剪哈希及此规则。官方表格 PDF 在本代码分支仅引用
+公开 URL，未归档其二进制，也未将它伪称固定 evidence 原件。
 
-对照最新 HTML 的交易对象，36 行均缺下列可发布字段：
+对照最新 HTML 的交易对象，36 行的 `owner` 和 `asset_name` 观察门禁
+已闭合；但仍均缺下列可发布字段：
 
 | 缺失字段 | 当前状态 |
 | --- | --- |
 | `id` | 未做稳定交易 ID 与跨报告重复关系判定 |
-| `owner` | 仅观察到资产格前缀 `(S)`，标准持有人未闭合 |
-| `asset_name` | 资产格文字已确认；去前缀后的规范资产名未按持有人规则核准 |
 | `filed_at` | 可核 2026-02-12 日期，原件没有精确时间；不伪造时间戳 |
 | `verification_status` | 未运行正式候选资格与发布验证 |
 
 `instrument_type` 和 `ticker` 也没有可核定值，单独记为未验证的
 可空字段。已确认的 `transaction_type`、`transaction_date` 和金额
-上下界只保留在隔离预览中。即使五个缺字段日后闭合，跨纸面报告
+上下界只保留在隔离预览中。官方目录列示日期与封面收件日期均为
+`2026-02-12`，只支持日精度；Senate 申报时限规则不能倒推出实际
+时刻。现有候选代码会把日期写成午夜 UTC 时间戳，但最新前端详情页
+会显示 `filed_at` 的时间部分，因此本审计未采用该转换。即使三个
+缺字段日后闭合，跨纸面报告
 的修订与内容等价性仍需独立判断。36 行的最终状态一律为
 `quarantined_no_candidate`，`candidate_transaction_id = null`。
 
@@ -61,7 +68,7 @@ python -m unittest discover -s backend/tests -p 'test_senate_paper*.py' -v
 ```
 
 机器审计 SHA-256 为
-`fc161b939a1b9424dcc01f2b995b79161f820a64c2e792cadb06a982eae86c43`。
-本机实际重放和相关 18 项测试通过。最新前端基准 SHA-256 为
+`A4EFC0C4E71CE0E99D769A51975ADD31017CB23E87D73CD9EF4A18AEA1C621C8`。
+本机实际重放和相关 19 项测试通过。最新前端基准 SHA-256 为
 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`。
 没有修改前端、`review-input/`、正式候选或生产分支。
