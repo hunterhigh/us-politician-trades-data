@@ -1,0 +1,137 @@
+{
+  "documents": [
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:12ef4412efaed41d7eccf79c",
+      "pdf_sha256": "ba85f6c3fe9542415dbe91e128ea2b752d1372513b61ffde0609ba92445865fe",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 1,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 1
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:60d8d791c71b1049b30637fb",
+      "pdf_sha256": "b58b081a0b117585833d5603d78f951c5e6e4bf3039916cea6a128b74bedb82d",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 27,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 27
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:694c1212cac93c50d9cd4e60",
+      "pdf_sha256": "745da8aeaa0de12ee38c745e71dbc221b733ee6cad5f2bee874d6fd79a4cb4b3",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 4,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 4
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:72653c4f76818731d46fc7a2",
+      "pdf_sha256": "d368a64d9db9c8838e6f2f9d98736d26b483f8436117da4f71528872e7159d7b",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 3,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 3
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:887036d7fdf2969a2dc7475d",
+      "pdf_sha256": "93dc679974915fe82c10f6674ab7f2ec55eecc8f952f8690a8dcd4104df03f3b",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 3,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 3
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "pdf_sha256": "aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 3,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 3
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
+      "pdf_sha256": "0ae0c89fd146550447ac0a70c5aadf54dde653f7134df5897152344a4c492c01",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 3,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 3
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:d06c8cad040b40daa6cb3e7d",
+      "pdf_sha256": "a7d65224d8fede1079d03e071102fd0f5c6f27bd544655103663d13eeb203681",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 21,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 21
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:d29106d7f68a511841ea93e3",
+      "pdf_sha256": "5ad89d0255fb12cc4daa4e33c089840ca2b51230bfa1ad41a87a9915e41c6d47",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 20,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 20
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:d7f2ba91edf9da5e93edc7ae",
+      "pdf_sha256": "7416aae7a3af78c2fe6c2595130be200a05dbc6adfa6e07c679da67adb9da4b6",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 1,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 1
+    },
+    {
+      "canonical_transaction_rows_equal": true,
+      "current_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "document_id": "wh-url:ec64753451a90fa978a6120d",
+      "pdf_sha256": "9ac633ef94588fd8362ddaa222ab8e5a83626d8749d95e18a8c3ddcb26ac2ce6",
+      "quarantine_id_reasons_equal": true,
+      "replayed_quarantine": 0,
+      "replayed_transactions": 1,
+      "review_parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_quarantine": 0,
+      "review_transactions": 1
+    }
+  ],
+  "schema_version": "whitehouse-278t-v2-parser-replay/v1"
+}

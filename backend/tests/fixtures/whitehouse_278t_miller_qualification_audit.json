@@ -1,0 +1,47 @@
+{
+  "document_id": "wh-url:60d8d791c71b1049b30637fb",
+  "production_mutation_authorized": false,
+  "promoted_count": 23,
+  "qualification_git_blob": "ee2529182a9aba9eb2fa310ffa448ab12374d216",
+  "qualification_path": "whitehouse/qualifications/candidate-current.json",
+  "qualification_sha256": "81281ec046e5567a61430840c9ff767fd8117837e58d44ad8d942c596c5a9ebe",
+  "quarantined_count": 4,
+  "review_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "rows": [
+    {
+      "extraction_id": "oge-278t:e8eb6e761d28849ffbb1751e",
+      "reasons": [
+        "possible_whitehouse_same_report_transaction_duplicate"
+      ],
+      "row_number": 16,
+      "status": "quarantined"
+    },
+    {
+      "extraction_id": "oge-278t:25e30b402f3d010aba8fb118",
+      "reasons": [
+        "possible_whitehouse_same_report_transaction_duplicate"
+      ],
+      "row_number": 19,
+      "status": "quarantined"
+    },
+    {
+      "extraction_id": "oge-278t:03d62e7745a55bc9507dbfa5",
+      "reasons": [
+        "possible_whitehouse_same_report_transaction_duplicate"
+      ],
+      "row_number": 21,
+      "status": "quarantined"
+    },
+    {
+      "extraction_id": "oge-278t:3d94680a8ecf49d656d6fa71",
+      "reasons": [
+        "possible_whitehouse_same_report_transaction_duplicate"
+      ],
+      "row_number": 24,
+      "status": "quarantined"
+    }
+  ],
+  "schema_version": "whitehouse-278t-miller-qualification-audit/v1",
+  "shadow_disposition": "parsed_absent_from_candidate",
+  "source_sha256": "b58b081a0b117585833d5603d78f951c5e6e4bf3039916cea6a128b74bedb82d"
+}

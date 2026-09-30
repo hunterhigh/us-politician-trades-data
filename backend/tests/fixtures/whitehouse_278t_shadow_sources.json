@@ -1,0 +1,98 @@
+{
+  "candidate_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "candidate_sha256": "7bdd6b042b86088733b2dc13e57d59cb21743905adccf42df83276d9470415ba",
+  "documents": [
+    {
+      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+      "review_extraction_git_blob": "f441a7c079bf2801e19da2f84f6b96bb2802a6b9",
+      "review_extraction_path": "whitehouse/extractions/01475dee0bcffa4e79f7f58c/fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:11b77506f8e46ae1a83b0531",
+      "review_extraction_git_blob": "40a3dd8c5079bad0ebf5ce60fb2581852cb87b98",
+      "review_extraction_path": "whitehouse/extractions/11b77506f8e46ae1a83b0531/b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:12ef4412efaed41d7eccf79c",
+      "review_extraction_git_blob": "477ec3a129760a010b498ca389bf4cdd0f55c09c",
+      "review_extraction_path": "whitehouse/extractions/12ef4412efaed41d7eccf79c/ba85f6c3fe9542415dbe91e128ea2b752d1372513b61ffde0609ba92445865fe/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:1a6bbff2a684fedd76ac9f59",
+      "review_extraction_git_blob": "433c2ee4a57f1d3de37999a287d82d5c896e08db",
+      "review_extraction_path": "whitehouse/extractions/1a6bbff2a684fedd76ac9f59/4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043/whitehouse-278t-hybrid-geometry-v3.json"
+    },
+    {
+      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
+      "review_extraction_git_blob": "2550da203481a2de50dc01a68fff81890de32e64",
+      "review_extraction_path": "whitehouse/extractions/5e95b7609861d78aa29e3d13/e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:60d8d791c71b1049b30637fb",
+      "review_extraction_git_blob": "f5f01c839079bb0f3f1d6cf29f394428bb28b7af",
+      "review_extraction_path": "whitehouse/extractions/60d8d791c71b1049b30637fb/b58b081a0b117585833d5603d78f951c5e6e4bf3039916cea6a128b74bedb82d/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:62340683e32b0263e8f0eb20",
+      "review_extraction_git_blob": "9766a4edc82de9d7ce7f159784c4832031187739",
+      "review_extraction_path": "whitehouse/extractions/62340683e32b0263e8f0eb20/3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:694c1212cac93c50d9cd4e60",
+      "review_extraction_git_blob": "587f6192fc1349c11ff812874c99adf492169174",
+      "review_extraction_path": "whitehouse/extractions/694c1212cac93c50d9cd4e60/745da8aeaa0de12ee38c745e71dbc221b733ee6cad5f2bee874d6fd79a4cb4b3/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:72653c4f76818731d46fc7a2",
+      "review_extraction_git_blob": "8e87c334a262897b7236efcf8c2326360cb2df3b",
+      "review_extraction_path": "whitehouse/extractions/72653c4f76818731d46fc7a2/d368a64d9db9c8838e6f2f9d98736d26b483f8436117da4f71528872e7159d7b/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:7e17c4be2b42f563d37df173",
+      "review_extraction_git_blob": "3cb9116c7559d0e8e290e5d305b52dd51402b65d",
+      "review_extraction_path": "whitehouse/extractions/7e17c4be2b42f563d37df173/a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+      "review_extraction_git_blob": "6cd50bf82c224b414dfaf4a53644af926b924809",
+      "review_extraction_path": "whitehouse/extractions/82a263659dcbd44a6522ecbc/ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31/whitehouse-278t-hybrid-geometry-v4.json"
+    },
+    {
+      "document_id": "wh-url:887036d7fdf2969a2dc7475d",
+      "review_extraction_git_blob": "1ca71f8c653f4b3ce8ef1550e909a91f51ae23d3",
+      "review_extraction_path": "whitehouse/extractions/887036d7fdf2969a2dc7475d/93dc679974915fe82c10f6674ab7f2ec55eecc8f952f8690a8dcd4104df03f3b/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "review_extraction_git_blob": "246c6ad9a7356a22a1bef813cedc5d768e8941d7",
+      "review_extraction_path": "whitehouse/extractions/a31f97b78eacdf16d90377ea/aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
+      "review_extraction_git_blob": "a4c523c0809801d58aa9c52bd68fb20fec553200",
+      "review_extraction_path": "whitehouse/extractions/ab8ac0312b14b12f6d0dca8b/0ae0c89fd146550447ac0a70c5aadf54dde653f7134df5897152344a4c492c01/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:d06c8cad040b40daa6cb3e7d",
+      "review_extraction_git_blob": "0fe88f50ed13d07ed6e3a03c13cd407bf50edd42",
+      "review_extraction_path": "whitehouse/extractions/d06c8cad040b40daa6cb3e7d/a7d65224d8fede1079d03e071102fd0f5c6f27bd544655103663d13eeb203681/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:d29106d7f68a511841ea93e3",
+      "review_extraction_git_blob": "3772cedd3aabfcc3dc7dafd2dd4a7eb920764af6",
+      "review_extraction_path": "whitehouse/extractions/d29106d7f68a511841ea93e3/5ad89d0255fb12cc4daa4e33c089840ca2b51230bfa1ad41a87a9915e41c6d47/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:d7f2ba91edf9da5e93edc7ae",
+      "review_extraction_git_blob": "71c76502430f7c63d63ea57b4fa80d1c4441b122",
+      "review_extraction_path": "whitehouse/extractions/d7f2ba91edf9da5e93edc7ae/7416aae7a3af78c2fe6c2595130be200a05dbc6adfa6e07c679da67adb9da4b6/whitehouse-278t-hybrid-geometry-v2.json"
+    },
+    {
+      "document_id": "wh-url:ec64753451a90fa978a6120d",
+      "review_extraction_git_blob": "827a4ec4c1a4bd194dac85bca0854c155f4a6dd7",
+      "review_extraction_path": "whitehouse/extractions/ec64753451a90fa978a6120d/9ac633ef94588fd8362ddaa222ab8e5a83626d8749d95e18a8c3ddcb26ac2ce6/whitehouse-278t-hybrid-geometry-v2.json"
+    }
+  ],
+  "evidence_commit": "5fe5f0adb3181c5d1552dff3f07336464c3043a7",
+  "schema_version": "whitehouse-278t-shadow-source-manifest/v1"
+}
