@@ -32,6 +32,14 @@ used the fixed 26 MB PDF and the collected catalog record: 1,271 ledger rows
 accounted for 383 qualified, 773 quarantined, 27 excluded, and 88
 unrecognized rows; exactly four carried the visual recovery marker. This is
 one document, not the 329-document remote result.
+The subsequent full remote replay reached manifest validation and exposed two
+official document IDs (`1a3bd00f7ac33a6385258718002e4aa3` and
+`d3bcc865ef5e39f585258718002e4aa5`) with the same PDF SHA-256
+`916e87c5f7428597348e74f735aac4180e1714cd417df021ef22cdd9041d3931`.
+The idempotency key identifies the byte/parser/rules tuple and may correctly
+repeat across these distinct official catalog records. The manifest now
+requires unique `(source_id, document_id, source_sha256)` identities; it still
+rejects duplicate document entries and conserves rows per document.
 
 ## Offline evidence checked
 
