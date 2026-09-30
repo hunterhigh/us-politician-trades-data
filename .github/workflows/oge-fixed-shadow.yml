@@ -1,0 +1,118 @@
+name: OGE 278-T fixed-artifact shadow replay
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful OGE source run with immutable direct and ledger artifacts
+        required: true
+        default: '36675191583'
+      evidence_commit:
+        description: Exact archived evidence commit recorded by the source ledger
+        required: true
+        default: '6d848c5b6787cbe1f206a0f9de2b3679d2d03d4d'
+      review_commit:
+        description: Exact fixed review input commit recorded by the source ledger
+        required: true
+        default: '105333d651bb88822ddc6d2565c77d52d49aa5ef'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  replay:
+    if: github.ref == 'refs/heads/code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install pinned PDF parser
+        run: python -m pip install -e 'backend[house-ingest]'
+      - name: Download fixed successful source artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh run download "$SOURCE_RUN_ID" --name "oge-direct-${SOURCE_RUN_ID}" --dir .local/source
+          gh run download "$SOURCE_RUN_ID" --name "pipeline-ledger-oge-${SOURCE_RUN_ID}" --dir .local/prior-ledger
+      - name: Verify immutable source input hashes and commits
+        env:
+          EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
+          REVIEW_COMMIT: ${{ inputs.review_commit }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path('.local/prior-ledger/manifest.json').read_text(encoding='utf-8'))
+          if (manifest.get('evidence_commit') != os.environ['EVIDENCE_COMMIT'] or
+                  manifest.get('review_commit') != os.environ['REVIEW_COMMIT'] or
+                  manifest.get('source_scope') != ['oge']):
+              raise SystemExit('Prior OGE ledger does not bind to requested fixed inputs')
+          files = {'catalog': 'oge-catalog.json',
+                   'archive_batch': 'oge-report-batch.json',
+                   'extraction_batch': 'oge-extraction-batch.json'}
+          inputs = {item['artifact_type']: item['sha256']
+                    for item in manifest['input_artifacts']
+                    if item['artifact_type'] in files}
+          if set(inputs) != set(files):
+              raise SystemExit('Prior OGE ledger lacks required source input hashes')
+          for name, filename in files.items():
+              actual = hashlib.sha256((Path('.local/source') / filename).read_bytes()).hexdigest()
+              if actual != inputs[name]:
+                  raise SystemExit(f'Fixed OGE {name} hash differs from prior ledger')
+          old_rows = Path('.local/prior-ledger/candidate_rows.json').read_bytes()
+          expected = next(item['sha256'] for item in manifest['outputs']
+                          if item['artifact_type'] == 'candidate_rows')
+          if hashlib.sha256(old_rows).hexdigest() != expected:
+              raise SystemExit('Prior OGE row artifact hash differs from manifest')
+          PY
+      - name: Check out exact official evidence read-only
+        env:
+          EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin "$EVIDENCE_COMMIT"
+          git worktree add --detach "$RUNNER_TEMP/oge-fixed-shadow-evidence" "$EVIDENCE_COMMIT"
+      - name: Build current-code shadow from fixed inputs
+        env:
+          PYTHONPATH: backend/src
+          EVIDENCE_COMMIT: ${{ inputs.evidence_commit }}
+          REVIEW_COMMIT: ${{ inputs.review_commit }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          python -m unison_snapshot.pipeline_qa.oge_run_cli \
+            --catalog .local/source/oge-catalog.json \
+            --archive-batch .local/source/oge-report-batch.json \
+            --extraction-batch .local/source/oge-extraction-batch.json \
+            --extractions-dir .local/source/oge-extractions \
+            --evidence-root "$RUNNER_TEMP/oge-fixed-shadow-evidence" \
+            --output-dir .local/oge-shadow \
+            --run-id "oge-fixed-${SOURCE_RUN_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --workflow-run-id "$SOURCE_RUN_ID" \
+            --code-commit "$GITHUB_SHA" \
+            --evidence-commit "$EVIDENCE_COMMIT" \
+            --review-commit "$REVIEW_COMMIT" \
+            --started-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --completed-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --trigger replay
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-ledger-oge-${{ github.run_id }}
+          path: .local/oge-shadow/
+          if-no-files-found: error
+          retention-days: 7
