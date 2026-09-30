@@ -1,0 +1,38 @@
+[
+  {
+    "schema_version": "house-ptr-coverage-audit/v1",
+    "document_id": "9116290",
+    "source_sha256": "7cc36ca57a26ba0331fff01f6210d58d41719f074017442c14fc47983b27b42d",
+    "coverage_status": "known_incomplete",
+    "basis": "independent_pdf_page_census_lower_bound",
+    "observed_page_minimum_rows": [
+      5,
+      6
+    ],
+    "observed_minimum_row_count": 11,
+    "handled_row_count": 4,
+    "qualified_row_count": 1,
+    "quarantined_row_count": 3,
+    "unhandled_row_lower_bound": 7,
+    "retained_candidate_ids": [
+      "house-ptr:c2a121352254ef9a9983f263"
+    ]
+  },
+  {
+    "schema_version": "house-ptr-coverage-audit/v1",
+    "document_id": "9115813",
+    "source_sha256": "737955c7c26c497eda37f4378e1af51409b6231204a82d7ae2c3f25c10e0ae84",
+    "coverage_status": "known_incomplete",
+    "basis": "independent_pdf_page_census_lower_bound",
+    "observed_page_minimum_rows": [
+      4,
+      5
+    ],
+    "observed_minimum_row_count": 9,
+    "handled_row_count": 1,
+    "qualified_row_count": 0,
+    "quarantined_row_count": 1,
+    "unhandled_row_lower_bound": 8,
+    "retained_candidate_ids": []
+  }
+]
