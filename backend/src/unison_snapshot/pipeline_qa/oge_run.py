@@ -6,12 +6,14 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 from typing import Any
 
 from unison_snapshot.oge_reports import collapse_direct_catalog_records
 from unison_snapshot.oge_transaction_adapter import (
     PARSER_ID, RULES_VERSION, adapt_oge_278t_extraction,
 )
+from unison_snapshot.oge_reports import parse_archived_pdf
 from unison_snapshot.pipeline_ledger import (
     RUN_MANIFEST_SCHEMA, idempotency_key, validate_run_manifest,
 )
@@ -31,6 +33,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                          archive_batch_path: str | Path,
                          extraction_batch_path: str | Path,
                          extractions_dir: str | Path,
+                         evidence_root: str | Path | None = None,
                          output_dir: str | Path,
                          run_id: str, code_commit: str, evidence_commit: str,
                          started_at: str, completed_at: str,
@@ -46,6 +49,19 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     for name, value in commit_values:
         if not isinstance(value, str) or not _SHA40.fullmatch(value):
             raise OgeShadowInputError(f"{name} must be a lowercase full Git SHA")
+    evidence_path_root = Path(evidence_root).resolve() if evidence_root is not None else None
+    if evidence_path_root is not None:
+        try:
+            evidence_head = subprocess.run(
+                ["git", "-C", str(evidence_path_root), "rev-parse", "HEAD"],
+                check=True, capture_output=True, text=True).stdout.strip()
+            evidence_dirty = subprocess.run(
+                ["git", "-C", str(evidence_path_root), "status", "--porcelain"],
+                check=True, capture_output=True, text=True).stdout.strip()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise OgeShadowInputError("pinned OGE evidence checkout is unavailable") from exc
+        if evidence_head != evidence_commit or evidence_dirty:
+            raise OgeShadowInputError("OGE evidence checkout is not the clean pinned commit")
     input_paths = {
         "catalog": Path(catalog_path),
         "archive_batch": Path(archive_batch_path),
@@ -151,12 +167,35 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
             disposition = "failed"
             reason = "extraction_failed"
         else:
+            source_rows_recovered = False
             expected_files.add(extraction_path.name)
             extraction = _read_json(extraction_path)
             if (not isinstance(extraction, dict) or
                     extraction.get("document_id") != document_id or
                     extraction.get("source_sha256") != source_sha):
                 raise OgeShadowInputError(f"{document_id}: extraction differs from archived document")
+            if not isinstance(extraction.get("source_rows"), list):
+                if evidence_path_root is None:
+                    raise OgeShadowInputError(
+                        f"{document_id}: source_rows missing and pinned evidence is unavailable")
+                metadata_path = (evidence_path_root / Path(evidence_path).with_suffix(".json")).resolve()
+                archive_root = evidence_path_root
+                if not metadata_path.is_file() or not metadata_path.is_relative_to(archive_root):
+                    raise OgeShadowInputError(
+                        f"{document_id}: archived PDF metadata is absent from pinned evidence")
+                try:
+                    reparsed = parse_archived_pdf(archive_root, metadata_path)
+                    _assert_legacy_reparse_equivalent(extraction, reparsed)
+                except Exception as exc:
+                    raise OgeShadowInputError(
+                        f"{document_id}: fixed-evidence reparse was not equivalent: {exc}") from exc
+                extraction = reparsed
+                source_rows_recovered = True
+                input_hashes.append({"artifact_type": "archived_pdf_reparse",
+                                     "document_id": document_id,
+                                     "source_sha256": source_sha,
+                                     "artifact_type_detail": "archive_metadata",
+                                     "sha256": _sha256(metadata_path)})
             adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
             parser_version = adapted["parser_version"]
             disposition = "parsed" if adapted["row_count"] else "no_rows"
@@ -174,6 +213,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                           "parser_id": PARSER_ID, "parser_version": parser_version,
                           "rules_version": RULES_VERSION, "layout_fingerprint": _LAYOUT,
                           "idempotency_key": key, "disposition": disposition,
+                          **({"source_rows_status": "recovered_from_pinned_evidence_after_equivalence_check"}
+                             if not failed_by_id.get(document_id) and source_rows_recovered else {}),
                           **({"reason": reason} if reason else {})})
     if set(failed_by_id) - seen_ids or available != expected_files:
         raise OgeShadowInputError("OGE failure or extraction files do not match archived report inventory")
@@ -216,6 +257,42 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
         encoding="utf-8")
     return manifest
+
+
+def _assert_legacy_reparse_equivalent(cached: dict, reparsed: dict) -> None:
+    """Allow only parser-added physical inventory and cells absent in old caches."""
+    if not isinstance(cached, dict) or not isinstance(reparsed, dict):
+        raise OgeShadowInputError("cached and reparsed extraction must be objects")
+    if "source_rows" in cached or not isinstance(reparsed.get("source_rows"), list):
+        raise OgeShadowInputError("legacy cache/reparse source_rows contract is invalid")
+
+    def compare(old: Any, new: Any, path: tuple[str, ...] = ()) -> None:
+        if isinstance(old, dict) and isinstance(new, dict):
+            if set(old) - set(new):
+                raise OgeShadowInputError(f"reparse removed fields at {'.'.join(path)}")
+            for key, value in old.items():
+                compare(value, new[key], path + (key,))
+            extras = set(new) - set(old)
+            row_list = path == ("transactions",)
+            row_item = (len(path) == 2 and path[0] == "transactions"
+                        and path[1].isdecimal())
+            allowed = ((row_list or row_item) and extras <= {"cells"}) or (
+                       (path == () and extras <= {"source_rows"}))
+            if extras and not allowed:
+                raise OgeShadowInputError(f"reparse added unexpected fields at {'.'.join(path)}")
+            return
+        if isinstance(old, list) and isinstance(new, list):
+            if len(old) != len(new):
+                raise OgeShadowInputError(f"reparse changed row count at {'.'.join(path)}")
+            for index, (before, after) in enumerate(zip(old, new, strict=True)):
+                compare(before, after, path + (str(index),))
+            return
+        if old != new or type(old) is not type(new):
+            raise OgeShadowInputError(f"reparse changed cached value at {'.'.join(path)}")
+
+    compare(cached, reparsed)
+    if not reparsed["source_rows"]:
+        raise OgeShadowInputError("fixed-evidence PDF produced no physical source rows")
 
 
 def _read_json(path: Path) -> Any:
