@@ -28,4 +28,4 @@ python backend/scripts/audit_senate_paper_first_report.py --repo . --inventory d
 python -m unittest discover -s backend/tests -p 'test_senate_paper*.py' -v
 ```
 
-本机实际重放得到上述 `36/9/20`，输出 JSON SHA-256 为 `42e827583f32c2bf1a319c30d0d498367eb4a322ac6169cd7f84300db1d96d16`。相关测试实际运行 10 项并通过；没有运行候选构建或生产工作流。
+本机实际重放得到上述 `36/9/20`。仓库现存输出 JSON SHA-256 为 `1653af8696a0a86b0e4f54277ab63caa6e5c9ddb638d463dfefa02dd2a438a70`；原段落记录的 `42e827…` 与当前固定文件字节不符，后续字段审计以现存文件哈希为准。相关测试实际运行 10 项并通过；没有运行候选构建或生产工作流。

@@ -1,0 +1,296 @@
+{
+  "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+  "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
+  "review_basis": "visual inspection of original-scale row contact sheets generated from fixed official GIF bytes; all asset, date, direction and amount observations compared with individual printed rows",
+  "rows": [
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 2,
+      "page_number": 2
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) Kirkowswald Global Macro Fund LP",
+      "date_text": "1/16/26",
+      "direction": "sale",
+      "grid_slot": 3,
+      "page_number": 2
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 4,
+      "page_number": 2
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 5,
+      "page_number": 2
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 8,
+      "page_number": 2
+    },
+    {
+      "amount_band": "50001_100000",
+      "asset_text": "(S) Kirkowswald Global Macro Fund LP",
+      "date_text": "1/16/26",
+      "direction": "sale",
+      "grid_slot": 9,
+      "page_number": 2
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 10,
+      "page_number": 2
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 11,
+      "page_number": 2
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Radar Private Fund 1 LP (1)",
+      "date_text": "1/8/26",
+      "direction": "sale",
+      "grid_slot": 2,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 3,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/16/26",
+      "direction": "purchase",
+      "grid_slot": 4,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 5,
+      "page_number": 3
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) MH Northbound Train",
+      "date_text": "1/22/26",
+      "direction": "purchase",
+      "grid_slot": 6,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/27/26",
+      "direction": "purchase",
+      "grid_slot": 7,
+      "page_number": 3
+    },
+    {
+      "amount_band": "250001_500000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 8,
+      "page_number": 3
+    },
+    {
+      "amount_band": "100001_250000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 11,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 12,
+      "page_number": 3
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) MH Northbound Train",
+      "date_text": "1/22/26",
+      "direction": "purchase",
+      "grid_slot": 13,
+      "page_number": 3
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/27/26",
+      "direction": "purchase",
+      "grid_slot": 14,
+      "page_number": 3
+    },
+    {
+      "amount_band": "250001_500000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 15,
+      "page_number": 3
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 2,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/16/26",
+      "direction": "purchase",
+      "grid_slot": 3,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 4,
+      "page_number": 4
+    },
+    {
+      "amount_band": "50001_100000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 5,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 8,
+      "page_number": 4
+    },
+    {
+      "amount_band": "250001_500000",
+      "asset_text": "(S) Kirkowswald Global Macro Fund LP",
+      "date_text": "1/16/26",
+      "direction": "sale",
+      "grid_slot": 9,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/16/26",
+      "direction": "purchase",
+      "grid_slot": 10,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 11,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) MH Northbound Train",
+      "date_text": "1/22/26",
+      "direction": "purchase",
+      "grid_slot": 12,
+      "page_number": 4
+    },
+    {
+      "amount_band": "100001_250000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 13,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 16,
+      "page_number": 4
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 2,
+      "page_number": 5
+    },
+    {
+      "amount_band": "15001_50000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 3,
+      "page_number": 5
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) ELCM2 LLC",
+      "date_text": "1/9/26",
+      "direction": "sale",
+      "grid_slot": 6,
+      "page_number": 5
+    },
+    {
+      "amount_band": "1001_15000",
+      "asset_text": "(S) Not Fade Away LLC",
+      "date_text": "1/21/26",
+      "direction": "purchase",
+      "grid_slot": 7,
+      "page_number": 5
+    },
+    {
+      "amount_band": "50001_100000",
+      "asset_text": "(S) MH Built to Last LLC",
+      "date_text": "1/28/26",
+      "direction": "sale",
+      "grid_slot": 8,
+      "page_number": 5
+    }
+  ],
+  "schema_version": "senate-paper-first-report-visual-review/v1"
+}
