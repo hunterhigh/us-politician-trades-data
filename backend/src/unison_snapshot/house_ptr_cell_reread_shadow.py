@@ -14,7 +14,12 @@ import re
 import subprocess
 from pathlib import Path
 
-from .house_ptr_grid_shadow import _require
+from .house import HouseIndexError
+
+
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise HouseIndexError(message)
 
 
 def _ocr_words(image, executable: Path, *, dpi: int, psm: int | None = None) -> list[dict]:
