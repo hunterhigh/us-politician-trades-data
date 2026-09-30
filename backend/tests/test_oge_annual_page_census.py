@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from collections import Counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge_annual import _parse_rows
@@ -14,6 +15,48 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 class OgeAnnualPageCensusTests(unittest.TestCase):
+    def test_opt_in_v2_accounts_for_fixed_report_scope_without_promotion(self) -> None:
+        extraction = json.loads((FIXTURES / "oge_annual_vance_2026_v2.json").read_text(
+            encoding="utf-8"))
+        census = json.loads((FIXTURES / "oge_annual_vance_2026_full_census.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(extraction["parser_version"], "oge-278e-tables/v2")
+        self.assertEqual(extraction["source_sha256"], census["oge_source_sha256"])
+        self.assertEqual(extraction["page_count"], len(census["pages"]))
+        detected = Counter(row["page_number"] for collection in
+                           ("holdings", "transactions", "quarantined", "excluded")
+                           for row in extraction[collection])
+        for page in census["pages"]:
+            self.assertEqual(detected[page["page"]],
+                             page["filled_rows"] if page["adapter_scope"] else 0,
+                             f"page {page['page']}")
+        self.assertEqual(sum(detected.values()), census["adapter_scope_filled_rows"])
+        self.assertEqual(census["total_filled_rows"],
+                         census["adapter_scope_filled_rows"] +
+                         census["outside_adapter_scope_filled_rows"])
+        self.assertFalse(extraction["part7_numbering"]["row_reconciliation_complete"])
+        self.assertIsNone(extraction["filing_date"])
+        self.assertTrue(extraction["requires_cross_report_dedup"])
+        self.assertEqual(extraction["production_qualification"],
+                         "blocked_by_part7_numbering_or_reconciliation")
+
+    def test_merged_header_preserves_each_populated_page5_row_in_quarantine(self) -> None:
+        source = json.loads((FIXTURES / "oge_annual_vance_2026_page5_table.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(source["page_number"], 5)
+        old_parsed, old_quarantined, old_excluded = _parse_rows(
+            "part2", "Self", 5, source["table"], 2025)
+        self.assertEqual((len(old_parsed), len(old_quarantined), len(old_excluded)),
+                         (0, 1, 0))
+        parsed, quarantined, excluded = _parse_rows(
+            "part2", "Self", 5, source["table"], 2025,
+            preserve_valued_unreadable=True)
+        self.assertEqual((len(parsed), len(quarantined), len(excluded)), (0, 9, 0))
+        self.assertTrue(all("table_header_unrecognized" in row["reasons"]
+                            for row in quarantined))
+        self.assertIn("$3,000", quarantined[0]["cells"][5])
+        self.assertIn("$5,500", quarantined[-1]["cells"][5])
+
     def test_merged_printed_number_cell_preserves_all_populated_rows(self) -> None:
         source = json.loads((FIXTURES / "oge_annual_vance_2026_page10_table.json").read_text(
             encoding="utf-8"))

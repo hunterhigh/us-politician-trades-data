@@ -70,6 +70,12 @@ class OgeRowIdentityTests(unittest.TestCase):
         self.assertEqual(result["counts"], {"canonical_id_matched": 1,
                                             "extraction_id_bound": 1})
         self.assertEqual(result["previously_value_ambiguous_rows"], 1)
+        self.assertEqual(result["matched_canonical_rows"], [{
+            "document_id": "doc-1", "source_sha256": SHA,
+            "candidate_id": f"{SHA[:16]}:1",
+            "extraction_id": "oge-278t:official-1",
+            "canonical_transaction_id": "oge-278t:official-1",
+        }])
         self.assertFalse(result["projection_ready"])
 
     def test_same_pdf_rows_in_distinct_official_documents_remain_separate(self):

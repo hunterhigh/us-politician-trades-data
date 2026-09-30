@@ -1,0 +1,9 @@
+{
+  "schema_version": "house-ptr-grid-sample/v1",
+  "document_id": "9115813",
+  "source_sha256": "737955c7c26c497eda37f4378e1af51409b6231204a82d7ae2c3f25c10e0ae84",
+  "page_regions": [
+    {"table_top": 0.761399, "table_bottom": 0.899371, "asset_x0": 0.12, "asset_x1": 0.25},
+    {"table_top": 0.443789, "table_bottom": 0.612028, "asset_x0": 0.12, "asset_x1": 0.25}
+  ]
+}

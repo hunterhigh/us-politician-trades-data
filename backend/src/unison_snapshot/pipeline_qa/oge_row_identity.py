@@ -71,6 +71,7 @@ def audit_oge_row_identity(bundle_root: str | Path, extraction_root: str | Path,
     mismatches: Counter[str] = Counter()
     old_value_ambiguous = 0
     missing_rows = []
+    matched_rows = []
     total_extraction_bytes = 0
     for ledger in rows:
         source = ledger["source"]
@@ -146,6 +147,11 @@ def audit_oge_row_identity(bundle_root: str | Path, extraction_root: str | Path,
             counts["canonical_id_matched"] += 1
             mismatches.update(field for field in ROW_FIELDS
                               if canonical[0].get(field) != observations.get(field))
+            matched_rows.append({"document_id": document_id,
+                                 "source_sha256": source_sha,
+                                 "candidate_id": ledger["candidate_id"],
+                                 "extraction_id": extraction_id,
+                                 "canonical_transaction_id": canonical[0]["id"]})
         else:
             counts["canonical_id_missing"] += 1
             missing_docs[document_id] += 1
@@ -169,6 +175,7 @@ def audit_oge_row_identity(bundle_root: str | Path, extraction_root: str | Path,
         "canonical_field_differences": dict(mismatches),
         "missing_canonical_documents": dict(sorted(missing_docs.items())),
         "missing_canonical_rows": missing_rows,
+        "matched_canonical_rows": matched_rows,
         "candidate_id_collisions": [collision for collision in base["candidate_id_collisions"]
                                     if collision["scoped_rows"][0][0] == "oge"],
         "projection_ready": False,
