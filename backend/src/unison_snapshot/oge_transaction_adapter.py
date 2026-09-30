@@ -8,7 +8,10 @@ from datetime import date
 from typing import Any
 
 from .oge import OgeCatalogError
-from .oge_reports import collapse_direct_catalog_records
+from .oge_reports import (
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
+    collapse_direct_catalog_records,
+)
 from .pipeline_ledger import (
     CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA, idempotency_key,
     validate_candidate_row,
@@ -123,6 +126,15 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     for physical_index, raw in enumerate(source_rows, start=1):
         if not isinstance(raw, dict) or type(raw.get("page_number")) is not int:
             raise OgeCatalogError("OGE 278-T adapter source row locator is invalid")
+        recovery = raw.get("source_bound_row_recovery")
+        if recovery is not None and (extraction.get("document_id") != TRUMP_SEPT_2026_DOCUMENT_ID or
+                source_sha != TRUMP_SEPT_2026_SOURCE_SHA256 or
+                not isinstance(recovery, dict) or
+                recovery.get("basis") != "fixed_source_visual_table_row_recovery" or
+                recovery.get("page_number") != raw["page_number"] or
+                not isinstance(recovery.get("printed_row_number"), int)):
+            raise OgeCatalogError("OGE visual source row recovery is not source-bound")
+        evidence_kind = "visual_table_row_recovery" if recovery else "table_row"
         raw_cells = _cells(raw.get("cells"))
         key = _row_key({"page_number": raw["page_number"], "cells": raw_cells})
         parsed = dispositions.get(key, [])
@@ -130,6 +142,11 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         normalized: dict[str, object] = {}
         if parsed:
             disposition, parser_row, parser_reasons = parsed.pop(0)
+            if recovery is not None and (disposition != "qualified" or
+                    parser_row.get("source_bound_row_recovery") != recovery or
+                    parser_row.get("cells") != raw.get("cells") or
+                    parser_row.get("row_number") != recovery["printed_row_number"]):
+                raise OgeCatalogError("OGE visual source row recovery differs from parser disposition")
             reasons.extend(parser_reasons)
             normalized = parser_row
             if disposition == "qualified":
@@ -154,6 +171,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 if reasons:
                     disposition = "quarantined"
         else:
+            if recovery is not None:
+                raise OgeCatalogError("OGE visual source row recovery has no parser disposition")
             structural = _structural_disposition(raw_cells)
             if structural:
                 disposition, reason = structural
@@ -196,7 +215,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                     "transaction_date", "owner", "amount_low", "amount_high"},
                 "locations": [{"page": raw["page_number"],
                                "row_locator": str(physical_index),
-                               "kind": "table_row"}],
+                               "kind": evidence_kind}],
                 "conditions": {"source_field": field},
             })
         candidate = {
@@ -214,7 +233,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "observations": observations,
             "evidence_locations": [{"page": raw["page_number"],
                                     "row_locator": str(physical_index),
-                                    "kind": "table_row"}],
+                                    "kind": evidence_kind}],
             "required_projection_fields": (["asset_name", "transaction_type", "transaction_date",
                                              "owner", "amount_low", "amount_high"]
                                             if disposition == "qualified" else []),

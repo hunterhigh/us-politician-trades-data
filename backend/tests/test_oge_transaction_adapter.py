@@ -7,6 +7,10 @@ import unittest
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
+from unison_snapshot.oge_reports import (
+    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
+    TRUMP_SEPT_2026_SOURCE_URL,
+)
 
 
 FIXTURE = (Path(__file__).parent / "fixtures" / "oge_278t" / "gold_rows_v1.json")
@@ -51,6 +55,32 @@ class OgeTransactionAdapterTests(unittest.TestCase):
         result = adapt_oge_278t_extraction(extraction, self.fixture["catalog_record"])
         self.assertEqual(result["counts"]["qualified"], 0)
         self.assertIn("amount_range_not_qualified", result["rows"][1]["reasons"])
+
+    def test_fixed_visual_recovery_is_accounted_with_distinct_provenance(self):
+        extraction = self.fixture["extraction"]
+        record = self.fixture["catalog_record"]
+        extraction["document_id"] = record["source_document_id"] = TRUMP_SEPT_2026_DOCUMENT_ID
+        extraction["source_url"] = record["document_url"] = TRUMP_SEPT_2026_SOURCE_URL
+        extraction["source_sha256"] = TRUMP_SEPT_2026_SOURCE_SHA256
+        original = extraction["transactions"][0]
+        recovered = json.loads(json.dumps(original))
+        recovered["page_number"] = 7
+        recovered["row_number"] = 9
+        recovered["cells"][0] = "9"
+        marker = {"basis": "fixed_source_visual_table_row_recovery",
+                  "page_number": 7, "printed_row_number": 9}
+        recovered["source_bound_row_recovery"] = marker
+        extraction["transactions"].append(recovered)
+        extraction["source_rows"].append(
+            {"page_number": 7, "cells": recovered["cells"],
+             "source_bound_row_recovery": marker})
+        result = adapt_oge_278t_extraction(extraction, record)
+        self.assertEqual(result["row_count"], 6)
+        self.assertEqual(result["rows"][-1]["evidence_locations"][0]["kind"],
+                         "visual_table_row_recovery")
+        extraction["source_sha256"] = "0" * 64
+        with self.assertRaisesRegex(OgeCatalogError, "not source-bound"):
+            adapt_oge_278t_extraction(extraction, record)
 
 
 if __name__ == "__main__":

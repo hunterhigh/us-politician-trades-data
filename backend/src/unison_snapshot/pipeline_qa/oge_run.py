@@ -196,7 +196,11 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                      "source_sha256": source_sha,
                                      "artifact_type_detail": "archive_metadata",
                                      "sha256": _sha256(metadata_path)})
-            adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
+            try:
+                adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
+            except Exception as exc:
+                raise OgeShadowInputError(
+                    f"{document_id}: source-row ledger adaptation failed: {exc}") from exc
             parser_version = adapted["parser_version"]
             disposition = "parsed" if adapted["row_count"] else "no_rows"
             reason = None

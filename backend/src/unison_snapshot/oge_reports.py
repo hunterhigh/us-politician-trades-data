@@ -1012,5 +1012,9 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         "source_rows": [
             {"page_number": page, "cells": [_compact(cell) for cell in cells]}
             for page, cells in inventory
+        ] + [
+            {"page_number": row["page_number"], "cells": row["cells"],
+             "source_bound_row_recovery": row["source_bound_row_recovery"]}
+            for row in transactions if row.get("source_bound_row_recovery")
         ],
     }
