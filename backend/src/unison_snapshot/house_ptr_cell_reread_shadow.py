@@ -14,8 +14,6 @@ import re
 import subprocess
 from pathlib import Path
 
-import pdfplumber
-
 from .house_ptr_grid_shadow import _require
 
 
@@ -107,6 +105,8 @@ def build_cell_reread_shadow(pdf_bytes: bytes, cells: dict, observations: dict,
              "House PTR cell OCR engine is unavailable")
     results = []
     page_ocr_cache: dict[int, list[dict]] = {}
+    # The visual reread is opt-in; normal validation works without OCR extras.
+    import pdfplumber
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         for item in selected:
             locator = item.get("physical_locator")
