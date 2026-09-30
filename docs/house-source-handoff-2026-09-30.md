@@ -20,6 +20,14 @@ schedule, data source, production candidate rule, or publication writer was
 added. The handoff artifact is retained for seven days; durable evidence and
 state remain in their existing Git branches.
 
-Remote source-to-review execution still needs validation after this workflow
-change is merged. A successful offline or PR check alone does not prove the
-event artifact and pinned checkout work on GitHub Actions.
+Remote validation passed on 2026-09-30. [Source run 36665821546](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/36665821546)
+at `code=5fac3456effb5533b0f26c94fb975462e22889ca` succeeded and uploaded
+`house-source-handoff-36665821546`. Its downloaded JSON pinned
+`evidence=0bfde57073838652d58ed1fa814b42c49bf7bd5c` and
+`state=402c5313429738b410aac2647fde85417211ebcc`. The automatic
+[review run 36665903913](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/36665903913)
+downloaded that exact artifact, passed the immutable handoff validation and
+pinned checkout, then completed qualification and published unified candidate
+`review=edd5f8081c3c068dbfc1350179cd00a21d5441a7`. Its candidate contains
+392 people, 18,017 transactions, and 5,593 reported holdings. This validates
+the event handoff, not a vNext ledger input cutover.
