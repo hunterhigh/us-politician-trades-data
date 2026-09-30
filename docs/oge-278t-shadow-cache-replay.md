@@ -20,6 +20,18 @@ cache both contain no transaction or quarantine rows; the document remains a
 `no_rows` result. The first remote replay exposed this case in document
 `174165f6e1e120b185258db000347f54`, whose cached reason was
 `transaction_table_not_found`.
+The next remote replay exposed source-bound visual recoveries in the fixed
+September 2026 Trump report. Four recovered transaction rows were absent from
+the automatic table inventory. The parser now adds only rows carrying its
+existing `fixed_source_visual_table_row_recovery` marker to the ledger source
+inventory; the adapter checks the fixed document ID and PDF hash, the exact
+marker, the matching parser disposition and cells, and labels their evidence
+location `visual_table_row_recovery`. Other unmatched parser rows still fail.
+An offline replay from local evidence commit `80f086267677b8fde34314f24024bdc505d97cb0`
+used the fixed 26 MB PDF and the collected catalog record: 1,271 ledger rows
+accounted for 383 qualified, 773 quarantined, 27 excluded, and 88
+unrecognized rows; exactly four carried the visual recovery marker. This is
+one document, not the 329-document remote result.
 
 ## Offline evidence checked
 
