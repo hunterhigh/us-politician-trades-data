@@ -1,0 +1,260 @@
+{
+  "candidate_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "candidate_sha256": "7bdd6b042b86088733b2dc13e57d59cb21743905adccf42df83276d9470415ba",
+  "dispositions": {
+    "candidate_existing": 1391,
+    "parsed_absent_from_candidate": 4,
+    "review_quarantined": 6736
+  },
+  "document_count": 18,
+  "documents": [
+    {
+      "dispositions": {
+        "candidate_existing": 69,
+        "review_quarantined": 1080
+      },
+      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+      "existing_candidate_row_count": 69,
+      "parsed_row_count": 69,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "f441a7c079bf2801e19da2f84f6b96bb2802a6b9",
+      "review_quarantine_count": 1080,
+      "source_row_count": 1149,
+      "source_sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 1,
+        "review_quarantined": 3600
+      },
+      "document_id": "wh-url:11b77506f8e46ae1a83b0531",
+      "existing_candidate_row_count": 1,
+      "parsed_row_count": 1,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "40a3dd8c5079bad0ebf5ce60fb2581852cb87b98",
+      "review_quarantine_count": 3600,
+      "source_row_count": 3601,
+      "source_sha256": "b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 1
+      },
+      "document_id": "wh-url:12ef4412efaed41d7eccf79c",
+      "existing_candidate_row_count": 1,
+      "parsed_row_count": 1,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "477ec3a129760a010b498ca389bf4cdd0f55c09c",
+      "review_quarantine_count": 0,
+      "source_row_count": 1,
+      "source_sha256": "ba85f6c3fe9542415dbe91e128ea2b752d1372513b61ffde0609ba92445865fe"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 465,
+        "review_quarantined": 42
+      },
+      "document_id": "wh-url:1a6bbff2a684fedd76ac9f59",
+      "existing_candidate_row_count": 465,
+      "parsed_row_count": 465,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v3",
+      "review_extraction_git_blob": "433c2ee4a57f1d3de37999a287d82d5c896e08db",
+      "review_quarantine_count": 42,
+      "source_row_count": 507,
+      "source_sha256": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 517,
+        "review_quarantined": 530
+      },
+      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
+      "existing_candidate_row_count": 517,
+      "parsed_row_count": 517,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "2550da203481a2de50dc01a68fff81890de32e64",
+      "review_quarantine_count": 530,
+      "source_row_count": 1047,
+      "source_sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 23,
+        "parsed_absent_from_candidate": 4
+      },
+      "document_id": "wh-url:60d8d791c71b1049b30637fb",
+      "existing_candidate_row_count": 23,
+      "parsed_row_count": 27,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "f5f01c839079bb0f3f1d6cf29f394428bb28b7af",
+      "review_quarantine_count": 0,
+      "source_row_count": 27,
+      "source_sha256": "b58b081a0b117585833d5603d78f951c5e6e4bf3039916cea6a128b74bedb82d"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 31,
+        "review_quarantined": 160
+      },
+      "document_id": "wh-url:62340683e32b0263e8f0eb20",
+      "existing_candidate_row_count": 31,
+      "parsed_row_count": 31,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "9766a4edc82de9d7ce7f159784c4832031187739",
+      "review_quarantine_count": 160,
+      "source_row_count": 191,
+      "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 4
+      },
+      "document_id": "wh-url:694c1212cac93c50d9cd4e60",
+      "existing_candidate_row_count": 4,
+      "parsed_row_count": 4,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "587f6192fc1349c11ff812874c99adf492169174",
+      "review_quarantine_count": 0,
+      "source_row_count": 4,
+      "source_sha256": "745da8aeaa0de12ee38c745e71dbc221b733ee6cad5f2bee874d6fd79a4cb4b3"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 3
+      },
+      "document_id": "wh-url:72653c4f76818731d46fc7a2",
+      "existing_candidate_row_count": 3,
+      "parsed_row_count": 3,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "8e87c334a262897b7236efcf8c2326360cb2df3b",
+      "review_quarantine_count": 0,
+      "source_row_count": 3,
+      "source_sha256": "d368a64d9db9c8838e6f2f9d98736d26b483f8436117da4f71528872e7159d7b"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 220,
+        "review_quarantined": 1155
+      },
+      "document_id": "wh-url:7e17c4be2b42f563d37df173",
+      "existing_candidate_row_count": 220,
+      "parsed_row_count": 220,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "3cb9116c7559d0e8e290e5d305b52dd51402b65d",
+      "review_quarantine_count": 1155,
+      "source_row_count": 1375,
+      "source_sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 5,
+        "review_quarantined": 169
+      },
+      "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+      "existing_candidate_row_count": 5,
+      "parsed_row_count": 5,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+      "review_extraction_git_blob": "6cd50bf82c224b414dfaf4a53644af926b924809",
+      "review_quarantine_count": 169,
+      "source_row_count": 174,
+      "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 3
+      },
+      "document_id": "wh-url:887036d7fdf2969a2dc7475d",
+      "existing_candidate_row_count": 3,
+      "parsed_row_count": 3,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "1ca71f8c653f4b3ce8ef1550e909a91f51ae23d3",
+      "review_quarantine_count": 0,
+      "source_row_count": 3,
+      "source_sha256": "93dc679974915fe82c10f6674ab7f2ec55eecc8f952f8690a8dcd4104df03f3b"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 3
+      },
+      "document_id": "wh-url:a31f97b78eacdf16d90377ea",
+      "existing_candidate_row_count": 3,
+      "parsed_row_count": 3,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "246c6ad9a7356a22a1bef813cedc5d768e8941d7",
+      "review_quarantine_count": 0,
+      "source_row_count": 3,
+      "source_sha256": "aa90db5cf44649e106df097c81a61ce5fc82cb36ce6c9aa6d9b59039bd8e51bc"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 3
+      },
+      "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
+      "existing_candidate_row_count": 3,
+      "parsed_row_count": 3,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "a4c523c0809801d58aa9c52bd68fb20fec553200",
+      "review_quarantine_count": 0,
+      "source_row_count": 3,
+      "source_sha256": "0ae0c89fd146550447ac0a70c5aadf54dde653f7134df5897152344a4c492c01"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 21
+      },
+      "document_id": "wh-url:d06c8cad040b40daa6cb3e7d",
+      "existing_candidate_row_count": 21,
+      "parsed_row_count": 21,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "0fe88f50ed13d07ed6e3a03c13cd407bf50edd42",
+      "review_quarantine_count": 0,
+      "source_row_count": 21,
+      "source_sha256": "a7d65224d8fede1079d03e071102fd0f5c6f27bd544655103663d13eeb203681"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 20
+      },
+      "document_id": "wh-url:d29106d7f68a511841ea93e3",
+      "existing_candidate_row_count": 20,
+      "parsed_row_count": 20,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "3772cedd3aabfcc3dc7dafd2dd4a7eb920764af6",
+      "review_quarantine_count": 0,
+      "source_row_count": 20,
+      "source_sha256": "5ad89d0255fb12cc4daa4e33c089840ca2b51230bfa1ad41a87a9915e41c6d47"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 1
+      },
+      "document_id": "wh-url:d7f2ba91edf9da5e93edc7ae",
+      "existing_candidate_row_count": 1,
+      "parsed_row_count": 1,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "71c76502430f7c63d63ea57b4fa80d1c4441b122",
+      "review_quarantine_count": 0,
+      "source_row_count": 1,
+      "source_sha256": "7416aae7a3af78c2fe6c2595130be200a05dbc6adfa6e07c679da67adb9da4b6"
+    },
+    {
+      "dispositions": {
+        "candidate_existing": 1
+      },
+      "document_id": "wh-url:ec64753451a90fa978a6120d",
+      "existing_candidate_row_count": 1,
+      "parsed_row_count": 1,
+      "parser_version": "whitehouse-278t-hybrid-geometry/v2",
+      "review_extraction_git_blob": "827a4ec4c1a4bd194dac85bca0854c155f4a6dd7",
+      "review_quarantine_count": 0,
+      "source_row_count": 1,
+      "source_sha256": "9ac633ef94588fd8362ddaa222ab8e5a83626d8749d95e18a8c3ddcb26ac2ce6"
+    }
+  ],
+  "evidence_commit": "5fe5f0adb3181c5d1552dff3f07336464c3043a7",
+  "oge_same_document_identity": "unknown",
+  "production_mutation_authorized": false,
+  "rows_jsonl_sha256": "9f23f70db3e1a81d5e581c92394b37cff5c7d06ef9a461bcbd5a6c88d2f63f48",
+  "schema_version": "whitehouse-278t-shadow-replay/v1",
+  "source_row_count": 8131
+}

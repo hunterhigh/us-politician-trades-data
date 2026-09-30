@@ -1,0 +1,30 @@
+{
+  "annual_rows_with_coarse_periodic_candidate": 361,
+  "archive_chunk_path_count": 9,
+  "archive_metadata_blob": "333223d1e195d7f3811571956534c40ee4b7b672",
+  "archive_pdf_byte_verification": "not_reverified_this_run",
+  "candidate_binding_sha256": "5cd01411f138f17696d471f3e62aeecefc773a4fd225127569fd2b3d6104d153",
+  "candidate_commit": "edd5f8081c3c068dbfc1350179cd00a21d5441a7",
+  "candidate_sha256": "7bdd6b042b86088733b2dc13e57d59cb21743905adccf42df83276d9470415ba",
+  "candidate_source_field_conflict_count": 0,
+  "coarse_periodic_matches_are_duplicates": false,
+  "disposition_counts": {
+    "excluded": 21,
+    "holdings": 3999,
+    "quarantined": 17320,
+    "transactions": 6759
+  },
+  "document_id": "wh-url:0c14d3849ca60768024e470b",
+  "evidence_commit": "5fe5f0adb3181c5d1552dff3f07336464c3043a7",
+  "existing_candidate_id_count": 6759,
+  "extraction_sha256": "f44d6c7de59f16111a39a88d7993969e7ba609d08da8201fa36c605268d29547",
+  "parser_version": "whitehouse-278e-hybrid-geometry/v8",
+  "part7_quarantine_count": 14526,
+  "part7_transaction_count": 6759,
+  "part7_unique_locator_count": 21285,
+  "printed_row_count": 28099,
+  "production_mutation_authorized": false,
+  "schema_version": "whitehouse-278e-fixed-candidate-replay/v1",
+  "source_row_census_complete": false,
+  "source_sha256": "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
+}
