@@ -140,6 +140,15 @@ class PipelineLedgerTests(unittest.TestCase):
     def test_valid_manifest_accounts_for_all_document_and_row_dispositions(self):
         self.assertEqual(validate_run_manifest(_manifest())["accounted_rows"], 3)
 
+    def test_distinct_official_documents_may_share_exact_source_bytes(self):
+        manifest = _manifest()
+        manifest["documents"][1]["source_sha256"] = SOURCE_SHA
+        manifest["documents"][1]["idempotency_key"] = _key()
+        self.assertEqual(validate_run_manifest(manifest)["counts"]["no_row_documents"], 1)
+        manifest["documents"][1]["document_id"] = manifest["documents"][0]["document_id"]
+        with self.assertRaisesRegex(LedgerValidationError, "duplicate document identity"):
+            validate_run_manifest(manifest)
+
     def test_manifest_rejects_unaccounted_row(self):
         manifest = _manifest()
         manifest["accounted_rows"] = 2

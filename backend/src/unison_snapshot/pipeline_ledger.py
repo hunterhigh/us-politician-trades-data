@@ -31,7 +31,7 @@ class LedgerValidationError(ValueError):
 def idempotency_key(*, source_id: str, source_sha256: str, parser_id: str,
                     parser_version: str, rules_version: str,
                     layout_fingerprint: str) -> str:
-    """Return the stable key for one source document/parser/rules tuple."""
+    """Return the stable key for one source-byte/parser/rules tuple."""
 
     payload = {
         "schema_version": CANDIDATE_ROW_SCHEMA,
@@ -203,13 +203,12 @@ def validate_run_manifest(value: object) -> dict[str, Any]:
         "excluded_documents": DOCUMENT_DISPOSITIONS.intersection({"excluded"}),
     }
     unique_documents: set[tuple[str, str, str]] = set()
-    idempotency_keys: set[str] = set()
     for document in documents:
-        unique_documents.add((document["source_id"], document["document_id"],
-                              document["source_sha256"]))
-        if document["idempotency_key"] in idempotency_keys:
-            raise LedgerValidationError("run manifest contains a duplicate document idempotency key")
-        idempotency_keys.add(document["idempotency_key"])
+        identity = (document["source_id"], document["document_id"],
+                    document["source_sha256"])
+        if identity in unique_documents:
+            raise LedgerValidationError("run manifest contains a duplicate document identity")
+        unique_documents.add(identity)
     if counts["discovered_documents"] < len(unique_documents):
         raise LedgerValidationError("discovered_documents cannot be less than unique listed documents")
     for count_name, disposition in document_counts.items():
