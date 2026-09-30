@@ -17,6 +17,7 @@ from .oge import OgeCatalogError
 
 SCHEMA = "oge-278e-annual-extraction/v1"
 PARSER_VERSION = "oge-278e-tables/v1"
+SHADOW_PARSER_VERSION = "oge-278e-tables/v2"
 MAX_PDF_BYTES = 50 * 1024 * 1024
 MAX_PDF_PAGES = 1200
 
@@ -95,7 +96,8 @@ def _quarantine(section: str, page: int, cells: list[str], reasons: list[str],
 
 
 def _parse_rows(section: str, default_owner: str, page_number: int,
-                rows: list[list[object]], annual_year: int) -> tuple[list[dict], list[dict], list[dict]]:
+                rows: list[list[object]], annual_year: int, *,
+                preserve_valued_unreadable: bool = False) -> tuple[list[dict], list[dict], list[dict]]:
     """Return strict rows, quarantines, and explicit non-holding exclusions."""
     header = _header(rows, section)
     if header is None:
@@ -111,7 +113,16 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
             continue
         number = _number(cells[columns["#"]]) if len(cells) > columns["#"] else None
         description = cells[columns["description"]] if len(cells) > columns["description"] else ""
-        if number is None and description:
+        # A table cell can merge several printed row numbers (for example
+        # "11.\n12.\n13.") while leaving each asset/value on a separate
+        # physical row.  A valued account must be quarantined, not mistaken
+        # for a section heading and silently dropped.
+        first_business_column = columns["type"] if section == "part7" else columns["value"]
+        has_business_values = any(cells[first_business_column:])
+        raw_number = cells[columns["#"]] if len(cells) > columns["#"] else ""
+        if (number is None and description and
+                (not preserve_valued_unreadable or
+                 not has_business_values and not re.search(r"\d", raw_number))):
             heading = description.casefold()
             if "spouse" in heading and ("account" in heading or "asset" in heading):
                 owner = "Spouse"
@@ -305,7 +316,8 @@ def _audit_part7_numbering(state: dict, rows: list[list[object]], page_number: i
 
 
 def extract_annual_pdf(pdf_path: Path, *, source_url: str, source_sha256: str,
-                       expected_filer: str) -> dict:
+                       expected_filer: str,
+                       parser_version: str = PARSER_VERSION) -> dict:
     """Extract a content-verified annual report; never mark rows production-ready.
 
     Every encountered table body row is parsed, explicitly excluded, or
@@ -313,6 +325,8 @@ def extract_annual_pdf(pdf_path: Path, *, source_url: str, source_sha256: str,
     """
     if not _SHA.fullmatch(source_sha256):
         raise OgeCatalogError("OGE annual evidence hash is invalid")
+    if parser_version not in {PARSER_VERSION, SHADOW_PARSER_VERSION}:
+        raise OgeCatalogError("OGE annual parser version is unsupported")
     url = urlsplit(source_url)
     if (url.scheme != "https" or url.hostname not in {"extapps2.oge.gov", "www2.oge.gov", "oge.gov", "www.oge.gov"}
             or not url.path.casefold().endswith(".pdf")):
@@ -377,7 +391,9 @@ def extract_annual_pdf(pdf_path: Path, *, source_url: str, source_sha256: str,
                 continue
             if part == "part7":
                 _audit_part7_numbering(part7_numbering, tables[0], page_number)
-            parsed, rejected, omitted = _parse_rows(part, owner, page_number, tables[0], annual_year)
+            parsed, rejected, omitted = _parse_rows(
+                part, owner, page_number, tables[0], annual_year,
+                preserve_valued_unreadable=parser_version == SHADOW_PARSER_VERSION)
             (transactions if part == "part7" else holdings).extend(parsed)
             quarantined.extend(rejected)
             excluded.extend(omitted)
@@ -400,7 +416,7 @@ def extract_annual_pdf(pdf_path: Path, *, source_url: str, source_sha256: str,
             if not row_reconciliation_complete else
             "pending_filing_date_cross_report_dedup_and_row_quarantine")
         return {
-            "schema_version": SCHEMA, "parser_version": PARSER_VERSION,
+            "schema_version": SCHEMA, "parser_version": parser_version,
             "source_id": "oge", "form_type": "278e", "report_type": "Annual",
             "source_url": source_url, "source_sha256": source_sha256,
             "filer_name": expected_filer, "annual_year": annual_year,

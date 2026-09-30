@@ -3,13 +3,41 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from unison_snapshot.oge_annual import _parse_rows
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 class OgeAnnualPageCensusTests(unittest.TestCase):
+    def test_merged_printed_number_cell_preserves_all_populated_rows(self) -> None:
+        source = json.loads((FIXTURES / "oge_annual_vance_2026_page10_table.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(source["page_number"], 10)
+        self.assertEqual(source["source_sha256"],
+                         "bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d")
+        old_parsed, old_quarantined, old_excluded = _parse_rows(
+            "part6", "Unknown", 10, source["table"], 2025)
+        self.assertEqual((len(old_parsed), len(old_quarantined), len(old_excluded)),
+                         (12, 8, 0))
+        parsed, quarantined, excluded = _parse_rows(
+            "part6", "Unknown", 10, source["table"], 2025,
+            preserve_valued_unreadable=True)
+        self.assertEqual((len(parsed), len(quarantined), len(excluded)), (12, 10, 0))
+        self.assertEqual(len(parsed) + len(quarantined) + len(excluded), 22)
+        missing_before = {"Marcus by Goldman Sachs Savings Account",
+                          "Navy Federal Credit Union Cash Account"}
+        recovered_into_quarantine = {row["cells"][1] for row in quarantined
+                                     if len(row["cells"]) > 1}
+        self.assertTrue(missing_before <= recovered_into_quarantine)
+        for row in quarantined:
+            if len(row["cells"]) > 1 and row["cells"][1] in missing_before:
+                self.assertIn("row_number_unreadable", row["reasons"])
+
     def test_visual_page_rows_are_accounted_for_or_named_as_missing(self) -> None:
         extraction = json.loads((FIXTURES / "oge_annual_vance_2026.json").read_text(encoding="utf-8"))
         census = json.loads((FIXTURES / "oge_annual_vance_2026_page_census.json").read_text(encoding="utf-8"))

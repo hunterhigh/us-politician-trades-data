@@ -1,0 +1,241 @@
+{
+  "page_number": 10,
+  "pdfplumber_version": "0.11.9",
+  "source_sha256": "bcad0b4e58789135b758b5a73fc9584ff4bf9bff9cf52b8e4ca9d4189dbe9e3d",
+  "table": [
+    [
+      "Filer's Name",
+      null,
+      null,
+      null,
+      null,
+      null,
+      "Page Number"
+    ],
+    [
+      "Vice President JD Vance",
+      null,
+      null,
+      null,
+      null,
+      null,
+      "10"
+    ],
+    [
+      "Part 6: Other Assets and Income",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "#",
+      "Description",
+      "EIF",
+      "Value",
+      "Income Type",
+      "Income Amount",
+      null
+    ],
+    [
+      "I.",
+      "Ohio's 529 College Advantage - Child 1",
+      "No",
+      "",
+      null,
+      "None (or less than $201)\nNone (or less than $201)\nNone (or less than $201)",
+      null
+    ],
+    [
+      "I. I.",
+      "Vanguard Ohio Target Enrollment 203412035 Portfolio",
+      "Yes",
+      "$15,001 -$50,000",
+      "",
+      null,
+      null
+    ],
+    [
+      "2.",
+      "Ohio's 529 College Advantage - Child 2",
+      "No",
+      "",
+      "",
+      null,
+      null
+    ],
+    [
+      "2.1.",
+      "Vanguard Ohio Target Enrollment 2040 Portfolio",
+      "Yes",
+      "$1,001 -$15,000",
+      "",
+      null,
+      null
+    ],
+    [
+      "3.",
+      "Ohio's 529 College Advantage - Child 3",
+      "No",
+      "",
+      "",
+      null,
+      null
+    ],
+    [
+      "3.1.",
+      "Vanguard Ohio Target Enrollment 2038 Portfolio",
+      "Yes",
+      "$15,001 -$50,000",
+      "",
+      null,
+      null
+    ],
+    [
+      "4.",
+      "Charles Schwab Brokerage Account #1",
+      "No",
+      "",
+      "",
+      "",
+      null
+    ],
+    [
+      "4.1.",
+      "QQQ - Invesco QQQ Trust, Series 1",
+      "Yes",
+      "$1,000,001 -$5,000,000",
+      "",
+      "$5,001 -$15,000",
+      null
+    ],
+    [
+      "4.2.",
+      "TLT - iShares 20+ Year Treasury Bond",
+      "Yes",
+      "$100,001 -$250,000",
+      "",
+      "$5,001 -$15,000",
+      null
+    ],
+    [
+      "4.3.",
+      "DIA - SPDR Dow Jones Indus. Avg. ETF",
+      "Yes",
+      "$1,000,001 -$5,000,000",
+      "",
+      "$15,001 -$50,000",
+      null
+    ],
+    [
+      "4.4.",
+      "SPY - SPDR S&P 500 ETF",
+      "Yes",
+      "$1,000,001 -$5,000,000",
+      "",
+      "$15,001 -$50,000",
+      null
+    ],
+    [
+      "4.5.",
+      "GLD - SPDR Gold Trust",
+      "Yes",
+      "$250,001 -$500,000",
+      "",
+      "$201 -$1,000",
+      null
+    ],
+    [
+      "5.",
+      "Charles Schwab (cash)",
+      "NIA",
+      "$100,001 -$250,000",
+      "",
+      "$201 -$1,000",
+      null
+    ],
+    [
+      "6.",
+      "Coinbase Account",
+      "No",
+      "",
+      "",
+      "",
+      null
+    ],
+    [
+      "6.1.",
+      "Bitcoin",
+      "NIA",
+      "$250,001 -$500,000",
+      "",
+      "None (or less than $201)",
+      null
+    ],
+    [
+      "7.",
+      "Real Estate, residential (Washington, DC)",
+      "NIA",
+      "$500,001 -$1,000,000",
+      "Rental Income",
+      "$15,001 -$50,000",
+      null
+    ],
+    [
+      "8.",
+      "Real Estate, commercial (Jackson, KY)",
+      "NIA",
+      "$50,001 -$100,000",
+      "",
+      "None (or less than $201)",
+      null
+    ],
+    [
+      "9.",
+      "Real Estate, residential (Middletown, OH)",
+      "NIA $100,001 -$250,000",
+      null,
+      "",
+      "None (or less than $201)",
+      null
+    ],
+    [
+      "10.",
+      "USAA Checking Accounts",
+      "NIA",
+      "$15,001 -$50,000",
+      "Interest",
+      "None (or less than $201)",
+      null
+    ],
+    [
+      "11.\n12.\n13.",
+      "Marcus by Goldman Sachs Savings Account",
+      "NIA",
+      "$100,001 -$250,000",
+      "Interest",
+      "$5,001 -$15,000",
+      null
+    ],
+    [
+      null,
+      "Promissory Note -Narya Capital Management, LLC",
+      "NIA",
+      "$500,001 -$1,000,000",
+      "Interest",
+      "$100,001 -$1,000,000",
+      null
+    ],
+    [
+      null,
+      "Navy Federal Credit Union Cash Account",
+      "NIA",
+      "$1,001 -$15,000",
+      "Interest",
+      "None (or less than $201)",
+      null
+    ]
+  ]
+}

@@ -11,7 +11,7 @@ import json
 import re
 from urllib.parse import urlsplit
 
-from .oge_annual import PARSER_VERSION, SCHEMA
+from .oge_annual import PARSER_VERSION, SCHEMA, SHADOW_PARSER_VERSION
 from .pipeline_ledger import (CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA,
                               RUN_MANIFEST_SCHEMA, idempotency_key,
                               validate_candidate_row, validate_run_manifest)
@@ -28,7 +28,7 @@ def _validate_source(extraction: dict) -> None:
     document_id = extraction.get("source_document_id") if isinstance(extraction, dict) else None
     source_sha = extraction.get("source_sha256") if isinstance(extraction, dict) else None
     if not isinstance(extraction, dict) or extraction.get("schema_version") != SCHEMA or (
-            extraction.get("parser_version") != PARSER_VERSION or
+            extraction.get("parser_version") not in {PARSER_VERSION, SHADOW_PARSER_VERSION} or
             extraction.get("source_id") != "oge" or
             extraction.get("form_type") != "278e" or
             extraction.get("report_type") != "Annual" or
@@ -109,10 +109,11 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
     _validate_source(extraction)
     source_sha = extraction["source_sha256"]
     document_id = extraction["source_document_id"]
+    parser_version = extraction["parser_version"]
     parser_id = "oge-278e-tables"
-    layout = "oge-278e-tables:" + PARSER_VERSION
+    layout = "oge-278e-tables:" + parser_version
     key = idempotency_key(source_id="oge", source_sha256=source_sha,
-                          parser_id=parser_id, parser_version=PARSER_VERSION,
+                          parser_id=parser_id, parser_version=parser_version,
                           rules_version=RULES_VERSION, layout_fingerprint=layout)
     detected = _detected_rows(extraction)
     parent_numbers = {row.get("row_number") for collection, row in detected
@@ -182,7 +183,7 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
             "run_id": run_id, "idempotency_key": key,
             "source": {"source_id": "oge", "document_id": document_id,
                        "source_url": extraction["source_url"], "source_sha256": source_sha},
-            "parser": {"parser_id": parser_id, "parser_version": PARSER_VERSION,
+            "parser": {"parser_id": parser_id, "parser_version": parser_version,
                        "rules_version": RULES_VERSION, "layout_fingerprint": layout},
             "disposition": disposition, "reasons": reasons,
             "unresolved_conflicts": [] if disposition == "qualified" else reasons,
@@ -205,7 +206,7 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
         "source_scope": ["oge"], "documents": [{
             "source_id": "oge", "document_id": document_id,
             "source_url": extraction["source_url"], "source_sha256": source_sha,
-            "parser_id": parser_id, "parser_version": PARSER_VERSION,
+            "parser_id": parser_id, "parser_version": parser_version,
             "rules_version": RULES_VERSION, "layout_fingerprint": layout,
             "idempotency_key": key, "disposition": "parsed",
         }], "counts": counts, "accounted_rows": len(rows), "outputs": [],
