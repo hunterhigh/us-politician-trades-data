@@ -19,7 +19,8 @@ from .pipeline_ledger import (CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA,
                               validate_candidate_row, validate_run_manifest)
 from .senate_candidate import (_resolve_amendments, _transaction,
                                CANDIDATE_BUILDER_VERSION)
-from .senate_reports import (ELECTRONIC_EXTRACTION_SCHEMA, parse_electronic_ptr)
+from .senate_reports import (ELECTRONIC_EXTRACTION_SCHEMA, PARSER_VERSION,
+                             parse_electronic_ptr)
 
 SOURCE_ID = "senate_efd"
 PARSER_ID = "senate-efd-electronic-ptr"
@@ -55,6 +56,57 @@ def _json_blob(repo: Path, commit: str, path: str) -> dict:
     return item
 
 
+def _git_paths(repo: Path, commit: str, prefix: str) -> list[str]:
+    result = subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "--name-only",
+                             commit, "--", prefix], capture_output=True, text=True)
+    if result.returncode:
+        raise SenateShadowError(f"cannot list fixed paths: {prefix}")
+    return result.stdout.splitlines()
+
+
+def _catalog_electronic(repo: Path, evidence_commit: str,
+                        catalog_path: str) -> dict[str, str]:
+    if not re.fullmatch(r"senate_efd/catalog/[0-9a-f]{64}\.json", catalog_path):
+        raise SenateShadowError("catalog path must pin one archived catalog digest")
+    catalog = _json_blob(repo, evidence_commit, catalog_path)
+    if (catalog.get("schema_version") != "senate-efd-catalog-archive/v1" or
+            catalog.get("sha256") != catalog_path.split("/")[-1][:-5] or
+            not isinstance(catalog.get("pages"), list)):
+        raise SenateShadowError("fixed Senate catalog is invalid")
+    urls: dict[str, str] = {}
+    paper_ids: set[str] = set()
+    seen = 0
+    for page in catalog["pages"]:
+        if not isinstance(page, dict) or not isinstance(page.get("archive_path"), str):
+            raise SenateShadowError("fixed Senate catalog page descriptor is invalid")
+        raw = _git_blob(repo, evidence_commit, page["archive_path"])
+        if hashlib.sha256(raw).hexdigest() != page.get("sha256"):
+            raise SenateShadowError("fixed Senate catalog page hash differs")
+        try:
+            records = json.loads(raw)["data"]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise SenateShadowError("fixed Senate catalog page has no data rows") from exc
+        if not isinstance(records, list):
+            raise SenateShadowError("fixed Senate catalog page rows are invalid")
+        for record in records:
+            if not isinstance(record, list) or len(record) < 4 or not isinstance(record[3], str):
+                raise SenateShadowError("fixed Senate catalog record is invalid")
+            match = re.search(r'href="(/search/view/(ptr|paper)/([0-9a-f-]{36})/)"', record[3])
+            if not match or not _UUID.fullmatch(match.group(3)):
+                raise SenateShadowError("fixed Senate catalog report URL is invalid")
+            document_id = match.group(3)
+            if document_id in urls or document_id in paper_ids:
+                raise SenateShadowError("fixed Senate catalog repeats a report")
+            if match.group(2) == "ptr":
+                urls[document_id] = "https://efdsearch.senate.gov" + match.group(1)
+            else:
+                paper_ids.add(document_id)
+            seen += 1
+    if seen != catalog.get("record_count") or not urls:
+        raise SenateShadowError("fixed Senate catalog report count differs")
+    return urls
+
+
 def _observation(row_number: int, field: str, raw: object, normalized: object,
                  required: bool) -> dict:
     location = {"page": 1, "row_locator": f"transaction-{row_number}",
@@ -71,8 +123,8 @@ def _observation(row_number: int, field: str, raw: object, normalized: object,
 
 def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
                  review_commit: str, identity_path: str, roster_source_path: str,
-                 document_ids: list[str], run_id: str,
-                 started_at: str) -> tuple[list[dict], dict]:
+                 document_ids: list[str] | None, run_id: str,
+                 started_at: str, catalog_path: str | None = None) -> tuple[list[dict], dict]:
     """Return candidate rows and a manifest stub (outputs added by writer)."""
     if not all(_SHA.fullmatch(value) for value in
                (code_commit, evidence_commit, review_commit)):
@@ -85,6 +137,12 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
                            capture_output=True, text=True)
     if dirty.returncode or dirty.stdout.strip():
         raise SenateShadowError("executing checkout has uncommitted code or artifacts")
+    catalog_urls = (_catalog_electronic(repo, evidence_commit, catalog_path)
+                    if catalog_path is not None else None)
+    if catalog_urls is not None:
+        if document_ids is not None and set(document_ids) != set(catalog_urls):
+            raise SenateShadowError("selected reports differ from fixed electronic catalog")
+        document_ids = sorted(catalog_urls)
     if not document_ids or len(set(document_ids)) != len(document_ids) or not all(
             _UUID.fullmatch(value) for value in document_ids):
         raise SenateShadowError("document IDs must be unique Senate UUIDs")
@@ -93,6 +151,9 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
     identity_batch = _json_blob(repo, review_commit, identity_path)
     if identity_batch.get("schema_version") != "senate-efd-identities/v1":
         raise SenateShadowError("identity batch schema is unsupported")
+    if (catalog_path is not None and
+            identity_batch.get("catalog_sha256") != catalog_path.split("/")[-1][:-5]):
+        raise SenateShadowError("identity batch does not bind to fixed catalog")
     roster_sha = identity_batch.get("roster_sha256")
     if (not isinstance(roster_sha, str) or
             roster_source_path != f"senate_efd/members/{roster_sha}.xml" or
@@ -109,16 +170,39 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         raise SenateShadowError("selected report identity uses a different official roster")
     identity_by_id = {item["document_id"]: item for item in selected}
     extractions = []
+    failed_documents = []
     for document_id in sorted(document_ids):
-        paths = subprocess.run(
-            ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", review_commit,
-             "--", f"senate_efd/extractions/{document_id}"],
-            capture_output=True, text=True)
-        if paths.returncode:
-            raise SenateShadowError("cannot list fixed review extraction paths")
-        matches = [path for path in paths.stdout.splitlines() if re.fullmatch(
+        matches = [path for path in _git_paths(repo, review_commit,
+                    f"senate_efd/extractions/{document_id}") if re.fullmatch(
             rf"senate_efd/extractions/{document_id}/[0-9a-f]{{64}}/"
             r"senate-efd-report-parser-[^/]+\.json", path)]
+        if not matches and catalog_urls is not None:
+            metadata_paths = [path for path in _git_paths(repo, evidence_commit,
+                              f"senate_efd/reports/{document_id}") if re.fullmatch(
+                rf"senate_efd/reports/{document_id}/[0-9a-f]{{64}}\.metadata\.json", path)]
+            if len(metadata_paths) != 1:
+                raise SenateShadowError(f"document {document_id} has no unique archived entrypoint")
+            metadata = _json_blob(repo, evidence_commit, metadata_paths[0])
+            source_sha = metadata_paths[0].split("/")[-1].split(".")[0]
+            content = _git_blob(repo, evidence_commit,
+                                f"senate_efd/reports/{document_id}/{source_sha}.html")
+            if (hashlib.sha256(content).hexdigest() != source_sha or
+                    metadata.get("sha256") != source_sha or
+                    metadata.get("document_id") != document_id or
+                    metadata.get("document_url") != catalog_urls[document_id] or
+                    metadata.get("access_method") != "electronic_ptr"):
+                raise SenateShadowError(f"document {document_id} archived entrypoint binding failed")
+            parser = {"parser_id": PARSER_ID, "parser_version": PARSER_VERSION,
+                      "rules_version": RULES_VERSION, "layout_fingerprint": LAYOUT}
+            failed_documents.append({"source_id": SOURCE_ID, "document_id": document_id,
+                                     "source_url": catalog_urls[document_id],
+                                     "source_sha256": source_sha, **parser,
+                                     "idempotency_key": idempotency_key(
+                                         source_id=SOURCE_ID, source_sha256=source_sha,
+                                         **parser), "disposition": "failed",
+                                     "reason": "fixed_review_extraction_missing",
+                                     "row_count": None})
+            continue
         if len(matches) != 1:
             raise SenateShadowError(f"document {document_id} has no unique fixed extraction")
         extraction = _json_blob(repo, review_commit, matches[0])
@@ -138,6 +222,8 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
             raise SenateShadowError(f"document {document_id} has incomplete row evidence")
         if identity_by_id[document_id].get("filer_name") != extraction.get("filer_name"):
             raise SenateShadowError(f"document {document_id} filer conflicts with review identity")
+        if catalog_urls is not None and extraction.get("source_url") != catalog_urls[document_id]:
+            raise SenateShadowError(f"document {document_id} conflicts with fixed catalog URL")
         extractions.append(extraction)
 
     resolution = _resolve_amendments(extractions, identity_by_id)
@@ -146,7 +232,7 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
     if superseded & unresolved:
         raise SenateShadowError("amendment resolution is internally inconsistent")
     rows = []
-    documents = []
+    documents = list(failed_documents)
     counts = Counter()
     for extraction in extractions:
         document_id = extraction["document_id"]
@@ -159,7 +245,8 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         documents.append({"source_id": SOURCE_ID, "document_id": document_id,
                           "source_url": extraction["source_url"], "source_sha256": sha,
                           **parser, "idempotency_key": key,
-                          "disposition": "parsed" if extraction["transactions"] else "no_rows"})
+                          "disposition": "parsed" if extraction["transactions"] else "no_rows",
+                          "row_count": len(extraction["transactions"])})
         for raw in extraction["transactions"]:
             number = raw["row_number"]
             if identity.get("status") != "matched_automatically" or identity.get("match_class") not in {"exact", "alias"}:
@@ -210,19 +297,20 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         "workflow": "senate-efd-electronic-ptr-offline-shadow", "trigger": "replay",
         "code_commit": code_commit, "evidence_commit": evidence_commit,
         "review_commit": review_commit, "identity_path": identity_path,
-        "roster_source_path": roster_source_path,
+        "roster_source_path": roster_source_path, "catalog_path": catalog_path,
         "started_at": started_at, "completed_at": now,
         "source_scope": [SOURCE_ID], "documents": documents,
         "counts": {
             "discovered_documents": len(documents), "archived_documents": len(documents),
             "parsed_documents": sum(x["disposition"] == "parsed" for x in documents),
-            "failed_documents": 0,
+            "failed_documents": len(failed_documents),
             "no_row_documents": sum(x["disposition"] == "no_rows" for x in documents),
             "excluded_documents": 0,
             "qualified_rows": counts["qualified"], "quarantined_rows": counts["quarantined"],
             "excluded_rows": counts["excluded"], "unrecognized_rows": 0,
         },
         "accounted_rows": len(rows), "outputs": [],
+        "unaccounted_source_row_count": None if failed_documents else 0,
         "amendment_resolution": resolution["chains"],
     }
     validate_run_manifest(manifest)
@@ -244,7 +332,8 @@ def main() -> None:
     parser.add_argument("--review-commit", required=True)
     parser.add_argument("--identity-path", required=True)
     parser.add_argument("--roster-source-path", required=True)
-    parser.add_argument("--document-id", action="append", required=True)
+    parser.add_argument("--document-id", action="append")
+    parser.add_argument("--catalog-path", help="fixed official catalog; select every electronic PTR")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     args = parser.parse_args()
@@ -253,7 +342,7 @@ def main() -> None:
         args.repo, code_commit=args.code_commit,
         evidence_commit=args.evidence_commit, review_commit=args.review_commit,
         identity_path=args.identity_path, roster_source_path=args.roster_source_path,
-        document_ids=args.document_id,
+        document_ids=args.document_id, catalog_path=args.catalog_path,
         run_id=args.run_id, started_at=started_at)
     root = args.output_root
     if root.exists():
