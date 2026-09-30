@@ -1,0 +1,144 @@
+{
+  "archived_failure_error": "Snapshot operation failed: House legacy PTR contains no recognized transaction rows",
+  "archived_failure_parser_version": "house-parser-suite-2026-08",
+  "counts": {
+    "observed_page_minimum_rows": [
+      4,
+      4
+    ],
+    "observed_physical_row_lower_bound": 8,
+    "qualified_rows": 0,
+    "quarantined_shadow_rows": 8
+  },
+  "document_id": "9116326",
+  "file_status": "failed_open",
+  "grid_rule": "dark_pixels_lt_100_across_x_7_to_90_percent_gt_55_percent",
+  "layout_classification_basis": "manual_inspection_of_fixed_pdf_table_headers",
+  "layout_family": "legacy_checkbox_11_amount_columns",
+  "physical_rows": [
+    {
+      "asset_ink_fraction": 0.1137,
+      "bbox_points": [
+        55.44,
+        422.88,
+        712.8,
+        447.6
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p1:r1",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 1
+    },
+    {
+      "asset_ink_fraction": 0.1877,
+      "bbox_points": [
+        55.44,
+        447.6,
+        712.8,
+        472.08
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p1:r2",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 2
+    },
+    {
+      "asset_ink_fraction": 0.1877,
+      "bbox_points": [
+        55.44,
+        472.08,
+        712.8,
+        496.32
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p1:r3",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 3
+    },
+    {
+      "asset_ink_fraction": 0.1646,
+      "bbox_points": [
+        55.44,
+        496.32,
+        712.8,
+        521.28
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p1:r4",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 4
+    },
+    {
+      "asset_ink_fraction": 0.1275,
+      "bbox_points": [
+        55.44,
+        247.68,
+        712.8,
+        273.84
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p2:r1",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 1
+    },
+    {
+      "asset_ink_fraction": 0.1567,
+      "bbox_points": [
+        55.44,
+        273.84,
+        712.8,
+        299.76
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p2:r2",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 2
+    },
+    {
+      "asset_ink_fraction": 0.1038,
+      "bbox_points": [
+        55.44,
+        299.76,
+        712.8,
+        325.2
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p2:r3",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 3
+    },
+    {
+      "asset_ink_fraction": 0.1033,
+      "bbox_points": [
+        55.44,
+        325.2,
+        712.8,
+        351.12
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:be114957d0348663:p2:r4",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 4
+    }
+  ],
+  "render_resolution_dpi": 150,
+  "row_count_status": "observed_grid_lower_bound",
+  "schema_version": "house-ptr-failed-grid-shadow/v1",
+  "source_sha256": "be114957d03486636e639fe9d6c124c71ba8634e2f38f5dfb672eee92502ad2d"
+}

@@ -1,0 +1,129 @@
+{
+  "archived_failure_error": "Snapshot operation failed: House legacy PTR contains no recognized transaction rows",
+  "archived_failure_parser_version": "house-parser-suite-2026-08",
+  "counts": {
+    "observed_page_minimum_rows": [
+      4,
+      3
+    ],
+    "observed_physical_row_lower_bound": 7,
+    "qualified_rows": 0,
+    "quarantined_shadow_rows": 7
+  },
+  "document_id": "9116260",
+  "file_status": "failed_open",
+  "grid_rule": "dark_pixels_lt_100_across_x_7_to_90_percent_gt_55_percent",
+  "layout_classification_basis": "manual_inspection_of_fixed_pdf_table_headers",
+  "layout_family": "legacy_checkbox_11_amount_columns",
+  "physical_rows": [
+    {
+      "asset_ink_fraction": 0.1442,
+      "bbox_points": [
+        55.44,
+        422.16,
+        712.8,
+        446.88
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p1:r1",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 1
+    },
+    {
+      "asset_ink_fraction": 0.1918,
+      "bbox_points": [
+        55.44,
+        446.88,
+        712.8,
+        471.36
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p1:r2",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 2
+    },
+    {
+      "asset_ink_fraction": 0.1331,
+      "bbox_points": [
+        55.44,
+        471.36,
+        712.8,
+        495.6
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p1:r3",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 3
+    },
+    {
+      "asset_ink_fraction": 0.1577,
+      "bbox_points": [
+        55.44,
+        495.6,
+        712.8,
+        520.56
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p1:r4",
+      "page": 1,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 4
+    },
+    {
+      "asset_ink_fraction": 0.1752,
+      "bbox_points": [
+        55.44,
+        246.24,
+        712.8,
+        272.4
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p2:r1",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 1
+    },
+    {
+      "asset_ink_fraction": 0.1807,
+      "bbox_points": [
+        55.44,
+        272.4,
+        712.8,
+        298.32
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p2:r2",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 2
+    },
+    {
+      "asset_ink_fraction": 0.1373,
+      "bbox_points": [
+        55.44,
+        298.32,
+        712.8,
+        323.76
+      ],
+      "candidate_id": null,
+      "disposition": "quarantined_shadow_failed_report",
+      "locator": "house-ptr-grid:40abd1de969ff344:p2:r3",
+      "page": 2,
+      "reason": "archived_parse_failure_no_stored_row_disposition",
+      "row": 3
+    }
+  ],
+  "render_resolution_dpi": 150,
+  "row_count_status": "observed_grid_lower_bound",
+  "schema_version": "house-ptr-failed-grid-shadow/v1",
+  "source_sha256": "40abd1de969ff344fab5f3c8950a17ebb8ab5df993ded910f00e48d0d47e385d"
+}

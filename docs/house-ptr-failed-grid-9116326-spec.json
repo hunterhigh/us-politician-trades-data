@@ -1,0 +1,10 @@
+{
+  "schema_version": "house-ptr-failed-grid-sample/v1",
+  "document_id": "9116326",
+  "source_sha256": "be114957d03486636e639fe9d6c124c71ba8634e2f38f5dfb672eee92502ad2d",
+  "layout_family": "legacy_checkbox_11_amount_columns",
+  "page_regions": [
+    {"table_top": 0.692610, "table_bottom": 0.853774, "asset_x0": 0.16, "asset_x1": 0.34},
+    {"table_top": 0.405660, "table_bottom": 0.575079, "asset_x0": 0.16, "asset_x1": 0.34}
+  ]
+}
