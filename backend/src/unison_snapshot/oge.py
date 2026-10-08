@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, unquote, urlencode, urlsplit
 import urllib.request
 
 
-API_URL = "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v2/rest"
+API_URL = "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v3/rest"
 CATALOG_URL = (
     "https://www.oge.gov/web/OGE.nsf/"
     "Officials%20Individual%20Disclosures%20Search%20Collection?OpenForm"
