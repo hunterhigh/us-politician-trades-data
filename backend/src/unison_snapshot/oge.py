@@ -323,7 +323,11 @@ def build_catalog(pages: Iterable[OgeCatalogPage]) -> dict:
             raise OgeCatalogError("OGE catalog pages contain a gap or overlap")
         expected_count = min(page.requested_length, total - page.start)
         if expected_count < 0 or page.row_count != expected_count:
-            raise OgeCatalogError("OGE catalog page is incomplete")
+            raise OgeCatalogError(
+                "OGE catalog page is incomplete: "
+                f"start={page.start}, requested={page.requested_length}, "
+                f"returned={page.row_count}, expected={expected_count}, total={total}"
+            )
         transactions.extend(asdict(row) for row in page.transactions)
         expected_start += page.row_count
     if expected_start != total:
