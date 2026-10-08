@@ -9,12 +9,17 @@ class PublishWorkflowTests(unittest.TestCase):
     def test_complete_publish_checks_sources_and_reads_back_every_frontend_mode(self):
         content = (ROOT / ".github/workflows/publish-complete.yml").read_text(
             encoding="utf-8")
+        projection = content.index("Build canonical disclosure projection from qualified sources")
+        browser = content.index("Verify complete candidate in the frozen browser frontend")
         readiness = content.index("verify-first-launch")
         market = content.index("build-alpaca-market-validation")
         preflight = content.index("Publish immutable preflight commits")
         readback = content.index("Read back immutable prepared main and market commits")
         publish = content.index("Atomically publish the verified main, market, and tags")
-        self.assertLess(readiness, market)
+        self.assertLess(projection, market)
+        self.assertLess(market, browser)
+        self.assertLess(browser, readiness)
+        self.assertLess(readiness, preflight)
         self.assertLess(preflight, readback)
         self.assertLess(readback, publish)
         self.assertNotIn("\n      - name:", content[publish + 1:])
