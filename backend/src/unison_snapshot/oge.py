@@ -35,7 +35,7 @@ _ROW_FIELDS = {"type", "name", "agency", "title", "level", "docDate", "amended"}
 _ALLOWED_HOSTS = {"oge.gov", "www.oge.gov", "extapps2.oge.gov"}
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_CATALOG_ROWS = 25_000
-MAX_CATALOG_PAGE_SIZE = MAX_CATALOG_ROWS
+MAX_CATALOG_PAGE_SIZE = 100
 MAX_CATALOG_ATTEMPTS = 3
 
 
@@ -372,9 +372,8 @@ class OgeCatalogClient:
             ("draw", str(draw)), ("start", str(start)), ("length", str(length)),
             ("search[value]", ""), ("search[regex]", "false"),
         ]
-        # Production reads the bounded catalog data in one response after a count
-        # probe. Keeping the official newest-first ordering is therefore safe from
-        # page-boundary ties.
+        # The official v3 endpoint caps responses at 100 rows. A second full
+        # pass below checks that page boundaries and tied dates stayed stable.
         parameters.extend([
             ("order[0][column]", "0"),
             ("order[0][dir]", "desc"),
@@ -513,34 +512,6 @@ def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = MA
     selected = client or OgeCatalogClient()
     pages: list[OgeCatalogPage] = []
     raw_pages: list[tuple[int, int, bytes, dict[str, str]]] = []
-    if page_size == MAX_CATALOG_PAGE_SIZE:
-        probe_content, probe_headers = selected.download_page(start=0, length=1, draw=1)
-        try:
-            probe_payload = json.loads(probe_content)
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            raise OgeCatalogError("OGE catalog response is invalid JSON") from None
-        probe = parse_catalog_page(probe_payload, start=0, length=1)
-        total = probe.records_total
-        if total > MAX_CATALOG_ROWS:
-            raise OgeCatalogError("OGE catalog exceeds its safety limit")
-        if total == 0:
-            pages.append(probe)
-            raw_pages.append((0, 1, probe_content, probe_headers))
-        else:
-            content, headers = selected.download_page(start=0, length=total, draw=2)
-            try:
-                payload = json.loads(content)
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                raise OgeCatalogError("OGE catalog response is invalid JSON") from None
-            page = parse_catalog_page(payload, start=0, length=total)
-            if page.records_total != total:
-                raise OgeCatalogError("OGE catalog changed during collection")
-            pages.append(page)
-            raw_pages.append((0, total, content, headers))
-        catalog = build_catalog(pages)
-        metadata = archive_catalog(root, raw_pages, catalog)
-        return {"metadata": metadata, **catalog}
-
     start = 0
     draw = 1
     while True:
@@ -561,5 +532,19 @@ def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = MA
             raise OgeCatalogError("OGE catalog pagination made no progress")
         draw += 1
     catalog = build_catalog(pages)
+    # A catalog row has no unique key and the source orders by date only. A
+    # changing source could shift rows across offsets without changing total.
+    # Verify every page again before archiving any accepted catalog.
+    for start, length, original, _headers in raw_pages:
+        draw += 1
+        content, _ = selected.download_page(start=start, length=length, draw=draw)
+        try:
+            current = json.loads(content)
+            previous = json.loads(original)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise OgeCatalogError("OGE catalog response is invalid JSON") from None
+        verification = parse_catalog_page(current, start=start, length=length)
+        if verification.records_total != catalog["records_total"] or current["data"] != previous["data"]:
+            raise OgeCatalogError("OGE catalog changed between pagination passes")
     metadata = archive_catalog(root, raw_pages, catalog)
     return {"metadata": metadata, **catalog}

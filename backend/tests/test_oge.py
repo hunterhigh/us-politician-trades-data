@@ -160,7 +160,8 @@ class OgeCatalogTests(unittest.TestCase):
             client = Client()
             result = discover_catalog(
                 Path(folder), OgeSourceConfig(True, True), page_size=1, client=client)
-            self.assertEqual(client.calls, [(0, 1, 1), (1, 1, 2)])
+            self.assertEqual(client.calls, [(0, 1, 1), (1, 1, 2),
+                                            (0, 1, 3), (1, 1, 4)])
             self.assertEqual(result["metadata"]["direct_pdf_count"], 1)
             self.assertEqual(result["metadata"]["request_required_count"], 1)
             self.assertTrue((Path(folder) / result["metadata"]["archive_path"]).is_file())
@@ -169,35 +170,49 @@ class OgeCatalogTests(unittest.TestCase):
                              result["transactions"])
             self.assertEqual(len(list((Path(folder) / "oge/catalog/pages").glob("*.json"))), 2)
 
-    def test_default_discovery_probes_total_then_fetches_one_complete_page(self):
+    def test_default_discovery_checks_every_page_twice(self):
         class Client:
             def __init__(self):
                 self.calls = []
 
             def download_page(self, *, start, length, draw):
                 self.calls.append((start, length, draw))
-                rows = [row(DIRECT)] if length == 1 else [row(DIRECT), row(REQUEST)]
+                rows = [row(DIRECT), row(REQUEST)]
                 content = json.dumps(payload(rows, total=2), separators=(",", ":")).encode()
                 return content, {"content-type": "application/json"}
 
         with tempfile.TemporaryDirectory() as folder:
             client = Client()
             result = discover_catalog(Path(folder), OgeSourceConfig(True, True), client=client)
-            self.assertEqual(client.calls, [(0, 1, 1), (0, 2, 2)])
+            self.assertEqual(client.calls, [(0, 100, 1), (0, 100, 2)])
             self.assertEqual(result["catalog_rows_covered"], 2)
             self.assertEqual(result["metadata"]["page_count"], 1)
 
-    def test_default_discovery_rejects_catalog_change_after_probe(self):
+    def test_default_discovery_rejects_catalog_change_between_passes(self):
         class Client:
             def download_page(self, *, start, length, draw):
                 total = 2 if draw == 1 else 3
-                rows = [row(DIRECT)] if draw == 1 else [row(DIRECT), row(REQUEST)]
+                rows = [row(DIRECT), row(REQUEST)]
                 return json.dumps(payload(rows, total=total)).encode(), {
                     "content-type": "application/json"}
 
         with tempfile.TemporaryDirectory() as folder:
-            with self.assertRaisesRegex(OgeCatalogError, "changed during collection"):
+            with self.assertRaisesRegex(OgeCatalogError, "changed between pagination passes"):
                 discover_catalog(Path(folder), OgeSourceConfig(True, True), client=Client())
+
+    def test_discovery_rejects_row_shift_with_unchanged_total(self):
+        class Client:
+            def download_page(self, *, start, length, draw):
+                entries = [row(DIRECT), row(REQUEST)]
+                if draw > 2:
+                    entries.reverse()
+                return json.dumps(payload([entries[start]], total=2)).encode(), {
+                    "content-type": "application/json"}
+
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(OgeCatalogError, "changed between pagination passes"):
+                discover_catalog(Path(folder), OgeSourceConfig(True, True), page_size=1,
+                                 client=Client())
 
     def test_http_client_uses_bounded_unfiltered_datatables_get(self):
         body = json.dumps(payload([row(DIRECT)])).encode()
@@ -277,7 +292,7 @@ class OgeCatalogTests(unittest.TestCase):
         delays = []
         content, _ = OgeCatalogClient(
             timeout=7, opener=opener, sleeper=delays.append).download_page(
-                start=0, length=1000, draw=1)
+            start=0, length=100, draw=1)
         self.assertEqual(content, body)
         self.assertEqual(opener.attempts, 3)
         self.assertEqual(delays, [1, 2])
