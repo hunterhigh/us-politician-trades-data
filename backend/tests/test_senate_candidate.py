@@ -168,6 +168,33 @@ class SenateCandidateTests(unittest.TestCase):
             },
         }
 
+    def test_same_roster_person_allows_report_name_case_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = "11111111-1111-4111-8111-111111111111"
+            second = "22222222-2222-4222-8222-222222222222"
+            earlier = identity(first)
+            earlier["filer_name"] = "RICHARD BLUMENTHAL"
+            later = identity(second)
+            later["filer_name"] = "Richard Blumenthal"
+            state = self.fixture(root, [earlier, later], [
+                extraction(first, [row("senate-ptr:111111111111111111111111")]),
+                extraction(second, [row("senate-ptr:222222222222222222222222")]),
+            ])
+            candidate, _ = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(len(candidate["transactions"]), 2)
+            self.assertEqual(candidate["people"][0]["display_name"], "RICHARD BLUMENTHAL")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            later["state"] = "NY"
+            state = self.fixture(root, [earlier, later], [
+                extraction(first, [row("senate-ptr:111111111111111111111111")]),
+                extraction(second, [row("senate-ptr:222222222222222222222222")]),
+            ])
+            with self.assertRaisesRegex(SenateEfdError, "person_id=senate:S000001.*fields=display_name,state"):
+                build_senate_candidate(root, state, deepcopy(BASE))
+
     def test_accounted_extraction_failure_does_not_block_valid_reports(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
