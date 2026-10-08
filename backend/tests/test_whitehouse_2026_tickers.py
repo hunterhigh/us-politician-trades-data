@@ -95,6 +95,24 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         self.assertEqual(repeated_audit["retained_mapping_count"], 155)
         self.assertEqual(repeated_audit["new_mapping_count"], 0)
 
+    def test_sticky_unique_ticker_survives_provider_display_name_change(self):
+        record_id = "oge-278t:" + "a" * 24
+        candidate = {"meta": {"is_demo": False},
+                     "transactions": [self.target(record_id, "LUMEN TECHNOLOGIES INC")],
+                     "reported_holdings": []}
+        old_assets = [self.asset("LUMN", "Lumen Technologies, Inc.")]
+        enriched, audit = enrich_trump_2026_tickers(
+            candidate, old_assets, checked_at="2026-09-28T00:00:00Z")
+        self.assertEqual(audit["mappings"][0]["mapping_basis"],
+                         "alpaca_unique_asset_name")
+        restored = restore_pre_enrichment(enriched, audit)
+        revised_assets = [self.asset("LUMN", "Lumen Technologies Inc")]
+        repeated, repeated_audit = enrich_trump_2026_tickers(
+            restored, revised_assets, checked_at="2026-10-08T00:00:00Z",
+            previous=audit)
+        self.assertEqual(repeated["transactions"], enriched["transactions"])
+        self.assertEqual(repeated_audit["mappings"], audit["mappings"])
+
     def test_fixed_september_kroger_false_explicit_ticker_is_corrected_only_on_its_row(self):
         kroger_id = "oge-278t:6edb6800bfd420ed027f7f1c"
         kroger = self.target(kroger_id, "KROGER CO", "2026-07-23")

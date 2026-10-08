@@ -782,7 +782,9 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
                     "semantic_evidence_url", "source_rule_id",
                     "source_evidence_url", "source_page_number",
                     "source_row_number", "source_transaction_date",
-                    "provider_asset_id", "provider_asset_name",
+                    # Alpaca can revise a display name while the same unique
+                    # ticker still matches. Retain the historical audit name.
+                    "provider_asset_id",
                     "provider_exchange", "provider_active_sip_match_count",
                     "ambiguity_exclusion_basis", "security_directory_name",
                     "security_directory_url", "security_directory_checked_on")
