@@ -157,7 +157,9 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "source_health_count": len(prepared["source_health"]),
             "changes": changes, "canonical_source_alignment_complete": True,
             "snapshot_changes_disposed": True,
-            "transition_verification_level": "archived_official_index_bytes_for_rekeys",
+            "transition_verification_level": (
+                "archived_official_index_bytes_for_rekeys" if verified_replacements
+                else "not_applicable_no_rekeys"),
             "publication_pointer_moved": False}
 
 
