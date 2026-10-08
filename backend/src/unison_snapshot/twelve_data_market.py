@@ -335,7 +335,9 @@ def supplement(snapshot: dict, *, client: TwelveDataClient, checked_at: str,
         audit.append({"ticker": ticker, "status": "accepted", "point_count": len(points),
                       "first_date": points[0]["date"], "last_date": points[-1]["date"],
                       "deduplicated_rows": duplicates, "refresh": refreshing})
-    remaining.extend(deferred)
+    # A deferred refresh still has a valid published price row in ``accepted``.
+    # Keep it in the refresh backlog, but never classify it as unsupported.
+    remaining.extend(item for item in deferred if item["ticker"] not in accepted)
     if accepted:
         result["security_market_data"] = sorted(result["security_market_data"]
                                                 + list(accepted.values()),
