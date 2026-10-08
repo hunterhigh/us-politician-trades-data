@@ -216,7 +216,13 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 raise ValueError("Market coverage contains an invalid unsupported ticker")
             unsupported.add(item["ticker"])
         if unsupported & market_tickers or disclosed_tickers != market_tickers | unsupported:
-            raise ValueError("Market coverage must classify every disclosed ticker exactly once")
+            classified = market_tickers | unsupported
+            raise ValueError(
+                "Market coverage must classify every disclosed ticker exactly once: "
+                f"missing={sorted(disclosed_tickers - classified)[:10]}, "
+                f"extra={sorted(classified - disclosed_tickers)[:10]}, "
+                f"overlap={sorted(unsupported & market_tickers)[:10]}"
+            )
     elif market_commit is not None or market_pages is not None:
         raise ValueError("market commit and pages require licensed market publication")
     candidate = deepcopy(data)
