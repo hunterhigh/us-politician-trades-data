@@ -42,6 +42,7 @@ class PublicationDeltaTests(unittest.TestCase):
         report = self.run_gate(self.fixture())
         self.assertEqual(report["changes"], [])
         self.assertEqual(report["counts"]["reported_holdings"]["unchanged"], 1)
+        self.assertEqual(report["transition_verification_level"], "not_applicable_no_rekeys")
 
     def test_new_source_fact_is_reported_once(self):
         values = self.fixture()
@@ -77,6 +78,8 @@ class PublicationDeltaTests(unittest.TestCase):
             self.assertEqual(report["counts"]["reported_holdings"]["rekey"], 1)
             self.assertEqual(report["counts"]["reported_holdings"]["new"], 0)
             self.assertEqual(len(report["changes"]), 1)
+            self.assertEqual(report["transition_verification_level"],
+                             "archived_official_index_bytes_for_rekeys")
             decision["from_main_commit"] = "e" * 40
             with self.assertRaises(InventoryError):
                 self.run_gate(values, decision, repo="repo", evidence_commit="d" * 40)
