@@ -43,6 +43,27 @@ class OgeCatalogError(RuntimeError):
     """The official catalog response did not satisfy the expected contract."""
 
 
+class _VisibleResponseText(HTMLParser):
+    """Bounded visible text for diagnosing an unexpected official HTML page."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+        self.hidden = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style", "noscript"}:
+            self.hidden += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"script", "style", "noscript"} and self.hidden:
+            self.hidden -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden and sum(map(len, self.parts)) < 256:
+            self.parts.append(data)
+
+
 @dataclass(frozen=True)
 class OgeSourceConfig:
     """Collection gate; absent settings can never access the official catalog."""
@@ -404,10 +425,13 @@ class OgeCatalogClient:
             title_match = re.search(rb"<title[^>]*>(.*?)</title\s*>", content, re.I | re.S)
             title = (re.sub(r"\s+", " ", title_match.group(1).decode("utf-8", "replace"))[:120]
                      if title_match else "<missing>")
+            visible = _VisibleResponseText()
+            visible.feed(content.decode("utf-8", "replace"))
+            excerpt = re.sub(r"\s+", " ", " ".join(visible.parts)).strip()[:160]
             raise OgeCatalogError(
                 "OGE catalog returned a non-JSON response: "
                 f"content_type={headers.get('content-type', '<missing>')!r}, "
-                f"bytes={len(content)}, title={title!r}, "
+                f"bytes={len(content)}, title={title!r}, visible_text={excerpt!r}, "
                 f"sha256={hashlib.sha256(content).hexdigest()}"
             )
         return content, headers
