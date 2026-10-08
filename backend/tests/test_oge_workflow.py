@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -6,6 +7,24 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class OgeWorkflowTests(unittest.TestCase):
+    def test_shared_writer_source_schedules_do_not_compete_for_pending_slot(self):
+        slots = set()
+        for name in ("house-state.yml", "senate-efd.yml", "oge.yml"):
+            content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+            match = re.search(r"cron: '(\d+) ([\d,*/]+) \* \* \*'", content)
+            self.assertIsNotNone(match, name)
+            minute = int(match.group(1))
+            hour_spec = match.group(2)
+            hours = (set(range(0, 24, 6)) if hour_spec == "*/6" else
+                     {int(hour) for hour in hour_spec.split(",")})
+            self.assertEqual(len(hours), 4, name)
+            for hour in hours:
+                scheduled = hour * 60 + minute
+                self.assertTrue(all(min((scheduled - other) % 1440,
+                                        (other - scheduled) % 1440) >= 60
+                                    for other in slots), name)
+                slots.add(scheduled)
+
     def test_workflow_is_double_gated_and_never_automates_form_201(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
         self.assertIn("OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}", content)

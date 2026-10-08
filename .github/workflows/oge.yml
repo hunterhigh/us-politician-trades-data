@@ -1,7 +1,9 @@
 name: OGE direct 278-T pipeline
 on:
   schedule:
-    - cron: '43 */6 * * *'
+    # Stagger from House and Senate: GitHub retains only one pending run in
+    # their shared disclosure-source-writer concurrency group.
+    - cron: '43 4,10,16,22 * * *'
   workflow_dispatch:
 permissions:
   contents: write
