@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import unittest
 
+from unison_snapshot.codec import digest, encode
 from unison_snapshot.pipeline_qa.g2_candidate_projection import build_g2_candidate
 from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
 
@@ -18,19 +19,25 @@ class G2CandidateProjectionTests(unittest.TestCase):
         tx = {"id": "tx", "ticker": None, "ticker_mapping_basis": None}
         enriched = {**tx, "ticker": "EX", "ticker_mapping_basis": "legacy_market_mapping"}
         holding = {"id": "holding", "ticker": None}
-        row = {"ticker": "EX", "price_history": [{"date": "2026-01-02", "close": 10}]}
+        row = {"ticker": "EX", "source_id": "alpaca_sip_eod",
+               "price_history": [{"date": "2026-01-02", "close": 10}]}
         source = {"meta": {"is_demo": False}, "people": [person], "transactions": [tx],
                   "reported_holdings": [holding]}
         board = {"people": [person], "transactions": [enriched],
                  "reported_holdings": [holding]}
         page = encoded({"security_market_data": [row]})
         page_sha = hashlib.sha256(page).hexdigest()
+        coverage = {"schema_version": "mixed-market-coverage/v2",
+                    "source_ids": ["alpaca_sip_eod"], "covered_tickers": ["EX"],
+                    "unsupported_tickers": []}
         manifest = {"market_commit": market, "board": hashlib.sha256(encoded(board)).hexdigest(),
-                    "market_pages": [page_sha], "source_health": [{"source_id": "house_clerk"}]}
+                    "market_pages": [page_sha], "source_health": [{"source_id": "house_clerk"}],
+                    "coverage": {"market_coverage_sha256": digest(encode(coverage))}}
         blobs = {(main, "manifest.json"): encoded(manifest),
                  (main, f"board/{manifest['board']}.json"): encoded(board),
                  (review, "candidates/disclosure-current.json"): encoded(source),
-                 (market, f"market-pages/{page_sha}.json"): page}
+                 (market, f"market-pages/{page_sha}.json"): page,
+                 (market, "market/twelve-data-state.json"): encoded({"entries": {}})}
         fixed = {"main_commit": main, "review_commit": review, "market_commit": market,
                  "manifest_sha256": hashlib.sha256(blobs[(main, "manifest.json")]).hexdigest(),
                  "board_sha256": manifest["board"],
@@ -56,6 +63,7 @@ class G2CandidateProjectionTests(unittest.TestCase):
         self.assertEqual(report["counts"], {"people": 1, "transactions": 1,
                          "reported_holdings": 1, "security_market_data": 1, "source_health": 1})
         self.assertEqual(report["legacy_market_enrichment"]["transactions"], 1)
+        self.assertEqual(report["unsupported_ticker_count"], 0)
         self.assertFalse(report["published"])
 
     def test_rejects_changed_market_page_or_incomplete_gate(self):

@@ -10,6 +10,9 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from unison_snapshot.codec import digest, encode
+from unison_snapshot.market_store import MIXED_MARKET_COVERAGE_SCHEMA
+
 from .migration_inventory import InventoryError, _load, _differences, git_object
 
 FACTS = ("people", "transactions", "reported_holdings")
@@ -94,10 +97,38 @@ def build_g2_candidate(*, repo: Path, inventory: dict[str, Any], gate: dict[str,
     health = manifest.get("source_health")
     if health != inventory["source_health"]["records"]:
         raise InventoryError("G2 source health changed")
+    disclosed_tickers = {row["ticker"] for name in ("transactions", "reported_holdings")
+                         for row in facts[name] if row.get("ticker")}
+    unsupported = sorted(disclosed_tickers - market_rows.keys())
+    state_raw = read_object(repo, market, "market/twelve-data-state.json")
+    state = _load(state_raw, "fixed Twelve Data status")
+    statuses = state.get("entries")
+    if not isinstance(statuses, dict):
+        raise InventoryError("fixed market status lacks entries")
+    reason_by_status = {"identity_unresolved": "identity_unresolved",
+                        "twelve_data_unavailable": "twelve_data_unavailable",
+                        "no_current_series": "twelve_data_unavailable",
+                        "not_market_security": "not_market_security"}
+    unsupported_rows = []
+    for ticker in unsupported:
+        status = statuses.get(ticker, {}).get("status")
+        if status not in reason_by_status:
+            raise InventoryError(f"unsupported ticker lacks fixed status: {ticker}")
+        unsupported_rows.append({"ticker": ticker, "reason": reason_by_status[status]})
+    coverage = {"schema_version": MIXED_MARKET_COVERAGE_SCHEMA,
+                "source_ids": sorted({row["source_id"] for row in market_rows.values()}),
+                "covered_tickers": sorted(market_rows),
+                "unsupported_tickers": unsupported_rows}
+    if digest(encode(coverage)) != manifest.get("coverage", {}).get("market_coverage_sha256"):
+        raise InventoryError("reconstructed fixed market coverage hash mismatch")
     result = {"meta": dict(source["meta"]), **facts,
               "security_market_data": [market_rows[key] for key in sorted(market_rows)],
               "source_health": health}
+    for field in ("title", "subtitle", "timezone", "default_window_days", "data_cutoff_at"):
+        if field in manifest:
+            result["meta"][field] = manifest[field]
     result["meta"].update(market_commit=market, market_pages=page_hashes,
+                          market_coverage=coverage,
                           migration_binding="legacy_qualified_binding")
     report = {"schema_version": "pipeline-g2-candidate-projection/v1",
               "fixed_inputs": fixed,
@@ -105,6 +136,9 @@ def build_g2_candidate(*, repo: Path, inventory: dict[str, Any], gate: dict[str,
                          "security_market_data": len(market_rows), "source_health": len(health)},
               "legacy_market_enrichment": enrichment,
               "market_page_count": len(page_hashes), "market_page_bytes": page_bytes,
+              "market_state_sha256": hashlib.sha256(state_raw).hexdigest(),
+              "market_coverage_sha256": digest(encode(coverage)),
+              "unsupported_ticker_count": len(unsupported_rows),
               "formal_fact_ids_and_fields_preserved": True,
               "market_pages_content_verified": True,
               "published": False}
