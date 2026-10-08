@@ -13,7 +13,7 @@ EVIDENCE = "c" * 40
 
 
 class HoldingsRebindingTests(unittest.TestCase):
-    def _fixture(self, *, corrupt_pdf=False):
+    def _fixture(self, *, corrupt_pdf=False, bad_index=False):
         objects = {}
         directories = {}
         for commit, suffix in ((OLD, ""), (NEW, "-1")):
@@ -31,10 +31,24 @@ class HoldingsRebindingTests(unittest.TestCase):
             directory = f"whitehouse/disclosures/reports/{document_id}"
             pdf_path = f"{directory}/{pdf_sha}.pdf"
             meta_path = f"{directory}/{pdf_sha}.json"
+            old_name = "Underwood-Emily-2026-Annual.pdf"
+            new_name = "Underwood-Emily-2026-Annual-1.pdf"
+            html = (new_name if suffix else old_name)
+            if suffix and bad_index:
+                html += old_name
+            page_raw = html.encode()
+            page_sha = hashlib.sha256(page_raw).hexdigest()
+            page_path = f"whitehouse/disclosures/pages/{page_sha}"
+            objects[(EVIDENCE, f"{page_path}.html")] = page_raw
+            objects[(EVIDENCE, f"{page_path}.json")] = json.dumps({
+                "sha256": page_sha, "page_url": "https://www.whitehouse.gov/disclosures/",
+                "retrieved_at": "2026-10-01T00:00:00+00:00" if suffix else
+                                "2026-09-22T00:00:00+00:00"}).encode()
             metadata = {"document_url": url, "document_id": f"wh-url:{document_id}",
                         "archive_path": pdf_path, "sha256": pdf_sha,
                         "byte_length": len(pdf), "filer_name_from_label": "Underwood, Emily",
-                        "report_year_from_label": 2026, "headers": {}}
+                        "report_year_from_label": 2026, "page_sha256": page_sha,
+                        "headers": {}}
             objects[(EVIDENCE, meta_path)] = json.dumps(metadata).encode()
             objects[(EVIDENCE, pdf_path)] = b"bad" if suffix and corrupt_pdf else pdf
             directories[directory] = [f"{pdf_sha}.json", f"{pdf_sha}.pdf"]
@@ -48,11 +62,16 @@ class HoldingsRebindingTests(unittest.TestCase):
             list_paths=lambda _repo, _commit, directory: directories[directory],
         )
 
-    def test_distinct_archived_pdfs_do_not_prove_revision_relation(self):
+    def test_official_index_replacement_binds_distinct_archived_pdfs(self):
         result = self._run(*self._fixture())
         self.assertEqual(result["paired_count"], 1)
         self.assertFalse(result["pairs"][0]["same_pdf_bytes"])
         self.assertFalse(result["pairs"][0]["revision_relation_verified"])
+        self.assertTrue(result["pairs"][0]["official_index_replacement_verified"])
+        self.assertTrue(result["rebinding_complete"])
+
+    def test_index_with_both_links_does_not_bind_replacement(self):
+        result = self._run(*self._fixture(bad_index=True))
         self.assertFalse(result["rebinding_complete"])
 
     def test_pdf_bytes_must_match_archive_metadata(self):
