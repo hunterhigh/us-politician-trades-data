@@ -131,6 +131,11 @@ class TwelveDataMarketTests(unittest.TestCase):
         self.assertEqual(data["security_market_data"][-1]["ticker"], "ZZDEMO")
         self.assertEqual({row["ticker"] for row in data["security_market_data"]},
                          {"FUNDX", "ZZDEMO"})
+        coverage = data["meta"]["market_coverage"]
+        self.assertNotIn("FUNDX", {row["ticker"] for row in coverage["unsupported_tickers"]})
+        build(data, generated_at="2026-09-19T00:01:00Z",
+              allow_production=True, allow_market=True,
+              market_commit="1" * 40, market_pages=["2" * 64])
 
     def test_zero_limit_reuses_stale_cache_without_provider_requests(self):
         source = candidate()
