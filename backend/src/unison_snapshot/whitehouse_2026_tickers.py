@@ -776,8 +776,8 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
                     old["provider_exchange"] != asset["exchange"]):
                 raise ValueError("A sticky source-directory security is no longer active SIP")
         current_mapping = proposed_by_id.get(record_id)
-        if current_mapping is not None and any(
-                current_mapping.get(key) != old.get(key) for key in (
+        if current_mapping is not None:
+            changed_keys = [key for key in (
                     "ticker", "mapping_basis", "semantic_rule_id",
                     "semantic_evidence_url", "source_rule_id",
                     "source_evidence_url", "source_page_number",
@@ -785,8 +785,13 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
                     "provider_asset_id", "provider_asset_name",
                     "provider_exchange", "provider_active_sip_match_count",
                     "ambiguity_exclusion_basis", "security_directory_name",
-                    "security_directory_url", "security_directory_checked_on")):
-            raise ValueError("Alpaca identity conflicts with a sticky Trump 2026 mapping")
+                    "security_directory_url", "security_directory_checked_on")
+                            if current_mapping.get(key) != old.get(key)]
+            if changed_keys:
+                raise ValueError(
+                    "Alpaca identity conflicts with a sticky Trump 2026 mapping: "
+                    f"record_id={record_id}, fields={','.join(changed_keys)}"
+                )
         row["ticker"] = old["ticker"]
         row["ticker_mapping_basis"] = old["mapping_basis"]
         mappings.append(dict(old))
