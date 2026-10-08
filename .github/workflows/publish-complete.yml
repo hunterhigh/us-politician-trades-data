@@ -166,15 +166,18 @@ jobs:
           echo "cache_market_commit=$cache_market_ref" >> "$GITHUB_OUTPUT"
           echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Verify first-launch disclosure completeness
+      - name: Build canonical disclosure projection from qualified sources
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PYTHONPATH: backend/src
         run: |
-          python -m unison_snapshot verify-first-launch \
-            --review-root "$REVIEW_ROOT" \
-            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --output "$RUNNER_TEMP/release-readiness.json"
+          python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs \
+            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --output "$RUNNER_TEMP/governed-disclosure.json" \
+            --audit-output "$RUNNER_TEMP/governed-cutoff.json"
       - name: Build licensed five-array candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -190,7 +193,7 @@ jobs:
           checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
           python -m unison_snapshot build-alpaca-market-validation \
-            --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --input "$RUNNER_TEMP/governed-disclosure.json" \
             --output "$RUNNER_TEMP/complete-candidate.json" \
             --audit-output "$RUNNER_TEMP/market-audit.json" \
             --processed-output "$RUNNER_TEMP/complete-processed.json" \
@@ -272,6 +275,34 @@ jobs:
           npm run test:production
           npm run test:latest-html
         working-directory: frontend-e2e
+      - name: Record projection issues for final targeted review
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          PYTHONPATH: backend/src
+        run: |
+          board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
+          python -m unison_snapshot.pipeline_qa.projection_issues \
+            --governed "$RUNNER_TEMP/governed-disclosure.json" \
+            --reference "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --previous-board "$MAIN_ROOT/board/$board_sha.json" \
+            --output "$RUNNER_TEMP/projection-issues.json"
+      - name: Keep deferred projection issues
+        uses: actions/upload-artifact@v4
+        with:
+          name: projection-issues-${{ github.run_id }}
+          path: ${{ runner.temp }}/projection-issues.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify first-launch disclosure completeness
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot verify-first-launch \
+            --review-root "$REVIEW_ROOT" \
+            --input "$RUNNER_TEMP/governed-disclosure.json" \
+            --output "$RUNNER_TEMP/release-readiness.json"
       - name: Reconcile canonical publication changes
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -289,7 +320,7 @@ jobs:
           fi
           python -m unison_snapshot.pipeline_qa.publication_delta \
             --previous-board "$MAIN_ROOT/board/$board_sha.json" \
-            --unified "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --unified "$RUNNER_TEMP/governed-disclosure.json" \
             --prepared "$RUNNER_TEMP/complete-candidate.json" \
             --source-root "$REVIEW_ROOT/candidates/sources" \
             --main-commit "$main_sha" --review-commit "$review_sha" \
