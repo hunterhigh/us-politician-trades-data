@@ -4,11 +4,11 @@
   "annual_part7_overlap_count": 0,
   "base_transaction_count": 5081,
   "candidate_is_append_only": true,
-  "candidate_sha256": "737a8db1a67ed45df62948e90b733f31bc9b83cb494e7b54aa57cd50c9fc10e4",
+  "candidate_sha256": "19e29b4b1f96d7c664b6bbdbf158c5b9954cb7dbab8b2045e186016e7a8ba11b",
   "candidate_transaction_count": 6472,
   "catalog_report_count": 81,
   "catalog_sha256": "1e56a2bb49708eda1f2fe19a9835a5c775a0a206237262ef371f1006caca62c4",
-  "data_cutoff_at": "2026-10-08T11:39:44Z",
+  "data_cutoff_at": "2026-10-08T21:34:32Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 18,
@@ -1406,7 +1406,7 @@
     "oge-278t:ff8f888240875ac49b6b32ef",
     "oge-278t:ff92b09ef985b0f6804ce92f"
   ],
-  "pure_oge_candidate_sha256": "4ee707af9ac09b0f41deed031ab90b7519c2bbd3cbba9cb8d81d29a34e698411",
+  "pure_oge_candidate_sha256": "7ba978e14af0b9789c799d0f015c0b4b7ade256c2961cf467e7f5c45fbd8ec3f",
   "quarantined_row_count": 8902,
   "report_count": 81,
   "reports": [
@@ -117490,7 +117490,7 @@
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "030b719fc7759004e20eaba6148fb8372f5561c9ea4ca195fafcda4748b8a6aa",
     "whitehouse_annual_dedup_set_sha256": "86999a1ad0c36b50fa2ad6b4e5409fc50a81b339d03989cdb9a40aa50330feb3",
-    "whitehouse_coverage_sha256": "4877bad56dee5ed80020bcfe9dd119746415119f45c6cd55fa14a3c6035bdba7",
+    "whitehouse_coverage_sha256": "3d490e05f2441fa7a54a9e5a91cafc3d5a765a3a5e6bc45010e30e65d85d4109",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "whitehouse_extraction_set_sha256": "f5a8c48ed0d4ad0a6af7dbee51bfc4ba425983733ec7aac04a057f60a748cda3",
     "whitehouse_extraction_status_sha256": "979577acd6abae456be31cfe5060397ed2c33935e94019292867a12ef3f84e72"
