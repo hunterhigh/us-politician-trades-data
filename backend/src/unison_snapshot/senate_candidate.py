@@ -658,6 +658,7 @@ def build_senate_candidate(
 
     transactions = []
     people: dict[str, dict] = {}
+    person_documents: dict[str, str] = {}
     seen_transactions: set[str] = set()
     report_reasons: Counter[str] = Counter()
     row_reasons: Counter[str] = Counter()
@@ -720,7 +721,18 @@ def build_senate_candidate(
         person = _person(identity)
         person_id = person["id"]
         if person_id in people and people[person_id] != person:
-            raise SenateEfdError("Senate identity changed across report artifacts")
+            changed = sorted(key for key in person if people[person_id].get(key) != person.get(key))
+            # eFD report titles can vary only in capitalization for the same
+            # roster-bound person (observed for Blumenthal in the Oct 8 catalog).
+            # Preserve the first fixed candidate spelling; substantive roster
+            # or name differences still fail closed.
+            if (changed != ["display_name"] or
+                    people[person_id]["display_name"].casefold() != person["display_name"].casefold()):
+                raise SenateEfdError(
+                    "Senate identity changed across report artifacts: "
+                    f"person_id={person_id}, previous_document_id={person_documents[person_id]}, "
+                    f"document_id={document_id}, fields={','.join(changed)}"
+                )
         report_rows = 0
         report_quarantined_rows = 0
         for row in extraction.get("transactions", []):
@@ -754,7 +766,9 @@ def build_senate_candidate(
             })
             report_rows += 1
         if report_rows:
-            people[person_id] = person
+            if person_id not in people:
+                people[person_id] = person
+                person_documents[person_id] = document_id
             qualified_reports += 1
             if report_quarantined_rows:
                 partially_qualified_reports += 1

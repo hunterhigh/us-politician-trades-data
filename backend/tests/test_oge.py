@@ -321,6 +321,34 @@ class OgeCatalogTests(unittest.TestCase):
         self.assertEqual(opener.attempts, 3)
         self.assertEqual(delays, [1, 2])
 
+    def test_http_client_reports_safe_metadata_for_non_json_response(self):
+        class Response:
+            status = 200
+            headers = {"Content-Type": "text/html"}
+
+            def __init__(self, request):
+                self.request = request
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def geturl(self):
+                return self.request.full_url
+
+            def read(self, _):
+                return b"<html>upstream maintenance</html>"
+
+        class Opener:
+            def open(self, request, timeout):
+                return Response(request)
+
+        with self.assertRaisesRegex(OgeCatalogError, "content_type='text/html'.*sha256=") as error:
+            OgeCatalogClient(opener=Opener()).download_page(start=0, length=1, draw=1)
+        self.assertNotIn("upstream maintenance", str(error.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
