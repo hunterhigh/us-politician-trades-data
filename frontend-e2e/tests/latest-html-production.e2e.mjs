@@ -109,6 +109,27 @@ try {
       assert.match(rulliPage, /MSFT/);
     }
   }
+  const marketByTicker = new Map(data.security_market_data.map(row => [row.ticker, row]));
+  const prehistory = [];
+  for (const row of data.transactions) {
+    const first = marketByTicker.get(row.ticker)?.price_history?.[0]?.date;
+    if (!first) continue;
+    if (row.transaction_date.slice(0, 10) < first) {
+      assert.equal(row.underlying_return_since_trade, null,
+        `${row.id}: trade return before verified price history must be null`);
+      prehistory.push(row);
+    }
+    if (row.filed_at.slice(0, 10) < first) {
+      assert.equal(row.underlying_return_since_filing, null,
+        `${row.id}: filing return before verified price history must be null`);
+    }
+  }
+  for (const row of prehistory.slice(0, 3)) {
+    await page.evaluate(id => openTransaction(id), row.id);
+    const tradeReturn = await page.locator('#drawer .fact').filter({ hasText: 'Security since trade' }).locator('b').textContent();
+    assert.equal(tradeReturn?.trim(), '—');
+    await page.keyboard.press('Escape');
+  }
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ status: 'passed', template_sha256: TEMPLATE_SHA256,
     cutoff: data.meta.data_cutoff_at, transactions: data.transactions.length }));
