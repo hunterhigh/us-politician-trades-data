@@ -46,7 +46,9 @@ function browserExecutable() {
 
 const work = mkdtempSync(path.join(tmpdir(), 'latest-html-'));
 const html = path.join(work, 'dashboard.html');
-writeFileSync(html, templateText.replace(PLACEHOLDER, JSON.stringify(data)), 'utf8');
+// Keep the producer's exact serialized bytes (including its escaping) when
+// exercising the designated page code. Parsing above is only for assertions.
+writeFileSync(html, templateText.replace(PLACEHOLDER, match[1]), 'utf8');
 const browser = await chromium.launch({
   executablePath: browserExecutable(), headless: true,
   args: ['--allow-file-access-from-files'],
