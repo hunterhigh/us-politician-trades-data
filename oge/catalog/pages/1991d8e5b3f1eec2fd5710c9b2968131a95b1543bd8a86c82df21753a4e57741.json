@@ -1,0 +1,1009 @@
+
+{
+    "draw":22,
+    "recordsTotal":16743,
+    "recordsFiltered":16743,
+    "data":
+    [
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Boyle'>Request this Document<\/a>)",
+          "name":"Boyle, Allison",
+          "agency":"Merit Systems Protection Board",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-01-16T04:30:51",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A6ED9BE5CBC70A7785258D810032EB27\/$FILE\/Hollis%2C%20Paul%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Hollis, Paul",
+          "agency":"Department of the Treasury",
+          "title":"Director of the Mint",
+          "level":"n\/a",
+          "docDate":"2026-01-16T04:16:09",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/BCEABAB4D76D929785258D800032FEDB\/$FILE\/Wheeler%2C%20Thomas%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Wheeler, Thomas",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Indiana Southern District",
+          "level":"n\/a",
+          "docDate":"2026-01-15T04:17:00",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Born-Huizenga, Tammy",
+          "agency":"Department of Health and Human Services",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-01-14T15:02:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Variava'>Request this Document<\/a>)",
+          "name":"Variava, Heather",
+          "agency":"Department of State",
+          "title":"Ambassador to Lao People's Democratic Republic",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:32:52",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McDonald'>Request this Document<\/a>)",
+          "name":"McDonald, Kara C",
+          "agency":"Department of State",
+          "title":"Ambassador to Lithuania (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:32:05",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lamelas'>Request this Document<\/a>)",
+          "name":"Lamelas, Peter",
+          "agency":"Department of State",
+          "title":"Ambassador to Argentina",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:31:53",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kagan'>Request this Document<\/a>)",
+          "name":"Kagan, Edgard D",
+          "agency":"Department of State",
+          "title":"Ambassador to Malaysia",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:31:43",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=FitzPatrick'>Request this Document<\/a>)",
+          "name":"FitzPatrick, Vernelle T",
+          "agency":"Department of State",
+          "title":"Ambassador to Gabonese Republic",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:31:23",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A007F2228BAFF47985258D7F0032FF6F\/$FILE\/Stuart%2C%20Michael%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Stuart, Michael",
+          "agency":"Department of Health and Human Services",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:17:01",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/AC8352927DA8980585258D7F0032FC89\/$FILE\/Rosen%2C%20Daniel%20N.%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rosen, Daniel N",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Minnesota",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:16:54",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6E2522822189868985258D7F0032F650\/$FILE\/Palmer%2C%20Wayne%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Palmer, Wayne D",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Mine Safety & Health",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:16:38",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/81A5ADD82F2651B385258D7F0032EDD1\/$FILE\/Keeling%2C%20David%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Keeling, David",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Occupational Safety & Health",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:16:16",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/CD70D70C0CEC972C85258D7F0032E00B\/$FILE\/Denton%20Jr.%2C%20David%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Denton, David",
+          "agency":"Department of The Navy",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:15:41",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/0A1297C90D63ACE085258D7F0032D9D7\/$FILE\/Bass%2C%20Keith%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Bass, Keith M",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Health Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-14T04:15:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Smith'>Request this Document<\/a>)",
+          "name":"Smith, Delia",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Virgin Islands",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:32:55",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Serralta'>Request this Document<\/a>)",
+          "name":"Serralta, Gadyaces S",
+          "agency":"Department of Justice",
+          "title":"Director, U.S. Marshals Service",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:32:50",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Patman'>Request this Document<\/a>)",
+          "name":"Patman, Carrin F",
+          "agency":"Department of State",
+          "title":"Ambassador to Iceland (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:32:29",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gil'>Request this Document<\/a>)",
+          "name":"Gil, Dario",
+          "agency":"Department of Energy",
+          "title":"Under Secretary for Science",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:31:33",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Emanuel'>Request this Document<\/a>)",
+          "name":"Emanuel, Rahm",
+          "agency":"Department of State",
+          "title":"Ambassador to Japan",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:31:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>)",
+          "name":"Brown, Thomas E",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Georgia Northern District",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:30:56",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Berger'>Request this Document<\/a>)",
+          "name":"Berger, William B",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Florida Middle District",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:30:48",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/9ABE506A62CB611585258D7E0033044B\/$FILE\/Woodruff%2C%20James%20-%20Final%20EA%20Certificatiom.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Woodruff, James",
+          "agency":"Merit Systems Protection Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:17:14",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/60AC748CF11F6A6A85258D7E00330053\/$FILE\/Turner%2C%20Usha-Maria%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Turner, Usha-Maria",
+          "agency":"Environmental Protection Agency",
+          "title":"Assistant Administrator for International & Tribal Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:17:04",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C4FC30B8031FB9F485258D7E0032FF23\/$FILE\/Swett%2C%20Laura%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Swett, Laura",
+          "agency":"Federal Energy Regulatory Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:17:01",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/5922A85EA855469485258D7E0032FA28\/$FILE\/Rogers%2C%20Andrew%20-%20Final%20EA%20Certifcation.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rogers, Andrew",
+          "agency":"Department of Labor",
+          "title":"Administrator, Wage and Hour Division",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:16:48",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/5B68ECBEAAFCC59E85258D7E0032F81D\/$FILE\/Robertson%2C%20Audrey%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Robertson, Audrey",
+          "agency":"Department of Energy",
+          "title":"Assistant Secretary for Energy Efficiency & Renewable Energy",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:16:43",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/832DADFDECEFEEF685258D7E0032E74E\/$FILE\/Guilgoyle%2C%20Kimberly%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Guilfoyle, Kimberly",
+          "agency":"Department of State",
+          "title":"Ambassador to Greece",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:16:00",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/DDE868588E52278885258D7E0032E1E7\/$FILE\/Diabella%2C%20Laura%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"DiBella, Laura",
+          "agency":"Federal Maritime Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:15:46",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F254CCC3B1B2D24D85258D7E0032DE85\/$FILE\/Chiarello%2C%20Gustav%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Chiarello, Gustav III",
+          "agency":"Department of Health and Human Services",
+          "title":"Assistant Secretary for Financial Resources",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:15:37",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A8EACBEE7303DB5E85258D7E0032DA0F\/$FILE\/Berry%2C%20Jonathan%20A.%20-%20%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Berry, Jonathan",
+          "agency":"Department of Labor",
+          "title":"Solicitor",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:15:26",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E92151C461C0E35985258D7E0032D95B\/$FILE\/Barloon%2C%20Joseph%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Barloon, Joseph",
+          "agency":"Office of The Us Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2026-01-13T04:15:24",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-002 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Carman'>Request this Document<\/a>)",
+          "name":"Carman, Katherine",
+          "agency":"Securities and Exchange Commission",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2026-01-13T03:15:28",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-001 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Selby'>Request this Document<\/a>)",
+          "name":"Selby, Avery",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2026-01-13T03:15:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-004 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Burke'>Request this Document<\/a>)",
+          "name":"Burke, Jonathan",
+          "agency":"Department of the Treasury",
+          "title":"Assistant Secretary for Terrorist Financing",
+          "level":"n\/a",
+          "docDate":"2026-01-13T03:15:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Wallace'>Request this Document<\/a>)",
+          "name":"Wallace, Kathryn",
+          "agency":"Peace Corps",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:32:43",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Reynolds'>Request this Document<\/a>)",
+          "name":"Reynolds, LaDon A",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Illinois Northern District",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:32:15",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McEntarfer'>Request this Document<\/a>)",
+          "name":"McEntarfer, Erika",
+          "agency":"Department of Labor",
+          "title":"Commissioner of Labor Statistics",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:31:51",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Mancini'>Request this Document<\/a>)",
+          "name":"Mancini, Nadine N",
+          "agency":"Occupational Safety and Health Review Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:31:48",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Johnson'>Request this Document<\/a>)",
+          "name":"Johnson, Kristin",
+          "agency":"Commodity Futures Trading Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:31:26",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hunt'>Request this Document<\/a>)",
+          "name":"Hunt, Bryan D",
+          "agency":"Department of State",
+          "title":"Ambassador to Sierra Leone (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:31:23",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fields'>Request this Document<\/a>)",
+          "name":"Fields, Chester J",
+          "agency":"White House Office",
+          "title":"Deputy Assistant to President for Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:31:07",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Clarke'>Request this Document<\/a>)",
+          "name":"Clarke, Kristen",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Civil Rights Division",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:30:49",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Barron'>Request this Document<\/a>)",
+          "name":"Barron, Erek L",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Maryland",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:30:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/B5C537503E10318D85258D7B0032F159\/$FILE\/Petty%2C%20Timothy%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Petty, Timothy R",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Oceans & Atmosphere",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:16:25",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/225362FF1623766585258D7B0032ED71\/$FILE\/Meyer%2C%20Joyce%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Meyer, Joyce",
+          "agency":"Department of Commerce",
+          "title":"Under Secretary for Economic Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:16:15",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/CF4817AC28FEAC3685258D7B0032D9F2\/$FILE\/Christensen%2C%20Brent%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Christensen, Brent T",
+          "agency":"Department of State",
+          "title":"Ambassador to Bangladesh (People's Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:15:25",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3BD97F2331FDCD1385258D7B0032D3C4\/$FILE\/Aronowitz%2C%20Daniel%20-%20Final%20EA%20Certification%20(2).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Aronowitz, Daniel",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Employee Benefits Security",
+          "level":"n\/a",
+          "docDate":"2026-01-10T04:15:10",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-005 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Imig'>Request this Document<\/a>)",
+          "name":"Imig, Robert",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2026-01-10T03:15:11",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-003 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Carnes'>Request this Document<\/a>)",
+          "name":"Carnes, Thomas",
+          "agency":"Department of Commerce",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2026-01-10T03:15:05",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/9A4548C66869385985258D7A0032FE03\/$FILE\/Walker%2C%20Herschel%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Walker, Hershel",
+          "agency":"Department of State",
+          "title":"Ambassador to Bahamas (Commonwealth of The)",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:58",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/02FB6222A6E1B0DB85258D7A0032F427\/$FILE\/Puzder%2C%20Andrew%20-%20Final%20EA%20Certification%20(2).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Puzder, Andrew F",
+          "agency":"Department of State",
+          "title":"U.S. Representative to European Union",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:33",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/81074DA3AF5B12DF85258D7A0032F31B\/$FILE\/Peters%2C%20David%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Peters, David",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Export Enforcement",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A2908EAF897B5A4885258D7A0032EF19\/$FILE\/Merrick%2C%20Nicholas%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Merrick, Nicholas A",
+          "agency":"Department of State",
+          "title":"Ambassador to Czech Republic",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:20",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/883353F636A8E57485258D7A0032EAA6\/$FILE\/Mamula%2C%20Ned%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Mamula, Ned",
+          "agency":"Department of The Interior",
+          "title":"Director, U.S. Geological Survey",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:08",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6BD5E53CE95AA03285258D7A0032E804\/$FILE\/Kapur%2C%20Paul%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Kapur, Paul",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for South Asian Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:16:01",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/D401417C4FE98E4E85258D7A0032E521\/$FILE\/Issa%2C%20Michael%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Issa, Michel",
+          "agency":"Department of State",
+          "title":"Ambassador to Lebanon (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:54",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/071BF809C0BE357885258D7A0032E394\/$FILE\/Hildebrand%2C%20Melinda%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Hildebrand, Melinda",
+          "agency":"Department of State",
+          "title":"Ambassador to Costa Rica (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:50",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/ECE047DB02EE2AE985258D7A0032DC38\/$FILE\/Fogel%2C%20David%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Fogel, David",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Global Markets & Director General of U.S. and Foreign Commercial Service",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/CC33D406E4139D0985258D7A0032D460\/$FILE\/Bazzi%2C%20Bill%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Bazzi, Bill",
+          "agency":"Department of State",
+          "title":"Ambassador to Tunisia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:11",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3E0FB7C1E9C73A9885258D7A0032D2B3\/$FILE\/Arrigo%2C%20John%20-%20Final%20EA%20Certification%20(2).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Arrigo, John",
+          "agency":"Department of State",
+          "title":"Ambassador to Portuguese Republic",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:07",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/8DEAFD63B94D6F7E85258D7A0032D220\/$FILE\/Andersen%2C%20Marc%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Andersen, Marc",
+          "agency":"Department of The Army",
+          "title":"Assistant Secretary for Financial Management (Comptroller)",
+          "level":"n\/a",
+          "docDate":"2026-01-09T04:15:05",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Arana, Taylor",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-01-08T12:21:03",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6F8044A0281B842F85258D7900330032\/$FILE\/White%2C%20William%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"White, William",
+          "agency":"Department of State",
+          "title":"Ambassador to Belgium",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:17:03",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C530B5877EC4CCEE85258D790032FF61\/$FILE\/Veprek%2C%20Andrew%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Veprek, Andrew",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Population, Refugees & Migration",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:17:01",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/DD9CC2D3410D86E485258D790032FE0A\/$FILE\/Troutman%2C%20Douglas%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Troutman, Douglas",
+          "agency":"Environmental Protection Agency",
+          "title":"Assistant Administrator for Chemical Safety & Pollution Prevention",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:16:58",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/0056080AF0C700BC85258D790032FD31\/$FILE\/AMENDED%20Switzer%2C%20Brian%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a> (Amended 01\/15\/2026)",
+          "name":"Switzer, Bryan R",
+          "agency":"Office of the US Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:16:56",
+          "amended":"2026-01-15T00:00:00"
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2BCED7F0DB2F0A3E85258D790032F3A5\/$FILE\/O%27Neill%2C%20Sean%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"O'Neill, Sean",
+          "agency":"Department of State",
+          "title":"Ambassador to Thailand (Kingdom of)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:16:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2B0ADAFAF695528985258D790032F21B\/$FILE\/Namdarkhan%2C%20Morvared%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Namdarkhan, Morvared",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Consular Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:16:27",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/BCBF27E55759102885258D790032EB29\/$FILE\/Mazol%2C%20James%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Mazol, James",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Under Secretary for Research & Engineering",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:16:10",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3B0FFAD889F27D3785258D790032E71F\/$FILE\/Jordan%2C%20Taylor%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Jordan, Taylor",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Environmental Observation & Prediction",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:59",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/5AFF62191070893685258D790032E461\/$FILE\/Howery%2C%20Kenneth%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Howery, Kenneth A",
+          "agency":"Department of State",
+          "title":"Ambassador to Denmark",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:52",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/5AB5D70A1882C66585258D790032E025\/$FILE\/Giodano%2C%20John%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Giordano, John",
+          "agency":"Department of State",
+          "title":"Ambassador to Namibia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:41",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E1C50D938605538085258D790032DEBA\/$FILE\/Fox%2C%20Christopher%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Fox, Christopher",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Inspector General of the Intelligence Community",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:38",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A3B2A6374FCF170C85258D790032DE00\/$FILE\/Farkas%2C%20Somers%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Farkas, Somers",
+          "agency":"Department of State",
+          "title":"Ambassador to Malta (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:36",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/BD9582121EDA11FA85258D790032DCA8\/$FILE\/Dunavant%2C%20D.%20Michael%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Dunavant, D. Michael",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Western District (2)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F9FA179347FF86FC85258D790032DBE2\/$FILE\/Dhillon%2C%20Janet%20L.%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Dhillon, Janet L",
+          "agency":"Pension Benefit Guaranty Corporation",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/8A49084781C13BA885258D790032DA94\/$FILE\/Davis%2C%20Patrick%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Davis, Patrick D",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Office of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:27",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/07CF8A764DE1874D85258D790032D8BD\/$FILE\/Cao%2C%20Hung%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Cao, Hung",
+          "agency":"Department of The Navy",
+          "title":"Under Secretary",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:22",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/574815E503BBCDED85258D790032D6BC\/$FILE\/Brodie%2C%20Howard%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Brodie, Howard",
+          "agency":"Department of State",
+          "title":"Ambassador to Finland (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:17",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/12CEA5DFAD012EB685258D790032D62C\/$FILE\/Blanchard%2C%20Lynda%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Blanchard, Lynda C",
+          "agency":"Department of State",
+          "title":"U.S. Representative to United Nations Agencies for Food and Agriculture (with rank of Ambassador during service)",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:16",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/4B03E974E01562FB85258D790032D5CD\/$FILE\/Black%2C%20Benjamin%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Black, Benjamin",
+          "agency":"U.S. International Development Finance Corporation",
+          "title":"Chief Executive Officer, International Development Finance Corporation",
+          "level":"n\/a",
+          "docDate":"2026-01-08T04:15:15",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Geho, Douglas",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-01-07T15:08:03",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/237D1FAED390CD0485258D7800346FAD\/$FILE\/Adewale-Sadik%2C%20Ademola%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Adewale-Sadik, Ademola",
+          "agency":"Department of the Treasury",
+          "title":"U.S. Executive Director, African Development Bank",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:32:44",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kendler'>Request this Document<\/a>)",
+          "name":"Kendler, Thea",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Export Administration",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:31:33",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Adewale-Sadik'>Request this Document<\/a>)",
+          "name":"Adewale-Sadik, Ademola",
+          "agency":"Department of the Treasury",
+          "title":"U.S. Executive Director, African Development Bank",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:30:27",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/232F3F7EC4F1374485258D780032FA8E\/$FILE\/Woodward%2C%20Stanley%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Woodward, Stanley",
+          "agency":"Department of Justice",
+          "title":"Associate Attorney General",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:49",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/BF8A1D5484863D8285258D780032F293\/$FILE\/Rutherford%2C%20Michael%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rutherford, Michael",
+          "agency":"Department of Transportation",
+          "title":"Assistant Secretary for Multimodal Freight Infrastructure & Policy",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E645BF1447B0FB7A85258D780032F1B4\/$FILE\/Rogers%2C%20Sarah%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rogers, Sarah",
+          "agency":"Department of State",
+          "title":"Under Secretary for Public Diplomacy",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:26",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/ABF090F09370400385258D780032F06D\/$FILE\/Richey%2C%20Kimberly%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Richey, Kimberly",
+          "agency":"Department of Education",
+          "title":"Assistant Secretary for Civil Rights",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:23",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/52FB4606AEF2BD0285258D780032EE9B\/$FILE\/Powers%2C%20Michael%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Powers, Michael",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Under Secretary (Comptroller)",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:18",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A3AF33EA5416D24E85258D780032EE2B\/$FILE\/Pirro_Jeanine%20-%20Final%20EA%20Certification%20(3).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Pirro, Jeanine",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney District of Columbia",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:17",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A70A0F744C278E2185258D780032EC63\/$FILE\/Noh%2C%20John%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Noh, John",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Indo-Pacific Security Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:13",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3886641C49C70D9085258D780032EBAA\/$FILE\/Nieh%2C%20Ho%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Nieh, Ho",
+          "agency":"Nuclear Regulatory Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:11",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/438879B06C4C2FCC85258D780032EA25\/$FILE\/Metzger%2C%20Peter%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Metzger, Peter",
+          "agency":"Department of the Treasury",
+          "title":"Assistant Secretary for Intelligence & Analysis",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:16:07",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C350B31A7D09EEC185258D780032E19A\/$FILE\/Hobbs%2C%20Benjamin%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Hobbs, Benjamin",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Assistant Secretary for Public & Indian Housing",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:15:45",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/94106174447E71F885258D780032E040\/$FILE\/Hallett%2C%20Stephanie%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Hallett, Stephanie L",
+          "agency":"Department of State",
+          "title":"Ambassador to Bahrain (Kingdom of)",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:15:42",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F02A09589FABC67085258D780032DC35\/$FILE\/Feinberg%2C%20Stacey%20-%20Final%20EA%20Certifcation.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Feinberg, Stacey",
+          "agency":"Department of State",
+          "title":"Ambassador to Luxembourg (Grand Duchy of)",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:15:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A8C2A9163F43054085258D780032D987\/$FILE\/Dill%2C%20Timothy%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Dill, Timothy",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Manpower & Reserve Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:15:24",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/77CB6BC261275EC885258D780032D723\/$FILE\/Buchan%2C%20Richard%20Duke%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Buchan, Richard D",
+          "agency":"Department of State",
+          "title":"Ambassador to Morocco (Kingdom of)",
+          "level":"n\/a",
+          "docDate":"2026-01-07T04:15:18",
+          "amended":""
+      }
+    ]
+}
