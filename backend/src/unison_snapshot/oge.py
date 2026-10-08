@@ -401,10 +401,14 @@ class OgeCatalogClient:
             # Keep the response body out of public Actions logs, but expose
             # enough metadata to distinguish a changing interstitial from a
             # stable endpoint/schema change across retries.
+            title_match = re.search(rb"<title[^>]*>(.*?)</title\s*>", content, re.I | re.S)
+            title = (re.sub(r"\s+", " ", title_match.group(1).decode("utf-8", "replace"))[:120]
+                     if title_match else "<missing>")
             raise OgeCatalogError(
                 "OGE catalog returned a non-JSON response: "
                 f"content_type={headers.get('content-type', '<missing>')!r}, "
-                f"bytes={len(content)}, sha256={hashlib.sha256(content).hexdigest()}"
+                f"bytes={len(content)}, title={title!r}, "
+                f"sha256={hashlib.sha256(content).hexdigest()}"
             )
         return content, headers
 
