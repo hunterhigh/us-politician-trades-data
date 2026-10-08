@@ -339,15 +339,15 @@ class OgeCatalogTests(unittest.TestCase):
                 return self.request.full_url
 
             def read(self, _):
-                return b"<html><title>Upstream maintenance</title>private body</html>"
+                return b"<html><title>Upstream maintenance</title><script>secret</script><p>Service unavailable</p></html>"
 
         class Opener:
             def open(self, request, timeout):
                 return Response(request)
 
-        with self.assertRaisesRegex(OgeCatalogError, "title='Upstream maintenance'.*sha256=") as error:
+        with self.assertRaisesRegex(OgeCatalogError, "visible_text='Upstream maintenance Service unavailable'.*sha256=") as error:
             OgeCatalogClient(opener=Opener()).download_page(start=0, length=1, draw=1)
-        self.assertNotIn("private body", str(error.exception))
+        self.assertNotIn("secret", str(error.exception))
 
 
 if __name__ == "__main__":
