@@ -65,6 +65,37 @@ try {
   assert.ok(await page.locator('#sourceLinks').textContent());
   assert.match(await page.locator('#cutoff').textContent(), /Data cutoff/);
 
+  const cutoffDay = data.meta.data_cutoff_at.slice(0, 10);
+  const windowIds = days => {
+    const start = new Date(`${cutoffDay}T00:00:00Z`);
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    const first = start.toISOString().slice(0, 10);
+    return {
+      trades: data.transactions.filter(row => row.transaction_date >= first &&
+        row.transaction_date <= cutoffDay).map(row => row.id).sort(),
+      disclosures: data.transactions.filter(row => row.filed_at.slice(0, 10) >= first &&
+        row.filed_at.slice(0, 10) <= cutoffDay).map(row => row.id).sort(),
+    };
+  };
+  for (const days of [30, 90]) {
+    const expected = windowIds(days);
+    const visible = await page.locator(`#timeline${days} .timeline-row`).evaluateAll(
+      rows => rows.map(row => row.dataset.tx).sort());
+    assert.deepEqual(visible, expected.trades, `${days}-day timeline must use transaction_date`);
+    const disclosed = await page.evaluate(days => windowDisclosures(days).map(row => row.id).sort(), days);
+    assert.deepEqual(disclosed, expected.disclosures,
+      `${days}-day disclosure watch must use filed_at`);
+  }
+  const officialSources = data.source_health.filter(row =>
+    ['house_clerk', 'senate_efd', 'oge'].includes(row.source_id));
+  assert.equal(await page.locator('#sourceLinks .source-link').count(), officialSources.length);
+  const sourceText = await page.locator('#sourceLinks').textContent();
+  for (const source of officialSources) {
+    assert.ok(sourceText?.includes(source.source), `${source.source_id} must be visible`);
+    assert.ok(sourceText?.includes(source.status === 'ok' ? 'Synced' : 'Delayed'),
+      `${source.source_id} health must retain status meaning`);
+  }
+
   await page.locator('#window30TabTimeline').click();
   assert.ok(await page.locator('#timeline30 .timeline-row').count() > 0);
   await page.locator('#timeline30 .timeline-row').first().click();
