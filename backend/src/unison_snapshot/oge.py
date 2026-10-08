@@ -398,7 +398,14 @@ class OgeCatalogClient:
         if len(content) > MAX_RESPONSE_BYTES:
             raise OgeCatalogError("OGE catalog response exceeds its size limit")
         if "json" not in headers.get("content-type", "").lower():
-            raise OgeCatalogError("OGE catalog returned a non-JSON response")
+            # Keep the response body out of public Actions logs, but expose
+            # enough metadata to distinguish a changing interstitial from a
+            # stable endpoint/schema change across retries.
+            raise OgeCatalogError(
+                "OGE catalog returned a non-JSON response: "
+                f"content_type={headers.get('content-type', '<missing>')!r}, "
+                f"bytes={len(content)}, sha256={hashlib.sha256(content).hexdigest()}"
+            )
         return content, headers
 
 
