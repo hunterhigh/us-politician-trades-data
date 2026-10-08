@@ -76,6 +76,7 @@ def _market_enrichment_only(production: dict[str, Any], candidate: dict[str, Any
 def build_inventory(
     *, repo: Path, main_commit: str, review_commit: str, market_commit: str,
     html_path: Path, read_object: Callable[[Path, str, str], bytes] = git_object,
+    verify_market_pages: bool = False,
 ) -> dict[str, Any]:
     """Reconcile current formal facts by ID; never silently authorize cutover."""
     for commit in (main_commit, review_commit, market_commit):
@@ -170,6 +171,35 @@ def build_inventory(
     market_pages = manifest.get("market_pages")
     if not isinstance(health, list) or not isinstance(market_pages, list):
         raise InventoryError("missing market or source health references")
+    market_records = []
+    tickers = set()
+    for page_hash in market_pages if verify_market_pages else ():
+        if not isinstance(page_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", page_hash):
+            raise InventoryError("invalid market page hash")
+        raw = read_object(repo, market_commit, f"market-pages/{page_hash}.json")
+        if hashlib.sha256(raw).hexdigest() != page_hash:
+            raise InventoryError(f"market page content hash mismatch: {page_hash}")
+        page = _load(raw, "market page")
+        rows = page.get("security_market_data")
+        if not isinstance(rows, list):
+            raise InventoryError("market page lacks security_market_data")
+        for row in rows:
+            ticker = row.get("ticker") if isinstance(row, dict) else None
+            history = row.get("price_history") if isinstance(row, dict) else None
+            if not isinstance(ticker, str) or not ticker or ticker in tickers or not isinstance(history, list):
+                raise InventoryError("invalid or duplicate market ticker")
+            tickers.add(ticker)
+            market_records.append({"ticker": ticker, "source_id": row.get("source_id"),
+                                   "page_sha256": page_hash, "canonical_sha256": _digest(row),
+                                   "price_point_count": len(history),
+                                   "first_price_date": history[0].get("date") if history else None,
+                                   "last_price_date": history[-1].get("date") if history else None})
+    expected_tickers = manifest.get("coverage", {}).get("market_ticker_count")
+    if verify_market_pages and expected_tickers != len(market_records):
+        raise InventoryError("market ticker count differs from production manifest")
+    health_ids = [item.get("source_id") if isinstance(item, dict) else None for item in health]
+    if any(not isinstance(source_id, str) for source_id in health_ids) or len(set(health_ids)) != len(health_ids):
+        raise InventoryError("invalid or duplicate source health ID")
     return {
         "schema_version": "pipeline-migration-inventory/v1",
         "fixed_inputs": {
@@ -182,9 +212,13 @@ def build_inventory(
         },
         "summary": summary,
         "market": {"commit": market_commit, "page_count": len(market_pages),
-                   "pages_sha256": _digest(market_pages)},
+                   "pages_sha256": _digest(market_pages),
+                   "verification_status": "content_verified" if verify_market_pages else "pinned_ref_only",
+                   "manifest_ticker_count": expected_tickers,
+                   "ticker_count": len(market_records) if verify_market_pages else None,
+                   "records": sorted(market_records, key=lambda row: row["ticker"])},
         "source_health": {"count": len(health), "sha256": _digest(health),
-                          "source_ids": sorted(item.get("source_id") for item in health)},
+                          "records": sorted(health, key=lambda item: item["source_id"])},
         "records": records,
         "production_candidate_id_coverage_complete": all(not any(row["issues"] for row in group)
                                                       for group in records.values()),
@@ -201,10 +235,11 @@ def main() -> None:
     parser.add_argument("--market-commit", required=True)
     parser.add_argument("--html", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--verify-market-pages", action="store_true")
     args = parser.parse_args()
     report = build_inventory(repo=args.repo, main_commit=args.main_commit,
                              review_commit=args.review_commit, market_commit=args.market_commit,
-                             html_path=args.html)
+                             html_path=args.html, verify_market_pages=args.verify_market_pages)
     args.output.write_text(json.dumps(report, ensure_ascii=True, sort_keys=True,
                                      separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({"summary": report["summary"], "production_candidate_id_coverage_complete":

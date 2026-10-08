@@ -28,7 +28,8 @@ class MigrationInventoryTests(unittest.TestCase):
         board_raw = json.dumps(board).encode()
         board_sha = hashlib.sha256(board_raw).hexdigest()
         manifest = {"is_demo": False, "board": board_sha, "market_commit": MARKET,
-                    "source_health": [], "market_pages": []}
+                    "source_health": [], "market_pages": [],
+                    "coverage": {"market_ticker_count": 0}}
         unified = {"meta": {"is_demo": False}, "people": [],
                    "transactions": [candidate], "reported_holdings": []}
         objects = {
@@ -43,7 +44,7 @@ class MigrationInventoryTests(unittest.TestCase):
             objects[(REVIEW, f"candidates/sources/{source_id}-current.json")] = json.dumps(payload).encode()
         return objects
 
-    def _run(self, objects):
+    def _run(self, objects, *, verify_market_pages=False):
         with TemporaryDirectory() as directory:
             html = Path(directory) / "baseline.html"
             html.write_bytes(b"latest html")
@@ -53,6 +54,7 @@ class MigrationInventoryTests(unittest.TestCase):
                     repo=Path(directory), main_commit=MAIN, review_commit=REVIEW,
                     market_commit=MARKET, html_path=html,
                     read_object=lambda _repo, commit, path: objects[(commit, path)],
+                    verify_market_pages=verify_market_pages,
                 )
 
     def test_market_enrichment_is_recorded_without_claiming_projection(self):
@@ -91,6 +93,23 @@ class MigrationInventoryTests(unittest.TestCase):
                 build_inventory(repo=Path(directory), main_commit=MAIN,
                                 review_commit=REVIEW, market_commit=MARKET,
                                 html_path=html, read_object=lambda *_: b"{}")
+
+    def test_market_page_is_pinned_and_counted(self):
+        objects = self._fixture()
+        row = {"ticker": "ABC", "source_id": "alpaca_sip_eod",
+               "price_history": [{"date": "2026-01-01", "close": 1}]}
+        raw = json.dumps({"security_market_data": [row]}).encode()
+        digest = hashlib.sha256(raw).hexdigest()
+        objects[(MARKET, f"market-pages/{digest}.json")] = raw
+        manifest = json.loads(objects[(MAIN, "manifest.json")])
+        manifest["market_pages"] = [digest]
+        manifest["coverage"]["market_ticker_count"] = 1
+        objects[(MAIN, "manifest.json")] = json.dumps(manifest).encode()
+        result = self._run(objects, verify_market_pages=True)
+        self.assertEqual(result["market"]["records"][0]["first_price_date"], "2026-01-01")
+        objects[(MARKET, f"market-pages/{digest}.json")] += b" "
+        with self.assertRaisesRegex(InventoryError, "market page content hash mismatch"):
+            self._run(objects, verify_market_pages=True)
 
 
 if __name__ == "__main__":
