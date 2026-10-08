@@ -22,8 +22,8 @@ if (!input || !existsSync(input)) throw new Error('PRODUCTION_DASHBOARD_HTML is 
 const rendered = readFileSync(input, 'utf8');
 const match = rendered.match(/const DATA = (\{.*\});\r?\nconst IS_DEMO =/s);
 assert.ok(match, 'Production processor must emit its DATA payload');
-assert.match(rendered, /const IS_DEMO = false;/);
 const data = JSON.parse(match[1]);
+assert.notEqual(data.meta.is_demo, true, 'Published DATA must not be demo data');
 for (const key of ['people', 'transactions', 'reported_holdings', 'security_market_data', 'source_health']) {
   assert.ok(Array.isArray(data[key]), `${key} must be an array`);
 }
