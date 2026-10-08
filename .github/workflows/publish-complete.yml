@@ -270,6 +270,7 @@ jobs:
         run: |
           npm ci
           npm run test:production
+          npm run test:latest-html
         working-directory: frontend-e2e
       - name: Prepare and commit market branch
         id: market
@@ -367,7 +368,9 @@ jobs:
         if: ${{ !inputs.skip_prepared_readback }}
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
-        run: npm run test:production
+        run: |
+          npm run test:production
+          npm run test:latest-html
         working-directory: frontend-e2e
       - name: Record auditable coverage
         env:

@@ -28,6 +28,10 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('"refs/tags/published-market/$MARKET_SHA"', content)
         self.assertNotIn("Publish market before disclosure pointer", content)
         self.assertIn("npm run test:production", content)
+        self.assertEqual(content.count("npm run test:latest-html"), 2)
+        self.assertLess(content.index("npm run test:latest-html"), preflight)
+        self.assertLess(readback, content.rindex("npm run test:latest-html"))
+        self.assertLess(content.rindex("npm run test:latest-html"), publish)
 
     def test_scheduler_is_opt_in_and_bootstrap_cannot_downgrade_main(self):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
