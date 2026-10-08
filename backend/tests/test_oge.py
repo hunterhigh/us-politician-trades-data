@@ -232,6 +232,8 @@ class OgeCatalogTests(unittest.TestCase):
         opener = Opener()
         content, headers = OgeCatalogClient(timeout=7, opener=opener).download_page(
             start=0, length=100, draw=1)
+        self.assertEqual(urlsplit(opener.request.full_url).path,
+                         "/201/Presiden.nsf/API.xsp/v3/rest")
         query = parse_qs(urlsplit(opener.request.full_url).query, keep_blank_values=True)
         self.assertEqual(content, body)
         self.assertEqual((query["start"], query["length"], query["search[value]"]),
