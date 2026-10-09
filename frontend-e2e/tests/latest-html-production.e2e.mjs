@@ -265,6 +265,7 @@ try {
       assert.equal(await page.locator(`#timeline90 [data-tx="${row.id}"]`).count(), 1,
         `${row.id}: recent new row must appear in the 90-day timeline`);
       await page.evaluate(id => openPerson(id), row.person_id);
+      await page.locator('#personPage [data-person-window="90"]').click();
       assert.equal(await page.locator(`[data-person-tx="${row.id}"]`).count(), 1,
         `${row.id}: recent new row must appear on the person page`);
       await page.locator('#personBack').click();
