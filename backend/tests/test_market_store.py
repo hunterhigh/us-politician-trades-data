@@ -1,5 +1,7 @@
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -104,16 +106,122 @@ class MarketStoreTests(unittest.TestCase):
         page = json.loads(bundle.files[f"market-pages/{bundle.page_shas[0]}.json"])
         self.assertEqual(page["security_market_data"][0]["ticker"], "AAPL")
 
-    def test_materialize_preserves_old_objects_and_replaces_indexes(self):
+    def test_materialize_prunes_old_objects_and_preserves_unknown_files(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first = build_market_bundle([row("AAPL")], data_cutoff_at="2026-09-20T23:59:59Z")
             materialize_market(root, first)
-            old_blobs = [path for path in first.files if not path.endswith("index.json")]
+            unknown = [root / "market-pages/notes.json", root / "market/00/manual.json",
+                       root / "market/cache-window.json", root / "market/twelve-data-state.json"]
+            for path in unknown:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("keep", encoding="utf-8")
             second = build_market_bundle([row("MSFT")], data_cutoff_at="2026-09-20T23:59:59Z")
             result = materialize_market(root, second)
             self.assertTrue(result.changed)
-            self.assertTrue(all((root / path).is_file() for path in old_blobs))
+            old_only = {path for path in first.files if len(Path(path).stem) == 64} - set(second.files)
+            self.assertTrue(old_only)
+            self.assertTrue(old_only <= set(result.removed))
+            self.assertTrue(all(not (root / path).exists() for path in old_only))
+            self.assertTrue(all((root / path).is_file() for path in second.files))
+            self.assertTrue(all(path.read_text(encoding="utf-8") == "keep" for path in unknown))
+            self.assertFalse(materialize_market(root, second).changed)
+
+    def test_pruned_market_tip_keeps_old_cache_in_fixed_git_commit(self):
+        def audit(ticker):
+            return {
+                "schema_version": "alpaca-market-validation/v2",
+                "start_date": "2026-09-01", "requested_as_of_date": "2026-09-18",
+                "full_history_verified_at": "2026-09-18",
+                "feed": "sip", "timeframe": "1Day", "adjustment": "split",
+                "market_row_count": 1, "covered_tickers": [ticker],
+                "supported_tickers": [{"ticker": ticker, "provider_symbol": ticker}],
+            }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            market = root / "market-branch"
+            market.mkdir()
+            def git(*args):
+                return subprocess.run(["git", "-C", str(market), *args], check=True,
+                                      capture_output=True).stdout.decode().strip()
+
+            git("init", "-q")
+            git("config", "user.name", "Market Test")
+            git("config", "user.email", "market@example.invalid")
+            first = build_market_bundle([row("AAPL")], data_cutoff_at="2026-09-20T23:59:59Z",
+                                        audit=audit("AAPL"))
+            materialize_market(market, first)
+            git("add", "-A")
+            git("commit", "-qm", "first")
+            first_commit = git("rev-parse", "HEAD")
+            git("tag", f"published-market/{first_commit}")
+
+            main = root / "main"
+            main.mkdir()
+            (main / "manifest.json").write_text(json.dumps({
+                "is_demo": False, "market_commit": first_commit,
+                "coverage": {"market_ticker_count": 1},
+            }), encoding="utf-8")
+            second = build_market_bundle([row("MSFT")], data_cutoff_at="2026-09-20T23:59:59Z",
+                                         audit=audit("MSFT"))
+            removed = materialize_market(market, second).removed
+            self.assertIn(f"market-pages/{first.page_shas[0]}.json", removed)
+            git("add", "-A")
+            git("commit", "-qm", "second")
+            self.assertEqual(git("rev-parse", f"refs/tags/published-market/{first_commit}"),
+                             first_commit)
+            old_market = root / "old-market"
+            git("worktree", "add", "--detach", str(old_market), first_commit)
+            cache = load_published_market_cache(main, old_market, market_commit=first_commit)
+            self.assertEqual(set(cache.rows), {"AAPL"})
+            self.assertEqual(cache.rows["AAPL"]["price_history"][-1]["close"], 101.25)
+
+    def test_redirected_layout_cannot_touch_files_outside_market_worktree(self):
+        bundle = build_market_bundle([row()], data_cutoff_at="2026-09-20T23:59:59Z")
+        for kind, bucket_name in (("market-pages", None), ("market", None),
+                                  ("market", bucket("market", "AAPL"))):
+            with self.subTest(kind=kind, bucket=bucket_name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    base = Path(temporary)
+                    root, outside = base / "worktree", base / "outside"
+                    root.mkdir()
+                    outside.mkdir()
+                    marker = outside / ("a" * 64 + ".json")
+                    marker.write_text("outside", encoding="utf-8")
+                    link = root / kind
+                    if bucket_name is not None:
+                        link.mkdir()
+                        link = link / bucket_name
+                    try:
+                        link.symlink_to(outside, target_is_directory=True)
+                    except (OSError, NotImplementedError) as exc:
+                        if sys.platform != "win32":
+                            self.skipTest(f"Directory symlinks unavailable: {exc}")
+                        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)],
+                                       check=True, capture_output=True)
+                    with self.assertRaisesRegex(ValueError, "redirected"):
+                        materialize_market(root, bundle)
+                    self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
+                    self.assertFalse((root / "market-pages").is_dir() if kind == "market" else
+                                     (root / "market").is_dir())
+
+    def test_relative_root_and_absolute_outer_alias_are_not_layout_redirects(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            actual, alias = base / "actual", base / "alias"
+            bundle = build_market_bundle([row()], data_cutoff_at="2026-09-20T23:59:59Z")
+            relative_root = Path(os.path.relpath(actual, Path.cwd()))
+            self.assertTrue(materialize_market(relative_root, bundle).changed)
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                if sys.platform != "win32":
+                    self.skipTest(f"Directory symlinks unavailable: {exc}")
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(alias), str(actual)],
+                               check=True, capture_output=True)
+            self.assertFalse(materialize_market(alias, bundle).changed)
+            self.assertTrue((actual / f"market-pages/{bundle.page_shas[0]}.json").is_file())
 
     def test_rejects_wrong_source_and_future_prices(self):
         bad = row()

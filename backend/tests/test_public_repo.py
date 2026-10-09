@@ -1,5 +1,7 @@
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -257,15 +259,120 @@ class MaterializeTests(unittest.TestCase):
         self.assertFalse(later.changed)
         self.assertFalse(later.business_changed)
 
-    def test_old_blobs_remain_and_stale_index_is_removed(self):
+    def test_only_current_blobs_remain_and_unknown_files_are_untouched(self):
         original = self.bundle()
         materialize(self.root, original)
-        old_blobs = {path for path in original.files if len(Path(path).stem) == 64}
+        unknown = [self.root / "board/notes.json",
+                   self.root / "people/00/manual.json",
+                   self.root / "tickers/00/readme.txt"]
+        for path in unknown:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("keep", encoding="utf-8")
         self.data["people"] = self.data["people"][:1]
         self.data["transactions"] = self.data["transactions"][:1]
-        result = materialize(self.root, self.bundle())
-        self.assertTrue(result.removed)
-        self.assertTrue(all((self.root / path).is_file() for path in old_blobs))
+        current = self.bundle()
+        result = materialize(self.root, current)
+        old_only = {path for path in original.files if len(Path(path).stem) == 64} - set(current.files)
+        self.assertTrue(old_only)
+        self.assertTrue(old_only <= set(result.removed))
+        self.assertTrue(all(not (self.root / path).exists() for path in old_only))
+        self.assertTrue(all((self.root / path).is_file() for path in current.files))
+        self.assertTrue(all(path.read_text(encoding="utf-8") == "keep" for path in unknown))
+        self.assertFalse(materialize(self.root, current).changed)
+
+    def test_pruned_tip_keeps_old_git_commit_readable_in_all_modes(self):
+        repo = self.root / "snapshots"
+        repo.mkdir()
+        def git(*args):
+            return subprocess.run(["git", "-C", str(repo), *args], check=True,
+                                  capture_output=True).stdout.decode().strip()
+
+        git("init", "-q")
+        git("config", "user.name", "Snapshot Test")
+        git("config", "user.email", "snapshot@example.invalid")
+        data = production_payload()
+        first_bundle = build(data, generated_at="2026-09-18T00:01:00Z",
+                             allow_production=True)
+        materialize(repo, first_bundle)
+        git("add", "-A")
+        git("commit", "-qm", "first")
+        first_commit = git("rev-parse", "HEAD")
+        git("tag", f"published/{first_commit}")
+
+        data["transactions"][0]["amount_high"] += 1
+        second_bundle = build(data, generated_at="2026-09-18T01:01:00Z",
+                              allow_production=True)
+        result = materialize(repo, second_bundle)
+        self.assertTrue(any(path.startswith("board/") for path in result.removed))
+        git("add", "-A")
+        git("commit", "-qm", "second")
+        second_commit = git("rev-parse", "HEAD")
+        self.assertEqual(git("rev-parse", f"refs/tags/published/{first_commit}"), first_commit)
+        old_files = {path: subprocess.run(
+            ["git", "-C", str(repo), "show", f"{first_commit}:{path}"], check=True,
+            capture_output=True).stdout for path in first_bundle.files}
+        current_files = {path: subprocess.run(
+            ["git", "-C", str(repo), "show", f"{second_commit}:{path}"], check=True,
+            capture_output=True).stdout for path in second_bundle.files}
+        old_repo = PublicSnapshotRepository(
+            "example", "data", transport=FakeTransport(old_files, commit=first_commit))
+        current_repo = PublicSnapshotRepository(
+            "example", "data", transport=FakeTransport(current_files, commit=second_commit))
+        for mode, key in (("dashboard", None), ("search", None),
+                          ("person", "house:DEMO001"), ("ticker", "ZZDEMO")):
+            with self.subTest(mode=mode):
+                self.assertEqual(old_repo.fetch(mode, key).commit, first_commit)
+                self.assertEqual(current_repo.fetch(mode, key).commit, second_commit)
+        old_high = old_repo.fetch("person", "house:DEMO001").snapshot["transactions"][0]["amount_high"]
+        new_high = current_repo.fetch("person", "house:DEMO001").snapshot["transactions"][0]["amount_high"]
+        self.assertEqual(new_high, old_high + 1)
+
+    def test_redirected_layout_cannot_touch_files_outside_worktree(self):
+        bundle = self.bundle()
+        cases = (("board", None), ("people", None), ("tickers", None),
+                 ("people", bucket("people", "house:DEMO001")),
+                 ("tickers", bucket("tickers", "ZZDEMO")))
+        for kind, bucket_name in cases:
+            with self.subTest(kind=kind, bucket=bucket_name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    base = Path(temporary)
+                    root, outside = base / "worktree", base / "outside"
+                    root.mkdir()
+                    outside.mkdir()
+                    marker = outside / ("a" * 64 + ".json")
+                    marker.write_text("outside", encoding="utf-8")
+                    link = root / kind
+                    if bucket_name is not None:
+                        link.mkdir()
+                        link = link / bucket_name
+                    try:
+                        link.symlink_to(outside, target_is_directory=True)
+                    except (OSError, NotImplementedError) as exc:
+                        if sys.platform != "win32":
+                            self.skipTest(f"Directory symlinks unavailable: {exc}")
+                        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)],
+                                       check=True, capture_output=True)
+                    with self.assertRaisesRegex(ValueError, "redirected"):
+                        materialize(root, bundle)
+                    self.assertEqual(marker.read_text(encoding="utf-8"), "outside")
+                    self.assertFalse((root / "manifest.json").exists())
+
+    def test_relative_root_and_absolute_outer_alias_are_not_layout_redirects(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            actual, alias = base / "actual", base / "alias"
+            bundle = self.bundle()
+            relative_root = Path(os.path.relpath(actual, Path.cwd()))
+            self.assertTrue(materialize(relative_root, bundle).changed)
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                if sys.platform != "win32":
+                    self.skipTest(f"Directory symlinks unavailable: {exc}")
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(alias), str(actual)],
+                               check=True, capture_output=True)
+            self.assertFalse(materialize(alias, bundle).changed)
+            self.assertTrue((actual / "manifest.json").is_file())
 
     def test_immutable_collision_and_invalid_manifest_abort(self):
         bundle = self.bundle()
