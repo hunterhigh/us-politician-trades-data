@@ -1,10 +1,10 @@
 {
   "meta": {
-    "data_cutoff_at": "2026-10-09T02:37:23Z",
+    "data_cutoff_at": "2026-10-09T11:34:28Z",
     "default_window_days": 30,
-    "generated_at": "2026-10-09T02:37:23Z",
+    "generated_at": "2026-10-09T11:34:28Z",
     "is_demo": false,
-    "snapshot_id": "4730b0fd7a708ebf72a7cfd73ce5639af971f5045ef07a3e3b3c961e53105552",
+    "snapshot_id": "3074af643d6830592b41efe9adfbe60f9c985e74bd36a2f0ce373867e20c001c",
     "subtitle": "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离",
     "timezone": "America/New_York",
     "title": "美国政客交易披露"
@@ -17174,10 +17174,10 @@
       "status": "pending_review"
     },
     {
-      "data_cutoff_at": "2026-10-09T02:37:23Z",
-      "detail": "Prior direct OGE status: 336 direct 278-T documents; 336 PDFs extracted; 5081 transactions qualified; 4771 request-required catalog entries were not automated; 8 direct documents were retained from archived catalog history.; White House public 278-T: 81 PDFs audited, 1391 new transactions qualified, 8902 rows quarantined; 6472 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
-      "last_checked_at": "2026-10-09T02:37:23Z",
-      "last_successful_sync_at": "2026-10-09T02:37:23Z",
+      "data_cutoff_at": "2026-10-09T11:34:28Z",
+      "detail": "Prior direct OGE status: 336 direct 278-T documents; 336 PDFs extracted; 5081 transactions qualified; 4765 request-required catalog entries were not automated; 8 direct documents were retained from archived catalog history.; White House public 278-T: 81 PDFs audited, 1391 new transactions qualified, 8902 rows quarantined; 6472 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
+      "last_checked_at": "2026-10-09T11:34:28Z",
+      "last_successful_sync_at": "2026-10-09T11:34:28Z",
       "source": "U.S. Office of Government Ethics",
       "source_id": "oge",
       "source_type": "official_disclosure",
