@@ -257,15 +257,20 @@ class MaterializeTests(unittest.TestCase):
         self.assertFalse(later.changed)
         self.assertFalse(later.business_changed)
 
-    def test_old_blobs_remain_and_stale_index_is_removed(self):
+    def test_old_blobs_are_pruned_and_current_files_remain(self):
         original = self.bundle()
         materialize(self.root, original)
         old_blobs = {path for path in original.files if len(Path(path).stem) == 64}
         self.data["people"] = self.data["people"][:1]
         self.data["transactions"] = self.data["transactions"][:1]
-        result = materialize(self.root, self.bundle())
+        current = self.bundle()
+        old_only = old_blobs - set(current.files)
+        result = materialize(self.root, current)
         self.assertTrue(result.removed)
-        self.assertTrue(all((self.root / path).is_file() for path in old_blobs))
+        self.assertTrue(old_only)
+        self.assertTrue(old_only <= set(result.removed))
+        self.assertTrue(all(not (self.root / path).exists() for path in old_only))
+        self.assertTrue(all((self.root / path).is_file() for path in current.files))
 
     def test_immutable_collision_and_invalid_manifest_abort(self):
         bundle = self.bundle()
