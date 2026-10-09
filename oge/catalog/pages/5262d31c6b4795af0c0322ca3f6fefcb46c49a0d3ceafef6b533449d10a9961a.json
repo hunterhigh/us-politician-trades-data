@@ -1,0 +1,1009 @@
+
+{
+    "draw":20,
+    "recordsTotal":16742,
+    "recordsFiltered":16742,
+    "data":
+    [
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Switzer'>Request this Document<\/a>)",
+          "name":"Switzer, Bryan R",
+          "agency":"Office of the US Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:33:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stirling'>Request this Document<\/a>)",
+          "name":"Stirling, Bryan",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney South Carolina",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:33:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Squires'>Request this Document<\/a>)",
+          "name":"Squires, John",
+          "agency":"Department of Commerce",
+          "title":"Under Secretary for Intellectual Property & Director, U.S. Patent & Trademark Office",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:33:15",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ruben'>Request this Document<\/a>)",
+          "name":"Ruben, Francisco J",
+          "agency":"National Science Foundation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:33:03",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rinaldi'>Request this Document<\/a>)",
+          "name":"Rinaldi, Lou",
+          "agency":"Department of State",
+          "title":"Ambassador to Uruguay (Oriental Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:58",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Pamerleau'>Request this Document<\/a>)",
+          "name":"Pamerleau, Susan L",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Texas Western District",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:46",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ohlweiler'>Request this Document<\/a>)",
+          "name":"Ohlweiler, John",
+          "agency":"Agency for International Development (AID)",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:44",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Merrick'>Request this Document<\/a>)",
+          "name":"Merrick, Nicholas A",
+          "agency":"Department of State",
+          "title":"Ambassador to Czech Republic",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:36",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Miller'>Request this Document<\/a>)",
+          "name":"Miller, Craig G",
+          "agency":"Defense Threat Reduction Agency",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:36",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Marzano'>Request this Document<\/a>)",
+          "name":"Marzano, Matthew",
+          "agency":"Nuclear Regulatory Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:30",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Law'>Request this Document<\/a>)",
+          "name":"Law, Robert T",
+          "agency":"Department of Homeland Security",
+          "title":"Under Secretary for Strategy, Policy, & Plans",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:22",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Korhonen'>Request this Document<\/a>)",
+          "name":"Korhonen, Rachna",
+          "agency":"Department of State",
+          "title":"Ambassador to Mali (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:18",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jayne'>Request this Document<\/a>)",
+          "name":"Jayne, Thomas R",
+          "agency":"Railroad Retirement Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:05",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jayne'>Request this Document<\/a>)",
+          "name":"Jayne, Thomas R",
+          "agency":"Railroad Retirement Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:05",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Inman'>Request this Document<\/a>)",
+          "name":"Inman, James Todd",
+          "agency":"National Transportation Safety Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:04",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Howery'>Request this Document<\/a>)",
+          "name":"Howery, Kenneth A",
+          "agency":"Department of State",
+          "title":"Ambassador to Denmark",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:32:01",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Heekin'>Request this Document<\/a>)",
+          "name":"Heekin, John P",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Florida Northern District",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:59",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gentin'>Request this Document<\/a>)",
+          "name":"Gentin, Pierre M",
+          "agency":"Department of Commerce",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:51",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Garrish'>Request this Document<\/a>)",
+          "name":"Garrish, Theodore",
+          "agency":"Department of Energy",
+          "title":"Assistant Secretary for Nuclear Energy",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:50",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fogel'>Request this Document<\/a>)",
+          "name":"Fogel, David",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Global Markets & Director General of U.S. and Foreign Commercial Service",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:45",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Capito'>Request this Document<\/a>)",
+          "name":"Capito, Arch Alfred Moore",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Southern District",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Burke'>Request this Document<\/a>)",
+          "name":"Burke, Jonathan",
+          "agency":"Department of the Treasury",
+          "title":"Assistant Secretary for Terrorist Financing",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:19",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brodie'>Request this Document<\/a>)",
+          "name":"Brodie, Howard",
+          "agency":"Department of State",
+          "title":"Ambassador to Finland (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:16",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2026) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bender'>Request this Document<\/a>)",
+          "name":"Bender, Stuart A",
+          "agency":"Department of Agriculture",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:31:10",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/17F4D2B3A9E9572285258D9A0032FF79\/$FILE\/Percival%2C%20James%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Percival, James",
+          "agency":"Department of Homeland Security",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-02-10T04:17:02",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-022 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Isaacman'>Request this Document<\/a>)",
+          "name":"Isaacman, Jared",
+          "agency":"National Aeronautics and Space Administration",
+          "title":"Administrator",
+          "level":"Level II",
+          "docDate":"2026-02-10T03:15:46",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Puzder'>Request this Document<\/a>) (Pending Final OGE Disposition)",
+          "name":"Puzder, Andrew F",
+          "agency":"Department of State",
+          "title":"U.S. Representative to European Union",
+          "level":"n\/a",
+          "docDate":"2026-02-09T11:33:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2025) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Waltz'>Request this Document<\/a>) (Pending Final OGE Disposition)",
+          "name":"Waltz, Michael",
+          "agency":"White House Office",
+          "title":"Assistant to President & National Security Advisor",
+          "level":"n\/a",
+          "docDate":"2026-02-09T11:33:40",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/9945AD2B5D21E11185258D9700348284\/$FILE\/Vance%2C%20Michael%20J.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Vance, Michael J",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Intelligence & Research",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:33:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/DE0D52D819BC5DF885258D970034813C\/$FILE\/Garcia%2C%20Jr.%2C%20Frank%20W.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Garcia, Frank",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for African Affairs",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:33:29",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/5341464985A6F62F85258D97003480F6\/$FILE\/Dennis%2C%20Irving%20L.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Dennis, Irving",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Chief Financial Officer (2)",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:33:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2FE6B9AEBC843FAF85258D970034809E\/$FILE\/Carl%2C%20Jeremy%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Carl, Jeremy",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for International Organization Affairs",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:33:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Vance'>Request this Document<\/a>)",
+          "name":"Vance, Michael J",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Intelligence & Research",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:33:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Garcia'>Request this Document<\/a>)",
+          "name":"Garcia, Frank",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for African Affairs",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:31:50",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Dennis'>Request this Document<\/a>)",
+          "name":"Dennis, Irving",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Chief Financial Officer (2)",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:31:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Carl'>Request this Document<\/a>)",
+          "name":"Carl, Jeremy",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for International Organization Affairs",
+          "level":"n\/a",
+          "docDate":"2026-02-07T04:31:22",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/CF3BC678BC1AD44B85258D960032E7E5\/$FILE\/Castillo%2C%20David%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Castillo, David B",
+          "agency":"Department of Labor",
+          "title":"Chief Financial Officer",
+          "level":"n\/a",
+          "docDate":"2026-02-06T04:16:01",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/4A7C001C979831AA85258D960032E13D\/$FILE\/Arrington%2C%20Charles%20Ogden%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Arrington, Charles O",
+          "agency":"Federal Labor Relations Authority",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-06T04:15:44",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Chiang, Annie",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Martin, Quinn",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Schue, Aaron",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Simonson, Joseph",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Smith, Justin",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Grossman, Bradley",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T16:32:40",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Brown, Jarad",
+          "agency":"Federal Trade Commission",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2026-02-05T10:28:41",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Turner'>Request this Document<\/a>)",
+          "name":"Turner, Usha-Maria",
+          "agency":"Environmental Protection Agency",
+          "title":"Assistant Administrator for International & Tribal Affairs",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:33:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Popolo'>Request this Document<\/a>)",
+          "name":"Popolo, Joseph",
+          "agency":"Department of State",
+          "title":"Ambassador to Netherlands (Kingdom of)",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:32:51",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Perez'>Request this Document<\/a>)",
+          "name":"Perez, Gabriel",
+          "agency":"White House Office",
+          "title":"Technical Advisor",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:32:49",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kireilis'>Request this Document<\/a>)",
+          "name":"Kireilis, Althea A",
+          "agency":"Office of Administration",
+          "title":"Chief of Operations",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:32:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jayne'>Request this Document<\/a>)",
+          "name":"Jayne, Thomas R",
+          "agency":"Railroad Retirement Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:32:05",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fogel'>Request this Document<\/a>)",
+          "name":"Fogel, David",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Global Markets & Director General of U.S. and Foreign Commercial Service",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:31:46",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Chiarello'>Request this Document<\/a>)",
+          "name":"Chiarello, Gustav III",
+          "agency":"Department of Health and Human Services",
+          "title":"Assistant Secretary for Financial Resources",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:31:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bazzi'>Request this Document<\/a>)",
+          "name":"Bazzi, Bill",
+          "agency":"Department of State",
+          "title":"Ambassador to Tunisia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:31:08",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Aronowitz'>Request this Document<\/a>)",
+          "name":"Aronowitz, Daniel",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Employee Benefits Security",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:31:05",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Agen'>Request this Document<\/a>)",
+          "name":"Agen, Jarrod P",
+          "agency":"White House Office",
+          "title":"Deputy Assistant to the President & Executive Director of the National Energy Dominance Council",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:31:02",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E3E245F72B9022E585258D950032F8BD\/$FILE\/Mayer%2C%20Scott%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Mayer, Scott",
+          "agency":"National Labor Relations Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:16:44",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2B646C5828393EB985258D950032F39B\/$FILE\/Howery%2C%20Kenneth%20-%20Final%20EA%20Certification%20(2).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Howery, Kenneth A",
+          "agency":"Department of State",
+          "title":"Ambassador to Denmark",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:16:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E805993D14745C0785258D950032F2B1\/$FILE\/Herrell%2C%20Stella%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Herrell, Stella",
+          "agency":"Department of Agriculture",
+          "title":"Assistant Secretary for Congressional Relations",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:16:29",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/FA0D0749A08EE30085258D950032E5E9\/$FILE\/Brashears%2C%20Mindy%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Brashears, Mindy M",
+          "agency":"Department of Agriculture",
+          "title":"Under Secretary for Food Safety (2)",
+          "level":"n\/a",
+          "docDate":"2026-02-05T04:15:56",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-017 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Tarr'>Request this Document<\/a>)",
+          "name":"Tarr, Jennifer",
+          "agency":"Federal Trade Commission",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2026-02-05T03:15:44",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F1CE4D637266E8C085258D940034824D\/$FILE\/Allen%2C%20Charlton%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Allen, Charlton",
+          "agency":"Federal Labor Relations Authority",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-02-04T04:33:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Allen'>Request this Document<\/a>)",
+          "name":"Allen, Charlton",
+          "agency":"Federal Labor Relations Authority",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-02-04T04:31:00",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-018 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Berkowitz'>Request this Document<\/a>)",
+          "name":"Berkowitz, Marc",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Space Policy",
+          "level":"n\/a",
+          "docDate":"2026-02-04T03:15:46",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2026-021 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rogers'>Request this Document<\/a>)",
+          "name":"Rogers, Brendan",
+          "agency":"Department of The Navy",
+          "title":"Assistant Secretary for Energy, Installations & Environment",
+          "level":"n\/a",
+          "docDate":"2026-02-04T03:15:43",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Waterman'>Request this Document<\/a>)",
+          "name":"Waterman, David",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Iowa Southern District",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:33:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stuart'>Request this Document<\/a>)",
+          "name":"Stuart, Michael",
+          "agency":"Department of Health and Human Services",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:33:14",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Roberti'>Request this Document<\/a>)",
+          "name":"Roberti, Paul",
+          "agency":"Department of Transportation",
+          "title":"Administrator, Pipeline & Hazardous Materials Safety Administration",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:32:57",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Meyer'>Request this Document<\/a>)",
+          "name":"Meyer, Alexander",
+          "agency":"White House Office",
+          "title":"Director, Intergovernmental Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:32:32",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Mayer'>Request this Document<\/a>)",
+          "name":"Mayer, Scott",
+          "agency":"National Labor Relations Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:32:27",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Loeffler'>Request this Document<\/a>)",
+          "name":"Loeffler, Kelly",
+          "agency":"Small Business Administration",
+          "title":"Administrator",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:32:22",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Goyer'>Request this Document<\/a>)",
+          "name":"Goyer, James L",
+          "agency":"White House Office",
+          "title":"Director, Office of Public Liaison",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:31:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cao'>Request this Document<\/a>)",
+          "name":"Cao, Hung",
+          "agency":"Department of The Navy",
+          "title":"Under Secretary",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:31:20",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Campbell'>Request this Document<\/a>)",
+          "name":"Campbell, Matthew A",
+          "agency":"Consumer Product Safety Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:31:20",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6EE1A308863CB94285258D900032EB97\/$FILE\/Farkas%2C%20Somer%20-%20Final%20EA%20Certification%20(2).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Farkas, Somers",
+          "agency":"Department of State",
+          "title":"Ambassador to Malta (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-31T04:16:11",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Tischner'>Request this Document<\/a>)",
+          "name":"Tischner, Richard",
+          "agency":"Court Services and Offender Supervision Agency for Dc",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:33:04",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Thomas'>Request this Document<\/a>)",
+          "name":"Thomas, Nancy",
+          "agency":"Office of Navajo and Hopi Indian Relocation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:33:03",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stephens'>Request this Document<\/a>)",
+          "name":"Stephens, Warren",
+          "agency":"Department of State",
+          "title":"Ambassador to the Court of St. James (United Kingdom)",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:58",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stephens'>Request this Document<\/a>)",
+          "name":"Stephens, Warren",
+          "agency":"Department of State",
+          "title":"Ambassador to the Court of St. James (United Kingdom)",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:58",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stephens'>Request this Document<\/a>)",
+          "name":"Stephens, Warren",
+          "agency":"Department of State",
+          "title":"Ambassador to the Court of St. James (United Kingdom)",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:58",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stephens'>Request this Document<\/a>)",
+          "name":"Stephens, Warren",
+          "agency":"Department of State",
+          "title":"Ambassador to the Court of St. James (United Kingdom)",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:58",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rajkovich'>Request this Document<\/a>)",
+          "name":"Rajkovich, Marco M",
+          "agency":"Federal Mine Safety and Health Review Commission",
+          "title":"Commissioner 3",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:40",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Pirro'>Request this Document<\/a>)",
+          "name":"Pirro, Jeanine",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney District of Columbia",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:37",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Pirro'>Request this Document<\/a>)",
+          "name":"Pirro, Jeanine",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney District of Columbia",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:37",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McMullan'>Request this Document<\/a>)",
+          "name":"McMullan, Matthew",
+          "agency":"White House Office",
+          "title":"Deputy Director of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McMullan'>Request this Document<\/a>)",
+          "name":"McMullan, Matthew",
+          "agency":"White House Office",
+          "title":"Deputy Director of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:22",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McMullan'>Request this Document<\/a>)",
+          "name":"McMullan, Matthew",
+          "agency":"White House Office",
+          "title":"Deputy Director of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:22",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Locetta'>Request this Document<\/a>)",
+          "name":"Locetta, Jennifer",
+          "agency":"Department of State",
+          "title":"U.S. Alternate Representative for Special Political Affairs in United Nations w\/rank of Ambassador",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:32:15",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E0F6CD03D5B35F9785258D8F003461CE\/$FILE\/Scott-A-Kupor-10.08.2025-278T.pdf'>278 Transaction<\/a>",
+          "name":"Kupor, Scott A",
+          "agency":"Office of Personnel Management",
+          "title":"Director",
+          "level":"Level II",
+          "docDate":"2026-01-30T04:32:09",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gould'>Request this Document<\/a>)",
+          "name":"Gould, Jonathan",
+          "agency":"Department of The Treasury",
+          "title":"Comptroller of the Currency",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:48",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Dhillon'>Request this Document<\/a>)",
+          "name":"Dhillon, Janet L",
+          "agency":"Pension Benefit Guaranty Corporation",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:32",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=DeMarco'>Request this Document<\/a>)",
+          "name":"DeMarco, Vincent F",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal New York Eastern District",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:30",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Chorle'>Request this Document<\/a>)",
+          "name":"Chorle, Erhard R",
+          "agency":"Railroad Retirement Board",
+          "title":"Chairman",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:18",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cabrera'>Request this Document<\/a>)",
+          "name":"Cabrera, Kevin M",
+          "agency":"Department of State",
+          "title":"Ambassador to Panama (Republic of)",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:15",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Berry'>Request this Document<\/a>)",
+          "name":"Berry, Jonathan",
+          "agency":"Department of Labor",
+          "title":"Solicitor",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:31:07",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/1753034502F24CA285258D8F00330A8E\/$FILE\/Young%20Charles%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Young, Charles",
+          "agency":"Department of The Army",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:17:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/BD0F371A4366CF9E85258D8F0032EA1F\/$FILE\/Duva%2C%20Andrew%20Tysen%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Duva, Andrew",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Civil Division",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:16:07",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/9713B76FBCFB09A485258D8F0032E72B\/$FILE\/Carey%2C%20Crystal%20-%20Final%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Carey, Crystal",
+          "agency":"National Labor Relations Board",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2026-01-30T04:15:59",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>) (Pending Final OGE Disposition)",
+          "name":"Brown, Samuel",
+          "agency":"Department of Veterans Affairs",
+          "title":"Under Secretary For Memorial Affairs",
+          "level":"n\/a",
+          "docDate":"2026-01-29T09:22:41",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2BE93FD0AF1AF27885258D8E00347B49\/$FILE\/Bishop%2C%20James%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Bishop, James D",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney North Carolina Middle District",
+          "level":"n\/a",
+          "docDate":"2026-01-29T04:33:14",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bishop'>Request this Document<\/a>)",
+          "name":"Bishop, James D",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney North Carolina Middle District",
+          "level":"n\/a",
+          "docDate":"2026-01-29T04:31:10",
+          "amended":""
+      }
+    ]
+}

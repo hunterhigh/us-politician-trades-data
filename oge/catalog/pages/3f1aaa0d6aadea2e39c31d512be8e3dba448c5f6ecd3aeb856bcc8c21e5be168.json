@@ -1,0 +1,1009 @@
+
+{
+    "draw":73,
+    "recordsTotal":16742,
+    "recordsFiltered":16742,
+    "data":
+    [
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lightner'>Request this Document<\/a>)",
+          "name":"Lightner, Jon",
+          "agency":"Defense Logistics Agency",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:32",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=LeBlanc'>Request this Document<\/a>)",
+          "name":"LeBlanc, Travis",
+          "agency":"Privacy and Civil Liberties Oversight Board",
+          "title":"Member 2",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Leventis'>Request this Document<\/a>)",
+          "name":"Leventis, Henry",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Middle District",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Levine'>Request this Document<\/a>)",
+          "name":"Levine, Randi",
+          "agency":"Department of State",
+          "title":"Ambassador to Portuguese Republic",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kocur'>Request this Document<\/a>)",
+          "name":"Kocur, Ana M",
+          "agency":"Railroad Retirement Board",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:29",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kearns'>Request this Document<\/a>)",
+          "name":"Kearns, Jason E",
+          "agency":"International Trade Commission",
+          "title":"Commissioner 2",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:28",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kemper'>Request this Document<\/a>)",
+          "name":"Kemper, Rufus C",
+          "agency":"Institute of Museum and Library Services",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:28",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kemper'>Request this Document<\/a>)",
+          "name":"Kemper, Rufus C",
+          "agency":"Institute of Museum and Library Services",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:28",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kaye'>Request this Document<\/a>)",
+          "name":"Kaye, Janice A",
+          "agency":"Office of the US Trade Representative",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:27",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Karpel'>Request this Document<\/a>)",
+          "name":"Karpel, Amy A",
+          "agency":"International Trade Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:26",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:25",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jayne'>Request this Document<\/a>)",
+          "name":"Jayne, Thomas R",
+          "agency":"Railroad Retirement Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:25",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hedlund'>Request this Document<\/a>)",
+          "name":"Hedlund, Karen",
+          "agency":"Surface Transportation Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hinderstein'>Request this Document<\/a>)",
+          "name":"Hinderstein, Corey",
+          "agency":"Department of Energy",
+          "title":"Deputy Administrator for Defense Nuclear Nonproliferation",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hinderstein'>Request this Document<\/a>)",
+          "name":"Hinderstein, Corey",
+          "agency":"Department of Energy",
+          "title":"Deputy Administrator for Defense Nuclear Nonproliferation",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hinderstein'>Request this Document<\/a>)",
+          "name":"Hinderstein, Corey",
+          "agency":"Department of Energy",
+          "title":"Deputy Administrator for Defense Nuclear Nonproliferation",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hadjiyane'>Request this Document<\/a>)",
+          "name":"Hadjiyane, Paul",
+          "agency":"Department of Defense - Office of Inspector General",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hadjiyane'>Request this Document<\/a>)",
+          "name":"Hadjiyane, Paul",
+          "agency":"Department of Defense - Office of Inspector General",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Harpootlian'>Request this Document<\/a>)",
+          "name":"Harpootlian, Jamie",
+          "agency":"Department of State",
+          "title":"Ambassador to Slovenia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Haas'>Request this Document<\/a>)",
+          "name":"Haas, Peter D",
+          "agency":"Department of State",
+          "title":"Ambassador to Bangladesh (People's Republic of)",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Franklin'>Request this Document<\/a>)",
+          "name":"Franklin, Sharon B",
+          "agency":"Privacy and Civil Liberties Oversight Board",
+          "title":"Chair",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Esparza'>Request this Document<\/a>)",
+          "name":"Esparza, Jaime",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Texas Western District",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:15",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Esparza'>Request this Document<\/a>)",
+          "name":"Esparza, Jaime",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Texas Western District",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:15",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=DiZinno'>Request this Document<\/a>)",
+          "name":"DiZinno, Richard",
+          "agency":"Privacy and Civil Liberties Oversight Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:12",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Dettelbach'>Request this Document<\/a>)",
+          "name":"Dettelbach, Steven M",
+          "agency":"Department of Justice",
+          "title":"Director, Bureau of Alcohol, Tobacco, Firearms & Explosives",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:11",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=DelBene'>Request this Document<\/a>)",
+          "name":"DelBene, Kurt",
+          "agency":"Department of Veterans Affairs",
+          "title":"Assistant Secretary for Information & Technology",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:10",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cheng'>Request this Document<\/a>)",
+          "name":"Cheng, Dennis W",
+          "agency":"White House Office",
+          "title":"Deputy Assistant to the President & Deputy Director of Political Strategy and Outreach",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:06",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brubacher'>Request this Document<\/a>)",
+          "name":"Brubacher, Kate E",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Kansas",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:04",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bhargava'>Request this Document<\/a>)",
+          "name":"Bhargava, Elizabeth D",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Assistant Secretary for Administration",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:02",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Boyle'>Request this Document<\/a>)",
+          "name":"Boyle, Mary",
+          "agency":"Consumer Product Safety Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:02",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Benjamin'>Request this Document<\/a>)",
+          "name":"Benjamin, Stephen",
+          "agency":"White House Office",
+          "title":"Assistant to the President, Director Office of Public Engagement",
+          "level":"n\/a",
+          "docDate":"2024-04-23T04:33:01",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Walden'>Request this Document<\/a>)",
+          "name":"Walden, Paul A",
+          "agency":"Public Buildings Reform Board",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:45",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Sisson'>Request this Document<\/a>)",
+          "name":"Sisson, Robert",
+          "agency":"International Joint Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:41",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Sisson'>Request this Document<\/a>)",
+          "name":"Sisson, Robert",
+          "agency":"International Joint Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:41",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kennedy'>Request this Document<\/a>)",
+          "name":"Kennedy, Caroline B",
+          "agency":"Department of State",
+          "title":"Ambassador to Australia",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:19",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Keohane'>Request this Document<\/a>)",
+          "name":"Keohane, Ronald",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Manpower & Reserve Affairs",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:19",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Harper'>Request this Document<\/a>)",
+          "name":"Harper, Todd M",
+          "agency":"National Credit Union Administration",
+          "title":"Member, National Credit Union Administration Board 2",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:14",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Goffman'>Request this Document<\/a>)",
+          "name":"Goffman, Joseph M.",
+          "agency":"Environmental Protection Agency",
+          "title":"Assistant Administrator for Air & Radiation",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:12",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Finegan'>Request this Document<\/a>)",
+          "name":"Finegan, Philip C",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Colorado",
+          "level":"n\/a",
+          "docDate":"2024-04-20T04:33:10",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2E707ED80868AA4B85258B03002C20E5\/$FILE\/Brown%20EA%20Certification%201%20of%201--%20.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Brown, Alvin",
+          "agency":"National Transportation Safety Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-18T04:02:00",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A058BDD8ED7E6B5285258B02002C2F67\/$FILE\/Keohane%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Keohane, Ronald",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Manpower & Reserve Affairs",
+          "level":"n\/a",
+          "docDate":"2024-04-17T04:02:37",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/11F556C8DDBB987785258B02002C2168\/$FILE\/Campbell%20%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Campbell, Kurt",
+          "agency":"Department of State",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2024-04-17T04:02:01",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rich'>Request this Document<\/a>)",
+          "name":"Rich, Jessica",
+          "agency":"Consumer Product Safety Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:33:38",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rich'>Request this Document<\/a>)",
+          "name":"Rich, Jessica",
+          "agency":"Consumer Product Safety Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:33:38",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rich'>Request this Document<\/a>)",
+          "name":"Rich, Jessica",
+          "agency":"Consumer Product Safety Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:33:38",
+          "amended":""
+      },
+      
+      {
+          "type":"Presidential Candidate (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Norris'>Request this Document<\/a>)",
+          "name":"Norris, Jim A",
+          "agency":"Candidates - F.E.C.",
+          "title":"Presidential Candidate",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:33:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ehrendreich'>Request this Document<\/a>)",
+          "name":"Ehrendreich, Joel C",
+          "agency":"Department of State",
+          "title":"Ambassador to Palau (Republic of)",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:33:02",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>)",
+          "name":"Brown, Elizabeth",
+          "agency":"Department of Education",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2024-04-13T04:32:50",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/9CB7E878CED2ABCA85258AFE002C1E6D\/$FILE\/Coker%20EA%20Certification%202%20of%202.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Coker, Harry",
+          "agency":"Office of the National Cyber Director",
+          "title":"Director",
+          "level":"Level II",
+          "docDate":"2024-04-13T04:01:53",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-050 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Yeric'>Request this Document<\/a>)",
+          "name":"Yeric, Gregory",
+          "agency":"Department of Commerce",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-13T03:15:48",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-049 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hackman'>Request this Document<\/a>)",
+          "name":"Hackman, Thomas",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-13T03:15:45",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-048 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Medley'>Request this Document<\/a>)",
+          "name":"Medley, Francine",
+          "agency":"Consumer Financial Protection Bureau",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-13T03:15:41",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Scolese'>Request this Document<\/a>)",
+          "name":"Scolese, Christopher J",
+          "agency":"National Reconnaissance Office",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2024-04-12T04:33:42",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Quinn'>Request this Document<\/a>)",
+          "name":"Quinn, Matt",
+          "agency":"Department of Veterans Affairs",
+          "title":"Under Secretary For Memorial Affairs",
+          "level":"n\/a",
+          "docDate":"2024-04-12T04:33:35",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stevens'>Request this Document<\/a>)",
+          "name":"Stevens, Allison M",
+          "agency":"National Geospatial Intelligence Agency",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-11T04:33:48",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stevens'>Request this Document<\/a>)",
+          "name":"Stevens, Allison M",
+          "agency":"National Geospatial Intelligence Agency",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-11T04:33:48",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brink'>Request this Document<\/a>)",
+          "name":"Brink, Bridget",
+          "agency":"Department of State",
+          "title":"Ambassador to Slovak Republic",
+          "level":"n\/a",
+          "docDate":"2024-04-11T04:32:50",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/0807D99A059A8ED385258AFB002C3AE0\/$FILE\/Slaughter.%20EA%20Certification%201%20of%201%20.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Slaughter, Rebecca Joy Kelly",
+          "agency":"Federal Trade Commission",
+          "title":"Commissioner 2",
+          "level":"n\/a",
+          "docDate":"2024-04-10T04:03:06",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Young'>Request this Document<\/a>)",
+          "name":"Young, Eugene S",
+          "agency":"Department of State",
+          "title":"Ambassador to Congo (Republic of)",
+          "level":"n\/a",
+          "docDate":"2024-04-09T04:33:47",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Mancini'>Request this Document<\/a>)",
+          "name":"Mancini, Nadine N",
+          "agency":"Occupational Safety and Health Review Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-09T04:33:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Chorle'>Request this Document<\/a>)",
+          "name":"Chorle, Erhard R",
+          "agency":"Railroad Retirement Board",
+          "title":"Chairman",
+          "level":"n\/a",
+          "docDate":"2024-04-09T04:32:53",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F6AF43EA671621A985258AFA002C24A7\/$FILE\/Gooden%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Gooden, Basil",
+          "agency":"Department of Agriculture",
+          "title":"Under Secretary for Rural Development",
+          "level":"n\/a",
+          "docDate":"2024-04-09T04:02:09",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual Term (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Weiss'>Request this Document<\/a>)",
+          "name":"Weiss, Nancy E",
+          "agency":"Institute of Museum and Library Services",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:55",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Van%20Schaack'>Request this Document<\/a>)",
+          "name":"Van Schaack, Beth",
+          "agency":"Department of State",
+          "title":"Ambassador at Large for Global Criminal Justice",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Van%20Schaack'>Request this Document<\/a>)",
+          "name":"Van Schaack, Beth",
+          "agency":"Department of State",
+          "title":"Ambassador at Large for Global Criminal Justice",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Van%20Schaack'>Request this Document<\/a>)",
+          "name":"Van Schaack, Beth",
+          "agency":"Department of State",
+          "title":"Ambassador at Large for Global Criminal Justice",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Van%20Schaack'>Request this Document<\/a>)",
+          "name":"Van Schaack, Beth",
+          "agency":"Department of State",
+          "title":"Ambassador at Large for Global Criminal Justice",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Van%20Schaack'>Request this Document<\/a>)",
+          "name":"Van Schaack, Beth",
+          "agency":"Department of State",
+          "title":"Ambassador at Large for Global Criminal Justice",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Turner'>Request this Document<\/a>)",
+          "name":"Turner, Bruce I",
+          "agency":"Department of State",
+          "title":"U.S. Representative to Conference on Disarmament w\/rank of Ambassador",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:52",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rayes'>Request this Document<\/a>)",
+          "name":"Rayes, Nathalie",
+          "agency":"Department of State",
+          "title":"Ambassador to Croatia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:37",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Raghavan'>Request this Document<\/a>)",
+          "name":"Raghavan, Gautam",
+          "agency":"White House Office",
+          "title":"Assistant to the President & Director of Presidential Personnel",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:37",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Moffitt'>Request this Document<\/a>)",
+          "name":"Moffitt, Jennifer",
+          "agency":"Department of Agriculture",
+          "title":"Under Secretary for Marketing & Regulatory Programs",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:30",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Mancini'>Request this Document<\/a>)",
+          "name":"Mancini, Nadine N",
+          "agency":"Occupational Safety and Health Review Commission",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:24",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Levine'>Request this Document<\/a>)",
+          "name":"Levine, Randi",
+          "agency":"Department of State",
+          "title":"Ambassador to Portuguese Republic",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kuczynski'>Request this Document<\/a>)",
+          "name":"Kuczynski, Christopher",
+          "agency":"Access Board",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:19",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kennedy'>Request this Document<\/a>)",
+          "name":"Kennedy, Caroline B",
+          "agency":"Department of State",
+          "title":"Ambassador to Australia",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:18",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kennedy'>Request this Document<\/a>)",
+          "name":"Kennedy, Caroline B",
+          "agency":"Department of State",
+          "title":"Ambassador to Australia",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jayne'>Request this Document<\/a>)",
+          "name":"Jayne, Thomas R",
+          "agency":"Railroad Retirement Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:15",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Goffman'>Request this Document<\/a>)",
+          "name":"Goffman, Joseph M.",
+          "agency":"Environmental Protection Agency",
+          "title":"Assistant Administrator for Air & Radiation",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:07",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fitzsimmons'>Request this Document<\/a>)",
+          "name":"Fitzsimmons, Elizabeth N",
+          "agency":"Department of State",
+          "title":"Ambassador to Togolese Republic",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:05",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fernandez'>Request this Document<\/a>)",
+          "name":"Fernandez, Jose",
+          "agency":"Department of State",
+          "title":"Under Secretary for Economic Growth, Energy & the Environment",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:04",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fernandez'>Request this Document<\/a>)",
+          "name":"Fernandez, Jose",
+          "agency":"Department of State",
+          "title":"Under Secretary for Economic Growth, Energy & the Environment",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:04",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Feldman'>Request this Document<\/a>)",
+          "name":"Feldman, Stefanie",
+          "agency":"White House Office",
+          "title":"Assistant to the President & Staff Secretary; Director, Office of Gun Violence Prevention",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:33:03",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Croston'>Request this Document<\/a>)",
+          "name":"Croston, Sean",
+          "agency":"Federal Reserve System Board of Governors",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2024-04-06T04:32:57",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-041 & 042 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gupta'>Request this Document<\/a>)",
+          "name":"Gupta, Neha",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-06T03:15:44",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-047 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Horn'>Request this Document<\/a>)",
+          "name":"Horn, Karlos",
+          "agency":"Consumer Financial Protection Bureau",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-06T03:15:41",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/EB9C95A8F7B1101685258AF6002F1295\/$FILE\/Sulmeyer%2C%20Michael%20L.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Sulmeyer, Michael L",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Cyber Policy",
+          "level":"n\/a",
+          "docDate":"2024-04-05T04:34:09",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Sulmeyer'>Request this Document<\/a>)",
+          "name":"Sulmeyer, Michael L",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Cyber Policy",
+          "level":"n\/a",
+          "docDate":"2024-04-05T04:33:56",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/1FC5F58F66121BF985258AF6002EF2EB\/$FILE\/Christine-Abizaid-11.05.2023-278T.pdf'>278 Transaction<\/a>",
+          "name":"Abizaid, Christine",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Director, National Counterterrorism Center",
+          "level":"Level II",
+          "docDate":"2024-04-05T04:32:48",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/80DB0B1C70FA61E185258AF6002EF2E1\/$FILE\/Christine-Abizaid-01.16.2024-278T.pdf'>278 Transaction<\/a>",
+          "name":"Abizaid, Christine",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Director, National Counterterrorism Center",
+          "level":"Level II",
+          "docDate":"2024-04-05T04:32:48",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-045 & 046 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Reimelt'>Request this Document<\/a>)",
+          "name":"Reimelt, Alexandra",
+          "agency":"Consumer Product Safety Commission",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-05T03:25:33",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Stevenson'>Request this Document<\/a>)",
+          "name":"Stevenson, Patrick J",
+          "agency":"White House Office",
+          "title":"Deputy Assistant to the President & Senior Advisor for Digital Strategy",
+          "level":"n\/a",
+          "docDate":"2024-04-04T04:33:58",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lucius'>Request this Document<\/a>)",
+          "name":"Lucius, Kristine",
+          "agency":"Office of The Vice President",
+          "title":"Deputy Assistant to the President & Domestic Policy Advisor",
+          "level":"n\/a",
+          "docDate":"2024-04-04T04:33:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/746DA9904D1173FA85258AF5002EFE15\/$FILE\/Jennifer-Granholm-02.28.2024-278T.pdf'>278 Transaction<\/a>",
+          "name":"Granholm, Jennifer",
+          "agency":"Department of Energy",
+          "title":"Secretary",
+          "level":"Level I",
+          "docDate":"2024-04-04T04:33:17",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-043 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Murphy'>Request this Document<\/a>)",
+          "name":"Murphy, Kara",
+          "agency":"Department of The Treasury",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-04T03:15:49",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2024-040 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Himes'>Request this Document<\/a>)",
+          "name":"Himes, Jay L.",
+          "agency":"Federal Trade Commission",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2024-04-04T03:15:40",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2024) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Tracy'>Request this Document<\/a>)",
+          "name":"Tracy, Lynne M",
+          "agency":"Department of State",
+          "title":"Ambassador to Russian Federation",
+          "level":"n\/a",
+          "docDate":"2024-04-03T04:33:55",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Prouty'>Request this Document<\/a>)",
+          "name":"Prouty, David",
+          "agency":"National Labor Relations Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2024-04-03T04:33:40",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Monheim'>Request this Document<\/a>)",
+          "name":"Monheim, Thomas A",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Inspector General of the Intelligence Community",
+          "level":"n\/a",
+          "docDate":"2024-04-03T04:33:34",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Monheim'>Request this Document<\/a>)",
+          "name":"Monheim, Thomas A",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Inspector General of the Intelligence Community",
+          "level":"n\/a",
+          "docDate":"2024-04-03T04:33:34",
+          "amended":""
+      }
+    ]
+}
