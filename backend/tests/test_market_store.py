@@ -104,16 +104,19 @@ class MarketStoreTests(unittest.TestCase):
         page = json.loads(bundle.files[f"market-pages/{bundle.page_shas[0]}.json"])
         self.assertEqual(page["security_market_data"][0]["ticker"], "AAPL")
 
-    def test_materialize_preserves_old_objects_and_replaces_indexes(self):
+    def test_materialize_prunes_old_objects_and_replaces_indexes(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first = build_market_bundle([row("AAPL")], data_cutoff_at="2026-09-20T23:59:59Z")
             materialize_market(root, first)
-            old_blobs = [path for path in first.files if not path.endswith("index.json")]
             second = build_market_bundle([row("MSFT")], data_cutoff_at="2026-09-20T23:59:59Z")
+            old_only = set(first.files) - set(second.files)
             result = materialize_market(root, second)
             self.assertTrue(result.changed)
-            self.assertTrue(all((root / path).is_file() for path in old_blobs))
+            self.assertTrue(old_only)
+            self.assertTrue(old_only <= set(result.removed))
+            self.assertTrue(all(not (root / path).exists() for path in old_only))
+            self.assertTrue(all((root / path).is_file() for path in second.files))
 
     def test_rejects_wrong_source_and_future_prices(self):
         bad = row()
