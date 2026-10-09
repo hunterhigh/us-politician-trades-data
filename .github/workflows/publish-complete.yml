@@ -270,6 +270,7 @@ jobs:
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
           REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}
+          PREVIOUS_MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
         run: |
           npm ci
           npm run test:production
@@ -429,6 +430,7 @@ jobs:
         if: ${{ !inputs.skip_prepared_readback }}
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
+          PREVIOUS_MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
         run: |
           npm run test:production
           npm run test:latest-html
