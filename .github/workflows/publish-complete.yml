@@ -166,6 +166,15 @@ jobs:
           echo "cache_market_commit=$cache_market_ref" >> "$GITHUB_OUTPUT"
           echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Freeze prior board for both HTML browser checks
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+        run: |
+          previous="$RUNNER_TEMP/previous-main"
+          mkdir -p "$previous/board"
+          cp "$MAIN_ROOT/manifest.json" "$previous/manifest.json"
+          board_sha="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["board"])' "$previous/manifest.json")"
+          cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"
       - name: Build canonical disclosure projection from qualified sources
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -270,7 +279,7 @@ jobs:
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
           REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}
-          PREVIOUS_MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main
         run: |
           npm ci
           npm run test:production
@@ -430,7 +439,7 @@ jobs:
         if: ${{ !inputs.skip_prepared_readback }}
         env:
           PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
-          PREVIOUS_MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main
         run: |
           npm run test:production
           npm run test:latest-html
