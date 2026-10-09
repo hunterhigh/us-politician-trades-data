@@ -156,7 +156,10 @@ try {
     data.transactions.find(row => row.id === id)?.transaction_type === 'purchase');
   assert.equal(await page.locator('#timeline30 .timeline-row').count(), purchases30.length);
   await page.locator('#window-30 [data-tx-filter="all"]').click();
-  await page.locator('#timeline30 .timeline-row').first().click();
+  // Click the row itself. A coordinate click can hit its nested person/ticker
+  // button, whose navigation intentionally takes precedence over the drawer.
+  await page.locator('#timeline30 .timeline-row').first().evaluate(row =>
+    row.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   assert.equal(await page.locator('#drawer').getAttribute('aria-hidden'), 'false');
   const firstId = await page.locator('#timeline30 .timeline-row').first().getAttribute('data-tx');
   const first = data.transactions.find(row => row.id === firstId);
