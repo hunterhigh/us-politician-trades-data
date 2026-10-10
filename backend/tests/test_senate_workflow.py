@@ -90,6 +90,20 @@ class SenateWorkflowTests(unittest.TestCase):
                               content[source_commit:harmonize])
                 self.assertNotIn('continue-on-error', content[source_commit:unified_commit])
 
+    def test_annual_source_survives_stale_peer_cutoff(self):
+        content = (ROOT / ".github/workflows/senate-annual.yml").read_text(
+            encoding="utf-8")
+        overlay = content.index("python backend/scripts/senate_annual.py overlay")
+        source_commit = content.index("review: Senate annual source candidate")
+        harmonize = content.index("python -m unison_snapshot build-disclosure-candidate")
+        unified_commit = content.index("review: Senate annual holdings")
+        self.assertLess(overlay, source_commit)
+        self.assertLess(source_commit, harmonize)
+        self.assertLess(harmonize, unified_commit)
+        self.assertIn('git -C "$review" push origin HEAD:refs/heads/review',
+                      content[source_commit:harmonize])
+        self.assertNotIn('continue-on-error', content[source_commit:unified_commit])
+
     def test_roster_refresh_preserves_catalog_gate_and_status(self):
         content = (ROOT / ".github/workflows/senate-roster.yml").read_text(encoding="utf-8")
         self.assertIn("gate = prior.get('gate'", content)

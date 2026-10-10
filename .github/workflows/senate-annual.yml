@@ -85,6 +85,19 @@ jobs:
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --candidate "$review/candidates/sources/senate_efd-current.json" \
             --audit-output "$review/senate_efd/annual/candidate-audit-current.json"
+          # Keep the validated Senate source current even when another source's
+          # stale cutoff prevents a coherent unified candidate in this run.
+          git -C "$review" add senate_efd/annual \
+            candidates/sources/senate_efd-current.json
+          if ! git -C "$review" diff --cached --quiet; then
+            git -C "$review" config user.name 'github-actions[bot]'
+            git -C "$review" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git -C "$review" commit -m "review: Senate annual source candidate ${{ github.run_id }}"
+            git -C "$review" push origin HEAD:refs/heads/review
+          fi
+      - name: Build and validate unified candidate
+        run: |
+          review="$RUNNER_TEMP/senate-annual-review"
           source_args=(--source "senate_efd=$review/candidates/sources/senate_efd-current.json")
           for source_id in house_clerk oge; do
             source="$review/candidates/sources/$source_id-current.json"
@@ -97,12 +110,10 @@ jobs:
           python -m unison_snapshot verify-first-launch \
             --review-root "$review" --input "$review/candidates/disclosure-current.json" \
             --output "$RUNNER_TEMP/senate-annual-readiness.json"
-      - name: Publish verified review and candidate
+      - name: Publish verified unified candidate
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
-          git -C "$review" add senate_efd/annual \
-            candidates/sources/senate_efd-current.json \
-            candidates/disclosure-current.json status/disclosure_cutoff.json
+          git -C "$review" add candidates/disclosure-current.json status/disclosure_cutoff.json
           if ! git -C "$review" diff --cached --quiet; then
             git -C "$review" config user.name 'github-actions[bot]'
             git -C "$review" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
