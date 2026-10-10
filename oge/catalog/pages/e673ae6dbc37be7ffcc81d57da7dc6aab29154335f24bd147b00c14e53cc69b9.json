@@ -1,0 +1,1009 @@
+
+{
+    "draw":45,
+    "recordsTotal":16746,
+    "recordsFiltered":16746,
+    "data":
+    [
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3D4383A23C5FBA2185258C66002C7324\/$FILE\/Bowman%2C%20Michelle%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Bowman, Michelle White",
+          "agency":"Federal Reserve System Board of Governors",
+          "title":"Governor & Vice Chairman for Supervision",
+          "level":"Level II",
+          "docDate":"2025-04-08T04:05:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A7022184F9B5F42585258C66002C160D\/$FILE\/Ethics%20Agreement%20Compliance%20Certification_Bradbury.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Bradbury, Steven G",
+          "agency":"Department of Transportation",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-04-08T04:01:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-056 & 057 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rick'>Request this Document<\/a>)",
+          "name":"Rick, Amy C.",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2025-04-08T03:15:22",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/3DEF2416CCC5A8B385258C63002C8FE1\/$FILE\/Walsh%2C%20Edward%20%20AMENDEDfinalEA.pdf'>Ethics Agreement<\/a> (Amended 12\/05\/2025)",
+          "name":"Walsh, Edward",
+          "agency":"Department of State",
+          "title":"Ambassador to Ireland",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:06:44",
+          "amended":"2025-12-05T00:00:00"
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Walsh'>Request this Document<\/a>)",
+          "name":"Walsh, Edward",
+          "agency":"Department of State",
+          "title":"Ambassador to Ireland",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:06:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Schaefer'>Request this Document<\/a>)",
+          "name":"Schaefer, Agnes",
+          "agency":"Department of The Army",
+          "title":"Assistant Secretary for Manpower & Reserve Affairs",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:06:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Pekoske'>Request this Document<\/a>)",
+          "name":"Pekoske, David P",
+          "agency":"Department of Homeland Security",
+          "title":"Administrator, Transportation Security Administration",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:06:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gordon'>Request this Document<\/a>)",
+          "name":"Gordon, Julia",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Assistant Secretary for Housing-Federal Housing Commissioner",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:05:54",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=DelBene'>Request this Document<\/a>)",
+          "name":"DelBene, Kurt",
+          "agency":"Department of Veterans Affairs",
+          "title":"Assistant Secretary for Information & Technology",
+          "level":"n\/a",
+          "docDate":"2025-04-05T04:05:45",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-055 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Dhillon'>Request this Document<\/a>)",
+          "name":"Dhillon, Harmeet K",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Civil Rights Division",
+          "level":"n\/a",
+          "docDate":"2025-04-05T03:15:28",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-054 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Herzog'>Request this Document<\/a>)",
+          "name":"Herzog, William",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2025-04-05T03:15:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-052 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Callahan'>Request this Document<\/a>)",
+          "name":"Callahan, Kenneth R.",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2025-04-05T03:15:22",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/4DF22552ED9952C385258C62002C8C4D\/$FILE\/O%27Keefe%2C%20Sean%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"O'Keefe, Sean",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Under Secretary for Personnel & Readiness",
+          "level":"n\/a",
+          "docDate":"2025-04-04T04:06:35",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/969ED233847D495185258C62002C8BF1\/$FILE\/Kent%2C%20Joseph%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Kent, Joseph",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Director, National Counterterrorism Center",
+          "level":"Level II",
+          "docDate":"2025-04-04T04:06:34",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/31EB5BA16443891085258C62002C8B5D\/$FILE\/Dabbar%2C%20Paul%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Dabbar, Paul M",
+          "agency":"Department of Commerce",
+          "title":"Deputy Secretary",
+          "level":"n\/a",
+          "docDate":"2025-04-04T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=O%27Keefe'>Request this Document<\/a>)",
+          "name":"O'Keefe, Sean",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Under Secretary for Personnel & Readiness",
+          "level":"n\/a",
+          "docDate":"2025-04-04T04:06:08",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7852D8702CCC695885258C62002C7D45\/$FILE\/Kent%2C%20Joseph%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Kent, Joseph",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Director, National Counterterrorism Center",
+          "level":"Level II",
+          "docDate":"2025-04-04T04:05:56",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Dabbar'>Request this Document<\/a>)",
+          "name":"Dabbar, Paul M",
+          "agency":"Department of Commerce",
+          "title":"Deputy Secretary",
+          "level":"n\/a",
+          "docDate":"2025-04-04T04:05:38",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-053 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Noem'>Request this Document<\/a>)",
+          "name":"Noem, Kristi",
+          "agency":"Department of Homeland Security",
+          "title":"Secretary",
+          "level":"Level I",
+          "docDate":"2025-04-04T03:15:25",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/4ABF48588AF5652F85258C61002C8CC5\/$FILE\/Travnicek%2C%20Andrea%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Travnicek, Andrea",
+          "agency":"Department of The Interior",
+          "title":"Assistant Secretary for Water & Science",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:36",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/20CDAA570639DDF685258C61002C8C86\/$FILE\/Serralta%2C%20Gadyaces%20S.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Serralta, Gadyaces S",
+          "agency":"Department of Justice",
+          "title":"Director, U.S. Marshals Service",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:35",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/357A2D53C4C3929F85258C61002C8C44\/$FILE\/O%27Neill%2C%20James%20Brendan%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"O'Neill, James B",
+          "agency":"Department of Health and Human Services",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-04-03T04:06:34",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7620081F5AD4411785258C61002C8BE0\/$FILE\/Kupor%2C%20Scott%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Kupor, Scott A",
+          "agency":"Office of Personnel Management",
+          "title":"Director",
+          "level":"Level II",
+          "docDate":"2025-04-03T04:06:33",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/17326B1DE4E1A87885258C61002C8B6E\/$FILE\/Fink%2C%20David%20A.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Fink, David A",
+          "agency":"Department of Transportation",
+          "title":"Administrator, Federal Railroad Administration",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7BCAF5EBED4FD98685258C61002C8ADE\/$FILE\/Boren%2C%20Michael%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Boren, Michael",
+          "agency":"Department of Agriculture",
+          "title":"Under Secretary for Natural Resources & Environment",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A3F4147292E6433985258C61002C88E4\/$FILE\/Ueland%2C%20Eric%20M.%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Ueland, Eric M",
+          "agency":"Office of Management and Budget",
+          "title":"Deputy Director for Management",
+          "level":"Level II",
+          "docDate":"2025-04-03T04:06:26",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Travnicek'>Request this Document<\/a>)",
+          "name":"Travnicek, Andrea",
+          "agency":"Department of The Interior",
+          "title":"Assistant Secretary for Water & Science",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Serralta'>Request this Document<\/a>)",
+          "name":"Serralta, Gadyaces S",
+          "agency":"Department of Justice",
+          "title":"Director, U.S. Marshals Service",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:20",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ross'>Request this Document<\/a>)",
+          "name":"Ross, Patricia",
+          "agency":"Department of Veterans Affairs",
+          "title":"Assistant Secretary for Congressional & Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:15",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/731E1C0290410CEF85258C61002C82A7\/$FILE\/O%27Neill%2C%20James%20Brendan%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"O'Neill, James B",
+          "agency":"Department of Health and Human Services",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-04-03T04:06:10",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Merten'>Request this Document<\/a>)",
+          "name":"Merten, Kenneth H",
+          "agency":"Department of State",
+          "title":"Ambassador to Bulgaria (Republic of)",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:06",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Merten'>Request this Document<\/a>)",
+          "name":"Merten, Kenneth H",
+          "agency":"Department of State",
+          "title":"Ambassador to Bulgaria (Republic of)",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:06",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Manchin'>Request this Document<\/a>)",
+          "name":"Manchin, Gayle",
+          "agency":"Appalachian Regional Commission",
+          "title":"Federal Co-Chairman",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:06:02",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kuczynski'>Request this Document<\/a>)",
+          "name":"Kuczynski, Christopher",
+          "agency":"Access Board",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:59",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7523958412D636E385258C61002C7E68\/$FILE\/Kupor%2C%20Scott%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Kupor, Scott A",
+          "agency":"Office of Personnel Management",
+          "title":"Director",
+          "level":"Level II",
+          "docDate":"2025-04-03T04:05:59",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gartner'>Request this Document<\/a>)",
+          "name":"Gartner, Eric S",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Pennsylvania Eastern District",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:48",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Fink'>Request this Document<\/a>)",
+          "name":"Fink, David A",
+          "agency":"Department of Transportation",
+          "title":"Administrator, Federal Railroad Administration",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:47",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Estevez'>Request this Document<\/a>)",
+          "name":"Estevez, Alan F",
+          "agency":"Department of Commerce",
+          "title":"Under Secretary for Industry & Security",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:45",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=DeJoy'>Request this Document<\/a>)",
+          "name":"DeJoy, Louis",
+          "agency":"U.S. Postal Service",
+          "title":"Postmaster General",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:42",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>)",
+          "name":"Brown, Thomas E",
+          "agency":"Department of Justice",
+          "title":"U.S. Marshal Georgia Northern District",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Boren'>Request this Document<\/a>)",
+          "name":"Boren, Michael",
+          "agency":"Department of Agriculture",
+          "title":"Under Secretary for Natural Resources & Environment",
+          "level":"n\/a",
+          "docDate":"2025-04-03T04:05:34",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/8732C5DAA4D59F9185258C60002C7975\/$FILE\/Kathleen-Hicks-2025-278TERM.pdf'>Termination<\/a>",
+          "name":"Hicks, Kathleen",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-04-02T04:05:46",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/19FB5CCD542C112E85258C5F002C8807\/$FILE\/Perdue%2C%20David%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Perdue, David",
+          "agency":"Department of State",
+          "title":"Ambassador to China (People's Republic of)",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:06:24",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/506E50E25E61FFF685258C5F002C883F\/$FILE\/Sgamma%2C%20Kathleen%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Sgamma, Kathleen",
+          "agency":"Department of The Interior",
+          "title":"Director, Bureau of Land Management",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:06:24",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Perdue'>Request this Document<\/a>)",
+          "name":"Perdue, David",
+          "agency":"Department of State",
+          "title":"Ambassador to China (People's Republic of)",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:06:03",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Melroy'>Request this Document<\/a>)",
+          "name":"Melroy, Pamela",
+          "agency":"National Aeronautics and Space Administration",
+          "title":"Deputy Administrator",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:58",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Crane'>Request this Document<\/a>)",
+          "name":"Crane, David",
+          "agency":"Department of Energy",
+          "title":"Under Secretary",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:36",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Coyle'>Request this Document<\/a>)",
+          "name":"Coyle, Genevieve",
+          "agency":"Presidio Trust",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Castillo'>Request this Document<\/a>)",
+          "name":"Castillo, Alejandra",
+          "agency":"Department of Commerce",
+          "title":"Assistant Secretary for Economic Development",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>)",
+          "name":"Brown, Brandon",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Louisiana Western District",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:30",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bertagnolli'>Request this Document<\/a>)",
+          "name":"Bertagnolli, Monica",
+          "agency":"Department of Health and Human Services",
+          "title":"Director, National Institutes of Health",
+          "level":"n\/a",
+          "docDate":"2025-04-01T04:05:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/CB996E3BE9EABE4285258C5F002C293E\/$FILE\/Brooke%20Rollins-Ethics%20Agreement%20Compliance%20Certification%20(USDA%20Secretary).pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rollins, Brooke L",
+          "agency":"Department of Agriculture",
+          "title":"Secretary",
+          "level":"Level I",
+          "docDate":"2025-04-01T04:02:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-048 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Edgar'>Request this Document<\/a>)",
+          "name":"Edgar, Troy D",
+          "agency":"Department of Homeland Security",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-04-01T03:15:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-051 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gabbard'>Request this Document<\/a>)",
+          "name":"Gabbard, Tulsi",
+          "agency":"Office of Director of National Intelligence",
+          "title":"Director",
+          "level":"Level I",
+          "docDate":"2025-04-01T03:15:22",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2025-049 & 050 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Loeffler'>Request this Document<\/a>)",
+          "name":"Loeffler, Kelly",
+          "agency":"Small Business Administration",
+          "title":"Administrator",
+          "level":"n\/a",
+          "docDate":"2025-04-01T03:15:19",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/E09959D03B0E9BDC85258C5D002C875F\/$FILE\/Eisenberg%2C%20John%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Eisenberg, John A",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, National Security Division",
+          "level":"n\/a",
+          "docDate":"2025-03-30T04:06:22",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Eisenberg'>Request this Document<\/a>)",
+          "name":"Eisenberg, John A",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, National Security Division",
+          "level":"n\/a",
+          "docDate":"2025-03-30T04:05:39",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Gonzales, Danielle M.",
+          "agency":"Department of Education",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2025-03-28T10:49:20",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Medhi, Deepankar",
+          "agency":"National Science Foundation",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2025-03-28T10:49:20",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Snyder, Jeffrey",
+          "agency":"Department of Energy",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2025-03-28T10:49:20",
+          "amended":""
+      },
+      
+      {
+          "type":"Conflict of Interest Waiver <a href='https:\/\/www.oge.gov\/web\/oge.nsf\/about_ethics-contact-list' >(Contact agency to request)<\/a>",
+          "name":"Solomon, Jared S.",
+          "agency":"Department of Education",
+          "title":"Conflict of Interest Waiver",
+          "level":"n\/a",
+          "docDate":"2025-03-28T10:49:20",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/02ABA39050CBC54B85258C5B002C8BE9\/$FILE\/White%2C%20William%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"White, William",
+          "agency":"Department of State",
+          "title":"Ambassador to Belgium",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:34",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/ACD97C984E1AEDB585258C5B002C8BF7\/$FILE\/Woll%2C%20David%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Woll, David",
+          "agency":"Department of Housing and Urban Development",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:34",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/810B0F51B773CAAD85258C5B002C8BA7\/$FILE\/Shumate%20Brett%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Shumate, Brett A",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Civil Division",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:33",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/A8F324805B1D0F9F85258C5B002C8BC5\/$FILE\/Topping%2C%20Richard%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Topping, Richard",
+          "agency":"Department of Veterans Affairs",
+          "title":"Chief Financial Officer",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:33",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/AEB3F91BB2D84CA685258C5B002C8BD3\/$FILE\/Trusty%2C%20Olivia%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Trusty, Olivia",
+          "agency":"Federal Communications Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:33",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/1709828E2C304B9985258C5B002C8B26\/$FILE\/Morrissey%2C%20Jr.%2C%20Brian%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Morrissey, Brian P",
+          "agency":"Department of The Treasury",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/1FE870E47133454585258C5B002C8B5E\/$FILE\/Palmer%2C%20Wayne%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Palmer, Wayne D",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Mine Safety & Health",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/589F49528F2447A085258C5B002C8B7C\/$FILE\/Rayburn%2C%20Joel%20D.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Rayburn, Joel D",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Near Eastern Affairs",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F6BE7C49BC33A14085258C5B002C8B82\/$FILE\/Reding%20Qui%C3%B1ones%2C%20Jason%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Reding Qui\u00F1ones, Jason",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Florida Southern District",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:32",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C13ABF637B41712585258C5B002C8AC2\/$FILE\/Hughes%2C%20Andrew%20D.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Hughes, Andrew",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-03-28T04:06:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/1033B05F8EAB0E7485258C5B002C8AA7\/$FILE\/Hansell%2C%20Bradley%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Hansell, Bradley",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Under Secretary for Intelligence & Security",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/8F689F907CCECBAF85258C5B002C8A83\/$FILE\/Ghalib%2C%20Amer%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Ghalib, Amer",
+          "agency":"Department of State",
+          "title":"Ambassador to Kuwait (State of)",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C5B20D3E92922FDF85258C5B002C8A03\/$FILE\/Clayton%2C%20Walter%20Joseph%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Clayton, Walter J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney New York Southern District",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:29",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/ECA1F269A450090285258C5B002C8A21\/$FILE\/Danly%2C%20James%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Danly, James P",
+          "agency":"Department of Energy",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-03-28T04:06:29",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F1DF439D8B1FC97585258C5B002C8A2D\/$FILE\/Davis%2C%20Patrick%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Davis, Patrick D",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Office of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:29",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2B669C7B27BCFE0285258C5B002C89EC\/$FILE\/Cadenazzi%2C%20Michael%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Cadenazzi, Michael",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Industrial Base Policy",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/F9956FE5162EB74985258C5B002C89A2\/$FILE\/Barloon%2C%20Joseph%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Barloon, Joseph",
+          "agency":"Office of The Us Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/0AAE1995D630C56785258C5B002C896D\/$FILE\/Andres%2C%20Gary%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Andres, Gary",
+          "agency":"Department of Health and Human Services",
+          "title":"Assistant Secretary for Legislation",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Woll'>Request this Document<\/a>)",
+          "name":"Woll, David",
+          "agency":"Department of Housing and Urban Development",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:26",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=White'>Request this Document<\/a>)",
+          "name":"White, William",
+          "agency":"Department of State",
+          "title":"Ambassador to Belgium",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Topping'>Request this Document<\/a>)",
+          "name":"Topping, Richard",
+          "agency":"Department of Veterans Affairs",
+          "title":"Chief Financial Officer",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:22",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Trusty'>Request this Document<\/a>)",
+          "name":"Trusty, Olivia",
+          "agency":"Federal Communications Commission",
+          "title":"Commissioner",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:22",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Shumate'>Request this Document<\/a>)",
+          "name":"Shumate, Brett A",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Civil Division",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Rayburn'>Request this Document<\/a>)",
+          "name":"Rayburn, Joel D",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Near Eastern Affairs",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:11",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Reding%20Qui%C3%B1ones'>Request this Document<\/a>)",
+          "name":"Reding Qui\u00F1ones, Jason",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Florida Southern District",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:11",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Palmer'>Request this Document<\/a>)",
+          "name":"Palmer, Wayne D",
+          "agency":"Department of Labor",
+          "title":"Assistant Secretary for Mine Safety & Health",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:07",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Morrissey'>Request this Document<\/a>)",
+          "name":"Morrissey, Brian P",
+          "agency":"Department of The Treasury",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:06:05",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/568CA44B41DDCC1D85258C5B002C7AF0\/$FILE\/Hughes%2C%20Andrew%20D.%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Hughes, Andrew",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-03-28T04:05:50",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hansell'>Request this Document<\/a>)",
+          "name":"Hansell, Bradley",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Under Secretary for Intelligence & Security",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:48",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ghalib'>Request this Document<\/a>)",
+          "name":"Ghalib, Amer",
+          "agency":"Department of State",
+          "title":"Ambassador to Kuwait (State of)",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:46",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Davis'>Request this Document<\/a>)",
+          "name":"Davis, Patrick D",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Office of Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:38",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C3B5C5BD273E7E2885258C5B002C7635\/$FILE\/Danly%2C%20James%20%20final278.pdf'>Nominee 278<\/a>",
+          "name":"Danly, James P",
+          "agency":"Department of Energy",
+          "title":"Deputy Secretary",
+          "level":"Level II",
+          "docDate":"2025-03-28T04:05:38",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Clayton'>Request this Document<\/a>)",
+          "name":"Clayton, Walter J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney New York Southern District",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cadenazzi'>Request this Document<\/a>)",
+          "name":"Cadenazzi, Michael",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Industrial Base Policy",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:33",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Barloon'>Request this Document<\/a>)",
+          "name":"Barloon, Joseph",
+          "agency":"Office of The Us Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:28",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Andres'>Request this Document<\/a>)",
+          "name":"Andres, Gary",
+          "agency":"Department of Health and Human Services",
+          "title":"Assistant Secretary for Legislation",
+          "level":"n\/a",
+          "docDate":"2025-03-28T04:05:26",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Wirkkala'>Request this Document<\/a>)",
+          "name":"Wirkkala, Rheanne",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Assistant Secretary for Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2025-03-27T04:06:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Vazirani'>Request this Document<\/a>)",
+          "name":"Vazirani, Ashish",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Deputy Under Secretary for Personnel & Readiness",
+          "level":"n\/a",
+          "docDate":"2025-03-27T04:06:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=LaPlante'>Request this Document<\/a>)",
+          "name":"LaPlante, William A",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Under Secretary for Acquisition & Sustainment",
+          "level":"n\/a",
+          "docDate":"2025-03-27T04:06:00",
+          "amended":""
+      }
+    ]
+}
