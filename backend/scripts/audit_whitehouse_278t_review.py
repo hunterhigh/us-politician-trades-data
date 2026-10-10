@@ -3,8 +3,10 @@
 Usage (from repository root):
   python backend/scripts/audit_whitehouse_278t_review.py --ref review
   python backend/scripts/audit_whitehouse_278t_review.py --commit <40-hex-sha>
+  python backend/scripts/audit_whitehouse_278t_review.py --commit <40-hex-sha> --local-git
 
-Uses GITHUB_TOKEN/GH_TOKEN or the local `gh auth token` credential.  No Git
+The API mode uses GITHUB_TOKEN/GH_TOKEN or the local `gh auth token` credential.
+The local mode requires the pinned commit and blobs in this Git checkout. No Git
 branch, remote object, evidence, review artifact, or production array is changed.
 """
 from __future__ import annotations
@@ -89,6 +91,39 @@ def _blob(sha: str, token: str) -> dict:
     return json.loads(content)
 
 
+def _local_git(*args: str) -> bytes:
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(ROOT.parent), *args], stderr=subprocess.PIPE)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError(f"Local Git read failed: {' '.join(args)}: {exc}") from None
+
+
+def _local_blob(sha: str, _token: str) -> dict:
+    if not _SHA1.fullmatch(sha):
+        raise RuntimeError("Git tree contains an invalid blob SHA")
+    content = _local_git("cat-file", "blob", sha)
+    header = f"blob {len(content)}\0".encode()
+    if hashlib.sha1(header + content).hexdigest() != sha:
+        raise RuntimeError("Local Git blob failed its content hash check")
+    return json.loads(content)
+
+
+def _local_tree(commit: str) -> dict:
+    resolved = _local_git("rev-parse", "--verify", f"{commit}^{{commit}}").decode().strip()
+    if resolved != commit:
+        raise RuntimeError("Pinned local Git commit did not resolve exactly")
+    rows = []
+    for entry in _local_git("ls-tree", "-r", "-z", commit).split(b"\0"):
+        if not entry:
+            continue
+        header, path = entry.split(b"\t", 1)
+        _, kind, sha = header.decode("ascii").split()
+        if kind == "blob":
+            rows.append({"type": kind, "path": path.decode("utf-8"), "sha": sha})
+    return {"truncated": False, "tree": rows}
+
+
 def _names(records: list[dict], field: str) -> set[str]:
     return {record[field] for record in records
             if isinstance(record.get(field), str) and record[field].strip()}
@@ -152,8 +187,11 @@ def _key_figure_counts(coverage_rows: list[dict], index_quarantine: list[dict],
     return summary
 
 
-def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None) -> dict:
-    token = _token()
+def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None,
+        local_git: bool = False) -> dict:
+    if local_git and commit is None:
+        raise RuntimeError("--local-git requires a pinned --commit")
+    token = "" if local_git else _token()
     if commit is None:
         if not ref or not re.fullmatch(r"[A-Za-z0-9._/-]+", ref):
             raise RuntimeError("Review ref is invalid")
@@ -161,7 +199,8 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         commit = pointer["object"]["sha"]
     if not _SHA1.fullmatch(commit):
         raise RuntimeError("Review commit SHA is invalid")
-    tree = _get_json("/git/trees/" + commit + "?recursive=1", token)
+    tree = (_local_tree(commit) if local_git else
+            _get_json("/git/trees/" + commit + "?recursive=1", token))
     if tree.get("truncated") is not False or not isinstance(tree.get("tree"), list):
         raise RuntimeError("GitHub review tree is incomplete")
     blobs = {item["path"]: item["sha"] for item in tree["tree"]
@@ -174,9 +213,10 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
     }
     if not required.issubset(blobs):
         raise RuntimeError("Pinned review tree lacks required audit inputs")
+    blob_reader = _local_blob if local_git else _blob
     contents = {}
     with ThreadPoolExecutor(max_workers=5) as pool:
-        futures = {pool.submit(_blob, blobs[path], token): path for path in sorted(required)}
+        futures = {pool.submit(blob_reader, blobs[path], token): path for path in sorted(required)}
         for future in as_completed(futures):
             contents[futures[future]] = future.result()
     coverage = contents["whitehouse/coverage-current.json"]
@@ -197,7 +237,7 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
                               row, blobs, ANNUAL_PARSERS)) is not None)
     selected = sorted(required | set(extraction_paths) | set(annual_paths))
     with ThreadPoolExecutor(max_workers=5) as pool:
-        futures = {pool.submit(_blob, blobs[path], token): path
+        futures = {pool.submit(blob_reader, blobs[path], token): path
                    for path in [*extraction_paths, *annual_paths]}
         for future in as_completed(futures):
             contents[futures[future]] = future.result()
@@ -272,8 +312,11 @@ def main() -> None:
     source.add_argument("--ref", default="review")
     source.add_argument("--commit")
     parser.add_argument("--audit-output", type=Path)
+    parser.add_argument("--local-git", action="store_true",
+                        help="Read the pinned commit and verified blobs from local Git")
     args = parser.parse_args()
-    result = run(ref=args.ref, commit=args.commit, audit_output=args.audit_output)
+    result = run(ref=args.ref, commit=args.commit, audit_output=args.audit_output,
+                 local_git=args.local_git)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
