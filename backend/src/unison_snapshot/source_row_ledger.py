@@ -256,3 +256,72 @@ def house_ptr_shadow_pages(pages: list[dict], *, document_sha256: str,
             coverage_reason=None if located else page.get("reason", "unlocated_grid"),
             coordinate_frame=page.get("coordinate_frame", "original_page")))
     return output
+
+
+def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]]:
+    """Carry House physical bands and raw cells without promoting OCR values."""
+    if report.get("schema_version") != "house-ptr-cell-observation-shadow/v1":
+        raise ValueError("unsupported House cell observation schema")
+    if report.get("qualification_status") != "unverified_shadow_only":
+        raise ValueError("House cell observations must remain unverified")
+    source_sha = report["source_sha256"]
+    dpi = report["render_dpi"]
+    pages_out = []
+    cells_out = []
+    mapping = {"data_candidate": "data_candidate", "blank": "blank",
+               "title_legend": "heading", "unknown": "unknown"}
+    for page in report["pages"]:
+        number = page["page"]
+        rows = page["rows"]
+        slots = []
+        for index, row in enumerate(rows, 1):
+            if row["physical_band_index"] != index:
+                raise ValueError("House physical band order changed")
+            state = mapping.get(row["disposition"])
+            if state is None:
+                raise ValueError("unknown House physical band disposition")
+            cells = row["cells"]
+            if cells is not None and page.get("cell_status") not in {
+                    "raw_observed_unverified", "image_only_ocr_unavailable"}:
+                raise ValueError("House cells lack an observation state")
+            slots.append({"local_key": str(index), "bounds": row["band"],
+                          "disposition": state,
+                          "observation_ref": (cells["event_date"]["crop_sha256"]
+                                              if cells else None)})
+            if cells is None:
+                continue
+            for field, observations in (
+                    ("event_date", [cells["event_date"]]),
+                    ("direction", cells["direction"]),
+                    ("amount", cells["amount"])):
+                for observed in observations:
+                    if observed["status"] != "raw_unverified" or observed["value"] is not None:
+                        raise ValueError("House cell contains a promoted value")
+                    cells_out.append(cell_observation(
+                        source_id="house_clerk", document_sha256=source_sha,
+                        page_number=number,
+                        adapter_version=f"house-ptr-cell-shadow/v1/{dpi}dpi",
+                        slot_key=str(index),
+                        field=(field if field == "event_date"
+                               else f"{field}.{observed['label']}"),
+                        box_px=observed["bbox_pixels"],
+                        crop_sha256=observed["crop_sha256"],
+                        engine="house-ptr-ocr-cell-shadow/v1",
+                        raw={"text": observed["raw_text"],
+                             "reading": observed["reading"],
+                             "interior_dark_fraction":
+                                 observed["interior_dark_fraction"]},
+                        confidence=observed["raw_ocr_confidence"],
+                        coordinate_frame="rendered_source_page_pixels"))
+        located = page["region_status"] == "located_shadow"
+        pages_out.append(page_ledger(
+            source_id="house_clerk", document_sha256=source_sha,
+            page_number=number,
+            adapter_version=f"house-ptr-cell-shadow/v1/{dpi}dpi",
+            coverage="located" if located else "unknown",
+            slots=slots,
+            coverage_reason=None if located else (
+                page.get("region_reason") or page.get("cell_status")
+                or "unlocated_house_grid"),
+            coordinate_frame=page.get("coordinate_frame") or "original_page"))
+    return {"pages": pages_out, "cells": cells_out}
