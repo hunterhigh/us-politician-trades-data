@@ -21,9 +21,6 @@ from statistics import median
 import subprocess
 from typing import Callable
 
-from PIL import Image
-
-
 SCHEMA = "senate-paper-grid-slot-shadow/v1"
 EVIDENCE_COMMIT = "80f086267677b8fde34314f24024bdc505d97cb0"
 TYPE_CELLS = (("purchase", 1429), ("sale", 1518), ("exchange", 1612))
@@ -85,6 +82,8 @@ def _parse_date(raw: str) -> str | None:
 def _date_ocr_variant(crop: Image.Image, *, executable: str,
                       scale: int, digits_only: bool, name: str) -> dict:
     """Run one bounded OCR variant after dropping inherited transparency."""
+    from PIL import Image
+
     opaque = Image.new("L", crop.size, 255)
     opaque.paste(crop)
     enlarged = opaque.resize((opaque.width * scale, opaque.height * scale))
@@ -297,6 +296,8 @@ def classify_ledger(ledger: dict, page_bytes: Callable[[str, int], bytes], *,
                     calibrate_columns: bool = False,
                     date_reader: Callable[[Image.Image], dict] | None = None) -> dict:
     """Classify one existing ledger, validating original page and crop hashes."""
+    from PIL import Image
+
     if ledger.get("evidence_commit") != EVIDENCE_COMMIT:
         raise ValueError("Senate paper evidence commit changed")
     reports = ledger.get("reports")
