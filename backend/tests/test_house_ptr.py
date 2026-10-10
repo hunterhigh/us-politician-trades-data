@@ -436,12 +436,37 @@ class HousePtrTests(unittest.TestCase):
         guarded = qualify_automatic(low_confidence_missing_notice, IDENTITY)
         self.assertEqual(guarded["qualification"]["qualified_count"], 0)
         self.assertTrue(all("ocr_confidence_below_threshold" in row["reasons"]
-                            and "notification_date_invalid" in row["reasons"]
+                            and "notification_date_invalid" not in row["reasons"]
                             for row in guarded["quarantined"]))
+        self.assertEqual({row["extraction_id"] for row in guarded["advisories"]},
+                         {row["extraction_id"] for row in low_confidence_missing_notice["transactions"]})
+        self.assertTrue(all(row["issues"] == ["notification_date_invalid"]
+                            for row in guarded["advisories"]))
+
+        notice_only = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        notice_only["transactions"][0]["notification_date"] = None
+        notice_result = qualify_automatic(notice_only, IDENTITY)
+        self.assertIn(notice_only["transactions"][0]["extraction_id"],
+                      {row["id"] for row in notice_result["transactions"]})
+        self.assertEqual(notice_result["advisories"][0]["issues"],
+                         ["notification_date_invalid"])
+
+        notice_only["transactions"][0]["notification_date"] = "2027-01-21"
+        late_notice_result = qualify_automatic(notice_only, IDENTITY)
+        self.assertIn(notice_only["transactions"][0]["extraction_id"],
+                      {row["id"] for row in late_notice_result["transactions"]})
+        self.assertEqual(late_notice_result["advisories"][0]["issues"],
+                         ["notification_date_sequence_invalid"])
 
         impossible = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
         impossible["transactions"][0]["transaction_date"] = "2026-12-26"
         impossible["transactions"][0]["notification_date"] = "2026-01-21"
+        impossible_result = qualify_automatic(impossible, IDENTITY)
+        impossible_row = next(row for row in impossible_result["quarantined"]
+                              if row["extraction_id"] == impossible["transactions"][0]["extraction_id"])
+        self.assertIn("date_sequence_invalid", impossible_row["reasons"])
+
+        impossible["transactions"][0]["notification_date"] = None
         impossible_result = qualify_automatic(impossible, IDENTITY)
         impossible_row = next(row for row in impossible_result["quarantined"]
                               if row["extraction_id"] == impossible["transactions"][0]["extraction_id"])
@@ -605,6 +630,12 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual(result["revisions"], [])
         self.assertEqual(result["transactions"][0]["verification_status"], "official_matched")
         self.assertEqual(result["audit"]["rejected_count"], 1)
+
+        extraction["transactions"][0]["notification_date"] = None
+        without_notice = promote_review(extraction, review)
+        self.assertEqual(len(without_notice["transactions"]), 1)
+        self.assertEqual(without_notice["advisories"][0]["issues"],
+                         ["notification_date_invalid"])
 
 
 if __name__ == "__main__":
