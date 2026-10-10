@@ -129,11 +129,11 @@ def combine_date_reads(reads: dict[str, dict]) -> dict:
         status, date = "unreadable", None
     return {"status": status, "date": date, "raw": None,
             "valid_read_count": len(parsed), "variants": reads,
-            "engine": "three-pass-strict-date-shadow"}
+            "engine": "multi-pass-strict-date-shadow"}
 
 
 def tesseract_date_consensus(crop: Image.Image, *, executable: str) -> dict:
-    """Three bounded passes; any valid conflict leaves the date unresolved."""
+    """Four bounded passes; any valid conflict leaves the date unresolved."""
     return combine_date_reads({
         "x1_plain_psm7": _date_ocr_variant(
             crop, executable=executable, scale=1, digits_only=False,
@@ -142,6 +142,9 @@ def tesseract_date_consensus(crop: Image.Image, *, executable: str) -> dict:
         "x3_digits_psm7": _date_ocr_variant(
             crop, executable=executable, scale=3, digits_only=True,
             name="tesseract-psm7-cell-x3-digits"),
+        "x4_digits_psm7": _date_ocr_variant(
+            crop, executable=executable, scale=4, digits_only=True,
+            name="tesseract-psm7-cell-x4-digits"),
     })
 
 
