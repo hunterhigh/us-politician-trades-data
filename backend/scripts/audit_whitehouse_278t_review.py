@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t  # noqa: E402
 from unison_snapshot.whitehouse_278t import SUPPORTED_PARSER_VERSIONS  # noqa: E402
 from unison_snapshot.oge_278e_public import SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS  # noqa: E402
+from unison_snapshot.oge_candidate import _identity_key, _person_id  # noqa: E402
 
 
 REPO = "hunterhigh/us-politician-trades-data"
@@ -187,6 +188,54 @@ def _key_figure_counts(coverage_rows: list[dict], index_quarantine: list[dict],
     return summary
 
 
+def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[dict],
+                                 extractions: list[dict], candidate: dict) -> dict:
+    """Measure ID fragmentation risk without assigning or qualifying people."""
+    missing = {row["document_id"] for row in audit_reports
+               if "catalog_filer_identity_missing" in row["document_reasons"]}
+    coverage = {row["document_id"]: row for row in coverage_rows}
+    selected = [row for row in extractions if row["document_id"] in missing]
+    if len(selected) != len(missing):
+        raise RuntimeError("Identity diagnostic is missing a selected extraction")
+
+    def name_key(value: str) -> tuple[str, ...]:
+        return tuple(sorted(re.findall(r"[a-z]+", value.casefold())))
+
+    people = candidate["people"]
+    existing_ids = {row["id"] for row in people}
+    candidate_names: dict[tuple[str, ...], set[str]] = {}
+    for row in people:
+        candidate_names.setdefault(name_key(row["display_name"]), set()).add(row["id"])
+    proposed_ids = set()
+    same_name_ids = set()
+    same_name_reports = 0
+    roles_by_pdf_name: dict[str, set[str]] = {}
+    for row in selected:
+        name = row["pdf_filer_name"]
+        role = row["pdf_position_title"]
+        roles_by_pdf_name.setdefault(name, set()).add(role)
+        proposed_ids.add(_person_id(_identity_key({
+            "filer_name": name, "agency": row["pdf_agency_label"],
+            "position_title": role})))
+        matches = candidate_names.get(name_key(name), set())
+        if matches:
+            same_name_reports += 1
+            same_name_ids.update(matches)
+    return {
+        "identity_missing_report_count": len(missing),
+        "directory_label_count": len({coverage[row_id]["filer_name_from_label"]
+                                      for row_id in missing}),
+        "pdf_full_name_count": len(roles_by_pdf_name),
+        "pdf_names_with_multiple_positions": sorted(
+            name for name, roles in roles_by_pdf_name.items() if len(roles) > 1),
+        "naive_pdf_role_agency_id_count": len(proposed_ids),
+        "naive_ids_matching_existing_candidate_count": len(proposed_ids & existing_ids),
+        "same_name_candidate_report_count": same_name_reports,
+        "same_name_candidate_person_count": len(same_name_ids),
+        "qualification_changed": False,
+    }
+
+
 def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None,
         local_git: bool = False) -> dict:
     if local_git and commit is None:
@@ -302,6 +351,8 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         "annual_part7_incomparable_row_count": audit["annual_part7_incomparable_row_count"],
         "annual_part7_overlap_count": audit["annual_part7_overlap_count"],
         "document_reason_counts": dict(sorted(reason_counts.items())),
+        "identity_mapping_diagnostic": _identity_mapping_diagnostic(
+            audit["reports"], coverage_rows, extractions, oge_candidate),
         "key_figures": _key_figure_counts(coverage_rows, index_quarantine, audit["reports"]),
     }
 
