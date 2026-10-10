@@ -142,7 +142,7 @@ def _locate_upright_grid(image) -> dict:
         if discontinuous:
             rejections.append("discontinuous_asset_rows")
             continue
-        if not filled and not any(item["disposition"] == "unknown" for item in physical):
+        if not filled:
             rejections.append("no_filled_asset_rows")
             continue
         candidate = {"table_top": filled[0]["upper"] if filled else rows[0]["upper"],
@@ -154,22 +154,22 @@ def _locate_upright_grid(image) -> dict:
                      "header_band": [bands[run[0]]["upper"], bands[run[0]]["lower"]],
                      "column_family": column_family}
         if any(item["disposition"] == "unknown" for item in physical):
-            rejections.append("asset_without_event_date")
             provisional_candidates.append(candidate)
-            continue
-        candidates.append(candidate)
-    if len(candidates) != 1 or provisional_candidates:
+        else:
+            candidates.append(candidate)
+    if len(candidates) + len(provisional_candidates) != 1:
         reason = (rejections[0] if len(candidates) == 0 and len(set(rejections)) == 1
                   else "ambiguous_grid_region")
         result = {"status": "coverage_unknown", "reason": reason,
                   "candidate_count": len(candidates), "rejections": rejections,
                   "bands": bands}
-        if len(candidates) == 0 and len(provisional_candidates) == 1:
-            result.update({key: value for key, value in provisional_candidates[0].items()
-                           if key != "row_bands"})
-            result["provisional_date_bearing_bands"] = provisional_candidates[0]["row_bands"]
         return result
-    return {"status": "located_shadow", **candidates[0], "bands": bands}
+    selected = (candidates or provisional_candidates)[0]
+    unresolved = sum(row["disposition"] == "unknown"
+                     for row in selected["physical_row_bands"])
+    return {"status": "located_shadow", **selected, "bands": bands,
+            "slot_coverage_status": "partial_unknown" if unresolved else "classified",
+            "unresolved_slot_count": unresolved}
 
 
 def locate_transaction_grid(image) -> dict:
