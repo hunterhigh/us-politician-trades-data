@@ -707,6 +707,7 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
     filed_at = f"{filed_date}T00:00:00Z"
     transactions: list[dict] = []
     quarantined: list[dict] = []
+    advisories: list[dict] = []
     for row in extraction.get("transactions", []):
         reasons: list[str] = []
         if not identity_valid:
@@ -734,14 +735,28 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
                 (type(high) is int and not 0 <= low <= high):
             reasons.append("amount_invalid")
         parsed_dates = {}
-        for date_field in ("transaction_date", "notification_date"):
-            try:
-                parsed_dates[date_field] = datetime.strptime(row[date_field], "%Y-%m-%d").date()
-            except (KeyError, TypeError, ValueError):
-                reasons.append(f"{date_field}_invalid")
-        if len(parsed_dates) == 2 and not (
-                parsed_dates["transaction_date"] <= parsed_dates["notification_date"] <= filed_day):
+        try:
+            parsed_dates["transaction_date"] = datetime.strptime(
+                row["transaction_date"], "%Y-%m-%d").date()
+        except (KeyError, TypeError, ValueError):
+            reasons.append("transaction_date_invalid")
+        if parsed_dates.get("transaction_date") and parsed_dates["transaction_date"] > filed_day:
             reasons.append("date_sequence_invalid")
+        notice_issues = []
+        try:
+            parsed_dates["notification_date"] = datetime.strptime(
+                row["notification_date"], "%Y-%m-%d").date()
+        except (KeyError, TypeError, ValueError):
+            notice_issues.append("notification_date_invalid")
+        if parsed_dates.get("notification_date") and (
+                parsed_dates["notification_date"] > filed_day or
+                (parsed_dates.get("transaction_date") and
+                 parsed_dates["notification_date"] < parsed_dates["transaction_date"])):
+            notice_issues.append("notification_date_sequence_invalid")
+        if notice_issues:
+            advisories.append({"extraction_id": row.get("extraction_id"),
+                               "issues": notice_issues,
+                               "source_sha256": extraction.get("source_sha256")})
         option_type, strike_price, expiration_date = _parse_option_details(row.get("description"))
         if row.get("instrument_type") == "Option":
             option_type = row.get("option_type") or option_type
@@ -794,11 +809,13 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         "document_disposition": disposition,
         "transactions": transactions,
         "quarantined": quarantined,
+        "advisories": advisories,
         "qualification": {
             "method": "deterministic_automatic_rules",
             "status": document_status,
             "qualified_count": len(transactions),
             "quarantined_count": len(quarantined),
+            "advisory_count": len(advisories),
             "zero_transaction_document_count": 1 if explicit_zero and identity_valid else 0,
             "document_reasons": document_reasons if explicit_zero else [],
             "production_eligible": bool(transactions) or (explicit_zero and identity_valid),
@@ -978,6 +995,7 @@ def promote_review(extraction: dict, review: dict) -> dict:
         raise HouseIndexError("House PTR review row identities do not match the extraction")
     transactions = []
     revisions = []
+    advisories = []
     for extraction_id, source_row in extracted.items():
         row_review = indexed_reviews[extraction_id]
         row_decision = row_review.get("decision")
@@ -1028,11 +1046,23 @@ def promote_review(extraction: dict, review: dict) -> dict:
         ticker = row.get("ticker")
         if ticker is not None and (not isinstance(ticker, str) or not re.fullmatch(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
             raise HouseIndexError("House PTR reviewed row has an invalid ticker")
-        for date_field in ("transaction_date", "notification_date"):
-            try:
-                datetime.strptime(row[date_field], "%Y-%m-%d")
-            except (KeyError, TypeError, ValueError):
-                raise HouseIndexError(f"House PTR reviewed row has an invalid {date_field}") from None
+        try:
+            transaction_day = datetime.strptime(row["transaction_date"], "%Y-%m-%d").date()
+        except (KeyError, TypeError, ValueError):
+            raise HouseIndexError("House PTR reviewed row has an invalid transaction_date") from None
+        if transaction_day > filed_at.date():
+            raise HouseIndexError("House PTR reviewed transaction date is after filing date")
+        notice_issues = []
+        try:
+            notification_day = datetime.strptime(row["notification_date"], "%Y-%m-%d").date()
+        except (KeyError, TypeError, ValueError):
+            notification_day = None
+            notice_issues.append("notification_date_invalid")
+        if notification_day and not transaction_day <= notification_day <= filed_at.date():
+            notice_issues.append("notification_date_sequence_invalid")
+        if notice_issues:
+            advisories.append({"extraction_id": extraction_id, "issues": notice_issues,
+                               "source_sha256": extraction.get("source_sha256")})
         low, high = row.get("amount_low"), row.get("amount_high")
         if type(low) is not int or type(high) is not int or not 0 <= low <= high:
             raise HouseIndexError("House PTR reviewed row has an invalid amount range")
@@ -1055,4 +1085,5 @@ def promote_review(extraction: dict, review: dict) -> dict:
              "reviewed_by": decision["reviewed_by"], "reviewed_at": reviewed_at.isoformat(),
              "accepted_count": len(transactions), "rejected_count": len(extracted) - len(transactions),
              "revision_count": len(revisions)}
-    return {"audit": audit, "transactions": transactions, "revisions": revisions}
+    return {"audit": audit, "transactions": transactions, "revisions": revisions,
+            "advisories": advisories}
