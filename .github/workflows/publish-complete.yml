@@ -322,10 +322,9 @@ jobs:
           board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
           main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
           review_sha="$(git -C "$REVIEW_ROOT" rev-parse HEAD)"
-          transition_args=()
+          git fetch --no-tags --depth=1 origin evidence:refs/remotes/origin/evidence
+          transition_args=(--repo . --evidence-commit "$(git rev-parse origin/evidence)")
           if [ -f "$REVIEW_ROOT/status/publication_transitions.json" ]; then
-            git fetch --no-tags --depth=1 origin evidence:refs/remotes/origin/evidence
-            transition_args+=(--repo . --evidence-commit "$(git rev-parse origin/evidence)")
             transition_args+=(--transitions "$REVIEW_ROOT/status/publication_transitions.json")
           fi
           python -m unison_snapshot.pipeline_qa.publication_delta \

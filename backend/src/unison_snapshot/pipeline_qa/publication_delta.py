@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from .migration_inventory import InventoryError, _differences, _market_enrichment_only
 from .holdings_rebinding import _archive, _official_index_replacement, git_tree_paths
 from .migration_inventory import git_object
+from .senate_annual_amendment import verified_amendment_rekeys
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -101,6 +102,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                       transitions.get("evidence_commit") != evidence_commit):
         raise InventoryError("transition file does not bind fixed commits")
     changes, counts, used, verified_replacements = [], {}, set(), set()
+    verified_amendments = 0
     for entity in ENTITIES:
         old = _index(previous_board.get(entity), f"previous {entity}")
         proposed = _index(unified.get(entity), f"review {entity}")
@@ -137,6 +139,18 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                 new_seen.add(new_id)
             changes.append(checked)
             used.add(id(item))
+        if entity == "reported_holdings":
+            automatic = verified_amendment_rekeys(
+                old=old, current=current, repo=repo,
+                evidence_commit=evidence_commit, review_commit=review_commit)
+            for item in automatic:
+                if item["old_id"] in old_seen or item["new_id"] in new_seen:
+                    raise InventoryError("amendment transition conflicts with an explicit decision")
+                old_seen.add(item["old_id"])
+                new_seen.add(item["new_id"])
+                changes.append(item)
+                verified_amendments += 1
+            selected = selected + automatic
         missing = old.keys() - current.keys()
         changed = {key for key in old.keys() & current.keys() if old[key] != current[key]}
         if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn"}} or
@@ -158,8 +172,11 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "changes": changes, "canonical_source_alignment_complete": True,
             "snapshot_changes_disposed": True,
             "transition_verification_level": (
-                "archived_official_index_bytes_for_rekeys" if verified_replacements
-                else "not_applicable_no_rekeys"),
+                "archived_official_index_and_senate_amendment_bytes"
+                if verified_replacements and verified_amendments else
+                "archived_official_index_bytes_for_rekeys" if verified_replacements else
+                "archived_senate_amendment_bytes_and_rows" if verified_amendments else
+                "not_applicable_no_rekeys"),
             "publication_pointer_moved": False}
 
 
