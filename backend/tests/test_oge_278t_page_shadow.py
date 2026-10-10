@@ -155,6 +155,12 @@ class Oge278TPageShadowTests(unittest.TestCase):
         self.assertEqual(result["coverage"], "coverage_unknown_raster")
         self.assertEqual(result["candidate_row_bands"], [])
 
+    def test_raster_vector_rule_run_does_not_claim_physical_rows(self):
+        result = inspect_page(Page(raster=True, rules=list(range(100, 400, 15))), 8)
+        self.assertEqual(result["coverage"], "table_geometry_candidate")
+        self.assertEqual(result["row_coverage"], "unknown")
+        self.assertEqual(result["candidate_row_bands"], [])
+
     def test_native_endnotes_is_not_transaction_table(self):
         result = inspect_page(Page("Endnotes. Summary of Contents " * 5), 4)
         self.assertEqual(result["coverage"], "non_table_section")

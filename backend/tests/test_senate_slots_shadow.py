@@ -8,7 +8,7 @@ import unittest
 
 from unison_snapshot.senate_slots_shadow import (
     EVIDENCE_COMMIT, classify_ledger, combine_date_reads, fixed_archive_pages,
-    tesseract_date_cell,
+    tesseract_date_cell, tesseract_date_consensus,
 )
 
 
@@ -154,6 +154,52 @@ class SenateSlotsShadowTests(unittest.TestCase):
                              is not None for row in data), 8)
         self.assertTrue(all(not row["key_cells"]["date"]["conflict"]
                             for row in data))
+
+    @unittest.skipUnless(TESSERACT.exists(), "bounded Tesseract unavailable")
+    def test_offset_page_visual_date_freeze_keeps_unreadable_cells_unresolved(self):
+        # Visual dates were read from the fixed archived image before running
+        # the new OCR preprocessing experiment. These are test truth, not
+        # candidate facts. Each calibrated date crop SHA is pinned as well.
+        expected = {
+            2: ("2026-07-08", "dfb49c6ba0bc55e2884154e84f12042040b7e5a5b5ac5cf794e3472a2fac3947"),
+            3: ("2026-07-09", "b971ac4b1f51b0ef1d9c3ddd8cd86b2ffd7a89f120db46c162b332e2c81789a4"),
+            4: ("2026-07-10", "1eedbaadfa995faf50a3c665ce2ed7d7fa3532c39d3dc1e3dfb0931488c53831"),
+            5: ("2026-07-13", "928d07e0429e2bdcb8b1dd733a4d56881a22b2de10357057deae05c19f2eb907"),
+            6: ("2026-07-14", "16cd79aa1a20094cb6f8b77d072d49e25c830ced48e4d4bf4a8ed7e750b07ff7"),
+            7: ("2026-07-15", "4b935e7b6bfcec50a43051b9fd365d23de638eb09d08d51c4f97bb7483b01ed9"),
+            10: ("2026-07-08", "a6dcc68f157feeeb331b49e58ff3e687d071e6217284c9ba1a051f6359aea3fc"),
+            11: ("2026-07-08", "b15e7f529707cce85e0a539ec2d8fbcfa48cca7ac2a688077815e238da305d1f"),
+            12: ("2026-07-09", "8e2f1da6da9f586a9873a8b33d2fa1deac3a54ff450b0ba615403dcc40fdba81"),
+            13: ("2026-07-10", "911916fabf32b4d06dd2cb478df3b92bf4cfa8a92080853cfe0a393b8643adf5"),
+            14: ("2026-07-13", "9bcea37a96f3279441c21319d1b05d8627a9de9fef4343bbac7880c79d09a008"),
+        }
+        ledger = self._ledger("senate-paper-viewer-remainders.json")
+        report = next(report for report in ledger["reports"]
+                      if report["document_id"] ==
+                      "ec20cd93-6702-4a29-b3a6-983f4b17f365")
+        report["slots"] = [slot for slot in report["slots"]
+                           if slot["page_number"] == 2]
+        report["physical_grid_slot_count"] = len(report["slots"])
+        ledger["reports"] = [report]
+        observed = classify_ledger(
+            ledger, type(self).read_page, calibrate_columns=True,
+            date_reader=lambda image: tesseract_date_consensus(
+                image, executable=str(TESSERACT)))["reports"][0]
+        data = {slot["grid_slot"]: slot for slot in observed["slots"]
+                if slot["label"] == "data_observed"}
+        self.assertEqual(set(data), set(expected))
+        self.assertEqual(observed["pages"][0]["page_sha256"],
+                         "f741fec8af63a3f0fb7d6304aef2dcaf453c506e73990b25c51430599c60fba7")
+        for grid_slot, (visual_date, crop_sha) in expected.items():
+            cell = data[grid_slot]["key_cells"]["date"]
+            self.assertEqual(cell["grayscale_sha256"], crop_sha)
+            if cell["cell_ocr_parsed"] is not None:
+                self.assertEqual(cell["cell_ocr_parsed"], visual_date)
+            self.assertIsNone(data[grid_slot]["candidate_transaction_id"])
+        self.assertEqual(sum(data[slot]["key_cells"]["date"]["cell_ocr"]
+                             ["status"] == "agreement" for slot in expected), 3)
+        self.assertEqual(sum(data[slot]["key_cells"]["date"]["cell_ocr"]
+                             ["status"] != "agreement" for slot in expected), 8)
 
     def test_all_fixed_grid_slots_have_one_page_level_label(self):
         reports = []

@@ -245,7 +245,10 @@ def inspect_page(page, page_number: int) -> dict:
                 for region in _uncertain_anchor_regions(anchors):
                     if region not in unresolved_regions:
                         unresolved_regions.append(region)
-    if not bands and run:
+    # A raster page can retain partial vector rules from the original form.
+    # The longest run can omit cells or include non-row lines (observed in a
+    # held-out 278-T); it must not masquerade as physical row coverage.
+    if not bands and run and not text_mode.startswith("raster"):
         bands = [[round(left, 1), round(right, 1)]
                  for left, right in zip(run, run[1:])]
         row_basis = "provisional_rule_intervals"
