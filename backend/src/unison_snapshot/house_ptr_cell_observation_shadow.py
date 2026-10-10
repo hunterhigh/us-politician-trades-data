@@ -97,6 +97,8 @@ def _cell(image, words: list[dict], page, *, label: str,
             "raw_ocr_confidence": round(mean(word["ocr_confidence"] for word in selected), 2)
             if selected else None,
             "bbox_normalized": [x0, y0, x1, y1],
+            "bbox_pixels": [int(x0 * width), int(y0 * height),
+                            int(x1 * width), int(y1 * height)],
             "bbox_points": [round(x0 * page.width, 2), round(y0 * page.height, 2),
                             round(x1 * page.width, 2), round(y1 * page.height, 2)],
             "crop_sha256": hashlib.sha256(out.getvalue()).hexdigest(),
@@ -127,7 +129,12 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                       "region_reason": region.get("reason"),
                       "orientation_degrees": region.get("orientation_degrees"),
                       "coordinate_frame": region.get("coordinate_frame"),
-                      "rows": []}
+                      "rows": [
+                          {"physical_band_index": index,
+                           "disposition": physical["disposition"],
+                           "band": physical["band"], "cells": None}
+                          for index, physical in enumerate(
+                              region.get("physical_row_bands", []), 1)]}
             if not region.get("physical_row_bands"):
                 record["cell_status"] = "unobserved_no_physical_grid"
                 pages_out.append(record)
@@ -171,9 +178,7 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                     cells["amount"].append(_cell(
                         image, words, page, label=chr(ord("A") + slot),
                         x0=left, x1=right, y0=y0, y1=y1))
-                record["rows"].append({"physical_band_index": index,
-                                       "disposition": physical["disposition"],
-                                       "band": physical["band"], "cells": cells})
+                record["rows"][index - 1]["cells"] = cells
             pages_out.append(record)
     return {"schema_version": "house-ptr-cell-observation-shadow/v1",
             "source_sha256": source_sha256, "render_dpi": dpi,

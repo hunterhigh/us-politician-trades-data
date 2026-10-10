@@ -22,6 +22,7 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(observed["reading"], "date_shape_match")
         self.assertEqual(observed["raw_text"], "07/24/26")
         self.assertEqual(observed["bbox_points"], [20, 10, 100, 40])
+        self.assertEqual(observed["bbox_pixels"], [20, 10, 100, 40])
         self.assertEqual(len(observed["crop_sha256"]), 64)
         self.assertEqual(observed["status"], "raw_unverified")
         self.assertIsNone(observed["value"])
