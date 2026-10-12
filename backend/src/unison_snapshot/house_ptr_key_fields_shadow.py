@@ -104,7 +104,7 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
                                     "direction_status": direction_status,
                                     "amount_letter": amount,
                                     "amount_status": amount_status,
-                                    "spouse_dc_over_1000_mark": spouse_dc_mark,
+                                    "spouse_dc_over_1000000_mark": spouse_dc_mark,
                                     "spouse_dc_mark_status": spouse_dc_status},
                          "blocking_reasons": blockers})
     return {"schema_version": "house-ptr-key-fields-shadow/v1",
