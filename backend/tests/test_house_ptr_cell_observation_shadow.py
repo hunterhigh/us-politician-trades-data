@@ -1,10 +1,12 @@
 import importlib.util
+import hashlib
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from unison_snapshot.house_ptr_cell_observation_shadow import (_cell, _column_boxes,
                                                               observe_house_ptr_pdf)
+from unison_snapshot.ocr_geometry import OcrPage
 
 
 HAS_RASTER = importlib.util.find_spec("PIL") is not None and importlib.util.find_spec("numpy") is not None
@@ -75,6 +77,46 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
     def test_document_hash_guard(self):
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             observe_house_ptr_pdf(b"not-a-pdf", source_sha256="0" * 64)
+
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
+    def test_rotated_page_cells_use_rotated_image_and_word_frame(self):
+        from PIL import Image
+
+        source = b"archived-test-pdf"
+        page = SimpleNamespace(width=200, height=100,
+                               to_image=lambda **_kwargs: SimpleNamespace(
+                                   original=Image.new("RGB", (200, 100), "white")))
+        pdf = MagicMock()
+        pdf.pages = [page]
+        pdf.__enter__.return_value = pdf
+        region = {"status": "located_shadow", "orientation_degrees": 90,
+                  "coordinate_frame": "rotated_page_90",
+                  "physical_row_bands": [{"band": [.1, .3],
+                                          "disposition": "data_candidate"}]}
+        columns = {"status": "located_shadow", "owner": [0, .1],
+                   "asset": [.1, .4], "event": [.4, .6],
+                   "notification": [.6, .8], "action": [.1, .2],
+                   "action_labels": ["purchase"], "amount": [.8, .9]}
+        words = [{"x0": 14.4, "x1": 21.6, "top": 8, "bottom": 12,
+                  "text": "04/01/26", "ocr_confidence": 95.0}]
+        rotated_ocr = OcrPage(width=36, height=72, words=words)
+        with (patch("pdfplumber.open", return_value=pdf),
+              patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid",
+                    return_value=region),
+              patch("unison_snapshot.house_ptr_cell_observation_shadow._column_boxes",
+                    return_value=columns),
+              patch("unison_snapshot.house_ptr_cell_observation_shadow.ocr_rendered_image",
+                    return_value=(rotated_ocr, "test engine")) as ocr):
+            observed = observe_house_ptr_pdf(
+                source, source_sha256=hashlib.sha256(source).hexdigest(), dpi=200)
+        self.assertEqual(ocr.call_args.args[0].size, (100, 200))
+        result = observed["pages"][0]
+        self.assertEqual(result["cell_status"], "raw_observed_unverified")
+        self.assertEqual(result["coordinate_frame"], "rotated_page_90")
+        date = result["rows"][0]["cells"]["event_date"]
+        self.assertEqual(date["raw_text"], "04/01/26")
+        self.assertEqual(date["bbox_points"], [14.4, 7.2, 21.6, 21.6])
+        self.assertIsNone(date["value"])
 
     def test_short_grid_locates_asset_and_both_date_columns(self):
         region = {"bands": [{"upper": .1, "vertical_x": [.12, .35, .46, .53, .60]},

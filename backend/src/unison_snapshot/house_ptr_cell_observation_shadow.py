@@ -11,8 +11,9 @@ import hashlib
 import io
 import re
 from statistics import mean
+from types import SimpleNamespace
 
-from .ocr_geometry import OcrGeometryError, ocr_pdf_pages
+from .ocr_geometry import OcrGeometryError, ocr_pdf_pages, ocr_rendered_image
 
 
 def _vertical_rules(image, upper: float, lower: float) -> list[float]:
@@ -163,9 +164,12 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 pages_out.append(record)
                 continue
             if region.get("coordinate_frame") != "original_page":
-                record["cell_status"] = "unobserved_rotated_frame"
-                pages_out.append(record)
-                continue
+                angle = region.get("orientation_degrees")
+                if angle not in (90, 270):
+                    record["cell_status"] = "unobserved_rotated_frame"
+                    pages_out.append(record)
+                    continue
+                image = image.rotate(angle, expand=True)
             columns = _column_boxes(region, image)
             record["column_status"] = columns["status"]
             if columns["status"] != "located_shadow":
@@ -174,42 +178,51 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 pages_out.append(record)
                 continue
             try:
-                ocr_pages, engine = ocr_pdf_pages(pdf, executable=executable,
-                                                  resolution=dpi, page_numbers=[number],
-                                                  max_pages=1)
-                words = ocr_pages[0].extract_words()
+                if region.get("coordinate_frame") == "original_page":
+                    ocr_pages, engine = ocr_pdf_pages(
+                        pdf, executable=executable, resolution=dpi,
+                        page_numbers=[number], max_pages=1)
+                    cell_page = page
+                    words = ocr_pages[0].extract_words()
+                else:
+                    cell_page, engine = ocr_rendered_image(
+                        image, executable=executable, resolution=dpi)
+                    words = cell_page.extract_words()
                 record["ocr_engine"] = engine
                 record["cell_status"] = "raw_observed_unverified"
             except OcrGeometryError as error:
                 words = []
+                cell_page = (page if region.get("coordinate_frame") == "original_page"
+                             else SimpleNamespace(width=image.width * 72.0 / dpi,
+                                                  height=image.height * 72.0 / dpi))
                 record["ocr_engine"] = None
                 record["cell_status"] = "image_only_ocr_unavailable"
                 record["ocr_error"] = str(error)
             for index, physical in enumerate(region["physical_row_bands"], 1):
                 y0, y1 = physical["band"]
-                cells = {"owner": _cell(image, words, page, label="owner",
+                cells = {"owner": _cell(image, words, cell_page, label="owner",
                                      x0=columns["owner"][0], x1=columns["owner"][1],
                                      y0=y0, y1=y1),
-                         "asset": _cell(image, words, page, label="asset",
+                         "asset": _cell(image, words, cell_page, label="asset",
                                      x0=columns["asset"][0], x1=columns["asset"][1],
                                      y0=y0, y1=y1),
-                         "event_date": _cell(image, words, page, label="event_date",
+                         "event_date": _cell(image, words, cell_page, label="event_date",
                                               x0=columns["event"][0], x1=columns["event"][1],
                                               y0=y0, y1=y1),
                          "notification_date": _cell(
-                             image, words, page, label="notification_date",
+                             image, words, cell_page, label="notification_date",
                              x0=columns["notification"][0],
                              x1=columns["notification"][1], y0=y0, y1=y1),
                          "direction": [], "amount": []}
                 for slot, (left, right) in enumerate(zip(columns["action"],
                                                          columns["action"][1:])):
                     cells["direction"].append(_cell(
-                        image, words, page, label=columns["action_labels"][slot],
+                        image, words, cell_page, label=columns["action_labels"][slot],
                         x0=left, x1=right, y0=y0, y1=y1))
                 for slot, (left, right) in enumerate(zip(columns["amount"],
                                                          columns["amount"][1:])):
                     cells["amount"].append(_cell(
-                        image, words, page, label=chr(ord("A") + slot),
+                        image, words, cell_page, label=chr(ord("A") + slot),
                         x0=left, x1=right, y0=y0, y1=y1))
                 record["rows"][index - 1]["cells"] = cells
             pages_out.append(record)
