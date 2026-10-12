@@ -71,6 +71,37 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
                                  "ocr_date_shape_with_edge_noise_unverified")
                 self.assertNotIn("event_date_unreadable", row["blocking_reasons"])
 
+    def test_ruled_paper_date_glyphs_keep_raw_source_and_unverified_status(self):
+        cases = (("01-02-2026", "2026-01-02", "ocr_dash_date_shape_unverified"),
+                 ("* 02/11/2026", "2026-02-11",
+                  "ocr_date_shape_with_edge_noise_unverified"),
+                 ('02/17/2026"', "2026-02-17",
+                  "ocr_date_shape_with_edge_noise_unverified"),
+                 ("02/09/2026 _", "2026-02-09",
+                  "ocr_date_shape_with_edge_noise_unverified"),
+                 ("02/10/2026 °", "2026-02-10",
+                  "ocr_date_shape_with_edge_noise_unverified"))
+        for raw, expected, status in cases:
+            with self.subTest(raw=raw):
+                observed = report()
+                cell = observed["pages"][0]["rows"][0]["cells"]["event_date"]
+                cell["raw_text"] = raw
+                row = read_house_ptr_key_fields(observed)["rows"][0]
+                self.assertEqual(cell["raw_text"], raw)
+                self.assertEqual(row["fields"]["event_date"], expected)
+                self.assertEqual(row["fields"]["event_date_status"], status)
+                self.assertNotIn("event_date_unreadable", row["blocking_reasons"])
+
+    def test_internal_ocr_errors_and_mixed_separators_remain_unreadable(self):
+        for raw in ("Q1-05-2026 ©", "93/17/2026", "01-02/2026",
+                    "01-02-2026 01-03-2026", "01-32-2026"):
+            with self.subTest(raw=raw):
+                observed = report()
+                observed["pages"][0]["rows"][0]["cells"]["event_date"]["raw_text"] = raw
+                row = read_house_ptr_key_fields(observed)["rows"][0]
+                self.assertIsNone(row["fields"]["event_date"])
+                self.assertIn("event_date_unreadable", row["blocking_reasons"])
+
     def test_date_with_extra_digits_or_second_date_stays_unreadable(self):
         for raw in ("105/01/2026", "05/01/2026 06/02/2026", "a05/01/2026"):
             with self.subTest(raw=raw):
