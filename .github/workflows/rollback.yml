@@ -8,6 +8,11 @@ on:
       expected_head:
         description: Current main commit observed before requesting rollback
         required: true
+      dry_run:
+        description: Prepare and verify the rollback locally without changing production
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -39,12 +44,15 @@ jobs:
             echo "Remote main changed; rollback was not attempted." >&2
             exit 3
           }
+          market_base="$(git ls-remote origin refs/heads/market | cut -f1)"
+          test -n "$market_base"
           git fetch --no-tags origin "refs/tags/published/${TARGET}:refs/tags/published/${TARGET}"
           test "$(git rev-parse "refs/tags/published/${TARGET}^{commit}")" = "$TARGET" || {
             echo "Target is not an authorized published snapshot." >&2
             exit 4
           }
           echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "market_base=$market_base" >> "$GITHUB_OUTPUT"
       - name: Create history-preserving rollback commit
         id: commit
         env:
@@ -71,14 +79,31 @@ jobs:
           }
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
+      - name: Verify prepared rollback without publishing
+        if: inputs.dry_run && steps.commit.outputs.changed == 'true'
+        env:
+          TARGET: ${{ inputs.target_commit }}
+          CURRENT: ${{ steps.resolve.outputs.current }}
+          MARKET_BASE: ${{ steps.resolve.outputs.market_base }}
+          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
+          DATA_ROOT: ${{ runner.temp }}/production-rollback
+        run: |
+          test "$(git -C "$DATA_ROOT" rev-parse HEAD)" = "$NEW_SHA"
+          test "$(git -C "$DATA_ROOT" rev-parse HEAD^)" = "$CURRENT"
+          test "$(git -C "$DATA_ROOT" rev-parse HEAD^{tree})" = \
+            "$(git -C "$DATA_ROOT" rev-parse "${TARGET}^{tree}")"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$CURRENT"
+          test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
+          printf 'Prepared rollback `%s` from `%s` to tree `%s`; production refs unchanged.\n' \
+            "$NEW_SHA" "$CURRENT" "$TARGET" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish rollback atomically
-        if: steps.commit.outputs.changed == 'true'
+        if: steps.commit.outputs.changed == 'true' && !inputs.dry_run
         env:
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
           DATA_ROOT: ${{ runner.temp }}/production-rollback
         run: git -C "$DATA_ROOT" push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
       - name: Record rollback
-        if: steps.commit.outputs.changed == 'true'
+        if: steps.commit.outputs.changed == 'true' && !inputs.dry_run
         run: |
           printf 'Restored production tree from `%s` in new commit `%s`.\n' \
             '${{ inputs.target_commit }}' '${{ steps.commit.outputs.new_sha }}' >> "$GITHUB_STEP_SUMMARY"
