@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      recovery_stop_before_publish:
+        description: Exercise a late failure after all checks without moving production refs
+        required: false
+        type: boolean
+        default: false
       require_trump_sept_oge:
         description: Require the September Trump 278-T rows and market-backed ticker in the frozen frontend
         required: false
@@ -488,6 +493,24 @@ jobs:
           twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
           print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
           PY
+      - name: Exercise late failure before publication
+        if: inputs.recovery_stop_before_publish
+        env:
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          PREFLIGHT_MAIN_REF: ${{ steps.preflight.outputs.main_ref }}
+          PREFLIGHT_MARKET_REF: ${{ steps.preflight.outputs.market_ref }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
+          test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
+          test "$(git ls-remote origin "$PREFLIGHT_MAIN_REF" | cut -f1)" = "$MAIN_SHA"
+          test "$(git ls-remote origin "$PREFLIGHT_MARKET_REF" | cut -f1)" = "$MARKET_SHA"
+          git push --atomic origin ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"
+          printf 'Controlled stop after verified preflight; main `%s` and market `%s` unchanged.\n' \
+            "$MAIN_BASE" "$MARKET_BASE" >> "$GITHUB_STEP_SUMMARY"
+          exit 86
       - name: Atomically publish the verified main, market, and tags
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
