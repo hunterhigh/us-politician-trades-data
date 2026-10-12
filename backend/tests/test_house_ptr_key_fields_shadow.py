@@ -7,6 +7,12 @@ def cell(text="", label="", ink=0):
     return {"raw_text": text, "label": label, "interior_dark_fraction": ink}
 
 
+def amount_cells(*, primary="B", supplemental=0):
+    return [cell(label=chr(ord("A") + index),
+                 ink=supplemental if index == 10 else .13 if chr(ord("A") + index) == primary else .001)
+            for index in range(11)]
+
+
 def report():
     return {"schema_version": "house-ptr-cell-observation-shadow/v3",
             "qualification_status": "unverified_shadow_only",
@@ -18,8 +24,7 @@ def report():
                            "notification_date": cell("6/5/2026"),
                            "direction": [cell(label="purchase", ink=.12),
                                          cell(label="sale", ink=.001)],
-                           "amount": [cell(label="A", ink=.001),
-                                      cell(label="B", ink=.13)]}},
+                           "amount": amount_cells()}},
                 {"physical_band_index": 2, "disposition": "unknown", "cells": None}]}]}
 
 
@@ -42,6 +47,22 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertEqual(row["status"], "raw_fields_incomplete")
         self.assertIn("event_date_unreadable", row["blocking_reasons"])
+        self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
+
+    def test_supplemental_spouse_mark_does_not_compete_with_amount_range(self):
+        observed = report()
+        observed["pages"][0]["rows"][0]["cells"]["amount"] = amount_cells(supplemental=.13)
+        row = read_house_ptr_key_fields(observed)["rows"][0]
+        self.assertEqual(row["fields"]["amount_letter"], "B")
+        self.assertTrue(row["fields"]["spouse_dc_over_1000_mark"])
+        self.assertEqual(row["status"], "raw_fields_present_unverified")
+
+    def test_supplemental_box_alone_is_not_an_amount_range(self):
+        observed = report()
+        observed["pages"][0]["rows"][0]["cells"]["amount"] = amount_cells(
+            primary=None, supplemental=.13)
+        row = read_house_ptr_key_fields(observed)["rows"][0]
+        self.assertIsNone(row["fields"]["amount_letter"])
         self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
 
     def test_wrong_schema_cannot_become_key_field_report(self):
