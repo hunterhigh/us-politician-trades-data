@@ -40,22 +40,27 @@ def _column_boxes(region: dict, image) -> dict:
     major = bands[matches[0] - 1]["vertical_x"]
     family = region.get("column_family")
     if family == "dense_long" and len(major) == 4:
-        asset_left, asset_right = .11, major[0]
         action_left, action_right = major[:2]
         event_left, event_right = major[1:3]
         notice_left, notice_right = major[2:4]
         amount_left = notice_right
     elif family == "short_grid" and len(major) in (5, 6):
-        asset_left, asset_right = major[0] + .055, major[1]
         action_left, action_right = major[1:3]
         event_left, event_right = major[2:4]
         notice_left, notice_right = major[3:5]
         amount_left = notice_right
     else:
         return {"status": "unknown_header_topology"}
-    if not 0 <= asset_left < asset_right < action_left + .001:
-        return {"status": "unknown_header_topology"}
     rules = _vertical_rules(image, *header)
+    # The full-width ruled header retains the owner and asset boundaries even
+    # when the preceding band omits the left rules from its detector window.
+    pre_action = [x for x in rules if x <= action_left + .004]
+    if (len(pre_action) != 3 or
+            abs(pre_action[-1] - action_left) > .006):
+        return {"status": "unknown_owner_asset_columns",
+                "observed_pre_action_rules": pre_action}
+    owner_left, owner_right, asset_right = pre_action
+    asset_left = owner_right
     action = [x for x in rules if action_left - .004 <= x <= action_right + .004]
     amount = [x for x in rules if amount_left - .004 <= x <= .985]
     if (len(action) not in (4, 5) or len(amount) not in (11, 12)
@@ -64,7 +69,8 @@ def _column_boxes(region: dict, image) -> dict:
             or abs(amount[0] - amount_left) > .006):
         return {"status": "unknown_checkbox_columns", "major_rules": major,
                 "observed_action_rules": action, "observed_amount_rules": amount}
-    return {"status": "located_shadow", "asset": [asset_left, asset_right],
+    return {"status": "located_shadow", "owner": [owner_left, owner_right],
+            "asset": [asset_left, asset_right],
             "event": [event_left, event_right],
             "notification": [notice_left, notice_right],
             "action": action, "amount": amount,
@@ -87,10 +93,17 @@ def _cell(image, words: list[dict], page, *, label: str,
                 if x0 <= (word["x0"] + word["x1"]) / (2 * page.width) <= x1
                 and y0 <= (word["top"] + word["bottom"]) / (2 * page.height) <= y1]
     selected.sort(key=lambda word: (word["top"], word["x0"]))
+    lines: list[list[dict]] = []
+    for word in selected:
+        if lines and word["top"] - min(item["top"] for item in lines[-1]) <= 5:
+            lines[-1].append(word)
+        else:
+            lines.append([word])
     gray = np.asarray(crop.convert("L"))
     pad_y, pad_x = max(1, gray.shape[0] // 6), max(1, gray.shape[1] // 6)
     interior = gray[pad_y:-pad_y, pad_x:-pad_x]
-    raw_text = " ".join(word["text"] for word in selected)
+    raw_text = " ".join(word["text"] for line in lines
+                        for word in sorted(line, key=lambda item: item["x0"]))
     # A date-shaped OCR string is only a reading-quality hint. The row can
     # still be a printed legend and this function never emits a date value.
     date_shape = r"\d{1,2}/\d{1,2}/\d{2,4}"
@@ -101,7 +114,7 @@ def _cell(image, words: list[dict], page, *, label: str,
                re.search(date_shape, raw_text)
                else "date_no_ocr_text" if date_field and not raw_text
                else "date_ocr_unclear" if date_field else "raw_unclassified"
-               if label == "asset" else "mark_unknown")
+               if label in {"owner", "asset"} else "mark_unknown")
     return {"label": label, "status": "raw_unverified", "reading": reading,
             "raw_text": raw_text,
             "raw_ocr_confidence": round(mean(word["ocr_confidence"] for word in selected), 2)
@@ -174,7 +187,10 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 record["ocr_error"] = str(error)
             for index, physical in enumerate(region["physical_row_bands"], 1):
                 y0, y1 = physical["band"]
-                cells = {"asset": _cell(image, words, page, label="asset",
+                cells = {"owner": _cell(image, words, page, label="owner",
+                                     x0=columns["owner"][0], x1=columns["owner"][1],
+                                     y0=y0, y1=y1),
+                         "asset": _cell(image, words, page, label="asset",
                                      x0=columns["asset"][0], x1=columns["asset"][1],
                                      y0=y0, y1=y1),
                          "event_date": _cell(image, words, page, label="event_date",
@@ -197,6 +213,6 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                         x0=left, x1=right, y0=y0, y1=y1))
                 record["rows"][index - 1]["cells"] = cells
             pages_out.append(record)
-    return {"schema_version": "house-ptr-cell-observation-shadow/v2",
+    return {"schema_version": "house-ptr-cell-observation-shadow/v3",
             "source_sha256": source_sha256, "render_dpi": dpi,
             "qualification_status": "unverified_shadow_only", "pages": pages_out}

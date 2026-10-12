@@ -16,7 +16,8 @@ def relate_house_ptr_slots(page_heights: list[float], observation: dict,
     """Join original-page evidence centers to physical bands conservatively."""
     if observation.get("schema_version") not in {
             "house-ptr-cell-observation-shadow/v1",
-            "house-ptr-cell-observation-shadow/v2"}:
+            "house-ptr-cell-observation-shadow/v2",
+            "house-ptr-cell-observation-shadow/v3"}:
         raise ValueError("unsupported House physical observation")
     source_sha = observation.get("source_sha256")
     if not isinstance(source_sha, str) or extraction.get("source_sha256") != source_sha:
