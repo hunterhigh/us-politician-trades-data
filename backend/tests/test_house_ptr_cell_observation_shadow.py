@@ -1,8 +1,10 @@
 import importlib.util
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
-from unison_snapshot.house_ptr_cell_observation_shadow import _cell, observe_house_ptr_pdf
+from unison_snapshot.house_ptr_cell_observation_shadow import (_cell, _column_boxes,
+                                                              observe_house_ptr_pdf)
 
 
 HAS_RASTER = importlib.util.find_spec("PIL") is not None and importlib.util.find_spec("numpy") is not None
@@ -55,3 +57,30 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
     def test_document_hash_guard(self):
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             observe_house_ptr_pdf(b"not-a-pdf", source_sha256="0" * 64)
+
+    def test_short_grid_locates_asset_and_both_date_columns(self):
+        region = {"bands": [{"upper": .1, "vertical_x": [.12, .35, .46, .53, .60]},
+                            {"upper": .2}], "header_band": [.2, .25],
+                  "column_family": "short_grid"}
+        rules = [.35, .375, .405, .43, .46] + [round(.60 + .03 * n, 3)
+                                                for n in range(12)]
+        with patch("unison_snapshot.house_ptr_cell_observation_shadow._vertical_rules",
+                   return_value=rules):
+            columns = _column_boxes(region, None)
+        self.assertEqual(columns["status"], "located_shadow")
+        self.assertEqual(columns["asset"], [.175, .35])
+        self.assertEqual(columns["event"], [.46, .53])
+        self.assertEqual(columns["notification"], [.53, .60])
+
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
+    def test_notification_shape_is_only_raw_reading(self):
+        from PIL import Image
+
+        image = Image.new("RGB", (100, 100), "white")
+        page = SimpleNamespace(width=100, height=100)
+        words = [{"x0": 54, "x1": 59, "top": 10, "bottom": 20,
+                  "text": "07/25/26", "ocr_confidence": 90.0}]
+        observed = _cell(image, words, page, label="notification_date",
+                         x0=.53, x1=.60, y0=.1, y1=.3)
+        self.assertEqual(observed["reading"], "date_shape_match")
+        self.assertIsNone(observed["value"])
