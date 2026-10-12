@@ -17,6 +17,7 @@ from .market_store import (build_market_bundle, load_published_market_cache,
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_ptr_paper_qualification import qualify_paper_observation
+from .house_ptr_amount_header import observe_amount_header
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
@@ -167,6 +168,8 @@ def main() -> None:
     qualify_paper.add_argument("--observation", type=Path, required=True)
     qualify_paper.add_argument("--metadata", type=Path, required=True)
     qualify_paper.add_argument("--identity", type=Path, required=True)
+    qualify_paper.add_argument("--pdf", type=Path)
+    qualify_paper.add_argument("--tesseract")
     qualify_paper.add_argument("--output", type=Path, required=True)
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
@@ -504,7 +507,13 @@ def main() -> None:
             observation = json.loads(args.observation.read_text(encoding="utf-8"))
             metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
             identity = json.loads(args.identity.read_text(encoding="utf-8"))
-            result = qualify_paper_observation(observation, metadata, identity)
+            if bool(args.pdf) != bool(args.tesseract):
+                raise ValueError("House paper amount header requires both PDF and Tesseract path")
+            amount_header = (observe_amount_header(
+                args.pdf.read_bytes(), source_sha256=metadata["sha256"],
+                executable=args.tesseract) if args.pdf else None)
+            result = qualify_paper_observation(observation, metadata, identity,
+                                               amount_header=amount_header)
             _write_atomic(args.output, result)
             print(json.dumps({"document_id": result["document_id"],
                               "qualified": 0,

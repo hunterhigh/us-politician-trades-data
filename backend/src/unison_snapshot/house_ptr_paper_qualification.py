@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from .house_ptr import QUALIFICATION_SCHEMA
+from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 
 
@@ -16,7 +17,7 @@ PARSER_VERSION = "house-paper-observation-qualification-v1"
 
 
 def qualify_paper_observation(observation: dict, metadata: dict,
-                              identity: dict) -> dict:
+                              identity: dict, *, amount_header: dict | None = None) -> dict:
     """Account for every physical row while blocking unverified promotion."""
     source_sha = observation.get("source_sha256")
     if (not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha)
@@ -26,6 +27,18 @@ def qualify_paper_observation(observation: dict, metadata: dict,
     if (not isinstance(document_id, str) or not document_id
             or identity.get("document_id") != document_id):
         raise ValueError("House paper identity does not match the archived document")
+    header_ranges = None
+    header_evidence = None
+    if amount_header is not None:
+        if (amount_header.get("source_sha256") != source_sha or
+                amount_header.get("page_count") != len(observation["pages"])):
+            raise ValueError("House paper amount header does not match the observation")
+        checked = evaluate_amount_header_pages(source_sha, amount_header.get("pages"))
+        if (checked["status"] != amount_header.get("status") or
+                checked["ranges"] != amount_header.get("ranges")):
+            raise ValueError("House paper amount header interpretation changed")
+        header_ranges = checked["ranges"]
+        header_evidence = checked
     reading = read_house_ptr_key_fields(observation)
     read_by_slot = {(row["page"], row["physical_band_index"]): row
                     for row in reading["rows"]}
@@ -59,12 +72,28 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 reasons.extend(read["blocking_reasons"])
             elif read is not None:
                 raise ValueError("House paper non-data slot has a key-field reading")
+            amount_observation = None
+            if read and read["fields"] and header_ranges:
+                fields = read["fields"]
+                spouse_mark = fields["spouse_dc_over_1000000_mark"]
+                letter = fields["amount_letter"]
+                if spouse_mark is True and letter is None:
+                    letter = "K"
+                elif spouse_mark is True:
+                    letter = None
+                if letter in header_ranges:
+                    amount_observation = {
+                        "status": "printed_bounds_unverified_transaction",
+                        "letter": letter, **header_ranges[letter],
+                        "header_source_sha256": source_sha,
+                    }
             quarantined.append({
                 "extraction_id": key, "observation_key": key,
                 "reasons": sorted(set(reasons)), "source_sha256": source_sha,
                 "evidence": {"page": page_number, "physical_band_index": band_index,
                              "band_normalized": physical.get("band")},
                 "raw_fields": read["fields"] if read else None,
+                "amount_range_observation": amount_observation,
             })
     if physical_counts["data_candidate"] != reading["data_candidate_count"]:
         raise ValueError("House paper physical census and key-field reading differ")
@@ -78,7 +107,10 @@ def qualify_paper_observation(observation: dict, metadata: dict,
         "source_sha256": source_sha, "parser_version": PARSER_VERSION,
         "document_id": document_id, "identity": identity,
         "document_disposition": {"status": "paper_observation_unverified",
-                                 "physical_counts": physical_counts},
+                                 "physical_counts": physical_counts,
+                                 "amount_header_status": amount_header.get("status")
+                                 if amount_header else "not_observed"},
+        "amount_header_observation": header_evidence,
         "transactions": [], "quarantined": quarantined, "advisories": [],
         "qualification": {
             "method": "paper_observation_blocked",

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from unison_snapshot.house_ptr_paper_qualification import qualify_paper_observation
 from unison_snapshot.house_candidate import build_house_candidate
+from unison_snapshot.house_ptr_amount_header import LABELS, evaluate_amount_header_pages
 
 
 def cell(text="", label="", ink=0):
@@ -61,6 +62,27 @@ class HousePaperQualificationTests(unittest.TestCase):
             self.observation["pages"][0]["rows"][1].copy())
         with self.assertRaisesRegex(ValueError, "duplicated"):
             qualify_paper_observation(self.observation, self.metadata, self.identity)
+
+    def test_correlated_header_adds_amount_hint_only_to_quarantine(self):
+        self.observation["pages"].append({"page": 2, "rows": [
+            {"physical_band_index": 1, "disposition": "blank",
+             "band": [.4, .45], "cells": None}]})
+        printed = "\n".join(["$1,000-$15,000", *LABELS.values()])
+        header = evaluate_amount_header_pages(self.sha, [
+            {"page": page, "status": "header_ocr_observed",
+             "raw_header_text": printed} for page in (1, 2)])
+        result = qualify_paper_observation(self.observation, self.metadata,
+                                           self.identity, amount_header=header)
+        amount = result["quarantined"][0]["amount_range_observation"]
+        self.assertEqual((amount["letter"], amount["low"], amount["high"]),
+                         ("A", 1000, 15000))
+        self.assertEqual(result["amount_header_observation"]["source_sha256"], self.sha)
+        self.assertEqual(result["transactions"], [])
+        self.assertFalse(result["qualification"]["production_eligible"])
+        header["ranges"]["A"]["low"] = 1
+        with self.assertRaisesRegex(ValueError, "interpretation changed"):
+            qualify_paper_observation(self.observation, self.metadata,
+                                      self.identity, amount_header=header)
 
     def test_existing_candidate_builder_counts_quarantine_without_new_transaction(self):
         result = qualify_paper_observation(self.observation, self.metadata, self.identity)
