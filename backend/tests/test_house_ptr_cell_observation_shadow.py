@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from unison_snapshot.house_ptr_cell_observation_shadow import (_cell, _column_boxes,
                                                               observe_house_ptr_pdf)
+from unison_snapshot.house_ptr_region_shadow import _complete_header_rules
 from unison_snapshot.ocr_geometry import OcrPage
 
 
@@ -132,6 +133,27 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(columns["asset"], [.12, .35])
         self.assertEqual(columns["event"], [.46, .53])
         self.assertEqual(columns["notification"], [.53, .60])
+
+    def test_merged_title_owner_rule_requires_unique_grid_line(self):
+        major = [.515, .583, .664, .714, .733]
+        self.assertEqual(_complete_header_rules(major, [.102, .515, .537]),
+                         [.102, *major])
+        self.assertEqual(_complete_header_rules(major, [.102, .15, .515]), major)
+
+    def test_short_grid_selects_ruled_amount_boundary_after_stamp_noise(self):
+        region = {"bands": [{"upper": .1, "vertical_x": [.515, .583, .664, .714, .733]},
+                            {"upper": .2}], "header_band": [.2, .25],
+                  "major_columns": [.102, .515, .583, .664, .714, .733],
+                  "column_family": "short_grid"}
+        rules = [.044, .102, .515, .537, .558, .583, .664] + [
+            round(.733 + .0205 * n, 4) for n in range(12)]
+        with patch("unison_snapshot.house_ptr_cell_observation_shadow._vertical_rules",
+                   return_value=rules):
+            columns = _column_boxes(region, None)
+        self.assertEqual(columns["status"], "located_shadow")
+        self.assertEqual(columns["event"], [.583, .664])
+        self.assertEqual(columns["notification"], [.664, .733])
+        self.assertEqual(len(columns["amount"]), 12)
 
     @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
     def test_notification_shape_is_only_raw_reading(self):
