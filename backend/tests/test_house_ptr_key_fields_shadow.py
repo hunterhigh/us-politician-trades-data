@@ -49,6 +49,15 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         self.assertIn("event_date_unreadable", row["blocking_reasons"])
         self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
 
+    def test_unreadable_notification_date_remains_observed_without_blocking(self):
+        observed = report()
+        observed["pages"][0]["rows"][0]["cells"]["notification_date"]["raw_text"] = "| 6/5/2026"
+        row = read_house_ptr_key_fields(observed)["rows"][0]
+        self.assertEqual(row["status"], "raw_fields_present_unverified")
+        self.assertIsNone(row["fields"]["notification_date"])
+        self.assertEqual(row["fields"]["notification_date_status"], "not_exact_date_shape")
+        self.assertEqual(row["blocking_reasons"], [])
+
     def test_spouse_special_mark_and_range_are_preserved_but_blocked(self):
         observed = report()
         observed["pages"][0]["rows"][0]["cells"]["amount"] = amount_cells(supplemental=.13)
