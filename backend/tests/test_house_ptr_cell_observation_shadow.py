@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 from unison_snapshot.house_ptr_cell_observation_shadow import (_cell, _column_boxes,
                                                               observe_house_ptr_pdf)
-from unison_snapshot.house_ptr_region_shadow import _complete_header_rules
 from unison_snapshot.ocr_geometry import OcrPage
 
 
@@ -134,7 +133,10 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(columns["event"], [.46, .53])
         self.assertEqual(columns["notification"], [.53, .60])
 
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
     def test_merged_title_owner_rule_requires_unique_grid_line(self):
+        from unison_snapshot.house_ptr_region_shadow import _complete_header_rules
+
         major = [.515, .583, .664, .714, .733]
         self.assertEqual(_complete_header_rules(major, [.102, .515, .537]),
                          [.102, *major])
