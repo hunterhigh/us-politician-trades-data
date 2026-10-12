@@ -24,6 +24,13 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertLess(readiness, preflight)
         self.assertLess(preflight, readback)
         self.assertLess(readback, publish)
+        stop = content.index("Exercise late failure before publication")
+        self.assertLess(readback, stop)
+        self.assertLess(stop, publish)
+        self.assertIn("if: inputs.recovery_stop_before_publish", content)
+        self.assertIn('git push --atomic origin ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"',
+                      content)
+        self.assertIn("exit 86", content)
         self.assertNotIn("\n      - name:", content[publish + 1:])
         self.assertIn("verify_prepared_publication.py", content)
         self.assertIn("prepared-readback/dashboard.html", content)
