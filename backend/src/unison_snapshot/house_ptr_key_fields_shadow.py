@@ -84,11 +84,12 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
             notice, notice_status = _date(cells["notification_date"])
             direction, direction_status = _single_mark(cells["direction"])
             amount, amount_status, spouse_dc_mark, spouse_dc_status = _amount_marks(cells["amount"])
+            # Preserve the notice-date OCR result, but the current frontend uses
+            # the transaction date and the report's filed_at for its two clocks.
             blockers = [name for name, valid in (
                 ("owner_unreadable", owner_code is not None),
                 ("asset_unreadable", bool(asset_raw)),
                 ("event_date_unreadable", event is not None),
-                ("notification_date_unreadable", notice is not None),
                 ("direction_mark_unresolved", direction is not None),
                 ("amount_mark_unresolved", amount is not None)) if not valid]
             if spouse_dc_mark is True and amount is not None:
