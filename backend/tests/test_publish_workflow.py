@@ -101,6 +101,22 @@ class PublishWorkflowTests(unittest.TestCase):
             self.assertIn("backlog_count", content)
             self.assertIn("deduplicated_row_count", content)
 
+    def test_rollback_dry_run_verifies_prepared_tree_without_moving_refs(self):
+        content = (ROOT / ".github/workflows/rollback.yml").read_text(encoding="utf-8")
+        self.assertIn("dry_run:", content)
+        self.assertIn("type: boolean", content)
+        self.assertIn("default: false", content)
+        self.assertIn("Verify prepared rollback without publishing", content)
+        self.assertIn('rev-parse HEAD^', content)
+        self.assertIn('rev-parse HEAD^{tree}', content)
+        self.assertIn('rev-parse "${TARGET}^{tree}"', content)
+        self.assertIn('test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$CURRENT"',
+                      content)
+        self.assertIn('test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"',
+                      content)
+        self.assertIn("if: steps.commit.outputs.changed == 'true' && !inputs.dry_run",
+                      content)
+
 
 if __name__ == "__main__":
     unittest.main()
