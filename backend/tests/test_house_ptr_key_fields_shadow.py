@@ -54,7 +54,7 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         observed["pages"][0]["rows"][0]["cells"]["amount"] = amount_cells(supplemental=.13)
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertEqual(row["fields"]["amount_letter"], "B")
-        self.assertTrue(row["fields"]["spouse_dc_over_1000_mark"])
+        self.assertTrue(row["fields"]["spouse_dc_over_1000000_mark"])
         self.assertEqual(row["status"], "raw_fields_present_unverified")
 
     def test_supplemental_box_alone_is_not_an_amount_range(self):
