@@ -12,6 +12,7 @@ from .house_ptr import QUALIFICATION_SCHEMA
 from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
+from .house_ptr_duplicate_observation import observe_repeated_trade_signatures
 
 
 PARSER_VERSION = "house-paper-observation-qualification-v1"
@@ -42,6 +43,15 @@ def qualify_paper_observation(observation: dict, metadata: dict,
         header_evidence = checked
     reading = read_house_ptr_key_fields(observation)
     section_context = relate_house_ptr_sections(observation)
+    duplicates = observe_repeated_trade_signatures(reading, section_context)
+    repeated_by_slot = {}
+    for group in duplicates["groups"]:
+        slots = [(item["page"], item["physical_band_index"])
+                 for item in group["slots"]]
+        for slot in slots:
+            repeated_by_slot[slot] = [
+                {"page": other[0], "physical_band_index": other[1]}
+                for other in slots if other != slot]
     read_by_slot = {(row["page"], row["physical_band_index"]): row
                     for row in reading["rows"]}
     section_by_slot = {(row["page"], row["physical_band_index"]): row
@@ -104,6 +114,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                              "band_normalized": physical.get("band")},
                 "raw_fields": read["fields"] if read else None,
                 "account_section_observation": section_by_slot.get(slot),
+                "possible_repeated_with": repeated_by_slot.get(slot, []),
                 "amount_range_observation": amount_observation,
             })
     if physical_counts["data_candidate"] != reading["data_candidate_count"]:
@@ -127,6 +138,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                                  if amount_header else "not_observed"},
         "amount_header_observation": header_evidence,
         "section_context_observation": section_context,
+        "duplicate_observation": duplicates,
         "structural_observations": structural_observations,
         "transactions": [], "quarantined": quarantined, "advisories": [],
         "qualification": {

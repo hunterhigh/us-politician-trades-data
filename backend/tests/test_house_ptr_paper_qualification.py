@@ -104,6 +104,40 @@ class HousePaperQualificationTests(unittest.TestCase):
             "section_title_raw"], "FAMILY TRUST")
         self.assertEqual(result["transactions"], [])
 
+    def test_same_section_repeated_physical_rows_stay_separate_without_extra_blocker(self):
+        rows = self.observation["pages"][0]["rows"]
+        rows[0] = {"physical_band_index": 1, "disposition": "unknown",
+                   "band": [.4, .45], "cells": {
+                       "asset": {"raw_text": "FAMILY TRUST", "crop_sha256": "b" * 64},
+                       "owner": {"raw_text": ""}, "event_date": {"raw_text": ""},
+                       "notification_date": {"raw_text": ""},
+                       "direction": [{"interior_dark_fraction": 0}],
+                       "amount": [{"interior_dark_fraction": 0}]}}
+        data = json.loads(json.dumps(self.observation["pages"][0]["rows"][1]))
+        data["disposition"] = "data_candidate"
+        data["cells"] = {
+            "owner": cell("SP"), "asset": cell("CALIFORNIA ST GO"),
+            "event_date": cell("05/08/2026"),
+            "notification_date": cell("06/05/2026"),
+            "direction": [cell(label="purchase", ink=.12),
+                          cell(label="sale", ink=.001)],
+            "amount": [cell(label=chr(ord("A") + index),
+                            ink=.13 if index == 2 else .001)
+                       for index in range(11)],
+        }
+        rows[1] = data
+        other = json.loads(json.dumps(data))
+        other["physical_band_index"] = 3
+        rows[2] = other
+        result = qualify_paper_observation(self.observation, self.metadata, self.identity)
+        self.assertEqual(len(result["quarantined"]), 2)
+        self.assertEqual(result["duplicate_observation"]["repeated_group_count"], 1)
+        self.assertTrue(all(len(row["possible_repeated_with"]) == 1
+                            for row in result["quarantined"]))
+        self.assertTrue(all(row["reasons"] == ["paper_source_fields_unverified"]
+                            for row in result["quarantined"]))
+        self.assertEqual(result["transactions"], [])
+
     def test_existing_candidate_builder_counts_quarantine_without_new_transaction(self):
         result = qualify_paper_observation(self.observation, self.metadata, self.identity)
         with tempfile.TemporaryDirectory() as folder:
