@@ -262,7 +262,8 @@ def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]
     """Carry House physical bands and raw cells without promoting OCR values."""
     schema = report.get("schema_version")
     if schema not in {"house-ptr-cell-observation-shadow/v1",
-                      "house-ptr-cell-observation-shadow/v2"}:
+                      "house-ptr-cell-observation-shadow/v2",
+                      "house-ptr-cell-observation-shadow/v3"}:
         raise ValueError("unsupported House cell observation schema")
     if report.get("qualification_status") != "unverified_shadow_only":
         raise ValueError("House cell observations must remain unverified")
@@ -295,9 +296,11 @@ def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]
             fields = [("event_date", [cells["event_date"]]),
                       ("direction", cells["direction"]),
                       ("amount", cells["amount"])]
-            if schema.endswith("/v2"):
+            if schema.endswith(("/v2", "/v3")):
                 fields.extend((field, [cells[field]])
                               for field in ("asset", "notification_date"))
+            if schema.endswith("/v3"):
+                fields.append(("owner", [cells["owner"]]))
             for field, observations in fields:
                 for observed in observations:
                     if observed["status"] != "raw_unverified" or observed["value"] is not None:
@@ -307,7 +310,7 @@ def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]
                         page_number=number,
                         adapter_version=f"house-ptr-cell-shadow/{schema.rsplit('/', 1)[1]}/{dpi}dpi",
                         slot_key=str(index),
-                        field=(field if field in {"event_date", "notification_date", "asset"}
+                        field=(field if field in {"event_date", "notification_date", "asset", "owner"}
                                else f"{field}.{observed['label']}"),
                         box_px=observed["bbox_pixels"],
                         crop_sha256=observed["crop_sha256"],

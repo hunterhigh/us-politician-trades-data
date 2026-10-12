@@ -41,6 +41,24 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertIsNone(observed["value"])
 
     @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
+    def test_asset_word_order_uses_position_within_one_line(self):
+        from PIL import Image
+
+        image = Image.new("RGB", (300, 100), "white")
+        page = SimpleNamespace(width=300, height=100)
+        words = [
+            {"x0": 100, "x1": 160, "top": 20, "bottom": 28,
+             "text": "COMPANIES", "ocr_confidence": 90.0},
+            {"x0": 20, "x1": 90, "top": 23.6, "bottom": 31,
+             "text": "CARLISLE", "ocr_confidence": 90.0},
+            {"x0": 170, "x1": 190, "top": 23.6, "bottom": 31,
+             "text": "INC", "ocr_confidence": 90.0},
+        ]
+        observed = _cell(image, words, page, label="asset",
+                         x0=0, x1=.8, y0=.1, y1=.4)
+        self.assertEqual(observed["raw_text"], "CARLISLE COMPANIES INC")
+
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
     def test_border_noise_is_preserved_around_date_shape(self):
         from PIL import Image
 
@@ -62,13 +80,14 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         region = {"bands": [{"upper": .1, "vertical_x": [.12, .35, .46, .53, .60]},
                             {"upper": .2}], "header_band": [.2, .25],
                   "column_family": "short_grid"}
-        rules = [.35, .375, .405, .43, .46] + [round(.60 + .03 * n, 3)
+        rules = [.06, .12, .35, .375, .405, .43, .46] + [round(.60 + .03 * n, 3)
                                                 for n in range(12)]
         with patch("unison_snapshot.house_ptr_cell_observation_shadow._vertical_rules",
                    return_value=rules):
             columns = _column_boxes(region, None)
         self.assertEqual(columns["status"], "located_shadow")
-        self.assertEqual(columns["asset"], [.175, .35])
+        self.assertEqual(columns["owner"], [.06, .12])
+        self.assertEqual(columns["asset"], [.12, .35])
         self.assertEqual(columns["event"], [.46, .53])
         self.assertEqual(columns["notification"], [.53, .60])
 

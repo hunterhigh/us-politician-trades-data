@@ -84,6 +84,28 @@ class SourceRowLedgerTests(unittest.TestCase):
         self.assertEqual(ledger["pages"][0]["adapter_version"],
                          "house-ptr-cell-shadow/v2/200dpi")
 
+    def test_house_v3_carries_owner_separately_from_asset(self):
+        cell = {"label": "owner", "status": "raw_unverified", "value": None,
+                "bbox_pixels": [10, 20, 30, 40], "crop_sha256": "b" * 64,
+                "raw_text": "SP", "reading": "raw_unclassified",
+                "interior_dark_fraction": .01, "raw_ocr_confidence": 93.0}
+        cells = {name: {**cell, "label": name} for name in
+                 ("owner", "asset", "event_date", "notification_date")}
+        cells.update({"direction": [], "amount": []})
+        report = {"schema_version": "house-ptr-cell-observation-shadow/v3",
+                  "qualification_status": "unverified_shadow_only",
+                  "source_sha256": "a" * 64, "render_dpi": 200,
+                  "pages": [{"page": 1, "region_status": "located_shadow",
+                             "cell_status": "raw_observed_unverified",
+                             "rows": [{"physical_band_index": 1,
+                                       "disposition": "data_candidate",
+                                       "band": [.1, .2], "cells": cells}]}]}
+        ledger = house_ptr_cell_shadow_ledger(report)
+        self.assertEqual({item["field"] for item in ledger["cells"]},
+                         {"owner", "asset", "event_date", "notification_date"})
+        self.assertEqual(ledger["pages"][0]["adapter_version"],
+                         "house-ptr-cell-shadow/v3/200dpi")
+
     def test_page_ledger_conserves_observed_slots_without_qualifying_them(self):
         page = page_ledger(**BASE, coverage="located", slots=[
         {"local_key": "r1", "bounds": [100, 120],
