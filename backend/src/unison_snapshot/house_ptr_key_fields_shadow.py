@@ -10,8 +10,8 @@ import re
 from datetime import datetime
 
 
-DATE_SHAPE = re.compile(r"\d{1,2}/\d{1,2}/\d{4}")
-EDGE_NOISE = re.compile(r"[|.\-'\u2018\u2019\ufffd]{0,3}")
+DATE_SHAPE = re.compile(r"\d{1,2}(?P<separator>[/\-])\d{1,2}(?P=separator)\d{4}")
+EDGE_NOISE = re.compile(r"[|.\-'\"*_\u00b0\u2018\u2019\ufffd]{0,3}")
 OWNER_CODES = {"SP", "JT", "DC"}
 
 
@@ -31,9 +31,13 @@ def _date(cell: dict) -> tuple[str | None, str]:
             return None, "not_exact_date_shape"
         edge_noise = True
     try:
-        value = datetime.strptime(match.group(), "%m/%d/%Y").date().isoformat()
+        value = datetime.strptime(match.group().replace("-", "/"),
+                                  "%m/%d/%Y").date().isoformat()
     except ValueError:
         return None, "invalid_calendar_date"
+    if match.group("separator") == "-":
+        return value, ("ocr_dash_date_shape_with_edge_noise_unverified" if edge_noise
+                       else "ocr_dash_date_shape_unverified")
     return value, ("ocr_date_shape_with_edge_noise_unverified" if edge_noise
                    else "ocr_date_shape_unverified")
 
