@@ -142,3 +142,28 @@ def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 
                 completed.stdout, points_per_pixel=72.0 / resolution)
             pages.append(OcrPage(width=page.width, height=page.height, words=words))
     return pages, engine
+
+
+def ocr_rendered_image(image, *, executable: str | None = None,
+                       resolution: int = 200) -> tuple[OcrPage, str]:
+    """OCR one already rendered image in its own (possibly rotated) frame."""
+    if type(resolution) is not int or not 150 <= resolution <= 400:
+        raise OcrGeometryError("OCR resolution is outside bounds")
+    resolved, engine = _engine(executable)
+    with tempfile.TemporaryDirectory(prefix="whitehouse-ocr-image-") as folder:
+        image_path = Path(folder) / "page.png"
+        image.convert("L").save(image_path, format="PNG")
+        try:
+            completed = subprocess.run(
+                [resolved, str(image_path), "stdout", "--dpi", str(resolution),
+                 "-l", "eng", "tsv"], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, timeout=120, check=False)
+        except (OSError, subprocess.SubprocessError):
+            raise OcrGeometryError("Tesseract OCR failed on rendered image") from None
+        if completed.returncode:
+            raise OcrGeometryError("Tesseract OCR failed on rendered image")
+        words = words_from_tesseract_tsv(
+            completed.stdout, points_per_pixel=72.0 / resolution)
+    return OcrPage(width=image.width * 72.0 / resolution,
+                   height=image.height * 72.0 / resolution,
+                   words=words), engine
