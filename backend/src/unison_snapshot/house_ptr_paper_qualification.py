@@ -11,6 +11,7 @@ import re
 from .house_ptr import QUALIFICATION_SCHEMA
 from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
+from .house_ptr_section_context import relate_house_ptr_sections
 
 
 PARSER_VERSION = "house-paper-observation-qualification-v1"
@@ -40,11 +41,17 @@ def qualify_paper_observation(observation: dict, metadata: dict,
         header_ranges = checked["ranges"]
         header_evidence = checked
     reading = read_house_ptr_key_fields(observation)
+    section_context = relate_house_ptr_sections(observation)
     read_by_slot = {(row["page"], row["physical_band_index"]): row
                     for row in reading["rows"]}
+    section_by_slot = {(row["page"], row["physical_band_index"]): row
+                       for row in section_context["data_rows"]}
+    heading_by_slot = {(row["page"], row["physical_band_index"]): row
+                       for row in section_context["sections"]}
     if len(read_by_slot) != reading["data_candidate_count"]:
         raise ValueError("House paper reading has duplicate physical slots")
     quarantined = []
+    structural_observations = []
     physical_counts = {"data_candidate": 0, "unknown": 0, "blank": 0}
     seen = set()
     for page in observation["pages"]:
@@ -61,6 +68,9 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 raise ValueError("House paper physical disposition is unknown")
             physical_counts[disposition] += 1
             if disposition == "blank":
+                continue
+            if slot in heading_by_slot:
+                structural_observations.append(heading_by_slot[slot])
                 continue
             key = f"paper-slot:{source_sha}:{page_number}:{band_index}"
             reasons = (["paper_source_fields_unverified"] if disposition == "data_candidate"
@@ -93,14 +103,18 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 "evidence": {"page": page_number, "physical_band_index": band_index,
                              "band_normalized": physical.get("band")},
                 "raw_fields": read["fields"] if read else None,
+                "account_section_observation": section_by_slot.get(slot),
                 "amount_range_observation": amount_observation,
             })
     if physical_counts["data_candidate"] != reading["data_candidate_count"]:
         raise ValueError("House paper physical census and key-field reading differ")
+    if (len(quarantined) + len(structural_observations) + physical_counts["blank"]
+            != section_context["physical_slot_count"]):
+        raise ValueError("House paper section and qualification census differ")
     if not quarantined:
         raise ValueError("House paper has no observed nonblank rows")
     document_reasons = ["paper_source_fields_unverified"]
-    if physical_counts["unknown"]:
+    if section_context["unclassified_unknown_count"]:
         document_reasons.append("physical_row_disposition_unresolved")
     return {
         "schema_version": QUALIFICATION_SCHEMA,
@@ -108,9 +122,12 @@ def qualify_paper_observation(observation: dict, metadata: dict,
         "document_id": document_id, "identity": identity,
         "document_disposition": {"status": "paper_observation_unverified",
                                  "physical_counts": physical_counts,
+                                 "section_heading_count": len(structural_observations),
                                  "amount_header_status": amount_header.get("status")
                                  if amount_header else "not_observed"},
         "amount_header_observation": header_evidence,
+        "section_context_observation": section_context,
+        "structural_observations": structural_observations,
         "transactions": [], "quarantined": quarantined, "advisories": [],
         "qualification": {
             "method": "paper_observation_blocked",

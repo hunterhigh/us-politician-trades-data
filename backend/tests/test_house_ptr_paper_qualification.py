@@ -60,7 +60,7 @@ class HousePaperQualificationTests(unittest.TestCase):
     def test_duplicate_slot_fails_closed(self):
         self.observation["pages"][0]["rows"].append(
             self.observation["pages"][0]["rows"][1].copy())
-        with self.assertRaisesRegex(ValueError, "duplicated"):
+        with self.assertRaisesRegex(ValueError, "band order is invalid"):
             qualify_paper_observation(self.observation, self.metadata, self.identity)
 
     def test_correlated_header_adds_amount_hint_only_to_quarantine(self):
@@ -83,6 +83,26 @@ class HousePaperQualificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "interpretation changed"):
             qualify_paper_observation(self.observation, self.metadata,
                                       self.identity, amount_header=header)
+
+    def test_section_heading_is_structural_and_not_a_quarantined_transaction(self):
+        rows = self.observation["pages"][0]["rows"]
+        rows[1]["cells"] = {
+            "asset": {"raw_text": "FAMILY TRUST", "crop_sha256": "b" * 64},
+            "owner": {"raw_text": ""}, "event_date": {"raw_text": ""},
+            "notification_date": {"raw_text": ""},
+            "direction": [{"interior_dark_fraction": 0}],
+            "amount": [{"interior_dark_fraction": 0}],
+        }
+        more = json.loads(json.dumps(rows[0]))
+        more["physical_band_index"] = 3
+        rows.insert(2, more)
+        rows[3]["physical_band_index"] = 4
+        result = qualify_paper_observation(self.observation, self.metadata, self.identity)
+        self.assertEqual(len(result["structural_observations"]), 1)
+        self.assertEqual(len(result["quarantined"]), 2)
+        self.assertEqual(result["quarantined"][1]["account_section_observation"][
+            "section_title_raw"], "FAMILY TRUST")
+        self.assertEqual(result["transactions"], [])
 
     def test_existing_candidate_builder_counts_quarantine_without_new_transaction(self):
         result = qualify_paper_observation(self.observation, self.metadata, self.identity)
