@@ -11,18 +11,31 @@ from datetime import datetime
 
 
 DATE_SHAPE = re.compile(r"\d{1,2}/\d{1,2}/\d{4}")
+EDGE_NOISE = re.compile(r"[|.\-'\u2018\u2019\ufffd]{0,3}")
 OWNER_CODES = {"SP", "JT", "DC"}
 
 
 def _date(cell: dict) -> tuple[str | None, str]:
     raw = cell.get("raw_text", "").strip()
-    if not DATE_SHAPE.fullmatch(raw):
-        return None, "not_exact_date_shape"
+    match = DATE_SHAPE.fullmatch(raw)
+    edge_noise = False
+    if match is None:
+        matches = list(DATE_SHAPE.finditer(raw))
+        if len(matches) != 1:
+            return None, "not_exact_date_shape"
+        match = matches[0]
+        before, after = raw[:match.start()].strip(), raw[match.end():].strip()
+        if not before and not after:
+            return None, "not_exact_date_shape"
+        if not EDGE_NOISE.fullmatch(before) or not EDGE_NOISE.fullmatch(after):
+            return None, "not_exact_date_shape"
+        edge_noise = True
     try:
-        value = datetime.strptime(raw, "%m/%d/%Y").date().isoformat()
+        value = datetime.strptime(match.group(), "%m/%d/%Y").date().isoformat()
     except ValueError:
         return None, "invalid_calendar_date"
-    return value, "ocr_date_shape_unverified"
+    return value, ("ocr_date_shape_with_edge_noise_unverified" if edge_noise
+                   else "ocr_date_shape_unverified")
 
 
 def _single_mark(cells: list[dict]) -> tuple[str | None, str]:
