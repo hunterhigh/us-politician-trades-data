@@ -49,13 +49,13 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         self.assertIn("event_date_unreadable", row["blocking_reasons"])
         self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
 
-    def test_supplemental_spouse_mark_does_not_compete_with_amount_range(self):
+    def test_spouse_special_mark_and_range_are_preserved_but_blocked(self):
         observed = report()
         observed["pages"][0]["rows"][0]["cells"]["amount"] = amount_cells(supplemental=.13)
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertEqual(row["fields"]["amount_letter"], "B")
         self.assertTrue(row["fields"]["spouse_dc_over_1000000_mark"])
-        self.assertEqual(row["status"], "raw_fields_present_unverified")
+        self.assertIn("amount_column_combination_unresolved", row["blocking_reasons"])
 
     def test_supplemental_box_alone_is_not_an_amount_range(self):
         observed = report()
@@ -64,6 +64,8 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertIsNone(row["fields"]["amount_letter"])
         self.assertIn("amount_mark_unresolved", row["blocking_reasons"])
+        self.assertIn("spouse_dc_open_ended_amount_not_representable",
+                      row["blocking_reasons"])
 
     def test_wrong_schema_cannot_become_key_field_report(self):
         observed = report()

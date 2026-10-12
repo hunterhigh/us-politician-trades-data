@@ -40,7 +40,7 @@ def _single_mark(cells: list[dict]) -> tuple[str | None, str]:
 
 
 def _amount_marks(cells: list[dict]) -> tuple[str | None, str, bool | None, str]:
-    """Separate the A-J range columns from the supplemental spouse/DC K box."""
+    """Separate A-J ranges from the spouse/DC over-$1m special K box."""
     labels = [cell.get("label") for cell in cells]
     if labels not in ([chr(ord("A") + i) for i in range(10)],
                       [chr(ord("A") + i) for i in range(11)]):
@@ -91,6 +91,10 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
                 ("notification_date_unreadable", notice is not None),
                 ("direction_mark_unresolved", direction is not None),
                 ("amount_mark_unresolved", amount is not None)) if not valid]
+            if spouse_dc_mark is True and amount is not None:
+                blockers.append("amount_column_combination_unresolved")
+            if spouse_dc_mark is True and amount is None:
+                blockers.append("spouse_dc_open_ended_amount_not_representable")
             rows.append({"page": page["page"],
                          "physical_band_index": physical["physical_band_index"],
                          "status": "raw_fields_present_unverified" if not blockers
