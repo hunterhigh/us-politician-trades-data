@@ -40,14 +40,20 @@ def _column_boxes(region: dict, image) -> dict:
     major = bands[matches[0] - 1]["vertical_x"]
     family = region.get("column_family")
     if family == "dense_long" and len(major) == 4:
+        asset_left, asset_right = .11, major[0]
         action_left, action_right = major[:2]
         event_left, event_right = major[1:3]
-        amount_left = major[3]
+        notice_left, notice_right = major[2:4]
+        amount_left = notice_right
     elif family == "short_grid" and len(major) in (5, 6):
+        asset_left, asset_right = major[0] + .055, major[1]
         action_left, action_right = major[1:3]
         event_left, event_right = major[2:4]
-        amount_left = major[4]
+        notice_left, notice_right = major[3:5]
+        amount_left = notice_right
     else:
+        return {"status": "unknown_header_topology"}
+    if not 0 <= asset_left < asset_right < action_left + .001:
         return {"status": "unknown_header_topology"}
     rules = _vertical_rules(image, *header)
     action = [x for x in rules if action_left - .004 <= x <= action_right + .004]
@@ -58,7 +64,9 @@ def _column_boxes(region: dict, image) -> dict:
             or abs(amount[0] - amount_left) > .006):
         return {"status": "unknown_checkbox_columns", "major_rules": major,
                 "observed_action_rules": action, "observed_amount_rules": amount}
-    return {"status": "located_shadow", "event": [event_left, event_right],
+    return {"status": "located_shadow", "asset": [asset_left, asset_right],
+            "event": [event_left, event_right],
+            "notification": [notice_left, notice_right],
             "action": action, "amount": amount,
             "action_labels": (["purchase", "sale", "partial_sale", "exchange"]
                               if len(action) == 5 else ["purchase", "sale", "exchange"])}
@@ -86,12 +94,14 @@ def _cell(image, words: list[dict], page, *, label: str,
     # A date-shaped OCR string is only a reading-quality hint. The row can
     # still be a printed legend and this function never emits a date value.
     date_shape = r"\d{1,2}/\d{1,2}/\d{2,4}"
-    reading = ("date_shape_match" if label == "event_date" and
+    date_field = label in {"event_date", "notification_date"}
+    reading = ("date_shape_match" if date_field and
                re.fullmatch(date_shape, raw_text)
-               else "date_shape_with_noise" if label == "event_date" and
+               else "date_shape_with_noise" if date_field and
                re.search(date_shape, raw_text)
-               else "date_no_ocr_text" if label == "event_date" and not raw_text
-               else "date_ocr_unclear" if label == "event_date" else "mark_unknown")
+               else "date_no_ocr_text" if date_field and not raw_text
+               else "date_ocr_unclear" if date_field else "raw_unclassified"
+               if label == "asset" else "mark_unknown")
     return {"label": label, "status": "raw_unverified", "reading": reading,
             "raw_text": raw_text,
             "raw_ocr_confidence": round(mean(word["ocr_confidence"] for word in selected), 2)
@@ -164,9 +174,16 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 record["ocr_error"] = str(error)
             for index, physical in enumerate(region["physical_row_bands"], 1):
                 y0, y1 = physical["band"]
-                cells = {"event_date": _cell(image, words, page, label="event_date",
+                cells = {"asset": _cell(image, words, page, label="asset",
+                                     x0=columns["asset"][0], x1=columns["asset"][1],
+                                     y0=y0, y1=y1),
+                         "event_date": _cell(image, words, page, label="event_date",
                                               x0=columns["event"][0], x1=columns["event"][1],
                                               y0=y0, y1=y1),
+                         "notification_date": _cell(
+                             image, words, page, label="notification_date",
+                             x0=columns["notification"][0],
+                             x1=columns["notification"][1], y0=y0, y1=y1),
                          "direction": [], "amount": []}
                 for slot, (left, right) in enumerate(zip(columns["action"],
                                                          columns["action"][1:])):
@@ -180,6 +197,6 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                         x0=left, x1=right, y0=y0, y1=y1))
                 record["rows"][index - 1]["cells"] = cells
             pages_out.append(record)
-    return {"schema_version": "house-ptr-cell-observation-shadow/v1",
+    return {"schema_version": "house-ptr-cell-observation-shadow/v2",
             "source_sha256": source_sha256, "render_dpi": dpi,
             "qualification_status": "unverified_shadow_only", "pages": pages_out}

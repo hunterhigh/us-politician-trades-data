@@ -260,7 +260,9 @@ def house_ptr_shadow_pages(pages: list[dict], *, document_sha256: str,
 
 def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]]:
     """Carry House physical bands and raw cells without promoting OCR values."""
-    if report.get("schema_version") != "house-ptr-cell-observation-shadow/v1":
+    schema = report.get("schema_version")
+    if schema not in {"house-ptr-cell-observation-shadow/v1",
+                      "house-ptr-cell-observation-shadow/v2"}:
         raise ValueError("unsupported House cell observation schema")
     if report.get("qualification_status") != "unverified_shadow_only":
         raise ValueError("House cell observations must remain unverified")
@@ -290,19 +292,22 @@ def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]
                                               if cells else None)})
             if cells is None:
                 continue
-            for field, observations in (
-                    ("event_date", [cells["event_date"]]),
-                    ("direction", cells["direction"]),
-                    ("amount", cells["amount"])):
+            fields = [("event_date", [cells["event_date"]]),
+                      ("direction", cells["direction"]),
+                      ("amount", cells["amount"])]
+            if schema.endswith("/v2"):
+                fields.extend((field, [cells[field]])
+                              for field in ("asset", "notification_date"))
+            for field, observations in fields:
                 for observed in observations:
                     if observed["status"] != "raw_unverified" or observed["value"] is not None:
                         raise ValueError("House cell contains a promoted value")
                     cells_out.append(cell_observation(
                         source_id="house_clerk", document_sha256=source_sha,
                         page_number=number,
-                        adapter_version=f"house-ptr-cell-shadow/v1/{dpi}dpi",
+                        adapter_version=f"house-ptr-cell-shadow/{schema.rsplit('/', 1)[1]}/{dpi}dpi",
                         slot_key=str(index),
-                        field=(field if field == "event_date"
+                        field=(field if field in {"event_date", "notification_date", "asset"}
                                else f"{field}.{observed['label']}"),
                         box_px=observed["bbox_pixels"],
                         crop_sha256=observed["crop_sha256"],
@@ -317,7 +322,7 @@ def house_ptr_cell_shadow_ledger(report: dict) -> dict[str, list[dict[str, Any]]
         pages_out.append(page_ledger(
             source_id="house_clerk", document_sha256=source_sha,
             page_number=number,
-            adapter_version=f"house-ptr-cell-shadow/v1/{dpi}dpi",
+            adapter_version=f"house-ptr-cell-shadow/{schema.rsplit('/', 1)[1]}/{dpi}dpi",
             coverage="located" if located else "unknown",
             slots=slots,
             coverage_reason=None if located else (

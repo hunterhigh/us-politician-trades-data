@@ -59,6 +59,31 @@ class SourceRowLedgerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "promoted value"):
             house_ptr_cell_shadow_ledger(report)
 
+    def test_house_v2_carries_asset_and_notification_without_interpretation(self):
+        cell = {"label": "asset", "status": "raw_unverified", "value": None,
+                "bbox_pixels": [10, 20, 30, 40], "crop_sha256": "b" * 64,
+                "raw_text": "XYZ", "reading": "raw_unclassified",
+                "interior_dark_fraction": .01, "raw_ocr_confidence": 93.0}
+        report = {"schema_version": "house-ptr-cell-observation-shadow/v2",
+                  "qualification_status": "unverified_shadow_only",
+                  "source_sha256": "a" * 64, "render_dpi": 200,
+                  "pages": [{"page": 1, "region_status": "located_shadow",
+                             "cell_status": "raw_observed_unverified",
+                             "rows": [{"physical_band_index": 1,
+                                       "disposition": "data_candidate",
+                                       "band": [.1, .2],
+                                       "cells": {"event_date": {**cell, "label": "event_date"},
+                                                 "asset": cell,
+                                                 "notification_date": {**cell,
+                                                                       "label": "notification_date"},
+                                                 "direction": [], "amount": []}}]}]}
+        ledger = house_ptr_cell_shadow_ledger(report)
+        self.assertEqual({item["field"] for item in ledger["cells"]},
+                         {"asset", "event_date", "notification_date"})
+        self.assertTrue(all(item["interpreted"] is None for item in ledger["cells"]))
+        self.assertEqual(ledger["pages"][0]["adapter_version"],
+                         "house-ptr-cell-shadow/v2/200dpi")
+
     def test_page_ledger_conserves_observed_slots_without_qualifying_them(self):
         page = page_ledger(**BASE, coverage="located", slots=[
         {"local_key": "r1", "bounds": [100, 120],
