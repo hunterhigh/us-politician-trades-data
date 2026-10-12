@@ -274,6 +274,14 @@ def _raster_ink(page: dict, *, x0: float, x1: float, y0: float, y1: float) -> fl
 
 def _legacy_filing_status(page: dict, words: list[dict], width: float, height: float,
                           compact: bool) -> str | None:
+    # Some paper PTRs begin with the transaction table on page one. The fixed
+    # status-box coordinates then fall inside trade cells, so an X or raster
+    # ink there cannot establish whether the whole filing is an amendment.
+    upper_text = re.sub(r"[^A-Z]", "", " ".join(
+        _clean(str(word.get("text", ""))).upper() for word in words
+        if float(word.get("top", height)) < 0.31 * height))
+    if "FULLASSETNAME" in upper_text and "AMOUNTOFTRANSACTION" in upper_text:
+        return None
     marks = [float(word["x0"]) / width for word in words if _is_mark(word)
              and 0.31 * height <= float(word["top"]) <= 0.48 * height]
     centers = (0.49, 0.585) if compact else (0.46, 0.55)

@@ -574,6 +574,21 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual(
             qualify_automatic(extraction, IDENTITY)["qualification"]["qualified_count"], 1)
 
+    def test_first_page_table_does_not_supply_filing_status_from_trade_ink(self):
+        pages = deepcopy(wide_legacy_checkbox_pages())
+        pages[0]["words"].extend([
+            ocr_word("FULL", 120, 100), ocr_word("ASSET", 155, 100),
+            ocr_word("NAME", 195, 100), ocr_word("AMOUNT", 590, 100),
+            ocr_word("OF", 640, 100), ocr_word("TRANSACTION", 655, 100),
+        ])
+        extraction = parse_word_pages(
+            META, "9" * 64, pages, copy_allowed=True, ocr_engine="tesseract 5.3.0")
+        self.assertIsNone(extraction["transactions"][0]["filing_status"])
+        qualification = qualify_automatic(extraction, IDENTITY)
+        self.assertEqual(qualification["qualification"]["qualified_count"], 0)
+        self.assertIn("revision_relationship_unresolved",
+                      qualification["quarantined"][0]["reasons"])
+
     def test_compact_legacy_form_excludes_its_printed_example_row(self):
         extraction = parse_word_pages(META, "d" * 64, compact_legacy_checkbox_pages(),
                                       copy_allowed=True, ocr_engine="tesseract 5.3.0")
