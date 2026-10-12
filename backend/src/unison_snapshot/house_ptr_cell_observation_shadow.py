@@ -38,7 +38,7 @@ def _column_boxes(region: dict, image) -> dict:
                if header and abs(band["upper"] - header[0]) < .0005]
     if len(matches) != 1 or matches[0] == 0:
         return {"status": "unknown_header_topology"}
-    major = bands[matches[0] - 1]["vertical_x"]
+    major = region.get("major_columns") or bands[matches[0] - 1]["vertical_x"]
     family = region.get("column_family")
     if family == "dense_long" and len(major) == 4:
         action_left, action_right = major[:2]
@@ -48,10 +48,12 @@ def _column_boxes(region: dict, image) -> dict:
     elif family == "short_grid" and len(major) in (5, 6):
         action_left, action_right = major[1:3]
         event_left, event_right = major[2:4]
-        notice_left, notice_right = major[3:5]
-        amount_left = notice_right
+        notice_left = major[3]
+        notice_right_candidates = major[4:]
     else:
         return {"status": "unknown_header_topology"}
+    if family == "dense_long":
+        notice_right_candidates = [notice_right]
     rules = _vertical_rules(image, *header)
     # The full-width ruled header retains the owner and asset boundaries even
     # when the preceding band omits the left rules from its detector window.
@@ -63,13 +65,19 @@ def _column_boxes(region: dict, image) -> dict:
     owner_left, owner_right, asset_right = pre_action
     asset_left = owner_right
     action = [x for x in rules if action_left - .004 <= x <= action_right + .004]
-    amount = [x for x in rules if amount_left - .004 <= x <= .985]
-    if (len(action) not in (4, 5) or len(amount) not in (11, 12)
+    amount_options = []
+    for amount_left in notice_right_candidates:
+        amount = [x for x in rules if amount_left - .004 <= x <= .985]
+        if (len(amount) in (11, 12) and
+                abs(amount[0] - amount_left) <= .006 and
+                .04 <= amount_left - notice_left <= .12):
+            amount_options.append((amount_left, amount))
+    if (len(action) not in (4, 5) or len(amount_options) != 1
             or abs(action[0] - action_left) > .006
-            or abs(action[-1] - action_right) > .006
-            or abs(amount[0] - amount_left) > .006):
+            or abs(action[-1] - action_right) > .006):
         return {"status": "unknown_checkbox_columns", "major_rules": major,
                 "observed_action_rules": action, "observed_amount_rules": amount}
+    notice_right, amount = amount_options[0]
     return {"status": "located_shadow", "owner": [owner_left, owner_right],
             "asset": [asset_left, asset_right],
             "event": [event_left, event_right],

@@ -23,6 +23,16 @@ def _clusters(points: np.ndarray) -> list[list[int]]:
     return groups
 
 
+def _complete_header_rules(major: list[float], grid_header: list[float]) -> list[float]:
+    """Recover an owner gutter boundary omitted by a merged first-page title."""
+    if len(major) != 5 or major[0] <= .45:
+        return major
+    left = [x for x in grid_header if .06 <= x <= .20]
+    if len(left) != 1 or major[0] - left[0] <= .25:
+        return major
+    return [left[0], *major]
+
+
 def _locate_upright_grid(image) -> dict:
     """Locate one upright transaction grid, or report unknown.
 
@@ -78,7 +88,10 @@ def _locate_upright_grid(image) -> dict:
         if run[0] == 0:
             rejections.append("missing_preceding_header")
             continue
-        major_columns = bands[run[0] - 1]["vertical_x"]
+        printed_major = bands[run[0] - 1]["vertical_x"]
+        major_columns = _complete_header_rules(
+            printed_major, bands[run[0]]["vertical_x"])
+        recovered_owner_rule = len(major_columns) > len(printed_major)
         if len(major_columns) not in (4, 5, 6):
             rejections.append("unsupported_column_topology")
             continue
@@ -110,7 +123,8 @@ def _locate_upright_grid(image) -> dict:
         if column_family == "dense_long":
             asset_x0, asset_x1 = .11, major_columns[0] - .01
         else:
-            asset_x0, asset_x1 = major_columns[0] + .055, major_columns[1] - .01
+            asset_x0 = major_columns[0] + (.005 if recovered_owner_rule else .055)
+            asset_x1 = major_columns[1] - .01
         if asset_x1 <= asset_x0:
             rejections.append("invalid_asset_column_width")
             continue
@@ -152,6 +166,8 @@ def _locate_upright_grid(image) -> dict:
                      "row_bands": [[row["upper"], row["lower"]] for row in filled],
                      "physical_row_bands": physical,
                      "header_band": [bands[run[0]]["upper"], bands[run[0]]["lower"]],
+                     "major_columns": major_columns,
+                     "recovered_owner_rule": recovered_owner_rule,
                      "column_family": column_family}
         if any(item["disposition"] == "unknown" for item in physical):
             provisional_candidates.append(candidate)
