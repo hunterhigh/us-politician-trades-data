@@ -39,6 +39,25 @@ def _single_mark(cells: list[dict]) -> tuple[str | None, str]:
     return cells[ranked[0]]["label"], "single_strong_mark_unverified"
 
 
+def _amount_marks(cells: list[dict]) -> tuple[str | None, str, bool | None, str]:
+    """Separate the A-J range columns from the supplemental spouse/DC K box."""
+    labels = [cell.get("label") for cell in cells]
+    if labels not in ([chr(ord("A") + i) for i in range(10)],
+                      [chr(ord("A") + i) for i in range(11)]):
+        return None, "unknown_amount_columns", None, "unknown_supplemental_column"
+    amount, amount_status = _single_mark(cells[:10])
+    if len(cells) == 10:
+        return amount, amount_status, None, "supplemental_column_absent"
+    ink = cells[10].get("interior_dark_fraction")
+    if not isinstance(ink, (int, float)):
+        return amount, amount_status, None, "supplemental_ink_unmeasured"
+    if ink >= .08:
+        return amount, amount_status, True, "supplemental_mark_present_unverified"
+    if ink <= .025:
+        return amount, amount_status, False, "supplemental_mark_absent_unverified"
+    return amount, amount_status, None, "supplemental_mark_uncertain"
+
+
 def read_house_ptr_key_fields(observation: dict) -> dict:
     """Keep physical rows and field blockers without promoting OCR to facts."""
     if observation.get("schema_version") != "house-ptr-cell-observation-shadow/v3":
@@ -64,7 +83,7 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
             event, event_status = _date(cells["event_date"])
             notice, notice_status = _date(cells["notification_date"])
             direction, direction_status = _single_mark(cells["direction"])
-            amount, amount_status = _single_mark(cells["amount"])
+            amount, amount_status, spouse_dc_mark, spouse_dc_status = _amount_marks(cells["amount"])
             blockers = [name for name, valid in (
                 ("owner_unreadable", owner_code is not None),
                 ("asset_unreadable", bool(asset_raw)),
@@ -84,7 +103,9 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
                                     "direction_mark": direction,
                                     "direction_status": direction_status,
                                     "amount_letter": amount,
-                                    "amount_status": amount_status},
+                                    "amount_status": amount_status,
+                                    "spouse_dc_over_1000_mark": spouse_dc_mark,
+                                    "spouse_dc_mark_status": spouse_dc_status},
                          "blocking_reasons": blockers})
     return {"schema_version": "house-ptr-key-fields-shadow/v1",
             "source_sha256": observation["source_sha256"],

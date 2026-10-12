@@ -27,7 +27,9 @@ class HousePaperQualificationTests(unittest.TestCase):
                      "notification_date": cell("05/03/2026"),
                      "direction": [cell(label="purchase", ink=.12),
                                    cell(label="sale", ink=.001)],
-                     "amount": [cell(label="A", ink=.13), cell(label="B", ink=.001)]}},
+                     "amount": [cell(label=chr(ord("A") + index),
+                                     ink=.13 if index == 0 else .001)
+                                for index in range(11)]}},
                 {"physical_band_index": 2, "disposition": "unknown",
                  "band": [.45, .5], "cells": None},
                 {"physical_band_index": 3, "disposition": "blank",
