@@ -42,7 +42,7 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
     def test_noisy_date_and_second_mark_leave_field_blockers(self):
         observed = report()
         fields = observed["pages"][0]["rows"][0]["cells"]
-        fields["event_date"]["raw_text"] = "| 05/01/2026"
+        fields["event_date"]["raw_text"] = "x 05/01/2026"
         fields["amount"][0]["interior_dark_fraction"] = .04
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertEqual(row["status"], "raw_fields_incomplete")
@@ -51,12 +51,34 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
 
     def test_unreadable_notification_date_remains_observed_without_blocking(self):
         observed = report()
-        observed["pages"][0]["rows"][0]["cells"]["notification_date"]["raw_text"] = "| 6/5/2026"
+        observed["pages"][0]["rows"][0]["cells"]["notification_date"]["raw_text"] = "x 6/5/2026"
         row = read_house_ptr_key_fields(observed)["rows"][0]
         self.assertEqual(row["status"], "raw_fields_present_unverified")
         self.assertIsNone(row["fields"]["notification_date"])
         self.assertEqual(row["fields"]["notification_date_status"], "not_exact_date_shape")
         self.assertEqual(row["blocking_reasons"], [])
+
+    def test_single_date_with_only_edge_noise_is_preserved_as_unverified(self):
+        for raw, expected in (("5/28/2026 |", "2026-05-28"),
+                              ("\u201805/07/2026", "2026-05-07"),
+                              ("05/22/2026 -", "2026-05-22")):
+            with self.subTest(raw=raw):
+                observed = report()
+                observed["pages"][0]["rows"][0]["cells"]["event_date"]["raw_text"] = raw
+                row = read_house_ptr_key_fields(observed)["rows"][0]
+                self.assertEqual(row["fields"]["event_date"], expected)
+                self.assertEqual(row["fields"]["event_date_status"],
+                                 "ocr_date_shape_with_edge_noise_unverified")
+                self.assertNotIn("event_date_unreadable", row["blocking_reasons"])
+
+    def test_date_with_extra_digits_or_second_date_stays_unreadable(self):
+        for raw in ("105/01/2026", "05/01/2026 06/02/2026", "a05/01/2026"):
+            with self.subTest(raw=raw):
+                observed = report()
+                observed["pages"][0]["rows"][0]["cells"]["event_date"]["raw_text"] = raw
+                row = read_house_ptr_key_fields(observed)["rows"][0]
+                self.assertIsNone(row["fields"]["event_date"])
+                self.assertIn("event_date_unreadable", row["blocking_reasons"])
 
     def test_spouse_special_mark_and_range_are_preserved_but_blocked(self):
         observed = report()
