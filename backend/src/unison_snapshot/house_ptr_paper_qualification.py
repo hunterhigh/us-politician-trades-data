@@ -1,0 +1,90 @@
+"""Carry scanned House PTR observations into the existing qualification queue.
+
+This bridge deliberately emits no formal transactions. A located paper row is
+not a verified filing fact, and its physical slot key is never a formal ID.
+"""
+
+from __future__ import annotations
+
+import re
+
+from .house_ptr import QUALIFICATION_SCHEMA
+from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
+
+
+PARSER_VERSION = "house-paper-observation-qualification-v1"
+
+
+def qualify_paper_observation(observation: dict, metadata: dict,
+                              identity: dict) -> dict:
+    """Account for every physical row while blocking unverified promotion."""
+    source_sha = observation.get("source_sha256")
+    if (not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha)
+            or metadata.get("sha256") != source_sha):
+        raise ValueError("House paper observation and archived source hashes differ")
+    document_id = metadata.get("document_id")
+    if (not isinstance(document_id, str) or not document_id
+            or identity.get("document_id") != document_id):
+        raise ValueError("House paper identity does not match the archived document")
+    reading = read_house_ptr_key_fields(observation)
+    read_by_slot = {(row["page"], row["physical_band_index"]): row
+                    for row in reading["rows"]}
+    if len(read_by_slot) != reading["data_candidate_count"]:
+        raise ValueError("House paper reading has duplicate physical slots")
+    quarantined = []
+    physical_counts = {"data_candidate": 0, "unknown": 0, "blank": 0}
+    seen = set()
+    for page in observation["pages"]:
+        page_number = page.get("page")
+        for physical in page["rows"]:
+            band_index = physical.get("physical_band_index")
+            slot = (page_number, band_index)
+            if (type(page_number) is not int or type(band_index) is not int
+                    or page_number < 1 or band_index < 1 or slot in seen):
+                raise ValueError("House paper physical slot is invalid or duplicated")
+            seen.add(slot)
+            disposition = physical.get("disposition")
+            if disposition not in physical_counts:
+                raise ValueError("House paper physical disposition is unknown")
+            physical_counts[disposition] += 1
+            if disposition == "blank":
+                continue
+            key = f"paper-slot:{source_sha}:{page_number}:{band_index}"
+            reasons = (["paper_source_fields_unverified"] if disposition == "data_candidate"
+                       else ["physical_row_disposition_unresolved"])
+            read = read_by_slot.get(slot)
+            if disposition == "data_candidate":
+                if read is None:
+                    raise ValueError("House paper data slot has no key-field reading")
+                reasons.extend(read["blocking_reasons"])
+            elif read is not None:
+                raise ValueError("House paper non-data slot has a key-field reading")
+            quarantined.append({
+                "extraction_id": key, "observation_key": key,
+                "reasons": sorted(set(reasons)), "source_sha256": source_sha,
+                "evidence": {"page": page_number, "physical_band_index": band_index,
+                             "band_normalized": physical.get("band")},
+                "raw_fields": read["fields"] if read else None,
+            })
+    if physical_counts["data_candidate"] != reading["data_candidate_count"]:
+        raise ValueError("House paper physical census and key-field reading differ")
+    if not quarantined:
+        raise ValueError("House paper has no observed nonblank rows")
+    document_reasons = ["paper_source_fields_unverified"]
+    if physical_counts["unknown"]:
+        document_reasons.append("physical_row_disposition_unresolved")
+    return {
+        "schema_version": QUALIFICATION_SCHEMA,
+        "source_sha256": source_sha, "parser_version": PARSER_VERSION,
+        "document_id": document_id, "identity": identity,
+        "document_disposition": {"status": "paper_observation_unverified",
+                                 "physical_counts": physical_counts},
+        "transactions": [], "quarantined": quarantined, "advisories": [],
+        "qualification": {
+            "method": "paper_observation_blocked",
+            "status": "quarantined_rows", "qualified_count": 0,
+            "quarantined_count": len(quarantined), "advisory_count": 0,
+            "zero_transaction_document_count": 0,
+            "document_reasons": document_reasons, "production_eligible": False,
+        },
+    }

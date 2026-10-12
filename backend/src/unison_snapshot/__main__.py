@@ -16,6 +16,7 @@ from .market_store import (build_market_bundle, load_published_market_cache,
                            load_published_twelve_data_cache, materialize_market)
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
+from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
@@ -162,6 +163,11 @@ def main() -> None:
     qualify_ptr.add_argument("--extraction", type=Path, required=True)
     qualify_ptr.add_argument("--identity", type=Path, required=True)
     qualify_ptr.add_argument("--output", type=Path, required=True)
+    qualify_paper = sub.add_parser("qualify-house-paper-observation")
+    qualify_paper.add_argument("--observation", type=Path, required=True)
+    qualify_paper.add_argument("--metadata", type=Path, required=True)
+    qualify_paper.add_argument("--identity", type=Path, required=True)
+    qualify_paper.add_argument("--output", type=Path, required=True)
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
     candidate.add_argument("--state-status", type=Path, required=True)
@@ -492,6 +498,16 @@ def main() -> None:
             args.output.write_bytes(encode(result))
             print(json.dumps({"document_id": result["document_id"],
                               "qualified": result["qualification"]["qualified_count"],
+                              "quarantined": result["qualification"]["quarantined_count"],
+                              "output": str(args.output.resolve())}))
+        elif args.command == "qualify-house-paper-observation":
+            observation = json.loads(args.observation.read_text(encoding="utf-8"))
+            metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
+            identity = json.loads(args.identity.read_text(encoding="utf-8"))
+            result = qualify_paper_observation(observation, metadata, identity)
+            _write_atomic(args.output, result)
+            print(json.dumps({"document_id": result["document_id"],
+                              "qualified": 0,
                               "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
         elif args.command == "build-house-candidate":
