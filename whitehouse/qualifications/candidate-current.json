@@ -1,18 +1,18 @@
 {
-  "added_person_count": 9,
+  "added_person_count": 16,
   "annual_part7_incomparable_row_count": 14617,
-  "annual_part7_overlap_count": 0,
+  "annual_part7_overlap_count": 25,
   "base_transaction_count": 5081,
   "candidate_is_append_only": true,
-  "candidate_sha256": "d61499b935f4f5b76ac36011f0d59c5ae15099835948842a3a4e5eb785504808",
-  "candidate_transaction_count": 6585,
+  "candidate_sha256": "ad205c1a563ec306d8ed0ea8cec740e82c634e05c27bfc384daafe86ff573cd8",
+  "candidate_transaction_count": 6731,
   "catalog_report_count": 81,
   "catalog_sha256": "71eb2240ff8c99851dacb91cc7dd4e6d773f806bbd8d79c40f65f52ff713c8ff",
   "data_cutoff_at": "2026-10-12T23:17:15Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
-  "promoted_report_count": 21,
-  "promoted_transaction_count": 1504,
+  "promoted_report_count": 38,
+  "promoted_transaction_count": 1650,
   "promoted_transaction_ids": [
     "oge-278t:0001ce3c7bb1737dfee0e31b",
     "oge-278t:003835652d6631bb469094ad",
@@ -21,6 +21,7 @@
     "oge-278t:006242e2ee2b5a8f01c6f0c9",
     "oge-278t:00672422b50bf7c098e94d64",
     "oge-278t:009c996746516a47d775f040",
+    "oge-278t:00a810c24b5502a9fe6549f1",
     "oge-278t:00b7d3d42d9081eea074faa1",
     "oge-278t:0111bb624fa73472d428dd70",
     "oge-278t:011de5b298187d6f19ab7ff4",
@@ -54,10 +55,14 @@
     "oge-278t:046a358a22ba502be75809db",
     "oge-278t:04736336c28d7df0dc6eb112",
     "oge-278t:04d586696df1477f2b80c6ce",
+    "oge-278t:04fa3bf28bf9173af019592e",
     "oge-278t:05103de23140a142fe87d19f",
     "oge-278t:053a782ec8e917a0842a0775",
+    "oge-278t:057edb8e953d6287ac92b45e",
+    "oge-278t:05c4de2daa7b429e021a175e",
     "oge-278t:05f9cf35f0c76b6b34b8952f",
     "oge-278t:06270af6d0a60992935e07d0",
+    "oge-278t:063e7763657180fd7edd1145",
     "oge-278t:064ac346193c369d6610125a",
     "oge-278t:06abde73774ce66d3bc9d6e4",
     "oge-278t:071c7ff1833e4635c49590c1",
@@ -65,7 +70,9 @@
     "oge-278t:0726ef9676901be99bdff55c",
     "oge-278t:072d96d5ff49bff30f48937b",
     "oge-278t:074d43887ca21d12e2a41131",
+    "oge-278t:0771d3a24bc4e741c4608c16",
     "oge-278t:077278d8ff58bf36c10f6a2f",
+    "oge-278t:0776a722d459de883d213fa4",
     "oge-278t:077a1c98619c89adb37c825e",
     "oge-278t:07b3cb1541a2b61fdda071ad",
     "oge-278t:07bd18094ae0fbb9745f920c",
@@ -109,6 +116,7 @@
     "oge-278t:0e86250a0ef1e34fee95cf45",
     "oge-278t:0e8c91187c5bed484ce7e988",
     "oge-278t:0ead93c94db22cb6f974055b",
+    "oge-278t:0eadb9d0a16c50bcbc10b2c3",
     "oge-278t:0f1f55a48067fed007a1164a",
     "oge-278t:0fdd2b4380cab32335e779dd",
     "oge-278t:0ff514061de3dcd64cb2046c",
@@ -123,6 +131,7 @@
     "oge-278t:118f6f38fb0bf4facd643b79",
     "oge-278t:11d0f80c93d683fd4c563e55",
     "oge-278t:11df86ce6eaacf36758b33ac",
+    "oge-278t:11ed7b7ff1222f73dac6a25d",
     "oge-278t:11fe4ccfda5f3550a259ef9f",
     "oge-278t:123a3da20d89708c331d6221",
     "oge-278t:126d413a95c1efb1583d0adf",
@@ -158,6 +167,7 @@
     "oge-278t:1913d37b7420c4e4b9de160c",
     "oge-278t:1927b98d348fc87f74472a3c",
     "oge-278t:193ba6ac053379412aa5725d",
+    "oge-278t:194b29b536903486844602f2",
     "oge-278t:19827cec7b5284b12296da4e",
     "oge-278t:19b038861a0e1fad393f6bce",
     "oge-278t:1a16ee97711217805c7750aa",
@@ -166,6 +176,7 @@
     "oge-278t:1a3cc7f0159c6d45290e31d0",
     "oge-278t:1a41f81248ee9d2c56995ba7",
     "oge-278t:1a50345f36d8662587ebe5fa",
+    "oge-278t:1a60d9321bb74b51800d4cdf",
     "oge-278t:1a79f2c259df08cc9540f813",
     "oge-278t:1a8b9ec2b50c2c4db878b7cf",
     "oge-278t:1a9fe10236ff1101b1925e0b",
@@ -174,6 +185,7 @@
     "oge-278t:1b9650d2aba39d83e9ba2866",
     "oge-278t:1baec0be64d409c829353efa",
     "oge-278t:1bb0527ea7f1dc9e2e8de8f0",
+    "oge-278t:1bbabdf8039a7b3925be8773",
     "oge-278t:1bd711d32b7f3bc7173abf1a",
     "oge-278t:1bf027f0b33a6a48ddffa414",
     "oge-278t:1bfdbf42ffe17bfb67ec44a6",
@@ -203,6 +215,7 @@
     "oge-278t:209bf041ebffbb05ea322552",
     "oge-278t:20e0aab61ca418799a7e3a36",
     "oge-278t:20ed2edb501eb6bac30229b7",
+    "oge-278t:20f92659ff7b5d38bac6296b",
     "oge-278t:21505df5010fe77716fee4ac",
     "oge-278t:216f2e0c09cb02fb4ecc5231",
     "oge-278t:217304bde820e8e2496ad218",
@@ -223,7 +236,9 @@
     "oge-278t:23a59fd1fb4a44e7e3f2c400",
     "oge-278t:23cd014517279f7197c7133a",
     "oge-278t:23e2a91b8ab6572e6dc17612",
+    "oge-278t:240370e0caa3819bf22eeb06",
     "oge-278t:242588a1a72c01b1cd709ce0",
+    "oge-278t:242ef21f7067ee7a10501ba0",
     "oge-278t:244970bb5dacfebc65b92fc3",
     "oge-278t:251334867e79833ea15271df",
     "oge-278t:2551801ca608b93655826f7b",
@@ -233,6 +248,7 @@
     "oge-278t:2582782f0fb4077a5a2ce9a8",
     "oge-278t:25c8482c93f0f3d9e6802aea",
     "oge-278t:260e84a9ce791282ac8af4a3",
+    "oge-278t:2634ce387fb9d74d586165f8",
     "oge-278t:263b164dfae1a347055eb281",
     "oge-278t:26669d7644c59e3b20f5d791",
     "oge-278t:2696d2d5c0abb1d60c99e270",
@@ -262,11 +278,15 @@
     "oge-278t:29b18d988a4258387be044d2",
     "oge-278t:2a0b948eb3b5448f2c136bb4",
     "oge-278t:2a0e2276dfde3fdd48fee9ed",
+    "oge-278t:2a2e75f4964eb57809853f8d",
+    "oge-278t:2a803561d6bf0b7f3e3359f0",
     "oge-278t:2a8624c7b46b0c6c34ec10c0",
     "oge-278t:2a9fb68afbd22534fcf4e5b4",
     "oge-278t:2b5e8ecc47e4e2929af98506",
     "oge-278t:2bb9231b7656644ac7c792fd",
     "oge-278t:2bf2ae78db678c857fbba8e7",
+    "oge-278t:2bf43eae47158b3bf8117133",
+    "oge-278t:2bfb22fa4203560f9dae90f9",
     "oge-278t:2c0eb0c3b080fc7b387905c8",
     "oge-278t:2c4d2277e46367101572236a",
     "oge-278t:2c8d62af0a5cdce301ca52e5",
@@ -296,6 +316,7 @@
     "oge-278t:2f0ff58510897dc67410e8b2",
     "oge-278t:2f1e6e0d5df1fefe673f060a",
     "oge-278t:2f66661bb1cd01ad362cecad",
+    "oge-278t:2fadb7565a8b95465d98b78b",
     "oge-278t:2fbeb997bcbd1b3e50ff3196",
     "oge-278t:2fc316f04bd02e28fde0da09",
     "oge-278t:2fcb0df2e1662d88d566c559",
@@ -305,12 +326,16 @@
     "oge-278t:309c3f2abdb7bd7e3bf43e51",
     "oge-278t:309d24c12ff1ce77ec1b725b",
     "oge-278t:30f0416f336b54963cee1884",
+    "oge-278t:30f8cea539ecc56079e1076b",
     "oge-278t:30fa498d18a0d358afa7a824",
     "oge-278t:310167eb9161d4f7e85d50a4",
+    "oge-278t:31212280e35eb77fe6b7b242",
     "oge-278t:31218400a13d0f391faed85a",
     "oge-278t:31332d427fe70b8dbeff8d4e",
+    "oge-278t:3187a78efb55b18201e5b93b",
     "oge-278t:31add982d10635327c215132",
     "oge-278t:31b54c9537d74e0b6e5a27e2",
+    "oge-278t:31e7e69c7168d23cc387cf85",
     "oge-278t:3231732189a233dcf3213994",
     "oge-278t:3244e9ff34d9d55ded323a4b",
     "oge-278t:32bb0c1d77eade59ad221fd7",
@@ -331,6 +356,8 @@
     "oge-278t:353159196cc4e656e81a0f26",
     "oge-278t:3557f3b8e25940f25a8b25dd",
     "oge-278t:35714e688c25f8b47df6ca9e",
+    "oge-278t:35c6891aafce96fac0663052",
+    "oge-278t:35d7c2839e0e0d4afc8cf3f7",
     "oge-278t:35dc9ffa2258021573f828ea",
     "oge-278t:35e6cf019e30ca53f2cf8ca8",
     "oge-278t:35e80b5e009c8cb4f7ac7258",
@@ -342,6 +369,7 @@
     "oge-278t:36e8846698540ef595fbd59a",
     "oge-278t:36f173fc02ae90830fd7c44d",
     "oge-278t:36f23448fc86c39675786afc",
+    "oge-278t:37032747332e6eb0f5ffcdfe",
     "oge-278t:370e93bd629e26d7069c8566",
     "oge-278t:377010e05afb2ba5d37dbe5f",
     "oge-278t:37a4ba4c258587a90f4f790e",
@@ -354,21 +382,26 @@
     "oge-278t:386c27a7e906b7fd81b2bd49",
     "oge-278t:387e2c8e81c114d4d3759317",
     "oge-278t:3885d84428407db5dacbebf1",
+    "oge-278t:389038b2718acf2c4ee1291e",
     "oge-278t:3894e32c4791f66ba94dbb27",
     "oge-278t:38a3f69c264df984bebf9640",
     "oge-278t:38d0b8424a84ff9847685a0b",
     "oge-278t:39195ef17182030a39f692a5",
+    "oge-278t:3952cc61d8dd95aa9105ce8d",
     "oge-278t:397a17be8609cbbe69df3392",
     "oge-278t:3a023df3f0ef741b1877dbc7",
     "oge-278t:3a09871144ada2680dc30399",
+    "oge-278t:3a40e76f37411788942fc152",
     "oge-278t:3a4da8468f4433b6e0307bd1",
     "oge-278t:3a6e5d48ed149318ab6d1630",
     "oge-278t:3a9c76bd864f3c4c8cdb33bc",
     "oge-278t:3ae1f575567f6b5e0aba6373",
     "oge-278t:3b1159288f901e3019fe5fd5",
     "oge-278t:3b853ba9e2837605464b0127",
+    "oge-278t:3b8b327f02056ac74b1c267b",
     "oge-278t:3b934effbb133120ef6d7537",
     "oge-278t:3b93c204a080755f058c27ec",
+    "oge-278t:3bab48e5ea1928c2f485113e",
     "oge-278t:3bb5c4c89eb11f89672c784f",
     "oge-278t:3bb7c5dfd6d6bfc2d14a0940",
     "oge-278t:3bc4315dda9c7a670822a2aa",
@@ -379,10 +412,12 @@
     "oge-278t:3cdb47fc98c4fbdda097c535",
     "oge-278t:3cf5523916258c0ba6a47be8",
     "oge-278t:3cfbe37cc0b85aa213c79d18",
+    "oge-278t:3d4438f778a34aaec6e3b650",
     "oge-278t:3ddfee33235a8355c70cdb2d",
     "oge-278t:3dfcb5cf4ea3521037bf6c7f",
     "oge-278t:3e17be9178df76df7227d853",
     "oge-278t:3e3d8378a9dd38470602ed45",
+    "oge-278t:3e49506770435df935c066b8",
     "oge-278t:3e661cb533a8131d5ef89a4f",
     "oge-278t:3ed4d42d0ab4139f4c450798",
     "oge-278t:3eddb8a8809ee651d7fe915a",
@@ -411,6 +446,7 @@
     "oge-278t:41d7186341ecdeee2f7da26b",
     "oge-278t:41deb32cb2415abb7f141681",
     "oge-278t:42078ef24c6237f22810a4fc",
+    "oge-278t:422f9370e3b38b6858539e9f",
     "oge-278t:424ca3c025057c54804dd497",
     "oge-278t:426ff5a06e6909859b6c209e",
     "oge-278t:427ad5d0fb0c455f61b8b2d6",
@@ -418,6 +454,7 @@
     "oge-278t:42e23c1e727af0f881d57520",
     "oge-278t:42f7ac9ac2585d0794084c82",
     "oge-278t:43038c204ce46e627410d8bc",
+    "oge-278t:43073cb15ef21f4d760a5ec0",
     "oge-278t:434414f7f96c37de669151b7",
     "oge-278t:436757a8003860cc1d9bb1d8",
     "oge-278t:437284c6aa157621a4fc730e",
@@ -429,12 +466,14 @@
     "oge-278t:4447aa14ee22b67b43f464cf",
     "oge-278t:447541a7c9a219bebab89952",
     "oge-278t:44eaf0dd348a3885e4c0165a",
+    "oge-278t:4508cf734b49d66706cc627a",
     "oge-278t:450e018c2b36a1303ad208da",
     "oge-278t:450fb62e0dc06ba37874f752",
     "oge-278t:453ecfa94023805d88585043",
     "oge-278t:4541a6417ba95ae9fe5ff38f",
     "oge-278t:45626f927edcbe0011972629",
     "oge-278t:45731ae0d98a795b3033f200",
+    "oge-278t:457322d7f854e33244e4a516",
     "oge-278t:458aefba009de1d3df142677",
     "oge-278t:458af2d8fe3405dfa5ee7d50",
     "oge-278t:45b76d23827310030635860d",
@@ -458,13 +497,16 @@
     "oge-278t:4a581467ebb9c4c817198b5b",
     "oge-278t:4a5c18083bfadccd9ef67d87",
     "oge-278t:4a697b0becc9386b9bc524bc",
+    "oge-278t:4a7cb068c47696c7e6779774",
     "oge-278t:4aa39c324a7b971581cfb8ef",
     "oge-278t:4aa3fd7d2139812b189c74fc",
     "oge-278t:4ac3c0ab4e62db0e50b8b12b",
     "oge-278t:4af37c594d85edf4b1fdebf5",
     "oge-278t:4b09ca01919cd188ba7812db",
     "oge-278t:4b30930806dda76f846c00a4",
+    "oge-278t:4b4fb052eb13213b35f202e5",
     "oge-278t:4b8a57857a6d311849755159",
+    "oge-278t:4bad1090f44918ad8df87ca7",
     "oge-278t:4bd4bbfb727189dbba78f4a1",
     "oge-278t:4bf8ed7aa58cea63d3bea8bb",
     "oge-278t:4c2bdc81c6526ebbae97e5fc",
@@ -502,7 +544,9 @@
     "oge-278t:50b62eea7a5d4ba62e1c345a",
     "oge-278t:50d08937f6df18d2f8e875a4",
     "oge-278t:50d1ffc0730629fdc305dfc1",
+    "oge-278t:514a4bb6cafe15f6972d6111",
     "oge-278t:515524bf0a33056ab6f05681",
+    "oge-278t:5176c9302c8bfb262c4fde76",
     "oge-278t:51a06ad9b8edad45139ba8aa",
     "oge-278t:51ac9698be462c1ad41b97a2",
     "oge-278t:51b45b91a9417b6236b138b8",
@@ -515,17 +559,20 @@
     "oge-278t:52d16d405bfe94b067cd7199",
     "oge-278t:52d4cebec3f4494c60d7647c",
     "oge-278t:52dded62b524c285aeb666e2",
+    "oge-278t:52e0074065cf082f88568b25",
     "oge-278t:52ed5b241e997330f8787f84",
     "oge-278t:531d9c4cdf9c26b5f65d6b52",
     "oge-278t:533f7c64d2658ed7635204cd",
     "oge-278t:534430887bdc923bed10fabd",
     "oge-278t:5362268cb95d50d66a61f73a",
     "oge-278t:5367e375ddd915df0f61fd37",
+    "oge-278t:53a0ad066294776e09246c5c",
     "oge-278t:53b3b2990fabb033d94ba754",
     "oge-278t:53f0388c4c1ade9d6e93c504",
     "oge-278t:545262d0da8bb1cc149b422b",
     "oge-278t:545743d391a506ecb4ccb7bc",
     "oge-278t:5470c76a478d32e8b32902ea",
+    "oge-278t:54aeb8f7bb59053314d6fce7",
     "oge-278t:557a03f33e167ddbd5af3c3b",
     "oge-278t:55b6e58f651e5c85392a986f",
     "oge-278t:55d244fe3b1072197debfdd8",
@@ -545,6 +592,7 @@
     "oge-278t:58639b4152c679b7a946edca",
     "oge-278t:588ffd7fd6b1b64e8ed5cab2",
     "oge-278t:58eaeaec3595b1b3e77c06c8",
+    "oge-278t:59857694e6ead0be1cb8f280",
     "oge-278t:598e93b82ab7dd84aa44966b",
     "oge-278t:59c86ef44e0334200f180dbc",
     "oge-278t:5a32360dc374617d81fad767",
@@ -554,6 +602,7 @@
     "oge-278t:5a8a5d02b263926c6ef3ab4f",
     "oge-278t:5ac13bdd378a712644c8b642",
     "oge-278t:5b5a93442e9d582f19e811ac",
+    "oge-278t:5b5b3e2bae9de6a20c1c2e75",
     "oge-278t:5b79961ecd25262f826e15ce",
     "oge-278t:5ba4c305aafc77cd554edcda",
     "oge-278t:5bc4af67590ec0ce08722900",
@@ -578,6 +627,7 @@
     "oge-278t:5f02384769ddfd65f88919d1",
     "oge-278t:5f1e31b8232f2cb78e71c581",
     "oge-278t:5f895c9b8c0d49e247056668",
+    "oge-278t:5fb6d9aa180de92899d96b99",
     "oge-278t:5fc123812cdd20751d38aedf",
     "oge-278t:5fe2c6902c0049c81c87d76e",
     "oge-278t:5fe7b83712112e5c206ef113",
@@ -593,6 +643,8 @@
     "oge-278t:61b6f4dffe113923849380e3",
     "oge-278t:61e1b5f745ecac9a59231b06",
     "oge-278t:61ee7161860c7f2648f50ea3",
+    "oge-278t:621c4a000f41855f8351c87e",
+    "oge-278t:625be834fa78380f41f27a40",
     "oge-278t:625eef653b92432df77512e8",
     "oge-278t:6264c55224bca1f01c40dc6d",
     "oge-278t:62935b7c951a681744e75c64",
@@ -608,17 +660,22 @@
     "oge-278t:64b296bdc67b404c7097fc9a",
     "oge-278t:64d9870a3f120d71d6f87a43",
     "oge-278t:64fdbe8fa51060f53450bee0",
+    "oge-278t:651d45d150ccf1df02196543",
     "oge-278t:651d6756f2ede3a81b737332",
     "oge-278t:6562d30f72794bf736eec8ce",
+    "oge-278t:6563f4033101814681ff08f6",
+    "oge-278t:6579e9f6dfe131f8ea3f2b13",
     "oge-278t:65977300bd60580bc0db5f9e",
     "oge-278t:659ec9ef30434d175bed43a4",
     "oge-278t:65b97626c74d4675658e8210",
+    "oge-278t:65d672efc88c7f1d36ea9f5c",
     "oge-278t:665c38ae5a8b5e3d984d0c17",
     "oge-278t:669b3e912cd5c43fc9beb9ca",
     "oge-278t:66f0d2b41bf271f91f859ccf",
     "oge-278t:66f120fd38c2135ba430c9fa",
     "oge-278t:677210e2d82b2308de4c355f",
     "oge-278t:67892ba8e80dd4c5409c3454",
+    "oge-278t:67b38b85c1693b9ea2fe65cb",
     "oge-278t:67e066700c2e4134ad06325f",
     "oge-278t:67e2cfdef4d426be4f02d82f",
     "oge-278t:67e995a86a0f2c0ae4895232",
@@ -631,8 +688,10 @@
     "oge-278t:68c2bfd381cf1e9285cfc5e8",
     "oge-278t:690cdf078a6a14bb45d0e3f5",
     "oge-278t:69241a64ee5758e5f83bd8a2",
+    "oge-278t:6959e5efbe9688a4f988a5de",
     "oge-278t:6a02c02610342f8add539c61",
     "oge-278t:6a3506aec6918b1a6b7712a4",
+    "oge-278t:6a46b4ad77db870a7a90081a",
     "oge-278t:6a8f60fb8e22df51e2476d15",
     "oge-278t:6a996b029e583b6e42091603",
     "oge-278t:6aa2043506756b79f6743fd4",
@@ -643,6 +702,7 @@
     "oge-278t:6b68ece4e815c65c747ef84a",
     "oge-278t:6b7a090887868b7cb905646f",
     "oge-278t:6b949685d3515b9f5318e3ac",
+    "oge-278t:6bacdf9be35d2dd39b390c17",
     "oge-278t:6c2ba1cedf4cf7e4b754dd8f",
     "oge-278t:6c74baa87f3bcb7f43733d9d",
     "oge-278t:6c8009d703b571d4ebba9e21",
@@ -652,11 +712,14 @@
     "oge-278t:6d67c098d4a261f9b070c733",
     "oge-278t:6d80273ce91d450bda2e8e97",
     "oge-278t:6da05bcaddbe17ba22ddcad9",
+    "oge-278t:6da182a30133e8545d310d73",
+    "oge-278t:6dcc7aa42c799d0304b8a9cf",
     "oge-278t:6e1389b8a6dff932c9b8a1e9",
     "oge-278t:6e2a2ef9a4b5aabd0546627e",
     "oge-278t:6e2a3bf909f9e1a7c064428b",
     "oge-278t:6e3d2a1fbde3f4b0db3ff59a",
     "oge-278t:6e6f8f7578f1274ce1f07ce8",
+    "oge-278t:6e74afee6995fe3f542e8db7",
     "oge-278t:6eb12ada3e9609fa81e979c4",
     "oge-278t:6eb58aec286ce6b4b8648ca1",
     "oge-278t:6efabc50281547340aca7299",
@@ -678,9 +741,12 @@
     "oge-278t:712dcca5954442963057f0a3",
     "oge-278t:71304810fbe6500b12c920b1",
     "oge-278t:7132fd866b02d979f2b25f73",
+    "oge-278t:71617c9bfe2c25288cd9313c",
     "oge-278t:71814decb1535ebdfd1a92bc",
     "oge-278t:719c0a10f4db6aa3884dd83e",
     "oge-278t:71a00e1fe7f85d5068e16078",
+    "oge-278t:71aa876d7bc05506bfbe68c7",
+    "oge-278t:72216227f0188ffaef027577",
     "oge-278t:72366ba9acae542610e04ad3",
     "oge-278t:7265a4caaa40301c8c9b2a6f",
     "oge-278t:729aae6fd335123bdc0a3056",
@@ -693,12 +759,14 @@
     "oge-278t:73f1db62bc30541a712a3ee3",
     "oge-278t:73f992dfbc12a352b481cd8b",
     "oge-278t:74421c15b4ccc569a84b0aa5",
+    "oge-278t:74fc4b26a1748b1495dbc2bb",
     "oge-278t:75148cf66a6f257b076e636d",
     "oge-278t:7522b10436f20a236a552bdd",
     "oge-278t:75280bca0c98503ed3b760b2",
     "oge-278t:75515d27e9ab472494da9ec6",
     "oge-278t:75dd46833b42d3a9d59be034",
     "oge-278t:763aa9a97333e1e3d5263481",
+    "oge-278t:76527634fb57a61fda0eadaf",
     "oge-278t:769246a321191d782275bd9a",
     "oge-278t:76977f620b0f723a906c6e99",
     "oge-278t:76f93b5f877bffa6cd00f850",
@@ -711,6 +779,7 @@
     "oge-278t:77b954d20fa0c17be774b81d",
     "oge-278t:78333559fdbfd48ec26f3fa0",
     "oge-278t:7839fa78e3aa69deaa77ee69",
+    "oge-278t:78913267369f29db61e74d1d",
     "oge-278t:78a0acac8947547e253ee080",
     "oge-278t:78c0147a952c97aaeca9eae9",
     "oge-278t:78cf82b026584f7d719a4ad6",
@@ -719,6 +788,7 @@
     "oge-278t:79067b0ae8fdab8e7e2825a1",
     "oge-278t:790a604e793d4d36cf925360",
     "oge-278t:7930041f3bdfada3c99c60ee",
+    "oge-278t:793b3a537660ddc25865c403",
     "oge-278t:79402c36aed9bbbd92c45222",
     "oge-278t:79627cf553d4beb19fe518dc",
     "oge-278t:7991314923ea2f2754a65a27",
@@ -734,6 +804,7 @@
     "oge-278t:7af392ab0ae3f86da5c13b0d",
     "oge-278t:7b1db3907d60e7156f7f022e",
     "oge-278t:7b6a99469cb47e17b2332c34",
+    "oge-278t:7bcfcc4f29655433998a057b",
     "oge-278t:7c1b37cf120a0507b9ce2287",
     "oge-278t:7c3b7e31144ed56c22ee230d",
     "oge-278t:7c45a2ad42e15f1ef9babcd5",
@@ -742,7 +813,9 @@
     "oge-278t:7cd0a2fc923592d40d110548",
     "oge-278t:7ce656d0ba9121c76074fbb3",
     "oge-278t:7d175ddfc12403e0acbf3cb8",
+    "oge-278t:7d1c971cc4b1969850f33ac3",
     "oge-278t:7d4f335718cea9a5356aabfd",
+    "oge-278t:7d544a94a3d821cb150440f0",
     "oge-278t:7d7db4940a251c11dde287c0",
     "oge-278t:7daa4db0636a4cb603097a16",
     "oge-278t:7ddc1dbfa0c1901cb72a9ab8",
@@ -770,6 +843,7 @@
     "oge-278t:80c7917a9561abe52d003e67",
     "oge-278t:80f488bb327657b2afecb1ad",
     "oge-278t:80f9bc76a9a107bdca15d126",
+    "oge-278t:810c0ae263ae5153effdaca9",
     "oge-278t:8115a568c15da64c275dbffb",
     "oge-278t:8145858ad96ffe89d65dc1ac",
     "oge-278t:814bf2bcc831745cf4143820",
@@ -785,8 +859,11 @@
     "oge-278t:8323993d2e8ff52c9021de8c",
     "oge-278t:838d54ba6049f45218dc025f",
     "oge-278t:838e37acc70c52f5f608f766",
+    "oge-278t:839ab1e38cbcc476b0e339b8",
+    "oge-278t:83a3fba90775f4f171b3a340",
     "oge-278t:83b85ba0eddba607f0be51b2",
     "oge-278t:83cd724ed7a67abf24771124",
+    "oge-278t:83d351105554593135f50124",
     "oge-278t:83eb160c208cbdb8ca593027",
     "oge-278t:83f1898afefec4042eae0b39",
     "oge-278t:84928caf133717e36b7fa220",
@@ -798,6 +875,7 @@
     "oge-278t:85716d8285ea2c2fae28c6c7",
     "oge-278t:866c80f7d77d5654afd8b1e6",
     "oge-278t:8675bab4f7c3a41a9ae03ec3",
+    "oge-278t:868dfcc417d9b3ae49f44eed",
     "oge-278t:869ade07b228c15b19c99c5b",
     "oge-278t:874aedf3171cfe9134373476",
     "oge-278t:87808a7fc4b36db3b680d1e9",
@@ -825,6 +903,7 @@
     "oge-278t:8b32d68aa72a19fb600d63ce",
     "oge-278t:8b53f5c8c0224c3d37b9a6a0",
     "oge-278t:8b781a3503680d1611e57c53",
+    "oge-278t:8bd0743dbac1f235fa7856e7",
     "oge-278t:8bf1df51ea4c5f4583c97ff0",
     "oge-278t:8c07ae26a3c0d506f7e34804",
     "oge-278t:8cc52a08045efa6ab14678d8",
@@ -852,6 +931,7 @@
     "oge-278t:8f35bda754f68892c8086b52",
     "oge-278t:8f6800ccdf6e79cdda80c469",
     "oge-278t:8f843122c3e2233e619a749f",
+    "oge-278t:8f9261bfb28aa64bd12c18e0",
     "oge-278t:8fbcb516aaca8a37ccc4275a",
     "oge-278t:8fdf39ac2aac9ac1692d1671",
     "oge-278t:900b30a9ba179007f5a62eb6",
@@ -876,6 +956,7 @@
     "oge-278t:934975ee21a936f8a62cd43a",
     "oge-278t:935ce49dde5d972bffbcb6b2",
     "oge-278t:938e01e35840c2ccd808abbe",
+    "oge-278t:93c90cd79f14c3c9714c7bff",
     "oge-278t:93ddeb553e25e904d1a1da34",
     "oge-278t:9427f61705c72821d6f517e3",
     "oge-278t:943dbafead63c3d51490c87e",
@@ -883,6 +964,7 @@
     "oge-278t:94870d13490790c591b631df",
     "oge-278t:948fd88e21f955ce3f5d6a55",
     "oge-278t:9490bdcb57fa54af369042c7",
+    "oge-278t:949b0b8d36e8319d563f9cca",
     "oge-278t:949ba5880a1e05f400c39427",
     "oge-278t:94b267b055fc506590028983",
     "oge-278t:94b27fb03d64e3921dac6a45",
@@ -919,14 +1001,20 @@
     "oge-278t:99d58dd059fab60b95d7dba0",
     "oge-278t:9a016f31ae102437b4e596eb",
     "oge-278t:9a230b0d3778e196eb156cfb",
+    "oge-278t:9a49503fd34ab80d07696442",
     "oge-278t:9a89c16556487fab7b8737d6",
+    "oge-278t:9aa6cb4cba67debc484b3b33",
     "oge-278t:9abea558d34a3d13807e5c4d",
     "oge-278t:9ad8daea7687aff141d9dcd3",
     "oge-278t:9aff27a20ba03d5367453625",
     "oge-278t:9b06470a5139c49dbf90842d",
+    "oge-278t:9b0e4b246403d1523ae9b8ab",
     "oge-278t:9b1e00730d699426115036a7",
+    "oge-278t:9b26feeab5eeb77109adf171",
     "oge-278t:9b35d1cad25c8f257f69f69a",
     "oge-278t:9b82c94c842c013976ab3649",
+    "oge-278t:9bd73d1cff1e849964e711ac",
+    "oge-278t:9bf5863c6a1ef86563b8a5b2",
     "oge-278t:9c40e3ff0a5f1b5e6f2fb35d",
     "oge-278t:9c61b0a7464a8fc323f59e9e",
     "oge-278t:9c6492ef188dd7862897e3ee",
@@ -952,6 +1040,7 @@
     "oge-278t:9efb2a5902ded9f011309c28",
     "oge-278t:9f1c6061b227e26d711e1dd2",
     "oge-278t:9f4ba2f58c2162f3373962bf",
+    "oge-278t:9f7288985938ff4e5b4e607f",
     "oge-278t:9f7909e18f6d02cfeb106087",
     "oge-278t:9f7dcf3d8d43ca6a0a21de39",
     "oge-278t:9f8d18e0ba80370d4ed0c6c7",
@@ -980,9 +1069,11 @@
     "oge-278t:a34be381d9550310e70f8e9a",
     "oge-278t:a3976ad812045370e1da4958",
     "oge-278t:a41d603f786474813e015dff",
+    "oge-278t:a4294c14c2a85e2b19c92238",
     "oge-278t:a436b6bd085a91d0a5fa0dab",
     "oge-278t:a47267facdfe7f3416b61286",
     "oge-278t:a4d34b1fae21aab078d0ec15",
+    "oge-278t:a4d4f2fd202b95c5ef0234b2",
     "oge-278t:a4dfe9a15eada789522de845",
     "oge-278t:a4ee2a81d11b68d681d6eb50",
     "oge-278t:a52dc6f3cff7b573af1e228f",
@@ -1007,9 +1098,11 @@
     "oge-278t:a948db388dba9910555562fd",
     "oge-278t:a94e2330a3a1651b9cb8c5c4",
     "oge-278t:a985a833821453da006a9c0d",
+    "oge-278t:a9c839a70f13f515f33390c2",
     "oge-278t:a9d3569c9a531fb60380f075",
     "oge-278t:aa08c0df3c0b992df7414e4c",
     "oge-278t:aa0d15d75a043a85b20e4b9e",
+    "oge-278t:aa15b7515535cb53766b9ace",
     "oge-278t:aa32428bdc3f389c2d9cff4c",
     "oge-278t:aa879c6b2c5495872b3f73c6",
     "oge-278t:aa93d2161262629f279d4798",
@@ -1039,8 +1132,12 @@
     "oge-278t:add819f085a3cd31cc30a5fc",
     "oge-278t:ae1eed993f701a4abf3147e1",
     "oge-278t:ae58b6cf2ba688373e8bf6a2",
+    "oge-278t:ae5afa8a4f550b549e613d19",
     "oge-278t:ae91f9108fe06e9167af5d6f",
+    "oge-278t:ae9418864e45e465cb1da5ed",
+    "oge-278t:ae9776798acdf5d3d70f8f2a",
     "oge-278t:af3f9772b36ea767d540030d",
+    "oge-278t:af6f7d204d7aae10ca862fed",
     "oge-278t:afcc1b16cbb2b36d8e00fcc3",
     "oge-278t:afe89ea34f04b8188fc51c9e",
     "oge-278t:b0293522499da48afcfa1f8e",
@@ -1049,11 +1146,15 @@
     "oge-278t:b19b3671f0f629d20d67d30a",
     "oge-278t:b1a16e7e433ea24c21c6e2ce",
     "oge-278t:b1a5af3946588a0f0770f0a7",
+    "oge-278t:b1eecc1d51d8599a47033cf4",
     "oge-278t:b2556c5f1a4e7da5c15292c2",
     "oge-278t:b279b4fe690ed93ef061ec33",
+    "oge-278t:b2862cf149a3f2f975f0eff6",
     "oge-278t:b291dd6b303b7cc6fd1df243",
+    "oge-278t:b2a09b78ee4f810c94611101",
     "oge-278t:b2b30abc7e89385bfe5b5fe2",
     "oge-278t:b2b677b913f596d2dd8e543b",
+    "oge-278t:b2bbb6d5456faa8ba60aac3f",
     "oge-278t:b2deb785b85975f388f24d4a",
     "oge-278t:b3065f96bd7707cd24bdcd4a",
     "oge-278t:b3148dc47ca2568ea82ac280",
@@ -1096,6 +1197,7 @@
     "oge-278t:b9709a6e1587bfb889bb2da4",
     "oge-278t:ba0ab147809e3edecbe06d2d",
     "oge-278t:ba393d6c30406cfe1cde7d1d",
+    "oge-278t:ba444deb08571fcc1415bd80",
     "oge-278t:ba653580bbfa2e9232cccce9",
     "oge-278t:ba745d6ec6057b11d6ba898b",
     "oge-278t:ba75e559bdfdcebc2e7a50b7",
@@ -1131,22 +1233,29 @@
     "oge-278t:bfdb40400110ad9a6e7bce05",
     "oge-278t:c01c751ec49290be231cc60b",
     "oge-278t:c033efa7409fa0abb52ee728",
+    "oge-278t:c05d0f3acbabf524235c6cd4",
     "oge-278t:c06575371ac51e6684f28276",
     "oge-278t:c078ce2ac2e957d6e9d3937f",
     "oge-278t:c0942cee52b710e382ec62db",
+    "oge-278t:c097d6e6fb028c359cc7bd32",
     "oge-278t:c0e5cf565894b8fd053c4b4d",
+    "oge-278t:c0ef752d051021a0693c15f8",
     "oge-278t:c124d837ec7a2b9c58d1ec24",
     "oge-278t:c125ca5a8c902cac866b072a",
     "oge-278t:c12a011ee4121af1ca22f718",
+    "oge-278t:c12f71e684debbead05117b4",
     "oge-278t:c139f3d05fe0ae9586a0ff24",
     "oge-278t:c15da2db6ef01251ca2aa25d",
+    "oge-278t:c1a7758767cc20bb1e174e3a",
     "oge-278t:c1c241935b594f9c5bb989d7",
     "oge-278t:c1c6b5899ca2873fc3b1b50f",
+    "oge-278t:c1cfdf5e9a3920ac353382b6",
     "oge-278t:c20999586c750b08cff67a97",
     "oge-278t:c2369a827da5aece6cc797f6",
     "oge-278t:c23b67b19b8ee9034b76c2ef",
     "oge-278t:c25083e853ca3308c3d96ba8",
     "oge-278t:c298bdf565783c7b89d0b211",
+    "oge-278t:c2c7bbc6db7711d0862282ab",
     "oge-278t:c2fd6ea5772b282e727947a5",
     "oge-278t:c3441e408ac8befcd4711570",
     "oge-278t:c394ec1ac3f8e4ed20d91d6e",
@@ -1163,6 +1272,7 @@
     "oge-278t:c4f70ff3e0c4c03efad20091",
     "oge-278t:c505419c34f96e0acab9a518",
     "oge-278t:c5250a5d00de82237e150c51",
+    "oge-278t:c54b50df71e1672ffa72d7c4",
     "oge-278t:c54d03ba1bc04b52c7a1b614",
     "oge-278t:c569be79c345f791e61fc3d7",
     "oge-278t:c57c99ff13ea5b4aa3b05b83",
@@ -1183,6 +1293,7 @@
     "oge-278t:c75a905887be38efbb8a7c62",
     "oge-278t:c75e74523cf8ff5e2733fb65",
     "oge-278t:c78427a68ea04fba15dc3b11",
+    "oge-278t:c87286a60223b159806b1b39",
     "oge-278t:c8786b13a986ca4f74e03739",
     "oge-278t:c880b86f594a36f941c2646f",
     "oge-278t:c88970a5b93354e6f3b6f40d",
@@ -1197,6 +1308,7 @@
     "oge-278t:ca9f8b1512ec3e4e6d668ef2",
     "oge-278t:ca9fc2a0ffc39a58129492ed",
     "oge-278t:caa42da7b1c8e68e36a487ad",
+    "oge-278t:cb05111dc61deffc4091aa2e",
     "oge-278t:cb1034ba653ba9ffaafae045",
     "oge-278t:cb594e70f0032f8237a9c642",
     "oge-278t:cb6750cfb45da66c084da686",
@@ -1217,6 +1329,7 @@
     "oge-278t:cd542b859c2941bb6172edcc",
     "oge-278t:cd581ce4ab779e3d3acab1ce",
     "oge-278t:cd65198b0eed31de375f3923",
+    "oge-278t:cd7f3910c8a201c72783b869",
     "oge-278t:cda0895f6854762d6b0eaeb5",
     "oge-278t:ce0f72b18df0927e601757a4",
     "oge-278t:ce3408b19f1c1a8c71eca61f",
@@ -1224,6 +1337,8 @@
     "oge-278t:ce5ffd67b12dd782642984d7",
     "oge-278t:ceb74cab8cd12bbf100b274b",
     "oge-278t:ceec64b3f63a2867b1780b30",
+    "oge-278t:cef4b57cc4619c6c4c9bfa38",
+    "oge-278t:cf153fb5867509e869b272f5",
     "oge-278t:cf20ffe3fbfa237da250d1df",
     "oge-278t:cf3e01a5e8a1c1056e1f1388",
     "oge-278t:cf5ae6d60ceb6e0b144ae02e",
@@ -1234,6 +1349,7 @@
     "oge-278t:d0da190cef15f836468e3ee1",
     "oge-278t:d13408d5aab58764c9d377e7",
     "oge-278t:d15f2689b707bd4729cc2e56",
+    "oge-278t:d160260556009cbc568ef9b1",
     "oge-278t:d1605f2e314d364ab980ec57",
     "oge-278t:d171d5d48f3ed9b2b9d281d9",
     "oge-278t:d185c75a9e1de8d487eaa0f4",
@@ -1271,22 +1387,27 @@
     "oge-278t:d610b38349301d09d83e1628",
     "oge-278t:d62f706eca333fb179f75d1c",
     "oge-278t:d632c154ff5d6df1dac77ad7",
+    "oge-278t:d65b24acf5050127a4308462",
     "oge-278t:d6836c4f66b05a65fda36e78",
     "oge-278t:d6eff88fafdc45cc5668828d",
     "oge-278t:d6f43366c36f1703329a67c9",
     "oge-278t:d704dfbd9d3ec1635bdc7116",
     "oge-278t:d709873cb2a899f0cbb9d13f",
+    "oge-278t:d71c5801de3c86b0f70dd6e5",
     "oge-278t:d7480b2c29dbb5cd6549bb03",
     "oge-278t:d759ad330b8f427cec8d85ba",
     "oge-278t:d75d0b893ce10d6e6d4ee19c",
     "oge-278t:d775f26a307a750bc972479f",
     "oge-278t:d796b7561f64ebfc7e4209f9",
+    "oge-278t:d7ca2be7709e613e1670541c",
     "oge-278t:d848ce6a70257860a1aabb52",
     "oge-278t:d86280784701ad06b73c1592",
     "oge-278t:d88564e2bb5b3df394669d90",
+    "oge-278t:d888c6e280f0e9f6898266e8",
     "oge-278t:d88b431edd68a56c722fb2d5",
     "oge-278t:d88d6ee6458869a500acf735",
     "oge-278t:d89364d403b0918b253958e1",
+    "oge-278t:d8aa8d173e2b6b58c29d0852",
     "oge-278t:d9005d6ceab0287523991ad4",
     "oge-278t:d901b4cf8df925ac5cf668a5",
     "oge-278t:d9834aa6959ff605db1fd38d",
@@ -1303,6 +1424,7 @@
     "oge-278t:dadd257254dd893d275efb45",
     "oge-278t:daeec77a119726692cc55c9b",
     "oge-278t:daf54d9ddc8dc2487ec1e707",
+    "oge-278t:db1205ff0623596e43b91390",
     "oge-278t:db23aadeb0301c9e333ada44",
     "oge-278t:db971af680ae7473fcfb524e",
     "oge-278t:dbb45701705e27fda90075a3",
@@ -1310,14 +1432,17 @@
     "oge-278t:dc4f25309c4df233401edea6",
     "oge-278t:dc5c86b8051e5304b58f7e7b",
     "oge-278t:dc75966855a8882fb49ba7a8",
+    "oge-278t:dcf1106fd23b17e80f8885c6",
     "oge-278t:dcf70170a95b4e31a6772cd4",
     "oge-278t:dd5d03e0c61e103c7cf0b953",
     "oge-278t:dd7056eac8128806a6ccd816",
+    "oge-278t:ddb5016765eacb633c8bf386",
     "oge-278t:dde40b4f8205e33fbf28b59f",
     "oge-278t:de2001c5b8c20800e8737a03",
     "oge-278t:de25e9caf0a5c3177dc9acb7",
     "oge-278t:de4b70e9920eebd60b7b2082",
     "oge-278t:de76ccbcb344c3b0e2c3c04c",
+    "oge-278t:de823b8d465af35813a70dca",
     "oge-278t:dec0f1c8f48d2b39a87704e5",
     "oge-278t:dee02d83c6c06c5cf1298430",
     "oge-278t:df11560a0822fb4741425d59",
@@ -1331,6 +1456,7 @@
     "oge-278t:e0b24c7da7d057993af48d30",
     "oge-278t:e0e20c31cd6d2d12202847ad",
     "oge-278t:e0e7f22f49f0dc76e80271a6",
+    "oge-278t:e0f84940d4a25ef6339f05c0",
     "oge-278t:e10b6c1dd1f59045030f8c3a",
     "oge-278t:e11d1b6bbb846a2decded01f",
     "oge-278t:e1645c5dc08b7af48b58ebe8",
@@ -1349,6 +1475,7 @@
     "oge-278t:e309c6ffcc39a48a76721eb8",
     "oge-278t:e345c65ee5158e1f33a7666e",
     "oge-278t:e398c1be64d311fe04da973d",
+    "oge-278t:e3acef07f973bcb36b2ad862",
     "oge-278t:e413274cea7632db67e3b335",
     "oge-278t:e42b0c6a0ae2b55ef28e54de",
     "oge-278t:e43fd8bcc157a68733767038",
@@ -1360,12 +1487,15 @@
     "oge-278t:e4e26b881d19aeafed5f830f",
     "oge-278t:e4f09807799b180417c10f4d",
     "oge-278t:e4fb2903abde6df617b8e94e",
+    "oge-278t:e5126cd398186b73d99ffae7",
     "oge-278t:e52d741cfc83312d0d96d838",
+    "oge-278t:e55f9a6e9fe288d23c525df7",
     "oge-278t:e6087edc01ac336d317969b7",
     "oge-278t:e618a9208ff80c34c4b0afad",
     "oge-278t:e62cef765868ba4c3fd9f898",
     "oge-278t:e65c7623b566bb1f735e3e66",
     "oge-278t:e678aefaa7dbf72c794ca184",
+    "oge-278t:e67cee91254ee9b38d7b4b57",
     "oge-278t:e6c5f2563f484f5431dd4399",
     "oge-278t:e71cb433881e926bc606b866",
     "oge-278t:e73da042ba183b306caff0a6",
@@ -1384,12 +1514,14 @@
     "oge-278t:e927c926dce083f190001d29",
     "oge-278t:e952f677a44f06ec43ca1c87",
     "oge-278t:e9889716a81410950d76f66c",
+    "oge-278t:e9b3e43a071873e4e9064c37",
     "oge-278t:e9c0eeeb36c2b8fa38facece",
     "oge-278t:e9c1828fd4588e42ad51bdd6",
     "oge-278t:e9d2b8716f7cda8d78592fb5",
     "oge-278t:e9dc3f6c6b0eb400e24aafd3",
     "oge-278t:e9fb38bf0244de0717dbc794",
     "oge-278t:ea1af13636504add2d352c56",
+    "oge-278t:ea2c52ccb55c8c11631d48eb",
     "oge-278t:ea39e8a71317f51bb8d287c8",
     "oge-278t:ea3c582e55aa75c149c38fe0",
     "oge-278t:ea45c525fca726f91b84ae17",
@@ -1399,6 +1531,7 @@
     "oge-278t:eb481b7deba452f38cebd7ba",
     "oge-278t:eb84f5de88caa7f5e08c68e7",
     "oge-278t:eb8eb5c291170ceb9fa15851",
+    "oge-278t:ec33e2b5d568036a19645c6f",
     "oge-278t:ec6487911becf8c72e8d8d3a",
     "oge-278t:ec8dccd80c69a380d87d91bb",
     "oge-278t:ecaf219319bd1a65d0c2ab3c",
@@ -1421,6 +1554,7 @@
     "oge-278t:ef4b7fe10d82e1ac8f6435f3",
     "oge-278t:ef85abb91d7a24e72a06947f",
     "oge-278t:ef8e4dc29f1eba095cef4cd6",
+    "oge-278t:eff005eb74bc9a9051644c1d",
     "oge-278t:f0b2cc022f3cb55aa03f16eb",
     "oge-278t:f0b6ac42f284f99dacb0d254",
     "oge-278t:f0bcbfcd1dee3b438786aadf",
@@ -1449,13 +1583,18 @@
     "oge-278t:f400dd93fe336a5cb4709744",
     "oge-278t:f4282b84e3d5aa24e0cfa088",
     "oge-278t:f4b38ebf8f8f999b310a5020",
+    "oge-278t:f4bf425264d6fc7a83ad4f2e",
     "oge-278t:f4d07b9752957b3fd2bfc4f0",
+    "oge-278t:f4f0efc5065c16ee803c3e21",
     "oge-278t:f511447f349845020329e718",
     "oge-278t:f51a16a4a6148715da3a8a1f",
     "oge-278t:f51ff8668e33da9430886631",
     "oge-278t:f5408dfdd99ecbed3ee06057",
     "oge-278t:f5442f44dafc06cdb09150db",
     "oge-278t:f56bdcb224a99f4441dc31e1",
+    "oge-278t:f5a168b217d33f41de807615",
+    "oge-278t:f5d73689bd7f1e1212f2416f",
+    "oge-278t:f6172f75ad6311fac263eb4c",
     "oge-278t:f636dd70192a4fd6c4e07068",
     "oge-278t:f679c861f2d1e44e5ab336ce",
     "oge-278t:f69b5139ec0b277b01c9dc47",
@@ -1490,6 +1629,8 @@
     "oge-278t:f9a242ba3e01d6fcce53059c",
     "oge-278t:f9dfcefaeef66976cb3acca0",
     "oge-278t:f9e18dc663e6395266243b49",
+    "oge-278t:f9f4f0496dca9b10b1e751b8",
+    "oge-278t:fa4c79fc904fec3edc9809a4",
     "oge-278t:fa943eefff4b986f40c0fa65",
     "oge-278t:faa75451b46fa06ae24d376f",
     "oge-278t:fabb94b26a51c0f4b41f28b9",
@@ -1500,6 +1641,8 @@
     "oge-278t:fb5bb5489b53136e9a499a4b",
     "oge-278t:fbb1aa500efd0aefc555d112",
     "oge-278t:fbdbf93c02cb6ee0a85d0628",
+    "oge-278t:fc9c8e842cafe3b48aafaa99",
+    "oge-278t:fcaa2ff83bf399547630612a",
     "oge-278t:fcc1a248d415ac2c5fde9bad",
     "oge-278t:fcd75e51ae643a5185a03733",
     "oge-278t:fd3de07026356b4e300b9462",
@@ -1515,12 +1658,15 @@
     "oge-278t:feda36ebb43aa53452c6642d",
     "oge-278t:fee4c9c4aaf601e9aa8d8959",
     "oge-278t:fef099574982c3e30bbb9822",
+    "oge-278t:ff154d0e5aa261f1e966a810",
+    "oge-278t:ff54e298b28b40e77827bcfb",
     "oge-278t:ff79def473cdc052be09cfe1",
     "oge-278t:ff8f888240875ac49b6b32ef",
-    "oge-278t:ff92b09ef985b0f6804ce92f"
+    "oge-278t:ff92b09ef985b0f6804ce92f",
+    "oge-278t:ffa9df785a2abdbaf7e4566b"
   ],
-  "pure_oge_candidate_sha256": "c1388ef23d6ea4e0ab3c082ecbbd05d0f5eb31108dacf56b45e2556fe506ae8b",
-  "quarantined_row_count": 8789,
+  "pure_oge_candidate_sha256": "cbcaa046c426d2533efabb4a4e84eb1376547e085e196ad5961897162a7890fa",
+  "quarantined_row_count": 8643,
   "report_count": 81,
   "reports": [
     {
@@ -12731,50 +12877,40 @@
     },
     {
       "document_id": "wh-url:0324e275164d6065d8553ce3",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-09-24",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 4,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 4,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:4b4fb052eb13213b35f202e5",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:c1cfdf5e9a3920ac353382b6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:31e7e69c7168d23cc387cf85",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:ea2c52ccb55c8c11631d48eb",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 4,
@@ -13134,13 +13270,12 @@
     {
       "document_id": "wh-url:08cea99198580b4aed93ebf4",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-03",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:6d47187d1140b70a",
       "promoted_count": 0,
       "quarantined_count": 18,
       "rows": [
@@ -13148,7 +13283,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:87f5607ff12bb638f01e4b40",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13159,7 +13293,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bf5c021845d2a4e4ad20c9d9",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13170,7 +13303,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ff96941e8bfbff61e3f49fa3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13181,8 +13313,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:800bca93aee1ec1c76d11a9d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 4,
@@ -13192,8 +13324,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:337c8cd1c0807bda45e50a68",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 5,
@@ -13203,8 +13335,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5213413f9a149dca7d1a71ec",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 6,
@@ -13214,8 +13346,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ef0c6609cdb14d9b38833a12",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 7,
@@ -13225,7 +13357,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c431be48eec9a164f929213d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13236,7 +13367,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:64a9875038fe3b1b80ffa8b4",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13247,7 +13377,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c8ac1ed94adc250d8f7b494f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13258,7 +13387,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1e5f436eb58df4381543a67a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13269,7 +13397,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:45c0dfc519a9ad484d682fd3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13280,8 +13407,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fabcfb8be504735a25999aac",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 13,
@@ -13291,8 +13418,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:069ba92a7e3a310bba9eeb22",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 14,
@@ -13302,7 +13429,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:222666a2373b7433dc528d91",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13313,7 +13439,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:967779984a8c989dde8e202a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13324,7 +13449,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7150a4b4723b05bb77cb1b11",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -13335,7 +13459,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:082d9a3c115092a30ed19044",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -53647,23 +53770,19 @@
     },
     {
       "document_id": "wh-url:156b23394914d54054fbd853",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-07-22",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 1,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 1,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:3187a78efb55b18201e5b93b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 1,
@@ -57319,23 +57438,19 @@
     },
     {
       "document_id": "wh-url:1af94ddf93eaddeadb41826d",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-04-16",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 1,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1f42fe4e2d55ca8d",
+      "promoted_count": 1,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:7bcfcc4f29655433998a057b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 1,
@@ -57344,32 +57459,26 @@
     },
     {
       "document_id": "wh-url:2135d60f13e80b6abd8795c7",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2026-01-26",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 2,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1f42fe4e2d55ca8d",
+      "promoted_count": 2,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:52e0074065cf082f88568b25",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9a49503fd34ab80d07696442",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 2,
@@ -57379,14 +57488,13 @@
     {
       "document_id": "wh-url:24d42413d95a1391b83a495a",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "duplicate_pdf_unresolved",
         "duplicate_report_content_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-03-13",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
       "promoted_count": 0,
       "quarantined_count": 7,
       "rows": [
@@ -57394,9 +57502,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b5244d18d8f63e53787d1553",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 1,
@@ -57406,9 +57514,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7a0f93c2806c03b3c184dd47",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 2,
@@ -57418,9 +57526,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2d0a627d1c17c4f651a5577e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 3,
@@ -57430,9 +57538,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:58bf559427d2c80cda3463f7",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 4,
@@ -57442,9 +57550,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f4b89420667ab62fe88611ba",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 5,
@@ -57454,9 +57562,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8489a57602674ef6d457c7b3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 6,
@@ -57466,9 +57574,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f118cd040b7e8bd3eabdafa6",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 7,
@@ -58892,344 +59000,270 @@
     },
     {
       "document_id": "wh-url:326f4f7b4ddcbfd42b4083df",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2026-02-24",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 58,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:2f99e14a12fa841f",
+      "promoted_count": 56,
+      "quarantined_count": 2,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a9c839a70f13f515f33390c2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c1a7758767cc20bb1e174e3a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fcaa2ff83bf399547630612a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:240370e0caa3819bf22eeb06",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:72216227f0188ffaef027577",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ffa9df785a2abdbaf7e4566b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:83d351105554593135f50124",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:810c0ae263ae5153effdaca9",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c0ef752d051021a0693c15f8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4a7cb068c47696c7e6779774",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9b0e4b246403d1523ae9b8ab",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 11,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:59857694e6ead0be1cb8f280",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:53a0ad066294776e09246c5c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 13,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f4bf425264d6fc7a83ad4f2e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 14,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:eff005eb74bc9a9051644c1d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 15,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:20f92659ff7b5d38bac6296b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 16,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3bab48e5ea1928c2f485113e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 17,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8bd0743dbac1f235fa7856e7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 18,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e3acef07f973bcb36b2ad862",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 19,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6579e9f6dfe131f8ea3f2b13",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 20,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9bd73d1cff1e849964e711ac",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 21,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:35d7c2839e0e0d4afc8cf3f7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 22,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3a40e76f37411788942fc152",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 23,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:389038b2718acf2c4ee1291e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 24,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9bf5863c6a1ef86563b8a5b2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 25,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:422f9370e3b38b6858539e9f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 26,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ba444deb08571fcc1415bd80",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 27,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e67cee91254ee9b38d7b4b57",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 28,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c54b50df71e1672ffa72d7c4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 29,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:71617c9bfe2c25288cd9313c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 30,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2634ce387fb9d74d586165f8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 31,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:063e7763657180fd7edd1145",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 32,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c2c7bbc6db7711d0862282ab",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 33,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:457322d7f854e33244e4a516",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 34,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:db1205ff0623596e43b91390",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 35,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f6172f75ad6311fac263eb4c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 36,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c16929c6b93add495706689f",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 37,
           "status": "quarantined"
@@ -59237,17 +59271,15 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:67b38b85c1693b9ea2fe65cb",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 38,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8205837c2f7f3b8ed6e1bfb2",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 39,
           "status": "quarantined"
@@ -59255,173 +59287,135 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ff54e298b28b40e77827bcfb",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 40,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2fadb7565a8b95465d98b78b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 41,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0776a722d459de883d213fa4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 42,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:af6f7d204d7aae10ca862fed",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 43,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:05c4de2daa7b429e021a175e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 44,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a4294c14c2a85e2b19c92238",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 45,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:242ef21f7067ee7a10501ba0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 46,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e55f9a6e9fe288d23c525df7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 47,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6a46b4ad77db870a7a90081a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 48,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3952cc61d8dd95aa9105ce8d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 49,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cd7f3910c8a201c72783b869",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 50,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ddb5016765eacb633c8bf386",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 51,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:949b0b8d36e8319d563f9cca",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 52,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ec33e2b5d568036a19645c6f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 53,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:11ed7b7ff1222f73dac6a25d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 54,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2bf43eae47158b3bf8117133",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 55,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d888c6e280f0e9f6898266e8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 56,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d160260556009cbc568ef9b1",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 57,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:868dfcc417d9b3ae49f44eed",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 58,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 58,
@@ -61885,13 +61879,12 @@
     {
       "document_id": "wh-url:3d1eb1ee58f9b16da2b9dfcd",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-08",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:6d47187d1140b70a",
       "promoted_count": 0,
       "quarantined_count": 8,
       "rows": [
@@ -61899,7 +61892,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d4bdbea07901a8a2f025dc24",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -61910,8 +61902,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:22d071875ca028fe194f0947",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 2,
@@ -61921,7 +61913,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ff0108671170dc99429a210e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -61932,8 +61923,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:429902900e9628409632ec44",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 4,
@@ -61943,8 +61934,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c06ffd49baf15426497fbf09",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 5,
@@ -61954,7 +61945,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:55e7a5c71e726ef22dbc9586",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -61965,7 +61955,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8a75d212aa98e480e67b8b88",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -61976,7 +61965,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a0b50345b731588fbcbb556c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -62062,185 +62050,145 @@
     },
     {
       "document_id": "wh-url:47e86611fc4e4cafdba032a9",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2026-01-26",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 19,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1f42fe4e2d55ca8d",
+      "promoted_count": 19,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:5b5b3e2bae9de6a20c1c2e75",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0eadb9d0a16c50bcbc10b2c3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2bfb22fa4203560f9dae90f9",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:194b29b536903486844602f2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b2bbb6d5456faa8ba60aac3f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f4f0efc5065c16ee803c3e21",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cef4b57cc4619c6c4c9bfa38",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fa4c79fc904fec3edc9809a4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d65b24acf5050127a4308462",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c12f71e684debbead05117b4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:621c4a000f41855f8351c87e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 11,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6e74afee6995fe3f542e8db7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:35c6891aafce96fac0663052",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 13,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:74fc4b26a1748b1495dbc2bb",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 14,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:54aeb8f7bb59053314d6fce7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 15,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:651d45d150ccf1df02196543",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 16,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c097d6e6fb028c359cc7bd32",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 17,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d71c5801de3c86b0f70dd6e5",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 18,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:dcf1106fd23b17e80f8885c6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 19,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 19,
@@ -62249,32 +62197,26 @@
     },
     {
       "document_id": "wh-url:4924953fb6c23c0e924090bd",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-05-07",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 2,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:8c6ebf48166cba3f",
+      "promoted_count": 2,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2a803561d6bf0b7f3e3359f0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b1eecc1d51d8599a47033cf4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 2,
@@ -62283,41 +62225,33 @@
     },
     {
       "document_id": "wh-url:4939625dace039e4cf045fd6",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-08-24",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 3,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 3,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:5fb6d9aa180de92899d96b99",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:2a2e75f4964eb57809853f8d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:de823b8d465af35813a70dca",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 3,
@@ -62423,11 +62357,11 @@
     {
       "document_id": "wh-url:5441103eb5823b10dacde588",
       "document_reasons": [
-        "catalog_filer_identity_missing"
+        "no_eligible_transaction_rows"
       ],
       "filed_at": "2025-06-08",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:929999a797f62f47",
       "promoted_count": 0,
       "quarantined_count": 1,
       "rows": [
@@ -62435,8 +62369,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b3456d37867f3710322abd41",
           "reasons": [
-            "catalog_filer_identity_missing",
-            "exchange_requires_contract_resolution"
+            "exchange_requires_contract_resolution",
+            "no_eligible_transaction_rows"
           ],
           "row_number": 1,
           "status": "quarantined"
@@ -62449,14 +62383,13 @@
     {
       "document_id": "wh-url:5692df19ac15241840a0b4b1",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "filer_signature_name_mismatch",
         "pdf_filer_name_mismatch",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-10-10",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
       "promoted_count": 0,
       "quarantined_count": 5,
       "rows": [
@@ -62464,7 +62397,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b9f2c78eb8650860df0a0d09",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -62476,7 +62408,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5d8d156d48a49cbf7af01daf",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -62485,10 +62416,9 @@
           "status": "quarantined"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:c629ca1f16345341f642f44a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -62497,10 +62427,9 @@
           "status": "quarantined"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:f8c5c51f672c949bdea98cea",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -62509,10 +62438,9 @@
           "status": "quarantined"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:3c3bb268b96a9c1b1f62e8a3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -73260,13 +73188,12 @@
     {
       "document_id": "wh-url:644a7c8a4ee75deddbb5690e",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-02-12",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:6d47187d1140b70a",
       "promoted_count": 0,
       "quarantined_count": 3,
       "rows": [
@@ -73274,7 +73201,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c1a4c1c1bed300a43cf258fb",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -73285,7 +73211,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:aa3c22cbdd2f746f04529cac",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -73296,7 +73221,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:02df94593f88bde15acfbdb5",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -73868,32 +73792,26 @@
     },
     {
       "document_id": "wh-url:6f3e8cff3aa8306f6b1ee693",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-08-14",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 2,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:0606dd93e8cf53af",
+      "promoted_count": 2,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f5a168b217d33f41de807615",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b2862cf149a3f2f975f0eff6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 2,
@@ -74422,14 +74340,13 @@
     {
       "document_id": "wh-url:756414aabe02bea2435cd060",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "filer_signature_name_mismatch",
         "pdf_filer_name_mismatch",
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-01-10",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
       "promoted_count": 0,
       "quarantined_count": 23,
       "rows": [
@@ -74437,7 +74354,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b24b76becfba56c1dfde42b5",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74449,7 +74365,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:96573559312931beda1e5de1",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74461,7 +74376,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:570501aad358744997e3b6db",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74473,7 +74387,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bf486c93ca3b0810a18842be",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74485,7 +74398,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7c496333c39e541d23693c2f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74497,7 +74409,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:203a58a3581bb8840de9e32c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74509,7 +74420,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e23dd64cda05cb58158f8f69",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74521,7 +74431,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:67a847312f95920d4e0cdfb2",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74533,7 +74442,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9ce3deb4c09550b92bd2e412",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74545,7 +74453,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:02a28d944f68d5930b0b3d7a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74557,7 +74464,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:89dc696caa65982c3af77a39",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74569,7 +74475,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d2a331a2f03ac4c80e647cdd",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74581,7 +74486,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d8a8053aef27fbbdc5b54091",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74593,7 +74497,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:385303c2a392c2eb61546a0e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74605,7 +74508,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1a9c60cd6d3a9b53fbad9abc",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74617,7 +74519,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c05fc7873fc176a5f1cd06eb",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74629,7 +74530,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e37b41f65b5aaeaa1d495202",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74641,7 +74541,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:36a7375a8d12241e60519023",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74653,7 +74552,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8aefee94dc397e67612738c0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74665,7 +74563,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:30f0ad7bdf1885d9aa3bf87e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74677,7 +74574,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:55a4f94d6e2a954677440a27",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74689,7 +74585,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:65b4430e10027a27a8747b1e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74701,7 +74596,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a920a3158d2942282fec835c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "filer_signature_name_mismatch",
             "pdf_filer_name_mismatch",
             "source_extraction_incomplete"
@@ -74717,13 +74611,12 @@
     {
       "document_id": "wh-url:789c18527203630b48b575b4",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-06-20",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:7f235ef92f044c29",
       "promoted_count": 0,
       "quarantined_count": 1,
       "rows": [
@@ -74731,7 +74624,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:153ca66d99e0bff7ebb25192",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -88982,13 +88874,12 @@
     {
       "document_id": "wh-url:867980669614b684ddb349b4",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-08-01",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:7f235ef92f044c29",
       "promoted_count": 0,
       "quarantined_count": 1,
       "rows": [
@@ -88996,7 +88887,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3c75558bd9850a33c2ae889f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -89499,38 +89389,32 @@
     },
     {
       "document_id": "wh-url:9218d153a495baca2fa3f302",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2026-02-16",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 15,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 11,
+      "quarantined_count": 4,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9b26feeab5eeb77109adf171",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:aa15b7515535cb53766b9ace",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:88715a4136957ebd9bf4e7a0",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 3,
           "status": "quarantined"
@@ -89539,7 +89423,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cd963f5a9d58766ef068028b",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 4,
           "status": "quarantined"
@@ -89548,7 +89432,7 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0de065ed97ac5e1851c85b19",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 5,
           "status": "quarantined"
@@ -89556,17 +89440,15 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9f7288985938ff4e5b4e607f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:868a32eb2298eda429067553",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 7,
           "status": "quarantined"
@@ -89574,74 +89456,58 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1a60d9321bb74b51800d4cdf",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:00a810c24b5502a9fe6549f1",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cf153fb5867509e869b272f5",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:83a3fba90775f4f171b3a340",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 11,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e5126cd398186b73d99ffae7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f9f4f0496dca9b10b1e751b8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 13,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7d544a94a3d821cb150440f0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 14,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3d4438f778a34aaec6e3b650",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 15,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 15,
@@ -92250,11 +92116,11 @@
     {
       "document_id": "wh-url:a37423e7c33351e0b81ebd96",
       "document_reasons": [
-        "catalog_filer_identity_missing"
+        "no_eligible_transaction_rows"
       ],
       "filed_at": "2025-08-16",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:929999a797f62f47",
       "promoted_count": 0,
       "quarantined_count": 1,
       "rows": [
@@ -92262,8 +92128,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b221fcbbe98762900eed6b19",
           "reasons": [
-            "catalog_filer_identity_missing",
-            "exchange_requires_contract_resolution"
+            "exchange_requires_contract_resolution",
+            "no_eligible_transaction_rows"
           ],
           "row_number": 1,
           "status": "quarantined"
@@ -93537,41 +93403,33 @@
     },
     {
       "document_id": "wh-url:b8380575366e5e38e18c88ec",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-11-29",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 3,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:6d47187d1140b70a",
+      "promoted_count": 3,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4508cf734b49d66706cc627a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:78913267369f29db61e74d1d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c05d0f3acbabf524235c6cd4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 3,
@@ -93610,13 +93468,12 @@
     {
       "document_id": "wh-url:bdc9f33e40dad0984b4d14a9",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-03-28",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:929999a797f62f47",
       "promoted_count": 0,
       "quarantined_count": 36,
       "rows": [
@@ -93624,8 +93481,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4d3d3bc5381b257416f28ca8",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 1,
@@ -93635,7 +93492,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f9d6b986bbc18708b2b657fa",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93646,7 +93502,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8a997068b018e3c9a4a48deb",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93657,7 +93512,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:40d173e10088eb5103913dec",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93668,7 +93522,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:052f5266760451c18e320ce0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93679,7 +93532,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:27cc599f13ed078fb21f7cd3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93690,7 +93542,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a8b4e0a9f7fa082217a28783",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93701,7 +93552,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:de4843069e1f3206e68ef486",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93712,7 +93562,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:dbb70fe765a6327c0f4e7868",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93723,7 +93572,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4c2f727169c03b4bf496be6c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93734,7 +93582,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0f4a3399fb2bbdc29218f8f8",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93745,7 +93592,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d2a2fa431f0dc9bb575c05be",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93756,7 +93602,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ad69380e22f8d16cbc633b4b",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93767,7 +93612,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:11d560db4e14684b9dc82120",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93778,7 +93622,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2d50aafa0aaf1a90d0b80fb3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93789,7 +93632,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f07f489a61d19d7c8237977e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93800,7 +93642,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:910a4dbba4af8a01d2a83be0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93811,7 +93652,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:efa4fbc7f36ee7ce0c7a184f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93822,7 +93662,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:efcc1be3a597cb69621b205e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93833,7 +93672,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:13c80e27114d106faf9e90ba",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93844,7 +93682,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b14c0d11a128110012a9f62b",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93855,7 +93692,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7229f8d9fc6950cbccb96a9f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93866,7 +93702,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:46f5f59b52bb197d8db16363",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93877,7 +93712,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:827da20efaab0f4d48a129bd",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93888,7 +93722,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:071f995b2f7db2209d5cfb71",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93899,7 +93732,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6b359e2bbb30b55a0d0cc6bb",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93910,7 +93742,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4f261b5fcf6ea88ba53d8418",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93921,7 +93752,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:130766b35ea589758591a988",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93932,8 +93762,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:49ed1e90956901ea62937146",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 29,
@@ -93943,7 +93773,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:76743ddf4481ff071b238084",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93954,7 +93783,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bd750ee28524a5b2e0cbca27",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93965,7 +93793,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a33c47b527f103f2792dcb02",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93976,7 +93803,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c702ba50fc6922defda02664",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93987,7 +93813,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d82a0eb685b3a3ef3c5bf1f5",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -93998,7 +93823,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b424d92ffa552923455d3e6c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94009,7 +93833,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:daff78c564fd52f8c9803ea8",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94023,68 +93846,54 @@
     },
     {
       "document_id": "wh-url:c0d7fea6987acef426046fcb",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-09-03",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 6,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 6,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:cb05111dc61deffc4091aa2e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:8f9261bfb28aa64bd12c18e0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:839ab1e38cbcc476b0e339b8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5176c9302c8bfb262c4fde76",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:4bad1090f44918ad8df87ca7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:3e49506770435df935c066b8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 6,
@@ -94162,14 +93971,13 @@
     {
       "document_id": "wh-url:c74c8880ba22a974a92604be",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "duplicate_pdf_unresolved",
         "duplicate_report_content_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-03-13",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
       "promoted_count": 0,
       "quarantined_count": 7,
       "rows": [
@@ -94177,9 +93985,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b5244d18d8f63e53787d1553",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 1,
@@ -94189,9 +93997,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7a0f93c2806c03b3c184dd47",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 2,
@@ -94201,9 +94009,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2d0a627d1c17c4f651a5577e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 3,
@@ -94213,9 +94021,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:58bf559427d2c80cda3463f7",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 4,
@@ -94225,9 +94033,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f4b89420667ab62fe88611ba",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 5,
@@ -94237,9 +94045,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8489a57602674ef6d457c7b3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 6,
@@ -94249,9 +94057,9 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f118cd040b7e8bd3eabdafa6",
           "reasons": [
-            "catalog_filer_identity_missing",
             "duplicate_pdf_unresolved",
             "duplicate_report_content_unresolved",
+            "possible_whitehouse_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 7,
@@ -94579,77 +94387,61 @@
     },
     {
       "document_id": "wh-url:d2d58d45017db842cd92ec62",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-09-10",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 7,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 7,
+      "quarantined_count": 0,
       "rows": [
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:71aa876d7bc05506bfbe68c7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:514a4bb6cafe15f6972d6111",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e9b3e43a071873e4e9064c37",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:37032747332e6eb0f5ffcdfe",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3b8b327f02056ac74b1c267b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c87286a60223b159806b1b39",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:30f8cea539ecc56079e1076b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 7,
@@ -94831,13 +94623,12 @@
     {
       "document_id": "wh-url:d64468ac49c0584fccb1dfd7",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-01-05",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1b299c2cf0abb0c9",
       "promoted_count": 0,
       "quarantined_count": 46,
       "rows": [
@@ -94845,7 +94636,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0b58385c76d6c0248d321d2a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94856,7 +94646,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9df55c8ee1247b26e2764264",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94867,7 +94656,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b1bdc9fba074ab26c4d396a8",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94878,7 +94666,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e03ed2abfe38527cfbee7ee4",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94889,7 +94676,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2114df3df6815f3ea1dcfca5",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94900,7 +94686,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:57217ff2f8e1adbebae77bb3",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94911,7 +94696,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:953f5a2db2a5d8292023655d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94922,7 +94706,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:45484ee4a77673623962696d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94933,8 +94716,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6936a710ab7156f98fdddf69",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 9,
@@ -94944,7 +94727,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9f8d9f73e06065282841a457",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94955,8 +94737,8 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d200554d25271c32d1296341",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
+            "possible_whitehouse_same_report_transaction_duplicate",
             "source_extraction_incomplete"
           ],
           "row_number": 11,
@@ -94966,7 +94748,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e5a6e93ff681ad579065c7e7",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94977,7 +94758,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:326680205b0e0bcd1313bd7a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94988,7 +94768,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:813adbda955fe04f0592ea76",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -94999,7 +94778,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:67f6b4f99856d79b2317cc67",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95010,7 +94788,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4c5606f1572a8de484ed3287",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95021,7 +94798,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:df3b406093f1cd79341cb5c0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95032,7 +94808,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:79efeaa9398f9bd3ad031d34",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95043,7 +94818,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:76fd373b5e168cf571530597",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95054,7 +94828,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6e17f6c7cd2026bf3f8bad50",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95065,7 +94838,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ebdfa322eec08c8e0e39905b",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95076,7 +94848,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1c3abe80305fcb8c14ef8a4d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95087,7 +94858,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a00b3fbebf61692d19aa7844",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95098,7 +94868,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a876a4cc53121b8e0f983f77",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95109,7 +94878,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e97ddb89e4d8b79485d50e29",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95120,7 +94888,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a4a8b33d9ca93eba61cf2832",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95131,7 +94898,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:dc49816b0cd8596f27d625b0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95142,7 +94908,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:39c3d651f4319268868a320a",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95153,7 +94918,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c649a484bc7d92840b9df5d7",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95164,7 +94928,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5d5b132277368c0f0cbcc640",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95175,7 +94938,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cdbf0f7785be3bae8b04c9ec",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95186,7 +94948,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fd318a4aabb774eb53c8dade",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95197,7 +94958,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:414d481f7fc0c31b158b8782",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95208,7 +94968,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:34abd8e2c4c61e099045b766",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95219,7 +94978,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a126424fcd60a6823fea007f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95230,7 +94988,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ab0a51b6a0141fadaef19b42",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95241,7 +94998,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4afcc59c4567d89988aedd8f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95252,7 +95008,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cf632a7b90074e19355f26f8",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95263,7 +95018,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:060c0868c6497ad6d5c10e04",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95274,7 +95028,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0127c42797aca1fd2cdd46ef",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95285,7 +95038,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:affb83a1e99c409147ef23a0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95296,7 +95048,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d5fed295e832a0a41a0584bf",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95307,7 +95058,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a9d90b12566f9fe0b0afdc6f",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95318,7 +95068,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d3ab190228bfdc0d76c68075",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95329,7 +95078,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e12de2157ff9344c6792a0b0",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -95340,7 +95088,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:feb939879a530ef072e9b230",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -116967,23 +116714,19 @@
     },
     {
       "document_id": "wh-url:e07817d54879f61f40ea89ed",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-07-07",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 1,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:929999a797f62f47",
+      "promoted_count": 1,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:625be834fa78380f41f27a40",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 1,
@@ -116993,13 +116736,12 @@
     {
       "document_id": "wh-url:e624642ba63a1c0bab3f5b48",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-18",
-      "identity_basis": null,
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:8c6ebf48166cba3f",
       "promoted_count": 0,
       "quarantined_count": 4,
       "rows": [
@@ -117007,7 +116749,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2bb2d00800b170f606181f6d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -117018,7 +116759,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:256512324e639a290aaae643",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -117029,7 +116769,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:86fb508b9d581e025958c76c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -117040,7 +116779,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6a0562d96c834481e913dd8e",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -117100,95 +116838,75 @@
     },
     {
       "document_id": "wh-url:eeb765c4e1d9beaf1249f444",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-10-15",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 9,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 9,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b2a09b78ee4f810c94611101",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:04fa3bf28bf9173af019592e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6bacdf9be35d2dd39b390c17",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ae9418864e45e465cb1da5ed",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:76527634fb57a61fda0eadaf",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:93c90cd79f14c3c9714c7bff",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1bbabdf8039a7b3925be8773",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:31212280e35eb77fe6b7b242",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:fc9c8e842cafe3b48aafaa99",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 9,
@@ -117197,122 +116915,96 @@
     },
     {
       "document_id": "wh-url:f3b49dd3fd521a06f06bc238",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-11-17",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 12,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 12,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f5d73689bd7f1e1212f2416f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ff154d0e5aa261f1e966a810",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:ae9776798acdf5d3d70f8f2a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d8aa8d173e2b6b58c29d0852",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:6563f4033101814681ff08f6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:d7ca2be7709e613e1670541c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6da182a30133e8545d310d73",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:793b3a537660ddc25865c403",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:057edb8e953d6287ac92b45e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7d1c971cc4b1969850f33ac3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6959e5efbe9688a4f988a5de",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 11,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:65d672efc88c7f1d36ea9f5c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 12,
@@ -117368,77 +117060,61 @@
     },
     {
       "document_id": "wh-url:f7ff027b873aac9d5fcb3b11",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-12-15",
-      "identity_basis": null,
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 7,
+      "identity_basis": "whitehouse_directory_new_oge_person",
+      "matched_person_id": "oge:1ac4d40fcbebde58",
+      "promoted_count": 7,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9aa6cb4cba67debc484b3b33",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
-          "annual_part7_overlap": false,
+          "annual_part7_overlap": true,
           "extraction_id": "oge-278t:0771d3a24bc4e741c4608c16",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a4d4f2fd202b95c5ef0234b2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6dcc7aa42c799d0304b8a9cf",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:43073cb15ef21f4d760a5ec0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ae5afa8a4f550b549e613d19",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e0f84940d4a25ef6339f05c0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 7,
