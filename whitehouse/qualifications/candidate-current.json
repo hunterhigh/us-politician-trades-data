@@ -1,24 +1,25 @@
 {
-  "added_person_count": 6,
+  "added_person_count": 9,
   "annual_part7_incomparable_row_count": 14617,
   "annual_part7_overlap_count": 0,
   "base_transaction_count": 5081,
   "candidate_is_append_only": true,
-  "candidate_sha256": "c51c01c57c7747d87dfa816744537ac0a4ea8492ca3638acbf97111452c47572",
-  "candidate_transaction_count": 6472,
+  "candidate_sha256": "d61499b935f4f5b76ac36011f0d59c5ae15099835948842a3a4e5eb785504808",
+  "candidate_transaction_count": 6585,
   "catalog_report_count": 81,
   "catalog_sha256": "71eb2240ff8c99851dacb91cc7dd4e6d773f806bbd8d79c40f65f52ff713c8ff",
   "data_cutoff_at": "2026-10-12T23:17:15Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
-  "promoted_report_count": 18,
-  "promoted_transaction_count": 1391,
+  "promoted_report_count": 21,
+  "promoted_transaction_count": 1504,
   "promoted_transaction_ids": [
     "oge-278t:0001ce3c7bb1737dfee0e31b",
     "oge-278t:003835652d6631bb469094ad",
     "oge-278t:004f128e4263bdf0994ff34d",
     "oge-278t:00527edcfc7161bcac3a478c",
     "oge-278t:006242e2ee2b5a8f01c6f0c9",
+    "oge-278t:00672422b50bf7c098e94d64",
     "oge-278t:009c996746516a47d775f040",
     "oge-278t:00b7d3d42d9081eea074faa1",
     "oge-278t:0111bb624fa73472d428dd70",
@@ -37,6 +38,7 @@
     "oge-278t:027a071c6893f3f6b4cdf9f9",
     "oge-278t:0288997bd6c626c2606752b8",
     "oge-278t:02b53c9a4941adbb214090fd",
+    "oge-278t:02fc00d680a16d8a20bdf335",
     "oge-278t:02fcee192d1c7845e8a7d37c",
     "oge-278t:0309be5cbcad2391e06407f3",
     "oge-278t:0343a9033a12c82bd42c5e33",
@@ -51,10 +53,12 @@
     "oge-278t:04523596243110c82c5009c6",
     "oge-278t:046a358a22ba502be75809db",
     "oge-278t:04736336c28d7df0dc6eb112",
+    "oge-278t:04d586696df1477f2b80c6ce",
     "oge-278t:05103de23140a142fe87d19f",
     "oge-278t:053a782ec8e917a0842a0775",
     "oge-278t:05f9cf35f0c76b6b34b8952f",
     "oge-278t:06270af6d0a60992935e07d0",
+    "oge-278t:064ac346193c369d6610125a",
     "oge-278t:06abde73774ce66d3bc9d6e4",
     "oge-278t:071c7ff1833e4635c49590c1",
     "oge-278t:071e192f735e74d2939cc9bd",
@@ -68,6 +72,7 @@
     "oge-278t:07cf41a54c79ae22a03f707c",
     "oge-278t:082a7beeecca8c938734e155",
     "oge-278t:083e4450d8e7bf97f356b911",
+    "oge-278t:0854c595b40c8c491f5e8525",
     "oge-278t:0859317d9fd4a5f2520f777a",
     "oge-278t:08b5e4a9a3657d9330e19265",
     "oge-278t:08fdcb7efb6ab439918141de",
@@ -75,6 +80,7 @@
     "oge-278t:09b09c87715fbc7c7cdaac8d",
     "oge-278t:09c153263d468c38cf0188aa",
     "oge-278t:09c95d96406f2ffe5afa08be",
+    "oge-278t:09fd106e38c9afa576ad8f79",
     "oge-278t:0a2886760b750bee0c67826a",
     "oge-278t:0a85c12495cf0f39640a48a0",
     "oge-278t:0ac381a2ef1cc08a6202a42a",
@@ -88,6 +94,7 @@
     "oge-278t:0c1ea63c67137acf112cfb9d",
     "oge-278t:0c4e68834dcdb5495e329b0a",
     "oge-278t:0cbbaafdcef269294890b621",
+    "oge-278t:0cbf49c944dbed0f39b6cdd2",
     "oge-278t:0cfc05542c65cf5e54abad3d",
     "oge-278t:0d021c4330e1730a7be0fc6d",
     "oge-278t:0d37e502e272e23b93da2ba3",
@@ -105,6 +112,7 @@
     "oge-278t:0f1f55a48067fed007a1164a",
     "oge-278t:0fdd2b4380cab32335e779dd",
     "oge-278t:0ff514061de3dcd64cb2046c",
+    "oge-278t:100fce88906e488eb35be419",
     "oge-278t:108c815a183436dbf25a6382",
     "oge-278t:109a3e1b8564ec020dc9505c",
     "oge-278t:10da9876a8bbcb5c85dc656e",
@@ -112,6 +120,7 @@
     "oge-278t:112252b15f0ed4172ed876ee",
     "oge-278t:115e56068a5adf0efcee8add",
     "oge-278t:116157d0d9c160ea4f7235eb",
+    "oge-278t:118f6f38fb0bf4facd643b79",
     "oge-278t:11d0f80c93d683fd4c563e55",
     "oge-278t:11df86ce6eaacf36758b33ac",
     "oge-278t:11fe4ccfda5f3550a259ef9f",
@@ -141,6 +150,7 @@
     "oge-278t:16105f529669d02d76846a82",
     "oge-278t:16183328d188658b017f5f77",
     "oge-278t:162ca9bb9d1a84953c3f9d2e",
+    "oge-278t:16d5c5f3ed950931b06e0b16",
     "oge-278t:170ae4f29b522eac825d380b",
     "oge-278t:184ede9d28d55efa16d12aa3",
     "oge-278t:18dbc8b9555af929b77794c7",
@@ -161,7 +171,9 @@
     "oge-278t:1a9fe10236ff1101b1925e0b",
     "oge-278t:1b54f13f93f580e689e3b1e1",
     "oge-278t:1b654c63b0496d6c72b212c6",
+    "oge-278t:1b9650d2aba39d83e9ba2866",
     "oge-278t:1baec0be64d409c829353efa",
+    "oge-278t:1bb0527ea7f1dc9e2e8de8f0",
     "oge-278t:1bd711d32b7f3bc7173abf1a",
     "oge-278t:1bf027f0b33a6a48ddffa414",
     "oge-278t:1bfdbf42ffe17bfb67ec44a6",
@@ -181,12 +193,17 @@
     "oge-278t:1eeef8287a10f142588850ce",
     "oge-278t:1ef942f52371ed3c8b42782c",
     "oge-278t:1f091614d43628b8632b8bf8",
+    "oge-278t:1f0cce3c87b559360ed13e01",
     "oge-278t:1f0e5e197d57816b06d9763c",
+    "oge-278t:1f3efc5fdff3bbc2f837fe36",
     "oge-278t:1f42ba2a689a45df74c242d3",
     "oge-278t:1f844bb1b220a4cf44ac9b20",
+    "oge-278t:2017582bfcd035328e82e15f",
+    "oge-278t:208f59a7dc0b1b10aadc4a7f",
     "oge-278t:209bf041ebffbb05ea322552",
     "oge-278t:20e0aab61ca418799a7e3a36",
     "oge-278t:20ed2edb501eb6bac30229b7",
+    "oge-278t:21505df5010fe77716fee4ac",
     "oge-278t:216f2e0c09cb02fb4ecc5231",
     "oge-278t:217304bde820e8e2496ad218",
     "oge-278t:218f9c748639794728bd1146",
@@ -204,6 +221,7 @@
     "oge-278t:23595574150cdd3805c7bc36",
     "oge-278t:238432e07d84fd5e6fbdeff1",
     "oge-278t:23a59fd1fb4a44e7e3f2c400",
+    "oge-278t:23cd014517279f7197c7133a",
     "oge-278t:23e2a91b8ab6572e6dc17612",
     "oge-278t:242588a1a72c01b1cd709ce0",
     "oge-278t:244970bb5dacfebc65b92fc3",
@@ -216,9 +234,11 @@
     "oge-278t:25c8482c93f0f3d9e6802aea",
     "oge-278t:260e84a9ce791282ac8af4a3",
     "oge-278t:263b164dfae1a347055eb281",
+    "oge-278t:26669d7644c59e3b20f5d791",
     "oge-278t:2696d2d5c0abb1d60c99e270",
     "oge-278t:26a29357ec7c6e8e1b95628b",
     "oge-278t:26ac0c15166c754689f9aa52",
+    "oge-278t:26b26342e956fb74377f6ae7",
     "oge-278t:26ca5e1b09a1e859b5f99b2e",
     "oge-278t:26d9e9fb38e04608ca489603",
     "oge-278t:26f8f64981155b9c3a79a317",
@@ -229,6 +249,7 @@
     "oge-278t:2767a0929b48ffa9ad9afad3",
     "oge-278t:278db8b834a53ae783c8cef4",
     "oge-278t:27ef792dca54a93483e101e2",
+    "oge-278t:28164d06adaa6a4115222b07",
     "oge-278t:281f50e066fee9158d61e894",
     "oge-278t:28208362de8477ae5affcf27",
     "oge-278t:2861bb41c795303243de5cc9",
@@ -247,6 +268,7 @@
     "oge-278t:2bb9231b7656644ac7c792fd",
     "oge-278t:2bf2ae78db678c857fbba8e7",
     "oge-278t:2c0eb0c3b080fc7b387905c8",
+    "oge-278t:2c4d2277e46367101572236a",
     "oge-278t:2c8d62af0a5cdce301ca52e5",
     "oge-278t:2ce746afb7d622c9a908e302",
     "oge-278t:2cf9cec54bc889110de65de9",
@@ -281,6 +303,8 @@
     "oge-278t:2fe1e9d2b0abdd3c822de49b",
     "oge-278t:3034749e3f332dcb19ccb873",
     "oge-278t:309c3f2abdb7bd7e3bf43e51",
+    "oge-278t:309d24c12ff1ce77ec1b725b",
+    "oge-278t:30f0416f336b54963cee1884",
     "oge-278t:30fa498d18a0d358afa7a824",
     "oge-278t:310167eb9161d4f7e85d50a4",
     "oge-278t:31218400a13d0f391faed85a",
@@ -296,6 +320,7 @@
     "oge-278t:334cf3e4eba46d6297e033fc",
     "oge-278t:33de6a71af9635a83fb20a3c",
     "oge-278t:33e7c957c4556c9433fdbaed",
+    "oge-278t:342124b8cc8b1e366cfd3baf",
     "oge-278t:34279341b0dd0ed3d2659d0e",
     "oge-278t:3428c916c46dd1f417e6f332",
     "oge-278t:342ea3c52d96123b08c0a640",
@@ -309,6 +334,7 @@
     "oge-278t:35dc9ffa2258021573f828ea",
     "oge-278t:35e6cf019e30ca53f2cf8ca8",
     "oge-278t:35e80b5e009c8cb4f7ac7258",
+    "oge-278t:35ece5ce6561729f1a361ed6",
     "oge-278t:36bd24252558a7e74bb72c0a",
     "oge-278t:36e2f7d15ed5931511aa35cf",
     "oge-278t:36e7a95a315020ebff0033e5",
@@ -339,14 +365,17 @@
     "oge-278t:3a6e5d48ed149318ab6d1630",
     "oge-278t:3a9c76bd864f3c4c8cdb33bc",
     "oge-278t:3ae1f575567f6b5e0aba6373",
+    "oge-278t:3b1159288f901e3019fe5fd5",
     "oge-278t:3b853ba9e2837605464b0127",
     "oge-278t:3b934effbb133120ef6d7537",
     "oge-278t:3b93c204a080755f058c27ec",
     "oge-278t:3bb5c4c89eb11f89672c784f",
+    "oge-278t:3bb7c5dfd6d6bfc2d14a0940",
     "oge-278t:3bc4315dda9c7a670822a2aa",
     "oge-278t:3be3c80d74f81b8a8d389152",
     "oge-278t:3bfc584dcdf9145fb48b870c",
     "oge-278t:3bfd24bbf9fef23d08587983",
+    "oge-278t:3c835c1b6260411a1122933e",
     "oge-278t:3cdb47fc98c4fbdda097c535",
     "oge-278t:3cf5523916258c0ba6a47be8",
     "oge-278t:3cfbe37cc0b85aa213c79d18",
@@ -378,12 +407,15 @@
     "oge-278t:41520d604b6f17f0e2d9daa8",
     "oge-278t:418b78f9e56b8a126801c16b",
     "oge-278t:41bff0d3f91d157c7b6263c3",
+    "oge-278t:41c427a82cc61236139cf6d9",
     "oge-278t:41d7186341ecdeee2f7da26b",
     "oge-278t:41deb32cb2415abb7f141681",
     "oge-278t:42078ef24c6237f22810a4fc",
     "oge-278t:424ca3c025057c54804dd497",
     "oge-278t:426ff5a06e6909859b6c209e",
+    "oge-278t:427ad5d0fb0c455f61b8b2d6",
     "oge-278t:4281f6bc72cd1f3bf8487e1b",
+    "oge-278t:42e23c1e727af0f881d57520",
     "oge-278t:42f7ac9ac2585d0794084c82",
     "oge-278t:43038c204ce46e627410d8bc",
     "oge-278t:434414f7f96c37de669151b7",
@@ -400,6 +432,7 @@
     "oge-278t:450e018c2b36a1303ad208da",
     "oge-278t:450fb62e0dc06ba37874f752",
     "oge-278t:453ecfa94023805d88585043",
+    "oge-278t:4541a6417ba95ae9fe5ff38f",
     "oge-278t:45626f927edcbe0011972629",
     "oge-278t:45731ae0d98a795b3033f200",
     "oge-278t:458aefba009de1d3df142677",
@@ -407,9 +440,11 @@
     "oge-278t:45b76d23827310030635860d",
     "oge-278t:45d37b4994508f2f44ed563f",
     "oge-278t:45fbfe8697ab1871a1b4f899",
+    "oge-278t:46304eddd13761100585175a",
     "oge-278t:46c023eeea810196eae6b176",
     "oge-278t:46f9ca195a8d30650857aa89",
     "oge-278t:478c9e91733977158824a88d",
+    "oge-278t:47da26be77a04321cd703be6",
     "oge-278t:47e87726645056bcaf0f2324",
     "oge-278t:47f08dbd051656ec47fe9ddb",
     "oge-278t:47fc3ad7b4ca19ed9122152e",
@@ -422,11 +457,13 @@
     "oge-278t:4a52784b4bf2db0b1f102582",
     "oge-278t:4a581467ebb9c4c817198b5b",
     "oge-278t:4a5c18083bfadccd9ef67d87",
+    "oge-278t:4a697b0becc9386b9bc524bc",
     "oge-278t:4aa39c324a7b971581cfb8ef",
     "oge-278t:4aa3fd7d2139812b189c74fc",
     "oge-278t:4ac3c0ab4e62db0e50b8b12b",
     "oge-278t:4af37c594d85edf4b1fdebf5",
     "oge-278t:4b09ca01919cd188ba7812db",
+    "oge-278t:4b30930806dda76f846c00a4",
     "oge-278t:4b8a57857a6d311849755159",
     "oge-278t:4bd4bbfb727189dbba78f4a1",
     "oge-278t:4bf8ed7aa58cea63d3bea8bb",
@@ -445,6 +482,7 @@
     "oge-278t:4e0b5a180fc9e43c35d3ff28",
     "oge-278t:4e1dc494f810ac7e53167b11",
     "oge-278t:4e5e41f0b962b31b71a711f7",
+    "oge-278t:4e6a3354bc384ca378ed1298",
     "oge-278t:4e8d9e53ee4bf1b25a31ea0b",
     "oge-278t:4ebcfa3ff7820f5f93ed9ed7",
     "oge-278t:4ebe0d45e9d117ab40e4f777",
@@ -467,6 +505,7 @@
     "oge-278t:515524bf0a33056ab6f05681",
     "oge-278t:51a06ad9b8edad45139ba8aa",
     "oge-278t:51ac9698be462c1ad41b97a2",
+    "oge-278t:51b45b91a9417b6236b138b8",
     "oge-278t:51bdd1195bfaa0044fda58d8",
     "oge-278t:51da8abecc66cb5ea90fe78d",
     "oge-278t:51e3051e1686e5bff1855245",
@@ -484,7 +523,9 @@
     "oge-278t:5367e375ddd915df0f61fd37",
     "oge-278t:53b3b2990fabb033d94ba754",
     "oge-278t:53f0388c4c1ade9d6e93c504",
+    "oge-278t:545262d0da8bb1cc149b422b",
     "oge-278t:545743d391a506ecb4ccb7bc",
+    "oge-278t:5470c76a478d32e8b32902ea",
     "oge-278t:557a03f33e167ddbd5af3c3b",
     "oge-278t:55b6e58f651e5c85392a986f",
     "oge-278t:55d244fe3b1072197debfdd8",
@@ -509,6 +550,7 @@
     "oge-278t:5a32360dc374617d81fad767",
     "oge-278t:5a6e2c519afd37b4c3b0ed3f",
     "oge-278t:5a7b847ab0a477d4a47c087a",
+    "oge-278t:5a87fab0c63ffee4274af23a",
     "oge-278t:5a8a5d02b263926c6ef3ab4f",
     "oge-278t:5ac13bdd378a712644c8b642",
     "oge-278t:5b5a93442e9d582f19e811ac",
@@ -526,6 +568,7 @@
     "oge-278t:5d1f16b2a150092d44035cc8",
     "oge-278t:5d5a077399a2095161a1f4e2",
     "oge-278t:5d6affdb0e6dca71d69b4ef3",
+    "oge-278t:5dd025e836b1053fae40570d",
     "oge-278t:5e0978ca361c82d1a4b14d5f",
     "oge-278t:5e1f48223134b818db099444",
     "oge-278t:5e2b653ab81519d51cca7340",
@@ -560,11 +603,15 @@
     "oge-278t:641f30c23df8c07d7a0494c6",
     "oge-278t:6432997519734c8f6c45ec80",
     "oge-278t:644626f09631e70f7d8a010d",
+    "oge-278t:646c332a5f5d13bb9c3c8f49",
     "oge-278t:649a8a42a33368a7de36610f",
     "oge-278t:64b296bdc67b404c7097fc9a",
     "oge-278t:64d9870a3f120d71d6f87a43",
     "oge-278t:64fdbe8fa51060f53450bee0",
+    "oge-278t:651d6756f2ede3a81b737332",
     "oge-278t:6562d30f72794bf736eec8ce",
+    "oge-278t:65977300bd60580bc0db5f9e",
+    "oge-278t:659ec9ef30434d175bed43a4",
     "oge-278t:65b97626c74d4675658e8210",
     "oge-278t:665c38ae5a8b5e3d984d0c17",
     "oge-278t:669b3e912cd5c43fc9beb9ca",
@@ -586,6 +633,7 @@
     "oge-278t:69241a64ee5758e5f83bd8a2",
     "oge-278t:6a02c02610342f8add539c61",
     "oge-278t:6a3506aec6918b1a6b7712a4",
+    "oge-278t:6a8f60fb8e22df51e2476d15",
     "oge-278t:6a996b029e583b6e42091603",
     "oge-278t:6aa2043506756b79f6743fd4",
     "oge-278t:6abcc419db91254fd547c3bb",
@@ -600,14 +648,18 @@
     "oge-278t:6c8009d703b571d4ebba9e21",
     "oge-278t:6c9cca6c4fea54473c65277f",
     "oge-278t:6d372022f8f0d6ff48f7f184",
+    "oge-278t:6d5d66f0dc793d547bb8494e",
     "oge-278t:6d67c098d4a261f9b070c733",
     "oge-278t:6d80273ce91d450bda2e8e97",
     "oge-278t:6da05bcaddbe17ba22ddcad9",
+    "oge-278t:6e1389b8a6dff932c9b8a1e9",
     "oge-278t:6e2a2ef9a4b5aabd0546627e",
     "oge-278t:6e2a3bf909f9e1a7c064428b",
     "oge-278t:6e3d2a1fbde3f4b0db3ff59a",
     "oge-278t:6e6f8f7578f1274ce1f07ce8",
     "oge-278t:6eb12ada3e9609fa81e979c4",
+    "oge-278t:6eb58aec286ce6b4b8648ca1",
+    "oge-278t:6efabc50281547340aca7299",
     "oge-278t:6f002de15e3ff7cf349448ce",
     "oge-278t:6f231d07104f0bba4c404281",
     "oge-278t:6f4f1ff043a16960aa6dbe0b",
@@ -633,9 +685,13 @@
     "oge-278t:7265a4caaa40301c8c9b2a6f",
     "oge-278t:729aae6fd335123bdc0a3056",
     "oge-278t:72c31a6bc71e49a860e7fff9",
+    "oge-278t:72c86063a70be854102eadc8",
+    "oge-278t:730cead09ef249dbd7d1fc0f",
     "oge-278t:7338a7004104029214d3cace",
+    "oge-278t:7343f43d05205bd0ea97d83a",
     "oge-278t:73a78b8748667ee154df1fe1",
     "oge-278t:73f1db62bc30541a712a3ee3",
+    "oge-278t:73f992dfbc12a352b481cd8b",
     "oge-278t:74421c15b4ccc569a84b0aa5",
     "oge-278t:75148cf66a6f257b076e636d",
     "oge-278t:7522b10436f20a236a552bdd",
@@ -666,11 +722,13 @@
     "oge-278t:79402c36aed9bbbd92c45222",
     "oge-278t:79627cf553d4beb19fe518dc",
     "oge-278t:7991314923ea2f2754a65a27",
+    "oge-278t:799f9f5dec5e998fa2efae34",
     "oge-278t:79b3840b53533bf924c7009d",
     "oge-278t:7a1701334b63f1e883e216f2",
     "oge-278t:7a273b0eb13ce0fd4d6b0223",
     "oge-278t:7a36307a0c3b2bdde79826e8",
     "oge-278t:7a6357c03f02ac39ec0ddcab",
+    "oge-278t:7a641c0bb6b7eed690697f98",
     "oge-278t:7a701cf3c8edf9ba462e0ef2",
     "oge-278t:7a982dd634bdc4fbe10d4d90",
     "oge-278t:7af392ab0ae3f86da5c13b0d",
@@ -686,6 +744,7 @@
     "oge-278t:7d175ddfc12403e0acbf3cb8",
     "oge-278t:7d4f335718cea9a5356aabfd",
     "oge-278t:7d7db4940a251c11dde287c0",
+    "oge-278t:7daa4db0636a4cb603097a16",
     "oge-278t:7ddc1dbfa0c1901cb72a9ab8",
     "oge-278t:7de19162ad9a74538c11ddf8",
     "oge-278t:7e1f99dc36ab970bb613f5e3",
@@ -694,6 +753,7 @@
     "oge-278t:7e6e44af92d70615f07ed222",
     "oge-278t:7e6fe75540cc6e06b0a7449e",
     "oge-278t:7e778e2ca268c718005f2417",
+    "oge-278t:7e920125fb83d97c4ed2a374",
     "oge-278t:7eaa1b6ba7ef0b36c54a67e0",
     "oge-278t:7ecc7384c7dd597d5753c808",
     "oge-278t:7f0cc29db06aa75225a86959",
@@ -724,10 +784,12 @@
     "oge-278t:8291d500a6fa90f96f2b0690",
     "oge-278t:8323993d2e8ff52c9021de8c",
     "oge-278t:838d54ba6049f45218dc025f",
+    "oge-278t:838e37acc70c52f5f608f766",
     "oge-278t:83b85ba0eddba607f0be51b2",
     "oge-278t:83cd724ed7a67abf24771124",
     "oge-278t:83eb160c208cbdb8ca593027",
     "oge-278t:83f1898afefec4042eae0b39",
+    "oge-278t:84928caf133717e36b7fa220",
     "oge-278t:84b0b8f56aea7f1f07c5f118",
     "oge-278t:84f9648935642f8caddc4e3b",
     "oge-278t:8528c9f283581cc259b2bc19",
@@ -744,6 +806,7 @@
     "oge-278t:881a1118ac68206fee80b8e7",
     "oge-278t:881f7dc48ff232488ca3b786",
     "oge-278t:8861d36c88d37dc4bdc883c2",
+    "oge-278t:887dc5bfbbfe1ce650890105",
     "oge-278t:8898da78741eff37af2f24b4",
     "oge-278t:88abd2dd0624df41b57d8c73",
     "oge-278t:88c80ee3d9d8e37ba47a362b",
@@ -754,6 +817,7 @@
     "oge-278t:8a208d59461c43eb51f2c98c",
     "oge-278t:8a334d6389601381c2b264be",
     "oge-278t:8a6ce6c677825a8fc549efb6",
+    "oge-278t:8a879c04baae5f495d5e9af3",
     "oge-278t:8a87c05cf11c7c23f82f1932",
     "oge-278t:8a9abf06a5285ffda59c3503",
     "oge-278t:8b0acdc76ae6a7d5a361ae92",
@@ -789,6 +853,7 @@
     "oge-278t:8f6800ccdf6e79cdda80c469",
     "oge-278t:8f843122c3e2233e619a749f",
     "oge-278t:8fbcb516aaca8a37ccc4275a",
+    "oge-278t:8fdf39ac2aac9ac1692d1671",
     "oge-278t:900b30a9ba179007f5a62eb6",
     "oge-278t:908155b2cc903d0503345e2a",
     "oge-278t:90b42e38b6ae26f778461b53",
@@ -797,6 +862,7 @@
     "oge-278t:910c7ac56c352ff0ce51cf54",
     "oge-278t:913d1c1a04f2cb92cac21d21",
     "oge-278t:9143182ba9cc1474dbfed4fe",
+    "oge-278t:914e5191ab0cdb29178245c3",
     "oge-278t:91de77248c01671bf06282b7",
     "oge-278t:923091976eb955644c080a6d",
     "oge-278t:9247a8144d6777e5193ae307",
@@ -847,6 +913,8 @@
     "oge-278t:984e75dd12507c79091668e1",
     "oge-278t:985f6bb79e156fab00f175df",
     "oge-278t:9884349576efcd46628edd4e",
+    "oge-278t:988a38fdda69b924f05643d0",
+    "oge-278t:99245b3a73a87334f6225f8d",
     "oge-278t:9926cf0614e07ce837d211af",
     "oge-278t:99d58dd059fab60b95d7dba0",
     "oge-278t:9a016f31ae102437b4e596eb",
@@ -854,13 +922,16 @@
     "oge-278t:9a89c16556487fab7b8737d6",
     "oge-278t:9abea558d34a3d13807e5c4d",
     "oge-278t:9ad8daea7687aff141d9dcd3",
+    "oge-278t:9aff27a20ba03d5367453625",
     "oge-278t:9b06470a5139c49dbf90842d",
+    "oge-278t:9b1e00730d699426115036a7",
     "oge-278t:9b35d1cad25c8f257f69f69a",
     "oge-278t:9b82c94c842c013976ab3649",
     "oge-278t:9c40e3ff0a5f1b5e6f2fb35d",
     "oge-278t:9c61b0a7464a8fc323f59e9e",
     "oge-278t:9c6492ef188dd7862897e3ee",
     "oge-278t:9c6698fb0260211cb988fed2",
+    "oge-278t:9c7fe2b03deebdef5d6d7353",
     "oge-278t:9c9e959dc30e4544d92230d3",
     "oge-278t:9ca303ee2ec9a81bff854087",
     "oge-278t:9cab9fd100d7772294f958ef",
@@ -914,6 +985,7 @@
     "oge-278t:a4d34b1fae21aab078d0ec15",
     "oge-278t:a4dfe9a15eada789522de845",
     "oge-278t:a4ee2a81d11b68d681d6eb50",
+    "oge-278t:a52dc6f3cff7b573af1e228f",
     "oge-278t:a58925e5cb91535d5112b67f",
     "oge-278t:a5f1c6fb7c1046ea31d8d929",
     "oge-278t:a636bdca7d8310410c131cf5",
@@ -921,6 +993,7 @@
     "oge-278t:a66927c804e534a27e935c78",
     "oge-278t:a6ba5e9228b3bcb0012e1c70",
     "oge-278t:a6cd121fd7450b1768a24a46",
+    "oge-278t:a6fba3df2173ce1060e84b82",
     "oge-278t:a71447f188e5c9b7241d076e",
     "oge-278t:a756eec34c0a695c8103b5ac",
     "oge-278t:a7c80f885cd05cec50f6d714",
@@ -932,6 +1005,7 @@
     "oge-278t:a91d46263e00b4abd8e7010f",
     "oge-278t:a9411471b2f421ff86d37c5d",
     "oge-278t:a948db388dba9910555562fd",
+    "oge-278t:a94e2330a3a1651b9cb8c5c4",
     "oge-278t:a985a833821453da006a9c0d",
     "oge-278t:a9d3569c9a531fb60380f075",
     "oge-278t:aa08c0df3c0b992df7414e4c",
@@ -978,6 +1052,7 @@
     "oge-278t:b2556c5f1a4e7da5c15292c2",
     "oge-278t:b279b4fe690ed93ef061ec33",
     "oge-278t:b291dd6b303b7cc6fd1df243",
+    "oge-278t:b2b30abc7e89385bfe5b5fe2",
     "oge-278t:b2b677b913f596d2dd8e543b",
     "oge-278t:b2deb785b85975f388f24d4a",
     "oge-278t:b3065f96bd7707cd24bdcd4a",
@@ -988,17 +1063,21 @@
     "oge-278t:b3d1cb2813b71356306a91ce",
     "oge-278t:b3e31bbd6524142b61e0e1ae",
     "oge-278t:b4107896f4b76e2a9c31d82d",
+    "oge-278t:b47666b61571a99d8d1378c3",
     "oge-278t:b4927ca6dec41b7b1efc63a6",
     "oge-278t:b4ebbf0bb1e408031dc5d988",
     "oge-278t:b52554f8aa0e0e22e3760cdc",
     "oge-278t:b5517cfbbcc81e4f533ab768",
     "oge-278t:b55fddfad726a348b52291bd",
     "oge-278t:b5630a5418e82bc7d1a66928",
+    "oge-278t:b57a82346bf45cf2d5fc240b",
     "oge-278t:b581e3dadce5460979bc017b",
     "oge-278t:b5a01c35bc2dedc49b24a691",
+    "oge-278t:b5d3866b599cfa60de139d3f",
     "oge-278t:b624aee864ecf580beacd813",
     "oge-278t:b63898dd1e12456f7ff4109e",
     "oge-278t:b6663236557db364917b9d73",
+    "oge-278t:b6668f4acdc334928ef0fe5e",
     "oge-278t:b6d33af8402126a8ac83e2a9",
     "oge-278t:b76bfe9e57022d6f27509663",
     "oge-278t:b778e69206e5f43bb62b1d72",
@@ -1018,6 +1097,7 @@
     "oge-278t:ba0ab147809e3edecbe06d2d",
     "oge-278t:ba393d6c30406cfe1cde7d1d",
     "oge-278t:ba653580bbfa2e9232cccce9",
+    "oge-278t:ba745d6ec6057b11d6ba898b",
     "oge-278t:ba75e559bdfdcebc2e7a50b7",
     "oge-278t:ba76d627c4386aa0a142b774",
     "oge-278t:ba9055799749855954200dd2",
@@ -1031,6 +1111,7 @@
     "oge-278t:bc6835e1279cf5f032aaee52",
     "oge-278t:bc7a9266744c74596aefdfeb",
     "oge-278t:bc95ddf333b0d40082a857ce",
+    "oge-278t:bcc3eab65f01062ded2823dd",
     "oge-278t:bcf3a278c6278375d6cbd87a",
     "oge-278t:bcf8fbd6b6f3ba1cb6d9620c",
     "oge-278t:bd3bbd9af313dcfe3bd64dda",
@@ -1048,6 +1129,7 @@
     "oge-278t:bf5064bcb15e66335dc29c2d",
     "oge-278t:bfc9a01e133f4842f404a5ba",
     "oge-278t:bfdb40400110ad9a6e7bce05",
+    "oge-278t:c01c751ec49290be231cc60b",
     "oge-278t:c033efa7409fa0abb52ee728",
     "oge-278t:c06575371ac51e6684f28276",
     "oge-278t:c078ce2ac2e957d6e9d3937f",
@@ -1062,6 +1144,7 @@
     "oge-278t:c1c6b5899ca2873fc3b1b50f",
     "oge-278t:c20999586c750b08cff67a97",
     "oge-278t:c2369a827da5aece6cc797f6",
+    "oge-278t:c23b67b19b8ee9034b76c2ef",
     "oge-278t:c25083e853ca3308c3d96ba8",
     "oge-278t:c298bdf565783c7b89d0b211",
     "oge-278t:c2fd6ea5772b282e727947a5",
@@ -1076,15 +1159,19 @@
     "oge-278t:c4a5aa68b57eecf7e73e7266",
     "oge-278t:c4b7304f93204bb4ecfbd0ea",
     "oge-278t:c4c2081bf54b882af6686712",
+    "oge-278t:c4df322df59ee839d4df14c7",
     "oge-278t:c4f70ff3e0c4c03efad20091",
     "oge-278t:c505419c34f96e0acab9a518",
     "oge-278t:c5250a5d00de82237e150c51",
     "oge-278t:c54d03ba1bc04b52c7a1b614",
+    "oge-278t:c569be79c345f791e61fc3d7",
     "oge-278t:c57c99ff13ea5b4aa3b05b83",
+    "oge-278t:c5a2357b7cd095243d141653",
     "oge-278t:c5d3ec9d55a65922ad1e25aa",
     "oge-278t:c5ede6b7c40a10926d5b1fb7",
     "oge-278t:c5f4b9e3edbc1b8cb05ffa0a",
     "oge-278t:c5ffd58c6c39fd89e4c820f9",
+    "oge-278t:c62323c861876b53973547a1",
     "oge-278t:c63197b2089dd312363bc898",
     "oge-278t:c6510eb14020e2259fc48529",
     "oge-278t:c664b6ce17a64d23dedd035b",
@@ -1105,6 +1192,7 @@
     "oge-278t:c98795ce320e954ab0ac8f8f",
     "oge-278t:c9b7adcfa0bdce64caaa1712",
     "oge-278t:c9e5519e47a4dd88e170c0f0",
+    "oge-278t:ca4e00e5e1725d0e5bb5b73f",
     "oge-278t:ca7aa8e35e56308c3718b645",
     "oge-278t:ca9f8b1512ec3e4e6d668ef2",
     "oge-278t:ca9fc2a0ffc39a58129492ed",
@@ -1113,6 +1201,7 @@
     "oge-278t:cb594e70f0032f8237a9c642",
     "oge-278t:cb6750cfb45da66c084da686",
     "oge-278t:cb8ea4173a65a2e5d3fb3889",
+    "oge-278t:cb9b3ab1acf5ce74cb3d347a",
     "oge-278t:cbe2ee2e675ab8ee1ac7004b",
     "oge-278t:cbe45df28dbdede8bb3907f9",
     "oge-278t:cbfc4ffee4ca28cfd49a00c9",
@@ -1122,6 +1211,7 @@
     "oge-278t:ccb6253be0ba2fc885608e2e",
     "oge-278t:ccc143c6f033cb9660556ddf",
     "oge-278t:ccdfdf33e77d11ea6e98870b",
+    "oge-278t:cd114af106d682a4571954b3",
     "oge-278t:cd1893a3f4dd48dd530b7033",
     "oge-278t:cd3fc03e6915be6b85ebd982",
     "oge-278t:cd542b859c2941bb6172edcc",
@@ -1129,6 +1219,7 @@
     "oge-278t:cd65198b0eed31de375f3923",
     "oge-278t:cda0895f6854762d6b0eaeb5",
     "oge-278t:ce0f72b18df0927e601757a4",
+    "oge-278t:ce3408b19f1c1a8c71eca61f",
     "oge-278t:ce58c9b7c1b93c9786135707",
     "oge-278t:ce5ffd67b12dd782642984d7",
     "oge-278t:ceb74cab8cd12bbf100b274b",
@@ -1155,6 +1246,7 @@
     "oge-278t:d27f8b7e771baf1d024fe74e",
     "oge-278t:d29c496ad9f47800e34e9eb1",
     "oge-278t:d2dd18f8b3efb0f4adb58795",
+    "oge-278t:d2fa911f55177be6dbb288fc",
     "oge-278t:d373db8a3adc150444320046",
     "oge-278t:d38537b05a13e365ddee0cb7",
     "oge-278t:d39a096c1092f6abd69410f3",
@@ -1179,16 +1271,19 @@
     "oge-278t:d610b38349301d09d83e1628",
     "oge-278t:d62f706eca333fb179f75d1c",
     "oge-278t:d632c154ff5d6df1dac77ad7",
+    "oge-278t:d6836c4f66b05a65fda36e78",
     "oge-278t:d6eff88fafdc45cc5668828d",
     "oge-278t:d6f43366c36f1703329a67c9",
     "oge-278t:d704dfbd9d3ec1635bdc7116",
     "oge-278t:d709873cb2a899f0cbb9d13f",
     "oge-278t:d7480b2c29dbb5cd6549bb03",
     "oge-278t:d759ad330b8f427cec8d85ba",
+    "oge-278t:d75d0b893ce10d6e6d4ee19c",
     "oge-278t:d775f26a307a750bc972479f",
     "oge-278t:d796b7561f64ebfc7e4209f9",
     "oge-278t:d848ce6a70257860a1aabb52",
     "oge-278t:d86280784701ad06b73c1592",
+    "oge-278t:d88564e2bb5b3df394669d90",
     "oge-278t:d88b431edd68a56c722fb2d5",
     "oge-278t:d88d6ee6458869a500acf735",
     "oge-278t:d89364d403b0918b253958e1",
@@ -1197,6 +1292,7 @@
     "oge-278t:d9834aa6959ff605db1fd38d",
     "oge-278t:d98686a2168edd0a7b946c5e",
     "oge-278t:d9d362e1c2757687efe14e19",
+    "oge-278t:d9dd7264df08febf382aa8a4",
     "oge-278t:d9f4c4d2dd56ce343e044042",
     "oge-278t:d9fcc6316ff743471dde0c26",
     "oge-278t:da58822f1e2984f5ce93c06a",
@@ -1206,6 +1302,7 @@
     "oge-278t:daa44001299501210d758517",
     "oge-278t:dadd257254dd893d275efb45",
     "oge-278t:daeec77a119726692cc55c9b",
+    "oge-278t:daf54d9ddc8dc2487ec1e707",
     "oge-278t:db23aadeb0301c9e333ada44",
     "oge-278t:db971af680ae7473fcfb524e",
     "oge-278t:dbb45701705e27fda90075a3",
@@ -1222,13 +1319,19 @@
     "oge-278t:de4b70e9920eebd60b7b2082",
     "oge-278t:de76ccbcb344c3b0e2c3c04c",
     "oge-278t:dec0f1c8f48d2b39a87704e5",
+    "oge-278t:dee02d83c6c06c5cf1298430",
     "oge-278t:df11560a0822fb4741425d59",
+    "oge-278t:df2aa509988e2561927c5275",
+    "oge-278t:df5588c9245b590d8d0ce934",
     "oge-278t:dfc092ab14d4f0bd809193c7",
     "oge-278t:e00b19d14c804c09d7512289",
+    "oge-278t:e00f612821e20c3b4a6db765",
     "oge-278t:e044f17579e3c838227e828a",
     "oge-278t:e05c78186cf9a213bab3293b",
     "oge-278t:e0b24c7da7d057993af48d30",
+    "oge-278t:e0e20c31cd6d2d12202847ad",
     "oge-278t:e0e7f22f49f0dc76e80271a6",
+    "oge-278t:e10b6c1dd1f59045030f8c3a",
     "oge-278t:e11d1b6bbb846a2decded01f",
     "oge-278t:e1645c5dc08b7af48b58ebe8",
     "oge-278t:e1687c2f53364a96018ee3d6",
@@ -1246,6 +1349,7 @@
     "oge-278t:e309c6ffcc39a48a76721eb8",
     "oge-278t:e345c65ee5158e1f33a7666e",
     "oge-278t:e398c1be64d311fe04da973d",
+    "oge-278t:e413274cea7632db67e3b335",
     "oge-278t:e42b0c6a0ae2b55ef28e54de",
     "oge-278t:e43fd8bcc157a68733767038",
     "oge-278t:e45eb6b0be5f9b8505c8e084",
@@ -1281,6 +1385,7 @@
     "oge-278t:e952f677a44f06ec43ca1c87",
     "oge-278t:e9889716a81410950d76f66c",
     "oge-278t:e9c0eeeb36c2b8fa38facece",
+    "oge-278t:e9c1828fd4588e42ad51bdd6",
     "oge-278t:e9d2b8716f7cda8d78592fb5",
     "oge-278t:e9dc3f6c6b0eb400e24aafd3",
     "oge-278t:e9fb38bf0244de0717dbc794",
@@ -1295,7 +1400,9 @@
     "oge-278t:eb84f5de88caa7f5e08c68e7",
     "oge-278t:eb8eb5c291170ceb9fa15851",
     "oge-278t:ec6487911becf8c72e8d8d3a",
+    "oge-278t:ec8dccd80c69a380d87d91bb",
     "oge-278t:ecaf219319bd1a65d0c2ab3c",
+    "oge-278t:ecb3b0757beb0a08f757cbc9",
     "oge-278t:ecc1895397b8d6a0f6085344",
     "oge-278t:ecdc419f22a417c6648de001",
     "oge-278t:ecdf89680716e8fe9d0770ba",
@@ -1304,6 +1411,7 @@
     "oge-278t:ed84c97f6ad8952dda86415e",
     "oge-278t:edd8b34b427eb2b32db49ff4",
     "oge-278t:edf0c82a0c8307ff2ba7cb61",
+    "oge-278t:edfda1e42fd5ff982d87efbc",
     "oge-278t:ee1204ba1c2c423627904f91",
     "oge-278t:ee52f943ece77e595a8357eb",
     "oge-278t:ee5c2d5a2710c1cbac9580fb",
@@ -1334,6 +1442,7 @@
     "oge-278t:f2e7b30be40a176d0632b023",
     "oge-278t:f2fcc2365f450c94ce2b1c00",
     "oge-278t:f30c3497a6dc06e2f94a1fb3",
+    "oge-278t:f36cf028ac34cd8dcb56e189",
     "oge-278t:f371805c543b30b64a057e59",
     "oge-278t:f371efc69d8c9524f5256424",
     "oge-278t:f3e87515c67e54ff72aef84e",
@@ -1341,6 +1450,7 @@
     "oge-278t:f4282b84e3d5aa24e0cfa088",
     "oge-278t:f4b38ebf8f8f999b310a5020",
     "oge-278t:f4d07b9752957b3fd2bfc4f0",
+    "oge-278t:f511447f349845020329e718",
     "oge-278t:f51a16a4a6148715da3a8a1f",
     "oge-278t:f51ff8668e33da9430886631",
     "oge-278t:f5408dfdd99ecbed3ee06057",
@@ -1365,11 +1475,13 @@
     "oge-278t:f87cf06012ca4ea71aa13556",
     "oge-278t:f887238445ad4d71ba19152e",
     "oge-278t:f88c4722d1ede02dbc59f1c3",
+    "oge-278t:f8a2ae4c0fa9b3dd8e3ff276",
     "oge-278t:f8b5869406b2c965cbc3508b",
     "oge-278t:f8bc9eda65004cdb50ae81b6",
     "oge-278t:f8c1d16abf578ffdbf07a1a3",
     "oge-278t:f8ce8a5d6ec87a502fd7e334",
     "oge-278t:f8d50c43039144c1ce4f1f13",
+    "oge-278t:f923b72a730e81ac64d35c49",
     "oge-278t:f94d9eaefdb272b4db4c383a",
     "oge-278t:f95c4283a6f7b1e847fd63bb",
     "oge-278t:f95c632045d249729f7ad0d2",
@@ -1394,6 +1506,7 @@
     "oge-278t:fd7aea2e32425847197181ae",
     "oge-278t:fd9ed2f36563438ac34eaadc",
     "oge-278t:fda2a2ffe7455b502e5f6d1e",
+    "oge-278t:fdad5b0523704bf9668bffa2",
     "oge-278t:fdf02e047949660591c86446",
     "oge-278t:fe0bfeb8411c4d354c69028a",
     "oge-278t:fec5213e5b6f2762b156c8d0",
@@ -1406,14 +1519,15 @@
     "oge-278t:ff8f888240875ac49b6b32ef",
     "oge-278t:ff92b09ef985b0f6804ce92f"
   ],
-  "pure_oge_candidate_sha256": "3093fd8f7d1aa78e915bdd3e30be65c695b84ed5ffdeae8b87bf68dca97dfe83",
-  "quarantined_row_count": 8902,
+  "pure_oge_candidate_sha256": "c1388ef23d6ea4e0ab3c082ecbbd05d0f5eb31108dacf56b45e2556fe506ae8b",
+  "quarantined_row_count": 8789,
   "report_count": 81,
   "reports": [
     {
       "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
       "document_reasons": [],
       "filed_at": "2026-06-25",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 69,
       "quarantined_count": 1080,
@@ -12554,76 +12668,61 @@
     },
     {
       "document_id": "wh-url:02b0e5c0ce597ba9a221dbbf",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-05-08",
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 7,
+      "identity_basis": "whitehouse_directory_annual_oge_person",
+      "matched_person_id": "oge:5154d2f95befc67b",
+      "promoted_count": 7,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ec8dccd80c69a380d87d91bb",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1b9650d2aba39d83e9ba2866",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3b1159288f901e3019fe5fd5",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:73f992dfbc12a352b481cd8b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:99245b3a73a87334f6225f8d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:730cead09ef249dbd7d1fc0f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c62323c861876b53973547a1",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 7,
@@ -12636,6 +12735,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-09-24",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 4,
@@ -12683,445 +12783,348 @@
     },
     {
       "document_id": "wh-url:0433d34b05f86e0e774407d5",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-04-26",
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 48,
+      "identity_basis": "whitehouse_directory_annual_oge_person",
+      "matched_person_id": "oge:fc9f37a5e8a01ca0",
+      "promoted_count": 48,
+      "quarantined_count": 0,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:41c427a82cc61236139cf6d9",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b2b30abc7e89385bfe5b5fe2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8a879c04baae5f495d5e9af3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c4df322df59ee839d4df14c7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c569be79c345f791e61fc3d7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:72c86063a70be854102eadc8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5dd025e836b1053fae40570d",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4a697b0becc9386b9bc524bc",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:651d6756f2ede3a81b737332",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:46304eddd13761100585175a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2017582bfcd035328e82e15f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 11,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e0e20c31cd6d2d12202847ad",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ce3408b19f1c1a8c71eca61f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 13,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9aff27a20ba03d5367453625",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 14,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b47666b61571a99d8d1378c3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 15,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b57a82346bf45cf2d5fc240b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 16,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:fdad5b0523704bf9668bffa2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 17,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:21505df5010fe77716fee4ac",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 18,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d75d0b893ce10d6e6d4ee19c",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 19,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:51b45b91a9417b6236b138b8",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 20,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1f0cce3c87b559360ed13e01",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 21,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a52dc6f3cff7b573af1e228f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 22,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7343f43d05205bd0ea97d83a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 23,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e00f612821e20c3b4a6db765",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 24,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c23b67b19b8ee9034b76c2ef",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 25,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0cbf49c944dbed0f39b6cdd2",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 26,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:342124b8cc8b1e366cfd3baf",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 27,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:30f0416f336b54963cee1884",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 28,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:02fc00d680a16d8a20bdf335",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 29,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:26b26342e956fb74377f6ae7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 30,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3c835c1b6260411a1122933e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 31,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:208f59a7dc0b1b10aadc4a7f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 32,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:65977300bd60580bc0db5f9e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 33,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6efabc50281547340aca7299",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 34,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:23cd014517279f7197c7133a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 35,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:26669d7644c59e3b20f5d791",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 36,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:28164d06adaa6a4115222b07",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 37,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6d5d66f0dc793d547bb8494e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 38,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:42e23c1e727af0f881d57520",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 39,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e9c1828fd4588e42ad51bdd6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 40,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b5d3866b599cfa60de139d3f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 41,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ecb3b0757beb0a08f757cbc9",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 42,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7e920125fb83d97c4ed2a374",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 43,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1bb0527ea7f1dc9e2e8de8f0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 44,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:1f3efc5fdff3bbc2f837fe36",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 45,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:dee02d83c6c06c5cf1298430",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 46,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:659ec9ef30434d175bed43a4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 47,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:646c332a5f5d13bb9c3c8f49",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 48,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 48,
@@ -13136,6 +13139,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-03",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 18,
@@ -13347,6 +13351,7 @@
       "document_id": "wh-url:11b77506f8e46ae1a83b0531",
       "document_reasons": [],
       "filed_at": "2026-05-08",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 1,
       "quarantined_count": 3600,
@@ -53598,6 +53603,7 @@
       "document_id": "wh-url:12ef4412efaed41d7eccf79c",
       "document_reasons": [],
       "filed_at": "2025-10-30",
+      "identity_basis": null,
       "matched_person_id": "oge:f10fc7e6e2cc32ba",
       "promoted_count": 1,
       "quarantined_count": 0,
@@ -53620,6 +53626,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2025-12-05",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -53644,6 +53651,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-07-22",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -53666,6 +53674,7 @@
       "document_id": "wh-url:1a6bbff2a684fedd76ac9f59",
       "document_reasons": [],
       "filed_at": "2025-08-12",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 465,
       "quarantined_count": 42,
@@ -57314,6 +57323,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-04-16",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -57338,6 +57348,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2026-01-26",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -57374,6 +57385,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-03-13",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 7,
@@ -57469,109 +57481,88 @@
     },
     {
       "document_id": "wh-url:29d58a40bb0bbebb6fa87771",
-      "document_reasons": [
-        "catalog_filer_identity_missing"
-      ],
+      "document_reasons": [],
       "filed_at": "2025-08-13",
-      "matched_person_id": null,
-      "promoted_count": 0,
-      "quarantined_count": 60,
+      "identity_basis": "whitehouse_directory_annual_oge_person",
+      "matched_person_id": "oge:d98953b5ccd10eec",
+      "promoted_count": 58,
+      "quarantined_count": 2,
       "rows": [
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:edfda1e42fd5ff982d87efbc",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 1,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6e1389b8a6dff932c9b8a1e9",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 2,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:0854c595b40c8c491f5e8525",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 3,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:47da26be77a04321cd703be6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 4,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:3bb7c5dfd6d6bfc2d14a0940",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 5,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c01c751ec49290be231cc60b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 6,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:b6668f4acdc334928ef0fe5e",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 7,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:118f6f38fb0bf4facd643b79",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 8,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4541a6417ba95ae9fe5ff38f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 9,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d9dd7264df08febf382aa8a4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 10,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e165588e3a5ebbe6aa57a850",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 11,
           "status": "quarantined"
@@ -57579,287 +57570,225 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e10b6c1dd1f59045030f8c3a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 12,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d2fa911f55177be6dbb288fc",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 13,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:988a38fdda69b924f05643d0",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 14,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:04d586696df1477f2b80c6ce",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 15,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f36cf028ac34cd8dcb56e189",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 16,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:df2aa509988e2561927c5275",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 17,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f8a2ae4c0fa9b3dd8e3ff276",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 18,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:799f9f5dec5e998fa2efae34",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 19,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cd114af106d682a4571954b3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 20,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4b30930806dda76f846c00a4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 21,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7a641c0bb6b7eed690697f98",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 22,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:309d24c12ff1ce77ec1b725b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 23,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f511447f349845020329e718",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 24,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6a8f60fb8e22df51e2476d15",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 25,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:914e5191ab0cdb29178245c3",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 26,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:6eb58aec286ce6b4b8648ca1",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 27,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:df5588c9245b590d8d0ce934",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 28,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5470c76a478d32e8b32902ea",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 29,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ba745d6ec6057b11d6ba898b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 30,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9c7fe2b03deebdef5d6d7353",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 31,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:cb9b3ab1acf5ce74cb3d347a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 32,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a94e2330a3a1651b9cb8c5c4",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 33,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:427ad5d0fb0c455f61b8b2d6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 34,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:00672422b50bf7c098e94d64",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 35,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:bcc3eab65f01062ded2823dd",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 36,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:838e37acc70c52f5f608f766",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 37,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:100fce88906e488eb35be419",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 38,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:16d5c5f3ed950931b06e0b16",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 39,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:f923b72a730e81ac64d35c49",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 40,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:a6fba3df2173ce1060e84b82",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 41,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:9b1e00730d699426115036a7",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 42,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5e9cb84201a43a3eac1b038a",
           "reasons": [
-            "catalog_filer_identity_missing"
+            "possible_whitehouse_same_report_transaction_duplicate"
           ],
           "row_number": 43,
           "status": "quarantined"
@@ -57867,155 +57796,121 @@
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d88564e2bb5b3df394669d90",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 44,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:c5a2357b7cd095243d141653",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 45,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d6836c4f66b05a65fda36e78",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 46,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:7daa4db0636a4cb603097a16",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 47,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:35ece5ce6561729f1a361ed6",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 48,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:e413274cea7632db67e3b335",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 49,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:ca4e00e5e1725d0e5bb5b73f",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 50,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:09fd106e38c9afa576ad8f79",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 51,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:887dc5bfbbfe1ce650890105",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 52,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:84928caf133717e36b7fa220",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 53,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:daf54d9ddc8dc2487ec1e707",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 54,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:8fdf39ac2aac9ac1692d1671",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 55,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:545262d0da8bb1cc149b422b",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 56,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:064ac346193c369d6610125a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 57,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:5a87fab0c63ffee4274af23a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 58,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:4e6a3354bc384ca378ed1298",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 59,
-          "status": "quarantined"
+          "status": "promoted"
         },
         {
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:2c4d2277e46367101572236a",
-          "reasons": [
-            "catalog_filer_identity_missing"
-          ],
+          "reasons": [],
           "row_number": 60,
-          "status": "quarantined"
+          "status": "promoted"
         }
       ],
       "source_row_count": 60,
@@ -58028,6 +57923,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-01-15",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -58052,6 +57948,7 @@
         "no_eligible_transaction_rows"
       ],
       "filed_at": "2026-02-26",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 0,
       "quarantined_count": 83,
@@ -58999,6 +58896,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2026-02-24",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 58,
@@ -59543,6 +59441,7 @@
         "transaction_row_sequence_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 128,
@@ -61991,6 +61890,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-08",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 8,
@@ -62096,6 +61996,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-12-05",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -62122,6 +62023,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-02-26",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -62164,6 +62066,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2026-01-26",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 19,
@@ -62350,6 +62253,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-05-07",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -62383,6 +62287,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-08-24",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -62425,6 +62330,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2025-12-18",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -62455,12 +62361,12 @@
     {
       "document_id": "wh-url:4ee23e4be51e022bf34df22c",
       "document_reasons": [
-        "catalog_filer_identity_missing",
         "data_revision_relationship_unresolved",
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-05-20",
-      "matched_person_id": null,
+      "identity_basis": "whitehouse_directory_annual_oge_person",
+      "matched_person_id": "oge:4acf5d47b72c0148",
       "promoted_count": 0,
       "quarantined_count": 2,
       "rows": [
@@ -62468,7 +62374,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:d9b6e4ef76bbcd6a70c7716c",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -62479,7 +62384,6 @@
           "annual_part7_overlap": false,
           "extraction_id": "oge-278t:84dc80a51ab71c4abf86349d",
           "reasons": [
-            "catalog_filer_identity_missing",
             "data_revision_relationship_unresolved",
             "source_extraction_incomplete"
           ],
@@ -62497,6 +62401,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2025-12-05",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -62521,6 +62426,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-06-08",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -62549,6 +62455,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-10-10",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 5,
@@ -62622,6 +62529,7 @@
       "document_id": "wh-url:5e95b7609861d78aa29e3d13",
       "document_reasons": [],
       "filed_at": "2026-08-12",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 517,
       "quarantined_count": 530,
@@ -71216,6 +71124,7 @@
       "document_id": "wh-url:60d8d791c71b1049b30637fb",
       "document_reasons": [],
       "filed_at": "2025-08-29",
+      "identity_basis": null,
       "matched_person_id": "oge:eb8400e31267bc2f",
       "promoted_count": 23,
       "quarantined_count": 4,
@@ -71426,6 +71335,7 @@
       "document_id": "wh-url:62340683e32b0263e8f0eb20",
       "document_reasons": [],
       "filed_at": "2026-01-14",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 31,
       "quarantined_count": 160,
@@ -73183,6 +73093,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-14",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 14,
@@ -73354,6 +73265,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-02-12",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -73402,6 +73314,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-02-04",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -73435,6 +73348,7 @@
         "no_eligible_transaction_rows"
       ],
       "filed_at": "2026-01-14",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -73472,6 +73386,7 @@
       "document_id": "wh-url:694c1212cac93c50d9cd4e60",
       "document_reasons": [],
       "filed_at": "2025-06-23",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 4,
       "quarantined_count": 0,
@@ -73515,6 +73430,7 @@
         "no_eligible_transaction_rows"
       ],
       "filed_at": "2026-05-08",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 0,
       "quarantined_count": 34,
@@ -73956,6 +73872,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-08-14",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 2,
@@ -73989,6 +73906,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2025-11-25",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -74011,6 +73929,7 @@
       "document_id": "wh-url:72653c4f76818731d46fc7a2",
       "document_reasons": [],
       "filed_at": "2025-09-02",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 3,
       "quarantined_count": 0,
@@ -74047,6 +73966,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-02-25",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -74077,6 +73997,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 25,
@@ -74507,6 +74428,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-01-10",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 23,
@@ -74800,6 +74722,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-06-20",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -74824,6 +74747,7 @@
       "document_id": "wh-url:7e17c4be2b42f563d37df173",
       "document_reasons": [],
       "filed_at": "2026-06-25",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 220,
       "quarantined_count": 1155,
@@ -87324,6 +87248,7 @@
       "document_id": "wh-url:82a263659dcbd44a6522ecbc",
       "document_reasons": [],
       "filed_at": "2026-04-20",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 5,
       "quarantined_count": 169,
@@ -89062,6 +88987,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-08-01",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -89086,6 +89012,7 @@
       "document_id": "wh-url:887036d7fdf2969a2dc7475d",
       "document_reasons": [],
       "filed_at": "2025-08-27",
+      "identity_basis": null,
       "matched_person_id": "oge:f10fc7e6e2cc32ba",
       "promoted_count": 3,
       "quarantined_count": 0,
@@ -89122,6 +89049,7 @@
         "no_eligible_transaction_rows"
       ],
       "filed_at": "2026-02-26",
+      "identity_basis": null,
       "matched_person_id": "oge:076544f8ba0638cf",
       "promoted_count": 0,
       "quarantined_count": 38,
@@ -89575,6 +89503,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2026-02-16",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 15,
@@ -89726,6 +89655,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-04-03",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 0,
       "quarantined_count": 11,
@@ -89857,6 +89787,7 @@
         "transaction_row_sequence_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 145,
@@ -92261,6 +92192,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-03-14",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -92284,6 +92216,7 @@
       "document_id": "wh-url:a31f97b78eacdf16d90377ea",
       "document_reasons": [],
       "filed_at": "2025-06-13",
+      "identity_basis": null,
       "matched_person_id": "oge:81582a436ed263d3",
       "promoted_count": 3,
       "quarantined_count": 0,
@@ -92320,6 +92253,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-08-16",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -92351,6 +92285,7 @@
         "transaction_row_sequence_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 32,
@@ -92906,6 +92841,7 @@
       "document_id": "wh-url:ab8ac0312b14b12f6d0dca8b",
       "document_reasons": [],
       "filed_at": "2026-01-28",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 3,
       "quarantined_count": 0,
@@ -92948,6 +92884,7 @@
         "transaction_row_sequence_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 38,
@@ -93604,6 +93541,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-11-29",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -93648,6 +93586,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-07-09",
+      "identity_basis": null,
       "matched_person_id": "oge:071235724aa9fa8a",
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -93676,6 +93615,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-03-28",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 36,
@@ -94087,6 +94027,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-09-03",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 6,
@@ -94156,6 +94097,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-02-04",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -94180,6 +94122,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2025-05-05",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -94225,6 +94168,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-03-13",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 7,
@@ -94322,6 +94266,7 @@
       "document_id": "wh-url:d06c8cad040b40daa6cb3e7d",
       "document_reasons": [],
       "filed_at": "2025-05-21",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 21,
       "quarantined_count": 0,
@@ -94482,6 +94427,7 @@
       "document_id": "wh-url:d29106d7f68a511841ea93e3",
       "document_reasons": [],
       "filed_at": "2025-12-03",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 20,
       "quarantined_count": 0,
@@ -94637,6 +94583,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-09-10",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 7,
@@ -94717,6 +94664,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-14",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 14,
@@ -94888,6 +94836,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2026-01-05",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 46,
@@ -95407,6 +95356,7 @@
       "document_id": "wh-url:d7f2ba91edf9da5e93edc7ae",
       "document_reasons": [],
       "filed_at": "2025-05-20",
+      "identity_basis": null,
       "matched_person_id": "oge:34c9030e3c348fc1",
       "promoted_count": 1,
       "quarantined_count": 0,
@@ -95437,6 +95387,7 @@
         "transaction_row_sequence_incomplete"
       ],
       "filed_at": null,
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1145,
@@ -117020,6 +116971,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-07-07",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -117046,6 +116998,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-11-18",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 4,
@@ -117105,6 +117058,7 @@
         "catalog_position_mismatch"
       ],
       "filed_at": "2026-03-04",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 1,
@@ -117127,6 +117081,7 @@
       "document_id": "wh-url:ec64753451a90fa978a6120d",
       "document_reasons": [],
       "filed_at": "2025-04-16",
+      "identity_basis": null,
       "matched_person_id": "oge:071235724aa9fa8a",
       "promoted_count": 1,
       "quarantined_count": 0,
@@ -117149,6 +117104,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-10-15",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 9,
@@ -117245,6 +117201,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-11-17",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 12,
@@ -117369,6 +117326,7 @@
         "source_extraction_incomplete"
       ],
       "filed_at": "2025-04-11",
+      "identity_basis": null,
       "matched_person_id": "oge:9fa4fed7dd1d763e",
       "promoted_count": 0,
       "quarantined_count": 3,
@@ -117414,6 +117372,7 @@
         "catalog_filer_identity_missing"
       ],
       "filed_at": "2025-12-15",
+      "identity_basis": null,
       "matched_person_id": null,
       "promoted_count": 0,
       "quarantined_count": 7,
@@ -117490,7 +117449,9 @@
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "e0d9e79c04db4ca39a064eb0853ff9a70e382b3fbb6450025c7a286b53da1aa9",
     "whitehouse_annual_dedup_set_sha256": "86999a1ad0c36b50fa2ad6b4e5409fc50a81b339d03989cdb9a40aa50330feb3",
+    "whitehouse_annual_identity_sha256": "48ec93a796304f7115e10535a6b4e9045440893d190c36a269d4182856c1ba77",
     "whitehouse_coverage_sha256": "972917217f5f65b81e4392ddcdc682602fb850e25ee53c207b3caf1a635b3910",
+    "whitehouse_directory_sha256": "f06bf7be2949bfb6e9057b9d800f9010483ec8e38e4199ee1a23fda3b72a5ba1",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "whitehouse_extraction_set_sha256": "f5a8c48ed0d4ad0a6af7dbee51bfc4ba425983733ec7aac04a057f60a748cda3",
     "whitehouse_extraction_status_sha256": "979577acd6abae456be31cfe5060397ed2c33935e94019292867a12ef3f84e72"
