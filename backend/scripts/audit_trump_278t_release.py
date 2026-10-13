@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 from urllib.parse import urlsplit
 
 from unison_snapshot.builder import ARRAYS
@@ -221,7 +222,8 @@ def _frontend_gate(frontend: dict[str, dict], after: dict,
 
 def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
                   conservation: dict,
-                  frontend: dict[str, dict] | None = None) -> dict:
+                  frontend: dict[str, dict] | None = None,
+                  *, allow_directory_bound_non_trump: bool = False) -> dict:
     """Audit one candidate transition and optional prepared frontend readbacks."""
     for value in (before, after, before_oge, after_oge):
         _candidate(value)
@@ -286,14 +288,26 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         source_key = (report.get("document_id"), report.get("source_url"),
                       report.get("source_sha256"))
         expected_date = ALLOWED_REPORTS.get(source_key)
-        if (expected_date is None or report.get("filed_at") != expected_date or
-                row.get("person_id") != TRUMP_PERSON_ID or row.get("source_id") != "oge" or
+        fixed_trump = (expected_date is not None and
+                       report.get("filed_at") == expected_date and
+                       row.get("person_id") == TRUMP_PERSON_ID)
+        directory_bound = (
+            allow_directory_bound_non_trump and
+            report.get("identity_basis") == "whitehouse_directory_annual_oge_person" and
+            report.get("matched_person_id") == row.get("person_id") and
+            isinstance(report.get("filed_at"), str) and
+            re.fullmatch(r"20\d{2}-\d{2}-\d{2}", report["filed_at"]) is not None and
+            isinstance(report.get("source_sha256"), str) and
+            re.fullmatch(r"[0-9a-f]{64}", report["source_sha256"]) is not None and
+            report.get("document_id") == "wh-url:" + hashlib.sha256(
+                report["source_url"].encode()).hexdigest()[:24])
+        if (not (fixed_trump or directory_bound) or row.get("source_id") != "oge" or
                 row.get("verification_status") != "official_matched" or
                 row.get("filing_id") != report["document_id"] or
                 row.get("source_url") != report["source_url"] or
-                row.get("filed_at") != expected_date + "T00:00:00Z" or
+                row.get("filed_at") != report["filed_at"] + "T00:00:00Z" or
                 not _official_whitehouse_pdf(row.get("source_url"))):
-            raise ValueError("Trump 278-T release added a non-Trump or unbound transaction")
+            raise ValueError("White House 278-T release added an unbound transaction")
     added_people = set(after_people) - set(before_people)
     if added_people - {TRUMP_PERSON_ID}:
         raise ValueError("Trump 278-T release added an unrelated person")
@@ -316,6 +330,8 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         "annual_part7_incomparable_row_count":
             conservation.get("annual_part7_incomparable_row_count", 0),
         "candidate_transaction_delta_count": len(added),
+        "directory_bound_non_trump_added_count": sum(
+            after_transactions[key]["person_id"] != TRUMP_PERSON_ID for key in added),
         "oge_transaction_delta_count": len(added_oge),
         "reported_holding_delta_count": 0,
         "removed_person_count": 0,
@@ -356,6 +372,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--after-oge", type=Path, required=True)
     parser.add_argument("--conservation", type=Path, required=True)
     parser.add_argument("--frontend-dir", type=Path)
+    parser.add_argument("--allow-directory-bound-non-trump", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     frontend = None
@@ -365,7 +382,8 @@ def main(argv: list[str] | None = None) -> int:
     result = audit_release(
         _object(args.before), _object(args.after),
         _object(args.before_oge), _object(args.after_oge),
-        _object(args.conservation), frontend)
+        _object(args.conservation), frontend,
+        allow_directory_bound_non_trump=args.allow_directory_bound_non_trump)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(encode(result))
     print(json.dumps(result, sort_keys=True))
