@@ -112,7 +112,9 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
 def build_whitehouse_278t_review_candidate(
         base_oge_candidate: dict, extractions: list[dict], eligibility_audit: dict,
         oge_whitehouse_coverage: dict, *, data_cutoff_at: str,
-        annual_extractions: list[dict] | None = None) -> tuple[dict, dict]:
+        annual_extractions: list[dict] | None = None,
+        directory_index: dict | None = None,
+        annual_identity_people: list[dict] | None = None) -> tuple[dict, dict]:
     """Return an append-only OGE review candidate and every source row's fate.
 
     The supplied audit is recomputed from these exact inputs to reject stale or
@@ -149,7 +151,7 @@ def build_whitehouse_278t_review_candidate(
         raise OgeCatalogError(f"Existing OGE candidate is invalid: {exc}") from None
     expected_audit = audit_whitehouse_278t(
         extractions, oge_whitehouse_coverage, base_oge_candidate,
-        annual_extractions)
+        annual_extractions, directory_index, annual_identity_people)
     if eligibility_audit != expected_audit:
         raise OgeCatalogError("White House 278-T qualification audit is stale or altered")
     if len(extractions) != expected_audit["report_count"]:
@@ -187,7 +189,18 @@ def build_whitehouse_278t_review_candidate(
                 not _SHA256.fullmatch(report["source_sha256"])):
             doc_reasons.append("source_sha256_invalid")
         identity = qualified["matched_catalog_identity"]
-        proposed_person = _person(identity) if identity is not None else None
+        directory_reuse = bool(identity and identity.get("identity_basis") ==
+                               "whitehouse_directory_existing_oge_person")
+        if directory_reuse:
+            proposed_person = existing_people.get(identity["person_id"])
+            if proposed_person is None or (
+                    _first_last(proposed_person["display_name"]) !=
+                    _first_last(identity["filer_name"]) or
+                    proposed_person["office_type"] != identity["agency"] or
+                    proposed_person["disclosure_authority"] != "oge"):
+                raise OgeCatalogError("White House directory person reuse is no longer valid")
+        else:
+            proposed_person = _person(identity) if identity is not None else None
         if proposed_person is not None and proposed_person["id"] != identity["person_id"]:
             raise OgeCatalogError("White House 278-T official identity changed")
         person = proposed_person

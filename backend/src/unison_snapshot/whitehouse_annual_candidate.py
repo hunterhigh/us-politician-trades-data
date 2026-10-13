@@ -5,6 +5,8 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import re
+from urllib.parse import urlsplit
 
 from .builder import FIELDS, normalize
 from .oge import OgeCatalogError
@@ -30,6 +32,41 @@ def _person(report: dict) -> dict:
     if set(person) != FIELDS["people"]:
         raise OgeCatalogError("White House annual person contract changed")
     return person
+
+
+def annual_identity_people(annual: dict) -> list[dict]:
+    """Expose only source-qualified annual filers before the annual fact overlay."""
+    if not isinstance(annual, dict):
+        raise OgeCatalogError("White House annual identity source is invalid")
+    reports = annual.get("reports")
+    if (annual.get("schema_version") not in {LEGACY_SCHEMA, SCHEMA} or
+            annual.get("production_status") !=
+            "review_only_complete_or_source_bound_partial_rows" or
+            not isinstance(reports, list) or
+            annual.get("report_count") != len(reports) or
+            not isinstance(annual.get("holdings"), list) or
+            annual.get("holding_count") != len(annual["holdings"]) or
+            not isinstance(annual.get("transactions", []), list) or
+            annual.get("transaction_count", 0) != len(annual.get("transactions", []))):
+        raise OgeCatalogError("White House annual identity source is invalid")
+    qualified = [row for row in reports if row.get("source_candidate_eligible") is True or
+                 row.get("source_candidate_transaction_eligible") is True]
+    by_filer: dict[tuple[str, str], list[dict]] = {}
+    for report in qualified:
+        key = _first_last(report.get("filer_reported_name") or "")
+        source_url = report.get("source_url")
+        source_sha = report.get("source_sha256")
+        if (key is None or not isinstance(source_url, str) or
+                urlsplit(source_url).hostname != "www.whitehouse.gov" or
+                report.get("document_id") != "wh-url:" + hashlib.sha256(
+                    source_url.encode()).hexdigest()[:24] or
+                not isinstance(source_sha, str) or
+                re.fullmatch(r"[0-9a-f]{64}", source_sha) is None):
+            raise OgeCatalogError("White House annual identity report is invalid")
+        by_filer.setdefault(key, []).append(report)
+    if any(len(rows) != 1 for rows in by_filer.values()):
+        raise OgeCatalogError("White House annual identity versions require resolution")
+    return [_person(rows[0]) for _, rows in sorted(by_filer.items())]
 
 
 def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> tuple[dict, dict]:

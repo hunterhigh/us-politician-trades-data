@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -9,7 +10,9 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from unison_snapshot.whitehouse_annual_candidate import overlay_whitehouse_annual_candidate
+from unison_snapshot.whitehouse_annual_candidate import (
+    annual_identity_people, overlay_whitehouse_annual_candidate)
+from unison_snapshot.oge import OgeCatalogError
 
 
 def _base() -> dict:
@@ -52,6 +55,19 @@ def _annual() -> dict:
 
 
 class WhiteHouseAnnualCandidateTests(unittest.TestCase):
+    def test_qualified_annual_person_hint_uses_one_source_bound_report(self) -> None:
+        annual = _annual()
+        report = annual["reports"][0]
+        report["document_id"] = "wh-url:" + hashlib.sha256(
+            report["source_url"].encode()).hexdigest()[:24]
+        people = annual_identity_people(annual)
+        self.assertEqual(len(people), 1)
+        self.assertEqual(people[0]["display_name"], "Example, Ada")
+        annual["reports"].append(dict(report))
+        annual["report_count"] = 2
+        with self.assertRaisesRegex(OgeCatalogError, "versions require resolution"):
+            annual_identity_people(annual)
+
     def setUp(self) -> None:
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
+from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
     EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
@@ -224,9 +225,62 @@ def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | No
         if isinstance(row.get("catalog_entry_id"), str)})}, []
 
 
+def _source_bound_person_from_directory(report: dict, directory: dict,
+                                        candidate: dict,
+                                        annual_people: list[dict]) -> dict | None:
+    """Resolve one OGE person from the direct candidate or qualified annual report."""
+    entries = [row for row in directory["reports"]
+               if row.get("source_document_id") == report.get("document_id")]
+    if len(entries) != 1:
+        return None
+    try:
+        binding = bind_directory_entry(report, entries[0])
+    except ValueError:
+        return None
+    if binding["status"] != "directory_pdf_name_aligned":
+        return None
+    if _OFFICE_LABELS.get(_words(report.get("pdf_agency_label") or "")) != "white house office":
+        return None
+    # Full name tokens, including middle names/initials, must be identical.
+    def full_name(value: str) -> tuple[str, ...]:
+        return tuple(sorted(re.findall(r"[a-z]+", value.casefold())))
+    pdf_name = full_name(report["pdf_filer_name"])
+    direct_matches = [person for person in candidate.get("people", [])
+               if person.get("disclosure_authority") == "oge" and
+               _words(person.get("office_type") or "") == "white house office" and
+               full_name(person.get("display_name") or "") == pdf_name]
+    # A different middle name under the same first/last is a conflict, not
+    # permission to create a second identity before the annual overlay.
+    close_direct = [person for person in candidate.get("people", [])
+                    if _first_last(person.get("display_name") or "") ==
+                    _first_last(report["pdf_filer_name"])]
+    if len(direct_matches) > 1 or (close_direct and
+                                   (len(close_direct) != 1 or len(direct_matches) != 1)):
+        return None
+    annual_matches = [person for person in annual_people
+                      if person.get("disclosure_authority") == "oge" and
+                      _words(person.get("office_type") or "") == "white house office" and
+                      full_name(person.get("display_name") or "") == pdf_name]
+    if len(annual_matches) > 1 or (not direct_matches and len(annual_matches) != 1):
+        return None
+    person = direct_matches[0] if direct_matches else annual_matches[0]
+    if not re.fullmatch(r"oge:[0-9a-f]{16}", person.get("id") or ""):
+        return None
+    return {
+        "filer_name": person["display_name"], "position_title": person["role"],
+        "agency": person["office_type"], "person_id": person["id"],
+        "matched_catalog_entry_ids": [],
+        "identity_basis": ("whitehouse_directory_existing_oge_person" if direct_matches
+                           else "whitehouse_directory_annual_oge_person"),
+        "directory_document_id": report["document_id"],
+    }
+
+
 def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict,
                           existing_oge_candidate: dict,
-                          annual_extractions: list[dict] | None = None) -> dict:
+                          annual_extractions: list[dict] | None = None,
+                          directory_index: dict | None = None,
+                          annual_identity_people: list[dict] | None = None) -> dict:
     """Assess each archived public PDF and row without modifying source data.
 
     The caller must provide a verified OGE coverage artifact and the current
@@ -251,6 +305,15 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                                        for field in ("filer_name", "agency", "position_title"))
                                for row in catalog_rows):
         raise OgeCatalogError("White House 278-T catalog identities are invalid")
+    if directory_index is not None and (
+            not isinstance(directory_index, dict) or
+            directory_index.get("schema_version") != "whitehouse-public-disclosures-index/v1" or
+            not isinstance(directory_index.get("reports"), list)):
+        raise OgeCatalogError("White House directory identity input is invalid")
+    if annual_identity_people is not None and (
+            not isinstance(annual_identity_people, list) or
+            any(not isinstance(row, dict) for row in annual_identity_people)):
+        raise OgeCatalogError("White House annual identity people are invalid")
     if any(not isinstance(item, dict) or item.get("schema_version") != EXTRACTION_SCHEMA or
            item.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
            item.get("source_id") != "oge" or
@@ -360,6 +423,12 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
     annual_overlap_count = 0
     for report in screened:
         identity, identity_reasons = _catalog_identity(report, catalog_rows)
+        if identity_reasons == ["catalog_filer_identity_missing"] and directory_index is not None:
+            identity = _source_bound_person_from_directory(
+                report, directory_index, existing_oge_candidate,
+                annual_identity_people or [])
+            if identity is not None:
+                identity_reasons = []
         reasons = sorted(set(report["document_reasons"] + identity_reasons))
         filing_day = _day(report.get("filed_at"))
         if filing_day is None:
@@ -386,13 +455,19 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
             reasons.append("no_transaction_rows_found")
         if report.get("evidence_complete") is not True:
             reasons = sorted(set(reasons + ["source_extraction_incomplete"]))
-        person_id = (TRUMP_PERSON_ID if identity and source_bound_filer_identity(report) else
+        person_id = (identity["person_id"] if identity and identity.get("identity_basis") in {
+                     "whitehouse_directory_existing_oge_person",
+                     "whitehouse_directory_annual_oge_person"} else
+                     TRUMP_PERSON_ID if identity and source_bound_filer_identity(report) else
                      _person_id(_identity_key(identity)) if identity else None)
         catalog = ({"filer_name": identity["filer_name"],
                     "position_title": identity["position_title"],
                     "agency": identity["agency"],
                     "person_id": person_id,
-                    "catalog_entry_ids": identity["matched_catalog_entry_ids"]}
+                    "catalog_entry_ids": identity["matched_catalog_entry_ids"],
+                    **({"identity_basis": identity["identity_basis"],
+                        "directory_document_id": identity["directory_document_id"]}
+                       if identity.get("identity_basis") else {})}
                    if identity else None)
         rows = []
         for source_row in report["transactions"]:

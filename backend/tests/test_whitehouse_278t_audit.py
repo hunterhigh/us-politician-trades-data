@@ -44,6 +44,38 @@ def candidate(transactions=None):
 
 
 class WhiteHouse278TAuditTests(unittest.TestCase):
+    def test_directory_fallback_requires_one_exact_existing_oge_person(self):
+        source = extraction(name="Borg, Jared")
+        directory = {
+            "schema_version": "whitehouse-public-disclosures-index/v1",
+            "reports": [{"source_document_id": source["document_id"],
+                         "document_url": source["source_url"],
+                         "document_type_from_label": "278t",
+                         "source_section": "Transaction Reports",
+                         "filer_name_from_label": "Borg, Jared"}],
+        }
+        existing = candidate()
+        existing["people"] = [{"id": "oge:" + "1" * 16,
+                              "display_name": "Borg, Jared", "role": "Director",
+                              "office_type": "White House Office",
+                              "disclosure_authority": "oge"}]
+        result = audit_whitehouse_278t(
+            [source], catalog(), existing, directory_index=directory)
+        self.assertEqual(result["eligible_row_count"], 1)
+        self.assertEqual(result["reports"][0]["matched_catalog_identity"]["person_id"],
+                         "oge:" + "1" * 16)
+        duplicate = deepcopy(existing["people"][0])
+        duplicate["id"] = "oge:" + "2" * 16
+        existing["people"].append(duplicate)
+        result = audit_whitehouse_278t(
+            [source], catalog(), existing, directory_index=directory)
+        self.assertIn("catalog_filer_identity_missing", result["reports"][0]["document_reasons"])
+        existing["people"].pop()
+        directory["reports"][0]["filer_name_from_label"] = "Other Person"
+        result = audit_whitehouse_278t(
+            [source], catalog(), existing, directory_index=directory)
+        self.assertIn("catalog_filer_identity_missing", result["reports"][0]["document_reasons"])
+
     def test_unique_official_identity_and_ampersand_equivalence(self):
         result = audit_whitehouse_278t([extraction()], catalog(), candidate())
         report = result["reports"][0]
