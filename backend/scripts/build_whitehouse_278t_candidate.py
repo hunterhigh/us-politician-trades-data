@@ -27,6 +27,7 @@ from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER,
@@ -58,16 +59,29 @@ def _json_bytes(value: dict) -> bytes:
 
 
 def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[
-        list[dict], list[dict], dict, dict, int]:
+        list[dict], list[dict], dict, dict, list[dict], dict, int]:
     coverage, coverage_sha = _read_object(review_root / "whitehouse/coverage-current.json")
+    directory, directory_sha = _read_object(
+        review_root / "whitehouse/disclosures/index-current.json")
     status, status_sha = _read_object(review_root / "whitehouse/extraction-status.json")
     oge_coverage, oge_coverage_sha = _read_object(
         review_root / "oge/whitehouse/coverage-current.json")
+    annual_identity_path = review_root / "whitehouse/annual/filer-reported-current.json"
+    if annual_identity_path.is_file():
+        annual_identity_source, annual_identity_sha = _read_object(annual_identity_path)
+        annual_people = annual_identity_people(annual_identity_source)
+    else:
+        annual_identity_sha = None
+        annual_people = []
     if (coverage.get("schema_version") != _COVERAGE_SCHEMA or
             coverage.get("source_id") != "whitehouse_public_disclosures" or
             not isinstance(coverage.get("reports"), list) or
             coverage.get("report_link_count") != len(coverage["reports"])):
         raise ValueError("White House public coverage is incomplete or invalid")
+    if (directory.get("schema_version") != "whitehouse-public-disclosures-index/v1" or
+            directory.get("page_sha256") != coverage.get("index_page_sha256") or
+            not isinstance(directory.get("reports"), list)):
+        raise ValueError("White House directory does not match current coverage")
     states = Counter(row.get("review_state") for row in coverage["reports"]
                      if isinstance(row, dict))
     if (sum(states.values()) != len(coverage["reports"]) or
@@ -168,6 +182,8 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         manifest.append(f"{relative} {raw_sha}")
     provenance = {
         "whitehouse_coverage_sha256": coverage_sha,
+        "whitehouse_directory_sha256": directory_sha,
+        "whitehouse_annual_identity_sha256": annual_identity_sha,
         "whitehouse_extraction_status_sha256": status_sha,
         "oge_whitehouse_coverage_sha256": oge_coverage_sha,
         "whitehouse_extraction_set_sha256": hashlib.sha256(
@@ -207,7 +223,8 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         annual_manifest.append(f"{relative.as_posix()} {raw_sha}")
     provenance["whitehouse_annual_dedup_set_sha256"] = hashlib.sha256(
         "\n".join(sorted(annual_manifest)).encode("utf-8")).hexdigest()
-    return extractions, annual_extractions, oge_coverage, provenance, len(failure_manifest)
+    return (extractions, annual_extractions, oge_coverage, directory, annual_people,
+            provenance, len(failure_manifest))
 
 
 def _stage(path: Path, content: bytes) -> Path:
@@ -293,7 +310,8 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
         raise ValueError("Expected White House report count must be positive")
-    extractions, annual_extractions, oge_coverage, provenance, failure_count = _verify_review(
+    (extractions, annual_extractions, oge_coverage, directory, annual_people,
+     provenance, failure_count) = _verify_review(
         review_root, expected_report_count=expected_report_count)
     base, base_sha = _read_object(oge_candidate)
     if any(urlsplit(row.get("source_url") or "").hostname in
@@ -315,11 +333,13 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         ticker_audit = (_read_object(mapping_path)[0] if mapping_path.is_file() else None)
         base = _strip_prior_whitehouse(base, prior, ticker_audit)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
-    eligibility = audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions)
+    eligibility = audit_whitehouse_278t(
+        extractions, oge_coverage, base, annual_extractions, directory, annual_people)
     candidate, conservation = build_whitehouse_278t_review_candidate(
         base, extractions, eligibility, oge_coverage,
         data_cutoff_at=base["meta"]["data_cutoff_at"],
-        annual_extractions=annual_extractions)
+        annual_extractions=annual_extractions, directory_index=directory,
+        annual_identity_people=annual_people)
     conservation["catalog_report_count"] = len(extractions) + failure_count
     conservation["extraction_failure_count"] = failure_count
     if failure_count:

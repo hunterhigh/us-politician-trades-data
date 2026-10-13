@@ -35,6 +35,7 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.coverage = {
             "schema_version": "whitehouse-public-coverage/v1",
             "source_id": "whitehouse_public_disclosures",
+            "index_page_sha256": "f" * 64,
             "report_link_count": 1,
             "counts_by_review_state": {"extracted_review_only": 1},
             "reports": [{
@@ -60,6 +61,17 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
 
     def _write_inputs(self):
         _write(self.review / "whitehouse/coverage-current.json", self.coverage)
+        _write(self.review / "whitehouse/disclosures/index-current.json", {
+            "schema_version": "whitehouse-public-disclosures-index/v1",
+            "page_sha256": self.coverage["index_page_sha256"],
+            "reports": [{
+                "source_document_id": self.report["document_id"],
+                "document_url": self.coverage["reports"][0]["document_url"],
+                "document_type_from_label": "278t",
+                "source_section": "Transaction Reports",
+                "filer_name_from_label": "Wiles, Susie",
+            }],
+        })
         _write(self.review / "whitehouse/extraction-status.json", self.status)
         _write(self.review / "oge/whitehouse/coverage-current.json", _catalog())
         _write(self.extraction, self.report)
@@ -145,6 +157,15 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._run(expected_report_count=2)
         self.assertEqual(self.oge.read_bytes(), original)
+        self.assertFalse(self.audit_out.exists())
+
+    def test_directory_page_mismatch_blocks_outputs(self):
+        directory_path = self.review / "whitehouse/disclosures/index-current.json"
+        directory = json.loads(directory_path.read_text(encoding="utf-8"))
+        directory["page_sha256"] = "e" * 64
+        _write(directory_path, directory)
+        with self.assertRaisesRegex(ValueError, "directory does not match"):
+            self._run()
         self.assertFalse(self.audit_out.exists())
 
     def test_pending_annual_does_not_block_complete_278t(self):

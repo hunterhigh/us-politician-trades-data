@@ -13,6 +13,7 @@ from unison_snapshot.whitehouse_278t_audit import (
 )
 from unison_snapshot.whitehouse_278t import TRUMP_081225_PARSER_VERSION
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_annual_candidate import _person as annual_person
 
 
 def _base():
@@ -87,6 +88,15 @@ def _build(base=None, reports=None, cutoff="2025-06-14T00:00:00Z"):
         base, reports, audit, catalog, data_cutoff_at=cutoff)
 
 
+def _directory_for(report, label="Wiles, Susie"):
+    return {"schema_version": "whitehouse-public-disclosures-index/v1",
+            "reports": [{"source_document_id": report["document_id"],
+                         "document_url": report["source_url"],
+                         "document_type_from_label": "278t",
+                         "source_section": "Transaction Reports",
+                         "filer_name_from_label": label}]}
+
+
 def _trump_source_bound():
     report = _wiles()
     report.update({
@@ -133,6 +143,68 @@ def _trump_source_bound():
 
 
 class WhiteHouse278TCandidateTests(unittest.TestCase):
+    def test_qualified_annual_identity_is_reused_before_annual_overlay(self):
+        base, _ = _build()
+        report = _wiles()
+        report["source_url"] = (
+            "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borg-PTR.pdf")
+        report["document_id"] = "wh-url:" + hashlib.sha256(
+            report["source_url"].encode()).hexdigest()[:24]
+        report["source_sha256"] = "c" * 64
+        report["filer_name"] = report["pdf_filer_name"] = "Borg, Jared"
+        report["pdf_position_title"] = "Deputy Director, Trump-Vance (2025)"
+        report["filer_signature_name"] = "Jared Borg"
+        report["filer_signature_evidence"] = (
+            "/s/ Jared Borg [electronically signed on 06/13/2025 "
+            "by Jared Borg in Integrity.gov]")
+        report["transactions"] = [{**report["transactions"][0],
+                                   "extraction_id": "oge-278t:" + "d" * 24,
+                                   "asset_name": "Another Corp.", "ticker": "ANOTHER"}]
+        person = annual_person({"filer_reported_name": "Borg, Jared",
+                                "position_title_raw": "Deputy Director"})
+        directory = _directory_for(report, "Borg, Jared")
+        audit = audit_whitehouse_278t([report], _catalog(), base,
+                                      directory_index=directory,
+                                      annual_identity_people=[person])
+        self.assertEqual(audit["eligible_row_count"], 1)
+        self.assertEqual(audit["reports"][0]["matched_catalog_identity"]["person_id"],
+                         person["id"])
+        candidate, conservation = build_whitehouse_278t_review_candidate(
+            base, [report], audit, _catalog(), data_cutoff_at="2025-06-14T00:00:00Z",
+            directory_index=directory, annual_identity_people=[person])
+        self.assertEqual(conservation["added_person_count"], 1)
+        self.assertEqual(len(candidate["people"]), len(base["people"]) + 1)
+        self.assertEqual(next(row["person_id"] for row in candidate["transactions"]
+                              if row["id"] == "oge-278t:" + "d" * 24), person["id"])
+
+    def test_official_directory_reuses_existing_person_despite_role_change(self):
+        base, _ = _build()
+        prior_person_id = base["people"][0]["id"]
+        report = _wiles()
+        report["source_url"] = (
+            "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wiles-Second-PTR.pdf")
+        report["document_id"] = "wh-url:" + hashlib.sha256(
+            report["source_url"].encode()).hexdigest()[:24]
+        report["source_sha256"] = "c" * 64
+        report["pdf_position_title"] = "Senior Advisor to the President, Trump-Vance (2025)"
+        report["transactions"] = [{**report["transactions"][0],
+                                   "extraction_id": "oge-278t:" + "d" * 24,
+                                   "asset_name": "Another Corp.", "ticker": "ANOTHER"}]
+        catalog = _catalog()
+        catalog["reports"][0]["filer_name"] = "Other, Person"
+        directory = _directory_for(report)
+        audit = audit_whitehouse_278t([report], catalog, base,
+                                      directory_index=directory)
+        self.assertEqual(audit["eligible_row_count"], 1)
+        self.assertEqual(audit["reports"][0]["matched_catalog_identity"]["person_id"],
+                         prior_person_id)
+        candidate, conservation = build_whitehouse_278t_review_candidate(
+            base, [report], audit, catalog, data_cutoff_at="2025-06-14T00:00:00Z",
+            directory_index=directory)
+        self.assertEqual(conservation["promoted_transaction_count"], 1)
+        self.assertEqual(conservation["added_person_count"], 0)
+        self.assertEqual(candidate["transactions"][-1]["person_id"], prior_person_id)
+
     def test_wiles_three_rows_append_with_five_array_contract(self):
         base, report = _base(), _wiles()
         original = deepcopy((base, report))

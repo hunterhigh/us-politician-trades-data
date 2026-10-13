@@ -36,6 +36,7 @@ from unison_snapshot.whitehouse_278t import SUPPORTED_PARSER_VERSIONS  # noqa: E
 from unison_snapshot.oge_278e_public import SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS  # noqa: E402
 from unison_snapshot.oge_candidate import _identity_key, _person_id  # noqa: E402
 from unison_snapshot.whitehouse_directory_identity_shadow import bind_directory_entry  # noqa: E402
+from unison_snapshot.whitehouse_annual_candidate import annual_identity_people  # noqa: E402
 
 
 REPO = "hunterhigh/us-politician-trades-data"
@@ -284,7 +285,7 @@ def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[
 
 
 def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None,
-        local_git: bool = False) -> dict:
+        local_git: bool = False, directory_identity_shadow: bool = False) -> dict:
     if local_git and commit is None:
         raise RuntimeError("--local-git requires a pinned --commit")
     token = "" if local_git else _token()
@@ -310,6 +311,8 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
     }
     if not required.issubset(blobs):
         raise RuntimeError("Pinned review tree lacks required audit inputs")
+    if directory_identity_shadow and "whitehouse/annual/filer-reported-current.json" in blobs:
+        required.add("whitehouse/annual/filer-reported-current.json")
     blob_reader = _local_blob if local_git else _blob
     contents = {}
     with ThreadPoolExecutor(max_workers=5) as pool:
@@ -357,6 +360,12 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
     annual_extractions = [contents[path] for path in annual_paths]
     audit = audit_whitehouse_278t(
         extractions, oge_catalog, oge_candidate, annual_extractions)
+    shadow = (audit_whitehouse_278t(
+        extractions, oge_catalog, oge_candidate, annual_extractions,
+        contents["whitehouse/disclosures/index-current.json"],
+        annual_identity_people(contents["whitehouse/annual/filer-reported-current.json"])
+        if "whitehouse/annual/filer-reported-current.json" in contents else [])
+        if directory_identity_shadow else None)
     if audit_output is not None:
         audit_output.parent.mkdir(parents=True, exist_ok=True)
         audit_output.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -371,7 +380,7 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         for reason in report["document_reasons"]:
             reason_counts[reason] = reason_counts.get(reason, 0) + 1
     digest = hashlib.sha256("\n".join(f"{path} {blobs[path]}" for path in selected).encode()).hexdigest()
-    return {
+    result = {
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "review_commit": commit,
         "input_set_sha256": digest,
@@ -409,6 +418,34 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
             extractions, oge_candidate),
         "key_figures": _key_figure_counts(coverage_rows, index_quarantine, audit["reports"]),
     }
+    if shadow is not None:
+        old_by_id = {row["document_id"]: row for row in audit["reports"]}
+        changed = [row for row in shadow["reports"]
+                   if row["document_reasons"] != old_by_id[row["document_id"]]["document_reasons"]]
+        identity_only_residual = {}
+        identity_only_before = 0
+        for report in shadow["reports"]:
+            original = old_by_id[report["document_id"]]
+            if "catalog_filer_identity_missing" not in original["document_reasons"]:
+                continue
+            if "catalog_filer_identity_missing" in report["document_reasons"]:
+                continue
+            for before, after in zip(original["rows"], report["rows"], strict=True):
+                if before["reasons"] != ["catalog_filer_identity_missing"]:
+                    continue
+                identity_only_before += 1
+                for reason in after["reasons"]:
+                    identity_only_residual[reason] = identity_only_residual.get(reason, 0) + 1
+        result["directory_identity_shadow"] = {
+            "eligible_row_count": shadow["eligible_row_count"],
+            "eligible_row_delta": shadow["eligible_row_count"] - audit["eligible_row_count"],
+            "identity_only_row_count_before": identity_only_before,
+            "residual_reason_counts": dict(sorted(identity_only_residual.items())),
+            "identity_reason_removed_report_count": len(changed),
+            "identity_reason_removed_document_ids": sorted(row["document_id"] for row in changed),
+            "qualification_written": False,
+        }
+    return result
 
 
 def main() -> None:
@@ -419,9 +456,12 @@ def main() -> None:
     parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--local-git", action="store_true",
                         help="Read the pinned commit and verified blobs from local Git")
+    parser.add_argument("--directory-identity-shadow", action="store_true",
+                        help="Also calculate the read-only unique existing-person fallback")
     args = parser.parse_args()
     result = run(ref=args.ref, commit=args.commit, audit_output=args.audit_output,
-                 local_git=args.local_git)
+                 local_git=args.local_git,
+                 directory_identity_shadow=args.directory_identity_shadow)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
