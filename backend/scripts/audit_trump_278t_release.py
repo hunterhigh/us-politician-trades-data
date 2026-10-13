@@ -293,7 +293,9 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
                        row.get("person_id") == TRUMP_PERSON_ID)
         directory_bound = (
             allow_directory_bound_non_trump and
-            report.get("identity_basis") == "whitehouse_directory_annual_oge_person" and
+            report.get("identity_basis") in {
+                "whitehouse_directory_annual_oge_person",
+                "whitehouse_directory_new_oge_person"} and
             report.get("matched_person_id") == row.get("person_id") and
             isinstance(report.get("filed_at"), str) and
             re.fullmatch(r"20\d{2}-\d{2}-\d{2}", report["filed_at"]) is not None and
@@ -309,7 +311,16 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
                 not _official_whitehouse_pdf(row.get("source_url"))):
             raise ValueError("White House 278-T release added an unbound transaction")
     added_people = set(after_people) - set(before_people)
-    if added_people - {TRUMP_PERSON_ID}:
+    source_bound_new_people = {
+        report["matched_person_id"] for report in conservation["reports"]
+        if report.get("identity_basis") == "whitehouse_directory_new_oge_person" and
+        report.get("promoted_count", 0) > 0
+    }
+    if added_people - ({TRUMP_PERSON_ID} | source_bound_new_people) or any(
+            after_people[person_id].get("disclosure_authority") != "oge" or
+            after_people[person_id].get("office_type") != "White House Office" or
+            not any(row.get("person_id") == person_id for row in added_rows.values())
+            for person_id in added_people - {TRUMP_PERSON_ID}):
         raise ValueError("Trump 278-T release added an unrelated person")
     if TRUMP_PERSON_ID not in after_people:
         raise ValueError("Trump is missing from the release candidate")

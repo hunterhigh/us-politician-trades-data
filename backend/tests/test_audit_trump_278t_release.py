@@ -93,6 +93,43 @@ def frontend(after):
 
 
 class Trump278TReleaseAuditTests(unittest.TestCase):
+    def test_source_bound_new_person_requires_exact_promoted_fact(self):
+        before = candidate(added=True)
+        after = deepcopy(before)
+        person_id = "oge:" + "c" * 16
+        after["people"].append({"id": person_id, "display_name": "Baasch, Ryan",
+                                "office_type": "White House Office",
+                                "disclosure_authority": "oge"})
+        url = "https://www.whitehouse.gov/wp-content/uploads/2025/06/Baasch-PTR.pdf"
+        document_id = "wh-url:" + hashlib.sha256(url.encode()).hexdigest()[:24]
+        identity = "oge-278t:" + "d" * 24
+        after["transactions"].append({
+            "id": identity, "filing_id": document_id, "person_id": person_id,
+            "owner": "Self", "asset_name": "Another Corp.", "ticker": None,
+            "source_id": "oge", "source_url": url,
+            "filed_at": "2025-06-13T00:00:00Z",
+            "verification_status": "official_matched",
+        })
+        evidence = conservation()
+        evidence["reports"].append({
+            "document_id": document_id, "source_url": url,
+            "source_sha256": "c" * 64, "filed_at": "2025-06-13",
+            "matched_person_id": person_id,
+            "identity_basis": "whitehouse_directory_new_oge_person",
+            "source_row_count": 1, "promoted_count": 1, "quarantined_count": 0,
+            "rows": [{"extraction_id": identity, "status": "promoted"}],
+        })
+        evidence.update(report_count=2, source_row_count=508,
+                        promoted_transaction_count=2,
+                        promoted_transaction_ids=sorted([TX_ID, identity]))
+        result = script.audit_release(before, after, before, after, evidence,
+                                      allow_directory_bound_non_trump=True)
+        self.assertEqual(result["directory_bound_non_trump_added_count"], 1)
+        after["people"][-1]["office_type"] = "Other Office"
+        with self.assertRaisesRegex(ValueError, "unrelated person"):
+            script.audit_release(before, after, before, after, evidence,
+                                 allow_directory_bound_non_trump=True)
+
     def test_directory_bound_annual_person_delta_requires_explicit_gate(self):
         before = candidate(added=True)
         other_id = "oge:" + "c" * 16

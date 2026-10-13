@@ -67,7 +67,9 @@ def _person(identity: dict) -> dict:
     key = _identity_key(identity)
     computed_id = _person_id(key)
     person_id = identity.get("person_id", computed_id)
-    if person_id not in {computed_id, TRUMP_PERSON_ID}:
+    source_bound_new = identity.get("identity_basis") == "whitehouse_directory_new_oge_person"
+    if person_id not in {computed_id, TRUMP_PERSON_ID} and not (
+            source_bound_new and re.fullmatch(r"oge:[0-9a-f]{16}", person_id or "")):
         raise OgeCatalogError("White House 278-T person identity is unsupported")
     is_trump = person_id == TRUMP_PERSON_ID
     person = {

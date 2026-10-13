@@ -45,6 +45,29 @@ def candidate(*, added=False, added_transaction=None, keep_old=True,
 
 
 class TrumpCandidateTransitionTests(unittest.TestCase):
+    def test_source_bound_new_person_requires_promoted_report(self):
+        before = candidate()
+        after = candidate(added_transaction="278t", transaction_person="oge:new")
+        after["people"].append({"id": "oge:new", "office_type": "White House Office",
+                                "disclosure_authority": "oge"})
+        row = after["transactions"][-1]
+        row["filed_at"] = "2025-06-13T00:00:00Z"
+        evidence = {
+            "schema_version": "whitehouse-278t-candidate-conservation/v1",
+            "reports": [{
+                "identity_basis": "whitehouse_directory_new_oge_person",
+                "matched_person_id": "oge:new", "document_id": row["filing_id"],
+                "source_url": row["source_url"], "filed_at": "2025-06-13",
+                "promoted_count": 1,
+                "rows": [{"extraction_id": row["id"], "status": "promoted"}],
+            }],
+        }
+        result = script.audit_transition(before, after, before, after, evidence)
+        self.assertEqual(result["added_transaction_count"], 1)
+        evidence["reports"][0]["promoted_count"] = 0
+        with self.assertRaisesRegex(ValueError, "unrelated person"):
+            script.audit_transition(before, after, before, after, evidence)
+
     def test_directory_bound_non_trump_delta_needs_conservation(self):
         before = candidate()
         after = candidate(added_transaction="278t", transaction_person="oge:other")

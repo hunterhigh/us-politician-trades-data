@@ -133,7 +133,9 @@ def audit_transition(before: dict, after: dict,
                 not isinstance(conservation.get("reports"), list)):
             raise ValueError("Directory-bound transition conservation is invalid")
         for report in conservation["reports"]:
-            if report.get("identity_basis") != "whitehouse_directory_annual_oge_person":
+            if report.get("identity_basis") not in {
+                    "whitehouse_directory_annual_oge_person",
+                    "whitehouse_directory_new_oge_person"}:
                 continue
             for row in report.get("rows", []):
                 if row.get("status") == "promoted":
@@ -155,6 +157,19 @@ def audit_transition(before: dict, after: dict,
                 not str(row.get("filing_id", "")).startswith("wh-url:") or
                 not _official_whitehouse_pdf(row.get("source_url"))):
             raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
+    allowed_new_people = {
+        report["matched_person_id"] for report in (conservation or {}).get("reports", [])
+        if report.get("identity_basis") == "whitehouse_directory_new_oge_person" and
+        report.get("promoted_count", 0) > 0
+    }
+    added_people = after_people.keys() - before_people.keys()
+    if added_people - ({TRUMP_PERSON_ID} | allowed_new_people) or any(
+            after_people[person_id].get("disclosure_authority") != "oge" or
+            after_people[person_id].get("office_type") != "White House Office" or
+            not any(after_transactions[item].get("person_id") == person_id
+                    for item in added_transactions)
+            for person_id in added_people - {TRUMP_PERSON_ID}):
+        raise ValueError("Candidate rebuild added an unrelated person")
     cross_kind = set(after_transactions) & set(after_holdings)
     if cross_kind:
         raise ValueError("Candidate contains a cross-kind fact identity collision")

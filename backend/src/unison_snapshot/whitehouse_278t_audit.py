@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
+import hashlib
 import math
 import re
 from urllib.parse import urlsplit
@@ -227,7 +228,8 @@ def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | No
 
 def _source_bound_person_from_directory(report: dict, directory: dict,
                                         candidate: dict,
-                                        annual_people: list[dict]) -> dict | None:
+                                        annual_people: list[dict],
+                                        extractions: list[dict]) -> dict | None:
     """Resolve one OGE person from the direct candidate or qualified annual report."""
     entries = [row for row in directory["reports"]
                if row.get("source_document_id") == report.get("document_id")]
@@ -261,8 +263,52 @@ def _source_bound_person_from_directory(report: dict, directory: dict,
                       if person.get("disclosure_authority") == "oge" and
                       _words(person.get("office_type") or "") == "white house office" and
                       full_name(person.get("display_name") or "") == pdf_name]
-    if len(annual_matches) > 1 or (not direct_matches and len(annual_matches) != 1):
+    close_annual = [person for person in annual_people
+                    if _first_last(person.get("display_name") or "") ==
+                    _first_last(report["pdf_filer_name"])]
+    if len(annual_matches) > 1 or (close_annual and
+                                   (len(close_annual) != 1 or len(annual_matches) != 1)):
         return None
+    if not direct_matches and not annual_matches:
+        # A White House directory/PDF pair identifies the filer. Group every
+        # archived report before assigning one role-independent ID; differing
+        # middle names or a missing directory binding keep the group isolated.
+        group = [item for item in extractions
+                 if _first_last(item.get("pdf_filer_name") or "") ==
+                 _first_last(report["pdf_filer_name"])]
+        if (not group or any(
+                full_name(item.get("pdf_filer_name") or "") != pdf_name or
+                _OFFICE_LABELS.get(_words(item.get("pdf_agency_label") or "")) !=
+                "white house office" or
+                len([entry for entry in directory["reports"] if
+                     entry.get("source_document_id") == item.get("document_id") and
+                     entry.get("document_url") == item.get("source_url")]) != 1
+                for item in group)):
+            return None
+        for item in group:
+            entry = next(entry for entry in directory["reports"] if
+                         entry.get("source_document_id") == item["document_id"])
+            try:
+                if bind_directory_entry(item, entry)["status"] != "directory_pdf_name_aligned":
+                    return None
+            except ValueError:
+                return None
+        first = min(group, key=lambda item: (str(item.get("filed_at") or ""),
+                                             item["document_id"]))
+        canonical_id = "oge:" + hashlib.sha256(
+            ("whitehouse-directory|white house office|" + " ".join(pdf_name)).encode()
+        ).hexdigest()[:16]
+        if any(person.get("id") == canonical_id for person in
+               [*candidate.get("people", []), *annual_people]):
+            return None
+        return {
+            "filer_name": first["pdf_filer_name"],
+            "position_title": first["pdf_position_title"],
+            "agency": "White House Office", "person_id": canonical_id,
+            "matched_catalog_entry_ids": [],
+            "identity_basis": "whitehouse_directory_new_oge_person",
+            "directory_document_id": report["document_id"],
+        }
     person = direct_matches[0] if direct_matches else annual_matches[0]
     if not re.fullmatch(r"oge:[0-9a-f]{16}", person.get("id") or ""):
         return None
@@ -426,7 +472,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
         if identity_reasons == ["catalog_filer_identity_missing"] and directory_index is not None:
             identity = _source_bound_person_from_directory(
                 report, directory_index, existing_oge_candidate,
-                annual_identity_people or [])
+                annual_identity_people or [], extractions)
             if identity is not None:
                 identity_reasons = []
         reasons = sorted(set(report["document_reasons"] + identity_reasons))
@@ -457,7 +503,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
             reasons = sorted(set(reasons + ["source_extraction_incomplete"]))
         person_id = (identity["person_id"] if identity and identity.get("identity_basis") in {
                      "whitehouse_directory_existing_oge_person",
-                     "whitehouse_directory_annual_oge_person"} else
+                     "whitehouse_directory_annual_oge_person",
+                     "whitehouse_directory_new_oge_person"} else
                      TRUMP_PERSON_ID if identity and source_bound_filer_identity(report) else
                      _person_id(_identity_key(identity)) if identity else None)
         catalog = ({"filer_name": identity["filer_name"],

@@ -177,6 +177,56 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         self.assertEqual(next(row["person_id"] for row in candidate["transactions"]
                               if row["id"] == "oge-278t:" + "d" * 24), person["id"])
 
+    def test_official_directory_assigns_one_new_id_across_role_changes(self):
+        base = _base()
+        reports = []
+        directory = {"schema_version": "whitehouse-public-disclosures-index/v1",
+                     "reports": []}
+        for index, role in enumerate(("Special Assistant", "Deputy Assistant"), 1):
+            report = _wiles()
+            report["source_url"] = (
+                f"https://www.whitehouse.gov/wp-content/uploads/2025/06/Baasch-{index}.pdf")
+            report["document_id"] = "wh-url:" + hashlib.sha256(
+                report["source_url"].encode()).hexdigest()[:24]
+            report["source_sha256"] = f"{index}" * 64
+            report["filer_name"] = report["pdf_filer_name"] = "Baasch, Ryan"
+            report["pdf_position_title"] = role
+            report["filed_at"] = "2025-06-13" if index == 1 else "2025-07-13"
+            report["filer_signature_name"] = "Ryan Baasch"
+            report["filer_signature_evidence"] = (
+                f"/s/ Ryan Baasch [electronically signed on {index+5:02d}/13/2025 "
+                "by Ryan Baasch in Integrity.gov]")
+            report["transactions"] = [{**report["transactions"][0],
+                                       "extraction_id": f"oge-278t:{index:024x}",
+                                       "asset_name": f"Asset {index}",
+                                       "ticker": f"ASSET{index}"}]
+            reports.append(report)
+            directory["reports"].append(_directory_for(report, "Baasch, Ryan")["reports"][0])
+        audit = audit_whitehouse_278t(reports, _catalog(), base,
+                                      directory_index=directory)
+        self.assertEqual(audit["eligible_row_count"], 2)
+        candidate, conservation = build_whitehouse_278t_review_candidate(
+            base, reports, audit, _catalog(), data_cutoff_at="2025-07-14T00:00:00Z",
+            directory_index=directory)
+        self.assertEqual(conservation["added_person_count"], 1)
+        self.assertEqual(conservation["promoted_transaction_count"], 2)
+        self.assertEqual(len({row["person_id"] for row in candidate["transactions"]}), 1)
+        self.assertEqual(candidate["people"][0]["role"], "Special Assistant")
+
+        changed = deepcopy(reports)
+        changed[1]["pdf_filer_name"] = "Baasch, Ryan J"
+        changed[1]["filer_name"] = "Baasch, Ryan J"
+        uncertain = audit_whitehouse_278t(changed, _catalog(), base,
+                                           directory_index=directory)
+        self.assertEqual(uncertain["eligible_row_count"], 0)
+        conflicting_annual = annual_person({
+            "filer_reported_name": "Baasch, Ryan J",
+            "position_title_raw": "Special Assistant"})
+        uncertain = audit_whitehouse_278t(
+            reports, _catalog(), base, directory_index=directory,
+            annual_identity_people=[conflicting_annual])
+        self.assertEqual(uncertain["eligible_row_count"], 0)
+
     def test_official_directory_reuses_existing_person_despite_role_change(self):
         base, _ = _build()
         prior_person_id = base["people"][0]["id"]
