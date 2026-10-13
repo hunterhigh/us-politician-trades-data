@@ -68,7 +68,8 @@ def _require_unchanged_subset(before: dict[str, dict], after: dict[str, dict],
 
 
 def audit_transition(before: dict, after: dict,
-                     before_oge: dict, after_oge: dict) -> dict:
+                     before_oge: dict, after_oge: dict,
+                     conservation: dict | None = None) -> dict:
     for value in (before, after, before_oge, after_oge):
         if value.get("meta", {}).get("is_demo") is not False:
             raise ValueError("Candidate transition requires non-demo snapshots")
@@ -125,13 +126,35 @@ def audit_transition(before: dict, after: dict,
     if any(after_transactions[item] != after_oge_transactions[item]
            for item in added_transactions):
         raise ValueError("Unified transaction rows differ from the OGE source rows")
-    if any(after_transactions[item].get("person_id") != TRUMP_PERSON_ID or
-           after_transactions[item].get("source_id") != "oge" or
-           after_transactions[item].get("verification_status") != "official_matched" or
-           not str(after_transactions[item].get("filing_id", "")).startswith("wh-url:") or
-           not _official_whitehouse_pdf(after_transactions[item].get("source_url"))
-           for item in added_transactions):
-        raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
+    directory_rows = {}
+    if conservation is not None:
+        if (conservation.get("schema_version") !=
+                "whitehouse-278t-candidate-conservation/v1" or
+                not isinstance(conservation.get("reports"), list)):
+            raise ValueError("Directory-bound transition conservation is invalid")
+        for report in conservation["reports"]:
+            if report.get("identity_basis") != "whitehouse_directory_annual_oge_person":
+                continue
+            for row in report.get("rows", []):
+                if row.get("status") == "promoted":
+                    identity = row.get("extraction_id")
+                    if identity in directory_rows:
+                        raise ValueError("Directory-bound transaction appears twice")
+                    directory_rows[identity] = report
+    for item in added_transactions:
+        row = after_transactions[item]
+        report = directory_rows.get(item)
+        directory_bound = bool(
+            report and report.get("matched_person_id") == row.get("person_id") and
+            report.get("document_id") == row.get("filing_id") and
+            report.get("source_url") == row.get("source_url") and
+            row.get("filed_at") == str(report.get("filed_at")) + "T00:00:00Z")
+        if (not (row.get("person_id") == TRUMP_PERSON_ID or directory_bound) or
+                row.get("source_id") != "oge" or
+                row.get("verification_status") != "official_matched" or
+                not str(row.get("filing_id", "")).startswith("wh-url:") or
+                not _official_whitehouse_pdf(row.get("source_url"))):
+            raise ValueError("Candidate rebuild added a non-Trump or non-official transaction")
     cross_kind = set(after_transactions) & set(after_holdings)
     if cross_kind:
         raise ValueError("Candidate contains a cross-kind fact identity collision")
@@ -146,6 +169,9 @@ def audit_transition(before: dict, after: dict,
         "added_holding_ids": added,
         "removed_holding_count": 0,
         "added_transaction_count": len(added_transactions),
+        "directory_bound_non_trump_added_count": sum(
+            after_transactions[item].get("person_id") != TRUMP_PERSON_ID
+            for item in added_transactions),
         "added_transaction_ids": added_transactions,
         "removed_transaction_count": 0,
         "transaction_delta_count": len(added_transactions),
@@ -175,10 +201,13 @@ def main() -> int:
     parser.add_argument("--after", type=Path, required=True)
     parser.add_argument("--before-oge", type=Path, required=True)
     parser.add_argument("--after-oge", type=Path, required=True)
+    parser.add_argument("--conservation", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    result = audit_transition(_load(args.before), _load(args.after),
-                              _load(args.before_oge), _load(args.after_oge))
+    result = audit_transition(
+        _load(args.before), _load(args.after),
+        _load(args.before_oge), _load(args.after_oge),
+        _load(args.conservation) if args.conservation else None)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(encode(result))
     print(json.dumps(result, sort_keys=True))

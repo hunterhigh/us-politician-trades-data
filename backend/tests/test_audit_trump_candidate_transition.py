@@ -45,6 +45,30 @@ def candidate(*, added=False, added_transaction=None, keep_old=True,
 
 
 class TrumpCandidateTransitionTests(unittest.TestCase):
+    def test_directory_bound_non_trump_delta_needs_conservation(self):
+        before = candidate()
+        after = candidate(added_transaction="278t", transaction_person="oge:other")
+        before["people"].append({"id": "oge:other"})
+        after["people"].append({"id": "oge:other"})
+        with self.assertRaisesRegex(ValueError, "non-Trump"):
+            script.audit_transition(before, after, before, after)
+        row = after["transactions"][-1]
+        evidence = {
+            "schema_version": "whitehouse-278t-candidate-conservation/v1",
+            "reports": [{
+                "identity_basis": "whitehouse_directory_annual_oge_person",
+                "matched_person_id": "oge:other", "document_id": row["filing_id"],
+                "source_url": row["source_url"], "filed_at": "2025-06-13",
+                "rows": [{"extraction_id": row["id"], "status": "promoted"}],
+            }],
+        }
+        row["filed_at"] = "2025-06-13T00:00:00Z"
+        result = script.audit_transition(before, after, before, after, evidence)
+        self.assertEqual(result["directory_bound_non_trump_added_count"], 1)
+        evidence["reports"][0]["matched_person_id"] = "oge:other-person"
+        with self.assertRaisesRegex(ValueError, "non-Trump"):
+            script.audit_transition(before, after, before, after, evidence)
+
     def test_allows_only_first_annual_ticker_upgrade_in_both_layers(self):
         before, after = candidate(), candidate()
         annual = {

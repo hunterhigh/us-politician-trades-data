@@ -115,12 +115,14 @@ jobs:
             --before-oge "$RUNNER_TEMP/oge-candidate-before.json" \
             --after-oge "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --conservation "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json" \
+            --allow-directory-bound-non-trump \
             --output "$REVIEW_ROOT/whitehouse/qualifications/trump-release-current.json"
           python backend/scripts/audit_trump_candidate_transition.py \
             --before "$RUNNER_TEMP/disclosure-candidate-before.json" \
             --after "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --before-oge "$RUNNER_TEMP/oge-candidate-before.json" \
             --after-oge "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --conservation "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json" \
             --output "$REVIEW_ROOT/whitehouse/annual/candidate-transition-current.json"
       - name: Publish verified review candidate
         env:

@@ -267,6 +267,7 @@ def build_whitehouse_278t_review_candidate(
             "source_sha256": report["source_sha256"],
             "filed_at": report.get("filed_at"),
             "matched_person_id": person["id"] if person else None,
+            "identity_basis": identity.get("identity_basis") if identity else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
             "document_reasons": sorted(set(doc_reasons)), "rows": row_results,

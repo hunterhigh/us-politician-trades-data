@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import importlib.util
+import hashlib
 from pathlib import Path
 import sys
 import unittest
@@ -92,6 +93,44 @@ def frontend(after):
 
 
 class Trump278TReleaseAuditTests(unittest.TestCase):
+    def test_directory_bound_annual_person_delta_requires_explicit_gate(self):
+        before = candidate(added=True)
+        other_id = "oge:" + "c" * 16
+        before["people"].append({"id": other_id, "display_name": "Borg, Jared"})
+        after = deepcopy(before)
+        url = "https://www.whitehouse.gov/wp-content/uploads/2025/06/Borg-PTR.pdf"
+        document_id = "wh-url:" + hashlib.sha256(url.encode()).hexdigest()[:24]
+        identity = "oge-278t:" + "d" * 24
+        after["transactions"].append({
+            "id": identity, "filing_id": document_id, "person_id": other_id,
+            "owner": "Self", "asset_name": "Another Corp.", "ticker": None,
+            "source_id": "oge", "source_url": url,
+            "filed_at": "2025-06-13T00:00:00Z",
+            "verification_status": "official_matched",
+        })
+        evidence = conservation()
+        evidence["reports"].append({
+            "document_id": document_id, "source_url": url,
+            "source_sha256": "c" * 64, "filed_at": "2025-06-13",
+            "matched_person_id": other_id,
+            "identity_basis": "whitehouse_directory_annual_oge_person",
+            "source_row_count": 1, "promoted_count": 1, "quarantined_count": 0,
+            "rows": [{"extraction_id": identity, "status": "promoted"}],
+        })
+        evidence.update(report_count=2, source_row_count=508,
+                        promoted_transaction_count=2,
+                        promoted_transaction_ids=sorted([TX_ID, identity]))
+        with self.assertRaisesRegex(ValueError, "unbound transaction"):
+            script.audit_release(before, after, before, after, evidence)
+        result = script.audit_release(
+            before, after, before, after, evidence,
+            allow_directory_bound_non_trump=True)
+        self.assertEqual(result["directory_bound_non_trump_added_count"], 1)
+        evidence["reports"][1]["matched_person_id"] = "oge:" + "e" * 16
+        with self.assertRaisesRegex(ValueError, "unbound transaction"):
+            script.audit_release(before, after, before, after, evidence,
+                                 allow_directory_bound_non_trump=True)
+
     def test_idempotent_rebuild_may_only_upgrade_an_annual_ticker(self):
         annual = {
             "id": "wh-annual-tx:" + "c" * 24,
