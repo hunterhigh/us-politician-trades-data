@@ -35,6 +35,7 @@ from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t  # noqa:
 from unison_snapshot.whitehouse_278t import SUPPORTED_PARSER_VERSIONS  # noqa: E402
 from unison_snapshot.oge_278e_public import SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS  # noqa: E402
 from unison_snapshot.oge_candidate import _identity_key, _person_id  # noqa: E402
+from unison_snapshot.whitehouse_directory_identity_shadow import bind_directory_entry  # noqa: E402
 
 
 REPO = "hunterhigh/us-politician-trades-data"
@@ -189,11 +190,16 @@ def _key_figure_counts(coverage_rows: list[dict], index_quarantine: list[dict],
 
 
 def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[dict],
-                                 extractions: list[dict], candidate: dict) -> dict:
+                                 directory_rows: list[dict], extractions: list[dict],
+                                 candidate: dict) -> dict:
     """Measure ID fragmentation risk without assigning or qualifying people."""
     missing = {row["document_id"] for row in audit_reports
                if "catalog_filer_identity_missing" in row["document_reasons"]}
     coverage = {row["document_id"]: row for row in coverage_rows}
+    directory = {row["source_document_id"]: row for row in directory_rows}
+    if len(directory) != len(directory_rows):
+        raise RuntimeError("White House directory document IDs are duplicated")
+    audit_by_id = {row["document_id"]: row for row in audit_reports}
     selected = [row for row in extractions if row["document_id"] in missing]
     if len(selected) != len(missing):
         raise RuntimeError("Identity diagnostic is missing a selected extraction")
@@ -210,6 +216,7 @@ def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[
     same_name_ids = set()
     same_name_reports = 0
     roles_by_pdf_name: dict[str, set[str]] = {}
+    person_groups: dict[str, dict] = {}
     for row in selected:
         name = row["pdf_filer_name"]
         role = row["pdf_position_title"]
@@ -221,6 +228,44 @@ def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[
         if matches:
             same_name_reports += 1
             same_name_ids.update(matches)
+        directory_row = directory.get(row["document_id"])
+        if directory_row is None:
+            raise RuntimeError("Identity diagnostic is missing the official directory entry")
+        binding = bind_directory_entry(row, directory_row)
+        report = audit_by_id[row["document_id"]]
+        group = person_groups.setdefault(name, {
+            "pdf_filer_name": name, "directory_labels": set(), "pdf_positions": set(),
+            "document_ids": [], "report_count": 0, "source_row_count": 0,
+            "identity_only_row_count": 0, "directory_pdf_aligned_report_count": 0,
+            "existing_candidate_person_ids": set(), "binding_problems": [],
+        })
+        group["directory_labels"].add(directory_row["filer_name_from_label"])
+        group["pdf_positions"].add(role)
+        group["document_ids"].append(row["document_id"])
+        group["report_count"] += 1
+        group["source_row_count"] += report["source_row_count"]
+        group["identity_only_row_count"] += sum(
+            source_row["reasons"] == ["catalog_filer_identity_missing"]
+            for source_row in report["rows"])
+        group["existing_candidate_person_ids"].update(matches)
+        if binding["status"] == "directory_pdf_name_aligned":
+            group["directory_pdf_aligned_report_count"] += 1
+        else:
+            group["binding_problems"].append({
+                "document_id": row["document_id"], "reason": binding["reason"]})
+    groups = []
+    for group in person_groups.values():
+        for key in ("directory_labels", "pdf_positions", "existing_candidate_person_ids"):
+            group[key] = sorted(group[key])
+        group["document_ids"].sort()
+        group["binding_problems"].sort(key=lambda item: item["document_id"])
+        existing = group["existing_candidate_person_ids"]
+        group["identity_mapping_state"] = (
+            "directory_pdf_unresolved" if group["binding_problems"] else
+            "existing_person_ambiguous" if len(existing) > 1 else
+            "existing_id_reuse_candidate" if existing else
+            "new_person_id_unresolved")
+        groups.append(group)
     return {
         "identity_missing_report_count": len(missing),
         "directory_label_count": len({coverage[row_id]["filer_name_from_label"]
@@ -232,6 +277,8 @@ def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[
         "naive_ids_matching_existing_candidate_count": len(proposed_ids & existing_ids),
         "same_name_candidate_report_count": same_name_reports,
         "same_name_candidate_person_count": len(same_name_ids),
+        "identity_only_row_count": sum(group["identity_only_row_count"] for group in groups),
+        "person_groups": sorted(groups, key=lambda group: group["pdf_filer_name"]),
         "qualification_changed": False,
     }
 
@@ -256,6 +303,7 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
              if item.get("type") == "blob"}
     required = {
         "whitehouse/coverage-current.json",
+        "whitehouse/disclosures/index-current.json",
         "whitehouse/extraction-status.json",
         "oge/whitehouse/coverage-current.json",
         "candidates/sources/oge-current.json",
@@ -269,11 +317,16 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         for future in as_completed(futures):
             contents[futures[future]] = future.result()
     coverage = contents["whitehouse/coverage-current.json"]
+    directory = contents["whitehouse/disclosures/index-current.json"]
     status = contents["whitehouse/extraction-status.json"]
     oge_catalog = contents["oge/whitehouse/coverage-current.json"]
     oge_candidate = contents["candidates/sources/oge-current.json"]
     if coverage.get("schema_version") != "whitehouse-public-coverage/v1":
         raise RuntimeError("White House coverage schema is unexpected")
+    if directory.get("schema_version") != "whitehouse-public-disclosures-index/v1":
+        raise RuntimeError("White House directory index schema is unexpected")
+    if directory.get("page_sha256") != coverage.get("index_page_sha256"):
+        raise RuntimeError("White House directory and coverage use different source pages")
     coverage_rows = [row for row in coverage["reports"]
                      if row.get("document_type_from_label") == "278t"]
     extraction_paths = sorted(path for row in coverage_rows
@@ -352,7 +405,8 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         "annual_part7_overlap_count": audit["annual_part7_overlap_count"],
         "document_reason_counts": dict(sorted(reason_counts.items())),
         "identity_mapping_diagnostic": _identity_mapping_diagnostic(
-            audit["reports"], coverage_rows, extractions, oge_candidate),
+            audit["reports"], coverage_rows, directory["reports"],
+            extractions, oge_candidate),
         "key_figures": _key_figure_counts(coverage_rows, index_quarantine, audit["reports"]),
     }
 
