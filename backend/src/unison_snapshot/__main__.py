@@ -170,6 +170,7 @@ def main() -> None:
     qualify_paper.add_argument("--identity", type=Path, required=True)
     qualify_paper.add_argument("--pdf", type=Path)
     qualify_paper.add_argument("--tesseract")
+    qualify_paper.add_argument("--peer-metadata", type=Path, nargs="+")
     qualify_paper.add_argument("--output", type=Path, required=True)
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
@@ -513,7 +514,11 @@ def main() -> None:
                 args.pdf.read_bytes(), source_sha256=metadata["sha256"],
                 executable=args.tesseract) if args.pdf else None)
             result = qualify_paper_observation(observation, metadata, identity,
-                                               amount_header=amount_header)
+                                               amount_header=amount_header,
+                                               peer_metadata=[json.loads(path.read_text(
+                                                   encoding="utf-8"))
+                                                   for path in args.peer_metadata]
+                                               if args.peer_metadata is not None else None)
             _write_atomic(args.output, result)
             print(json.dumps({"document_id": result["document_id"],
                               "qualified": 0,
