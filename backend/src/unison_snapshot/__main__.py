@@ -18,6 +18,7 @@ from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archi
 from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
 from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_ptr_amount_header import observe_amount_header
+from .house_paper_pipeline import bridge_paper_batch
 from .house_sync import plan_checkpoint, record_result
 from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
@@ -172,6 +173,12 @@ def main() -> None:
     qualify_paper.add_argument("--tesseract")
     qualify_paper.add_argument("--peer-metadata", type=Path, nargs="+")
     qualify_paper.add_argument("--output", type=Path, required=True)
+    bridge_paper = sub.add_parser("bridge-house-paper-batch")
+    bridge_paper.add_argument("--evidence-root", type=Path, required=True)
+    bridge_paper.add_argument("--review-root", type=Path, required=True)
+    bridge_paper.add_argument("--parse-batch", type=Path, required=True)
+    bridge_paper.add_argument("--tesseract", required=True)
+    bridge_paper.add_argument("--document-id")
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
     candidate.add_argument("--state-status", type=Path, required=True)
@@ -524,6 +531,12 @@ def main() -> None:
                               "qualified": 0,
                               "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "bridge-house-paper-batch":
+            result = bridge_paper_batch(
+                evidence_root=args.evidence_root, review_root=args.review_root,
+                parse_batch=args.parse_batch, tesseract=args.tesseract,
+                document_id=args.document_id)
+            print(json.dumps(result, sort_keys=True))
         elif args.command == "build-house-candidate":
             result = load_house_candidate(args.review_root, args.state_status, args.base)
             generated_at = result["meta"]["data_cutoff_at"]
