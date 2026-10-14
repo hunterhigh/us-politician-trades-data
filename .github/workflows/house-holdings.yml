@@ -15,10 +15,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: disclosure-source-writer
-  cancel-in-progress: false
-
 jobs:
   annual-holdings:
     concurrency:
