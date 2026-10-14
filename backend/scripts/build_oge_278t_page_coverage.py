@@ -8,7 +8,10 @@ import json
 from pathlib import Path
 import re
 
-import pdfplumber
+try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None
 
 from unison_snapshot.oge_278t_page_shadow import inspect_pdf
 from unison_snapshot.oge_reports import (
@@ -93,6 +96,8 @@ def build_sidecars(batch: dict, archive_root: Path, extraction_dir: Path,
             # The immutable PDF's OCR text layer supplies number anchors.
             # Its rows do not carry individual hashes; the enclosing PDF and
             # extraction are both checked above before reconciliation.
+            if pdfplumber is None:
+                raise RuntimeError("pdfplumber is required for fixed OGE page coverage")
             with pdfplumber.open(pdf_path) as document:
                 page = document.pages[PAGE - 1]
                 anchors = [{"page_number": PAGE,

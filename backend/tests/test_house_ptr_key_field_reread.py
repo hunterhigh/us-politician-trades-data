@@ -4,7 +4,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from unison_snapshot.house_ptr_key_field_reread import reread_doubtful_key_cells
 from backend.tests.test_house_ptr_key_fields_shadow import report
@@ -22,6 +25,7 @@ class HousePtrKeyFieldRereadTests(unittest.TestCase):
         asset["crop_sha256"] = "a" * 64
         asset["bbox_normalized"] = [.1, .1, .9, .3]
 
+    @unittest.skipIf(Image is None, "Pillow is required for image-crop replay")
     def test_second_read_preserves_conflict_without_changing_first(self):
         image = Image.new("L", (100, 100), color=255)
         page = SimpleNamespace(to_image=lambda resolution: SimpleNamespace(original=image))

@@ -51,7 +51,8 @@ class Oge278TPageCoverageTests(unittest.TestCase):
                 {"status": "physical_slot_without_ocr_row"}]}
             observed = {"raster_ocr_coverage": coverage}
             with (patch.object(sidecar, "TRUMP_SEPT_2026_SOURCE_SHA256", sha),
-                  patch.object(sidecar.pdfplumber, "open", return_value=Document()),
+                  patch.object(sidecar, "pdfplumber", SimpleNamespace(
+                      open=lambda _: Document())),
                   patch.object(sidecar, "inspect_pdf", return_value=observed) as inspect):
                 result = sidecar.build_sidecars(batch, root, extraction_dir,
                                                 root / "out", root / "review")
