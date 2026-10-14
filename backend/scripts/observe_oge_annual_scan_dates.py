@@ -1,4 +1,4 @@
-"""Replay six fixed OGE scanned annual cover date blocks into a shadow file."""
+"""Replay six annual-catalog cover date blocks, including one amendment letter."""
 from __future__ import annotations
 
 import argparse
@@ -26,7 +26,7 @@ def observe_fixed_batch(evidence_root: Path) -> dict:
                             "visual_transcription_is_automatic_fact": False,
                             "production_eligible_transaction_count": 0})
     return {"schema_version": "oge-278e-scan-date-batch/v1",
-            "source_scope": "six_fixed_scanned_annual_reports",
+            "source_scope": "six_fixed_annual_catalog_entries_including_amendment_letter",
             "reports": results,
             "verified_agency_receipt_count": sum(
                 result["agency_receipt_verified"] for result in results),

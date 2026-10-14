@@ -1,4 +1,4 @@
-"""Source-bound, read-only date-block observations for six scanned OGE 278e.
+"""Source-bound date observations for six annual-catalog OGE records.
 
 The normalized dates below are fixed visual transcriptions of the official
 cover images, not OCR guesses.  None is an agency receipt or ``filed_at``.

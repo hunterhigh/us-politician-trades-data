@@ -16,6 +16,8 @@ from pathlib import Path
 
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 
+REREAD_RULE_VERSION = "house-paper-key-field-conflict-probe-v2"
+
 
 def _second_ocr(crop, executable: Path) -> tuple[str, str]:
     encoded = io.BytesIO()
@@ -152,6 +154,7 @@ def reread_doubtful_key_cells(pdf_bytes: bytes, observation: dict, *,
                             "source_quality_flags": [flag for flag in row[
                                 "source_quality_flags"] if flag.startswith(name + "_")]})
     return {"schema_version": "house-paper-key-field-reread/v1",
+            "rule_version": REREAD_RULE_VERSION,
             "source_sha256": source_sha, "qualification_status": "unverified_shadow_only",
             "selected_cell_count": len(rereads), "rereads": rereads}
 

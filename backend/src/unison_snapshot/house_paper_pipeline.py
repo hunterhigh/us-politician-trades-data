@@ -14,7 +14,8 @@ from pathlib import Path
 from .codec import encode
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
-from .house_ptr_key_field_reread import reread_doubtful_key_cells
+from .house_ptr_key_field_reread import (REREAD_RULE_VERSION,
+                                          reread_doubtful_key_cells)
 from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
                                       validate_paper_source_metadata)
@@ -120,16 +121,16 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
         })
     if any(row.get("source_quality_flags") for row in paper.get("quarantined", [])):
         try:
-            if reread_path.is_file():
-                reread = _read(reread_path)
-            else:
+            reread = _read(reread_path) if reread_path.is_file() else None
+            if reread is None or reread.get("rule_version") != REREAD_RULE_VERSION:
                 pdf_path = (evidence_root / metadata["archive_path"]).resolve()
                 if evidence_root not in pdf_path.parents:
                     raise ValueError("House paper reread archive path escapes evidence root")
                 reread = reread_doubtful_key_cells(
                     pdf_path.read_bytes(), observation, executable=Path(tesseract))
             if (reread.get("source_sha256") != source_sha or
-                    reread.get("qualification_status") != "unverified_shadow_only"):
+                    reread.get("qualification_status") != "unverified_shadow_only" or
+                    reread.get("rule_version") != REREAD_RULE_VERSION):
                 raise ValueError("House paper second reading source or status mismatch")
             paper["key_field_reread_status"] = "observed"
             _write(reread_path, reread)
