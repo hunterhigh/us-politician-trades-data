@@ -249,6 +249,40 @@ class SenateCandidateTests(unittest.TestCase):
             self.assertEqual(audit["fully_qualified_report_count"], 1)
             self.assertEqual(audit["qualified_rows"][0]["source_sha256"], "c" * 64)
 
+    def test_paper_pending_projection_reaches_audit_without_new_trades(self):
+        from unison_snapshot.senate_paper_observation import (
+            SCHEMA, project_pending_slots)
+        from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "11111111-1111-4111-8111-111111111111"
+            state = self.fixture(root, [identity(document_id)], [extraction(document_id)])
+            observation = {
+                "schema_version": SCHEMA,
+                "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
+                "slot_classification_schema_version": SLOT_SCHEMA,
+                "report_count": 0,
+                "unobserved_page_count": 0,
+                "label_counts": {"data_observed": 0, "unknown": 0},
+                "reports": [],
+            }
+            pending = project_pending_slots(observation)
+            observed_path = root / "senate_efd/paper_slot_observations/current.json"
+            pending_path = root / "senate_efd/paper_pending_projections/current.json"
+            observed_path.parent.mkdir(parents=True)
+            pending_path.parent.mkdir(parents=True)
+            observed_path.write_text(json.dumps(observation), encoding="utf-8")
+            pending_path.write_text(json.dumps(pending), encoding="utf-8")
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(audit["paper_pending_projection"]["qualified_transaction_count"], 0)
+            self.assertEqual(audit["paper_pending_projection"]["physical_slot_count"], 0)
+            pending["pending_row_count"] = 1
+            pending_path.write_text(json.dumps(pending), encoding="utf-8")
+            with self.assertRaisesRegex(SenateEfdError, "differs from its observation"):
+                build_senate_candidate(root, state, deepcopy(BASE))
+
     def test_accepts_qualified_paper_extraction_without_inventing_filing_time(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

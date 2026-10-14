@@ -483,6 +483,33 @@ def build_senate_candidate(
     """Build a conservative Senate source candidate and its machine audit."""
 
     review_root = review_root.resolve()
+    paper_pending_path = (review_root / "senate_efd" / "paper_pending_projections" /
+                          "current.json")
+    paper_pending_audit = None
+    if paper_pending_path.is_file():
+        from .senate_paper_observation import project_pending_slots
+
+        observation = _read_json(
+            review_root / "senate_efd" / "paper_slot_observations" / "current.json",
+            "Senate paper physical slot observation")
+        pending = _read_json(paper_pending_path, "Senate paper pending projection")
+        if pending != project_pending_slots(observation):
+            raise SenateEfdError("Senate paper pending projection differs from its observation")
+        if (pending.get("source_id") != "senate_efd" or
+                any(row.get("formal_transaction_id") is not None
+                    for row in pending["pending_rows"])):
+            raise SenateEfdError("Senate paper pending projection contains formal transactions")
+        paper_pending_audit = {
+            "status": "pending_source_verification",
+            "physical_slot_count": pending["pending_row_count"],
+            "legacy_failed_report_physical_slot_count": (
+                pending["legacy_failed_report_pending_row_count"]),
+            "legacy_extracted_report_physical_slot_count": (
+                pending["legacy_extracted_report_pending_row_count"]),
+            "unknown_slot_count": pending["unknown_slot_count"],
+            "unobserved_page_count": pending["unobserved_page_count"],
+            "qualified_transaction_count": 0,
+        }
     status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
     state_catalog = state_status.get("catalog")
     state_reports = state_status.get("reports")
@@ -878,6 +905,7 @@ def build_senate_candidate(
         "candidate_person_count": len(candidate["people"]),
         "candidate_transaction_count": len(transactions),
         "candidate_holding_count": len(candidate["reported_holdings"]),
+        "paper_pending_projection": paper_pending_audit,
         **annual_audit,
         "qualified_rows": qualified_rows,
         "quarantined_report_count": len(quarantined_reports),

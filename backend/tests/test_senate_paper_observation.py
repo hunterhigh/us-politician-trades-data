@@ -7,7 +7,9 @@ import subprocess
 import tempfile
 import unittest
 
-from unison_snapshot.senate_paper_observation import compare_archived_batch
+from unison_snapshot.senate_paper_observation import (
+    compare_archived_batch, project_pending_slots,
+)
 from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT
 
 
@@ -83,6 +85,35 @@ class SenatePaperObservationTests(unittest.TestCase):
             batch["extractions"][0]["source_sha256"] = "0" * 64
             with self.assertRaisesRegex(ValueError, "extraction and archive differ"):
                 compare_archived_batch(root, DOCS, batch)
+
+    def test_fixed_data_slots_project_only_to_pending_ledger(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._archive(root)
+            observed = compare_archived_batch(root, DOCS, self._batch())
+            projected = project_pending_slots(observed)
+        self.assertEqual(projected["pending_row_count"], 36)
+        self.assertEqual(projected["legacy_extracted_report_pending_row_count"], 36)
+        self.assertEqual(projected["unknown_slot_count"], 5)
+        self.assertEqual(projected["unobserved_page_count"], 1)
+        self.assertEqual(len({(row["source_slot"]["page_number"],
+                               row["source_slot"]["grid_slot"])
+                              for row in projected["pending_rows"]}), 36)
+        self.assertTrue(all(row["status"] == "pending_source_verification" and
+                            row["formal_transaction_id"] is None and
+                            row["source_slot"]["entrypoint_source_sha256"] ==
+                            observed["reports"][0]["entrypoint_source_sha256"]
+                            for row in projected["pending_rows"]))
+
+    def test_projection_rejects_duplicate_physical_slot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._archive(root)
+            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed["reports"][0]["slots"][1]["grid_slot"] = observed[
+                "reports"][0]["slots"][0]["grid_slot"]
+            with self.assertRaisesRegex(ValueError, "duplicated or unbound"):
+                project_pending_slots(observed)
 
 
 if __name__ == "__main__":
