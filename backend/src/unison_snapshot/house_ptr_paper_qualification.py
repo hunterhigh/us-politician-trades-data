@@ -8,12 +8,55 @@ from __future__ import annotations
 
 import re
 
-from .house_ptr import QUALIFICATION_SCHEMA
+from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
 from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
 from .house_ptr_duplicate_observation import observe_repeated_trade_signatures
-from .house_ptr_paper_temporal import PARSER_VERSION, audit_paper_temporal_relations
+from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
+                                      validate_paper_source_metadata)
+
+
+def _pending_transaction_projection(result: dict, metadata: dict) -> dict:
+    """Shape observed paper slots for the builder without assigning formal IDs."""
+    document_id, source_sha, _, _ = validate_paper_source_metadata(metadata)
+    if result["document_id"] != document_id or result["source_sha256"] != source_sha:
+        raise ValueError("House paper projection source does not match qualification")
+    projected = []
+    for row in result["quarantined"]:
+        fields = row.get("raw_fields")
+        if not isinstance(fields, dict):
+            continue
+        amount = row.get("amount_range_observation")
+        projected.append({
+            "observation_key": row["observation_key"],
+            "evidence": row["evidence"],
+            "person_id": result["identity"].get("person_id"),
+            "filing_id": document_id,
+            "source_url": metadata["source_url"],
+            "filed_at": f"{metadata['filed_date']}T00:00:00Z",
+            "owner": OWNER_CODES.get(fields.get("owner_code")),
+            "asset_name": fields.get("asset_raw") or None,
+            "transaction_date": fields.get("event_date"),
+            "transaction_type": fields.get("direction_mark"),
+            "amount_letter": fields.get("amount_letter"),
+            "amount_low": amount.get("low") if isinstance(amount, dict) else None,
+            "amount_high": amount.get("high") if isinstance(amount, dict) else None,
+            "amount_kind": amount.get("kind") if isinstance(amount, dict) else None,
+            "field_status": {
+                "owner": "ocr_unverified" if fields.get("owner_code") else "unreadable",
+                "asset_name": "ocr_unverified" if fields.get("asset_raw") else "unreadable",
+                "transaction_date": fields.get("event_date_status"),
+                "transaction_type": fields.get("direction_status"),
+                "amount": "printed_bounds_unverified_transaction" if amount else
+                          fields.get("amount_status", "unresolved"),
+            },
+            "blocking_reasons": row["reasons"],
+        })
+    return {"schema_version": "house-paper-pending-transaction-projection/v1",
+            "status": "unverified_pending", "source_sha256": source_sha,
+            "document_id": document_id, "row_count": len(projected),
+            "rows": projected}
 
 
 def qualify_paper_observation(observation: dict, metadata: dict,
@@ -148,6 +191,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             "document_reasons": document_reasons, "production_eligible": False,
         },
     }
+    result["pending_transaction_projection"] = _pending_transaction_projection(result, metadata)
     if peer_metadata is not None:
         result["temporal_relation_observation"] = audit_paper_temporal_relations(
             result, metadata, peer_metadata)

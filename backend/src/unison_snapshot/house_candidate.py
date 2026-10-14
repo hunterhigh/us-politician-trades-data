@@ -6,7 +6,8 @@ from pathlib import Path
 import json
 
 from .house import HouseIndexError
-from .house_ptr import QUALIFICATION_SCHEMA
+from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
+from .house_ptr_paper_temporal import PARSER_VERSION as PAPER_PARSER_VERSION
 from .house_holdings import QUALIFICATION_SCHEMA as HOLDING_QUALIFICATION_SCHEMA
 
 
@@ -54,6 +55,63 @@ def _person(identity: dict) -> dict:
     }
 
 
+def _paper_pending_count(qualification: dict) -> int:
+    projection = qualification.get("pending_transaction_projection")
+    if projection is None:
+        return 0  # Earlier paper qualification artifacts remain readable.
+    quarantined = qualification["quarantined"]
+    if (qualification.get("parser_version") != PAPER_PARSER_VERSION or
+            qualification["transactions"] != [] or
+            not isinstance(projection, dict) or
+            projection.get("schema_version") != "house-paper-pending-transaction-projection/v1" or
+            projection.get("status") != "unverified_pending" or
+            projection.get("source_sha256") != qualification.get("source_sha256") or
+            projection.get("document_id") != qualification.get("document_id") or
+            not isinstance(projection.get("rows"), list) or
+            type(projection.get("row_count")) is not int or
+            projection["row_count"] != len(projection["rows"])):
+        raise HouseIndexError("House paper pending projection is invalid")
+    source_rows = {}
+    for row in quarantined:
+        if not isinstance(row, dict) or not isinstance(row.get("raw_fields"), dict):
+            continue
+        key = row.get("observation_key")
+        if not isinstance(key, str) or key in source_rows:
+            raise HouseIndexError("House paper source slots are duplicated")
+        source_rows[key] = row
+    projected = projection["rows"]
+    if len(projected) != len(source_rows):
+        raise HouseIndexError("House paper pending projection does not conserve source slots")
+    seen = set()
+    for row in projected:
+        if not isinstance(row, dict) or "id" in row:
+            raise HouseIndexError("House paper pending projection does not conserve source slots")
+        key = row.get("observation_key")
+        if not isinstance(key, str) or key not in source_rows or key in seen:
+            raise HouseIndexError("House paper pending projection does not conserve source slots")
+        seen.add(key)
+        source = source_rows[key]
+        raw = source["raw_fields"]
+        reasons = source.get("reasons")
+        amount = source.get("amount_range_observation")
+        amount = amount if isinstance(amount, dict) else {}
+        if (not isinstance(reasons, list) or
+                row.get("blocking_reasons") != reasons or
+                "paper_source_fields_unverified" not in reasons or
+                row.get("evidence") != source.get("evidence") or
+                row.get("person_id") != qualification["identity"].get("person_id") or
+                row.get("owner") != OWNER_CODES.get(raw.get("owner_code")) or
+                row.get("asset_name") != (raw.get("asset_raw") or None) or
+                row.get("transaction_date") != raw.get("event_date") or
+                row.get("transaction_type") != raw.get("direction_mark") or
+                row.get("amount_letter") != raw.get("amount_letter") or
+                row.get("amount_low") != amount.get("low") or
+                row.get("amount_high") != amount.get("high") or
+                row.get("amount_kind") != amount.get("kind")):
+            raise HouseIndexError("House paper pending projection does not conserve source slots")
+    return len(projected)
+
+
 def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> dict:
     review_root = review_root.resolve()
     source_status = review_root / "status" / "house_clerk.json"
@@ -72,6 +130,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
     identities: dict[str, dict] = {}
     seen_transaction_ids: set[str] = set()
     quarantined_count = 0
+    paper_pending_count = 0
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -82,6 +141,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
         if not isinstance(rows, list) or not isinstance(quarantined, list) or not isinstance(identity, dict):
             raise HouseIndexError("House qualification artifact is incomplete")
         quarantined_count += len(quarantined)
+        paper_pending_count += _paper_pending_count(qualification)
         person_id = identity.get("person_id")
         if rows:
             if not isinstance(person_id, str):
@@ -190,7 +250,10 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
         "detail": (f"{summary['evidence_count']} PTR PDFs archived; {summary['extracted_count']} extracted; "
                    f"{len(transactions)} transactions automatically qualified; "
                    f"{summary.get('zero_transaction_document_count', 0)} explicit zero-transaction filings; "
-                   f"{quarantined_count} rows quarantined; {summary['failure_count']} parser failures; "
+                   f"{quarantined_count} rows quarantined; "
+                   + (f"{paper_pending_count} paper transaction projections pending; "
+                      if paper_pending_count else "")
+                   + f"{summary['failure_count']} parser failures; "
                    f"{state_status['counts']['pending']} filings pending archive; "
                    f"{len(holdings)} holdings from latest complete annual reports"
                    + (f"; {holding_summary.get('quarantined_row_count', 0)} holding rows quarantined."
