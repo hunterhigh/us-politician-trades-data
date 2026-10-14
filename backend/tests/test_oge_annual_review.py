@@ -63,6 +63,39 @@ class OgeAnnualReviewTests(unittest.TestCase):
             with self.assertRaises(OgeCatalogError):
                 extract_archived_reports(base / "evidence", base / "review")
 
+    def test_misclassified_pdf_is_recorded_without_stopping_valid_report(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            evidence, review = base / "evidence", base / "review"
+            for document_id in ("a" * 32, "b" * 32):
+                sha = "c" * 64 if document_id[0] == "a" else "d" * 64
+                target = evidence / "oge/annual/reports" / document_id
+                target.mkdir(parents=True)
+                (target / f"{sha}.json").write_text(json.dumps({
+                    "schema_version": "oge-278e-annual-archive/v1",
+                    "document_id": document_id, "sha256": sha,
+                    "archive_path": f"oge/annual/reports/{document_id}/{sha}.pdf",
+                    "document_url": "https://extapps2.oge.gov/example.pdf",
+                    "filer_name": "Example, Ada",
+                }), encoding="utf-8")
+            extraction = {
+                "schema_version": SCHEMA, "parser_version": PARSER_VERSION,
+                "page_count": 1, "transactions": [], "holdings": [],
+                "quarantined": [], "part7_numbering": {
+                    "printed_row_count": 0, "numbering_complete": True,
+                    "row_reconciliation_complete": True},
+                "production_qualification": "pending",
+            }
+            with patch("oge_annual_review.extract_annual_pdf",
+                       side_effect=[OgeCatalogError("OGE PDF is not an annual 278e"),
+                                    extraction]):
+                status = extract_archived_reports(evidence, review)
+            self.assertEqual(status["archived_reports_reviewed"], 1)
+            self.assertEqual(status["archived_reports_failed"], 1)
+            self.assertEqual(status["failures"][0]["document_id"], "a" * 32)
+            self.assertEqual(status["reports"][0]["document_id"], "b" * 32)
+            self.assertEqual(status["promoted_to_candidate"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

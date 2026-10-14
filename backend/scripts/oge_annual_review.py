@@ -23,6 +23,7 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
     review = review_root.resolve()
     source = evidence / "oge" / "annual" / "reports"
     results = []
+    failures = []
     for metadata_path in sorted(source.glob("*/*.json")):
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         document_id = metadata.get("document_id")
@@ -34,8 +35,15 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
                 metadata.get("archive_path") != f"oge/annual/reports/{document_id}/{sha}.pdf"):
             raise OgeCatalogError("OGE annual archive metadata is inconsistent")
         pdf = evidence / metadata["archive_path"]
-        result = extract_annual_pdf(pdf, source_url=metadata["document_url"],
-                                    source_sha256=sha, expected_filer=metadata["filer_name"])
+        try:
+            result = extract_annual_pdf(pdf, source_url=metadata["document_url"],
+                                        source_sha256=sha, expected_filer=metadata["filer_name"])
+        except OgeCatalogError as exc:
+            # An archived PDF can be miscataloged as an annual report. Keep
+            # the source and the reason visible without stopping other files.
+            failures.append({"document_id": document_id, "source_sha256": sha,
+                             "reason": str(exc)})
+            continue
         if result.get("schema_version") != SCHEMA or result.get("parser_version") != PARSER_VERSION:
             raise OgeCatalogError("OGE annual extraction contract is invalid")
         result["source_document_id"] = document_id
@@ -65,8 +73,10 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
         "schema_version": "oge-278e-annual-review-status/v1",
         "parser_version": PARSER_VERSION,
         "archived_reports_reviewed": len(results),
+        "archived_reports_failed": len(failures),
         "promoted_to_candidate": 0,
         "reports": results,
+        "failures": failures,
     }
     target = review / "oge" / "annual" / "extraction-status.json"
     target.parent.mkdir(parents=True, exist_ok=True)
