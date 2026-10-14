@@ -5,6 +5,7 @@ from pathlib import Path
 
 from unison_snapshot.house_ptr_paper_qualification import qualify_paper_observation
 from unison_snapshot.house_candidate import build_house_candidate
+from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr_amount_header import LABELS, evaluate_amount_header_pages
 
 
@@ -15,7 +16,12 @@ def cell(text="", label="", ink=0):
 class HousePaperQualificationTests(unittest.TestCase):
     def setUp(self):
         self.sha = "a" * 64
-        self.metadata = {"sha256": self.sha, "document_id": "9116141"}
+        self.metadata = {"sha256": self.sha, "document_id": "9116141",
+                         "filed_date": "2026-06-10", "filing_year": 2026,
+                         "source_id": "house_clerk", "filing_type": "P",
+                         "filer_name": "Hon. Michael T. McCaul", "state_district": "TX10",
+                         "source_url": "https://disclosures-clerk.house.gov/public_disc/"
+                                       "ptr-pdfs/2026/9116141.pdf"}
         self.identity = {"document_id": "9116141", "person_id": "house:M001157"}
         self.observation = {
             "schema_version": "house-ptr-cell-observation-shadow/v3",
@@ -48,6 +54,11 @@ class HousePaperQualificationTests(unittest.TestCase):
         self.assertIn("physical_row_disposition_unresolved",
                       result["quarantined"][1]["reasons"])
         self.assertNotIn("id", result["quarantined"][0])
+        pending = result["pending_transaction_projection"]
+        self.assertEqual(pending["row_count"], 1)
+        self.assertEqual(pending["rows"][0]["owner"], "Spouse")
+        self.assertEqual(pending["rows"][0]["transaction_date"], "2026-05-01")
+        self.assertNotIn("id", pending["rows"][0])
 
     def test_peer_filing_dates_add_observation_without_promoting_rows(self):
         def official(document_id, filed_date, sha):
@@ -182,3 +193,16 @@ class HousePaperQualificationTests(unittest.TestCase):
             self.assertEqual(candidate["transactions"], [])
             self.assertEqual(candidate["people"], [])
             self.assertIn("2 rows quarantined", candidate["source_health"][0]["detail"])
+            self.assertIn("1 paper transaction projections pending",
+                          candidate["source_health"][0]["detail"])
+            legacy = json.loads(json.dumps(result))
+            legacy.pop("pending_transaction_projection")
+            target.write_text(json.dumps(legacy), encoding="utf-8")
+            old_candidate = build_house_candidate(root, source_state, base)
+            self.assertEqual(old_candidate["transactions"], [])
+            self.assertNotIn("paper transaction projections pending",
+                             old_candidate["source_health"][0]["detail"])
+            result["pending_transaction_projection"]["rows"][0]["observation_key"] = "wrong"
+            target.write_text(json.dumps(result), encoding="utf-8")
+            with self.assertRaisesRegex(HouseIndexError, "conserve source slots"):
+                build_house_candidate(root, source_state, base)

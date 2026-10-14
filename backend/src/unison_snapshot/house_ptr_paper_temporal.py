@@ -23,7 +23,7 @@ def _day(value: object) -> date:
         raise ValueError("House paper filing date is invalid") from None
 
 
-def _source(metadata: dict) -> tuple[str, str, str, str]:
+def validate_paper_source_metadata(metadata: dict) -> tuple[str, str, str, str]:
     if not isinstance(metadata, dict):
         raise ValueError("House paper metadata is invalid")
     document_id = metadata.get("document_id")
@@ -49,7 +49,7 @@ def _source(metadata: dict) -> tuple[str, str, str, str]:
 def audit_paper_temporal_relations(qualification: dict, metadata: dict,
                                    peers: list[dict]) -> dict:
     """Compare one paper report's observed rows to official peer filing dates."""
-    document_id, source_sha, filer, district = _source(metadata)
+    document_id, source_sha, filer, district = validate_paper_source_metadata(metadata)
     if (not isinstance(qualification, dict) or
             qualification.get("schema_version") != QUALIFICATION_SCHEMA or
             qualification.get("parser_version") != PARSER_VERSION or
@@ -83,7 +83,7 @@ def audit_paper_temporal_relations(qualification: dict, metadata: dict,
     results = []
     seen = {document_id}
     for peer in peers:
-        peer_id, peer_sha, peer_filer, peer_district = _source(peer)
+        peer_id, peer_sha, peer_filer, peer_district = validate_paper_source_metadata(peer)
         if peer_id in seen or peer_filer != filer or peer_district != district:
             raise ValueError("House paper peer is duplicated or belongs to another filer")
         seen.add(peer_id)
