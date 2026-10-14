@@ -63,7 +63,7 @@ class OgeAnnualReviewTests(unittest.TestCase):
             with self.assertRaises(OgeCatalogError):
                 extract_archived_reports(base / "evidence", base / "review")
 
-    def test_misclassified_pdf_is_recorded_without_stopping_valid_report(self):
+    def test_unverified_cover_is_recorded_without_stopping_valid_report(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
             evidence, review = base / "evidence", base / "review"
@@ -87,7 +87,7 @@ class OgeAnnualReviewTests(unittest.TestCase):
                 "production_qualification": "pending",
             }
             with patch("oge_annual_review.extract_annual_pdf",
-                       side_effect=[OgeCatalogError("OGE PDF is not an annual 278e"),
+                       side_effect=[OgeCatalogError("OGE annual 278e cover is not machine-verifiable"),
                                     extraction]):
                 status = extract_archived_reports(evidence, review)
             self.assertEqual(status["archived_reports_reviewed"], 1)

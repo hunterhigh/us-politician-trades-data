@@ -39,8 +39,8 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
             result = extract_annual_pdf(pdf, source_url=metadata["document_url"],
                                         source_sha256=sha, expected_filer=metadata["filer_name"])
         except OgeCatalogError as exc:
-            # An archived PDF can be miscataloged as an annual report. Keep
-            # the source and the reason visible without stopping other files.
+            # Scanned annual covers can fail the strict text parser. Keep the
+            # source and the reason visible without stopping other files.
             failures.append({"document_id": document_id, "source_sha256": sha,
                              "reason": str(exc)})
             continue

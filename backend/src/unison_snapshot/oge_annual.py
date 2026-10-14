@@ -360,7 +360,7 @@ def extract_annual_pdf(pdf_path: Path, *, source_url: str, source_sha256: str,
             raise OgeCatalogError("OGE annual PDF page count is outside bounds")
         cover = document.pages[0].extract_text() or ""
         if "278e" not in cover.casefold() or not re.search(r"Report\s+Type:\s*Annual", cover, re.I):
-            raise OgeCatalogError("OGE PDF is not an annual 278e")
+            raise OgeCatalogError("OGE annual 278e cover is not machine-verifiable")
         year_match = re.search(r"Year\s*\(Annual\s+Report\s+only\):\s*(20\d{2})", cover, re.I)
         if year_match is None:
             raise OgeCatalogError("OGE annual report year is unverified")
