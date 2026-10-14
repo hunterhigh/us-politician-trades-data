@@ -4,11 +4,11 @@
   "annual_part7_overlap_count": 25,
   "base_transaction_count": 5081,
   "candidate_is_append_only": true,
-  "candidate_sha256": "944c10f0002a394c2795cb5cf9cc4849a01c5ec673f1182033f6e3f69b4d4ce4",
+  "candidate_sha256": "d0c9215fdd0d5e0f15891ce0e390cfc9152a9c378c8575aaabc1fcb0b80ce146",
   "candidate_transaction_count": 6731,
   "catalog_report_count": 81,
   "catalog_sha256": "71eb2240ff8c99851dacb91cc7dd4e6d773f806bbd8d79c40f65f52ff713c8ff",
-  "data_cutoff_at": "2026-10-14T15:32:31Z",
+  "data_cutoff_at": "2026-10-14T20:23:17Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 38,
@@ -1665,7 +1665,7 @@
     "oge-278t:ff92b09ef985b0f6804ce92f",
     "oge-278t:ffa9df785a2abdbaf7e4566b"
   ],
-  "pure_oge_candidate_sha256": "00beec0a9670023a8e58d87b4a610ce156a3f6d742dc3c3efd7f560bfa30bd2b",
+  "pure_oge_candidate_sha256": "982bdd87d66bc11b1f61f2897536092f0c621a210ad11d816cdbc59f13f70e2f",
   "quarantined_row_count": 8643,
   "report_count": 81,
   "reports": [
