@@ -1,4 +1,5 @@
 import hashlib
+import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +11,8 @@ except ImportError:
     Image = None
 
 from unison_snapshot.house_ptr_key_field_reread import reread_doubtful_key_cells
-from backend.tests.test_house_ptr_key_fields_shadow import report
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from test_house_ptr_key_fields_shadow import report
 
 
 class HousePtrKeyFieldRereadTests(unittest.TestCase):
