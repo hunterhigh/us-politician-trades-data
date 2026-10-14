@@ -9,6 +9,9 @@ on:
         description: Maximum number of archived PTRs to parse in this run
         required: false
         default: '25'
+      paper_document_id:
+        description: Optional archived paper PTR document ID to observe in this run
+        required: false
 permissions:
   contents: write
   actions: read
@@ -24,7 +27,7 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository)
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -171,6 +174,7 @@ jobs:
         id: ocr
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          PAPER_DOCUMENT_ID: ${{ inputs.paper_document_id }}
         run: |
           python - <<'PY'
           import json, os
@@ -178,7 +182,16 @@ jobs:
           import pdfplumber
           evidence = Path(os.environ['EVIDENCE_ROOT']).resolve()
           needs_ocr = False
-          for line in Path('.local/parse-batch.txt').read_text(encoding='utf-8').splitlines():
+          selected = Path('.local/parse-batch.txt').read_text(encoding='utf-8').splitlines()
+          paper_id = os.environ.get('PAPER_DOCUMENT_ID', '')
+          if paper_id:
+              if not paper_id.isdecimal() or not 1 <= len(paper_id) <= 12:
+                  raise SystemExit('paper_document_id must be a numeric House document ID')
+              matches = list(evidence.glob(f'house_clerk/documents/*/{paper_id}/*.json'))
+              if len(matches) != 1:
+                  raise SystemExit('paper_document_id has no unique archived source')
+              selected.append(str(matches[0]))
+          for line in selected:
               metadata = json.loads(Path(line).read_text(encoding='utf-8'))
               pdf = (evidence / metadata['archive_path']).resolve()
               if evidence not in pdf.parents:
@@ -288,6 +301,22 @@ jobs:
             PYTHONPATH=backend/src python -m unison_snapshot qualify-house-ptr \
               --extraction "$extraction" --identity "$identity" --output "$qualification"
           done
+      - name: Bridge bounded House paper observations into qualification
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PAPER_DOCUMENT_ID: ${{ inputs.paper_document_id }}
+        run: |
+          paper_args=()
+          if [ -n "$PAPER_DOCUMENT_ID" ]; then
+            paper_args+=(--document-id "$PAPER_DOCUMENT_ID")
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot bridge-house-paper-batch \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --parse-batch .local/parse-batch.txt --tesseract tesseract \
+            "${paper_args[@]}" \
+            | tee .local/house-paper-bridge.json
+          echo "House paper bridge: $(cat .local/house-paper-bridge.json)" >> "$GITHUB_STEP_SUMMARY"
       - name: Build qualification queue status
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -304,6 +333,8 @@ jobs:
           failures = list(review.glob('house_clerk/failures/*/*/*.json'))
           identities = list(review.glob('house_clerk/identities/*/*/*.json'))
           qualifications = list(review.glob('house_clerk/qualifications/*/*/*.json'))
+          paper_observations = list(review.glob('house_clerk/paper_observations/*/*/*.json'))
+          paper_failures = list(review.glob('house_clerk/paper_failures/*/*/*.json'))
           def keys(paths, bucket):
               root = review / 'house_clerk' / bucket
               return {path.relative_to(root).as_posix() for path in paths}
@@ -343,6 +374,8 @@ jobs:
               'pending_parse_count': max(evidence_count - len(extraction_keys | failure_keys), 0),
               'identity_counts': dict(sorted(identity_counts.items())),
               'qualification_count': len(qualifications),
+              'paper_observation_count': len(paper_observations),
+              'paper_failure_count': len(paper_failures),
               'qualified_document_count': qualified_documents,
               'qualified_transaction_count': qualified_transactions,
               'zero_transaction_document_count': zero_transaction_documents,
