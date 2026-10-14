@@ -1,0 +1,92 @@
+[
+  {
+    "source_document_id": "1462ab8c5542e5e7852589b0007899fc",
+    "source_sha256": "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28",
+    "cover_kind": "annual_form",
+    "page_count": 15,
+    "cover_page_text_sha256": "57fe9ac979797abe96b5a258b82bba5f1ca8851e8e37b855a0b7570716afd7c5",
+    "dates": {
+      "agency_ethics_review": "2023-05-12",
+      "agency_receipt": null,
+      "filer_signature": "2023-05-08",
+      "oge_certification": "2023-05-15"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  },
+  {
+    "source_document_id": "59bcdfb898190fac8525884100747a4c",
+    "source_sha256": "f39c873856f8efbc93b1c3885fd9354427adfb8b90636edecd206b72e5e1bb77",
+    "cover_kind": "annual_form",
+    "page_count": 14,
+    "cover_page_text_sha256": "bd4c8e4881ad6b393d0a6dbcc09ae3699e990977ace39b480683dad6c968d416",
+    "dates": {
+      "agency_ethics_review": "2022-05-10",
+      "agency_receipt": null,
+      "filer_signature": "2022-05-06",
+      "oge_certification": "2022-05-12"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  },
+  {
+    "source_document_id": "98c022b90c25091e852586d9004a7bfc",
+    "source_sha256": "4811d4c9e69e74730fd2354883907745f0939fc28875645ce816c6e447f61a08",
+    "cover_kind": "amendment_letter",
+    "page_count": 16,
+    "cover_page_text_sha256": "967ce5c9acbe627df0643988311d8e32a539637d73bc78294805a2a5460cf679",
+    "dates": {
+      "agency_ethics_review": null,
+      "agency_receipt": null,
+      "filer_signature": "2021-05-18",
+      "oge_certification": "2021-05-18"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  },
+  {
+    "source_document_id": "9a9b9318751632fa852586d9002ec0f9",
+    "source_sha256": "3e66f57c0650c6e50250d32b5c822aa8460985cf5fb7934b96ce9db665b87238",
+    "cover_kind": "annual_form",
+    "page_count": 11,
+    "cover_page_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dates": {
+      "agency_ethics_review": "2021-05-17",
+      "agency_receipt": null,
+      "filer_signature": "2021-05-17",
+      "oge_certification": "2021-05-17"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  },
+  {
+    "source_document_id": "e0e994cfa156d7cf852589b000789259",
+    "source_sha256": "8f7a606ddf0016b66b3e5a72bb4cc906b162c798c062ef163e0a2bf8b52974ea",
+    "cover_kind": "annual_form",
+    "page_count": 11,
+    "cover_page_text_sha256": "20973a017a7d280e786d0877c84bfa03e47bb5391b8ac581388e148c98f520fc",
+    "dates": {
+      "agency_ethics_review": "2023-05-15",
+      "agency_receipt": null,
+      "filer_signature": "2023-05-14",
+      "oge_certification": "2023-05-15"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  },
+  {
+    "source_document_id": "e53c72b0e534b2e7852588410074776c",
+    "source_sha256": "3cffee2d61c1659fcc9d2845dec47cdd388cf0bc0c23e5ee48eec01a861fb4c3",
+    "cover_kind": "annual_form",
+    "page_count": 11,
+    "cover_page_text_sha256": "a8fea822106a7dfade5c071f22b81a77a6d2676605eba7a1d8a24b8b204572cc",
+    "dates": {
+      "agency_ethics_review": "2022-05-10",
+      "agency_receipt": null,
+      "filer_signature": null,
+      "oge_certification": "2022-05-12"
+    },
+    "agency_receipt_verified": false,
+    "part7_filing_date_unverified": true
+  }
+]

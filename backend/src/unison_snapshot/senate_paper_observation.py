@@ -9,6 +9,7 @@ from collections import Counter
 import hashlib
 import json
 from pathlib import Path
+from typing import Callable
 
 from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
 
@@ -35,7 +36,8 @@ def _fixed_ledgers(docs_root: Path) -> dict[str, dict]:
 
 
 def compare_archived_batch(evidence_root: Path, docs_root: Path,
-                           extraction_batch: dict) -> dict:
+                           extraction_batch: dict, *,
+                           date_reader: Callable | None = None) -> dict:
     """Observe only exact fixed page bytes; compare counts without matching IDs."""
     ledgers = _fixed_ledgers(docs_root)
     extraction_by_id = {item["document_id"]: item for item in
@@ -91,7 +93,8 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
 
         classified = classify_ledger(
             {"evidence_commit": ledger["evidence_commit"], "reports": [ledger]},
-            read_page, calibrate_columns=True)["reports"][0]
+            read_page, calibrate_columns=True,
+            date_reader=date_reader)["reports"][0]
         old_by_page = Counter(row["page_number"] for row in
                               extraction_by_id.get(document_id, {}).get("transactions", []))
         page_comparison = [{**page, "legacy_extraction_count": old_by_page.get(
@@ -170,6 +173,11 @@ def project_pending_slots(observation: dict) -> dict:
                                 "coverage_status": "unknown_physical_slot"})
             elif label == "data_observed":
                 date = slot["key_cells"]["date"]
+                cell_ocr = date["cell_ocr"] or {}
+                cell_status = cell_ocr.get("status", "not_run")
+                if cell_status not in ("not_run", "agreement", "conflict",
+                                       "insufficient", "unreadable"):
+                    raise ValueError("Senate paper date-cell status changed")
                 pending.append({
                     "source_slot": source_slot,
                     "source_url": ("https://efdsearch.senate.gov/search/view/paper/"
@@ -181,7 +189,9 @@ def project_pending_slots(observation: dict) -> dict:
                     "date_page_ocr_raw": date["page_ocr_raw"],
                     "date_page_ocr_parsed": date["page_ocr_parsed"],
                     "date_cell_ocr_parsed": date["cell_ocr_parsed"],
-                    "date_cell_conflict": date["conflict"],
+                    "date_cell_observation_status": cell_status,
+                    "date_cell_conflict": bool(date["conflict"] or
+                                               cell_status == "conflict"),
                     "direction_mark_observations": slot["type_marks"],
                     "amount_mark_observations": slot["amount_marks"],
                     "legacy_extraction_report_row_count": report["legacy_extraction_count"],

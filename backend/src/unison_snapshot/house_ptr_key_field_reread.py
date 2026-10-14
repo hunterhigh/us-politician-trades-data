@@ -41,6 +41,31 @@ def _second_ocr(crop, executable: Path) -> tuple[str, str]:
     return " ".join(words), hashlib.sha256(encoded.getvalue()).hexdigest()
 
 
+def _conflict_probe(crop, executable: Path, field: str) -> dict:
+    """Keep one alternate image reading for a disputed cell, never a correction."""
+    from PIL import ImageOps
+
+    if field == "event_date":
+        image = ImageOps.expand(crop, border=20, fill="white")
+        page_segmentation_mode = 7
+    else:
+        image = crop
+        page_segmentation_mode = 11
+    encoded = io.BytesIO()
+    image.save(encoded, format="PNG")
+    completed = subprocess.run(
+        [str(executable), "stdin", "stdout", "--dpi", "300", "-l", "eng",
+         "--psm", str(page_segmentation_mode)], input=encoded.getvalue(),
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60, check=False)
+    if completed.returncode:
+        raise ValueError("House paper conflict OCR probe failed")
+    return {"raw": completed.stdout.decode("utf-8", "replace").strip(),
+            "crop_sha256": hashlib.sha256(encoded.getvalue()).hexdigest(),
+            "render_dpi": 300, "page_segmentation_mode": page_segmentation_mode,
+            "image_border_pixels": 20 if field == "event_date" else 0,
+            "status": "alternate_ocr_unverified"}
+
+
 def _field_shape(value: str, name: str) -> str | None:
     if name == "asset":
         return re.sub(r"[^a-z0-9]", "", value.casefold()) or None
@@ -103,6 +128,17 @@ def reread_doubtful_key_cells(pdf_bytes: bytes, observation: dict, *,
             second_shape = _field_shape(second, name)
             comparison = ("second_ocr_shape_agrees" if first_shape is not None and
                           first_shape == second_shape else "second_ocr_shape_differs")
+            conflict_probe = None
+            if comparison == "second_ocr_shape_differs":
+                try:
+                    conflict_probe = _conflict_probe(crop, executable, name)
+                    conflict_probe["shape_comparison_to_first"] = (
+                        "agrees" if first_shape is not None and
+                        _field_shape(conflict_probe["raw"], name) == first_shape
+                        else "differs_or_unknown")
+                except (OSError, subprocess.TimeoutExpired, ValueError) as error:
+                    conflict_probe = {"status": "alternate_ocr_unavailable",
+                                      "error": f"{type(error).__name__}: {str(error)[:160]}"}
             rereads.append({"page": number,
                             "physical_band_index": row["physical_band_index"],
                             "field": name, "first_ocr_raw": first,
@@ -111,6 +147,7 @@ def reread_doubtful_key_cells(pdf_bytes: bytes, observation: dict, *,
                             "second_crop_sha256": crop_sha,
                             "second_crop_render_dpi": 300,
                             "comparison": comparison,
+                            "conflict_probe": conflict_probe,
                             "literal_comparison": "agree" if first == second else "differ",
                             "source_quality_flags": [flag for flag in row[
                                 "source_quality_flags"] if flag.startswith(name + "_")]})
