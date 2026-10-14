@@ -44,10 +44,19 @@ jobs:
           PYTHONPATH=backend/src python backend/scripts/oge_annual_review.py \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --review-root "$RUNNER_TEMP/oge-annual-review"
+      - name: Observe fixed Vance Part 7 physical slots without promotion
+        run: |
+          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_part7.py \
+            --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
+            --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Publish annual extraction audits
         run: |
           review="$RUNNER_TEMP/oge-annual-review"
-          git -C "$review" add oge/annual/extractions oge/annual/extraction-status.json
+          git -C "$review" add oge/annual/extractions oge/annual/extraction-status.json \
+            oge/annual/part7-observation-status.json
+          if test -d "$review/oge/annual/part7-observations"; then
+            git -C "$review" add oge/annual/part7-observations
+          fi
           if ! git -C "$review" diff --cached --quiet; then
             git -C "$review" config user.name "github-actions[bot]"
             git -C "$review" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

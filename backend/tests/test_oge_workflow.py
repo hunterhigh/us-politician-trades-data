@@ -90,6 +90,18 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("'status': 'partial' if succeeded else 'failed'", content)
         self.assertIn("'workflow_run_url': os.environ['WORKFLOW_RUN_URL']", content)
 
+    def test_fixed_page_coverage_is_only_a_nonblocking_review_sidecar(self):
+        content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
+        self.assertIn("build_oge_278t_page_coverage.py", content)
+        self.assertIn("--batch .local/oge-report-batch.json", content)
+        self.assertIn("--extractions-dir .local/oge-extractions", content)
+        step = content.split("- name: Observe fixed 278-T page coverage", 1)[1].split(
+            "- name: Publish immutable official evidence", 1)[0]
+        self.assertIn("continue-on-error: true", step)
+        self.assertIn(".local/oge-278t-page-sidecars", content)
+        self.assertIn("review / 'oge' / 'page_coverage'", content)
+        self.assertNotIn("build-oge-candidate", step)
+
     def test_successful_unified_build_updates_and_commits_disclosure_status(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
         build = content.index("python -m unison_snapshot build-disclosure-candidate")

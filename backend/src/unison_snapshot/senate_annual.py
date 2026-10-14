@@ -24,6 +24,7 @@ from .senate_candidate import _person
 from .senate_identity import _member_rows, _without_suffix, _words, match_report_identity
 from .senate_members import SenateRosterError, build_roster
 from .senate_reports import _report_parser
+from .senate_annual_transactions import observe_part4b
 
 
 SCHEMA = "senate-efd-annual-review/v1"
@@ -328,6 +329,19 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
             relative = (Path("senate_efd/annual/extractions") / report["document_id"] /
                         metadata["source_sha256"] / f"{PARSER_VERSION}.json")
             _write_once(review_root / relative, _json(extraction))
+            try:
+                transaction_observation = observe_part4b(metadata, raw)
+                transaction_relative = (Path("senate_efd/annual/part4b") /
+                                        report["document_id"] / metadata["source_sha256"] /
+                                        "observation-v1.json")
+                _write_once(review_root / transaction_relative,
+                            _json(transaction_observation))
+                transaction_error = None
+            except (SenateEfdError, KeyError, ValueError) as exc:
+                # A new transaction-section issue cannot remove qualified holdings.
+                transaction_observation = None
+                transaction_relative = None
+                transaction_error = str(exc)[:200]
             status = "extracted"
         except (SenateEfdError, OSError, KeyError, ValueError) as exc:
             extraction = None
@@ -344,6 +358,15 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
             record["quarantined_row_count"] = sum(
                 row["disposition"] == "quarantined" for row in extraction["rows"])
             record["filed_at"] = extraction["filed_at"]
+            record["part4b_observation_status"] = (
+                "observed" if transaction_observation is not None else "unresolved")
+            record["part4b_observation_path"] = (
+                transaction_relative.as_posix() if transaction_relative else None)
+            record["part4b_printed_row_count"] = (
+                transaction_observation["part4b_printed_row_count"]
+                if transaction_observation is not None else None)
+            if transaction_error is not None:
+                record["part4b_observation_error"] = transaction_error
             by_person[person_id].append((report, extraction, record))
         else:
             record["error"] = error

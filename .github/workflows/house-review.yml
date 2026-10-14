@@ -335,6 +335,9 @@ jobs:
           qualifications = list(review.glob('house_clerk/qualifications/*/*/*.json'))
           paper_observations = list(review.glob('house_clerk/paper_observations/*/*/*.json'))
           paper_failures = list(review.glob('house_clerk/paper_failures/*/*/*.json'))
+          paper_rereads = list(review.glob('house_clerk/paper_key_field_rereads/*/*/*.json'))
+          paper_reread_failures = list(review.glob('house_clerk/paper_reread_failures/*/*/*.json'))
+          paper_temporal_failures = list(review.glob('house_clerk/paper_temporal_failures/*/*/*.json'))
           def keys(paths, bucket):
               root = review / 'house_clerk' / bucket
               return {path.relative_to(root).as_posix() for path in paths}
@@ -376,6 +379,9 @@ jobs:
               'qualification_count': len(qualifications),
               'paper_observation_count': len(paper_observations),
               'paper_failure_count': len(paper_failures),
+              'paper_key_field_reread_count': len(paper_rereads),
+              'paper_reread_failure_count': len(paper_reread_failures),
+              'paper_temporal_failure_count': len(paper_temporal_failures),
               'qualified_document_count': qualified_documents,
               'qualified_transaction_count': qualified_transactions,
               'zero_transaction_document_count': zero_transaction_documents,

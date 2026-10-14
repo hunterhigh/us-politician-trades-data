@@ -15,6 +15,30 @@ EDGE_NOISE = re.compile(r"[|.\-'\"*_\u00b0\u2018\u2019\ufffd]{0,3}")
 OWNER_CODES = {"SP", "JT", "DC"}
 
 
+def _source_cell(cell: dict) -> dict:
+    """Keep the exact observed crop beside a field interpretation."""
+    return {name: cell.get(name) for name in (
+        "label", "raw_text", "raw_ocr_confidence", "crop_sha256",
+        "bbox_normalized", "interior_dark_fraction")}
+
+
+def _source_quality_flags(cells: dict, event_status: str,
+                          notice_status: str) -> list[str]:
+    """Prioritize later source checks; OCR confidence is never fact confidence."""
+    flags = []
+    for name in ("owner", "asset", "event_date", "notification_date"):
+        confidence = cells[name].get("raw_ocr_confidence")
+        if isinstance(confidence, (int, float)) and confidence < 70:
+            flags.append(f"{name}_ocr_confidence_below_70")
+    if "edge_noise" in event_status:
+        flags.append("event_date_ocr_edge_noise")
+    if "edge_noise" in notice_status:
+        flags.append("notification_date_ocr_edge_noise")
+    if notice_status in {"not_exact_date_shape", "invalid_calendar_date"}:
+        flags.append("notification_date_ocr_unreadable")
+    return flags
+
+
 def _date(cell: dict) -> tuple[str | None, str]:
     raw = cell.get("raw_text", "").strip()
     match = DATE_SHAPE.fullmatch(raw)
@@ -128,6 +152,14 @@ def read_house_ptr_key_fields(observation: dict) -> dict:
                                     "amount_status": amount_status,
                                     "spouse_dc_over_1000000_mark": spouse_dc_mark,
                                     "spouse_dc_mark_status": spouse_dc_status},
+                         "source_field_evidence": {
+                             name: _source_cell(cells[name]) for name in (
+                                 "owner", "asset", "event_date", "notification_date")
+                         } | {
+                             "direction": [_source_cell(cell) for cell in cells["direction"]],
+                             "amount": [_source_cell(cell) for cell in cells["amount"]]},
+                         "source_quality_flags": _source_quality_flags(
+                             cells, event_status, notice_status),
                          "blocking_reasons": blockers})
     return {"schema_version": "house-ptr-key-fields-shadow/v1",
             "source_sha256": observation["source_sha256"],

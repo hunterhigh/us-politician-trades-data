@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import csv
 import io
+import math
 from pathlib import Path
 import re
 import shutil
@@ -154,6 +155,38 @@ def _uncertain_anchor_regions(anchors: list[float]) -> list[list[float]]:
             if right - left > typical * 1.45]
 
 
+def _native_unnumbered_prefix(page) -> int:
+    """Count transaction-shaped cells before the first readable row number.
+
+    The native extractor starts at the first numbered row. This shadow count
+    exposes earlier filled cells without assigning a transaction or ID.
+    """
+    count = 0
+    extract_tables = getattr(page, "extract_tables", None)
+    if not callable(extract_tables):
+        return 0
+    for table in extract_tables() or []:
+        rows = [row for row in table or [] if isinstance(row, list)]
+        signature = " ".join(str(cell or "").casefold() for row in rows for cell in row)
+        if not all(label in signature for label in _HEADERS):
+            continue
+        first_number = next((index for index, row in enumerate(rows)
+                             if row and re.fullmatch(r"[1-9][0-9]*",
+                                                     str(row[0] or "").strip())),
+                            len(rows))
+        for row in rows[:first_number]:
+            if len(row) != 6:
+                continue
+            cells = [" ".join(str(value or "").split()) for value in row]
+            joined = " ".join(cells).casefold()
+            if "description" in joined and "type" in joined and "date" in joined:
+                continue
+            if (cells[1] and (re.search(r"\d{1,2}/\d{1,2}/20\d{2}", cells[3]) or
+                              re.search(r"\$\s*\d", cells[5]))):
+                count += 1
+    return count
+
+
 def inspect_page(page, page_number: int) -> dict:
     """Classify one page and retain provisional row locations for review."""
     text = page.extract_text() or ""
@@ -196,6 +229,8 @@ def inspect_page(page, page_number: int) -> dict:
     row_basis = "none"
     row_coverage = "unknown"
     rule_source = "none"
+    native_unnumbered_prefix = (
+        _native_unnumbered_prefix(page) if not text_mode.startswith("raster") else 0)
     if header_partial and header_top is not None:
         numbered_anchors = [(int(word["text"]), round(float(word["top"]), 1))
                             for word in words
@@ -281,10 +316,13 @@ def inspect_page(page, page_number: int) -> dict:
         "unresolved_row_bands": unresolved_bands,
         "unresolved_row_regions": unresolved_regions,
         "number_sequence_warnings": number_sequence_warnings,
+        "native_unnumbered_prefix_rows": native_unnumbered_prefix,
     }
 
 
-def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None) -> dict:
+def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None,
+                raster_ocr_records: list[dict] | None = None,
+                raster_ocr_source_sha256: str | None = None) -> dict:
     """Inspect an immutable local PDF; caller decides whether any page is usable."""
     try:
         import pdfplumber
@@ -298,8 +336,21 @@ def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None) -> dict:
             raise ValueError("page number outside PDF")
         pages = [inspect_page(document.pages[number - 1], number)
                  for number in selected]
-        return {"source_sha256": source_sha256,
-                "page_count": len(document.pages), "pages": pages}
+        result = {"source_sha256": source_sha256,
+                  "page_count": len(document.pages), "pages": pages}
+    if raster_ocr_records is not None:
+        if raster_ocr_source_sha256 != source_sha256:
+            raise ValueError("OCR extraction source differs from PDF")
+        raster_numbers = [page["page_number"] for page in pages
+                          if page["text_mode"].startswith("raster")]
+        census = probe_raster_row_bands(
+            source, expected_sha256=source_sha256,
+            page_numbers=raster_numbers) if raster_numbers else {
+                "source_sha256": source_sha256, "results": []}
+        result["raster_ocr_coverage"] = reconcile_raster_ocr_rows(
+            census, raster_ocr_records, expected_sha256=source_sha256,
+            ocr_source_sha256=raster_ocr_source_sha256)
+    return result
 
 
 def _number_suggestion(attempts: list[dict]) -> str | None:
@@ -459,3 +510,81 @@ def probe_raster_row_bands(path: Path, *, expected_sha256: str,
                             "rule_positions": centers,
                             "physical_row_bands": bands})
     return {"source_sha256": source_sha256, "results": results}
+
+
+def reconcile_raster_ocr_rows(census: dict, ocr_records: list[dict], *,
+                              expected_sha256: str,
+                              ocr_source_sha256: str) -> dict:
+    """Account for every located raster slot independently of OCR row signals.
+
+    An unmatched slot may be blank or may contain text that OCR missed in both
+    date and amount columns. It stays unknown until source-bound cell evidence
+    distinguishes those cases. OCR rows outside the grid also stay explicit.
+    """
+    if (not isinstance(census, dict) or
+            census.get("source_sha256") != expected_sha256 or
+            ocr_source_sha256 != expected_sha256 or
+            not re.fullmatch(r"[0-9a-f]{64}", expected_sha256) or
+            not isinstance(ocr_records, list)):
+        raise ValueError("raster census and OCR source binding are invalid")
+    pages = census.get("results")
+    if not isinstance(pages, list):
+        raise ValueError("raster census pages are invalid")
+    by_page: dict[int, list[tuple[int, float]]] = {}
+    for index, record in enumerate(ocr_records):
+        if not isinstance(record, dict):
+            raise ValueError("OCR row is invalid")
+        page = record.get("page_number")
+        top = record.get("geometry_top")
+        if (type(page) is not int or page < 1 or
+                type(top) not in (int, float) or not math.isfinite(top) or top < 0):
+            raise ValueError("OCR row geometry is invalid")
+        by_page.setdefault(page, []).append((index, float(top)))
+    seen_pages: set[int] = set()
+    slots: list[dict] = []
+    unmatched_ocr: list[dict] = []
+    for page in pages:
+        if not isinstance(page, dict):
+            raise ValueError("raster census page is invalid")
+        number = page.get("page_number")
+        if type(number) is not int or number < 1 or number in seen_pages:
+            raise ValueError("raster census page number is invalid")
+        seen_pages.add(number)
+        bands = page.get("physical_row_bands")
+        status = page.get("status")
+        if not isinstance(bands, list) or status not in {
+                "physical_slots_located", "coverage_unknown"}:
+            raise ValueError("raster census page coverage is invalid")
+        if (status == "coverage_unknown" and bands or
+                status == "physical_slots_located" and not bands):
+            raise ValueError("raster page status and physical slots disagree")
+        mapped: set[int] = set()
+        previous_bottom = -1.0
+        for position, band in enumerate(bands, start=1):
+            if (not isinstance(band, list) or len(band) != 2 or
+                    not all(isinstance(value, (int, float)) for value in band)):
+                raise ValueError("raster slot band is invalid")
+            top, bottom = map(float, band)
+            if top < previous_bottom or top >= bottom:
+                raise ValueError("raster slot bands overlap or are unordered")
+            previous_bottom = bottom
+            matches = [index for index, row_top in by_page.get(number, [])
+                       if top <= row_top < bottom]
+            mapped.update(matches)
+            slots.append({"page_number": number, "slot_index": position,
+                          "band": [top, bottom], "ocr_row_indices": matches,
+                          "status": ("ocr_row_mapped" if len(matches) == 1 else
+                                     "physical_slot_without_ocr_row" if not matches else
+                                     "multiple_ocr_rows_in_slot"),
+                          "content_status": "unverified"})
+        unmatched_ocr.extend({"page_number": number, "ocr_row_index": index}
+                             for index, _ in by_page.get(number, []) if index not in mapped)
+    return {"source_sha256": expected_sha256, "physical_slot_count": len(slots),
+            "slots": slots, "unmatched_ocr_rows": unmatched_ocr,
+            "ocr_rows_outside_selected_pages": [
+                {"page_number": page, "ocr_row_index": index}
+                for page, rows in sorted(by_page.items()) if page not in seen_pages
+                for index, _ in rows],
+            "unknown_pages": sorted(page["page_number"] for page in pages
+                                    if page["status"] == "coverage_unknown"),
+            "production_mutation_authorized": False}

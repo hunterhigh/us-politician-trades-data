@@ -107,7 +107,9 @@ def _paper_pending_count(qualification: dict) -> int:
                 row.get("amount_letter") != raw.get("amount_letter") or
                 row.get("amount_low") != amount.get("low") or
                 row.get("amount_high") != amount.get("high") or
-                row.get("amount_kind") != amount.get("kind")):
+                row.get("amount_kind") != amount.get("kind") or
+                row.get("source_quality_flags", []) != source.get(
+                    "source_quality_flags", [])):
             raise HouseIndexError("House paper pending projection does not conserve source slots")
     return len(projected)
 
