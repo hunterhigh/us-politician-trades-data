@@ -1,5 +1,11 @@
 # 最新 HTML 验收矩阵
 
+## 2026-10-14 待核投影接入后的完整生产验收
+
+[完整生产运行 38536662369](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38536662369) 成功，候选构建、发布前最新 HTML 浏览器检查、旧正式事实差异、固定提交远端回读、第二次最新 HTML 浏览器检查和原子发布均执行。两次 `test:latest-html` 均返回 `status=passed`、`transactions=18467`、`new_transactions_checked=0`、`previous_board_compared=true`。正式仍为 401 人、18,467 笔交易、5,595 条持仓；没有把 Senate 483 个待核格或 OGE Harris 95 个文字层交易形状变成新交易。发布后 `main=e4e581c00e37d85e5851abdcb001c7d1994520ea`、`market=416afb3edcafa79548d54d46ea0b84943f5450cc`，独立回读 `main` manifest 的 `market_commit` 与 market 指针一致。该次用已发布行情缓存，未请求新增 Twelve Data 额度。
+
+最新 HTML 原件 SHA-256 再核对为 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`，仍为最高页面基准。七个早于可验证行情首日的收益保留 `null`／“—”。两轮页面通过说明既有正式页面没有因旁路投影退步；由于新增交易数为 0，不声称新隔离记录已经通过页面逐条验收。
+
 ## 2026-10-14 结构接入后的实际页面门禁
 
 [完整生产运行 38529268285](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38529268285) 成功。候选构建、发布前浏览器检查、旧正式事实差异、预备提交远端回读、第二次浏览器检查和原子发布均通过。两次 `test:latest-html` 均报告 `status=passed`、`transactions=18467`、`previous_board_compared=true`、`new_transactions_checked=0`。这次没有新增可供逐条新交易页面验收的正式事实；其通过只证明现有页面结果未因旁路解析观察退步。正式 `main=28a5f94e7126d9e4acdb0c5315e586a36c2e5021`、`market=c16ab6f6f7d53af04be8b20cfff90d9cbb47ca8c`，独立回读 manifest 的 `market_commit` 与 market 指针一致。正式数量 401 人、18,467 笔交易、5,595 条持仓。用户指定 HTML 文件 SHA-256 于本次运行前复核仍为 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`。七个早于可验证行情首日的收益仍按 `null`／“—”验收，不用旁路格位填值。
