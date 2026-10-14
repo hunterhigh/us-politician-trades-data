@@ -127,6 +127,7 @@ class HousePaperPipelineTests(unittest.TestCase):
         paper = dict(self.paper, quarantined=[{"source_quality_flags": [
             "asset_ocr_confidence_below_70"]}])
         reread = {"source_sha256": self.sha,
+                  "rule_version": "house-paper-key-field-conflict-probe-v2",
                   "qualification_status": "unverified_shadow_only",
                   "selected_cell_count": 1, "rereads": []}
         with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
@@ -152,6 +153,38 @@ class HousePaperPipelineTests(unittest.TestCase):
                          ["key_field_reread_status"], "observed")
         self.assertEqual(json.loads((self.review / "house_clerk/paper_key_field_rereads" /
                                      self.relative).read_text()), reread)
+
+    def test_older_reread_is_refreshed_without_reobserving_paper(self):
+        paper = dict(self.paper, quarantined=[{"source_quality_flags": [
+            "asset_ocr_confidence_below_70"]}])
+        self._write(self.review / "house_clerk/paper_observations" / self.relative,
+                    self.observation)
+        self._write(self.review / "house_clerk/paper_amount_headers" / self.relative,
+                    self.header)
+        old_path = self.review / "house_clerk/paper_key_field_rereads" / self.relative
+        old_path.parent.mkdir(parents=True, exist_ok=True)
+        old_path.write_text(json.dumps({"source_sha256": self.sha,
+                                        "qualification_status": "unverified_shadow_only"}))
+        new_reread = {"source_sha256": self.sha,
+                      "rule_version": "house-paper-key-field-conflict-probe-v2",
+                      "qualification_status": "unverified_shadow_only",
+                      "selected_cell_count": 1, "rereads": []}
+        with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
+                    return_value=self.observation) as observe,
+              patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
+                    return_value=self.header),
+              patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
+                    return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells",
+                    return_value=new_reread) as reread_fn):
+            outcome = bridge_paper_report(evidence_root=self.evidence,
+                                          review_root=self.review,
+                                          metadata_path=self.metadata_path,
+                                          tesseract="tesseract", observe_new=False)
+        self.assertEqual(outcome, "requalified_existing_observation")
+        observe.assert_not_called()
+        reread_fn.assert_called_once()
+        self.assertEqual(json.loads(old_path.read_text()), new_reread)
 
     def test_failed_second_read_keeps_paper_rows_quarantined(self):
         paper = dict(self.paper, quarantined=[{"source_quality_flags": [
