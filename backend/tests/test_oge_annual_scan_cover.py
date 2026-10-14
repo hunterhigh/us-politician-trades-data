@@ -38,7 +38,9 @@ class OgeAnnualScanCoverTests(unittest.TestCase):
             document.pages[0].extract_text.return_value = "Annual"
             opened = MagicMock()
             opened.__enter__.return_value = document
-            with patch("pdfplumber.open", return_value=opened), patch(
+            pdfplumber = MagicMock()
+            pdfplumber.open.return_value = opened
+            with patch.dict(sys.modules, {"pdfplumber": pdfplumber}), patch(
                     "unison_snapshot.oge_annual_scan_cover.ocr_pdf_pages",
                     return_value=([page], "tesseract test")) as ocr:
                 result = observe_scan_cover(pdf, source_sha256=sha,
