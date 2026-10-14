@@ -1,5 +1,9 @@
 # 最新 HTML 验收矩阵
 
+## 2026-10-14 结构接入后的实际页面门禁
+
+[完整生产运行 38529268285](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38529268285) 成功。候选构建、发布前浏览器检查、旧正式事实差异、预备提交远端回读、第二次浏览器检查和原子发布均通过。两次 `test:latest-html` 均报告 `status=passed`、`transactions=18467`、`previous_board_compared=true`、`new_transactions_checked=0`。这次没有新增可供逐条新交易页面验收的正式事实；其通过只证明现有页面结果未因旁路解析观察退步。正式 `main=28a5f94e7126d9e4acdb0c5315e586a36c2e5021`、`market=c16ab6f6f7d53af04be8b20cfff90d9cbb47ca8c`，独立回读 manifest 的 `market_commit` 与 market 指针一致。正式数量 401 人、18,467 笔交易、5,595 条持仓。用户指定 HTML 文件 SHA-256 于本次运行前复核仍为 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`。七个早于可验证行情首日的收益仍按 `null`／“—”验收，不用旁路格位填值。
+
 基准：用户指定的 `C:\Users\admin\Downloads\politician-disclosures (3).html`，SHA-256 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`（2026-10-09 复核）。冲突时以此 HTML 的实际页面代码及用户对七个不可验证收益值的 `null`／“—”裁定为准。`review-input/` 只作历史兼容对照。
 
 验收入口：`frontend-e2e/tests/latest-html-production.e2e.mjs` 将生产候选 DATA 注入从该 HTML 提取且哈希固定的页面模板，由 Chromium 执行页面代码。完整发布在候选构建后和固定提交回读后各运行一次。`PREVIOUS_MAIN_ROOT` 指向发布前固定 `main` 工作树，用其 manifest 和 board 识别新增交易。原 HTML 的只读交互基准另由 `latest-html.e2e.mjs` 核对文件哈希和页面行为。
