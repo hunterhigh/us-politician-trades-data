@@ -44,6 +44,14 @@ jobs:
           PYTHONPATH=backend/src python backend/scripts/oge_annual_review.py \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --review-root "$RUNNER_TEMP/oge-annual-review"
+      - name: Observe scanned annual covers without promotion
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_scan_covers.py \
+            --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
+            --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Observe fixed Vance Part 7 physical slots without promotion
         run: |
           PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_part7.py \
@@ -56,6 +64,12 @@ jobs:
             oge/annual/part7-observation-status.json
           if test -d "$review/oge/annual/part7-observations"; then
             git -C "$review" add oge/annual/part7-observations
+          fi
+          if test -f "$review/oge/annual/cover-observation-status.json"; then
+            git -C "$review" add oge/annual/cover-observation-status.json
+          fi
+          if test -d "$review/oge/annual/cover_observations"; then
+            git -C "$review" add oge/annual/cover_observations
           fi
           if ! git -C "$review" diff --cached --quiet; then
             git -C "$review" config user.name "github-actions[bot]"
