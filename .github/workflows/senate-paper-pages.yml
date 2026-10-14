@@ -209,6 +209,31 @@ jobs:
             git -C "$REVIEW_ROOT" commit -m "review: Senate paper extraction ${{ github.run_id }}"
             git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
           fi
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/senate_efd.json" \
+            --base ingest/current.json \
+            --output "$RUNNER_TEMP/senate-paper-shadow-candidate.json" \
+            --audit-output "$RUNNER_TEMP/senate-paper-shadow-audit.json" \
+            --html-output "$RUNNER_TEMP/senate-paper-shadow.html"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT'])
+          shadow = json.loads((Path(os.environ['RUNNER_TEMP']) /
+                               'senate-paper-shadow-audit.json').read_text(encoding='utf-8'))
+          pending = json.loads((root / 'senate_efd/paper_pending_projections/current.json')
+                               .read_text(encoding='utf-8'))
+          audit = shadow.get('paper_pending_projection')
+          if (not isinstance(audit, dict) or
+                  audit['physical_slot_count'] != pending['pending_row_count'] or
+                  audit['unknown_slot_count'] != pending['unknown_slot_count'] or
+                  audit['qualified_transaction_count'] != 0):
+              raise SystemExit('Senate paper pending slots did not reach shadow candidate audit')
+          print(json.dumps({'pending_physical_slots_in_builder': audit['physical_slot_count'],
+                            'unknown_physical_slots_in_builder': audit['unknown_slot_count'],
+                            'formal_transactions_from_projection': 0}, sort_keys=True))
+          PY
           failures="$(python -c "import json; print(json.load(open('.local/senate-paper-extraction-batch.json'))['failure_count'])")"
           if [ "$failures" != "0" ]; then
             echo "$failures Senate paper reports remain in explicit failure isolation." >&2
