@@ -115,6 +115,27 @@ class SenatePaperObservationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "duplicated or unbound"):
                 project_pending_slots(observed)
 
+    def test_date_cell_reader_is_recorded_without_qualification(self):
+        calls = []
+
+        def date_reader(crop):
+            calls.append(crop.size)
+            return {"status": "conflict", "date": None,
+                    "valid_read_count": 2, "variants": {}}
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._archive(root)
+            observed = compare_archived_batch(root, DOCS, self._batch(),
+                                              date_reader=date_reader)
+            projected = project_pending_slots(observed)
+        self.assertEqual(len(calls), 36)
+        self.assertEqual(projected["pending_row_count"], 36)
+        self.assertTrue(all(row["date_cell_observation_status"] == "conflict" and
+                            row["date_cell_conflict"] and
+                            row["formal_transaction_id"] is None
+                            for row in projected["pending_rows"]))
+
 
 if __name__ == "__main__":
     unittest.main()
