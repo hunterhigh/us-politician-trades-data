@@ -49,6 +49,25 @@ class HousePaperQualificationTests(unittest.TestCase):
                       result["quarantined"][1]["reasons"])
         self.assertNotIn("id", result["quarantined"][0])
 
+    def test_peer_filing_dates_add_observation_without_promoting_rows(self):
+        def official(document_id, filed_date, sha):
+            return {"document_id": document_id, "sha256": sha,
+                    "filed_date": filed_date, "filing_year": 2026,
+                    "source_id": "house_clerk", "filing_type": "P",
+                    "filer_name": "Hon. Michael T. McCaul", "state_district": "TX10",
+                    "source_url": "https://disclosures-clerk.house.gov/public_disc/"
+                                  f"ptr-pdfs/2026/{document_id}.pdf"}
+        target = official("9116141", "2026-06-10", self.sha)
+        peer = official("9115820", "2026-04-04", "b" * 64)
+        result = qualify_paper_observation(self.observation, target, self.identity,
+                                           peer_metadata=[peer])
+        temporal = result["temporal_relation_observation"]
+        self.assertEqual(temporal["observed_data_slot_count"], 1)
+        self.assertEqual(temporal["peers"][0]["conditional_chronology_exclusion_count"], 1)
+        self.assertEqual(temporal["peers"][0]["relationship_unresolved_count"], 0)
+        self.assertEqual(result["transactions"], [])
+        self.assertEqual(result["qualification"]["quarantined_count"], 2)
+
     def test_identity_and_source_must_match(self):
         with self.assertRaisesRegex(ValueError, "hashes differ"):
             qualify_paper_observation(self.observation,
