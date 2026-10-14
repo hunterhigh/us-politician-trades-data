@@ -14,8 +14,6 @@ import re
 import subprocess
 from pathlib import Path
 
-from PIL import ImageOps
-
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 
 
@@ -45,6 +43,8 @@ def _second_ocr(crop, executable: Path) -> tuple[str, str]:
 
 def _conflict_probe(crop, executable: Path, field: str) -> dict:
     """Keep one alternate image reading for a disputed cell, never a correction."""
+    from PIL import ImageOps
+
     if field == "event_date":
         image = ImageOps.expand(crop, border=20, fill="white")
         page_segmentation_mode = 7
