@@ -13,6 +13,7 @@ from pathlib import Path
 from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
 
 SCHEMA = "senate-paper-slot-comparison/v1"
+PENDING_SCHEMA = "senate-paper-pending-slot-projection/v1"
 LEDGER_FILES = (
     "senate-paper-first-report-rows.json",
     "senate-paper-viewer-remainders.json",
@@ -121,3 +122,91 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
             "label_counts": dict(sorted(sum((Counter(item["label_counts"])
                                              for item in results), Counter()).items())),
             "reports": results}
+
+
+def project_pending_slots(observation: dict) -> dict:
+    """Retain every observed data slot as a pending, non-candidate fact.
+
+    This projection has no formal transaction ID and never asserts that an
+    OCR reading or checkbox is an accurate transaction field. Existing paper
+    extraction rows may overlap these physical slots; no string-only dedup is
+    attempted here.
+    """
+    if (observation.get("schema_version") != SCHEMA or
+            observation.get("fixed_inventory_evidence_commit") != EVIDENCE_COMMIT or
+            observation.get("slot_classification_schema_version") != SLOT_SCHEMA):
+        raise ValueError("Senate paper slot observation schema or source changed")
+    reports = observation.get("reports")
+    if not isinstance(reports, list) or len(reports) != observation.get("report_count"):
+        raise ValueError("Senate paper slot observation reports are incomplete")
+    pending, unknown = [], []
+    seen: set[tuple[str, int, int]] = set()
+    for report in reports:
+        document_id = report["document_id"]
+        source_sha = report["entrypoint_source_sha256"]
+        if report["coverage_status"] != "fixed_slots_observed":
+            continue
+        page_sha = {page["page_number"]: page["page_sha256"]
+                    for page in report["pages"]}
+        if len(page_sha) != len(report["pages"]):
+            raise ValueError("Senate paper slot observation repeats a page")
+        counts: Counter[str] = Counter()
+        for slot in report["slots"]:
+            label = slot["label"]
+            counts[label] += 1
+            number, grid = slot["page_number"], slot["grid_slot"]
+            key = (document_id, number, grid)
+            if key in seen or number not in page_sha:
+                raise ValueError("Senate paper physical slot is duplicated or unbound")
+            seen.add(key)
+            source_slot = {"document_id": document_id,
+                           "entrypoint_source_sha256": source_sha,
+                           "page_number": number,
+                           "page_sha256": page_sha[number],
+                           "grid_slot": grid,
+                           "row_crop_sha256": slot["row_crop_sha256"]}
+            if label == "unknown":
+                unknown.append({"source_slot": source_slot,
+                                "coverage_status": "unknown_physical_slot"})
+            elif label == "data_observed":
+                date = slot["key_cells"]["date"]
+                pending.append({
+                    "source_slot": source_slot,
+                    "source_url": ("https://efdsearch.senate.gov/search/view/paper/"
+                                   f"{document_id}/"),
+                    "status": "pending_source_verification",
+                    "pending_reasons": ["paper_slot_fields_unverified",
+                                        "paper_report_relationship_unverified"],
+                    "asset_ocr_raw": slot["asset_ocr_raw"],
+                    "date_page_ocr_raw": date["page_ocr_raw"],
+                    "date_page_ocr_parsed": date["page_ocr_parsed"],
+                    "date_cell_ocr_parsed": date["cell_ocr_parsed"],
+                    "date_cell_conflict": date["conflict"],
+                    "direction_mark_observations": slot["type_marks"],
+                    "amount_mark_observations": slot["amount_marks"],
+                    "legacy_extraction_report_row_count": report["legacy_extraction_count"],
+                    "legacy_extraction_failed": report["legacy_extraction_failed"],
+                    "formal_transaction_id": None,
+                })
+        if dict(counts) != report["label_counts"] or sum(counts.values()) != report[
+                "physical_grid_slot_count"]:
+            raise ValueError("Senate paper slot labels do not conserve")
+    if len(pending) != observation.get("label_counts", {}).get("data_observed", 0):
+        raise ValueError("Senate paper data slots did not all reach pending projection")
+    if len(unknown) != observation.get("label_counts", {}).get("unknown", 0):
+        raise ValueError("Senate paper unknown slots did not all reach coverage ledger")
+    return {"schema_version": PENDING_SCHEMA,
+            "source_id": "senate_efd",
+            "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
+            "observation_schema_version": SCHEMA,
+            "interpretation": "pending physical slots only; no qualified or published trades",
+            "report_count": len(reports),
+            "pending_row_count": len(pending),
+            "legacy_failed_report_pending_row_count": sum(
+                row["legacy_extraction_failed"] for row in pending),
+            "legacy_extracted_report_pending_row_count": sum(
+                not row["legacy_extraction_failed"] for row in pending),
+            "unknown_slot_count": len(unknown),
+            "unobserved_page_count": observation["unobserved_page_count"],
+            "pending_rows": pending,
+            "unknown_slots": unknown}

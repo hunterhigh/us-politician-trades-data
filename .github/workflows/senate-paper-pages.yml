@@ -95,7 +95,8 @@ jobs:
             --evidence-root "$EVIDENCE_ROOT" \
             --docs-root docs \
             --extraction-batch .local/senate-paper-extraction-batch.json \
-            --output "$REVIEW_ROOT/senate_efd/paper_slot_observations/current.json"
+            --output "$REVIEW_ROOT/senate_efd/paper_slot_observations/current.json" \
+            --pending-output "$REVIEW_ROOT/senate_efd/paper_pending_projections/current.json"
           python - <<'PY'
           import json, os
           from pathlib import Path
@@ -108,6 +109,12 @@ jobs:
               raise SystemExit('Senate paper slot observation lost page coverage')
           if sum(observed['label_counts'].values()) != observed['physical_grid_slot_count']:
               raise SystemExit('Senate paper slot observation failed conservation')
+          pending = json.loads((root / 'senate_efd/paper_pending_projections/current.json')
+                               .read_text(encoding='utf-8'))
+          if pending['pending_row_count'] != observed['label_counts']['data_observed']:
+              raise SystemExit('Senate paper pending projection lost observed data slots')
+          if pending['unknown_slot_count'] != observed['label_counts']['unknown']:
+              raise SystemExit('Senate paper pending projection lost unknown slots')
           PY
       - name: Publish immutable paper page evidence
         env:
@@ -195,7 +202,7 @@ jobs:
             git -C "$STATE_ROOT" commit -m "state: Senate paper extraction ${{ github.run_id }}"
             git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
-          git -C "$REVIEW_ROOT" add senate_efd/extractions senate_efd/paper_report_failures senate_efd/paper_slot_observations status/senate_efd.json
+          git -C "$REVIEW_ROOT" add senate_efd/extractions senate_efd/paper_report_failures senate_efd/paper_slot_observations senate_efd/paper_pending_projections status/senate_efd.json
           git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
           git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then

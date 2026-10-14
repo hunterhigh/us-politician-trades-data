@@ -1,0 +1,1036 @@
+{
+  "source_document_id": "1462ab8c5542e5e7852589b0007899fc",
+  "source_sha256": "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28",
+  "part7_pages": [
+    {
+      "page_number": 9,
+      "page_text_sha256": "ecb972e00aa609b125e03725ccebeea06eb9137da77c3579d0e2a1becfe56253",
+      "rows": [
+        {
+          "number": "1",
+          "top": 119.09,
+          "x0": 20.28,
+          "bottom": 129.3,
+          "raw_lines": [
+            "1. (Spouse) iShares 20+ Year Treasury Bond (TLT) purchase 10/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "2",
+          "top": 142.25,
+          "x0": 20.28,
+          "bottom": 152.46,
+          "raw_lines": [
+            "2. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) sale 10/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "3",
+          "top": 165.41,
+          "x0": 20.28,
+          "bottom": 175.62,
+          "raw_lines": [
+            "3. (Spouse) Vanguard Small Cap Value Index (VBR) sale 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "4",
+          "top": 188.56,
+          "x0": 20.28,
+          "bottom": 198.78,
+          "raw_lines": [
+            "4. (Spouse) Schwab Short-Term U.S. Treasury ETF (SCHO) purchase 10/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "5",
+          "top": 211.73,
+          "x0": 20.28,
+          "bottom": 221.94,
+          "raw_lines": [
+            "5. (Spouse) iShares Core MSCI Emerging Markets (IEMG) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "6",
+          "top": 234.88,
+          "x0": 20.28,
+          "bottom": 245.1,
+          "raw_lines": [
+            "6. (Spouse) Vanguard Value Index ETF (VTV) sale 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "7",
+          "top": 258.05,
+          "x0": 20.28,
+          "bottom": 268.26,
+          "raw_lines": [
+            "7. (Spouse) iShares TR Core MSCI EAFE ETF (IEFA) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "8",
+          "top": 281.2,
+          "x0": 20.28,
+          "bottom": 291.42,
+          "raw_lines": [
+            "8. (Spouse) iShares MBS ETF (MBB) purchase 10/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "9",
+          "top": 304.37,
+          "x0": 20.28,
+          "bottom": 314.58,
+          "raw_lines": [
+            "9. (Spouse) Vanguard Total International Bond Index Fund (BNDX) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "10",
+          "top": 327.53,
+          "x0": 20.28,
+          "bottom": 337.74,
+          "raw_lines": [
+            "10. (Spouse) iShares iBoxx Investment Grade Corporate Bond ETF (LQD) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "11",
+          "top": 350.69,
+          "x0": 20.28,
+          "bottom": 360.9,
+          "raw_lines": [
+            "11. (Spouse) Vanguard Growth Index Fund (VUG) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "12",
+          "top": 373.85,
+          "x0": 20.28,
+          "bottom": 384.06,
+          "raw_lines": [
+            "12. (Spouse) iShares 20+ Year Treasury Bond (TLT) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "13",
+          "top": 397.0,
+          "x0": 20.28,
+          "bottom": 407.22,
+          "raw_lines": [
+            "13. (Spouse) Schwab Short-Term U.S. Treasury ETF (SCHO) purchase 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "14",
+          "top": 420.17,
+          "x0": 20.28,
+          "bottom": 430.38,
+          "raw_lines": [
+            "14. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) sale 10/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "15",
+          "top": 443.33,
+          "x0": 20.28,
+          "bottom": 453.54,
+          "raw_lines": [
+            "15. (Spouse) BLF FedFund (BUPXX) sale 10/12/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "16",
+          "top": 466.49,
+          "x0": 20.28,
+          "bottom": 476.7,
+          "raw_lines": [
+            "16. (Spouse) BLF FedFund (BUPXX) sale 10/12/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "17",
+          "top": 489.64,
+          "x0": 20.28,
+          "bottom": 499.86,
+          "raw_lines": [
+            "17. (Spouse) Schwab Short-Term U.S. Treasury ETF (SCHO) purchase 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "18",
+          "top": 512.8,
+          "x0": 20.28,
+          "bottom": 523.02,
+          "raw_lines": [
+            "18. (Spouse) Vanguard Small Cap Growth Index (VBK) sale 7/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "19",
+          "top": 535.97,
+          "x0": 20.28,
+          "bottom": 546.18,
+          "raw_lines": [
+            "19. (Spouse) Vanguard Small Cap Value Index (VBR) sale 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "20",
+          "top": 559.12,
+          "x0": 20.28,
+          "bottom": 569.34,
+          "raw_lines": [
+            "20. (Spouse) Vanguard Growth Index ETF (VUG) sale 7/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        }
+      ]
+    },
+    {
+      "page_number": 10,
+      "page_text_sha256": "1e5fa16d0e140147d6077cf2a7dd17e2a8dd624023c046aee3f219243558d5b5",
+      "rows": [
+        {
+          "number": "1",
+          "top": 119.09,
+          "x0": 20.28,
+          "bottom": 129.3,
+          "raw_lines": [
+            "1. (Spouse) Vanguard Intermediate Term Corporate Bond ETF (VCIT) purchase 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "2",
+          "top": 142.25,
+          "x0": 20.28,
+          "bottom": 152.46,
+          "raw_lines": [
+            "2. (Spouse) Vanguard Value Index ETF (VTV) purchase 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "3",
+          "top": 165.41,
+          "x0": 20.28,
+          "bottom": 175.62,
+          "raw_lines": [
+            "3. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "4",
+          "top": 188.56,
+          "x0": 20.28,
+          "bottom": 198.78,
+          "raw_lines": [
+            "4. (Spouse) SPDR Bloomberg 1-3 Month T-Bill ETF (BIL) sale 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "5",
+          "top": 211.73,
+          "x0": 20.28,
+          "bottom": 221.94,
+          "raw_lines": [
+            "5. (Spouse) iShares 20+ Year Treasury Bond (TLT) purchase 7/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "6",
+          "top": 234.88,
+          "x0": 20.28,
+          "bottom": 245.1,
+          "raw_lines": [
+            "6. (Spouse) iShares Core MSCI Emerging Markets (IEMG) purchase 7/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "7",
+          "top": 258.05,
+          "x0": 20.28,
+          "bottom": 268.26,
+          "raw_lines": [
+            "7. (Spouse) iShares TR Core MSCI EAFE ETF (IEFA) purchase 7/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "8",
+          "top": 281.2,
+          "x0": 20.28,
+          "bottom": 291.42,
+          "raw_lines": [
+            "8. (Spouse) BLF FedFund (BUPXX) purchase 7/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "9",
+          "top": 304.37,
+          "x0": 20.28,
+          "bottom": 314.58,
+          "raw_lines": [
+            "9. (Spouse) BLF T-Fund (TSTXX) sale 7/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "10",
+          "top": 327.53,
+          "x0": 20.28,
+          "bottom": 337.74,
+          "raw_lines": [
+            "10. (Spouse) BLF T-Fund (TSTXX) sale 7/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "11",
+          "top": 350.69,
+          "x0": 20.28,
+          "bottom": 360.9,
+          "raw_lines": [
+            "11. (Spouse) BLF FedFund (BUPXX) purchase 7/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "12",
+          "top": 373.85,
+          "x0": 20.28,
+          "bottom": 384.06,
+          "raw_lines": [
+            "12. (Spouse) SPDR Bloomberg 1-3 Month T-Bill ETF (BIL) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "13",
+          "top": 397.0,
+          "x0": 20.28,
+          "bottom": 407.22,
+          "raw_lines": [
+            "13. (Spouse) Xtrackers USD High Yield Corporate Bond ETF (HYLB) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "14",
+          "top": 420.17,
+          "x0": 20.28,
+          "bottom": 430.38,
+          "raw_lines": [
+            "14. (Spouse) Vanguard Growth Index ETF (VUG) purchase 5/26/2022 $50,001 - $100,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "15",
+          "top": 443.33,
+          "x0": 20.28,
+          "bottom": 453.54,
+          "raw_lines": [
+            "15. (Spouse) iShares Core MSCI Emerging Markets (IEMG) purchase 5/26/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "16",
+          "top": 466.49,
+          "x0": 20.28,
+          "bottom": 476.7,
+          "raw_lines": [
+            "16. (Spouse) Vanguard Small Cap Growth Index (VBK) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "17",
+          "top": 489.64,
+          "x0": 20.28,
+          "bottom": 499.86,
+          "raw_lines": [
+            "17. (Spouse) Vanguard Value Index ETF (VTV) purchase 5/26/2022 $50,001 - $100,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "18",
+          "top": 512.8,
+          "x0": 20.28,
+          "bottom": 523.02,
+          "raw_lines": [
+            "18. (Spouse) VanEck Fallen Angel High Yield Bond (ANGL) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "19",
+          "top": 535.97,
+          "x0": 20.28,
+          "bottom": 546.18,
+          "raw_lines": [
+            "19. (Spouse) iShares MBS ETF (MBB) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "20",
+          "top": 559.12,
+          "x0": 20.28,
+          "bottom": 569.34,
+          "raw_lines": [
+            "20. (Spouse) iShares TIPS Bond (TIP) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        }
+      ]
+    },
+    {
+      "page_number": 11,
+      "page_text_sha256": "af1f5f8e74ca316925e25b497e01a2662fc4d2879c0d717de884824a74b2c8fb",
+      "rows": [
+        {
+          "number": "1",
+          "top": 119.09,
+          "x0": 20.28,
+          "bottom": 129.3,
+          "raw_lines": [
+            "1. (Spouse) iShares 20+ Year Treasury Bond (TLT) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "2",
+          "top": 142.25,
+          "x0": 20.28,
+          "bottom": 152.46,
+          "raw_lines": [
+            "2. (Spouse) Schwab Short-Term U.S. Treasury ETF (SCHO) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "3",
+          "top": 165.41,
+          "x0": 20.28,
+          "bottom": 175.62,
+          "raw_lines": [
+            "3. (Spouse) iShares iBoxx Investment Grade Corporate Bond ETF (LQD) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "4",
+          "top": 188.56,
+          "x0": 20.28,
+          "bottom": 198.78,
+          "raw_lines": [
+            "4. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 5/26/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "5",
+          "top": 211.73,
+          "x0": 20.28,
+          "bottom": 221.94,
+          "raw_lines": [
+            "5. (Spouse) Vanguard Small Cap Value Index (VBR) purchase 5/26/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "6",
+          "top": 234.88,
+          "x0": 20.28,
+          "bottom": 245.1,
+          "raw_lines": [
+            "6. (Spouse) iShares TR Core MSCI EAFE ETF (IEFA) purchase 5/26/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "7",
+          "top": 258.05,
+          "x0": 20.28,
+          "bottom": 268.26,
+          "raw_lines": [
+            "7. (Spouse) BLF T-Fund (TSTXX) purchase 5/25/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "8",
+          "top": 281.2,
+          "x0": 20.28,
+          "bottom": 291.42,
+          "raw_lines": [
+            "8. (Spouse) Vanguard Small Cap Value Index (VBR) sale 5/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "9",
+          "top": 304.37,
+          "x0": 20.28,
+          "bottom": 314.58,
+          "raw_lines": [
+            "9. (Spouse) Vanguard Small Cap Growth Index (VBK) purchase 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "10",
+          "top": 327.53,
+          "x0": 20.28,
+          "bottom": 337.74,
+          "raw_lines": [
+            "10. (Spouse) Schwab Short-Term U.S. Treasury ETF (SCHO) purchase 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "11",
+          "top": 350.69,
+          "x0": 20.28,
+          "bottom": 360.9,
+          "raw_lines": [
+            "11. (Spouse) Vanguard Value Index ETF (VTV) sale 5/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "12",
+          "top": 373.85,
+          "x0": 20.28,
+          "bottom": 384.06,
+          "raw_lines": [
+            "12. (Spouse) Vanguard Growth Index ETF (VUG) purchase 5/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "13",
+          "top": 397.0,
+          "x0": 20.28,
+          "bottom": 407.22,
+          "raw_lines": [
+            "13. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "14",
+          "top": 420.17,
+          "x0": 20.28,
+          "bottom": 430.38,
+          "raw_lines": [
+            "14. (Spouse) iShares Core MSCI Emerging Markets (IEMG) purchase 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "15",
+          "top": 443.33,
+          "x0": 20.28,
+          "bottom": 453.54,
+          "raw_lines": [
+            "15. (Spouse) iShares MBS ETF (MBB) sale 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "16",
+          "top": 466.49,
+          "x0": 20.28,
+          "bottom": 476.7,
+          "raw_lines": [
+            "16. (Spouse) SPDR Bloomberg 1-3 Month T-Bill ETF (BIL) sale 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "17",
+          "top": 489.64,
+          "x0": 20.28,
+          "bottom": 499.86,
+          "raw_lines": [
+            "17. (Spouse) iShares Core MSCI EAFE ETF (IEFA) sale 5/13/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "18",
+          "top": 512.8,
+          "x0": 20.28,
+          "bottom": 523.02,
+          "raw_lines": [
+            "18. (Spouse) Vanguard Small Cap Value Index (VBR) sale 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "19",
+          "top": 535.97,
+          "x0": 20.28,
+          "bottom": 546.18,
+          "raw_lines": [
+            "19. (Spouse) iShares TR Core MSCI EAFE ETF (IEFA) sale 5/13/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "20",
+          "top": 559.12,
+          "x0": 20.28,
+          "bottom": 569.34,
+          "raw_lines": [
+            "20. (Spouse) BLF T-Fund (TSTXX) purchase 5/12/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        }
+      ]
+    },
+    {
+      "page_number": 12,
+      "page_text_sha256": "5101d0b1a5ead5700c2f30ffd4005e2b3270c787ff40ed7eba42f6e7deaff968",
+      "rows": [
+        {
+          "number": "1",
+          "top": 119.09,
+          "x0": 20.28,
+          "bottom": 129.3,
+          "raw_lines": [
+            "1. (Spouse) BLF T-Fund (TSTXX) purchase 5/12/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "2",
+          "top": 142.25,
+          "x0": 20.28,
+          "bottom": 152.46,
+          "raw_lines": [
+            "2. (Spouse) Financial Select Sector SPDR Fund (XLF) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "3",
+          "top": 165.41,
+          "x0": 20.28,
+          "bottom": 175.62,
+          "raw_lines": [
+            "3. (Spouse) Vanguard Materials Index Fund (VAW) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "4",
+          "top": 188.56,
+          "x0": 20.28,
+          "bottom": 198.78,
+          "raw_lines": [
+            "4. (Spouse) Energy Select Sector SPDR Fund (XLE) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "5",
+          "top": 211.73,
+          "x0": 20.28,
+          "bottom": 221.94,
+          "raw_lines": [
+            "5. (Spouse) Vanguard Consumer Staples Fund (VDC) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "6",
+          "top": 234.88,
+          "x0": 20.28,
+          "bottom": 245.1,
+          "raw_lines": [
+            "6. (Spouse) First Trust Cloud Computing ETF (SKYY) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "7",
+          "top": 258.05,
+          "x0": 20.28,
+          "bottom": 268.26,
+          "raw_lines": [
+            "7. (Spouse) Vanguard Industrials Index Fund (VIS) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "8",
+          "top": 281.2,
+          "x0": 20.28,
+          "bottom": 291.42,
+          "raw_lines": [
+            "8. (Spouse) Vanguard Growth Index ETF (VUG) purchase 5/10/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "9",
+          "top": 304.37,
+          "x0": 20.28,
+          "bottom": 314.58,
+          "raw_lines": [
+            "9. (Spouse) Vanguard Value Index ETF (VTV) purchase 5/10/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "10",
+          "top": 327.53,
+          "x0": 20.28,
+          "bottom": 337.74,
+          "raw_lines": [
+            "10. (Spouse) Vanguard Information Technology Index Fund (VGT) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "11",
+          "top": 350.69,
+          "x0": 20.28,
+          "bottom": 360.9,
+          "raw_lines": [
+            "11. (Spouse) Vanguard Small Cap Index Fund (VB) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "12",
+          "top": 373.85,
+          "x0": 20.28,
+          "bottom": 384.06,
+          "raw_lines": [
+            "12. (Spouse) iShares MBS ETF (MBB) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "13",
+          "top": 397.0,
+          "x0": 20.28,
+          "bottom": 407.22,
+          "raw_lines": [
+            "13. (Spouse) Consumer Discretionary Select Sector SPDR Fund (XLY) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "14",
+          "top": 420.17,
+          "x0": 20.28,
+          "bottom": 430.38,
+          "raw_lines": [
+            "14. (Spouse) Communication Services Select Sector SPDR Fund (XLC) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "15",
+          "top": 443.33,
+          "x0": 20.28,
+          "bottom": 453.54,
+          "raw_lines": [
+            "15. (Spouse) VanEck Semiconductor ETF (SMH) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "16",
+          "top": 466.49,
+          "x0": 20.28,
+          "bottom": 476.7,
+          "raw_lines": [
+            "16. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "17",
+          "top": 489.64,
+          "x0": 20.28,
+          "bottom": 499.86,
+          "raw_lines": [
+            "17. (Spouse) Health Care Select Sector SPDR Fund (XLV) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "18",
+          "top": 512.8,
+          "x0": 20.28,
+          "bottom": 523.02,
+          "raw_lines": [
+            "18. (Spouse) Vanguard Small Cap Growth Index (VBK) purchase 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "19",
+          "top": 535.97,
+          "x0": 20.28,
+          "bottom": 546.18,
+          "raw_lines": [
+            "19. (Spouse) Vanguard Small Cap Value Index (VBR) purchase 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "20",
+          "top": 559.12,
+          "x0": 20.28,
+          "bottom": 569.34,
+          "raw_lines": [
+            "20. (Spouse) Vanguard Intermediate-Term Corporate Bond Index Fund (VCIT) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        }
+      ]
+    },
+    {
+      "page_number": 13,
+      "page_text_sha256": "1b5ac1619e858a12ced57893af7ae7c6038db14379f382663426d87a77a3580f",
+      "rows": [
+        {
+          "number": "1",
+          "top": 119.09,
+          "x0": 20.28,
+          "bottom": 129.3,
+          "raw_lines": [
+            "1. (Spouse) iShares Biotechnology ETF (IBB) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "2",
+          "top": 142.25,
+          "x0": 20.28,
+          "bottom": 152.46,
+          "raw_lines": [
+            "2. (Spouse) iShares Core MSCI Emerging Markets (IEMG) sale 5/10/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "3",
+          "top": 165.41,
+          "x0": 20.28,
+          "bottom": 175.62,
+          "raw_lines": [
+            "3. (Spouse) Vanguard Information Technology Index Fund (VGT) purchase 4/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "4",
+          "top": 188.56,
+          "x0": 20.28,
+          "bottom": 198.78,
+          "raw_lines": [
+            "4. (Spouse) Vanguard Small Cap Value Index (VBR) purchase 2/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "5",
+          "top": 211.73,
+          "x0": 20.28,
+          "bottom": 221.94,
+          "raw_lines": [
+            "5. (Spouse) Vanguard Small Cap Growth Index (VBK) purchase 2/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "6",
+          "top": 234.88,
+          "x0": 20.28,
+          "bottom": 245.1,
+          "raw_lines": [
+            "6. (Spouse) Vanguard Growth Index ETF (VUG) purchase 2/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "7",
+          "top": 258.05,
+          "x0": 20.28,
+          "bottom": 268.26,
+          "raw_lines": [
+            "7. (Spouse) Vanguard Value Index ETF (VTV) sale 2/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "8",
+          "top": 281.2,
+          "x0": 20.28,
+          "bottom": 291.42,
+          "raw_lines": [
+            "8. (Spouse) iShares TR Core MSCI EAFE ETF (IEFA) purchase 2/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "9",
+          "top": 304.37,
+          "x0": 20.28,
+          "bottom": 314.58,
+          "raw_lines": [
+            "9. (Spouse) iShares Core MSCI Emerging Markets (IEMG) purchase 2/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "10",
+          "top": 327.53,
+          "x0": 20.28,
+          "bottom": 337.74,
+          "raw_lines": [
+            "10. (Spouse) iShares MBS ETF (MBB) sale 2/14/2022 $15,001 - $50,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "11",
+          "top": 350.69,
+          "x0": 20.28,
+          "bottom": 360.9,
+          "raw_lines": [
+            "11. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 2/14/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "12",
+          "top": 373.85,
+          "x0": 20.28,
+          "bottom": 384.06,
+          "raw_lines": [
+            "12. (Spouse) VanEck Semiconductor ETF (SMH) purchase 2/11/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "13",
+          "top": 397.0,
+          "x0": 20.28,
+          "bottom": 407.22,
+          "raw_lines": [
+            "13. (Spouse) Vanguard Short-Term Corporate Bond Index Fund (VCSH) purchase 2/11/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "14",
+          "top": 420.17,
+          "x0": 20.28,
+          "bottom": 430.38,
+          "raw_lines": [
+            "14. (Spouse) iShares MBS ETF (MBB) sale 2/11/2022 $1,001 - $15,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "15",
+          "top": 443.33,
+          "x0": 20.28,
+          "bottom": 453.54,
+          "raw_lines": [
+            "15. (Spouse) Vanguard Target Retirement 2030 Trust II sale 5/18/2022 $100,001 - $250,000"
+          ],
+          "classification": "filled_transaction"
+        },
+        {
+          "number": "16",
+          "top": 466.74,
+          "x0": 20.28,
+          "bottom": 476.7,
+          "raw_lines": [
+            "16."
+          ],
+          "classification": "blank_template"
+        },
+        {
+          "number": "17",
+          "top": 489.89,
+          "x0": 20.28,
+          "bottom": 499.85,
+          "raw_lines": [
+            "17."
+          ],
+          "classification": "blank_template"
+        },
+        {
+          "number": "18",
+          "top": 513.05,
+          "x0": 20.28,
+          "bottom": 523.01,
+          "raw_lines": [
+            "18."
+          ],
+          "classification": "blank_template"
+        },
+        {
+          "number": "19",
+          "top": 536.21,
+          "x0": 20.28,
+          "bottom": 546.17,
+          "raw_lines": [
+            "19."
+          ],
+          "classification": "blank_template"
+        },
+        {
+          "number": "20",
+          "top": 559.37,
+          "x0": 20.28,
+          "bottom": 569.33,
+          "raw_lines": [
+            "20."
+          ],
+          "classification": "blank_template"
+        }
+      ]
+    }
+  ]
+}
