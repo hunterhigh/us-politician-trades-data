@@ -51,6 +51,7 @@ def _pending_transaction_projection(result: dict, metadata: dict) -> dict:
                 "amount": "printed_bounds_unverified_transaction" if amount else
                           fields.get("amount_status", "unresolved"),
             },
+            "source_quality_flags": row.get("source_quality_flags", []),
             "blocking_reasons": row["reasons"],
         })
     return {"schema_version": "house-paper-pending-transaction-projection/v1",
@@ -155,6 +156,8 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 "evidence": {"page": page_number, "physical_band_index": band_index,
                              "band_normalized": physical.get("band")},
                 "raw_fields": read["fields"] if read else None,
+                "source_field_evidence": read.get("source_field_evidence") if read else None,
+                "source_quality_flags": read.get("source_quality_flags", []) if read else [],
                 "account_section_observation": section_by_slot.get(slot),
                 "possible_repeated_with": repeated_by_slot.get(slot, []),
                 "amount_range_observation": amount_observation,

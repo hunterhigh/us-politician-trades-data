@@ -138,6 +138,20 @@ jobs:
             --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
             --reuse-root "$REVIEW_ROOT/oge/extractions" \
             --output-dir .local/oge-extractions --output .local/oge-extraction-batch.json
+      - name: Observe fixed 278-T page coverage without changing extraction
+        if: ${{ steps.collect.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          python -m pip install pymupdf==1.28.2
+          PYTHONPATH=backend/src python backend/scripts/build_oge_278t_page_coverage.py \
+            --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
+            --extractions-dir .local/oge-extractions \
+            --review-root "$REVIEW_ROOT" \
+            --output-dir .local/oge-278t-page-sidecars \
+            --summary .local/oge-278t-page-sidecar-summary.json
       - name: Publish immutable official evidence
         id: publish_evidence
         if: ${{ steps.collect.outcome == 'success' }}
@@ -233,6 +247,8 @@ jobs:
             .local/oge-report-batch.json
             .local/oge-extraction-batch.json
             .local/oge-extractions
+            .local/oge-278t-page-sidecars
+            .local/oge-278t-page-sidecar-summary.json
           include-hidden-files: true
           retention-days: 1
 
@@ -327,7 +343,7 @@ jobs:
           MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
         run: |
           REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
-          import json, os
+          import hashlib, json, os
           from pathlib import Path
           review = Path(os.environ['REVIEW_ROOT'])
           catalog_path = Path('.local/oge-catalog.json')
@@ -347,6 +363,17 @@ jobs:
               target.parent.mkdir(parents=True, exist_ok=True)
               if target.is_file() and target.read_bytes() != source.read_bytes():
                   raise SystemExit('Immutable OGE extraction collision')
+              target.write_bytes(source.read_bytes())
+          for source in Path('.local/oge-278t-page-sidecars').glob('*/*.json'):
+              target = review / 'oge' / 'page_coverage' / source.parent.name / source.name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              if target.is_file() and target.read_bytes() != source.read_bytes():
+                  digest = hashlib.sha256(source.read_bytes()).hexdigest()[:12]
+                  conflict = (review / 'oge' / 'page_coverage_conflicts' /
+                              source.parent.name / f'{source.name}.{digest}.json')
+                  conflict.parent.mkdir(parents=True, exist_ok=True)
+                  conflict.write_bytes(source.read_bytes())
+                  continue
               target.write_bytes(source.read_bytes())
           PY
           PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_replay.py \

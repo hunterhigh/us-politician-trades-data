@@ -94,6 +94,109 @@ class HousePaperPipelineTests(unittest.TestCase):
         failure = self.review / "house_clerk/paper_failures" / self.relative
         self.assertIn("unsupported grid", failure.read_text())
 
+    def test_same_filer_official_peer_is_recorded_without_promotion(self):
+        peer = dict(self.metadata, document_id="9116142", filed_date="2025-02-03")
+        peer["source_url"] = peer["source_url"].replace("9116141.pdf", "9116142.pdf")
+        self._write(self.evidence / "house_clerk/documents/2025/9116142" /
+                    f"{self.sha}.json", peer)
+        other = dict(peer, document_id="9116143", filer_name="Other, Person")
+        other["source_url"] = other["source_url"].replace("9116142.pdf", "9116143.pdf")
+        self._write(self.evidence / "house_clerk/documents/2025/9116143" /
+                    f"{self.sha}.json", other)
+        paper = dict(self.paper, quarantined=[{
+            "raw_fields": {"event_date": "2025-01-20"}}])
+        with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
+                    return_value=self.observation),
+              patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
+                    return_value=self.header),
+              patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
+                    return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.audit_paper_temporal_relations",
+                    return_value={"status": "read_only"}) as audit):
+            outcome = bridge_paper_report(evidence_root=self.evidence,
+                                          review_root=self.review,
+                                          metadata_path=self.metadata_path,
+                                          tesseract="tesseract", observe_new=True)
+        self.assertEqual(outcome, "observed_and_qualified")
+        self.assertEqual(json.loads(self.qualification_path.read_text())
+                         ["temporal_relation_observation"], {"status": "read_only"})
+        self.assertEqual([value["document_id"] for value in audit.call_args.args[2]],
+                         ["9116142"])
+
+    def test_doubtful_key_cell_reread_is_saved_and_reused(self):
+        paper = dict(self.paper, quarantined=[{"source_quality_flags": [
+            "asset_ocr_confidence_below_70"]}])
+        reread = {"source_sha256": self.sha,
+                  "qualification_status": "unverified_shadow_only",
+                  "selected_cell_count": 1, "rereads": []}
+        with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
+                    return_value=self.observation),
+              patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
+                    return_value=self.header),
+              patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
+                    return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells",
+                    return_value=reread) as reread_fn):
+            outcome = bridge_paper_report(evidence_root=self.evidence,
+                                          review_root=self.review,
+                                          metadata_path=self.metadata_path,
+                                          tesseract="tesseract", observe_new=True)
+            replay = bridge_paper_report(evidence_root=self.evidence,
+                                         review_root=self.review,
+                                         metadata_path=self.metadata_path,
+                                         tesseract="tesseract", observe_new=False)
+        self.assertEqual((outcome, replay),
+                         ("observed_and_qualified", "requalified_existing_observation"))
+        reread_fn.assert_called_once()
+        self.assertEqual(json.loads(self.qualification_path.read_text())
+                         ["key_field_reread_status"], "observed")
+        self.assertEqual(json.loads((self.review / "house_clerk/paper_key_field_rereads" /
+                                     self.relative).read_text()), reread)
+
+    def test_failed_second_read_keeps_paper_rows_quarantined(self):
+        paper = dict(self.paper, quarantined=[{"source_quality_flags": [
+            "event_date_ocr_confidence_below_70"]}])
+        with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
+                    return_value=self.observation),
+              patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
+                    return_value=self.header),
+              patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
+                    return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells",
+                    side_effect=ValueError("crop unreadable"))):
+            outcome = bridge_paper_report(evidence_root=self.evidence,
+                                          review_root=self.review,
+                                          metadata_path=self.metadata_path,
+                                          tesseract="tesseract", observe_new=True)
+        self.assertEqual(outcome, "observed_and_qualified")
+        qualification = json.loads(self.qualification_path.read_text())
+        self.assertEqual(qualification["transactions"], [])
+        self.assertEqual(qualification["key_field_reread_status"], "unresolved")
+        self.assertIn("crop unreadable", (self.review / "house_clerk/paper_reread_failures" /
+                                          self.relative).read_text())
+
+    def test_temporal_hint_failure_does_not_block_paper_qualification(self):
+        peer = dict(self.metadata, document_id="9116142", filed_date="invalid")
+        peer["source_url"] = peer["source_url"].replace("9116141.pdf", "9116142.pdf")
+        self._write(self.evidence / "house_clerk/documents/2025/9116142" /
+                    f"{self.sha}.json", peer)
+        paper = dict(self.paper, quarantined=[{
+            "raw_fields": {"event_date": "2025-01-20"}}])
+        with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
+                    return_value=self.observation),
+              patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
+                    return_value=self.header),
+              patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
+                    return_value=paper)):
+            outcome = bridge_paper_report(evidence_root=self.evidence,
+                                          review_root=self.review,
+                                          metadata_path=self.metadata_path,
+                                          tesseract="tesseract", observe_new=True)
+        self.assertEqual(outcome, "observed_and_qualified")
+        self.assertEqual(json.loads(self.qualification_path.read_text())["transactions"], [])
+        self.assertIn("filing date is invalid", (self.review /
+                      "house_clerk/paper_temporal_failures" / self.relative).read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

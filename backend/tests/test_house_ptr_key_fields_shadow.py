@@ -39,6 +39,23 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         self.assertEqual(row["fields"]["event_date"], "2026-05-01")
         self.assertEqual(result["qualification_status"], "unverified_shadow_only")
 
+    def test_field_crop_evidence_and_ocr_risk_survive_reading(self):
+        observed = report()
+        cells = observed["pages"][0]["rows"][0]["cells"]
+        cells["asset"]["crop_sha256"] = "b" * 64
+        cells["asset"]["bbox_normalized"] = [.1, .2, .3, .4]
+        cells["asset"]["raw_ocr_confidence"] = 42.0
+        cells["event_date"]["raw_text"] = "05/01/2026 |"
+        row = read_house_ptr_key_fields(observed)["rows"][0]
+        self.assertEqual(row["source_field_evidence"]["asset"]["crop_sha256"],
+                         "b" * 64)
+        self.assertEqual(row["source_field_evidence"]["asset"]["raw_text"],
+                         "CARLISLE INC")
+        self.assertEqual(len(row["source_field_evidence"]["amount"]), 11)
+        self.assertIn("asset_ocr_confidence_below_70", row["source_quality_flags"])
+        self.assertIn("event_date_ocr_edge_noise", row["source_quality_flags"])
+        self.assertEqual(row["status"], "raw_fields_present_unverified")
+
     def test_noisy_date_and_second_mark_leave_field_blockers(self):
         observed = report()
         fields = observed["pages"][0]["rows"][0]["cells"]

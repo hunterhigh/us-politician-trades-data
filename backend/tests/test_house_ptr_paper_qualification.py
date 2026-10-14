@@ -51,6 +51,9 @@ class HousePaperQualificationTests(unittest.TestCase):
                          {"data_candidate": 1, "unknown": 1, "blank": 1})
         self.assertIn("paper_source_fields_unverified", result["quarantined"][0]["reasons"])
         self.assertEqual(result["quarantined"][0]["raw_fields"]["amount_letter"], "A")
+        self.assertEqual(result["quarantined"][0]["source_field_evidence"]["asset"]
+                         ["raw_text"], "EXAMPLE INC")
+        self.assertEqual(result["quarantined"][0]["source_quality_flags"], [])
         self.assertIn("physical_row_disposition_unresolved",
                       result["quarantined"][1]["reasons"])
         self.assertNotIn("id", result["quarantined"][0])
@@ -202,6 +205,14 @@ class HousePaperQualificationTests(unittest.TestCase):
             self.assertEqual(old_candidate["transactions"], [])
             self.assertNotIn("paper transaction projections pending",
                              old_candidate["source_health"][0]["detail"])
+            result["pending_transaction_projection"]["rows"][0][
+                "source_quality_flags"] = ["invented_quality_signal"]
+            target.write_text(json.dumps(result), encoding="utf-8")
+            with self.assertRaisesRegex(HouseIndexError, "conserve source slots"):
+                build_house_candidate(root, source_state, base)
+            result["pending_transaction_projection"]["rows"][0][
+                "source_quality_flags"] = result["quarantined"][0][
+                    "source_quality_flags"]
             result["pending_transaction_projection"]["rows"][0]["observation_key"] = "wrong"
             target.write_text(json.dumps(result), encoding="utf-8")
             with self.assertRaisesRegex(HouseIndexError, "conserve source slots"):

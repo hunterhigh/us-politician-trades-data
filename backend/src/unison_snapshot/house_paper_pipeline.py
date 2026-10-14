@@ -14,8 +14,10 @@ from pathlib import Path
 from .codec import encode
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
+from .house_ptr_key_field_reread import reread_doubtful_key_cells
 from .house_ptr_paper_qualification import qualify_paper_observation
-from .house_ptr_paper_temporal import PARSER_VERSION, validate_paper_source_metadata
+from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
+                                      validate_paper_source_metadata)
 
 
 def _read(path: Path) -> dict:
@@ -27,6 +29,21 @@ def _write(path: Path, value: dict) -> None:
     temporary = path.with_suffix(".json.tmp")
     temporary.write_bytes(encode(value))
     temporary.replace(path)
+
+
+def _same_filer_peers(evidence_root: Path, target: dict) -> list[dict]:
+    """Use only source-bound PTR catalog entries for chronology hints."""
+    peers = []
+    for path in sorted((evidence_root / "house_clerk" / "documents").glob("*/*/*.json")):
+        value = _read(path)
+        if (value.get("document_id") == target["document_id"] or
+                value.get("filing_type") != "P" or
+                value.get("filer_name") != target["filer_name"] or
+                value.get("state_district") != target["state_district"]):
+            continue
+        validate_paper_source_metadata(value)
+        peers.append(value)
+    return peers
 
 
 def bridge_paper_report(*, evidence_root: Path, review_root: Path,
@@ -46,6 +63,9 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
     qualification_path = review_root / "house_clerk" / "qualifications" / relative
     observation_path = review_root / "house_clerk" / "paper_observations" / relative
     header_path = review_root / "house_clerk" / "paper_amount_headers" / relative
+    reread_path = review_root / "house_clerk" / "paper_key_field_rereads" / relative
+    reread_failure_path = review_root / "house_clerk" / "paper_reread_failures" / relative
+    temporal_failure_path = review_root / "house_clerk" / "paper_temporal_failures" / relative
     if not all(path.is_file() for path in (extraction_path, identity_path,
                                             qualification_path)):
         return "missing_legacy_inputs"
@@ -84,6 +104,43 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                                       amount_header=header)
     if paper["parser_version"] != PARSER_VERSION or paper["transactions"]:
         raise ValueError("House paper bridge produced an ineligible qualification")
+    try:
+        peers = _same_filer_peers(evidence_root, metadata)
+        if peers and any(isinstance(row.get("raw_fields"), dict) and
+                         row["raw_fields"].get("event_date") is not None
+                         for row in paper.get("quarantined", [])):
+            paper["temporal_relation_observation"] = audit_paper_temporal_relations(
+                paper, metadata, peers)
+        temporal_failure_path.unlink(missing_ok=True)
+    except Exception as error:
+        _write(temporal_failure_path, {
+            "schema_version": "house-paper-temporal-failure/v1",
+            "document_id": document_id, "source_sha256": source_sha,
+            "error": f"{type(error).__name__}: {str(error)[:320]}",
+        })
+    if any(row.get("source_quality_flags") for row in paper.get("quarantined", [])):
+        try:
+            if reread_path.is_file():
+                reread = _read(reread_path)
+            else:
+                pdf_path = (evidence_root / metadata["archive_path"]).resolve()
+                if evidence_root not in pdf_path.parents:
+                    raise ValueError("House paper reread archive path escapes evidence root")
+                reread = reread_doubtful_key_cells(
+                    pdf_path.read_bytes(), observation, executable=Path(tesseract))
+            if (reread.get("source_sha256") != source_sha or
+                    reread.get("qualification_status") != "unverified_shadow_only"):
+                raise ValueError("House paper second reading source or status mismatch")
+            paper["key_field_reread_status"] = "observed"
+            _write(reread_path, reread)
+            reread_failure_path.unlink(missing_ok=True)
+        except Exception as error:
+            paper["key_field_reread_status"] = "unresolved"
+            _write(reread_failure_path, {
+                "schema_version": "house-paper-reread-failure/v1",
+                "document_id": document_id, "source_sha256": source_sha,
+                "error": f"{type(error).__name__}: {str(error)[:320]}",
+            })
     # Write reusable source observations first; the qualification is replaced
     # only after the complete paper result has been constructed and checked.
     _write(observation_path, observation)

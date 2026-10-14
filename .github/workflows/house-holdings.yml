@@ -192,6 +192,17 @@ jobs:
           PY
             fi
           done < "$RUNNER_TEMP/holding-metadata.txt"
+      - name: Observe annual sections without changing holding qualification
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          mkdir -p "$REVIEW_ROOT/house_clerk/holding_section_observations" \
+            "$REVIEW_ROOT/house_clerk/holding_section_failures"
+          python backend/scripts/run_house_annual_sections.py \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --new-metadata-list "$RUNNER_TEMP/holding-metadata.txt" --old-limit 2
       - name: Build holding status and candidates
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -209,6 +220,8 @@ jobs:
           failures=list(review.glob('house_clerk/holding_failures/*/*/*.json'))
           identities=list(review.glob('house_clerk/holding_identities/*/*/*.json'))
           qualifications=list(review.glob('house_clerk/holding_qualifications/*/*/*.json'))
+          section_observations=list(review.glob('house_clerk/holding_section_observations/*/*/*.json'))
+          section_failures=list(review.glob('house_clerk/holding_section_failures/*/*/*.json'))
           def keys(paths, root):
               return {path.relative_to(root).as_posix() for path in paths}
           metadata_keys=keys(metadata, evidence/'house_clerk/financial-reports')
@@ -235,6 +248,8 @@ jobs:
                  'parser_commit':os.environ['PARSER_COMMIT'], 'evidence_count':len(metadata),
                  'extraction_count':len(extractions), 'failure_count':len(failures),
                  'qualification_count':len(qualifications), 'eligible_report_count':eligible,
+                 'section_observation_count':len(section_observations),
+                 'section_failure_count':len(section_failures),
                  'qualified_holding_count':holdings, 'excluded_row_count':excluded,
                  'quarantined_row_count':quarantined, 'pending_parse_count':pending_count,
                  'current_member_annual_count':batch['current_member_annual_count'],
@@ -267,7 +282,9 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
           git -C "$REVIEW_ROOT" add house_clerk/holding_extractions house_clerk/holding_identities \
-            house_clerk/holding_qualifications house_clerk/holding_failures candidates status
+            house_clerk/holding_qualifications house_clerk/holding_failures \
+            house_clerk/holding_section_observations house_clerk/holding_section_failures \
+            candidates status
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
