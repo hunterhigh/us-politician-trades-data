@@ -58,6 +58,7 @@ def relate_house_ptr_sections(observation: dict) -> dict:
     sections = []
     data_rows = []
     unknown_rows = []
+    legend_rows = []
     active = None
     for index, (key, row) in enumerate(physical):
         disposition = row.get("disposition")
@@ -83,14 +84,21 @@ def relate_house_ptr_sections(observation: dict) -> dict:
             active = None
         elif disposition == "blank":
             active = None
+        elif disposition == "title_legend":
+            legend_rows.append({"page": key[0], "physical_band_index": key[1],
+                                "reason": "printed_table_legend_not_transaction"})
         else:
             raise ValueError("House paper section disposition is invalid")
-    return {"schema_version": "house-ptr-section-context/v1",
-            "source_sha256": source_sha,
-            "qualification_status": "unverified_shadow_only",
-            "physical_slot_count": len(physical),
-            "section_heading_count": len(sections),
-            "data_candidate_count": len(data_rows),
-            "unclassified_unknown_count": len(unknown_rows),
-            "sections": sections, "data_rows": data_rows,
-            "unclassified_unknown_rows": unknown_rows}
+    result = {"schema_version": "house-ptr-section-context/v1",
+              "source_sha256": source_sha,
+              "qualification_status": "unverified_shadow_only",
+              "physical_slot_count": len(physical),
+              "section_heading_count": len(sections),
+              "data_candidate_count": len(data_rows),
+              "unclassified_unknown_count": len(unknown_rows),
+              "sections": sections, "data_rows": data_rows,
+              "unclassified_unknown_rows": unknown_rows}
+    if legend_rows:
+        result["printed_legend_count"] = len(legend_rows)
+        result["printed_legend_rows"] = legend_rows
+    return result
