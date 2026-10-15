@@ -1,8 +1,4 @@
-"""Source-bound qualification of the fixed 9116141 printed House PTR.
-
-This adapter promotes only verified disclosure slots dated after the preceding
-same-filer PTR was filed. The other 15 slots stay in the review queue.
-"""
+"""Source-bound qualification and relationship closure of printed PTR 9116141."""
 
 from __future__ import annotations
 
