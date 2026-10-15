@@ -418,13 +418,22 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(asset_name, str) or not asset_name.strip():
         reasons.append("asset_name_invalid")
     instrument = INSTRUMENT_TYPES.get(row.get("asset_type_raw"))
+    reviewed_source = (
+        (extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
+         extraction.get("source_sha256") ==
+         "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c" and
+         extraction.get("frontend_gate_audit_sha256") ==
+         "123eb6f68e316449f3f2919f49514554e3ab0e567fdaa972073cbbdb9323a009") or
+        (extraction.get("document_id") == "3a4c5095-028a-4614-a692-836719da4e63" and
+         extraction.get("source_sha256") ==
+         "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3" and
+         extraction.get("visual_corrections_sha256") ==
+         "a4a2b56e8fec7b80aa6a6ea3fe436c48c9f4cec1e38a640ef5b06fabff4d37e4"))
     reviewed_paper = (
         extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA and
         extraction.get("qualification_basis") == "fixed_source_visual_review_v1" and
         row.get("qualification_basis") == "fixed_source_visual_review_v1" and
-        extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
-        extraction.get("frontend_gate_audit_sha256") ==
-        "123eb6f68e316449f3f2919f49514554e3ab0e567fdaa972073cbbdb9323a009" and
+        reviewed_source and
         row.get("asset_type_raw") is None)
     if instrument is None and not reviewed_paper:
         reasons.append("instrument_type_not_supported")
@@ -843,10 +852,20 @@ def build_senate_candidate(
                            "fixed_source_visual_review_v1"
                            for row in extraction["transactions"]]
     if reviewed_paper_rows:
+        reviewed_by_document = Counter(
+            slot.get("document_id") for slot in
+            (row.get("source_slot") or {} for row in reviewed_paper_rows))
+        expected_reviewed = {
+            "068274e1-4b7a-4453-a242-563dde4c10d8": 36,
+            "3a4c5095-028a-4614-a692-836719da4e63": 46,
+        }
         reviewed_ids = {row.get("extraction_id") for row in reviewed_paper_rows}
         qualified_ids = {row["transaction_id"] for row in qualified_rows}
-        if (paper_pending_audit is None or len(reviewed_paper_rows) != 36 or
-                len(reviewed_ids) != 36 or not reviewed_ids <= qualified_ids):
+        if (paper_pending_audit is None or
+                any(count != expected_reviewed.get(document_id)
+                    for document_id, count in reviewed_by_document.items()) or
+                len(reviewed_ids) != len(reviewed_paper_rows) or
+                not reviewed_ids <= qualified_ids):
             raise SenateEfdError("Reviewed Senate paper rows lack complete slot projection")
         pending_slots = {
             (item["source_slot"]["document_id"],
@@ -860,12 +879,12 @@ def build_senate_candidate(
                                        slot.get("grid_slot"))) != slot
                     for slot in reviewed_slots) or
                 len({(slot["document_id"], slot["page_number"], slot["grid_slot"])
-                     for slot in reviewed_slots}) != 36):
+                     for slot in reviewed_slots}) != len(reviewed_paper_rows)):
             raise SenateEfdError("Reviewed Senate paper rows differ from pending source slots")
         paper_pending_audit["status"] = "partially_qualified_source_bound"
-        paper_pending_audit["qualified_transaction_count"] = 36
+        paper_pending_audit["qualified_transaction_count"] = len(reviewed_paper_rows)
         paper_pending_audit["remaining_pending_row_count"] = (
-            pending["pending_row_count"] - 36)
+            pending["pending_row_count"] - len(reviewed_paper_rows))
     candidate = deepcopy(base)
     if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
         raise SenateEfdError("Senate candidate base must be a production input")
