@@ -13,8 +13,8 @@ from typing import Callable
 
 from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
 
-SCHEMA = "senate-paper-slot-comparison/v2"
-PENDING_SCHEMA = "senate-paper-pending-slot-projection/v2"
+SCHEMA = "senate-paper-slot-comparison/v3"
+PENDING_SCHEMA = "senate-paper-pending-slot-projection/v3"
 LEDGER_FILES = (
     "senate-paper-first-report-rows.json",
     "senate-paper-viewer-remainders.json",
@@ -228,7 +228,10 @@ def project_pending_slots(observation: dict) -> dict:
                 if heading is not None and (heading_observation is None or
                     heading_observation["page_sha256"] != heading["page_sha256"] or
                     heading_observation["asset_crop_sha256"] !=
-                    heading["asset_crop_sha256"]):
+                    heading["asset_crop_sha256"] or
+                    heading_observation.get("heading_status") !=
+                    "confirmed_fixed_image" or
+                    not heading_observation.get("printed_heading")):
                     raise ValueError("Senate paper account heading differs")
                 date = slot["key_cells"]["date"]
                 cell_ocr = date["cell_ocr"] or {}
@@ -259,6 +262,9 @@ def project_pending_slots(observation: dict) -> dict:
                     "account_heading_slot": heading,
                     "account_heading_ocr_raw": (heading_observation["heading_ocr_raw"]
                                                 if heading_observation else None),
+                    "account_heading_visual_raw": (
+                        heading_observation["printed_heading"]
+                        if heading_observation else None),
                     "formal_transaction_id": None,
                 })
         if scope is not None and matched_scope_rows != set(scope_rows):

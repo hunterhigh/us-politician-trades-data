@@ -13,16 +13,14 @@ from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT, fixed_archive_p
 
 REPO = Path(__file__).resolve().parents[2]
 DOCS = REPO / "docs"
-VISUAL = (Path(__file__).resolve().parent / "fixtures" /
-          "senate_paper_first_report_visual_review.json")
-
-
 class SenatePaperAccountScopeTests(unittest.TestCase):
     @staticmethod
     def _inputs() -> tuple[dict, dict]:
-        return (json.loads((DOCS / "senate-paper-first-report-rows.json").read_text(
-                    encoding="utf-8")),
-                json.loads(VISUAL.read_text(encoding="utf-8")))
+        ledger = json.loads((DOCS / "senate-paper-first-report-rows.json").read_text(
+            encoding="utf-8"))
+        fields = json.loads((DOCS / "senate-paper-first-report-fields.json").read_text(
+            encoding="utf-8"))
+        return ledger, confirmed_visual_review_from_fields(fields, ledger)
 
     def test_fixed_account_scopes_preserve_repeated_underlying_assets(self):
         result = audit_first_report_account_scopes(*self._inputs())
@@ -39,6 +37,10 @@ class SenatePaperAccountScopeTests(unittest.TestCase):
                             row["account_heading_slot"] is not None
                             for row in result["rows"]))
         self.assertEqual(result["rows"][0]["account_heading_slot"]["grid_slot"], 1)
+        self.assertEqual(result["rows"][0]["account_heading_visual_raw"],
+                         "(S) 3M's Partners LLC")
+        self.assertEqual(result["account_headings"][0]["heading_status"],
+                         "confirmed_fixed_image")
 
     def test_changed_visual_mark_fails_closed(self):
         ledger, visual = self._inputs()
@@ -52,10 +54,16 @@ class SenatePaperAccountScopeTests(unittest.TestCase):
         fields = json.loads((DOCS / "senate-paper-first-report-fields.json")
                             .read_text(encoding="utf-8"))
         derived = confirmed_visual_review_from_fields(fields, ledger)
-        self.assertEqual(derived["rows"], visual["rows"])
+        self.assertEqual(derived, visual)
         fields["rows"][0]["asset"]["ocr"]["joined_text"] = "different"
         with self.assertRaisesRegex(ValueError, "differs from fixed source"):
             confirmed_visual_review_from_fields(fields, ledger)
+
+    def test_changed_account_heading_fails_closed(self):
+        ledger, visual = self._inputs()
+        visual["account_headings"][0]["asset_crop_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "visual account heading differs"):
+            audit_first_report_account_scopes(ledger, visual)
 
     def test_source_identity_must_match_fixed_archive(self):
         ledger, visual = self._inputs()

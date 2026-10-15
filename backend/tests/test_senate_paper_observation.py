@@ -98,6 +98,8 @@ class SenatePaperObservationTests(unittest.TestCase):
             projected = project_pending_slots(observed)
         self.assertEqual(projected["pending_row_count"], 36)
         self.assertEqual(projected["account_scoped_pending_row_count"], 36)
+        self.assertEqual(projected["pending_rows"][0]["account_heading_visual_raw"],
+                         "(S) 3M's Partners LLC")
         self.assertEqual(projected["legacy_extracted_report_pending_row_count"], 36)
         self.assertEqual(projected["unknown_slot_count"], 5)
         self.assertEqual(projected["unobserved_page_count"], 1)
@@ -107,6 +109,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         self.assertTrue(all(row["status"] == "pending_source_verification" and
                             row["formal_transaction_id"] is None and
                             row["account_heading_slot"] is not None and
+                            row["account_heading_visual_raw"] and
                             row["account_scope_status"] ==
                             "source_bound_visual_scope_unverified_identity" and
                             row["source_slot"]["entrypoint_source_sha256"] ==
@@ -120,6 +123,16 @@ class SenatePaperObservationTests(unittest.TestCase):
             observed = compare_archived_batch(root, DOCS, self._batch())
             observed["reports"][0]["account_scope_observation"]["rows"][0][
                 "account_heading_slot"]["asset_crop_sha256"] = "0" * 64
+            with self.assertRaisesRegex(ValueError, "account heading differs"):
+                project_pending_slots(observed)
+
+    def test_projection_rejects_missing_visual_heading(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._archive(root)
+            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed["reports"][0]["account_scope_observation"]["account_headings"][0][
+                "printed_heading"] = ""
             with self.assertRaisesRegex(ValueError, "account heading differs"):
                 project_pending_slots(observed)
 
