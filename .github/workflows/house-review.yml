@@ -338,6 +338,16 @@ jobs:
             --relation-review docs/house-paper-9116141-prior-relationship-review.json \
             | tee .local/house-paper-9116141-complete.json
           echo "House paper relationship: $(cat .local/house-paper-9116141-complete.json)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Qualify source-reviewed House paper 9115820
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          PYTHONPATH=backend/src python backend/scripts/qualify_house_paper_9115820.py \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --source-review docs/house-paper-9115820-source-review.json \
+            | tee .local/house-paper-9115820-qualified.json
+          echo "House paper 9115820: $(cat .local/house-paper-9115820-qualified.json)" >> "$GITHUB_STEP_SUMMARY"
       - name: Build qualification queue status
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
