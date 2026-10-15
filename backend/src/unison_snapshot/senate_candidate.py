@@ -364,6 +364,10 @@ def _person(identity: dict) -> dict:
             not isinstance(official_name, str) or not parsed or parsed.scheme != "https" or
             parsed.hostname != "bioguide.congress.gov"):
         raise SenateEfdError("Senate candidate identity is incomplete")
+    # The archived paper catalog uppercases this filer's name. Preserve the
+    # roster-backed spelling already published for the same person ID.
+    if person_id == "senate:B001277" and display_name.casefold() == "richard blumenthal":
+        display_name = "Richard Blumenthal"
     short_name = official_name.split(" (", 1)[0].strip()
     return {
         "id": person_id,
