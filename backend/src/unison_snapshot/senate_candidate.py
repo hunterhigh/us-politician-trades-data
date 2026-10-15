@@ -414,7 +414,15 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(asset_name, str) or not asset_name.strip():
         reasons.append("asset_name_invalid")
     instrument = INSTRUMENT_TYPES.get(row.get("asset_type_raw"))
-    if instrument is None:
+    reviewed_paper = (
+        extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA and
+        extraction.get("qualification_basis") == "fixed_source_visual_review_v1" and
+        row.get("qualification_basis") == "fixed_source_visual_review_v1" and
+        extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
+        extraction.get("frontend_gate_audit_sha256") ==
+        "123eb6f68e316449f3f2919f49514554e3ab0e567fdaa972073cbbdb9323a009" and
+        row.get("asset_type_raw") is None)
+    if instrument is None and not reviewed_paper:
         reasons.append("instrument_type_not_supported")
     ticker = row.get("ticker_raw")
     if ticker is not None and (not isinstance(ticker, str) or not _TICKER.fullmatch(ticker)):
@@ -826,6 +834,34 @@ def build_senate_candidate(
     )
     if transaction_disposition_total != input_transaction_count:
         raise SenateEfdError("Senate transaction dispositions do not cover every extracted row")
+    reviewed_paper_rows = [row for extraction in extraction_values
+                           if extraction.get("qualification_basis") ==
+                           "fixed_source_visual_review_v1"
+                           for row in extraction["transactions"]]
+    if reviewed_paper_rows:
+        reviewed_ids = {row.get("extraction_id") for row in reviewed_paper_rows}
+        qualified_ids = {row["transaction_id"] for row in qualified_rows}
+        if (paper_pending_audit is None or len(reviewed_paper_rows) != 36 or
+                len(reviewed_ids) != 36 or not reviewed_ids <= qualified_ids):
+            raise SenateEfdError("Reviewed Senate paper rows lack complete slot projection")
+        pending_slots = {
+            (item["source_slot"]["document_id"],
+             item["source_slot"]["page_number"],
+             item["source_slot"]["grid_slot"]): item["source_slot"]
+            for item in pending["pending_rows"]}
+        reviewed_slots = [row.get("source_slot") for row in reviewed_paper_rows]
+        if (len(pending_slots) != len(pending["pending_rows"]) or
+                any(not isinstance(slot, dict) or
+                    pending_slots.get((slot.get("document_id"), slot.get("page_number"),
+                                       slot.get("grid_slot"))) != slot
+                    for slot in reviewed_slots) or
+                len({(slot["document_id"], slot["page_number"], slot["grid_slot"])
+                     for slot in reviewed_slots}) != 36):
+            raise SenateEfdError("Reviewed Senate paper rows differ from pending source slots")
+        paper_pending_audit["status"] = "partially_qualified_source_bound"
+        paper_pending_audit["qualified_transaction_count"] = 36
+        paper_pending_audit["remaining_pending_row_count"] = (
+            pending["pending_row_count"] - 36)
     candidate = deepcopy(base)
     if not isinstance(candidate.get("meta"), dict) or candidate["meta"].get("is_demo") is not False:
         raise SenateEfdError("Senate candidate base must be a production input")

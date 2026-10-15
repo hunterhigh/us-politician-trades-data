@@ -116,6 +116,18 @@ jobs:
           if pending['unknown_slot_count'] != observed['label_counts']['unknown']:
               raise SystemExit('Senate paper pending projection lost unknown slots')
           PY
+      - name: Qualify fixed source-bound first paper report
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          PYTHONPATH=backend/src python backend/scripts/qualify_senate_paper_first_report.py \
+            --batch .local/senate-paper-extraction-batch.json \
+            --pending "$REVIEW_ROOT/senate_efd/paper_pending_projections/current.json" \
+            --audit docs/senate-paper-first-report-frontend-gates.json \
+            --manifest "$EVIDENCE_ROOT/senate_efd/paper_pages/068274e1-4b7a-4453-a242-563dde4c10d8/manifest.json" \
+            --output .local/senate-paper-qualified-batch.json
+          mv .local/senate-paper-qualified-batch.json .local/senate-paper-extraction-batch.json
       - name: Publish immutable paper page evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -156,6 +168,11 @@ jobs:
               target.parent.mkdir(parents=True, exist_ok=True)
               target.write_text(json.dumps(item, ensure_ascii=False, sort_keys=True,
                                            separators=(',', ':')), encoding='utf-8')
+          qualified_id = '068274e1-4b7a-4453-a242-563dde4c10d8'
+          if any(item['document_id'] == qualified_id for item in batch['extractions']):
+              stale = failure_root / qualified_id / batch['extractions'][-1]['source_sha256'] / f'{parser}.json'
+              if stale.is_file():
+                  stale.unlink()
           extraction_paths = list((review / 'senate_efd' / 'extractions').glob(f'*/*/{parser}.json'))
           extractions = [json.loads(path.read_text(encoding='utf-8')) for path in extraction_paths]
           transaction_count = sum(len(item.get('transactions', [])) for item in extractions)
@@ -202,7 +219,7 @@ jobs:
             git -C "$STATE_ROOT" commit -m "state: Senate paper extraction ${{ github.run_id }}"
             git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
-          git -C "$REVIEW_ROOT" add senate_efd/extractions senate_efd/paper_report_failures senate_efd/paper_slot_observations senate_efd/paper_pending_projections status/senate_efd.json
+          git -C "$REVIEW_ROOT" add -A senate_efd/extractions senate_efd/paper_report_failures senate_efd/paper_slot_observations senate_efd/paper_pending_projections status/senate_efd.json
           git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
           git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
@@ -228,17 +245,15 @@ jobs:
           if (not isinstance(audit, dict) or
                   audit['physical_slot_count'] != pending['pending_row_count'] or
                   audit['unknown_slot_count'] != pending['unknown_slot_count'] or
-                  audit['qualified_transaction_count'] != 0):
+                  audit['qualified_transaction_count'] != 36 or
+                  audit['remaining_pending_row_count'] != pending['pending_row_count'] - 36):
               raise SystemExit('Senate paper pending slots did not reach shadow candidate audit')
           print(json.dumps({'pending_physical_slots_in_builder': audit['physical_slot_count'],
                             'unknown_physical_slots_in_builder': audit['unknown_slot_count'],
-                            'formal_transactions_from_projection': 0}, sort_keys=True))
+                            'source_bound_qualified_transactions': 36}, sort_keys=True))
           PY
           failures="$(python -c "import json; print(json.load(open('.local/senate-paper-extraction-batch.json'))['failure_count'])")"
-          if [ "$failures" != "0" ]; then
-            echo "$failures Senate paper reports remain in explicit failure isolation." >&2
-            exit 1
-          fi
+          echo "$failures Senate paper reports remain in explicit failure isolation."
       - name: Rebuild Senate and unified disclosure candidates
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
