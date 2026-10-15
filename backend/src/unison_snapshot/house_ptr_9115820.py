@@ -11,8 +11,12 @@ from pathlib import Path
 
 from .house_ptr import DETERMINISTIC_IDENTITY_BASES
 from .house_ptr_amount_header import evaluate_amount_header_pages
-from .house_ptr_fixed_paper import (
-    _canonical, _check_source_cells, _fixed_transaction, _sha, _slot,
+from .house_ptr_fixed_source_core import (
+    canonical_json as _canonical,
+    canonical_sha256 as _sha,
+    review_slot as _slot,
+    disclosure_transaction as _fixed_transaction,
+    check_source_cells as _check_source_cells,
 )
 from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_ptr_paper_temporal import validate_paper_source_metadata
@@ -158,7 +162,7 @@ def qualify_9115820(pdf_bytes: bytes, prior_pdf_bytes: bytes, metadata: dict,
         transactions.append(_fixed_transaction(
             page, band, event_text, asset, title, raw["direction_mark"], amount,
             metadata["source_url"], document_id=DOCUMENT_ID,
-            source_sha256=SOURCE_SHA256, owner=owner,
+            source_sha256=SOURCE_SHA256, person_id="house:M001157", owner=owner,
             filed_at="2026-05-04T00:00:00Z"))
     if (len(transactions) != 86 or
             len({item["id"] for item in transactions}) != 86):
