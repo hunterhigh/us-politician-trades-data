@@ -133,6 +133,13 @@ def audit_278t_format(pdf_path: Path, *, extraction: dict | None = None,
             "selected_row_count": sum(page["selected_row_count"] for page in pages),
             "unselected_page_row_count": sum(row["page_number"] not in selected_pages
                                              for row in rows),
+            "confirmed_physical_slot_count": sum(
+                page["physical_slot_count"] or 0 for page in pages),
+            "pages_with_confirmed_physical_slots": sum(
+                page["physical_slot_count"] is not None for page in pages),
+            "pages_with_unknown_raster_coverage": [
+                page["page_number"] for page in pages
+                if page["raster_census_status"] == "coverage_unknown"],
             "pages_with_issues": sum(bool(page["issues"]) for page in pages),
             "pages": pages,
             "production_mutation_authorized": False}

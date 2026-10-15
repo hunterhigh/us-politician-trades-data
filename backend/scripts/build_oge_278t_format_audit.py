@@ -29,7 +29,9 @@ def main() -> None:
                                       separators=(",", ":")), encoding="utf-8")
     print(json.dumps({key: result[key] for key in (
         "source_sha256", "page_count", "selected_page_numbers",
-        "selected_row_count", "unselected_page_row_count", "pages_with_issues")},
+        "selected_row_count", "unselected_page_row_count",
+        "confirmed_physical_slot_count", "pages_with_confirmed_physical_slots",
+        "pages_with_unknown_raster_coverage", "pages_with_issues")},
         sort_keys=True))
 
 
