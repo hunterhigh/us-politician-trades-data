@@ -60,19 +60,8 @@ def _paper_pending_count(qualification: dict) -> int:
     if projection is None:
         return 0  # Earlier paper qualification artifacts remain readable.
     quarantined = qualification["quarantined"]
-    partial = (qualification.get("document_id") == "9116141" and
-               qualification.get("source_sha256") ==
-               "716cdcc10bd57c400f10d8bb4133eb667931a9699fb1835ed3b7deca010a36a1" and
-               qualification.get("qualification", {}).get("method") ==
-               "fixed_source_visual_review_v1" and
-               len(qualification.get("transactions", [])) == 119 and
-               len(quarantined) == 15 and
-               qualification.get("qualification", {}).get("qualified_count") == 119 and
-               qualification.get("qualification", {}).get("quarantined_count") == 15 and
-               isinstance(qualification.get("source_review_sha256"), str) and
-               len(qualification["source_review_sha256"]) == 64)
     if (qualification.get("parser_version") != PAPER_PARSER_VERSION or
-            (qualification["transactions"] != [] and not partial) or
+            qualification["transactions"] != [] or
             not isinstance(projection, dict) or
             projection.get("schema_version") != "house-paper-pending-transaction-projection/v1" or
             projection.get("status") != "unverified_pending" or
@@ -108,9 +97,7 @@ def _paper_pending_count(qualification: dict) -> int:
         amount = amount if isinstance(amount, dict) else {}
         if (not isinstance(reasons, list) or
                 row.get("blocking_reasons") != reasons or
-                ("paper_source_fields_unverified" not in reasons and
-                 not (partial and reasons ==
-                      ["prior_same_filer_report_relation_unresolved"])) or
+                "paper_source_fields_unverified" not in reasons or
                 row.get("evidence") != source.get("evidence") or
                 row.get("person_id") != qualification["identity"].get("person_id") or
                 row.get("owner") != OWNER_CODES.get(raw.get("owner_code")) or
