@@ -1,24 +1,7 @@
-# Project instructions: Unison Snapshot Producer
+# 后端协作边界
 
-## Start every task
-
-- Read `START-HERE.md`, `docs/project/brief.md`, and the current stage gates.
-- Restate the requested outcome and its acceptance criteria before changing behavior.
-- Preserve the approved first-release boundary; propose scope changes explicitly.
-- Explain decisions and results to the project owner in plain language.
-
-## Engineering agreements
-
-- Keep changes small, independently testable, and visible in Git.
-- Run the project's verification command after relevant changes.
-- Add or update tests when behavior changes or a defect is fixed.
-- Do not add a dependency without explaining its purpose and maintenance cost.
-- Never commit real secrets, tokens, customer data, production exports, or local credentials.
-- Record architecture-significant or difficult-to-reverse decisions in `docs/project/decisions/`.
-- Never test changes against production resources; preserve environment isolation.
-- Update the changelog and follow the release process for behavior shipped to users.
-- External actions such as repository changes, cloud provisioning, secret setting, deployment, or production access require an explicit user request.
-
-## Stage changes
-
-When real users, production data, payments, scheduled writes, new vendors, or business-critical use are introduced, reassess `.project-start/manifest.json` before proceeding.
+- 先遵守仓库根目录 `AGENTS.md`，再从 `docs/当前目标与优先级.md` 确认当前阶段；本文件不另设项目阶段或发布许可。
+- 区分官方原件、解析观察、资格判断、规范候选与正式快照。观察到的格位不自动成为合格交易；单份原件恢复不代表其版式已经普遍覆盖。
+- 新版解析先在影子结果中按版式核对页、行、关键字段与未知区域。正式候选只接收通过来源资格的事实；旧正式事实的消失或变化必须有来源证据和差异决议。
+- 保持改动小且可独立核验；修改行为时运行相关检查，并如实记录实际运行结果。不要提交密钥、`.local`、依赖目录或生产导出。
+- 生产来源运行、发布与回退按根目录现行授权及受控工作流执行；不直接改写 `evidence`、`main` 或 `market` 分支中的数据。
