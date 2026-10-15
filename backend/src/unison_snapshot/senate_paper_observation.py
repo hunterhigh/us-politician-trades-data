@@ -13,8 +13,8 @@ from typing import Callable
 
 from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
 
-SCHEMA = "senate-paper-slot-comparison/v1"
-PENDING_SCHEMA = "senate-paper-pending-slot-projection/v1"
+SCHEMA = "senate-paper-slot-comparison/v2"
+PENDING_SCHEMA = "senate-paper-pending-slot-projection/v2"
 LEDGER_FILES = (
     "senate-paper-first-report-rows.json",
     "senate-paper-viewer-remainders.json",
@@ -102,12 +102,32 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
         observed_page_numbers = {page["page_number"] for page in page_comparison}
         unobserved_page_numbers = [page["page_number"] for page in manifest["pages"]
                                    if page["page_number"] not in observed_page_numbers]
+        account_scope = None
+        from .senate_paper_account_scope import (
+            DOCUMENT_ID as ACCOUNT_SCOPE_DOCUMENT_ID,
+            audit_first_report_account_scopes, confirmed_visual_review_from_fields,
+        )
+        if document_id == ACCOUNT_SCOPE_DOCUMENT_ID:
+            fields = json.loads((docs_root / "senate-paper-first-report-fields.json")
+                                .read_text(encoding="utf-8"))
+            visual = confirmed_visual_review_from_fields(fields, ledger)
+            account_scope = audit_first_report_account_scopes(
+                ledger, visual, page_bytes=read_page)
+            classified_data = {(slot["page_number"], slot["grid_slot"])
+                               for slot in classified["slots"]
+                               if slot["label"] == "data_observed"}
+            scoped_data = {(row["source_slot"]["page_number"],
+                            row["source_slot"]["grid_slot"])
+                           for row in account_scope["rows"]}
+            if classified_data != scoped_data:
+                raise ValueError("Senate paper account scope and data slots differ")
         results.append({**common, "coverage_status": "fixed_slots_observed",
                         "physical_grid_slot_count": classified["physical_grid_slot_count"],
                         "label_counts": classified["label_counts"],
                         "pages": page_comparison,
                         "unobserved_page_numbers": unobserved_page_numbers,
-                        "slots": classified["slots"]})
+                        "slots": classified["slots"],
+                        "account_scope_observation": account_scope})
     return {"schema_version": SCHEMA,
             "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
             "slot_classification_schema_version": SLOT_SCHEMA,
@@ -143,6 +163,7 @@ def project_pending_slots(observation: dict) -> dict:
     if not isinstance(reports, list) or len(reports) != observation.get("report_count"):
         raise ValueError("Senate paper slot observation reports are incomplete")
     pending, unknown = [], []
+    account_scoped_count = 0
     seen: set[tuple[str, int, int]] = set()
     for report in reports:
         document_id = report["document_id"]
@@ -153,7 +174,27 @@ def project_pending_slots(observation: dict) -> dict:
                     for page in report["pages"]}
         if len(page_sha) != len(report["pages"]):
             raise ValueError("Senate paper slot observation repeats a page")
+        from .senate_paper_account_scope import DOCUMENT_ID as ACCOUNT_SCOPE_DOCUMENT_ID
+        scope = report.get("account_scope_observation")
+        if document_id == ACCOUNT_SCOPE_DOCUMENT_ID and scope is None:
+            raise ValueError("Senate paper fixed account scope is missing")
+        scope_rows = {}
+        heading_by_slot = {}
+        if scope is not None:
+            if (scope.get("document_id") != document_id or
+                    scope.get("entrypoint_source_sha256") != source_sha or
+                    scope.get("archive_bytes_verified") is not True):
+                raise ValueError("Senate paper account scope source differs")
+            scope_rows = {(row["source_slot"]["page_number"],
+                           row["source_slot"]["grid_slot"]): row
+                          for row in scope["rows"]}
+            heading_by_slot = {(row["page_number"], row["grid_slot"]): row
+                               for row in scope["account_headings"]}
+            if (len(scope_rows) != len(scope["rows"]) or
+                    len(heading_by_slot) != len(scope["account_headings"])):
+                raise ValueError("Senate paper account scope slots repeat")
         counts: Counter[str] = Counter()
+        matched_scope_rows = set()
         for slot in report["slots"]:
             label = slot["label"]
             counts[label] += 1
@@ -172,6 +213,23 @@ def project_pending_slots(observation: dict) -> dict:
                 unknown.append({"source_slot": source_slot,
                                 "coverage_status": "unknown_physical_slot"})
             elif label == "data_observed":
+                scoped = scope_rows.get((number, grid))
+                if scope is not None:
+                    if (scoped is None or scoped["source_slot"] != source_slot or
+                            scoped["status"] !=
+                            "account_scoped_pending_relationship_review" or
+                            scoped["formal_transaction_id"] is not None):
+                        raise ValueError("Senate paper account scope data differs")
+                    matched_scope_rows.add((number, grid))
+                    account_scoped_count += 1
+                heading = scoped["account_heading_slot"] if scoped else None
+                heading_key = (heading["page_number"], heading["grid_slot"]) if heading else None
+                heading_observation = heading_by_slot.get(heading_key) if heading_key else None
+                if heading is not None and (heading_observation is None or
+                    heading_observation["page_sha256"] != heading["page_sha256"] or
+                    heading_observation["asset_crop_sha256"] !=
+                    heading["asset_crop_sha256"]):
+                    raise ValueError("Senate paper account heading differs")
                 date = slot["key_cells"]["date"]
                 cell_ocr = date["cell_ocr"] or {}
                 cell_status = cell_ocr.get("status", "not_run")
@@ -196,8 +254,15 @@ def project_pending_slots(observation: dict) -> dict:
                     "amount_mark_observations": slot["amount_marks"],
                     "legacy_extraction_report_row_count": report["legacy_extraction_count"],
                     "legacy_extraction_failed": report["legacy_extraction_failed"],
+                    "account_scope_status": ("source_bound_visual_scope_unverified_identity"
+                                             if scoped else "not_observed"),
+                    "account_heading_slot": heading,
+                    "account_heading_ocr_raw": (heading_observation["heading_ocr_raw"]
+                                                if heading_observation else None),
                     "formal_transaction_id": None,
                 })
+        if scope is not None and matched_scope_rows != set(scope_rows):
+            raise ValueError("Senate paper account scope lost data slots")
         if dict(counts) != report["label_counts"] or sum(counts.values()) != report[
                 "physical_grid_slot_count"]:
             raise ValueError("Senate paper slot labels do not conserve")
@@ -212,6 +277,7 @@ def project_pending_slots(observation: dict) -> dict:
             "interpretation": "pending physical slots only; no qualified or published trades",
             "report_count": len(reports),
             "pending_row_count": len(pending),
+            "account_scoped_pending_row_count": account_scoped_count,
             "legacy_failed_report_pending_row_count": sum(
                 row["legacy_extraction_failed"] for row in pending),
             "legacy_extracted_report_pending_row_count": sum(

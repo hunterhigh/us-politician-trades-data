@@ -18,6 +18,50 @@ SCHEMA = "senate-paper-account-scope-audit/v1"
 DOCUMENT_ID = "068274e1-4b7a-4453-a242-563dde4c10d8"
 
 
+def confirmed_visual_review_from_fields(fields: dict, ledger: dict) -> dict:
+    """Derive the fixed visual rows from their existing source-bound field audit."""
+    if (fields.get("schema_version") != "senate-paper-first-report-field-observations/v1" or
+            fields.get("document_id") != DOCUMENT_ID or
+            fields.get("evidence_commit") != EVIDENCE_COMMIT or
+            ledger.get("document_id") != DOCUMENT_ID or
+            ledger.get("evidence_commit") != EVIDENCE_COMMIT):
+        raise ValueError("Senate visual field audit source identity changed")
+    source_rows = {(row["page_number"], row["grid_slot"]): row
+                   for row in ledger["rows"]}
+    if len(source_rows) != len(ledger["rows"]):
+        raise ValueError("Senate visual field audit source slots repeat")
+    reviewed = []
+    for row in fields.get("rows", []):
+        key = (row["page_number"], row["grid_slot"])
+        source = source_rows.get(key)
+        expected = row["visual_review"]["expected"]
+        if (source is None or source["disposition"] !=
+                "transaction_observed_quarantined" or
+                row.get("row_field_status") !=
+                "four_fields_confirmed_candidate_quarantined" or
+                row["visual_review"].get("field_matches") !=
+                {"amount": True, "asset": True, "date": True,
+                 "direction": True} or
+                (expected["page_number"], expected["grid_slot"]) != key or
+                row["page_sha256"] != source["page_sha256"] or
+                row["row_crop"]["grayscale_sha256"] != source[
+                    "row_crop"]["grayscale_sha256"] or
+                row["asset"]["ocr"]["crop"]["grayscale_sha256"] != source[
+                    "asset_crop"]["grayscale_sha256"] or
+                row["date"]["ocr"]["crop"]["grayscale_sha256"] != source[
+                    "date_crop"]["grayscale_sha256"] or
+                any(row[name].get("status") != "confirmed_fixed_image"
+                    for name in ("asset", "date", "direction", "amount")) or
+                row["asset"]["ocr"]["joined_text"] != expected["asset_text"] or
+                row["date"]["ocr"]["joined_text"] != expected["date_text"] or
+                row["direction"]["observed_label"] != expected["direction"] or
+                row["amount"]["observed_band"] != expected["amount_band"]):
+            raise ValueError("Senate visual field audit differs from fixed source")
+        reviewed.append(expected)
+    return {"document_id": DOCUMENT_ID, "evidence_commit": EVIDENCE_COMMIT,
+            "rows": reviewed}
+
+
 def audit_first_report_account_scopes(
         ledger: dict, visual_review: dict,
         *, page_bytes: Callable[[str, int], bytes] | None = None) -> dict:

@@ -6,7 +6,9 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from unison_snapshot.senate_paper_account_scope import audit_first_report_account_scopes
+from unison_snapshot.senate_paper_account_scope import (
+    audit_first_report_account_scopes, confirmed_visual_review_from_fields,
+)
 from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT, fixed_archive_pages
 
 REPO = Path(__file__).resolve().parents[2]
@@ -44,6 +46,16 @@ class SenatePaperAccountScopeTests(unittest.TestCase):
         visual["rows"][0]["direction"] = "purchase"
         with self.assertRaisesRegex(ValueError, "visual mark disagrees"):
             audit_first_report_account_scopes(ledger, visual)
+
+    def test_fixed_field_audit_derives_same_visual_rows(self):
+        ledger, visual = self._inputs()
+        fields = json.loads((DOCS / "senate-paper-first-report-fields.json")
+                            .read_text(encoding="utf-8"))
+        derived = confirmed_visual_review_from_fields(fields, ledger)
+        self.assertEqual(derived["rows"], visual["rows"])
+        fields["rows"][0]["asset"]["ocr"]["joined_text"] = "different"
+        with self.assertRaisesRegex(ValueError, "differs from fixed source"):
+            confirmed_visual_review_from_fields(fields, ledger)
 
     def test_source_identity_must_match_fixed_archive(self):
         ledger, visual = self._inputs()
