@@ -53,11 +53,16 @@ jobs:
           gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
           target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
           prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          # A gate check is not a new source snapshot. Preserve the last
+          # complete catalog/reports if this run is canceled before collection.
           value = {
+              **prior,
               'schema_version': 'senate-source-run/v1',
               'source_id': 'senate_efd',
               'run_at': datetime.now(timezone.utc).isoformat(),
-              'status': gate['status'],
+              'status': (prior['status'] if gate['status'] == 'enabled' and
+                         prior.get('status') == 'catalog_ready_for_review' else
+                         gate['status']),
               'collection_enabled': gate['collection_enabled'],
               'terms_acknowledged': gate['terms_acknowledged'],
               'gate': gate,
@@ -69,8 +74,6 @@ jobs:
                   'authorization variables were not true.'
               ),
           }
-          if 'historical_roster' in prior:
-              value['historical_roster'] = prior['historical_roster']
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                             encoding='utf-8')

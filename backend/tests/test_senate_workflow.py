@@ -40,6 +40,15 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertNotIn("curl ", content)
         self.assertNotIn("wget ", content)
 
+    def test_gate_check_preserves_last_complete_source_state(self):
+        content = (ROOT / ".github/workflows/senate-efd.yml").read_text(
+            encoding="utf-8")
+        gate_step = content.split("- name: Record authorization gate state", 1)[1].split(
+            "- name: Fail a partially enabled gate", 1)[0]
+        self.assertIn("**prior", gate_step)
+        self.assertIn("prior.get('status') == 'catalog_ready_for_review'", gate_step)
+        self.assertNotIn("value['historical_roster']", gate_step)
+
     def test_catalog_respects_evidence_review_and_state_boundaries(self):
         content = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
         self.assertIn("senate_efd/catalog", content)
