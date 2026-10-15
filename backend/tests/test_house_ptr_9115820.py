@@ -10,7 +10,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house_ptr_9115820 import (
     DOCUMENT_ID, REVIEW_SHA256, SOURCE_SHA256,
 )
-from unison_snapshot.house_ptr_fixed_paper import _fixed_transaction, _sha
+from unison_snapshot.house_ptr_fixed_source_core import (
+    disclosure_transaction as _fixed_transaction,
+    canonical_sha256 as _sha,
+)
 
 
 class HousePaper9115820Tests(unittest.TestCase):
@@ -34,6 +37,7 @@ class HousePaper9115820Tests(unittest.TestCase):
             "sale", amount,
             "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/9115820.pdf",
             document_id=DOCUMENT_ID, source_sha256=SOURCE_SHA256,
+            person_id="house:M001157",
             owner="Self", filed_at="2026-05-04T00:00:00Z")
         self.assertEqual(row["filing_id"], DOCUMENT_ID)
         self.assertEqual(row["owner"], "Self")
@@ -41,7 +45,11 @@ class HousePaper9115820Tests(unittest.TestCase):
         self.assertIn("Account: MICHAEL MCCAUL", row["asset_name"])
         self.assertNotEqual(row["id"], _fixed_transaction(
             4, 16, "2026-04-28", "VANGUARD INDEX FDS", "MICHAEL MCCAUL",
-            "sale", amount, row["source_url"])["id"])
+            "sale", amount, row["source_url"],
+            document_id="9116141",
+            source_sha256="716cdcc10bd57c400f10d8bb4133eb667931a9699fb1835ed3b7deca010a36a1",
+            person_id="house:M001157", owner="Spouse",
+            filed_at="2026-06-10T00:00:00Z")["id"])
 
 
 if __name__ == "__main__":
