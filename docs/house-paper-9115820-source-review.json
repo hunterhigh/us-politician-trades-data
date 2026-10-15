@@ -1,0 +1,121 @@
+{
+  "schema_version": "house-paper-fixed-source-review/v2",
+  "document_id": "9115820",
+  "source_sha256": "e1254f953327174fe80a856137e386c3dea42aa58728d350105822bfabab6860",
+  "prior_document_id": "9115728",
+  "prior_source_sha256": "38fd4e814542a1010e7df774145956510e37f0b6c2085bbf84c4a0077ef5d767",
+  "prior_filed_date": "2026-04-08",
+  "prior_page_count": 5,
+  "prior_page_data_counts": [25, 26, 25, 21, 1],
+  "prior_rotated_pages": [2, 5],
+  "prior_physical_counts": {
+    "data_candidate": 98,
+    "account_heading_or_unknown": 8,
+    "blank": 1
+  },
+  "prior_data_event_month": "2026-03",
+  "prior_latest_data_event_date": "2026-03-31",
+  "reviewed_page_count": 4,
+  "target_page_data_counts": [25, 26, 26, 9],
+  "target_data_event_month": "2026-04",
+  "physical_counts": {
+    "data_candidate": 86,
+    "section_heading": 8,
+    "blank": 1
+  },
+  "observation_sha256": "6ccf9e3e02885643a96d6b212f2d6e7508acf86de7e948b12ab3af9870f65dd5",
+  "qualification_raw_sha256": "e757f8d0baee40a91e493f76512cf59ce168d481f1dc120f2f3c65b2d9767ca0",
+  "expected_eligible_count": 86,
+  "section_headings": [
+    {
+      "page": 1,
+      "band": 1,
+      "title": "LLM FAMILY INVESTMENTS LP",
+      "asset_crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+    },
+    {
+      "page": 4,
+      "band": 1,
+      "title": "LLM FAMILY INVESTMENTS II LP",
+      "asset_crop_sha256": "a7dc23385147c2a6bc1855b7a5353231f9cd257cbef2def812565ca206819861"
+    },
+    {
+      "page": 4,
+      "band": 3,
+      "title": "LINDA MAYS MCCAUL 2005 DESCENDANT TRUST",
+      "asset_crop_sha256": "ea17f1f1c61505efb11b30f38718eb1411f7b68e5ddd68f3d332f0f1a7b7d707"
+    },
+    {
+      "page": 4,
+      "band": 5,
+      "title": "LINDA M MCCAUL 2005 GST EXEMPT DESC TRUST",
+      "asset_crop_sha256": "fe345dc6c44424fbfe61cab1b4d4e2ea5ab987e56f2202f22730f169c7a08c08"
+    },
+    {
+      "page": 4,
+      "band": 7,
+      "title": "LINDA MAYS MCCAUL 2006 DESCENDANT TRUST",
+      "asset_crop_sha256": "b7f1936c1226fe62349eda45e68c49e803b29c46e7633f40da732cbb40b8535b"
+    },
+    {
+      "page": 4,
+      "band": 10,
+      "title": "MAYS FAMILY TRUST #1",
+      "asset_crop_sha256": "6c6f76ce67a73f59b8edacf40a38f14ab47529e96b7f7372b71fb587841ef12d"
+    },
+    {
+      "page": 4,
+      "band": 13,
+      "title": "LINDA MAYS MCCAUL",
+      "asset_crop_sha256": "dc8c90f1d18fd0274a2707740f204330b7a09003c395546c25eec3492fd224e6"
+    },
+    {
+      "page": 4,
+      "band": 15,
+      "title": "MICHAEL MCCAUL",
+      "asset_crop_sha256": "34ae05c7ff0c650ee23d65aeab8659c84349ba06da6e88f5f107ffc30b15c7ff"
+    }
+  ],
+  "asset_corrections": [
+    {
+      "page": 1,
+      "band": 8,
+      "asset_name": "LONG BEACH CALIF UNI SCH DIST GO BDS",
+      "asset_crop_sha256": "62457794c01a1e8aaa16df560820f2a851489e068382200b69cca167560062a9"
+    },
+    {
+      "page": 2,
+      "band": 10,
+      "asset_name": "REDDIT INC CL A",
+      "asset_crop_sha256": "996c34eefc39368f8608e2b72964bdd7535e02a91eeb1686ebcee3e651266f35"
+    },
+    {
+      "page": 2,
+      "band": 24,
+      "asset_name": "Mays-Allocate 2025 LP",
+      "asset_crop_sha256": "c38f8b1aeaf694c46f055eae6dbe53d84b7afbb1aa5577c666660d1db427a302"
+    },
+    {
+      "page": 3,
+      "band": 23,
+      "asset_name": "NORTHERN TAX-ADVGT ULTRA-SHRT FIXED INC",
+      "asset_crop_sha256": "48887fa66e8b3a0b2ed0e6e14c4efc097d056e9040939009092e346d137009d6"
+    },
+    {
+      "page": 4,
+      "band": 11,
+      "asset_name": "CLIFFWATER CORPORATE LENDING FUND",
+      "asset_crop_sha256": "d6d28e0f3fe1118bcd2ab2079e23ac0696c1f2484351d540a4f0a1c3bc3d7132"
+    }
+  ],
+  "owner_corrections": [
+    {
+      "page": 4,
+      "band": 16,
+      "owner": "Self",
+      "owner_crop_sha256": "84e8a66079ee18526d93669e2b2718a6bcea199c361c2a9fbfcb095c33e57a43",
+      "account_heading_page": 4,
+      "account_heading_band": 15
+    }
+  ]
+}

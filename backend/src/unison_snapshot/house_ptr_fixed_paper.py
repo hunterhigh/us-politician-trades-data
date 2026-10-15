@@ -43,16 +43,20 @@ def _slot(item: dict) -> tuple[int, int]:
 
 def _fixed_transaction(page: int, band: int, event_text: str, asset: str,
                        title: str, direction: str, amount: dict,
-                       source_url: str) -> dict:
-    fingerprint = f"{SOURCE_SHA256}:{page}:{band}"
+                       source_url: str, *, document_id: str = DOCUMENT_ID,
+                       source_sha256: str = SOURCE_SHA256,
+                       person_id: str = "house:M001157",
+                       owner: str = "Spouse",
+                       filed_at: str = "2026-06-10T00:00:00Z") -> dict:
+    fingerprint = f"{source_sha256}:{page}:{band}"
     row_id = "house-ptr:" + hashlib.sha256(fingerprint.encode("ascii")).hexdigest()[:24]
     return {
-        "id": row_id, "filing_id": DOCUMENT_ID, "person_id": "house:M001157",
-        "owner": "Spouse", "asset_name": f"{asset} (Account: {title})",
+        "id": row_id, "filing_id": document_id, "person_id": person_id,
+        "owner": owner, "asset_name": f"{asset} (Account: {title})",
         "ticker": None, "ticker_mapping_basis": None, "instrument_type": None,
         "option_type": None, "strike_price": None, "expiration_date": None,
         "transaction_type": direction, "transaction_date": event_text,
-        "filed_at": "2026-06-10T00:00:00Z",
+        "filed_at": filed_at,
         "amount_low": amount["low"], "amount_high": amount["high"],
         "position_effect": "unknown", "position_effect_basis": None,
         "source_id": "house_clerk", "source": "U.S. House Clerk",
@@ -60,14 +64,15 @@ def _fixed_transaction(page: int, band: int, event_text: str, asset: str,
     }
 
 
-def _check_source_cells(pdf_bytes: bytes, observation: dict) -> dict[tuple[int, int], dict]:
+def _check_source_cells(pdf_bytes: bytes, observation: dict,
+                        page_count: int = 6) -> dict[tuple[int, int], dict]:
     import pdfplumber
 
-    if observation.get("render_dpi") != 200 or len(observation.get("pages", [])) != 6:
+    if observation.get("render_dpi") != 200 or len(observation.get("pages", [])) != page_count:
         raise ValueError("fixed House paper page observation changed")
     slots = {}
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        if len(pdf.pages) != 6:
+        if len(pdf.pages) != page_count:
             raise ValueError("fixed House paper source page count changed")
         for page_record, pdf_page in zip(observation["pages"], pdf.pages, strict=True):
             number = page_record.get("page")
