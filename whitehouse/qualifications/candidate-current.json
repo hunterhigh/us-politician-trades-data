@@ -4,11 +4,11 @@
   "annual_part7_overlap_count": 25,
   "base_transaction_count": 5081,
   "candidate_is_append_only": true,
-  "candidate_sha256": "5005a873a7278fc90ea402f5699abad076ab66f9833aa7bf279fc6fba8e7d814",
+  "candidate_sha256": "b9f1b279d0080e5e3dc641700994b1699cf35846b8c58d4eae560487f9731653",
   "candidate_transaction_count": 6731,
   "catalog_report_count": 81,
   "catalog_sha256": "71eb2240ff8c99851dacb91cc7dd4e6d773f806bbd8d79c40f65f52ff713c8ff",
-  "data_cutoff_at": "2026-10-15T09:29:37Z",
+  "data_cutoff_at": "2026-10-15T15:23:33Z",
   "existing_transaction_mutation_count": 0,
   "extraction_failure_count": 0,
   "promoted_report_count": 38,
@@ -1665,7 +1665,7 @@
     "oge-278t:ff92b09ef985b0f6804ce92f",
     "oge-278t:ffa9df785a2abdbaf7e4566b"
   ],
-  "pure_oge_candidate_sha256": "8385de5e88113887f7c837a47562c613da3f70b0debdb9cd2902d04ae75e64f5",
+  "pure_oge_candidate_sha256": "fa73bb9867aadf559e7976b43cce1d83b1366da00f9622d3fee7f23e24792610",
   "quarantined_row_count": 8643,
   "report_count": 81,
   "reports": [
@@ -117125,9 +117125,9 @@
   "review_input_sha256": {
     "oge_whitehouse_coverage_sha256": "e0d9e79c04db4ca39a064eb0853ff9a70e382b3fbb6450025c7a286b53da1aa9",
     "whitehouse_annual_dedup_set_sha256": "86999a1ad0c36b50fa2ad6b4e5409fc50a81b339d03989cdb9a40aa50330feb3",
-    "whitehouse_annual_identity_sha256": "48ec93a796304f7115e10535a6b4e9045440893d190c36a269d4182856c1ba77",
-    "whitehouse_coverage_sha256": "972917217f5f65b81e4392ddcdc682602fb850e25ee53c207b3caf1a635b3910",
-    "whitehouse_directory_sha256": "f06bf7be2949bfb6e9057b9d800f9010483ec8e38e4199ee1a23fda3b72a5ba1",
+    "whitehouse_annual_identity_sha256": "39156a9d2da68a608a52486d5d5a02e9b5785c2435e1c17fb523fb1fcc3f8387",
+    "whitehouse_coverage_sha256": "6090affbed67fd5b68044897f9866a62dd4a6d484393c87e1de245e633fa106c",
+    "whitehouse_directory_sha256": "9599551768699f9e12897370cf57452ffd6112af1aaf1483c02efc44d7d6725e",
     "whitehouse_extraction_failure_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "whitehouse_extraction_set_sha256": "f5a8c48ed0d4ad0a6af7dbee51bfc4ba425983733ec7aac04a057f60a748cda3",
     "whitehouse_extraction_status_sha256": "979577acd6abae456be31cfe5060397ed2c33935e94019292867a12ef3f84e72"
