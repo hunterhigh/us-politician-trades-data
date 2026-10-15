@@ -26,6 +26,7 @@ SOURCE_SHA256 = "716cdcc10bd57c400f10d8bb4133eb667931a9699fb1835ed3b7deca010a36a
 PRECEDING_DOCUMENT_ID = "9115820"
 PRECEDING_SOURCE_SHA256 = "e1254f953327174fe80a856137e386c3dea42aa58728d350105822bfabab6860"
 REVIEW_SHA256 = "4cdb554eef9890a2f85e8378cf4a64e4bcb7feadfdbc52467f9e4e58c129f0b4"
+RELATION_REVIEW_SHA256 = "3d24e8ac9c77a00dba66bc34e55f65fb04964ccf334c0950536ad32b6ce7a401"
 
 
 def _canonical(value: object) -> bytes:
@@ -42,6 +43,25 @@ def _slot(item: dict) -> tuple[int, int]:
     if type(page) is not int or type(band) is not int or page < 1 or band < 1:
         raise ValueError("fixed House paper review has an invalid slot")
     return page, band
+
+
+def _fixed_transaction(page: int, band: int, event_text: str, asset: str,
+                       title: str, direction: str, amount: dict,
+                       source_url: str) -> dict:
+    fingerprint = f"{SOURCE_SHA256}:{page}:{band}"
+    row_id = "house-ptr:" + hashlib.sha256(fingerprint.encode("ascii")).hexdigest()[:24]
+    return {
+        "id": row_id, "filing_id": DOCUMENT_ID, "person_id": "house:M001157",
+        "owner": "Spouse", "asset_name": f"{asset} (Account: {title})",
+        "ticker": None, "ticker_mapping_basis": None, "instrument_type": None,
+        "option_type": None, "strike_price": None, "expiration_date": None,
+        "transaction_type": direction, "transaction_date": event_text,
+        "filed_at": "2026-06-10T00:00:00Z",
+        "amount_low": amount["low"], "amount_high": amount["high"],
+        "position_effect": "unknown", "position_effect_basis": None,
+        "source_id": "house_clerk", "source": "U.S. House Clerk",
+        "source_url": source_url, "verification_status": "official_matched",
+    }
 
 
 def _check_source_cells(pdf_bytes: bytes, observation: dict) -> dict[tuple[int, int], dict]:
@@ -204,23 +224,14 @@ def qualify_fixed_house_paper(pdf_bytes: bytes, metadata: dict, preceding: dict,
             unresolved["reasons"] = ["prior_same_filer_report_relation_unresolved"]
             pending.append(unresolved)
             continue
-        fingerprint = f"{SOURCE_SHA256}:{page}:{band}"
-        row_id = "house-ptr:" + hashlib.sha256(fingerprint.encode("ascii")).hexdigest()[:24]
+        transaction = _fixed_transaction(page, band, event_text, asset, title,
+                                         raw["direction_mark"], amount,
+                                         metadata["source_url"])
+        row_id = transaction["id"]
         if row_id in seen_ids:
             raise ValueError("fixed House paper transaction ID collision")
         seen_ids.add(row_id)
-        transactions.append({
-            "id": row_id, "filing_id": DOCUMENT_ID, "person_id": "house:M001157",
-            "owner": "Spouse", "asset_name": f"{asset} (Account: {title})",
-            "ticker": None, "ticker_mapping_basis": None, "instrument_type": None,
-            "option_type": None, "strike_price": None, "expiration_date": None,
-            "transaction_type": raw["direction_mark"],
-            "transaction_date": event_text, "filed_at": "2026-06-10T00:00:00Z",
-            "amount_low": amount["low"], "amount_high": amount["high"],
-            "position_effect": "unknown", "position_effect_basis": None,
-            "source_id": "house_clerk", "source": "U.S. House Clerk",
-            "source_url": metadata["source_url"], "verification_status": "official_matched",
-        })
+        transactions.append(transaction)
     if (len(transactions) != review.get("expected_eligible_count") or
             len(pending) != review.get("expected_relation_pending_count") or
             len(transactions) + len(pending) != 134):
@@ -268,3 +279,132 @@ def qualify_fixed_house_paper_paths(evidence_root: Path, review_root: Path,
     return {"document_id": DOCUMENT_ID,
             "qualified_count": len(result["transactions"]),
             "relation_pending_count": len(result["quarantined"])}
+
+
+def complete_fixed_house_paper(target_pdf: bytes, preceding_pdf: bytes,
+                               metadata: dict, preceding: dict,
+                               observation: dict, current: dict,
+                               source_review: dict, relation_review: dict) -> dict:
+    """Finish the fixed report after source-bound prior-report comparison."""
+    document_id, source_sha, filer, district = validate_paper_source_metadata(metadata)
+    peer_id, peer_sha, peer_filer, peer_district = validate_paper_source_metadata(preceding)
+    if (document_id != DOCUMENT_ID or source_sha != SOURCE_SHA256 or
+            hashlib.sha256(target_pdf).hexdigest() != SOURCE_SHA256 or
+            peer_id != PRECEDING_DOCUMENT_ID or peer_sha != PRECEDING_SOURCE_SHA256 or
+            hashlib.sha256(preceding_pdf).hexdigest() != PRECEDING_SOURCE_SHA256 or
+            peer_filer != filer or peer_district != district or
+            preceding["filed_date"] != "2026-05-04" or
+            metadata["filed_date"] != "2026-06-10"):
+        raise ValueError("fixed House paper relationship sources changed")
+    import pdfplumber
+    with pdfplumber.open(io.BytesIO(preceding_pdf)) as pdf:
+        if len(pdf.pages) != 4:
+            raise ValueError("fixed House paper preceding page count changed")
+    if (_sha(source_review) != REVIEW_SHA256 or
+            _sha(observation) != source_review.get("observation_sha256") or
+            _sha(relation_review) != RELATION_REVIEW_SHA256 or
+            relation_review.get("schema_version") !=
+            "house-paper-prior-report-relationship-review/v1" or
+            relation_review.get("target_source_sha256") != SOURCE_SHA256 or
+            relation_review.get("prior_source_sha256") != PRECEDING_SOURCE_SHA256 or
+            relation_review.get("prior_filed_date") != "2026-05-04" or
+            relation_review.get("prior_page_count") != 4 or
+            relation_review.get("prior_physical_counts") !=
+            {"data_candidate": 86, "account_heading_or_unknown": 8, "blank": 1} or
+            relation_review.get("prior_data_event_month") != "2026-04" or
+            relation_review.get("prior_latest_data_event_date") != "2026-04-30"):
+        raise ValueError("fixed House paper relationship review changed")
+    if (current.get("document_id") != DOCUMENT_ID or
+            current.get("source_sha256") != SOURCE_SHA256 or
+            current.get("source_review_sha256") != REVIEW_SHA256 or
+            current.get("qualification", {}).get("method") !=
+            "fixed_source_visual_review_v1" or
+            len(current.get("transactions", [])) != 119 or
+            len(current.get("quarantined", [])) != 15 or
+            current.get("pending_transaction_projection", {}).get("row_count") != 15):
+        raise ValueError("fixed House paper partial qualification changed")
+    original_slots = {(p["page"], r["physical_band_index"]): r
+                      for p in observation["pages"] for r in p["rows"]}
+    asset_corrections = {_slot(x): x["asset_name"]
+                         for x in source_review["asset_corrections"]}
+    date_corrections = {_slot(x): x["event_date"]
+                        for x in source_review["date_corrections"]}
+    headings = {f"paper-section:{SOURCE_SHA256}:{x['page']}:{x['band']}": x["title"]
+                for x in source_review["section_headings"]}
+    relation_rows = {_slot(x): x for x in relation_review["target_pending_rows"]}
+    if len(relation_rows) != 15 or len(relation_review["target_pending_rows"]) != 15:
+        raise ValueError("fixed House paper relationship rows are duplicated")
+    converted = []
+    for row in current["quarantined"]:
+        page, band = row["evidence"]["page"], row["evidence"]["physical_band_index"]
+        key = page, band
+        source = original_slots[key]
+        reviewed = relation_rows.get(key)
+        raw = row["raw_fields"]
+        account = row["account_section_observation"]
+        amount = row["amount_range_observation"]
+        if (reviewed is None or row["reasons"] !=
+                ["prior_same_filer_report_relation_unresolved"] or
+                source["cells"]["asset"]["crop_sha256"] !=
+                reviewed["asset_crop_sha256"] or
+                source["cells"]["event_date"]["crop_sha256"] !=
+                reviewed["event_crop_sha256"] or
+                reviewed["asset_name"] != asset_corrections.get(key, raw["asset_raw"]) or
+                reviewed["event_date"] != date_corrections.get(key, raw["event_date"]) or
+                reviewed["account_title"] != headings.get(account["section_key"]) or
+                reviewed["direction"] != raw["direction_mark"] or
+                reviewed["amount_letter"] != raw["amount_letter"] or
+                amount["letter"] != raw["amount_letter"] or
+                amount["kind"] != "range" or amount["high"] is None or
+                reviewed["event_date"] not in {"2026-05-01", "2026-05-04"}):
+            raise ValueError(f"fixed House paper relationship row changed: {page}:{band}")
+        converted.append(_fixed_transaction(
+            page, band, reviewed["event_date"], reviewed["asset_name"],
+            reviewed["account_title"], reviewed["direction"], amount,
+            metadata["source_url"]))
+    existing_ids = {row["id"] for row in current["transactions"]}
+    if (len(existing_ids) != 119 or
+            len({row["id"] for row in converted}) != 15 or
+            existing_ids & {row["id"] for row in converted}):
+        raise ValueError("fixed House paper relationship IDs are duplicated")
+    result = deepcopy(current)
+    result["transactions"] = [*current["transactions"], *converted]
+    result["quarantined"] = []
+    result.pop("pending_transaction_projection", None)
+    result.pop("temporal_relation_observation", None)
+    result["document_disposition"]["status"] = "paper_source_bound_complete"
+    result["relationship_review_sha256"] = RELATION_REVIEW_SHA256
+    result["qualification"] = {
+        "method": "fixed_source_visual_review_complete_v1",
+        "status": "qualified_rows", "qualified_count": 134,
+        "quarantined_count": 0, "advisory_count": len(result.get("advisories", [])),
+        "zero_transaction_document_count": 0, "document_reasons": [],
+        "production_eligible": True,
+    }
+    return result
+
+
+def complete_fixed_house_paper_paths(evidence_root: Path, review_root: Path,
+                                     source_review_path: Path,
+                                     relation_review_path: Path) -> dict:
+    evidence_root, review_root = evidence_root.resolve(), review_root.resolve()
+    suffix = f"2026/{DOCUMENT_ID}/{SOURCE_SHA256}"
+    source_dir = evidence_root / "house_clerk" / "documents"
+    review_dir = review_root / "house_clerk"
+    peer_paths = list(source_dir.glob(f"2026/{PRECEDING_DOCUMENT_ID}/*.json"))
+    if len(peer_paths) != 1:
+        raise ValueError("fixed House paper preceding report is not uniquely archived")
+    peer_pdf = peer_paths[0].with_suffix(".pdf")
+    read = lambda path: json.loads(path.read_text(encoding="utf-8"))
+    path = review_dir / "qualifications" / f"{suffix}.json"
+    result = complete_fixed_house_paper(
+        (source_dir / f"{suffix}.pdf").read_bytes(), peer_pdf.read_bytes(),
+        read(source_dir / f"{suffix}.json"), read(peer_paths[0]),
+        read(review_dir / "paper_observations" / f"{suffix}.json"),
+        read(path), read(source_review_path), read(relation_review_path),
+    )
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_bytes(_canonical(result))
+    temporary.replace(path)
+    return {"document_id": DOCUMENT_ID, "qualified_count": 134,
+            "relationship_reviewed_count": 15, "quarantined_count": 0}
