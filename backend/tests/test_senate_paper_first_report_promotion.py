@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "backend" / "scripts"))
 sys.path.insert(0, str(ROOT / "backend" / "src"))
 
 from qualify_senate_paper_first_report import (DOCUMENT_ID, SOURCE_SHA256, qualify)
-from unison_snapshot.senate_candidate import _transaction
+from unison_snapshot.senate_candidate import _person, _transaction
 from unison_snapshot.senate_reports import PARSER_VERSION
 
 
@@ -82,6 +82,14 @@ class FixedPaperPromotionTest(unittest.TestCase):
         candidate, reasons = _transaction(row, extraction, {"person_id": "senate:B001277"})
         self.assertIsNone(candidate)
         self.assertIn("instrument_type_not_supported", reasons)
+
+    def test_existing_person_display_name_is_preserved(self):
+        identity = {"person_id": "senate:B001277",
+                    "filer_name": "RICHARD BLUMENTHAL",
+                    "official_name": "Blumenthal (D-CT)",
+                    "evidence_url": "https://bioguide.congress.gov/search/bio/B001277",
+                    "party": "D", "state": "CT"}
+        self.assertEqual(_person(identity)["display_name"], "Richard Blumenthal")
 
 
 if __name__ == "__main__":
