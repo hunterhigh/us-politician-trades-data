@@ -8,8 +8,6 @@ from io import BytesIO
 import json
 from pathlib import Path
 
-from PIL import Image
-
 from qualify_senate_paper_first_report import AMOUNTS
 from unison_snapshot.senate_paper import PAPER_EXTRACTION_SCHEMA, PAPER_OCR_RULE_VERSION
 from unison_snapshot.senate_reports import PARSER_VERSION
@@ -49,6 +47,8 @@ def qualify(batch: dict, pending: dict, corrections: dict, ledger: dict,
     if (len(failures) != 1 or failures[0].get("source_sha256") != SOURCE_SHA256 or
             any(item["document_id"] == DOCUMENT_ID for item in batch["extractions"])):
         raise ValueError("second Senate paper report has no unique failed disposition")
+    from PIL import Image
+
     page_bytes, pages = {}, {}
     for item in manifest["pages"]:
         number = item["page_number"]
