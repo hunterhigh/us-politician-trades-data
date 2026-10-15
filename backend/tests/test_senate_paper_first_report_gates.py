@@ -46,17 +46,22 @@ class FirstReportGateTests(unittest.TestCase):
         self.assertEqual(artifact["report_context"]["same_person_electronic_report_count"], 0)
         self.assertEqual(artifact["report_context"]["cross_report_equivalence"], "unresolved")
         self.assertEqual(artifact["frontend_context"]["current_document_transaction_count"], 0)
-        self.assertEqual(artifact["schema_version"], "senate-paper-first-report-frontend-gates/v2")
+        self.assertEqual(artifact["schema_version"], "senate-paper-first-report-frontend-gates/v3")
         self.assertEqual(artifact["report_context"]["owner_legend_reference"]["codes"]["(S)"],
                          "Spouse")
         self.assertEqual(artifact["report_context"]["filing_timestamp_disposition"],
-                         "date_only_no_time_of_day")
-        expected_missing = {"id", "filed_at", "verification_status"}
+                         "date_only_encoded_at_utc_midnight_not_actual_time")
+        self.assertEqual(artifact["report_context"]["frontend_count_policy"],
+                         "official_disclosure_rows")
+        expected_missing = {"id", "verification_status"}
         for row in artifact["rows"]:
             self.assertEqual(row["owner_code_observed"], "(S)")
             self.assertEqual(row["frontend_projection_preview"]["owner"], "Spouse")
             self.assertEqual(row["frontend_projection_preview"]["asset_name"],
-                             row["asset_cell_verbatim"][4:])
+                             row["asset_cell_verbatim"][4:] +
+                             f" (Account: {row['account_heading_visual_raw']})")
+            self.assertEqual(row["frontend_projection_preview"]["filed_at"],
+                             "2026-02-12T00:00:00Z")
             self.assertEqual(row["filed_date_observed"], "2026-02-12")
             self.assertEqual(row["filed_at_precision"], "date")
             self.assertEqual(set(row["missing_frontend_fields"]), expected_missing)

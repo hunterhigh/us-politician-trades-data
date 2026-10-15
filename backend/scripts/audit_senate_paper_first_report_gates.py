@@ -14,11 +14,14 @@ import xml.etree.ElementTree as ET
 from PIL import Image
 
 from unison_snapshot.senate_paper_sample import DOCUMENT_ID, EVIDENCE_COMMIT
+from unison_snapshot.senate_paper_account_scope import (
+    audit_first_report_account_scopes, confirmed_visual_review_from_fields,
+)
 
 
 REVIEW_COMMIT = "9749718e5ae837057db7c031d431714fc72988d1"
 FRONTEND_SHA256 = "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4"
-FIELDS_SHA256 = "d9c964052f9d715decc58b414d1799f6b03e4c8eaeb50359215c9a162d9dc176"
+FIELDS_SHA256 = "da42b9770d401238bedaaca8d2632372f436d373e17272a8412aa336ce3331a1"
 CATALOG_SHA256 = "0cf0622f563dbd276ed05b96424765f9a596515fd494e03bbb2c1b25ed611a63"
 IDENTITY_PATH = (f"senate_efd/identities/{CATALOG_SHA256}/"
                  "d26c545c27ea0fc05a55b6317b521e6993f73ff107f4f5166b0a0308998bc7b6.json")
@@ -158,6 +161,18 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
         raise ValueError("fixed official paper entrypoint changed")
     manifest = _json(repo, EVIDENCE_COMMIT,
                      f"senate_efd/paper_pages/{DOCUMENT_ID}/manifest.json")
+    ledger = json.loads((repo / "docs/senate-paper-first-report-rows.json").read_text(
+        encoding="utf-8"))
+    account_scope = audit_first_report_account_scopes(
+        ledger, confirmed_visual_review_from_fields(fields, ledger),
+        page_bytes=lambda document_id, number: _git_bytes(
+            repo, EVIDENCE_COMMIT, manifest["pages"][number - 1]["archive_path"]),
+    )
+    scoped_rows = {(row["source_slot"]["page_number"],
+                    row["source_slot"]["grid_slot"]): row
+                   for row in account_scope["rows"]}
+    if len(scoped_rows) != 36 or account_scope["account_heading_count"] != 9:
+        raise ValueError("fixed Senate account scope changed")
     pages = {}
     for number in (1, 2):
         archived = manifest["pages"][number - 1]
@@ -183,7 +198,8 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
         "cover_receipt_date": "2026-02-12",
         "filing_time": None,
         "filing_date_evidence": ["fixed_catalog_listed_date", "fixed_cover_receipt_date"],
-        "filing_timestamp_disposition": "date_only_no_time_of_day",
+        "filing_timestamp_disposition": "date_only_encoded_at_utc_midnight_not_actual_time",
+        "frontend_count_policy": "official_disclosure_rows",
         "owner_legend_reference": {
             "authority": "U.S. Senate Select Committee on Ethics",
             "url": SENATE_FORM_URL,
@@ -225,16 +241,21 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
         if band not in AMOUNT_BANDS:
             raise ValueError("paper amount checkbox maps to unsupported range")
         low, high = AMOUNT_BANDS[band]
+        scoped = scoped_rows.get((field["page_number"], field["grid_slot"]))
+        if scoped is None or not scoped["account_heading_visual_raw"]:
+            raise ValueError("paper row has no visually confirmed account heading")
+        heading = scoped["account_heading_visual_raw"]
+        display_name = f"{asset_name} (Account: {heading})"
         frontend_projection = {
             "id": None,
             "filing_id": DOCUMENT_ID,
             "person_id": identity["person_id"],
             "owner": owner,
-            "asset_name": asset_name,
+            "asset_name": display_name,
             "instrument_type": None,
             "transaction_type": field["direction"]["observed_label"],
             "transaction_date": field["date"]["normalized_date_if_legible"],
-            "filed_at": None,
+            "filed_at": "2026-02-12T00:00:00Z",
             "amount_low": low,
             "amount_high": high,
             "source_id": "senate_efd",
@@ -252,6 +273,7 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
             "asset_cell_verbatim": raw_asset,
             "owner_code_observed": f"({match.group(1)})",
             "asset_text_without_code_observed": match.group(2),
+            "account_heading_visual_raw": heading,
             "owner_legend_url": SENATE_FORM_URL,
             "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
             "amount_band_observed": band,
@@ -261,9 +283,7 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
             "missing_frontend_fields": missing,
             "unverified_optional_fields": ["instrument_type", "ticker"],
             "blocking_reasons": [
-                "filing_time_not_in_fixed_paper_evidence",
                 "stable_transaction_id_not_assigned",
-                "cross_report_relationship_unresolved",
                 "candidate_verification_not_run",
             ],
             "disposition": "quarantined_no_candidate",
@@ -273,7 +293,7 @@ def audit(repo: Path, fields_path: Path, frontend_path: Path) -> dict:
                                     for item in rows}) != 36:
         raise ValueError("paper frontend gate row accounting changed")
     return {
-        "schema_version": "senate-paper-first-report-frontend-gates/v2",
+        "schema_version": "senate-paper-first-report-frontend-gates/v3",
         "evidence_commit": EVIDENCE_COMMIT,
         "review_commit": REVIEW_COMMIT,
         "frontend_sha256": FRONTEND_SHA256,

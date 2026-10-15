@@ -1,7 +1,7 @@
 {
   "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
   "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
-  "field_observations_sha256": "d9c964052f9d715decc58b414d1799f6b03e4c8eaeb50359215c9a162d9dc176",
+  "field_observations_sha256": "da42b9770d401238bedaaca8d2632372f436d373e17272a8412aa336ce3331a1",
   "frontend_context": {
     "current_document_transaction_count": 0,
     "current_person_transaction_count": 1,
@@ -34,7 +34,6 @@
   },
   "frontend_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
   "missing_field_counts": {
-    "filed_at": 36,
     "id": 36,
     "verification_status": 36
   },
@@ -72,7 +71,7 @@
       "fixed_cover_receipt_date"
     ],
     "filing_time": null,
-    "filing_timestamp_disposition": "date_only_no_time_of_day",
+    "filing_timestamp_disposition": "date_only_encoded_at_utc_midnight_not_actual_time",
     "form_identity_crop": {
       "box_px": [
         500,
@@ -82,6 +81,7 @@
       ],
       "grayscale_sha256": "61a08deb2c1d6c2d2c8bb32d9dd5c74301594b415a1d72e563f027fffeb5a89d"
     },
+    "frontend_count_policy": "official_disclosure_rows",
     "identity": {
       "bioguide_id": "B001277",
       "filer_name": "RICHARD BLUMENTHAL",
@@ -166,14 +166,13 @@
   "row_count": 36,
   "rows": [
     {
+      "account_heading_visual_raw": "(S) 3M's Partners LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -183,8 +182,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -199,7 +198,6 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -213,14 +211,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) 3M's Partners LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -230,8 +227,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "Kirkowswald Global Macro Fund LP",
-        "filed_at": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -246,7 +243,6 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -260,14 +256,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) 3M's Partners LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -277,8 +272,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -293,7 +288,6 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -307,14 +301,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) 3M's Partners LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -324,8 +317,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -340,7 +333,6 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -354,14 +346,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -371,8 +362,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -387,7 +378,6 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -401,14 +391,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -418,8 +407,8 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": "Kirkowswald Global Macro Fund LP",
-        "filed_at": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -434,7 +423,6 @@
       "grid_slot": 9,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -448,14 +436,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -465,8 +452,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -481,7 +468,6 @@
       "grid_slot": 10,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -495,14 +481,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -512,8 +497,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -528,7 +513,6 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -542,14 +526,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Radar Private Fund 1 LP (1)",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Radar Private Fund 1 LP (1)",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -559,8 +542,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Radar Private Fund 1 LP (1)",
-        "filed_at": null,
+        "asset_name": "Radar Private Fund 1 LP (1) (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -575,7 +558,6 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -589,14 +571,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -606,8 +587,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -622,7 +603,6 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -636,14 +616,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -653,8 +632,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -669,7 +648,6 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -683,14 +661,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -700,8 +677,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -716,7 +693,6 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -730,14 +706,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -747,8 +722,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "MH Northbound Train",
-        "filed_at": null,
+        "asset_name": "MH Northbound Train (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -763,7 +738,6 @@
       "grid_slot": 6,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -777,14 +751,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -794,8 +767,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -810,7 +783,6 @@
       "grid_slot": 7,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -824,14 +796,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -841,8 +812,8 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -857,7 +828,6 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -871,14 +841,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
       "amount_band_observed": "100001_250000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -888,8 +857,8 @@
       "frontend_projection_preview": {
         "amount_high": 250000,
         "amount_low": 100001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -904,7 +873,6 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -918,14 +886,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -935,8 +902,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -951,7 +918,6 @@
       "grid_slot": 12,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -965,14 +931,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -982,8 +947,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "MH Northbound Train",
-        "filed_at": null,
+        "asset_name": "MH Northbound Train (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -998,7 +963,6 @@
       "grid_slot": 13,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1012,14 +976,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1029,8 +992,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1045,7 +1008,6 @@
       "grid_slot": 14,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1059,14 +1021,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1076,8 +1037,8 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1092,7 +1053,6 @@
       "grid_slot": 15,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1106,14 +1066,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Hedge Holdings LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1123,8 +1082,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1139,7 +1098,6 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1153,14 +1111,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Hedge Holdings LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1170,8 +1127,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1186,7 +1143,6 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1200,14 +1156,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Hedge Holdings LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1217,8 +1172,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Hedge Holdings LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1233,7 +1188,6 @@
       "grid_slot": 4,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1247,14 +1201,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Hedge Holdings LLC",
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1264,8 +1217,8 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Hedge Holdings LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1280,7 +1233,6 @@
       "grid_slot": 5,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1294,14 +1246,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1311,8 +1262,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1327,7 +1278,6 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1341,14 +1291,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "250001_500000",
       "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1358,8 +1307,8 @@
       "frontend_projection_preview": {
         "amount_high": 500000,
         "amount_low": 250001,
-        "asset_name": "Kirkowswald Global Macro Fund LP",
-        "filed_at": null,
+        "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1374,7 +1323,6 @@
       "grid_slot": 9,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1388,14 +1336,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1405,8 +1352,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1421,7 +1368,6 @@
       "grid_slot": 10,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1435,14 +1381,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1452,8 +1397,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1468,7 +1413,6 @@
       "grid_slot": 11,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1482,14 +1426,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Northbound Train",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Northbound Train",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1499,8 +1442,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "MH Northbound Train",
-        "filed_at": null,
+        "asset_name": "MH Northbound Train (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1515,7 +1458,6 @@
       "grid_slot": 12,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1529,14 +1471,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) LarryMae LLC",
       "amount_band_observed": "100001_250000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1546,8 +1487,8 @@
       "frontend_projection_preview": {
         "amount_high": 250000,
         "amount_low": 100001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) LarryMae LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1562,7 +1503,6 @@
       "grid_slot": 13,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1576,14 +1516,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) New Things Partners LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1593,8 +1532,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) New Things Partners LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1609,7 +1548,6 @@
       "grid_slot": 16,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1623,14 +1561,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Other One LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1640,8 +1577,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Other One LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1656,7 +1593,6 @@
       "grid_slot": 2,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1670,14 +1606,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Other One LLC",
       "amount_band_observed": "15001_50000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1687,8 +1622,8 @@
       "frontend_projection_preview": {
         "amount_high": 50000,
         "amount_low": 15001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Other One LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1703,7 +1638,6 @@
       "grid_slot": 3,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1717,14 +1651,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Summa I LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) ELCM2 LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "ELCM2 LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1734,8 +1667,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "ELCM2 LLC",
-        "filed_at": null,
+        "asset_name": "ELCM2 LLC (Account: (S) Summa I LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1750,7 +1683,6 @@
       "grid_slot": 6,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1764,14 +1696,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Summa I LLC",
       "amount_band_observed": "1001_15000",
       "asset_cell_verbatim": "(S) Not Fade Away LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "Not Fade Away LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1781,8 +1712,8 @@
       "frontend_projection_preview": {
         "amount_high": 15000,
         "amount_low": 1001,
-        "asset_name": "Not Fade Away LLC",
-        "filed_at": null,
+        "asset_name": "Not Fade Away LLC (Account: (S) Summa I LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1797,7 +1728,6 @@
       "grid_slot": 7,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1811,14 +1741,13 @@
       ]
     },
     {
+      "account_heading_visual_raw": "(S) Summa I LLC",
       "amount_band_observed": "50001_100000",
       "asset_cell_verbatim": "(S) MH Built to Last LLC",
       "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
       "asset_text_without_code_observed": "MH Built to Last LLC",
       "blocking_reasons": [
-        "filing_time_not_in_fixed_paper_evidence",
         "stable_transaction_id_not_assigned",
-        "cross_report_relationship_unresolved",
         "candidate_verification_not_run"
       ],
       "candidate_transaction_id": null,
@@ -1828,8 +1757,8 @@
       "frontend_projection_preview": {
         "amount_high": 100000,
         "amount_low": 50001,
-        "asset_name": "MH Built to Last LLC",
-        "filed_at": null,
+        "asset_name": "MH Built to Last LLC (Account: (S) Summa I LLC)",
+        "filed_at": "2026-02-12T00:00:00Z",
         "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
         "id": null,
         "instrument_type": null,
@@ -1844,7 +1773,6 @@
       "grid_slot": 8,
       "missing_frontend_fields": [
         "id",
-        "filed_at",
         "verification_status"
       ],
       "owner_code_observed": "(S)",
@@ -1858,5 +1786,5 @@
       ]
     }
   ],
-  "schema_version": "senate-paper-first-report-frontend-gates/v2"
+  "schema_version": "senate-paper-first-report-frontend-gates/v3"
 }
