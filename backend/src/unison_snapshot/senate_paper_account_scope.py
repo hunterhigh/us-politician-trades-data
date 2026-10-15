@@ -58,8 +58,31 @@ def confirmed_visual_review_from_fields(fields: dict, ledger: dict) -> dict:
                 row["amount"]["observed_band"] != expected["amount_band"]):
             raise ValueError("Senate visual field audit differs from fixed source")
         reviewed.append(expected)
+    source_headings = {(row["page_number"], row["grid_slot"]): row
+                       for row in ledger["rows"]
+                       if row["disposition"] == "section_heading_excluded"}
+    heading_reviews = fields.get("account_heading_visual_reviews")
+    if not isinstance(heading_reviews, list) or len(heading_reviews) != len(source_headings):
+        raise ValueError("Senate visual account headings are incomplete")
+    reviewed_headings = []
+    seen_headings = set()
+    for item in heading_reviews:
+        key = (item.get("page_number"), item.get("grid_slot"))
+        source = source_headings.get(key)
+        if (key in seen_headings or source is None or
+                item.get("page_sha256") != source["page_sha256"] or
+                item.get("asset_crop_sha256") !=
+                source["asset_crop"]["grayscale_sha256"] or
+                item.get("status") != "confirmed_fixed_image" or
+                not isinstance(item.get("printed_heading"), str) or
+                not item["printed_heading"].strip()):
+            raise ValueError("Senate visual account heading differs from fixed source")
+        seen_headings.add(key)
+        reviewed_headings.append(item)
+    if seen_headings != set(source_headings):
+        raise ValueError("Senate visual account headings do not conserve source")
     return {"document_id": DOCUMENT_ID, "evidence_commit": EVIDENCE_COMMIT,
-            "rows": reviewed}
+            "rows": reviewed, "account_headings": reviewed_headings}
 
 
 def audit_first_report_account_scopes(
@@ -72,7 +95,9 @@ def audit_first_report_account_scopes(
         raise ValueError("Senate account-scope source identity changed")
     rows = ledger.get("rows")
     reviewed = visual_review.get("rows")
-    if not isinstance(rows, list) or not isinstance(reviewed, list):
+    reviewed_headings = visual_review.get("account_headings")
+    if (not isinstance(rows, list) or not isinstance(reviewed, list) or
+            not isinstance(reviewed_headings, list)):
         raise ValueError("Senate account-scope rows are incomplete")
     by_slot: dict[tuple[int, int], dict] = {}
     for row in rows:
@@ -121,6 +146,20 @@ def audit_first_report_account_scopes(
                 "heading_ocr_raw": row["asset_ocr_raw"],
             }
         scoped[key] = active
+    visual_headings = {(item["page_number"], item["grid_slot"]): item
+                       for item in reviewed_headings}
+    if len(visual_headings) != len(reviewed_headings) or set(visual_headings) != set(headings):
+        raise ValueError("Senate visual account headings do not conserve slots")
+    for key, heading in headings.items():
+        item = visual_headings[key]
+        if (item["page_sha256"] != heading["page_sha256"] or
+                item["asset_crop_sha256"] != heading["asset_crop_sha256"] or
+                item["status"] != "confirmed_fixed_image" or
+                not isinstance(item["printed_heading"], str) or
+                not item["printed_heading"].strip()):
+            raise ValueError("Senate visual account heading differs from source")
+        heading["printed_heading"] = item["printed_heading"].strip()
+        heading["heading_status"] = item["status"]
     data_keys = {key for key, row in by_slot.items()
                  if row["disposition"] == "transaction_observed_quarantined"}
     visual_keys = {(item["page_number"], item["grid_slot"]) for item in reviewed}
@@ -157,6 +196,8 @@ def audit_first_report_account_scopes(
                  "page_sha256": heading["page_sha256"],
                  "asset_crop_sha256": heading["asset_crop_sha256"]}
                 if heading is not None else None),
+            "account_heading_visual_raw": (
+                heading["printed_heading"] if heading is not None else None),
             "asset_visual_raw": item["asset_text"],
             "transaction_date_visual": event_day,
             "direction_visual": item["direction"],

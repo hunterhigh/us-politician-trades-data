@@ -1,4 +1,78 @@
 {
+  "account_heading_visual_reviews": [
+    {
+      "asset_crop_sha256": "c813281c6c814c3b3288eccf1b217f4559f484b8081bbe0076f1b9d0c3548800",
+      "grid_slot": 1,
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "printed_heading": "(S) 3M's Partners LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "4b49b5c31e01f13b2fc70bdb43bd999122daa84b7131b94203378ed14bb5ef02",
+      "grid_slot": 7,
+      "page_number": 2,
+      "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+      "printed_heading": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "8644951a1d6f3a55f2a9a26aabea8713943d91fde5dee55bd6e579363002c95d",
+      "grid_slot": 1,
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "printed_heading": "(S) Peter L Malkin Family 9 LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "768a96b9d2114209032f1b8946435ee70b27c327bd7ae7cd30bd954116c3aa77",
+      "grid_slot": 10,
+      "page_number": 3,
+      "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+      "printed_heading": "(S) Peter L Malkin Family 2000 LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "aa50fc048783c6f589318b6f5b0afe3c13967802cd9653372e7c5588549522ba",
+      "grid_slot": 1,
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "printed_heading": "(S) Hedge Holdings LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "6cb5e1769ac718d64e0cee52f6fca23c91811b09caad1fc94858c872d90ef008",
+      "grid_slot": 7,
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "printed_heading": "(S) LarryMae LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "d8d430e4a95bb939062975d4ccb97c0c1eb41b664e18f943b60fffd1f63fc960",
+      "grid_slot": 15,
+      "page_number": 4,
+      "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+      "printed_heading": "(S) New Things Partners LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "5e79cb52ad23b6c2c306791930775c23ffa97ea665721cd8b5ad1f71ac3adcd4",
+      "grid_slot": 1,
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "printed_heading": "(S) Other One LLC",
+      "status": "confirmed_fixed_image"
+    },
+    {
+      "asset_crop_sha256": "c3343fb7b8dc82aca98e547a01ddbf9c567d21dad9e20859ae5b4d0ed9d79053",
+      "grid_slot": 5,
+      "page_number": 5,
+      "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+      "printed_heading": "(S) Summa I LLC",
+      "status": "confirmed_fixed_image"
+    }
+  ],
   "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
   "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
   "interpretation": "four row fields visually cross-checked; report identity and revision context remain unresolved and no candidate is projected",
