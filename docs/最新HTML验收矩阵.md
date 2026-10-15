@@ -1,5 +1,11 @@
 # 最新 HTML 验收矩阵
 
+## 2026-10-15 账户标题待核接线后的完整页面回归
+
+[Senate 纸表运行 38675534141](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38675534141) 的远端投影保留 36 行的 9 个核读账户标题，临时候选读入 483 个待核格、正式新增 0；该运行因五份旧解析失败在最终门禁标红。[完整生产运行 38676238093](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38676238093) 随后成功，候选与准备提交回读的两次最新 HTML 浏览器检查均 `status=passed`、`transactions=18491`、`new_transactions_checked=0`、`previous_board_compared=true`；旧事实差异 `change_count=0`，固定提交回读及原子发布成功。`main=e9a89b4a770783b4bd62ac5cc6c81767e3521f38`、`market=5f38bf734203d6c1a3100f69d5a43135e970428a`，正式仍为 401 人、18,491 笔交易、5,595 条持仓。
+
+最新 HTML 原件 SHA-256 仍为 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`；七个早于可验证行情首日的收益继续 `null`／“—”。本轮没有新正式交易，所以页面通过证明旧页面未回退，**不能**充当这 36 行的资产说明和披露行计数验收；该项将在身份、旧抽取关系与行资格闭合并生成正式新增候选后，按本矩阵 H04、H05、H10 执行。
+
 ## 2026-10-15 Senate 待核接线后的页面验收
 
 用户指定 HTML 原件 SHA-256 本轮仍为 `D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4`；七个早于可验证行情首日的收益保持 `null`／“—”。[Senate 自动运行 38671326928](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/38671326928) 已把 483 个待核格送入临时候选构建审计，首份 36 格有账户标题，来自投影的正式交易 0；五份旧失败报告仍触发最终正式门禁。
