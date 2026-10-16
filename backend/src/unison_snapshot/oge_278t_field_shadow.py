@@ -13,6 +13,7 @@ import re
 
 
 SCHEMA = "oge-278t-field-shadow/v1"
+COMPARISON_SCHEMA = "oge-278t-field-comparison/v1"
 _INPUT_SCHEMA = "oge-278t-raster-slot-observation/v2"
 _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
@@ -123,3 +124,97 @@ def observe_field_shapes(observations: list[dict]) -> dict:
     return {"schema_version": SCHEMA, "source_sha256": sources.pop(),
             "page_count": len(pages), "summary": dict(sorted(counts.items())),
             "pages": pages, "production_mutation_authorized": False}
+
+
+def compare_field_observations(left: dict, right: dict) -> dict:
+    """Compare two OCR passes only after their physical grid identities agree.
+
+    Agreement is still an OCR observation, never a verified source fact.
+    Pages present in only one pass remain explicit rather than disappearing.
+    """
+    if any(item.get("schema_version") != _INPUT_SCHEMA for item in (left, right)):
+        raise ValueError("expected two saved 278-T raster slot observations v2")
+    source = left.get("source_sha256")
+    if not source or source != right.get("source_sha256"):
+        raise ValueError("OCR passes must refer to the same PDF SHA-256")
+    resolutions = [item.get("ocr_resolution_dpi") for item in (left, right)]
+    if None in resolutions or resolutions[0] == resolutions[1]:
+        raise ValueError("OCR passes must have distinct, recorded resolutions")
+
+    def pages_by_number(item: dict) -> dict[int, dict]:
+        pages = item.get("pages")
+        if not isinstance(pages, list):
+            raise ValueError("OCR pass has no page list")
+        result = {page["page_number"]: page for page in pages}
+        if len(result) != len(pages):
+            raise ValueError("duplicate page in OCR pass")
+        return result
+
+    left_pages, right_pages = pages_by_number(left), pages_by_number(right)
+    common = sorted(left_pages.keys() & right_pages.keys())
+    left_shapes = {p["page_number"]: p for p in observe_field_shapes([left])["pages"]}
+    right_shapes = {p["page_number"]: p for p in observe_field_shapes([right])["pages"]}
+    fields = ("printed_number", "type", "transaction_date", "amount")
+    counts: Counter[str] = Counter()
+    pages = []
+    for number in common:
+        first, second = left_pages[number], right_pages[number]
+        if first.get("column_geometry") != second.get("column_geometry") or \
+                first.get("column_edges_pdf_points") != second.get("column_edges_pdf_points") or \
+                first.get("physical_slot_count") != second.get("physical_slot_count"):
+            raise ValueError(f"page {number} grid geometry differs between OCR passes")
+        if first.get("column_geometry") != "oge_2024_six_column_grid":
+            pages.append({"page_number": number, "status": "geometry_unknown", "slots": []})
+            counts["geometry_unknown_pages"] += 1
+            continue
+        a_slots, b_slots = first["slots"], second["slots"]
+        a_fields = left_shapes[number]["slots"]
+        b_fields = right_shapes[number]["slots"]
+        if len(a_slots) != len(b_slots) or len(a_slots) != len(a_fields) or \
+                len(b_slots) != len(b_fields):
+            raise ValueError(f"page {number} slot count differs between OCR passes")
+        compared = []
+        for a, b, a_field, b_field in zip(a_slots, b_slots, a_fields, b_fields):
+            if a.get("slot_index") != b.get("slot_index") or \
+                    a.get("band_pdf_points") != b.get("band_pdf_points"):
+                raise ValueError(f"page {number} slot identity differs between OCR passes")
+            field_results = {}
+            for name in fields:
+                av, bv = a_field["field_shapes"][name], b_field["field_shapes"][name]
+                a_value = av.get("values") if name == "amount" else av.get("value")
+                b_value = bv.get("values") if name == "amount" else bv.get("value")
+                a_known = av["status"] == "ocr_shape_only"
+                b_known = bv["status"] == "ocr_shape_only"
+                if a_known and b_known:
+                    status = "matching_shapes" if a_value == b_value else "conflicting_shapes"
+                elif a_known or b_known:
+                    status = "single_shape"
+                else:
+                    status = "no_shape"
+                counts[f"{name}_{status}"] += 1
+                field_results[name] = {
+                    "status": status,
+                    "values_by_resolution": {str(resolutions[0]): a_value,
+                                             str(resolutions[1]): b_value},
+                    "raw_by_resolution": {
+                        str(resolutions[0]): a_field["raw_columns"][name] if name != "amount"
+                        else [a_field["raw_columns"]["notification"],
+                              a_field["raw_columns"]["amount"]],
+                        str(resolutions[1]): b_field["raw_columns"][name] if name != "amount"
+                        else [b_field["raw_columns"]["notification"],
+                              b_field["raw_columns"]["amount"]],
+                    },
+                }
+            compared.append({"slot_index": a["slot_index"], "band_pdf_points": a["band_pdf_points"],
+                             "fields": field_results, "qualification": "not_assessed"})
+            counts["compared_slots"] += 1
+        pages.append({"page_number": number, "status": "fields_compared",
+                      "slot_count": len(compared), "slots": compared})
+    return {
+        "schema_version": COMPARISON_SCHEMA, "source_sha256": source,
+        "resolutions_dpi": resolutions, "compared_page_count": len(common),
+        "left_only_pages": sorted(left_pages.keys() - right_pages.keys()),
+        "right_only_pages": sorted(right_pages.keys() - left_pages.keys()),
+        "summary": dict(sorted(counts.items())), "pages": pages,
+        "production_mutation_authorized": False,
+    }
