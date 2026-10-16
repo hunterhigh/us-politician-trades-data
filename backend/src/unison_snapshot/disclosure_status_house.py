@@ -178,7 +178,8 @@ def build_house_status(evidence_root: Path, review_root: Path,
                 filed_date = candidate_date
                 filed_date_basis = "archive_receipt_filing_date"
         record = {
-            "record_key": f"house_ptr:{year}:{docid}", "report_id": docid,
+            "record_key": f"house_ptr:{year}:{docid}", "report_id": f"house_ptr:{year}:{docid}",
+            "document_id": docid,
             "document_type": "PTR", "source_url": document_url(year, "P", docid),
             "catalog_state": "current" if key in current else "historical" if key in catalogued else "unknown",
             "acquisition_state": "archived" if archived else "not_archived" if key in catalogued else "unknown",
@@ -243,7 +244,7 @@ def build_house_status(evidence_root: Path, review_root: Path,
     by_url = {record["source_url"]: record for record in records}
     by_id: dict[str, list[dict]] = defaultdict(list)
     for record in records:
-        by_id[record["report_id"]].append(record)
+        by_id[record["document_id"]].append(record)
     unmatched: list[str] = []
     seen_ids: set[str] = set()
     for row in transactions:
@@ -255,7 +256,7 @@ def build_house_status(evidence_root: Path, review_root: Path,
         seen_ids.add(txid)
         filing_id, url = row.get("filing_id"), row.get("source_url")
         record = by_url.get(url) if isinstance(url, str) else None
-        if record is not None and filing_id is not None and str(filing_id) != record["report_id"]:
+        if record is not None and filing_id is not None and str(filing_id) != record["document_id"]:
             record = None
         if not url and len(by_id.get(str(filing_id), [])) == 1:
             record = by_id[str(filing_id)][0]

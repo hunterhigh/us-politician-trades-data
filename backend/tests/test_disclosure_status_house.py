@@ -60,7 +60,7 @@ class HouseDisclosureStatusTests(unittest.TestCase):
         self.index(2026, ["22"], "2026-10-15T00:00:00Z")
         self.archive("22")
         status = self.result()
-        reports = {row["report_id"]: row for row in status["reports"]}
+        reports = {row["document_id"]: row for row in status["reports"]}
         self.assertEqual(status["scope"]["filing_years"], [2025, 2026])
         self.assertEqual(reports["11"]["acquisition_state"], "not_archived")
         self.assertEqual(reports["11"]["catalog_state"], "current")
@@ -85,7 +85,7 @@ class HouseDisclosureStatusTests(unittest.TestCase):
         self.artifact("failures", "1")
         self.archive("5")
         self.artifact("failures", "5")
-        reports = {row["report_id"]: row for row in self.result()["reports"]}
+        reports = {row["document_id"]: row for row in self.result()["reports"]}
         self.assertEqual([reports[str(i)]["qualification_state"] for i in range(1, 5)],
                          ["qualified", "partial", "quarantined", "zero_transactions"])
         self.assertEqual(reports["1"]["extraction_state"], "extracted")
@@ -139,6 +139,22 @@ class HouseDisclosureStatusTests(unittest.TestCase):
         self.assertEqual(report["extraction_state"], "unknown")
         self.assertEqual(report["qualification_state"], "unknown")
         self.assertIn("review_without_archive_receipt", report["reason_codes"])
+
+    def test_same_official_document_id_in_two_years_has_unique_report_identity(self):
+        self.index(2025, ["1"], "2026-10-14T00:00:00Z")
+        self.index(2026, ["1"], "2026-10-15T00:00:00Z")
+        status = self.result([
+            {"id": "old", "source_id": "house_clerk", "filing_id": "1",
+             "source_url": document_url(2025, "P", "1")},
+            {"id": "new", "source_id": "house_clerk", "filing_id": "1",
+             "source_url": document_url(2026, "P", "1")},
+            {"id": "ambiguous", "source_id": "house_clerk", "filing_id": "1"}])
+        reports = status["reports"]
+        self.assertEqual([row["report_id"] for row in reports],
+                         ["house_ptr:2025:1", "house_ptr:2026:1"])
+        self.assertEqual([row["document_id"] for row in reports], ["1", "1"])
+        self.assertEqual([row["publication_transaction_ids"] for row in reports], [["old"], ["new"]])
+        self.assertEqual(status["unmatched_publication_transaction_ids"], ["ambiguous"])
 
     def test_bad_receipts_and_duplicate_publication_ids_fail_closed(self):
         path = self.index(2026, ["1"], "2026-10-15T00:00:00Z")
