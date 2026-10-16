@@ -145,18 +145,24 @@ def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 
 
 
 def ocr_rendered_image(image, *, executable: str | None = None,
-                       resolution: int = 200) -> tuple[OcrPage, str]:
+                       resolution: int = 200,
+                       page_segmentation: int | None = None) -> tuple[OcrPage, str]:
     """OCR one already rendered image in its own (possibly rotated) frame."""
     if type(resolution) is not int or not 150 <= resolution <= 400:
         raise OcrGeometryError("OCR resolution is outside bounds")
+    if page_segmentation not in (None, 6):
+        raise OcrGeometryError("unsupported OCR page segmentation mode")
     resolved, engine = _engine(executable)
     with tempfile.TemporaryDirectory(prefix="whitehouse-ocr-image-") as folder:
         image_path = Path(folder) / "page.png"
         image.convert("L").save(image_path, format="PNG")
         try:
+            command = [resolved, str(image_path), "stdout", "--dpi", str(resolution),
+                       "-l", "eng"]
+            if page_segmentation is not None:
+                command.extend(["--psm", str(page_segmentation)])
             completed = subprocess.run(
-                [resolved, str(image_path), "stdout", "--dpi", str(resolution),
-                 "-l", "eng", "tsv"], stdout=subprocess.PIPE,
+                [*command, "tsv"], stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, timeout=120, check=False)
         except (OSError, subprocess.SubprocessError):
             raise OcrGeometryError("Tesseract OCR failed on rendered image") from None
