@@ -10,7 +10,7 @@ from collections import Counter
 
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
-from .source_row_ledger import house_ptr_cell_shadow_ledger
+from .source_row_ledger import house_ptr_cell_shadow_ledger, page_ledger, report_ledger
 
 
 def build_house_ptr_format_audit(observation: dict) -> dict:
@@ -57,6 +57,30 @@ def build_house_ptr_format_audit(observation: dict) -> dict:
                        if disposition == "heading"}:
         raise ValueError("House format audit lost a printed legend")
 
+    # Section interpretation resolves some originally unknown bands as headings.
+    # Carry that classification and every data-slot link into the common report
+    # contract; it remains separate from production qualification.
+    interpreted_pages = []
+    for page in ledger["pages"]:
+        interpreted_slots = [
+            {**slot, "disposition": "heading" if
+             (page["page_number"], slot["local_key"]) in heading_keys
+             else slot["disposition"]} for slot in page["slots"]]
+        interpreted_pages.append(page_ledger(**{
+            key: page[key] for key in (
+                "source_id", "document_sha256", "page_number", "adapter_version",
+                "coverage", "unresolved_regions", "coverage_reason", "coordinate_frame")},
+            slots=interpreted_slots))
+    report = report_ledger(
+        source_id="house_clerk", document_sha256=source_sha,
+        adapter_version="house-ptr-format-audit/v1", page_count=len(pages),
+        pages=interpreted_pages, logical_rows=[
+            {"local_key": f"p{row['page']}:band{row['physical_band_index']}",
+             "slot_refs": [{"page_number": row["page"],
+                            "slot_key": str(row["physical_band_index"])}],
+             "observation_ref": f"field_readings/rows/{index}"}
+            for index, row in enumerate(readings["rows"])])
+
     page_audits = []
     for page in ledger["pages"]:
         number = page["page_number"]
@@ -93,6 +117,8 @@ def build_house_ptr_format_audit(observation: dict) -> dict:
     return {
         "schema_version": "house-ptr-format-audit/v1",
         "source_sha256": source_sha,
+        "source_report_ledger": report,
+        "field_readings": readings,
         "qualification_status": "unverified_shadow_only",
         "production_transaction_change": 0,
         "page_count": len(page_audits),
