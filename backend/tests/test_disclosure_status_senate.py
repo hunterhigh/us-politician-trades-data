@@ -138,6 +138,12 @@ class SenateStatusTests(unittest.TestCase):
             self.assertEqual(result["extraction_state"], "unknown")
             self.assertEqual(result["source_versions"], [SHA, "c" * 64])
             self.assertIn("active_archive_version_unknown", result["reason_codes"])
+            self.audit(review, qualified_rows=[
+                {"document_id": "report", "source_sha256": SHA, "transaction_id": "q1"},
+                {"document_id": "report", "source_sha256": "c" * 64, "transaction_id": "q2"}])
+            result = build_senate_status(evidence, review, [], [])[0]["reports"][0]
+            self.assertEqual(result["qualification_state"], "not_evaluated")
+            self.assertIsNone(result["qualified_transaction_count"])
 
     def test_empty_transaction_list_requires_evaluated_zero_report(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -122,7 +122,8 @@ def build_senate_status(evidence_root: Path, review_root: Path,
 
     # An audit is applicable only to the selected catalog/parser, never a newer
     # arbitrary qualification file found while walking historical artifacts.
-    audit_active = bool(audit) and audit.get("catalog_sha256") == catalog_sha and (
+    audit_active = (bool(audit) and isinstance(catalog_sha, str) and
+                    bool(_SHA.fullmatch(catalog_sha))) and audit.get("catalog_sha256") == catalog_sha and (
         not parser or audit.get("parser_version") == parser)
     if audit and not audit_active:
         limitations.append("Qualification audit does not match the selected catalog/parser; its decisions are not applied.")
@@ -171,7 +172,8 @@ def build_senate_status(evidence_root: Path, review_root: Path,
             # A per-report view must not merge transaction counts across versions.
             reasons.add("multiple_extraction_versions")
         extraction = bound_extractions[0] if len(bound_extractions) == 1 else None
-        audit_bound = audit_active and all(row.get("source_sha256") in versions for row in audited)
+        audit_bound = (audit_active and len(selected_versions) <= 1 and
+                       all(row.get("source_sha256") in versions for row in audited))
         if superseded_versions[document_id] and not superseded_versions[document_id].issubset(versions):
             audit_bound = False
         if audited and not audit_bound:
