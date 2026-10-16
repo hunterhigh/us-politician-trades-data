@@ -12,6 +12,8 @@ import urllib.request
 from .builder import LAYOUT, SCHEMA
 from .builder import timestamp
 from .codec import bucket
+from .disclosure_status import (MAX_STATUS_BYTES, validate_reference, validate_summary,
+                                validate_page, validate_scope_records)
 
 SHA1 = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -134,7 +136,39 @@ class PublicSnapshotRepository:
             raise PublicSnapshotError("Manifest market_pages is invalid")
         if bool(market) != bool(pages):
             raise PublicSnapshotError("Manifest market commit and pages must be declared together")
+        if "disclosure_status" in value:
+            try:
+                validate_reference(value["disclosure_status"])
+            except ValueError as exc:
+                raise PublicSnapshotError(str(exc)) from None
         return value
+
+    def disclosure_status(self, commit: str, *, include_records: bool = False) -> dict | None:
+        """Read status from the caller's fixed publication; old publications return None."""
+        manifest = self.manifest(commit)
+        reference = manifest.get("disclosure_status")
+        if reference is None:
+            return None
+
+        def read(ref: dict) -> dict:
+            data = self._read(commit, f"status/{ref['sha256']}.json", MAX_STATUS_BYTES)
+            if len(data) != ref["byte_length"] or hashlib.sha256(data).hexdigest() != ref["sha256"]:
+                raise PublicSnapshotError("Disclosure status byte length or hash mismatch")
+            return self._json(data, "disclosure status")
+
+        summary = read(reference)
+        try:
+            validate_summary(summary, manifest)
+            if include_records:
+                for source in summary["sources"]:
+                    records = []
+                    for page in source["pages"]:
+                        records.extend(validate_page(read(page), source, page)["records"])
+                    validate_scope_records(source, records)
+                    source["records"] = records
+        except ValueError as exc:
+            raise PublicSnapshotError(str(exc)) from None
+        return summary
 
     def _content(self, commit: str, prefix: str, sha: str) -> dict:
         if not isinstance(sha, str) or not SHA256.fullmatch(sha):

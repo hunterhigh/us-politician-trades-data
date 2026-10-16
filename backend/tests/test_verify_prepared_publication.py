@@ -57,7 +57,8 @@ class PreparedPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "main commit"):
             script.FixedCommitTransport("main")
 
-    def _run_preflight(self, person_transactions, *, omitted_from=None, calls=None):
+    def _run_preflight(self, person_transactions, *, omitted_from=None, calls=None,
+                       processing_status=None, require_status=False, expected_review=None):
         main, market = "a" * 40, "b" * 40
         base = {"people": [{"id": "trump"}],
                 "transactions": [{"id": row["id"], "ticker": "MSFT"}
@@ -94,6 +95,11 @@ class PreparedPublicationTests(unittest.TestCase):
                     calls.append(mode)
                 return selection(mode, key)
 
+            def disclosure_status(self, commit, *, include_records=False):
+                if commit != main or not include_records:
+                    raise AssertionError("Status must use the prepared commit and verify all records")
+                return processing_status
+
         renderer = SimpleNamespace(
             load_dashboard_data=lambda _path: {},
             render_html=lambda _value: "<html>prepared</html>")
@@ -109,6 +115,8 @@ class PreparedPublicationTests(unittest.TestCase):
                 expected_market_rows=1, expected_source_health=1,
                 expected_person_holdings=1,
                 expected_person_transactions=len(person_transactions),
+                require_disclosure_status=require_status,
+                expected_review_commit=expected_review,
                 transport=object())
             self.assertTrue((Path(folder) / "dashboard.html").is_file())
             return result
@@ -118,6 +126,19 @@ class PreparedPublicationTests(unittest.TestCase):
         self.assertEqual(result["reported_holding_count"], 1)
         self.assertEqual(result["person_transaction_count"], 1)
         self.assertTrue(result["trump_transactions_visible_in_dashboard_search"])
+
+    def test_required_processing_status_cannot_be_missing_or_from_another_review(self):
+        rows = [self._whitehouse_transaction()]
+        with self.assertRaisesRegex(ValueError, "missing disclosure"):
+            self._run_preflight(rows, require_status=True)
+        status = {"provenance": {"review_commit": "1" * 40}, "sources": [
+            {"counts": {"publication_transaction_count": 1,
+                        "unmatched_publication_transaction_count": 0}}]}
+        with self.assertRaisesRegex(ValueError, "unexpected review_commit"):
+            self._run_preflight(rows, processing_status=status, expected_review="2" * 40)
+        result = self._run_preflight(rows, require_status=True,
+                                     processing_status=status, expected_review="1" * 40)
+        self.assertTrue(result["disclosure_status_verified"])
 
     def test_whitehouse_and_fixed_oge_transactions_pass_preflight(self):
         calls = []
