@@ -18,7 +18,9 @@ _INPUT_SCHEMA = "oge-278t-raster-slot-observation/v2"
 _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
 _DATE = re.compile(r"(\d{1,2})/(\d{1,2})/(20\d{2})")
-_MONEY = re.compile(r"\$\s*([0-9][0-9,]*)")
+# A decimal-looking OCR artifact such as "$15.001" must not become "$15".
+# A trailing punctuation mark without following digits remains harmless.
+_MONEY = re.compile(r"\$\s*(\d{1,3}(?:,\d{3})+|\d+)(?!\d|[,.]\d)")
 _TYPE = {"purchase", "sale", "exchange"}
 _HEADER = re.compile(r"\b(description|type|date|notification|amount)\b", re.I)
 
