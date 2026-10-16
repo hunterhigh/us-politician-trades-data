@@ -103,6 +103,7 @@ def main() -> None:
     prepare.add_argument("--allow-market", action="store_true")
     prepare.add_argument("--market-commit")
     prepare.add_argument("--market-pages-file", type=Path)
+    prepare.add_argument("--disclosure-status-input", type=Path)
     prepare_market = sub.add_parser("prepare-market-publication")
     prepare_market.add_argument("--input", type=Path, required=True)
     prepare_market.add_argument("--root", type=Path, required=True)
@@ -117,6 +118,13 @@ def main() -> None:
     fetch.add_argument("--key")
     fetch.add_argument("--token-env", default="GITHUB_TOKEN")
     fetch.add_argument("--output", type=Path, required=True)
+    fetch_status = sub.add_parser("fetch-disclosure-status")
+    fetch_status.add_argument("--owner", required=True)
+    fetch_status.add_argument("--repo", required=True)
+    fetch_status.add_argument("--commit", required=True)
+    fetch_status.add_argument("--include-records", action="store_true")
+    fetch_status.add_argument("--token-env", default="GITHUB_TOKEN")
+    fetch_status.add_argument("--output", type=Path, required=True)
     readiness = sub.add_parser(
         "verify-first-launch",
         help="Fail closed unless every in-scope disclosure source is fully accounted for")
@@ -396,6 +404,15 @@ def main() -> None:
                            allow_market=args.allow_market, market_commit=args.market_commit,
                            market_pages=(json.loads(args.market_pages_file.read_text(encoding="utf-8"))
                                          ["market_pages"] if args.market_pages_file else None))
+            if args.disclosure_status_input:
+                from .disclosure_status import attach_disclosure_status
+                status_input = json.loads(args.disclosure_status_input.read_text(encoding="utf-8"))
+                if (status_input.get("schema_version") != "disclosure-status-input/v1" or
+                        status_input.get("transactions_sha256") != digest(encode(payload["transactions"]))):
+                    raise ValueError("Disclosure status input does not match publication transactions")
+                bundle = attach_disclosure_status(
+                    bundle, status_input["scopes"], transactions=payload["transactions"],
+                    provenance=status_input["provenance"])
             result = materialize(args.root, bundle)
             print(json.dumps({"changed": result.changed, "business_changed": result.business_changed,
                               "snapshot_id": bundle.manifest["snapshot_id"],
@@ -428,6 +445,16 @@ def main() -> None:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_bytes(encode(selection.snapshot))
             print(json.dumps({"commit": selection.commit, "output": str(args.output.resolve())}))
+        elif args.command == "fetch-disclosure-status":
+            token = os.environ.get(args.token_env) if args.token_env else None
+            status = PublicSnapshotRepository(args.owner, args.repo,
+                transport=HTTPTransport(token=token)).disclosure_status(
+                    args.commit, include_records=args.include_records)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_bytes(encode({"snapshot_commit": args.commit,
+                                           "disclosure_status": status}))
+            print(json.dumps({"commit": args.commit, "provided": status is not None,
+                              "output": str(args.output.resolve())}))
         elif args.command == "verify-first-launch":
             result = validate_first_launch(args.review_root, args.input)
             if args.output:

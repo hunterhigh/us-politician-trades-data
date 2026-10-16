@@ -122,13 +122,16 @@ jobs:
           git fetch --no-tags --depth=1 origin \
             review:refs/remotes/origin/review \
             main:refs/remotes/origin/main \
-            market:refs/remotes/origin/market
+            market:refs/remotes/origin/market \
+            evidence:refs/remotes/origin/evidence
           review_root="$RUNNER_TEMP/complete-review"
+          evidence_root="$RUNNER_TEMP/complete-evidence"
           market_root="$RUNNER_TEMP/complete-market"
           main_root="$RUNNER_TEMP/complete-main"
           cache_main_root="$RUNNER_TEMP/cache-main"
           cache_market_root="$RUNNER_TEMP/cache-market"
           git worktree add --detach "$review_root" origin/review
+          git worktree add --detach "$evidence_root" origin/evidence
           git worktree add --detach "$market_root" origin/market
           git worktree add --detach "$main_root" origin/main
           if [ -n "$CACHE_MAIN_OVERRIDE" ]; then
@@ -164,6 +167,9 @@ jobs:
             exit 2
           }
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_commit=$(git -C "$review_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "evidence_commit=$(git -C "$evidence_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "market_root=$market_root" >> "$GITHUB_OUTPUT"
           echo "main_root=$main_root" >> "$GITHUB_OUTPUT"
           echo "cache_main_root=$cache_main_root" >> "$GITHUB_OUTPUT"
@@ -327,8 +333,7 @@ jobs:
           board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
           main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
           review_sha="$(git -C "$REVIEW_ROOT" rev-parse HEAD)"
-          git fetch --no-tags --depth=1 origin evidence:refs/remotes/origin/evidence
-          transition_args=(--repo . --evidence-commit "$(git rev-parse origin/evidence)")
+          transition_args=(--repo . --evidence-commit "${{ steps.trees.outputs.evidence_commit }}")
           if [ -f "$REVIEW_ROOT/status/publication_transitions.json" ]; then
             transition_args+=(--transitions "$REVIEW_ROOT/status/publication_transitions.json")
           fi
@@ -374,11 +379,19 @@ jobs:
           PYTHONPATH: backend/src
         run: |
           generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python backend/scripts/build_disclosure_status.py \
+            --evidence-root "${{ steps.trees.outputs.evidence_root }}" \
+            --review-root "${{ steps.trees.outputs.review_root }}" \
+            --input "$RUNNER_TEMP/complete-candidate.json" \
+            --code-commit "$(git rev-parse HEAD)" \
+            --previous-main-commit "${{ steps.trees.outputs.main_base }}" \
+            --output "$RUNNER_TEMP/disclosure-status-input.json"
           python -m unison_snapshot prepare-publication \
             --input "$RUNNER_TEMP/complete-candidate.json" --root "$MAIN_ROOT" \
             --generated-at "$generated_at" --allow-market --market-commit "$MARKET_SHA" \
-            --market-pages-file "$RUNNER_TEMP/market-publication.json"
-          git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers
+            --market-pages-file "$RUNNER_TEMP/market-publication.json" \
+            --disclosure-status-input "$RUNNER_TEMP/disclosure-status-input.json"
+          git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers status
           if git -C "$MAIN_ROOT" diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -438,6 +451,9 @@ jobs:
             --expected-source-health "${{ steps.probes.outputs.source_health_count }}" \
             --expected-person-holdings "${{ steps.probes.outputs.person_holding_count }}" \
             --expected-person-transactions "${{ steps.probes.outputs.person_transaction_count }}" \
+            --require-disclosure-status \
+            --expected-review-commit "${{ steps.trees.outputs.review_commit }}" \
+            --expected-evidence-commit "${{ steps.trees.outputs.evidence_commit }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
       - name: Verify the prepared result in the frozen browser frontend
         if: ${{ !inputs.skip_prepared_readback }}

@@ -67,6 +67,9 @@ def verify_prepared_publication(
         expected_holdings: int, expected_market_rows: int,
         expected_source_health: int, expected_person_holdings: int,
         expected_person_transactions: int,
+        require_disclosure_status: bool = False,
+        expected_review_commit: str | None = None,
+        expected_evidence_commit: str | None = None,
         transport=None) -> dict:
     if not SHA1.fullmatch(market_commit):
         raise ValueError("Prepared market commit is invalid")
@@ -74,6 +77,19 @@ def verify_prepared_publication(
     repository = PublicSnapshotRepository(
         owner, repo, ref="main",
         transport=transport or FixedCommitTransport(main_commit))
+    status = repository.disclosure_status(main_commit, include_records=True)
+    if require_disclosure_status and status is None:
+        raise ValueError("Prepared publication is missing disclosure processing status")
+    if status is not None:
+        for key, expected_commit in (("review_commit", expected_review_commit),
+                                     ("evidence_commit", expected_evidence_commit)):
+            if expected_commit is not None and status["provenance"][key] != expected_commit:
+                raise ValueError(f"Prepared disclosure status has an unexpected {key}")
+        if sum(s["counts"]["publication_transaction_count"] +
+               s["counts"]["unmatched_publication_transaction_count"]
+               for s in status["sources"]) != expected_transactions:
+            raise ValueError("Prepared disclosure status does not account for all transactions")
+        (output_dir / "disclosure-status.json").write_bytes(encode(status))
     # The person shard is small enough to reject bad provenance before fetching
     # the much larger dashboard and search snapshots.
     person_selection = repository.fetch("person", person_id)
@@ -164,7 +180,8 @@ def verify_prepared_publication(
             "reported_holding_count": len(
                 selections["dashboard"].snapshot["reported_holdings"]),
             "person_transaction_count": len(person["transactions"]),
-            "trump_transactions_visible_in_dashboard_search": True}
+            "trump_transactions_visible_in_dashboard_search": True,
+            "disclosure_status_verified": status is not None}
 
 
 def main() -> int:
@@ -184,6 +201,9 @@ def main() -> int:
     parser.add_argument("--expected-source-health", type=int, required=True)
     parser.add_argument("--expected-person-holdings", type=int, required=True)
     parser.add_argument("--expected-person-transactions", type=int, required=True)
+    parser.add_argument("--require-disclosure-status", action="store_true")
+    parser.add_argument("--expected-review-commit")
+    parser.add_argument("--expected-evidence-commit")
     args = parser.parse_args()
     result = verify_prepared_publication(
         owner=args.owner, repo=args.repo, main_commit=args.main_commit,
@@ -195,7 +215,10 @@ def main() -> int:
         expected_market_rows=args.expected_market_rows,
         expected_source_health=args.expected_source_health,
         expected_person_holdings=args.expected_person_holdings,
-        expected_person_transactions=args.expected_person_transactions)
+        expected_person_transactions=args.expected_person_transactions,
+        require_disclosure_status=args.require_disclosure_status,
+        expected_review_commit=args.expected_review_commit,
+        expected_evidence_commit=args.expected_evidence_commit)
     print(json.dumps(result, sort_keys=True))
     return 0
 
