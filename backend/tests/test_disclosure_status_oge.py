@@ -112,6 +112,42 @@ class OgeDisclosureStatusTests(unittest.TestCase):
         self.assertEqual(record["qualification_state"], "quarantined")
         self.assertIsNone(record["filed_date"])
 
+    def test_direct_audit_without_archive_retains_observation_not_current_qualification(self):
+        self.catalog([{"access_method": "direct_pdf", "source_document_id": self.doc,
+                       "document_url": self.url}])
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [{
+            "document_id": self.doc, "promoted_count": 4, "quarantined_count": 2}]})
+        record = self.build([{"id": "published", "source_id": "oge", "source_url": self.url}])[0]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertEqual(record["observed_qualified_transaction_count"], 4)
+        self.assertEqual(record["observed_quarantined_row_count"], 2)
+        self.assertEqual(record["publication_transaction_ids"], ["published"])
+        self.assertIn("qualification_source_archive_missing", record["reason_codes"])
+
+    def test_direct_audit_requires_successful_current_extraction(self):
+        self.archive()
+        (self.review / f"oge/extractions/{self.doc}/{self.sha}/parser-v1.json").unlink()
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [{
+            "document_id": self.doc, "promoted_count": 1, "quarantined_count": 0}]})
+        record = self.build()[0]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertEqual(record["observed_qualified_transaction_count"], 1)
+        self.assertIn("qualification_current_original_not_extracted", record["reason_codes"])
+
+    def test_direct_multiple_originals_need_explicit_audit_version(self):
+        self.archive()
+        self.archive(sha="b" * 64)
+        audit = {"document_id": self.doc, "promoted_count": 1, "quarantined_count": 0}
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        record = self.build()[0]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertEqual(record["observed_qualified_transaction_count"], 1)
+        self.assertIn("qualification_original_version_unresolved", record["reason_codes"])
+        audit["source_sha256"] = self.sha
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        self.assertEqual(self.build()[0]["reports"][0]["qualification_state"], "qualified")
+
     def test_whitehouse_coverage_zero_does_not_mean_zero_qualification(self):
         self.index()
         self.archive(True)
@@ -168,14 +204,42 @@ class OgeDisclosureStatusTests(unittest.TestCase):
         record = self.build()[2]["reports"][0]
         self.assertEqual(record["qualification_state"], "unknown")
 
-    def test_qualification_identity_and_version_conflicts_fail(self):
+    def test_whitehouse_qualification_version_missing_from_archive_is_unknown(self):
         self.index()
         self.archive(True)
         audit = {"document_id": self.whid, "source_url": self.whurl,
                  "source_sha256": "b" * 64, "promoted_count": 1, "quarantined_count": 0}
         self.write(self.review, "whitehouse/qualifications/candidate-current.json", {"reports": [audit]})
-        with self.assertRaisesRegex(ValueError, "archived version"):
-            self.build()
+        record = self.build()[2]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertEqual(record["observed_qualified_transaction_count"], 1)
+
+    def test_whitehouse_qualification_without_archive_keeps_publication_independent(self):
+        self.index()
+        self.write(self.review, "whitehouse/qualifications/candidate-current.json", {"reports": [{
+            "document_id": self.whid, "source_url": self.whurl, "filed_at": "2026-06-10",
+            "source_sha256": self.sha, "promoted_count": 1, "quarantined_count": 0}]})
+        record = self.build([{"id": "wh-published", "source_id": "oge", "source_url": self.whurl}])[2]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertEqual(record["observed_qualification_state"], "qualified")
+        self.assertEqual(record["observed_filed_date"], "2026-06-10")
+        self.assertIsNone(record["filed_date"])
+        self.assertEqual(record["publication_transaction_ids"], ["wh-published"])
+
+    def test_annual_qualification_without_archive_preserves_observed_holding_count(self):
+        self.index()
+        self.write(self.review, "whitehouse/annual/filer-reported-current.json", {
+            "reports": [{"document_id": self.whid, "source_url": self.whurl,
+                         "source_sha256": self.sha, "source_candidate_eligible": True,
+                         "holding_coverage_status": "complete"}],
+            "holdings": [{"document_id": self.whid, "source_url": self.whurl,
+                          "source_sha256": self.sha, "source_holdings_eligible": True}],
+            "transactions": []})
+        record = self.build()[2]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertIsNone(record["qualified_holding_count"])
+        self.assertEqual(record["observed_qualified_holding_count"], 1)
 
     def test_corrupted_catalog_is_not_silently_used(self):
         digest = self.catalog([])

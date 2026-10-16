@@ -130,6 +130,42 @@ def _apply_audit(record: dict, audit: dict) -> None:
         record["qualification_state"] = "zero_transactions"
 
 
+def _unbound_qualification(record: dict, reason: str) -> None:
+    """Retain a prior audit as an observation without claiming current binding."""
+    record["observed_qualification_state"] = record["qualification_state"]
+    for key in ("qualified_transaction_count", "qualified_holding_count",
+                "quarantined_row_count", "qualification_row_rejected_count"):
+        if key in record:
+            record[f"observed_{key}"] = record[key]
+            record[key] = None
+    record["qualification_state"] = "unknown"
+    record["reason_codes"].append(reason)
+
+
+def _bind_direct_audit(record: dict, audit: dict, review: Path) -> None:
+    versions = record["source_versions"]
+    sha = audit.get("source_sha256")
+    if sha is not None:
+        if not isinstance(sha, str) or not _SHA.fullmatch(sha):
+            raise ValueError("OGE qualification source version is invalid")
+        if sha not in versions:
+            _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
+            return
+        paths = (review / "oge/extractions" / record["report_id"] / sha).glob("*.json")
+        if not any(not path.name.endswith(".failure.json") for path in paths):
+            _unbound_qualification(record, "qualification_current_original_not_extracted")
+        return
+    # The legacy direct audit does not identify its PDF hash. It can only close
+    # over one archived original with a successful extraction. Counts from an
+    # older audit remain visible separately when the current identity is open.
+    if not versions:
+        _unbound_qualification(record, "qualification_source_archive_missing")
+    elif len(versions) != 1:
+        _unbound_qualification(record, "qualification_original_version_unresolved")
+    elif record["extraction_state"] != "extracted":
+        _unbound_qualification(record, "qualification_current_original_not_extracted")
+
+
 def _archive_records(root: Path, relative: str, whitehouse: bool) -> dict[str, list[dict]]:
     records = defaultdict(list)
     for path in sorted((root / relative).glob("*/*.json")):
@@ -333,6 +369,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
             _apply_audit(record, audit_by_id[report_id])
+            _bind_direct_audit(record, audit_by_id[report_id], review)
         else:
             record["reason_codes"].append("qualification_artifact_missing_for_report")
         direct["reports"].append(record)
@@ -399,10 +436,12 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
         _apply_audit(record, audit)
-        _check_version(record, audit)
+        version_bound = _check_version(record, audit)
+        if not version_bound:
+            _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
         if _date(audit.get("filed_at")):
-            record["filed_date"] = audit["filed_at"]
-            record["filed_date_basis"] = "qualified_report"
+            record["filed_date" if version_bound else "observed_filed_date"] = audit["filed_at"]
+            record["filed_date_basis" if version_bound else "observed_filed_date_basis"] = "qualified_report"
     holding_rows, transaction_rows = defaultdict(list), defaultdict(list)
     for row in _rows(annual, "holdings"):
         holding_rows[row.get("document_id")].append(row)
@@ -417,7 +456,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url or record["document_type"] == "278t":
             raise ValueError("White House annual qualification conflicts with catalog identity")
         record["document_type"] = "278e_annual"
-        _check_version(record, audit)
+        version_bound = _check_version(record, audit)
         hs, ts = holding_rows[report_id], transaction_rows[report_id]
         for row in [*hs, *ts]:
             if row.get("source_url") != url or row.get("source_sha256") != audit.get("source_sha256"):
@@ -450,18 +489,17 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
             # transactions, especially for annual sections outside this scope.
             record["qualification_state"] = "unknown"
             record["reason_codes"].append("annual_empty_qualified_rows_not_zero_transaction_attestation")
+        if not version_bound:
+            _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
         if _date(audit.get("filing_date")):
-            record["filed_date"] = audit["filing_date"]
-            record["filed_date_basis"] = "qualified_annual_report"
+            record["filed_date" if version_bound else "observed_filed_date"] = audit["filing_date"]
+            record["filed_date_basis" if version_bound else "observed_filed_date_basis"] = "qualified_annual_report"
     scope["reports"] = list(by_id.values())
     return scope
 
 
-def _check_version(record: dict, audit: dict) -> None:
+def _check_version(record: dict, audit: dict) -> bool:
     sha = audit.get("source_sha256")
     if not isinstance(sha, str) or not _SHA.fullmatch(sha):
         raise ValueError("White House qualification source version is invalid")
-    if record["source_versions"] and sha not in record["source_versions"]:
-        raise ValueError("White House qualification is not bound to archived version")
-    if not record["source_versions"]:
-        record["reason_codes"].append("qualification_source_version_not_in_archive_inventory")
+    return sha in record["source_versions"]
