@@ -6,7 +6,8 @@ import hashlib
 from pathlib import Path
 
 from .ocr_geometry import ocr_pdf_pages
-from .oge_278t_page_shadow import probe_raster_row_bands
+from .oge_278t_page_shadow import (probe_oge_2024_alternate_bands,
+                                   probe_raster_row_bands)
 
 
 SCHEMA = "oge-278t-raster-slot-observation/v2"
@@ -46,6 +47,34 @@ def _oge_2024_column_edges(page) -> list[float] | None:
     return edges
 
 
+def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
+                              page_numbers: list[int]) -> tuple[dict, dict[int, list[float] | None]]:
+    """Count raster slots, retrying only independently confirmed 2024 grids."""
+    try:
+        import pdfplumber
+    except ImportError:
+        raise RuntimeError("pdfplumber is required for 278-T grid observation") from None
+    source = Path(pdf_path)
+    census = probe_raster_row_bands(
+        source, expected_sha256=expected_sha256, page_numbers=page_numbers)
+    with pdfplumber.open(source) as document:
+        edges_by_page = {number: _oge_2024_column_edges(document.pages[number - 1])
+                         for number in page_numbers}
+    retry_pages = [page["page_number"] for page in census["results"]
+                   if page["status"] != "physical_slots_located" and
+                   edges_by_page[page["page_number"]] is not None]
+    recovered = {}
+    for start in range(0, len(retry_pages), MAX_PAGES_PER_RUN):
+        fallback = probe_oge_2024_alternate_bands(
+            source, expected_sha256=expected_sha256,
+            page_numbers=retry_pages[start:start + MAX_PAGES_PER_RUN])
+        recovered.update({page["page_number"]: page for page in fallback["results"]
+                          if page["status"] == "physical_slots_located"})
+    census["results"] = [recovered.get(page["page_number"], page)
+                         for page in census["results"]]
+    return census, edges_by_page
+
+
 def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                          page_numbers: list[int],
                          executable: str | None = None,
@@ -65,17 +94,12 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
         raise ValueError("278-T raster observation source SHA-256 differs")
-    census = probe_raster_row_bands(
+    census, edges_by_page = census_with_2024_fallback(
         source, expected_sha256=expected_sha256, page_numbers=page_numbers)
-    known_pages = [page["page_number"] for page in census["results"]
-                   if page["status"] == "physical_slots_located"]
-    try:
-        import pdfplumber
-    except ImportError:
-        raise RuntimeError("pdfplumber is required for 278-T OCR observation") from None
+    import pdfplumber
     with pdfplumber.open(source) as document:
-        edges_by_page = {number: _oge_2024_column_edges(document.pages[number - 1])
-                         for number in known_pages}
+        known_pages = [page["page_number"] for page in census["results"]
+                       if page["status"] == "physical_slots_located"]
         ocr_pages, engine = (ocr_pdf_pages(
             document, page_numbers=known_pages, max_pages=MAX_PAGES_PER_RUN,
             resolution=resolution, executable=executable)
@@ -142,6 +166,8 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                           "words": observations})
         pages.append({"page_number": number,
                       "coverage": "physical_slots_located",
+                      "row_detection_basis": page.get(
+                          "row_detection_basis", "three_strip_grid"),
                       "column_geometry": ("oge_2024_six_column_grid" if column_edges
                                           else "unknown"),
                       "column_edges_pdf_points": column_edges,

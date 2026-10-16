@@ -11,7 +11,8 @@ import hashlib
 from pathlib import Path
 import re
 
-from .oge_278t_page_shadow import inspect_pdf, probe_raster_row_bands
+from .oge_278t_page_shadow import inspect_pdf
+from .oge_278t_raster_slots import census_with_2024_fallback
 from .oge_reports import _extract_pdf
 
 
@@ -76,9 +77,10 @@ def audit_278t_format(pdf_path: Path, *, extraction: dict | None = None,
     selected_pages = {page["page_number"] for page in shadow["pages"]}
     raster_pages = [page["page_number"] for page in shadow["pages"]
                     if page["text_mode"].startswith("raster")]
-    census = (probe_raster_row_bands(pdf_path, expected_sha256=source_sha256,
-                                     page_numbers=raster_pages)
-              if raster_census and raster_pages else {"results": []})
+    census, column_edges = (census_with_2024_fallback(
+        pdf_path, expected_sha256=source_sha256,
+        page_numbers=raster_pages)
+        if raster_census and raster_pages else ({"results": []}, {}))
     census_by_page = {page["page_number"]: page for page in census["results"]}
     if any(type(row.get("page_number")) is not int or
            not 1 <= row["page_number"] <= shadow["page_count"]
@@ -118,6 +120,13 @@ def audit_278t_format(pdf_path: Path, *, extraction: dict | None = None,
                       "physical_slot_count": physical,
                       "raster_census_status": (census_page["status"]
                                                if census_page else None),
+                      "raster_row_detection_basis": (
+                          census_page.get("row_detection_basis", "three_strip_grid")
+                          if census_page and census_page["status"] ==
+                          "physical_slots_located" else None),
+                      "raster_column_geometry": (
+                          "oge_2024_six_column_grid" if column_edges.get(number)
+                          else "unknown" if number in column_edges else None),
                       "count_only_match": (physical == len(observed)
                                            if physical is not None else None),
                       "geometry_count_match": (geometry == len(observed)
