@@ -5,11 +5,12 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
+from .oge_278t_amount_categories import observe_template_amount
 from .oge_278t_field_shadow import _amount_shape
 from .oge_278t_rapid_column_shadow import observe_rapid_column
 
 
-SCHEMA = "oge-278t-amount-column-observation/v1"
+SCHEMA = "oge-278t-amount-column-observation/v2"
 
 
 def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
@@ -35,9 +36,11 @@ def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
                 raise ValueError(f"page {number} lacks original amount observation")
             raw = raw_slot["raw_ocr_text"]
             column_shape = _amount_shape(raw)
+            column_template = observe_template_amount(raw)
             original_raw = (original["notification"]["raw_ocr_text"] + " " +
                             original["amount"]["raw_ocr_text"])
             page_shape = _amount_shape(original_raw)
+            page_template = observe_template_amount(original_raw)
             first = column_shape["values"] if column_shape["status"] == "ocr_shape_only" else None
             second = page_shape["values"] if page_shape["status"] == "ocr_shape_only" else None
             if first and second:
@@ -50,14 +53,18 @@ def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
             else:
                 comparison = "neither_shape"
             counts[comparison] += 1
+            counts["column_" + column_template["status"]] += 1
+            counts["page_" + page_template["status"]] += 1
             counts["observed_slots"] += 1
             row_results.append({"slot_index": raw_slot["slot_index"],
                                 "band_pdf_points": raw_slot["band_pdf_points"],
                                 "column_raw_ocr_text": raw,
                                 "column_detections": raw_slot["detections"],
                                 "column_shape": column_shape,
+                                "column_template_category": column_template,
                                 "page_raw_ocr_text": original_raw,
                                 "page_shape": page_shape,
+                                "page_template_category": page_template,
                                 "comparison": comparison,
                                 "qualification": "not_assessed"})
         results.append({"page_number": number, "status": "amount_column_observed",
