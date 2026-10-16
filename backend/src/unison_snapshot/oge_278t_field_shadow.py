@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date
+from math import isfinite
 import re
+from statistics import median
 
 
 SCHEMA = "oge-278t-field-shadow/v1"
@@ -53,6 +55,56 @@ def _amount_shape(raw: str) -> dict:
             "reason": None}
 
 
+def _description_reading(slot: dict) -> dict:
+    """Order saved words by physical line and x, retaining the original read.
+
+    Word tops vary with glyph height. Sorting by that top before x scrambles
+    a single printed line. Geometry ordering changes no characters and grants
+    no asset identity or transaction eligibility.
+    """
+    column = slot["column_observation"]["description"]
+    raw = column["raw_ocr_text"]
+    indices, words = column.get("word_indices"), slot.get("words")
+    if indices is None or words is None:
+        return {"status": "original_ocr_order_unverified", "raw_ocr_text": raw,
+                "ordered_ocr_text": raw, "line_word_indices": None,
+                "reason": "word_geometry_unavailable"}
+    if (not isinstance(indices, list) or not isinstance(words, list) or
+            any(type(index) is not int or not 0 <= index < len(words) for index in indices) or
+            len(set(indices)) != len(indices)):
+        raise ValueError("description word indices are invalid or duplicated")
+    for index in indices:
+        word = words[index]
+        box = word.get("bbox_pdf_points")
+        if (not isinstance(word.get("text"), str) or not isinstance(box, list) or len(box) != 4
+                or any(type(value) not in (int, float) or not isfinite(value) for value in box)
+                or box[0] >= box[2] or box[1] >= box[3]):
+            raise ValueError("description word geometry is invalid")
+
+    def center(index: int) -> float:
+        box = words[index]["bbox_pdf_points"]
+        return (box[1] + box[3]) / 2
+
+    lines: list[list[int]] = []
+    for index in sorted(indices, key=lambda i: (center(i), words[i]["bbox_pdf_points"][0], i)):
+        matches = [line for line in lines if abs(center(index) - median(center(i) for i in line))
+                   <= .6 * median(words[i]["bbox_pdf_points"][3] -
+                                    words[i]["bbox_pdf_points"][1] for i in line)]
+        if len(matches) > 1:
+            return {"status": "unknown", "raw_ocr_text": raw,
+                    "ordered_ocr_text": None, "line_word_indices": None,
+                    "reason": "multiple_possible_text_lines"}
+        if matches:
+            matches[0].append(index)
+        else:
+            lines.append([index])
+    lines.sort(key=lambda line: median(center(i) for i in line))
+    lines = [sorted(line, key=lambda i: (words[i]["bbox_pdf_points"][0], i)) for line in lines]
+    return {"status": "geometry_ordered_unverified", "raw_ocr_text": raw,
+            "ordered_ocr_text": " ".join(words[index]["text"] for line in lines for index in line),
+            "line_word_indices": lines, "reason": None}
+
+
 def observe_field_shapes(observations: list[dict]) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations or any(item.get("schema_version") != _INPUT_SCHEMA
@@ -85,7 +137,8 @@ def observe_field_shapes(observations: list[dict]) -> dict:
                 raw = {name: columns[name]["raw_ocr_text"] for name in _COLUMNS}
                 printed_number = raw["printed_number"].strip()
                 direction = raw["type"].strip().casefold()
-                description = raw["description"].strip()
+                description_reading = _description_reading(slot)
+                description = (description_reading["ordered_ocr_text"] or "").strip()
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
@@ -119,6 +172,7 @@ def observe_field_shapes(observations: list[dict]) -> dict:
                     counts["shape_complete_slots"] += 1
                 slots.append({"slot_index": slot["slot_index"],
                               "raw_columns": raw, "field_shapes": field_shapes,
+                              "description_reading": description_reading,
                               "issues": issues, "qualification": "not_assessed"})
             pages.append({"page_number": number, "status": "field_shapes_observed",
                           "slot_count": len(slots), "slots": slots})

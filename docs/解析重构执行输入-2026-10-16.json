@@ -1,0 +1,236 @@
+{
+  "cached_observation_references": [
+    {
+      "document_sha256": "716cdcc10bd57c400f10d8bb4133eb667931a9699fb1835ed3b7deca010a36a1",
+      "local_cache_relative_path": "house-format-audit-1015/9116141-observation.json",
+      "observation_sha256": "52070bdeabaa9808372c629df267193c2339b58146735ef670d55de61a2c0140",
+      "published_scope_report_references": [
+        [
+          "house_ptr",
+          "house_ptr:2026:9116141"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "e1254f953327174fe80a856137e386c3dea42aa58728d350105822bfabab6860",
+      "local_cache_relative_path": "house-format-audit-1015/9115820-observation.json",
+      "observation_sha256": "d8d4b7376840ff6058653e3b0d73263c05140e58588142b0f072b11d13cb4f43",
+      "published_scope_report_references": [
+        [
+          "house_ptr",
+          "house_ptr:2026:9115820"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "dfa4d453c1008370a001043bad41f1149fbe18b0800588157c10c4631e5476c6",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-column-slots-chunk-1.json",
+      "observation_sha256": "d49723dd86d67c9ad51b43cbbe1a768ba09aa790cd7bd50b1ceba4986fd80465",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "2bf91f890f718acb85258e5b002de16b"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "dfa4d453c1008370a001043bad41f1149fbe18b0800588157c10c4631e5476c6",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-column-slots-chunk-2.json",
+      "observation_sha256": "75af646edfc42bd9c5ed28b8d70d656ac2cd64e07c09e2187565385a9928748c",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "2bf91f890f718acb85258e5b002de16b"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "dfa4d453c1008370a001043bad41f1149fbe18b0800588157c10c4631e5476c6",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-column-slots-chunk-3.json",
+      "observation_sha256": "71fc16321731d2f72ad2c4d935ec93a539087b86d440ae55ac2eba16440b1f42",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "2bf91f890f718acb85258e5b002de16b"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "dfa4d453c1008370a001043bad41f1149fbe18b0800588157c10c4631e5476c6",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-column-slots-chunk-4.json",
+      "observation_sha256": "bafae2ebb67793eeefbd117a8b265d6f0f0054ea6300720d2bfc51064ee6345a",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "2bf91f890f718acb85258e5b002de16b"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "191e89135107fee06ea7655d071d92eee5e266cdf4d6001e3527c3da79b97af0",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-heldout-april-slots.json",
+      "observation_sha256": "30c1af503479b048b1243a875add809807dac2cca3ae4ea8b24ed391d9dae843",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "cd75555856a7d2e485258de4002dd4a0"
+        ]
+      ]
+    },
+    {
+      "document_sha256": "191e89135107fee06ea7655d071d92eee5e266cdf4d6001e3527c3da79b97af0",
+      "local_cache_relative_path": "oge-format-audit-1015/oge-heldout-april-slots-300.json",
+      "observation_sha256": "ce528946754e17d174af24fdb1d46e7b95e1c71361c7cb0cb535f6bafeb15941",
+      "published_scope_report_references": [
+        [
+          "oge_direct_278t",
+          "cd75555856a7d2e485258de4002dd4a0"
+        ]
+      ]
+    }
+  ],
+  "code_input": "127d20899925da305f326f5b791e9a85364a8d82",
+  "date": "2026-10-16",
+  "fixed_corpus_references": [
+    {
+      "path": "backend/tests/fixtures/house_ptr_failures_2026/corpus.json",
+      "sha256": "bf92220cfd9c31785a6be05e19a2e868ab8a16b33b9e4af5e43f22ec16195ee5"
+    },
+    {
+      "path": "docs/senate-paper-first-report-rows.json",
+      "sha256": "1653af8696a0a86b0e4f54277ab63caa6e5c9ddb638d463dfefa02dd2a438a70"
+    },
+    {
+      "path": "docs/senate-paper-viewer-remainders.json",
+      "sha256": "4f0368d6c03eae32dc664b7f66e2b5bf77e870d917f2dee259270f56d93d19a1"
+    },
+    {
+      "path": "docs/senate-paper-legacy-extracted-grid.json",
+      "sha256": "b3b0292f37216f5646cfc08fc5622694e6c6e7d9d5f280a29e7959257be80ec9"
+    },
+    {
+      "path": "backend/tests/fixtures/oge_annual_harris_2023_part7_physical_rows.json",
+      "sha256": "29f8854da40e23eddd6442753938d9116b4c1fa0f9a4545c5048a3a0d6585e75"
+    },
+    {
+      "path": "backend/tests/fixtures/oge_annual_six_receipt_metadata.json",
+      "sha256": "ba90e3ea53dd63360923ffac15b8965086206f9d7120f1ef34264c2bbf813400"
+    },
+    {
+      "path": "backend/tests/fixtures/whitehouse_278t_v2_parser_replay.json",
+      "sha256": "103f17005450ed7208f416180946fbf674ee1ce9835a9ce757f7a34c0afd5821"
+    }
+  ],
+  "formal_main": "24c3616977625ef3bbac0b2f5888c9572f396248",
+  "formal_market": "b235bc3de35816c12af93f8dbc3c15cd38a9acf3",
+  "format_scopes": [
+    {
+      "existing_modules": [
+        "house_ptr.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "house_electronic_ptr"
+    },
+    {
+      "existing_modules": [
+        "house_ptr_format_audit.py",
+        "house_ptr_key_fields_shadow.py",
+        "house_ptr_section_context.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "house_paper_ptr"
+    },
+    {
+      "existing_modules": [
+        "house_holdings.py",
+        "house_annual_sections.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "house_annual_schedule_a"
+    },
+    {
+      "existing_modules": [
+        "house_annual_sections.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "house_annual_schedule_b"
+    },
+    {
+      "existing_modules": [
+        "senate_reports.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "senate_electronic_ptr"
+    },
+    {
+      "existing_modules": [
+        "senate_paper_observation.py",
+        "senate_paper.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "senate_paper_ptr"
+    },
+    {
+      "existing_modules": [
+        "senate_annual.py",
+        "senate_annual_transactions.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "senate_annual"
+    },
+    {
+      "existing_modules": [
+        "oge_reports.py",
+        "oge_278t_format_audit.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "oge_278t_native"
+    },
+    {
+      "existing_modules": [
+        "oge_278t_raster_slots.py",
+        "oge_278t_field_shadow.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "oge_278t_2024_six_column_scan"
+    },
+    {
+      "existing_modules": [
+        "whitehouse_278t.py",
+        "whitehouse_278t_shadow_replay.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "whitehouse_278t_legacy"
+    },
+    {
+      "existing_modules": [
+        "oge_annual.py",
+        "oge_annual_part7_ledger.py",
+        "whitehouse_annual_ledger.py"
+      ],
+      "format_acceptance": "pending",
+      "format_id": "oge_whitehouse_278e"
+    }
+  ],
+  "html_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
+  "limitations": [
+    "A format scope is not an accepted adapter.",
+    "Cached immutable originals have their own archived source versions; latest source tips are not proof of qualification.",
+    "Asset-order diagnostics used the former held-out April report; independent asset-order validation is pending.",
+    "The September cached PDF has a different official report identity from B1; no filename-based identity assumption is permitted."
+  ],
+  "production_mutation_authorized_by_this_artifact": false,
+  "published_status_provenance": {
+    "code_commit": "800885e807ac180d02b711e0fcc77dee3ec3e325",
+    "evidence_commit": "8e181dff232b340b9f39c235cf88172a528821c2",
+    "previous_main_commit": "f22a178b2c7d1bfb556ae763625394faee79c2db",
+    "review_commit": "9894a86b7dcd5b86341f28b230dc340ec4392ff1"
+  },
+  "schema_version": "parser-execution-baseline/v1",
+  "source_tips_observed_together": {
+    "evidence": "3204ca622066159cebcad2e84035857878668601",
+    "review": "869375f8c41571b5ff76ba701cf0a2dcea5afb0f",
+    "state": "3b7e39dc70f8af594ebc5f954361f77730291ac8"
+  },
+  "synthetic_unit_fixture_not_source_gold": "backend/tests/fixtures/oge_278t/gold_rows_v1.json"
+}

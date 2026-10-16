@@ -1,6 +1,6 @@
 import unittest
 
-from unison_snapshot.source_row_ledger import (page_ledger, cell_observation,
+from unison_snapshot.source_row_ledger import (page_ledger, report_ledger, cell_observation,
                                                senate_shadow_pages,
                                                senate_shadow_cell_observations,
                                                oge_278t_shadow_pages,
@@ -10,6 +10,91 @@ from unison_snapshot.source_row_ledger import (page_ledger, cell_observation,
 
 BASE = dict(source_id="house_clerk", document_sha256="a" * 64,
             page_number=2, adapter_version="house-paper-short/v1")
+
+
+class SourceReportLedgerTests(unittest.TestCase):
+    def page(self, number=1, disposition="data_candidate"):
+        return page_ledger(**(BASE | {"page_number": number}), coverage="located", slots=[
+            {"local_key": "1", "bounds": [10, 20], "disposition": disposition}])
+
+    def row(self, key="row", *numbers, **extra):
+        return {"local_key": key, "slot_refs": [
+            {"page_number": number, "slot_key": "1"} for number in numbers or (1,)], **extra}
+
+    def report(self, pages=None, rows=None, **extra):
+        return report_ledger(source_id="house_clerk", document_sha256="a" * 64,
+                             adapter_version="test/v1", page_count=extra.pop("page_count", 1),
+                             pages=pages if pages is not None else [self.page()],
+                             logical_rows=rows if rows is not None else [self.row()], **extra)
+
+    def test_continuation_links_two_pages_to_one_unqualified_record(self):
+        result = self.report(pages=[self.page(1), self.page(2)],
+                             rows=[self.row("continued", 1, 2)], page_count=2)
+        self.assertEqual(result["observed_physical_slot_count"], 2)
+        self.assertEqual(result["logical_row_count"], 1)
+        self.assertEqual(result["relation_coverage"], "accounted")
+        self.assertIsNone(result["qualified_transaction_count"])
+        self.assertEqual(result["logical_rows"][0]["qualification"], "not_assessed")
+
+    def test_missing_page_is_unknown_not_successful_zero_rows(self):
+        result = self.report(page_count=2)
+        self.assertEqual(result["unobserved_pages"], [2])
+        self.assertEqual(result["observed_physical_slot_count"], 1)
+        self.assertIsNone(result["physical_slot_count"])
+        self.assertEqual(result["relation_coverage"], "partial_unknown")
+
+    def test_equal_row_count_cannot_hide_a_lost_data_slot(self):
+        with self.assertRaisesRegex(ValueError, "lost"):
+            self.report(pages=[self.page(1), self.page(2)],
+                        rows=[self.row("first", 1, split_basis="split"),
+                              self.row("duplicate", 1, split_basis="split")],
+                        page_count=2)
+
+    def test_unexplained_duplicate_slot_cannot_become_two_records(self):
+        with self.assertRaisesRegex(ValueError, "split evidence"):
+            self.report(rows=[self.row("first"), self.row("duplicate")])
+
+    def test_explicit_split_is_distinct_from_two_physical_slots(self):
+        result = self.report(rows=[self.row("first", split_basis="two printed subrows"),
+                                   self.row("second", split_basis="two printed subrows")])
+        self.assertEqual(result["logical_row_count"], 2)
+        self.assertEqual(result["linked_data_slot_count"], 1)
+
+    def test_unreadable_data_slot_keeps_reason_instead_of_disappearing(self):
+        result = self.report(rows=[], unresolved_data_slots=[{
+            "page_number": 1, "slot_key": "1", "reason": "date_unreadable"}])
+        self.assertEqual(result["logical_row_count"], 0)
+        self.assertEqual(result["observed_physical_slot_count"], 1)
+        self.assertEqual(result["relation_coverage"], "partial_unknown")
+
+    def test_nondata_and_unknown_slots_cannot_generate_records(self):
+        for disposition in ("blank", "heading", "note", "unknown"):
+            with self.subTest(disposition=disposition), self.assertRaisesRegex(ValueError, "non-data"):
+                self.report(pages=[self.page(disposition=disposition)])
+
+    def test_provenance_and_summary_changes_are_rejected(self):
+        page = self.page()
+        page["source_id"] = "oge"
+        with self.assertRaisesRegex(ValueError, "provenance"):
+            self.report(pages=[page])
+        page = self.page()
+        page["physical_slot_count"] = 0
+        with self.assertRaisesRegex(ValueError, "counts"):
+            self.report(pages=[page])
+
+    def test_duplicate_and_outside_pages_are_rejected(self):
+        for pages in ([self.page(), self.page()], [self.page(2)]):
+            with self.subTest(pages=pages), self.assertRaisesRegex(ValueError, "bounds"):
+                self.report(pages=pages)
+
+    def test_formal_id_cannot_leak_from_an_observation_row(self):
+        with self.assertRaisesRegex(ValueError, "formal IDs"):
+            self.report(rows=[self.row(id="formal-transaction-id")])
+
+    def test_one_slot_cannot_be_both_linked_and_unresolved(self):
+        with self.assertRaisesRegex(ValueError, "linked and unresolved"):
+            self.report(unresolved_data_slots=[{
+                "page_number": 1, "slot_key": "1", "reason": "unclear"}])
 
 
 class SourceRowLedgerTests(unittest.TestCase):
