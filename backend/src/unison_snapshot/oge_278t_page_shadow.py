@@ -512,6 +512,72 @@ def probe_raster_row_bands(path: Path, *, expected_sha256: str,
     return {"source_sha256": source_sha256, "results": results}
 
 
+def probe_oge_2024_alternate_bands(path: Path, *, expected_sha256: str,
+                                   page_numbers: list[int]) -> dict:
+    """Retry confirmed six-column pages when the generic left strip is occluded.
+
+    The caller must independently confirm the seven 2024 form column rules.
+    Three non-overlapping strips are required to agree; a single header rule
+    may be removed only above the data grid.  No OCR value or expected row
+    count is used to select or repair boundaries.
+    """
+    try:
+        import numpy as np
+        import pymupdf
+    except ImportError:
+        raise RuntimeError("numpy and pymupdf are required for raster census") from None
+    source = Path(path)
+    actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError("PDF bytes do not match the fixed source SHA-256")
+    if len(page_numbers) > 8 or len(set(page_numbers)) != len(page_numbers):
+        raise ValueError("2024 raster census needs at most 8 distinct pages")
+    results = []
+    with pymupdf.open(source) as document:
+        for number in page_numbers:
+            if type(number) is not int or not 1 <= number <= len(document):
+                raise ValueError("raster census page is outside the PDF")
+            pixmap = document[number - 1].get_pixmap(
+                matrix=pymupdf.Matrix(3, 3), colorspace=pymupdf.csGRAY,
+                alpha=False)
+            gray = np.frombuffer(pixmap.samples, np.uint8).reshape(
+                pixmap.height, pixmap.width)
+            strips = [_raster_rule_centers(gray, points_per_pixel=1 / 3,
+                                           x0=left, x1=right)
+                      for left, right in ((110, 135), (200, 220), (250, 270))]
+            raw_counts = [len(values) for values in strips]
+            centers = []
+            header_excluded = False
+            if len({len(values) for values in strips}) == 1 and len(strips[0]) >= 6:
+                if (strips[0][0] < 100 and strips[0][1] > 100 and
+                        strips[0][1] - strips[0][0] > 25 and
+                        all(len(values) > 1 and abs(values[0] - strips[0][0]) <= 2
+                            for values in strips)):
+                    strips = [values[1:] for values in strips]
+                    header_excluded = True
+                if all(max(row) - min(row) <= 2 for row in zip(*strips, strict=True)):
+                    candidate = [round(median(row), 1)
+                                 for row in zip(*strips, strict=True)]
+                    gaps = [right - left for left, right in
+                            zip(candidate, candidate[1:])]
+                    typical = median(gaps)
+                    if (len(candidate) >= 6 and 8 <= typical <= 25 and
+                            all(8 <= gap <= min(25, typical * 1.5)
+                                for gap in gaps)):
+                        centers = candidate
+            bands = [[left, right] for left, right in zip(centers, centers[1:])]
+            results.append({"page_number": number,
+                            "status": ("physical_slots_located" if bands else
+                                       "coverage_unknown"),
+                            "strip_rule_counts": [len(values) for values in strips],
+                            "raw_strip_rule_counts": raw_counts,
+                            "header_rule_excluded": header_excluded,
+                            "rule_positions": centers,
+                            "physical_row_bands": bands,
+                            "row_detection_basis": "oge_2024_alternate_strips"})
+    return {"source_sha256": actual_sha256, "results": results}
+
+
 def reconcile_raster_ocr_rows(census: dict, ocr_records: list[dict], *,
                               expected_sha256: str,
                               ocr_source_sha256: str) -> dict:
