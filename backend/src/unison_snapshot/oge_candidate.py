@@ -368,7 +368,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_reasons.append("extraction_id_invalid_or_duplicated")
             else:
                 seen_extractions.add(extraction_id)
-            if row.get("transaction_type") not in {"purchase", "sale"}:
+            if row.get("transaction_type") not in {"purchase", "sale", "exchange"}:
                 row_reasons.append("transaction_type_not_supported")
             if row.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
                     (observed or generic) and row.get("owner") == "Undisclosed"

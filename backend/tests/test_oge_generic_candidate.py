@@ -26,7 +26,7 @@ def generic(rows=None):
     result = extraction()
     physical = rows or [(1, CELLS)]
     good, bad = parse_table_rows(physical, source_sha=result["source_sha256"],
-                                 default_owner="Undisclosed", allow_open_amounts=True)
+                                 default_owner="Undisclosed", allow_open_amounts=True, allow_exchange=True)
     for row in good + bad:
         if row["owner"] == "Undisclosed":
             row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
@@ -45,6 +45,24 @@ def build(value, production=None, legacy=None):
 
 
 class GenericCandidateTests(unittest.TestCase):
+    def test_official_exchange_enters_candidate_and_builder_without_buy_sell_relabelling(self):
+        from unison_snapshot.builder import build as build_snapshot
+        source = generic([(1, [*CELLS[:2], "Exchange", *CELLS[3:]])])
+        result, _ = build(source)
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertEqual(result["transactions"][0]["transaction_type"], "exchange")
+        self.assertEqual(adapt_oge_278t_extraction(source, direct())["counts"]["qualified"], 1)
+        snapshot = build_snapshot(result, generated_at="2025-06-04T00:00:00Z", allow_production=True)
+        board = json.loads(snapshot.files[f"board/{snapshot.manifest['board']}.json"])
+        self.assertEqual(len(board["transactions"]), 1)
+        self.assertEqual(sum(row["transaction_type"] == "purchase" for row in board["transactions"]), 0)
+        self.assertEqual(sum(row["transaction_type"] == "sale" for row in board["transactions"]), 0)
+        # Unknown directions remain invalid; finite/dated field requirements stay.
+        invalid = generic([(1, [*CELLS[:2], "Transfer", *CELLS[3:]])])
+        self.assertEqual(build(invalid)[0]["transactions"], [])
+        observed, _ = candidate(bundle([[*ROW[:2], "exchange", *ROW[3:]]]))
+        self.assertEqual(next(row for row in observed["transactions"] if row["asset_name"] == "ALPHA")["transaction_type"], "exchange")
+
     def test_generic_enters_real_candidate_and_ledger(self):
         source = generic()
         result, audit = build(source)

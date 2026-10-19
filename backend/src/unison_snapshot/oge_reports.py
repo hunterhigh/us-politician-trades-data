@@ -374,7 +374,7 @@ def _owner_heading(value: str) -> str | None:
 
 def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
                      default_owner: str = "Self", allow_open_amounts: bool = False,
-                     account_title: str | None = None) -> tuple[list[dict], list[dict]]:
+                     account_title: str | None = None, allow_exchange: bool = False) -> tuple[list[dict], list[dict]]:
     """Parse extracted six-column table rows and preserve all rejected rows."""
 
     if not isinstance(rows, list) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
@@ -430,7 +430,7 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
         transaction_type = _TYPES_CASEFOLD.get(raw_type.casefold())
         if transaction_type is None:
             reasons.append("transaction_type_unsupported")
-        elif transaction_type == "exchange":
+        elif transaction_type == "exchange" and not allow_exchange:
             reasons.append("exchange_requires_contract_resolution")
         try:
             transaction_date = _iso_date(raw_date)
@@ -1082,7 +1082,7 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
         filed_at = _iso_date(signatures[0])
         filing_reasons = []
     transactions, quarantined = (parse_table_rows(inventory, source_sha=source_sha,
-                                default_owner="Undisclosed", allow_open_amounts=True) if generic else
+                                default_owner="Undisclosed", allow_open_amounts=True, allow_exchange=True) if generic else
                                 parse_table_rows(rows, source_sha=source_sha))
     if generic:
         for row in [*transactions, *quarantined]:

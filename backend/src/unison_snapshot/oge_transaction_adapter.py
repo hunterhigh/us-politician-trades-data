@@ -326,7 +326,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                 cells[4], f"Over ${amount[0]:,}" if open_amount else f"${amount[0]:,} - ${amount[1]:,}"]
             good, bad = parse_table_rows([(page_number, normalized_cells)], source_sha=sha,
                                          default_owner=owner or "Undisclosed", allow_open_amounts=True,
-                                         account_title=account_title)
+                                         account_title=account_title, allow_exchange=True)
             row = (good + bad)[0]
             row["cells"] = cells
             row["observation_reference"] = reference
@@ -499,7 +499,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                     parsed_day = date.fromisoformat(transaction_day)
                 except (TypeError, ValueError):
                     parsed_day = None
-                if normalized.get("transaction_type") not in {"purchase", "sale"}:
+                if normalized.get("transaction_type") not in {"purchase", "sale", "exchange"}:
                     reasons.append("transaction_type_not_qualified")
                 if not amount_range_qualified(normalized, parser_version):
                     reasons.append("amount_range_not_qualified")
