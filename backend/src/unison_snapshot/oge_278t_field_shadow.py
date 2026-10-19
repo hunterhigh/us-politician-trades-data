@@ -8,7 +8,10 @@ PDF scan and pages without confirmed geometry stay unknown.
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 from datetime import date
+import hashlib
+import json
 from math import isfinite
 import re
 from statistics import median
@@ -25,6 +28,228 @@ _DATE = re.compile(r"(\d{1,2})/(\d{1,2})/(20\d{2})")
 _MONEY = re.compile(r"\$\s*(\d{1,3}(?:,\d{3})+|\d+)(?!\d|[,.]\d)")
 _TYPE = {"purchase", "sale", "exchange"}
 _HEADER = re.compile(r"\b(description|type|date|notification|amount)\b", re.I)
+_FIELD_COLUMNS = {"printed_number": (0,), "description": (1,), "type": (2,),
+                  "transaction_date": (3,), "amount": (4, 5)}
+_SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_observed"),
+              "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
+              "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
+              "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
+
+
+def _word_evidence(slot: dict, page: dict) -> dict:
+    """Explain boundaries without discarding words or deciding field truth."""
+    from .oge_278t_raster_slots import _observe_slot_columns
+
+    words, edges = slot.get("words"), page.get("column_edges_pdf_points")
+    if words is None or edges is None:
+        return {"status": "unavailable", "reason": "word_or_column_geometry_unavailable",
+                "crossing_words": [], "unassigned_word_indices": None}
+    if (not isinstance(words, list) or not isinstance(edges, list) or len(edges) != 7 or
+            any(type(v) not in (int, float) or not isfinite(v) for v in edges) or
+            any(a >= b for a, b in zip(edges, edges[1:]))):
+        raise ValueError("field word or column geometry is invalid")
+    for word in words:
+        box = word.get("bbox_pdf_points")
+        if (not isinstance(word.get("text"), str) or not isinstance(box, list) or len(box) != 4 or
+                any(type(v) not in (int, float) or not isfinite(v) for v in box) or
+                box[0] >= box[2] or box[1] >= box[3]):
+            raise ValueError("field word geometry is invalid")
+    derived = _observe_slot_columns(words, edges)
+    owner = {}
+    for name, expected in derived["column_observation"].items():
+        saved = slot["column_observation"][name]
+        if saved.get("word_indices") != expected["word_indices"] or saved["raw_ocr_text"] != expected["raw_ocr_text"]:
+            raise ValueError("saved column word references differ from source geometry")
+        owner.update({index: name for index in expected["word_indices"]})
+    crossings = []
+    for index, word in enumerate(words):
+        x0, _, x1, _ = word["bbox_pdf_points"]
+        boundaries = [{"left_column": _COLUMNS[i - 1], "right_column": _COLUMNS[i],
+                       "x_pdf_points": edge,
+                       "shorter_overhang_pdf_points": round(min(edge - x0, x1 - edge), 4)}
+                      for i, edge in enumerate(edges[1:-1], 1) if x0 < edge < x1]
+        if boundaries:
+            crossings.append({"word_index": index, "text": word["text"],
+                              "bbox_pdf_points": list(word["bbox_pdf_points"]),
+                              "assigned_column": owner.get(index), "boundaries": boundaries})
+    return {"status": "source_words_linked", "reason": None, "crossing_words": crossings,
+            "unassigned_word_indices": [i for i in range(len(words)) if i not in owner]}
+
+
+def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
+                    original: dict, source_ref: str) -> dict:
+    from .oge_278t_amount_categories import observe_template_amount
+
+    result = {}
+    for field, positions in _FIELD_COLUMNS.items():
+        names = [_COLUMNS[i] for i in positions]
+        indices = [slot["column_observation"][name].get("word_indices") for name in names]
+        warnings = []
+        for index, crossing in enumerate(word_evidence["crossing_words"]):
+            for boundary in crossing["boundaries"]:
+                affected = {boundary["left_column"], boundary["right_column"]}
+                if affected & set(names):
+                    warnings.append({"crossing_word_ref": index,
+                                     "scope": "within_combined_columns" if affected <= set(names)
+                                     else "field_boundary"})
+        primary = {"method": "page_ocr", "raw_columns": names,
+                   "engine": original.get("ocr_engine"),
+                   "resolution_dpi": original.get("ocr_resolution_dpi"),
+                   "source_ref": source_ref,
+                   "raw_ocr_text": " ".join(raw[name] for name in names),
+                   "shape": deepcopy(shapes[field]),
+                   "word_indices": sorted({i for values in indices for i in values})
+                   if all(isinstance(value, list) for value in indices) else None}
+        if field == "amount":
+            primary["template_category"] = observe_template_amount(primary["raw_ocr_text"])
+        result[field] = {"observations": [primary], "geometry_warnings": warnings,
+                         "geometry_evidence_status": word_evidence["status"],
+                         "qualification": "not_assessed"}
+    return result
+
+
+def _known_value(shape: dict):
+    if shape["status"] not in {"ocr_shape_only", "ocr_text_only"}:
+        return None
+    return shape.get("values", shape.get("value"))
+
+
+def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict]) -> None:
+    """Join saved reads by source/page/slot/band, never by equal row totals."""
+    source_pages = {page["page_number"]: (item, page)
+                    for item in originals for page in item["pages"]}
+    rows = {(page["page_number"], slot["slot_index"]): slot
+            for page in result["pages"] for slot in page["slots"]}
+    seen = set()
+    coverage = []
+    input_refs = []
+    for read_index, reading in enumerate(readings):
+        kind = _SECONDARY.get(reading.get("schema_version"))
+        if kind is None or reading.get("source_sha256") != result["source_sha256"]:
+            raise ValueError("secondary field read has unsupported schema or different source")
+        field, status = kind
+        input_refs.append({"index": read_index, "schema_version": reading["schema_version"],
+                           "canonical_content_sha256": hashlib.sha256(json.dumps(
+                               reading, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":"), allow_nan=False).encode()).hexdigest()})
+        pages = reading.get("pages")
+        if not isinstance(pages, list) or len({p["page_number"] for p in pages}) != len(pages):
+            raise ValueError("secondary field read pages are missing or repeated")
+        observed_count = 0
+        for page_index, page in enumerate(pages):
+            number = page["page_number"]
+            if number not in source_pages:
+                raise ValueError("secondary field read references a page outside selected observations")
+            original, original_page = source_pages[number]
+            if page["status"] == "geometry_unknown":
+                if page.get("slots") != []:
+                    raise ValueError("unknown secondary geometry contains field rows")
+                coverage.append({"reading_index": read_index, "page_number": number,
+                                 "field": field, "status": "geometry_unknown"})
+                continue
+            if (page["status"] != status or original_page.get("column_geometry") !=
+                    "oge_2024_six_column_grid" or not isinstance(page.get("slots"), list)):
+                raise ValueError("secondary field read has no matching confirmed grid")
+            dpi = reading.get("ocr_resolution_dpi")
+            if (reading.get("input_ocr_resolution_dpi") != original.get("ocr_resolution_dpi") or
+                    not isinstance(reading.get("ocr_engine"), str) or not reading["ocr_engine"].strip() or
+                    type(dpi) is not int or not (150 if field == "type" else 200) <= dpi <= 400):
+                raise ValueError("secondary field read engine or input resolution differs")
+            slots = {slot["slot_index"]: slot for slot in page["slots"]}
+            base_slots = {slot["slot_index"]: slot for slot in original_page["slots"]}
+            if (len(slots) != len(page["slots"]) or len(base_slots) != len(original_page["slots"]) or
+                    set(slots) != set(base_slots) or page.get("slot_count") != len(slots)):
+                raise ValueError("secondary field slots are missing, duplicated or unbound")
+            for slot_index, slot in slots.items():
+                base = base_slots[slot_index]
+                if slot.get("band_pdf_points") != base.get("band_pdf_points"):
+                    raise ValueError("secondary field slot band differs from source slot")
+                identity = (field, number, slot_index, reading["ocr_engine"], reading["ocr_resolution_dpi"])
+                if identity in seen:
+                    raise ValueError("secondary field reading identity repeated")
+                seen.add(identity)
+                target = rows[(number, slot_index)]["field_readings"][field]
+                if slot.get("page_raw_ocr_text") != target["observations"][0]["raw_ocr_text"]:
+                    raise ValueError("secondary field read was compared against different original text")
+                raw = slot["column_raw_ocr_text"]
+                detections = slot.get("column_words" if field == "type" else "column_detections")
+                if not isinstance(raw, str) or not isinstance(detections, list):
+                    raise ValueError("secondary field read lacks raw detections")
+                edges = original_page.get("column_edges_pdf_points")
+                if not isinstance(edges, list) or len(edges) != 7:
+                    raise ValueError("secondary field read lacks source column boundaries")
+                left, right = min(_FIELD_COLUMNS[field]), max(_FIELD_COLUMNS[field]) + 1
+                rounding = 72.0 / dpi + .02
+                geometry_issues = []
+                for detection in detections:
+                    box = detection.get("bbox_pdf_points")
+                    if (not isinstance(detection.get("text"), str) or
+                            not isinstance(box, list) or len(box) != 4 or
+                            any(type(v) not in (int, float) or not isfinite(v) for v in box) or
+                            box[0] >= box[2] or box[1] >= box[3] or
+                            not base["band_pdf_points"][0] <= (box[1] + box[3]) / 2 <
+                            base["band_pdf_points"][1] or
+                            not edges[left] <= (box[0] + box[2]) / 2 < edges[right]):
+                        raise ValueError("secondary detection is outside its source field or slot")
+                    if (box[0] < edges[left] + .6 - rounding or
+                            box[2] > edges[right] - 1.5 + rounding or
+                            max(base["band_pdf_points"][0] - box[1],
+                                box[3] - base["band_pdf_points"][1], 0) > 3.0 + .02):
+                        geometry_issues.append("detection_extends_beyond_crop_or_slot")
+                if raw != " ".join(detection["text"] for detection in detections):
+                    raise ValueError("secondary text differs from saved detections")
+                if field == "amount":
+                    shape = _amount_shape(raw)
+                elif field == "transaction_date":
+                    shape = _date_shape(raw) if len(detections) == 1 else {
+                        "status": "unknown", "value": None,
+                        "reason": "multiple_date_detections" if detections else "no_date_detection"}
+                else:
+                    value = raw.strip().casefold()
+                    value = value if len(detections) == 1 and value in _TYPE else None
+                    shape = {"status": "ocr_shape_only" if value else "unknown", "value": value}
+                if (slot.get("column_shape") != (shape["value"] if field == "type" else shape)):
+                    raise ValueError("secondary field shape differs from its raw text")
+                observation = {"method": "column_ocr", "raw_ocr_text": raw,
+                    "shape": shape, "detections": deepcopy(detections),
+                    "geometry_status": "ambiguous" if geometry_issues else "source_bound",
+                    "geometry_issues": sorted(set(geometry_issues)),
+                    "engine": reading["ocr_engine"], "resolution_dpi": reading["ocr_resolution_dpi"],
+                    "source_ref": f"secondary_observations/{read_index}/pages/{page_index}/slots/"
+                                  f"{page['slots'].index(slot)}"}
+                if field == "amount":
+                    from .oge_278t_amount_categories import observe_template_amount
+                    observation["template_category"] = observe_template_amount(raw)
+                target["observations"].append(observation)
+                observed_count += 1
+        if reading.get("summary", {}).get("observed_slots") != observed_count:
+            raise ValueError("secondary field summary differs from linked slots")
+    counts = Counter()
+    for row in rows.values():
+        for field, evidence in row["field_readings"].items():
+            values = [_known_value(obs["shape"]) for obs in evidence["observations"]]
+            known = [value for value, observation in zip(values, evidence["observations"], strict=True)
+                     if value is not None and observation.get("geometry_status") != "ambiguous"]
+            if len({repr(value) for value in known}) > 1:
+                consistency = "conflicting_observations"
+            elif len(known) > 1:
+                consistency = "matching_observations"
+            elif known:
+                consistency = "single_recognized_observation"
+            else:
+                consistency = "no_recognized_observation"
+            evidence["consistency"] = consistency
+            evidence["observation_count"] = len(values)
+            evidence["recognized_observation_count"] = sum(value is not None for value in values)
+            evidence["comparable_observation_count"] = len(known)
+            ambiguous = sum(obs.get("geometry_status") == "ambiguous" for obs in evidence["observations"])
+            evidence["geometry_ambiguous_observation_count"] = ambiguous
+            if ambiguous:
+                counts[f"{field}_geometry_ambiguous_observations"] += ambiguous
+            counts[f"{field}_{consistency}"] += 1
+    result["secondary_field_summary"] = dict(sorted(counts.items()))
+    result["secondary_geometry_unknown_pages"] = coverage
+    result["secondary_input_refs"] = input_refs
 
 
 def _date_shape(raw: str) -> dict:
@@ -105,7 +330,8 @@ def _description_reading(slot: dict) -> dict:
             "line_word_indices": lines, "reason": None}
 
 
-def observe_field_shapes(observations: list[dict]) -> dict:
+def observe_field_shapes(observations: list[dict], *,
+                         secondary_observations: list[dict] | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations or any(item.get("schema_version") != _INPUT_SCHEMA
                                for item in observations):
@@ -116,8 +342,9 @@ def observe_field_shapes(observations: list[dict]) -> dict:
     seen_pages: set[int] = set()
     pages = []
     counts: Counter[str] = Counter()
-    for item in observations:
-        for page in item["pages"]:
+    evidence_counts: Counter[str] = Counter()
+    for input_index, item in enumerate(observations):
+        for page_index, page in enumerate(item["pages"]):
             number = page["page_number"]
             if number in seen_pages:
                 raise ValueError("duplicate page in 278-T field observations")
@@ -129,7 +356,7 @@ def observe_field_shapes(observations: list[dict]) -> dict:
                 counts["geometry_unknown_pages"] += 1
                 continue
             slots = []
-            for slot in page["slots"]:
+            for slot_index, slot in enumerate(page["slots"]):
                 columns = slot.get("column_observation")
                 if not isinstance(columns, dict) or any(
                         name not in columns for name in _COLUMNS):
@@ -170,16 +397,37 @@ def observe_field_shapes(observations: list[dict]) -> dict:
                 counts["observed_slots"] += 1
                 if not issues:
                     counts["shape_complete_slots"] += 1
+                word_evidence = _word_evidence(slot, page)
+                readings = _field_readings(
+                    slot, raw, field_shapes, word_evidence, original=item,
+                    source_ref=f"observations/{input_index}/pages/{page_index}/slots/{slot_index}")
+                evidence_counts[word_evidence["status"] + "_slots"] += 1
+                evidence_counts["crossing_word_count"] += len(word_evidence["crossing_words"])
+                evidence_counts["slots_with_crossing_words"] += bool(word_evidence["crossing_words"])
+                for field, reading in readings.items():
+                    for scope in {warning["scope"] for warning in reading["geometry_warnings"]}:
+                        evidence_counts[f"{field}_{scope}_slots"] += 1
                 slots.append({"slot_index": slot["slot_index"],
                               "raw_columns": raw, "field_shapes": field_shapes,
                               "description_reading": description_reading,
+                              "word_evidence": word_evidence, "field_readings": readings,
                               "issues": issues, "qualification": "not_assessed"})
             pages.append({"page_number": number, "status": "field_shapes_observed",
                           "slot_count": len(slots), "slots": slots})
     pages.sort(key=lambda page: page["page_number"])
-    return {"schema_version": SCHEMA, "source_sha256": sources.pop(),
+    result = {"schema_version": SCHEMA, "source_sha256": sources.pop(),
+            "field_evidence_schema_version": "oge-278t-linked-field-evidence/v1",
+            "input_refs": [{"index": i, "canonical_content_sha256": hashlib.sha256(json.dumps(
+                item, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                allow_nan=False).encode()).hexdigest()} for i, item in enumerate(observations)],
             "page_count": len(pages), "summary": dict(sorted(counts.items())),
+            "field_evidence_summary": dict(sorted(evidence_counts.items())),
             "pages": pages, "production_mutation_authorized": False}
+    if secondary_observations is not None:
+        if not isinstance(secondary_observations, list):
+            raise ValueError("secondary field observations must be an array")
+        _attach_secondary_reads(result, observations, secondary_observations)
+    return result
 
 
 def compare_field_observations(left: dict, right: dict) -> dict:
