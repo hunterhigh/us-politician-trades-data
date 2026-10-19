@@ -304,6 +304,8 @@ def main() -> None:
     senate_paper_extract.add_argument("--evidence-root", type=Path, required=True)
     senate_paper_extract.add_argument("--review-root", type=Path, required=True)
     senate_paper_extract.add_argument("--tesseract", default="tesseract")
+    senate_paper_extract.add_argument("--saved-grid-observations", type=Path)
+    senate_paper_extract.add_argument("--saved-word-pages", type=Path)
     senate_paper_extract.add_argument("--output", type=Path, required=True)
     senate_history = sub.add_parser("plan-senate-amendment-backfill")
     senate_history.add_argument("--review-root", type=Path, required=True)
@@ -877,8 +879,18 @@ def main() -> None:
                               "evidence_complete": result["evidence_complete"],
                               "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-paper-pages":
+            if bool(args.saved_grid_observations) != bool(args.saved_word_pages):
+                raise SenateEfdError("Saved grid observations and word pages must be provided together")
+            saved = {}
+            if args.saved_grid_observations:
+                grids = json.loads(args.saved_grid_observations.read_text(encoding="utf-8"))
+                words = json.loads(args.saved_word_pages.read_text(encoding="utf-8"))
+                if not isinstance(grids, dict) or not isinstance(words, dict) or not grids or set(grids) != set(words):
+                    raise SenateEfdError("Saved Senate inputs require matching nonempty document maps")
+                saved = {"grid_observations": grids, "cached_word_pages": words,
+                         "selected_document_ids": sorted(grids)}
             result = extract_archived_paper_reports(
-                args.evidence_root, args.review_root, executable=args.tesseract)
+                args.evidence_root, args.review_root, executable=args.tesseract, **saved)
             _write_atomic(args.output, result)
             print(json.dumps({"reports": result["report_count"],
                               "extractions": result["extraction_count"],

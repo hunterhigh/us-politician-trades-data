@@ -5,7 +5,7 @@ POLICY = "bounded-and-open-separate/v1"
 
 
 def is_open_amount(row: dict, prefix: str = "amount") -> bool:
-    return row.get(prefix + "_high") is None and type(row.get(prefix + "_low_exclusive")) is bool
+    return prefix + "_high" in row and row[prefix + "_high"] is None and type(row.get(prefix + "_low_exclusive")) is bool
 
 
 def validate_amount(row: dict, prefix: str = "amount", *, allow_open: bool = True) -> None:

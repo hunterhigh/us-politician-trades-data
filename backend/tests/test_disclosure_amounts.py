@@ -47,7 +47,8 @@ class DisclosureAmountTests(unittest.TestCase):
         self.assertEqual(result['amount_open_count'], 1)
         self.assertEqual(result['amount_open_thresholds'],
                          [{'minimum': 50000000, 'minimum_exclusive': True, 'count': 1}])
-        for invalid in ({'amount_low': 1, 'amount_high': None},
+        for invalid in ({'amount_low': 1, 'amount_low_exclusive': True},
+                        {'amount_low': 1, 'amount_high': None},
                         {'amount_low': True, 'amount_high': 5},
                         {'amount_low': 1, 'amount_high': 5, 'amount_low_exclusive': False},
                         {'amount_low': 1, 'amount_high': None, 'amount_low_exclusive': 'true'}):

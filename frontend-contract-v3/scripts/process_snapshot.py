@@ -22,7 +22,7 @@ _POLICY = "bounded-and-open-separate/v1"
 
 
 def _is_open(row, prefix="amount"):
-    return row.get(prefix + "_high") is None and type(row.get(prefix + "_low_exclusive")) is bool
+    return prefix + "_high" in row and row[prefix + "_high"] is None and type(row.get(prefix + "_low_exclusive")) is bool
 
 
 def _prepare(rows, people_by_id, *, kind, demo):
