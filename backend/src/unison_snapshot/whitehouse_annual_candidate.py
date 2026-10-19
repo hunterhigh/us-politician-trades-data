@@ -12,7 +12,7 @@ from .builder import FIELDS, normalize
 from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .whitehouse_278t import _first_last
-from .whitehouse_annual_review import LEGACY_SCHEMA, SCHEMA
+from .whitehouse_annual_review import LEGACY_SCHEMA, SCHEMA, _holding_row_id
 
 
 def _person(report: dict) -> dict:
@@ -69,7 +69,7 @@ def annual_identity_people(annual: dict) -> list[dict]:
     return [_person(rows[0]) for _, rows in sorted(by_filer.items())]
 
 
-def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> tuple[dict, dict]:
+def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> tuple[dict, dict]:
     """Add complete reports and source-bound partial rows; keep Unknown unchanged."""
     path = review_root / "whitehouse/annual/filer-reported-current.json"
     if not path.is_file():
@@ -234,3 +234,171 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
         "annual_unknown_owner_count": sum(row["asset_owner"] == "Unknown" for row in eligible_rows),
         "annual_identity_unlinked_report_ids": sorted(unlinked_report_ids),
     }
+
+
+def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, dict]:
+    """Consume qualified OGE annual rows in the existing annual overlay.
+
+    Partial-report display remains a pending product choice. Part 7 relations
+    are retained for reconciliation; similarity never adds or removes facts.
+    """
+    from .oge_annual_ledger import build_oge_annual_shadow_ledger
+    from .builder import timestamp
+    if not isinstance(candidate, dict) or candidate.get("meta", {}).get("is_demo") is not False:
+        raise OgeCatalogError("OGE annual overlay requires a production candidate")
+    extractions = inputs.get("extractions") if isinstance(inputs, dict) else None
+    metadata = inputs.get("archive_metadata_by_document", {}) if isinstance(inputs, dict) else None
+    dates = inputs.get("scan_date_observations_by_document", {}) if isinstance(inputs, dict) else None
+    saved = inputs.get("saved_scan_observations_by_document", {}) if isinstance(inputs, dict) else None
+    if not isinstance(extractions, list) or not isinstance(metadata, dict) or not isinstance(dates, dict) or not isinstance(saved, dict):
+        raise OgeCatalogError("OGE annual overlay input must contain extractions and source metadata")
+    extractions = list(extractions)
+    if saved:
+        from .oge_annual import materialize_saved_annual_scan
+        for document, bundle in saved.items():
+            if document not in metadata or any(row.get("source_document_id") == document for row in extractions):
+                raise OgeCatalogError("saved annual scan input is duplicated or lacks source metadata")
+            extractions.append(materialize_saved_annual_scan(bundle["cover_observation"], bundle["section_observation"],
+                                                           archive_metadata=metadata[document]))
+    result = deepcopy(candidate)
+    people = {row["id"]: row for row in result["people"]}
+    prior = {row["id"]: row for row in result["reported_holdings"]}
+    reports, seen = [], set()
+    versions = {}
+    for item in extractions:
+        archive = metadata.get(item.get("source_document_id"), {})
+        if isinstance(archive, dict) and all(isinstance(archive.get(key), str) and archive[key].strip()
+                                              for key in ("filer_name", "agency", "position_title")):
+            versions.setdefault((_identity_key(archive), item.get("report_period_end")), []).append(item["source_document_id"])
+    for extraction in extractions:
+        document_id = extraction.get("source_document_id") if isinstance(extraction, dict) else None
+        if not isinstance(document_id, str) or document_id in seen:
+            raise OgeCatalogError("OGE annual overlay document ID is missing or duplicated")
+        seen.add(document_id)
+        archive = metadata.get(document_id)
+        if (not isinstance(archive, dict) or archive.get("schema_version") != "oge-278e-annual-archive/v1" or
+                any(archive.get(a) != extraction.get(b) for a, b in
+                    (("document_id", "source_document_id"), ("sha256", "source_sha256"),
+                     ("document_url", "source_url"), ("filer_name", "filer_name"),
+                     ("archive_path", "evidence_archive_path")))):
+            raise OgeCatalogError("OGE annual overlay metadata differs from extraction")
+        ledger = build_oge_annual_shadow_ledger(extraction, run_id="oge-annual-candidate",
+            code_commit=inputs["code_commit"], started_at=inputs["started_at"], qualified=True,
+            scan_date_observation=dates.get(document_id))
+        report_reasons = []
+        version_refs = versions.get((_identity_key(archive), extraction.get("report_period_end")), [])
+        if len(version_refs) > 1:
+            report_reasons.append("annual_report_version_relationship_unresolved")
+        filing_day = ledger["filing_date_evidence"]["date"]
+        if filing_day and timestamp(filing_day + "T00:00:00Z") > timestamp(candidate["meta"]["data_cutoff_at"]):
+            report_reasons.append("filing_exceeds_cutoff")
+        if not ledger["holding_coverage_complete"]:
+            report_reasons.append("partial_report_policy_pending")
+        if archive.get("amended_label"):
+            report_reasons.append("annual_amendment_relationship_unresolved")
+        if archive.get("pending_final_oge_disposition") is True:
+            report_reasons.append("pending_final_oge_disposition")
+        identity = {key: archive.get(key) for key in ("filer_name", "agency", "position_title")}
+        person_id = _person_id(_identity_key(identity))
+        existing_report_rows = [row for row in prior.values() if row.get("filing_id") == document_id]
+        if any(row.get("person_id") == person_id and row.get("report_period_end") == extraction.get("report_period_end")
+               and row.get("filing_id") != document_id for row in prior.values()):
+            report_reasons.append("existing_annual_report_version_relationship_unresolved")
+        source = {"id": person_id, "display_name": archive["filer_name"], "short_name": _short_name(archive["filer_name"]),
+            "role": archive["position_title"], "office_type": archive["agency"], "chamber": None,
+            "party": None, "state": None, "disclosure_authority": "oge", "priority": False,
+            "priority_reason": None, "portrait_url": None}
+        index_by_object = {id(row): index for index, row in enumerate(extraction["holdings"])}
+        prepared = []
+        row_audit = []
+        for decision, row in zip(ledger["rows"], ledger["detected_source_rows"], strict=True):
+            reasons = decision["reasons"][:]
+            collection = decision["observations"][0]["conditions"]["extraction_collection"]
+            if row["section"] == "part7" or collection != "holdings":
+                row_audit.append({"candidate_id": decision["candidate_id"], "section": row["section"],
+                                  "disposition": decision["disposition"], "reasons": reasons,
+                                  "account_context": row.get("account_context"), "hierarchy_evidence": row.get("hierarchy_evidence")})
+                continue
+            index = index_by_object[id(row)]
+            identifier = _holding_row_id(extraction["source_sha256"], row, index)
+            reasons.extend(report_reasons)
+            if decision["disposition"] == "qualified" and not reasons:
+                title = row.get("account_context", {}).get("title")
+                fact = {"id": identifier, "filing_id": document_id, "person_id": person_id,
+                    "owner": row["owner"], "asset_name": f"{row['asset_name']} — {title}" if title else row["asset_name"],
+                    "ticker": None, "ticker_mapping_basis": None, "instrument_type": _instrument(row["asset_name"], None),
+                    "report_period_end": row["report_period_end"],
+                    "filed_at": ledger["filing_date_evidence"]["date"] + "T00:00:00Z",
+                    "value_low": row["value_low"], "value_high": row["value_high"],
+                    **({"value_low_exclusive": row["value_low_exclusive"]} if "value_low_exclusive" in row else {}),
+                    "change_from_prior": "unknown", "source_id": "oge", "source": "U.S. Office of Government Ethics",
+                    "source_url": extraction["source_url"], "verification_status": "official_matched"}
+                if set(fact) != FIELDS["reported_holdings"] | ({"value_low_exclusive"} if "value_low_exclusive" in row else set()):
+                    raise OgeCatalogError("OGE annual holding projection fields changed")
+                prepared.append((fact, reasons))
+            row_audit.append({"candidate_id": decision["candidate_id"], "formal_id": identifier,
+                              "section": row["section"], "disposition": decision["disposition"],
+                              "reasons": sorted(set(reasons)), "account_context": row.get("account_context"),
+                              "hierarchy_evidence": row.get("hierarchy_evidence")})
+        # If a previous version's formal IDs cannot be bound, retain them and
+        # block additions rather than minting replacements from shifted indices.
+        prepared_ids = {fact["id"] for fact, _ in prepared}
+        unbound = [row["id"] for row in existing_report_rows if row["id"] not in prepared_ids]
+        if unbound:
+            report_reasons.append("legacy_annual_row_binding_unresolved")
+        added, retained_ids, field_differences = 0, {row["id"] for row in existing_report_rows}, []
+        for fact, _ in prepared:
+            old = prior.get(fact["id"])
+            if old is not None:
+                retained_ids.add(old["id"])
+                if old != fact:
+                    report_reasons.append("existing_annual_fact_diff_requires_source_reconciliation")
+                    field_differences.append({"formal_id": fact["id"], "source_sha256": extraction["source_sha256"],
+                        "fields": {field: {"old_value": old.get(field), "new_value": fact.get(field)}
+                                   for field in sorted(set(old) | set(fact)) if old.get(field) != fact.get(field)}})
+                continue
+            if unbound:
+                report_reasons.append("legacy_annual_row_binding_unresolved")
+                continue
+            prior[fact["id"]] = fact
+            people.setdefault(person_id, source)
+            added += 1
+        reports.append({"document_id": document_id, "source_sha256": extraction["source_sha256"],
+            "added_holding_count": added, "retained_holding_count": len(retained_ids),
+            "existing_field_differences": field_differences, "version_document_references": version_refs,
+            "unbound_existing_ids": unbound, "report_reasons": sorted(set(report_reasons)),
+            "filing_date_evidence": ledger["filing_date_evidence"], "row_qualification": row_audit,
+            "ledger_counts": ledger["manifest"]["counts"],
+            "unlocated_source_issues": ledger["unlocated_source_issues"],
+            "annual_278t_relationship_status": "unresolved_no_similarity_dedup"})
+    result["reported_holdings"] = sorted(prior.values(), key=lambda row: row["id"])
+    result["people"] = sorted(people.values(), key=lambda row: row["id"])
+    return result, {"schema_version": "oge-annual-candidate-audit/v1", "reports": reports,
+                    "added_holding_count": sum(row["added_holding_count"] for row in reports),
+                    "added_transaction_count": 0}
+
+
+def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path, *,
+                                        oge_annual_input: dict | None = None) -> tuple[dict, dict]:
+    protected = [row for row in candidate.get("reported_holdings", []) if row.get("source_id") == "oge" and
+                 isinstance(row.get("filing_id"), str) and re.fullmatch(r"[0-9a-f]{32}", row["filing_id"]) and
+                 row.get("verification_status") == "official_matched"]
+    result, audit = _overlay_whitehouse_annual_candidate(candidate, review_root)
+    if protected:
+        holdings = {row["id"]: row for row in result["reported_holdings"]}
+        conflicts = [row["id"] for row in protected if row["id"] in holdings and holdings[row["id"]] != row]
+        if conflicts:
+            audit["annual_oge_existing_id_conflicts_require_reconciliation"] = conflicts
+        for row in protected:
+            holdings[row["id"]] = deepcopy(row)
+        result["reported_holdings"] = sorted(holdings.values(), key=lambda row: row["id"])
+        people = {row["id"]: row for row in result["people"]}
+        required = {row["person_id"] for row in protected}
+        for person in candidate["people"]:
+            if person["id"] in required:
+                people[person["id"]] = deepcopy(person)
+        result["people"] = sorted(people.values(), key=lambda row: row["id"])
+    if oge_annual_input is not None:
+        result, oge_audit = overlay_oge_annual_candidate(result, oge_annual_input)
+        audit["oge_annual"] = oge_audit
+    return result, audit
