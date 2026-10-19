@@ -121,6 +121,10 @@ class AnnualCandidateTests(unittest.TestCase):
             row = next(row for row in result["reported_holdings"] if row["asset_name"] == "ALPHA Fund")
             self.assertEqual((row["value_low"], row["value_high"], row["value_low_exclusive"]), (50000000, None, marker))
             self.assertNotIn("value_low_exclusive", next(row for row in result["reported_holdings"] if row["asset_name"] == "BETA"))
+            # Approved holding semantics must survive the public builder, not
+            # merely the annual candidate representation.
+            published = build(result, generated_at="2026-10-19T00:00:00Z", allow_production=True)
+            self.assertEqual(published.manifest["amount_policy"], "bounded-and-open-separate/v1")
             changed = deepcopy(extraction)
             changed["holdings"][0].pop("value_low_exclusive")
             self.assertEqual(ledger(changed)["part_counts"]["part2"]["qualified"], 0)
