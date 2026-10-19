@@ -19,6 +19,7 @@ from .oge_reports import _iso_date
 from .whitehouse_278t import _ELECTRONIC_SIGNATURE, _first_last
 from .whitehouse_278t_audit import (
     AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
+    resolve_exact_source_reports,
 )
 
 
@@ -26,6 +27,112 @@ SCHEMA = "whitehouse-278t-candidate-conservation/v1"
 _ID = re.compile(r"oge-278t:[0-9a-f]{24}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+
+
+EXACT_COPY_SCHEMA = "whitehouse-278t-exact-source-candidate/v1"
+
+
+def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
+                         annual_extractions=None, directory_index=None, annual_identity_people=None):
+    canonical, aliases = resolve_exact_source_reports(extractions, coverage,
+                                                     existing_transactions=base["transactions"])
+    groups = {group["canonical_document_id"]: group for group in aliases}
+    retained, receipts = [], []
+    for report in canonical:
+        group = groups.get(report["document_id"])
+        if group is None:
+            continue
+        # Independently assess the original rows, ignoring only existing facts
+        # whose URL is proven to refer to these exact bytes. No other original
+        # qualification reason is removed.
+        urls = {source["source_url"] for source in group["sources"]}
+        comparison_base = deepcopy(base)
+        comparison_base["transactions"] = [row for row in base["transactions"]
+                                            if row.get("source_url") not in urls]
+        checked = audit_whitehouse_278t([report], coverage, comparison_base,
+                                        annual_extractions, directory_index, annual_identity_people)
+        identity = checked["reports"][0]["matched_catalog_identity"]
+        remaining = []
+        for row, decision in zip(report["transactions"], checked["reports"][0]["rows"]):
+            matches = []
+            if identity is not None and decision["status"] == "eligible" and _signature_date(report) == report.get("filed_at"):
+                proposed = _transaction(report, row, identity["person_id"])
+                ignored = {"id", "filing_id", "source_url"}
+                matches = [old for old in base["transactions"]
+                           if old.get("source_url") in urls and
+                           all(old.get(key) == value for key, value in proposed.items() if key not in ignored)]
+            if len(matches) == 1:
+                retained.append({"document_id": report["document_id"],
+                                 "extraction_id": row["extraction_id"],
+                                 "row_number": row["row_number"], "formal_transaction_id": matches[0]["id"],
+                                 "status": "retained_existing_exact_source"})
+            else:
+                remaining.append(row)
+        report["transactions"] = remaining
+        receipts.append({"canonical_document_id": report["document_id"],
+                         "source_sha256": report["source_sha256"],
+                         "canonical_row_count": checked["source_row_count"],
+                         "aliases": group["sources"]})
+    # A fully retained source has no new facts to append. Its source rows are
+    # still recorded above; calling an empty extraction a new report is false.
+    retained_documents = {row["document_id"] for row in retained}
+    selected = [report for report in canonical if report["transactions"] or report["quarantined"] or
+                report["document_id"] not in retained_documents]
+    audit = audit_whitehouse_278t(selected, coverage, base,
+                                  annual_extractions, directory_index, annual_identity_people)
+    return selected, {"schema_version": EXACT_COPY_SCHEMA, "exact_source_aliases": receipts,
+                      "retained_rows": retained, "canonical_eligibility": audit}
+
+
+def audit_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], coverage: dict,
+                                                *, annual_extractions=None, directory_index=None,
+                                                annual_identity_people=None) -> dict:
+    """Explicit development entry; the existing production default is unchanged."""
+    return _exact_source_inputs(base, extractions, coverage, annual_extractions,
+                                directory_index, annual_identity_people)[1]
+
+
+def build_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], audit: dict,
+                                                coverage: dict, *, data_cutoff_at: str,
+                                                annual_extractions=None, directory_index=None,
+                                                annual_identity_people=None) -> tuple[dict, dict]:
+    """Consume exact PDF copies once and retain their source aliases and old IDs."""
+    selected, expected = _exact_source_inputs(base, extractions, coverage, annual_extractions,
+                                              directory_index, annual_identity_people)
+    if audit != expected:
+        raise OgeCatalogError("White House exact-source qualification is stale or altered")
+    candidate, result = build_whitehouse_278t_review_candidate(
+        base, selected, expected["canonical_eligibility"], coverage, data_cutoff_at=data_cutoff_at,
+        annual_extractions=annual_extractions, directory_index=directory_index,
+        annual_identity_people=annual_identity_people)
+    outcomes = {(report["document_id"], row["row_number"]): row
+                for report in result["reports"] for row in report["rows"]}
+    retained = {(row["document_id"], row["row_number"]): row for row in expected["retained_rows"]}
+    aliases = deepcopy(expected["exact_source_aliases"])
+    alias_row_count = 0
+    for group in aliases:
+        canonical = group["canonical_document_id"]
+        for source in group["aliases"]:
+            for row in source["rows"]:
+                old = retained.get((canonical, row["row_number"]))
+                outcome = outcomes.get((canonical, row["row_number"]))
+                row["formal_transaction_id"] = (old["formal_transaction_id"] if old else
+                    outcome["extraction_id"] if outcome and outcome["status"] == "promoted" else None)
+                row["canonical_status"] = old["status"] if old else outcome["status"] if outcome else "unresolved"
+                row["reasons"] = outcome["reasons"] if outcome else []
+                if source["document_id"] != canonical:
+                    alias_row_count += 1
+    total = sum(len(report["transactions"]) + len(report["quarantined"]) for report in extractions)
+    if (result["promoted_transaction_count"] + result["quarantined_row_count"] +
+            len(expected["retained_rows"]) + alias_row_count != total):
+        raise OgeCatalogError("White House exact-source row dispositions do not conserve")
+    result.update(schema_version=EXACT_COPY_SCHEMA,
+                  source_report_count=len(extractions), source_row_count=total,
+                  exact_source_alias_row_count=alias_row_count,
+                  exact_source_aliases=aliases,
+                  retained_rows=expected["retained_rows"],
+                  retained_existing_transaction_count=len(expected["retained_rows"]))
+    return candidate, result
 
 
 def _official_pdf_url(value: object) -> bool:
