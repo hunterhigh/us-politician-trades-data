@@ -377,6 +377,22 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
     baseline = qualify_paper_observation(observation, metadata, identity, amount_header=amount_header)
     source_slots = check_source_cells(pdf_bytes, observation,
         page_count=len(observation["pages"]), allow_unobserved=True, verify_crop_hashes=True)
+    # New printed-frame measurements are hints until recomputed from the
+    # already hash-bound source crop. A changed hint cannot erase a real mark.
+    from .house_ptr_cell_observation_shadow import _printed_checkbox
+    box_pages = {}
+    for (page, _), physical in source_slots.items():
+        cells = physical.get("cells") or {}
+        for cell in cells.get("direction", []) + cells.get("amount", []):
+            if "printed_checkbox" not in cell:
+                continue
+            if page not in box_pages:
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                    box_pages[page] = pdf.pages[page - 1].to_image(resolution=200).original
+            actual = _printed_checkbox(box_pages[page].crop(tuple(cell["bbox_pixels"])))
+            if actual != cell["printed_checkbox"]:
+                raise ValueError("House paper printed checkbox differs from bound PDF")
     second = {}
     if field_reread is not None:
         if (field_reread.get("schema_version") != "house-paper-key-field-reread/v1" or

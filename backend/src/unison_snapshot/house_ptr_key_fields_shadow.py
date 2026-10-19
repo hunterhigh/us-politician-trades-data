@@ -19,7 +19,15 @@ def _source_cell(cell: dict) -> dict:
     """Keep the exact observed crop beside a field interpretation."""
     return {name: cell.get(name) for name in (
         "label", "raw_text", "raw_ocr_confidence", "crop_sha256",
-        "bbox_normalized", "interior_dark_fraction")}
+        "bbox_normalized", "interior_dark_fraction")
+    } | ({"printed_checkbox": cell["printed_checkbox"]} if "printed_checkbox" in cell else {})
+
+
+def _mark_ink(cell: dict):
+    box = cell.get("printed_checkbox")
+    if isinstance(box, dict) and box.get("method") == "four_sided_printed_box/v1":
+        return box.get("interior_dark_fraction")
+    return cell.get("interior_dark_fraction")
 
 
 def _source_quality_flags(cells: dict, event_status: str,
@@ -82,7 +90,10 @@ def _date(cell: dict, *, filing_year: int | None = None) -> tuple[str | None, st
 def _single_mark(cells: list[dict]) -> tuple[str | None, str]:
     if not cells:
         return None, "missing_mark_columns"
-    scores = [cell.get("interior_dark_fraction") for cell in cells]
+    boxed = [isinstance(cell.get("printed_checkbox"), dict) for cell in cells]
+    if any(boxed) and not all(boxed):
+        return None, "printed_box_geometry_incomplete"
+    scores = [_mark_ink(cell) for cell in cells]
     if any(not isinstance(score, (int, float)) for score in scores):
         return None, "missing_ink_measurement"
     ranked = sorted(range(len(scores)), key=lambda index: scores[index], reverse=True)
@@ -102,7 +113,9 @@ def _amount_marks(cells: list[dict]) -> tuple[str | None, str, bool | None, str]
     amount, amount_status = _single_mark(cells[:10])
     if len(cells) == 10:
         return amount, amount_status, None, "supplemental_column_absent"
-    ink = cells[10].get("interior_dark_fraction")
+    if any("printed_checkbox" in cell for cell in cells[:10]) and "printed_checkbox" not in cells[10]:
+        return amount, amount_status, None, "supplemental_box_geometry_incomplete"
+    ink = _mark_ink(cells[10])
     if not isinstance(ink, (int, float)):
         return amount, amount_status, None, "supplemental_ink_unmeasured"
     if ink >= .08:
