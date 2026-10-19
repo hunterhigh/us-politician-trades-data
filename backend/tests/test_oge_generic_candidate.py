@@ -81,10 +81,38 @@ class GenericCandidateTests(unittest.TestCase):
         production, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
         before = deepcopy(production)
         result, audit = build(generic(), production, {DOCUMENT_ID: old})
-        self.assertEqual(result["transactions"], production["transactions"])
+        expected = deepcopy(production["transactions"])
+        expected[0]["owner"] = "Undisclosed"
+        self.assertEqual(result["transactions"], expected)
         self.assertEqual(production, before)
         self.assertEqual(audit["reports"][0]["legacy_inheritance"]["inherited_ids"],
                          [old["transactions"][0]["extraction_id"]])
+        correction = audit["reports"][0]["legacy_inheritance"]["field_corrections"][0]
+        self.assertEqual((correction["old_value"], correction["new_value"]), ("Self", "Undisclosed"))
+        self.assertEqual(correction["source_reference"]["source_rows_index"], 0)
+
+    def test_explicit_self_and_unknown_prior_scope_are_not_default_corrections(self):
+        for heading in ["Filer assets", "Unclear owner assets"]:
+            old = original()
+            old["source_rows"].insert(0, {"page_number": 1, "cells": ["", heading, "", "", "", ""]})
+            production, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+            result, audit = build(generic(), production, {DOCUMENT_ID: old})
+            self.assertEqual(result["transactions"], production["transactions"])
+            self.assertEqual(audit["reports"][0]["legacy_inheritance"]["field_corrections"], [])
+
+    def test_explicit_owner_reference_or_non_v2_cache_cannot_be_relabelled(self):
+        for mode in ["reference", "non_v2"]:
+            old = original()
+            if mode == "reference":
+                old["transactions"][0]["owner_observation_reference"] = {"source_sha256": "a" * 64, "page_number": 1}
+            else:
+                # Generic cache is not evidence of the v2 implicit default.
+                old["parser_version"] = GENERIC_PARSER_VERSION
+                old.update(document_page_count=3, cover_date_evidence=generic()["cover_date_evidence"])
+            production, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+            result, audit = build(generic(), production, {DOCUMENT_ID: old})
+            self.assertEqual(result["transactions"], production["transactions"])
+            self.assertEqual(audit["reports"][0]["legacy_inheritance"]["field_corrections"], [])
 
     def test_missing_old_binding_preserves_old_and_blocks_new(self):
         old = original()
@@ -301,7 +329,9 @@ class GenericCandidateTests(unittest.TestCase):
                           candidate_base_path=paths["base"], legacy_extractions_path=paths["legacy"],
                           data_cutoff_at="2025-06-04T00:00:00Z")
             actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf-8"))
-            self.assertEqual(actual["transactions"], production["transactions"])
+            expected = deepcopy(production["transactions"])
+            expected[0]["owner"] = "Undisclosed"
+            self.assertEqual(actual["transactions"], expected)
             ledger = json.loads((inputs["output_dir"] / "candidate_rows.json").read_text(encoding="utf-8"))
             self.assertEqual(ledger[0]["disposition"], "qualified")
             self.assertTrue(any(row["artifact_type"] == "legacy_extractions" for row in manifest["input_artifacts"]))

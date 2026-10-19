@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime
 import hashlib
+import json
 import re
 
 from .builder import timestamp
@@ -79,12 +80,53 @@ def _instrument(asset_name: str, ticker: str | None) -> str:
     return "Unspecified"
 
 
+def _legacy_default_owner_evidence(legacy: dict, old: dict) -> dict | None:
+    """Distinguish the v2 default from an explicit owner using its whole input."""
+    from .oge_reports import parse_table_rows, _ACCOUNT_HEADING
+    from .oge_transaction_adapter import _row_key, _cells
+    if (legacy.get("parser_version") != PARSER_VERSION or old.get("owner") != "Self"
+            or old.get("owner_observation_reference") or old.get("owner_disclosure_basis")):
+        return None
+    inventory = legacy.get("source_rows")
+    if not isinstance(inventory, list):
+        return None
+    physical = [(row["page_number"], _cells(row["cells"])) for row in inventory]
+    locators = [index for index, (page, cells) in enumerate(physical)
+                if _row_key({"page_number": page, "cells": cells}) == _row_key(old)]
+    if len(locators) != 1:
+        return None
+    # A malformed preceding label does not prove absence of explicit scope.
+    for _, cells in physical[:locators[0]]:
+        if (len(cells) == 6 and cells[1] and not any((cells[2], cells[3], cells[5]))
+                and not _ACCOUNT_HEADING.fullmatch(cells[1])
+                and not re.fullmatch(r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", cells[1], re.I)
+                and "intentionally" not in cells[1].casefold()):
+            return None
+    replays = []
+    for default in ("Self", "Undisclosed"):
+        good, bad = parse_table_rows(physical, source_sha=legacy["source_sha256"], default_owner=default)
+        matches = [row for row in good + bad if _row_key(row) == _row_key(old)]
+        if len(matches) != 1:
+            return None
+        replays.append(matches[0])
+    fields = ("asset_name", "ticker", "transaction_type", "transaction_date", "amount_low", "amount_high")
+    if (replays[0]["owner"] != "Self" or replays[1]["owner"] != "Undisclosed"
+            or any(replays[0].get(field) != old.get(field) for field in fields)):
+        return None
+    return {"source_sha256": legacy["source_sha256"], "document_id": legacy["document_id"],
+            "legacy_parser_version": PARSER_VERSION, "source_rows_index": locators[0],
+            "page_number": old["page_number"], "cells": deepcopy(old["cells"]),
+            "source_rows_sha256": hashlib.sha256(json.dumps(inventory, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "basis": "whole_saved_source_input_replayed_with_two_defaults_no_explicit_owner"}
+
+
 def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
                             formal: list[dict], record: dict) -> tuple[dict, dict]:
     """Only an exact source row can carry an old formal identity into v7."""
     from .oge_transaction_adapter import _row_key, adapt_oge_278t_extraction
     result = deepcopy(extraction)
-    receipt = {"retained_formal_ids": [row["id"] for row in formal],
+    receipt = {"retained_formal_ids": [row["id"] for row in formal], "field_corrections": [],
                "inherited_ids": [], "unbound_formal_ids": [], "blocked_new_count": 0}
     if len(set(receipt["retained_formal_ids"])) != len(formal):
         raise OgeCatalogError("existing formal report repeats an identity")
@@ -141,6 +183,17 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
                 retained["legacy_inheritance"] = {"basis": "same_source_exact_cells_and_formal_projection",
                     "source_sha256": extraction["source_sha256"], "new_parser_version": GENERIC_PARSER_VERSION,
                     "new_observation_reasons": row.get("reasons", [])}
+                proof = (_legacy_default_owner_evidence(legacy, retained) if
+                         row.get("owner") == "Undisclosed" and row.get("owner_disclosure_basis") ==
+                         "not_disclosed_in_bound_six_column_table" else None)
+                if proof is not None:
+                    correction = {"extraction_id": retained["extraction_id"], "field": "owner",
+                        "old_value": "Self", "new_value": "Undisclosed",
+                        "rule": "approved_v2_default_self_to_undisclosed/v1", "source_reference": proof}
+                    retained["owner"] = "Undisclosed"
+                    retained["owner_disclosure_basis"] = row["owner_disclosure_basis"]
+                    retained["legacy_inheritance"]["field_corrections"] = [correction]
+                    receipt["field_corrections"].append(correction)
                 qualified.append(retained)
             elif receipt["unbound_formal_ids"] or legacy is None or row.get("page_number") in unmatched_pages:
                 reason = "legacy_source_binding_missing" if receipt["unbound_formal_ids"] or legacy is None else "legacy_row_correspondence_unresolved"
@@ -300,7 +353,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             if extraction_id in retained_by_id and row.get("legacy_inheritance"):
                 if extraction_id in promoted_ids:
                     raise OgeCatalogError("inherited formal identity is duplicated")
-                transactions.append(deepcopy(retained_by_id.pop(extraction_id)))
+                retained_fact = deepcopy(retained_by_id.pop(extraction_id))
+                for correction in row["legacy_inheritance"].get("field_corrections", []):
+                    if (correction["rule"] != "approved_v2_default_self_to_undisclosed/v1" or
+                            correction["field"] != "owner" or retained_fact["owner"] != correction["old_value"]):
+                        raise OgeCatalogError("unsupported inherited formal field correction")
+                    retained_fact["owner"] = correction["new_value"]
+                transactions.append(retained_fact)
                 promoted_ids.add(extraction_id)
                 report_promoted += 1
                 continue
