@@ -61,6 +61,36 @@ class OgeDisclosureStatusTests(unittest.TestCase):
     def build(self, transactions=None, holdings=None):
         return build_oge_status(self.evidence, self.review, transactions or [], holdings or [])
 
+    def test_manual_cover_date_is_visible_after_source_bound_qualification(self):
+        self.catalog([{"access_method": "direct_pdf", "source_document_id": self.doc,
+                      "document_url": self.url, "catalog_index": 1}])
+        self.archive()
+        relative = f"oge/manual_cover_dates/{self.doc}/{self.sha}.json"
+        self.write(self.review, relative, {
+            "schema_version": "oge-manual-cover-date/v1",
+            "status": "observation_only", "page_number": 1,
+            "recognition_method": "human_visual_reading_of_pdf_cover",
+            "document_id": self.doc, "source_sha256": self.sha,
+            "source_url": self.url, "field_role": "filer_signature_date",
+            "filed_at": "2026-09-17", "observed_date": "2026-09-17",
+            "raw_reading": "Sept 17/26",
+        })
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [{
+            "document_id": self.doc, "source_sha256": self.sha,
+            "promoted_count": 1, "quarantined_count": 0,
+            "document_reasons": [], "quarantined": [],
+            "manual_filing_date_evidence": {
+                "review_path": relative, "source_sha256": self.sha,
+                "page_number": 1, "raw_reading": "Sept 17/26",
+                "observed_date": "2026-09-17",
+            },
+        }]})
+        direct, _, _ = self.build()
+        report = direct["reports"][0]
+        self.assertEqual(report["qualification_state"], "qualified")
+        self.assertEqual(report["filed_date"], "2026-09-17")
+        self.assertEqual(report["filed_date_basis"], "human_pdf_cover_signature")
+
     def test_direct_qualification_publication_and_request_occurrences_are_separate(self):
         rows = [{"access_method": "direct_pdf", "source_document_id": self.doc,
                  "document_url": self.url, "catalog_index": 1,

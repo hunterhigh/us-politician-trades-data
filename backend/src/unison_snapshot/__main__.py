@@ -348,6 +348,7 @@ def main() -> None:
     oge_candidate.add_argument("--catalog", type=Path, required=True)
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
+    oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
     oge_candidate.add_argument("--output", type=Path, required=True)
@@ -998,6 +999,10 @@ def main() -> None:
                         continue
                 selected_extractions[document_id] = value
             extractions = list(selected_extractions.values())
+            if args.manual_cover_dates_dir:
+                from .oge_manual_dates import apply_manual_cover_dates
+                extractions = apply_manual_cover_dates(
+                    extractions, args.manual_cover_dates_dir)
             catalog_history = []
             if args.catalog_history_dir:
                 current_bytes = encode(catalog)

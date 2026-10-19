@@ -273,6 +273,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             report_promoted += 1
         audit_reports.append({
             "document_id": document_id,
+            **({"source_sha256": extraction["source_sha256"]}
+               if "manual_filing_date_evidence" in extraction else {}),
+            **({"manual_filing_date_evidence": extraction["manual_filing_date_evidence"]}
+               if "manual_filing_date_evidence" in extraction else {}),
             **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
                if fixed_trump else {}),
             "promoted_count": report_promoted,

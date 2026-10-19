@@ -166,6 +166,40 @@ def _bind_direct_audit(record: dict, audit: dict, review: Path) -> None:
         _unbound_qualification(record, "qualification_current_original_not_extracted")
 
 
+def _apply_manual_direct_date(record: dict, audit: dict, review: Path) -> None:
+    evidence = audit.get("manual_filing_date_evidence")
+    if evidence is None:
+        return
+    sha = audit.get("source_sha256")
+    report_id = record["report_id"]
+    if not isinstance(evidence, dict) or not isinstance(sha, str) or not _SHA.fullmatch(sha):
+        raise ValueError("OGE manual filing date audit is invalid")
+    relative = f"oge/manual_cover_dates/{report_id}/{sha}.json"
+    if (evidence.get("review_path") != relative or
+            evidence.get("source_sha256") != sha or
+            evidence.get("page_number") != 1):
+        raise ValueError("OGE manual filing date path is invalid")
+    sidecar = _read(review / relative)
+    filed = evidence.get("observed_date")
+    if (sidecar.get("document_id") != report_id or
+            sidecar.get("schema_version") != "oge-manual-cover-date/v1" or
+            sidecar.get("status") != "observation_only" or
+            sidecar.get("source_sha256") != sha or
+            sidecar.get("source_url") != record["source_url"] or
+            sidecar.get("field_role") != "filer_signature_date" or
+            sidecar.get("recognition_method") != "human_visual_reading_of_pdf_cover" or
+            sidecar.get("page_number") != evidence.get("page_number") or
+            sidecar.get("filed_at") != filed or
+            sidecar.get("observed_date") != filed or
+            sidecar.get("raw_reading") != evidence.get("raw_reading") or
+            _date(filed) is None):
+        raise ValueError("OGE manual filing date is not source-bound")
+    bound = sha in record["source_versions"] and record["qualification_state"] != "unknown"
+    field = "filed_date" if bound else "observed_filed_date"
+    record[field] = filed
+    record[field + "_basis"] = "human_pdf_cover_signature"
+
+
 def _archive_records(root: Path, relative: str, whitehouse: bool) -> dict[str, list[dict]]:
     records = defaultdict(list)
     for path in sorted((root / relative).glob("*/*.json")):
@@ -370,6 +404,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
         if report_id in audit_by_id:
             _apply_audit(record, audit_by_id[report_id])
             _bind_direct_audit(record, audit_by_id[report_id], review)
+            _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
             record["reason_codes"].append("qualification_artifact_missing_for_report")
         direct["reports"].append(record)

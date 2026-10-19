@@ -1,12 +1,15 @@
 from copy import deepcopy
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.builder import build
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import TRUMP_PERSON_ID, build_oge_candidate
+from unison_snapshot.oge_manual_dates import apply_manual_cover_dates
 from unison_snapshot.oge_reports import (
     EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
     TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
@@ -68,6 +71,64 @@ def base():
 
 
 class OgeCandidateTests(unittest.TestCase):
+    def test_manual_cover_date_resolves_only_date_block(self):
+        original = extraction()
+        original.update(filed_at=None, evidence_complete=False,
+                        document_reasons=["filer_signature_date_not_unique"])
+        before, _ = build_oge_candidate(
+            catalog(), [original], base(),
+            data_cutoff_at="2025-06-04T00:00:00Z")
+        self.assertEqual(before["transactions"], [])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / DOCUMENT_ID / ("a" * 64 + ".json")
+            target.parent.mkdir(parents=True)
+            observation = {
+                "schema_version": "oge-manual-cover-date/v1",
+                "status": "observation_only", "qualification_effect": "none",
+                "document_id": DOCUMENT_ID, "source_sha256": "a" * 64,
+                "source_url": URL, "extraction_parser_version": PARSER_VERSION,
+                "page_number": 1, "recognition_method":
+                "human_visual_reading_of_pdf_cover",
+                "field_role": "filer_signature_date", "raw_reading": "6/3/25",
+                "observed_date": "2025-06-03", "filed_at": "2025-06-03",
+            }
+            target.write_text(json.dumps(observation), encoding="utf-8")
+            resolved = apply_manual_cover_dates([original], root)[0]
+            self.assertIsNone(original["filed_at"])
+            self.assertEqual(resolved["filed_at"], "2025-06-03")
+            self.assertTrue(resolved["evidence_complete"])
+            candidate, audit = build_oge_candidate(
+                catalog(), [resolved], base(),
+                data_cutoff_at="2025-06-04T00:00:00Z")
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(audit["reports"][0]["document_reasons"], [])
+            self.assertEqual(candidate["transactions"][0]["filed_at"],
+                             "2025-06-03T00:00:00Z")
+            self.assertIn("manual_filing_date_evidence", audit["reports"][0])
+
+            original["document_reasons"].append("transaction_table_not_found")
+            resolved = apply_manual_cover_dates([original], root)[0]
+            candidate, audit = build_oge_candidate(
+                catalog(), [resolved], base(),
+                data_cutoff_at="2025-06-04T00:00:00Z")
+            self.assertEqual(candidate["transactions"], [])
+            self.assertIn("document_evidence_incomplete",
+                          audit["reports"][0]["document_reasons"])
+
+            observation.update(field_role="amendment_signature_date", filed_at=None)
+            target.write_text(json.dumps(observation), encoding="utf-8")
+            self.assertIs(apply_manual_cover_dates([original], root)[0], original)
+            observation["filed_at"] = "2025-06-03"
+            target.write_text(json.dumps(observation), encoding="utf-8")
+            with self.assertRaisesRegex(OgeCatalogError, "amendment signature"):
+                apply_manual_cover_dates([original], root)
+            observation.update(field_role="filer_signature_date",
+                               source_sha256="b" * 64)
+            target.write_text(json.dumps(observation), encoding="utf-8")
+            with self.assertRaisesRegex(OgeCatalogError, "not bound"):
+                apply_manual_cover_dates([original], root)
+
     def test_fixed_trump_september_source_uses_existing_person_and_visual_date(self):
         row = direct()
         row.update(source_document_id=TRUMP_SEPT_2026_DOCUMENT_ID,
