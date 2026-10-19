@@ -1,6 +1,6 @@
 """Read-only field shapes from confirmed 2024 OGE 278-T raster cells.
 
-This does not correct OCR, classify a cell as a transaction, or grant source
+This does not correct OCR, classify a cell as a qualified transaction, or grant source
 eligibility.  It consumes saved slot observations so field work needs no new
 PDF scan and pages without confirmed geometry stay unknown.
 """
@@ -428,6 +428,155 @@ def observe_field_shapes(observations: list[dict], *,
             raise ValueError("secondary field observations must be an array")
         _attach_secondary_reads(result, observations, secondary_observations)
     return result
+
+
+def _content_disposition(row: dict) -> tuple[str, str]:
+    """Recognize content separately from shape completeness and eligibility."""
+    raw, shapes = row["raw_columns"], row["field_shapes"]
+    cues = [field for field in ("type", "transaction_date", "amount")
+            if any(_known_value(read["shape"]) is not None and
+                   read.get("geometry_status") != "ambiguous"
+                   for read in row["field_readings"][field]["observations"])]
+    # A single '#' can be a bad printed number on a genuine data row.
+    labels = {name for name in _COLUMNS[1:] if
+              re.fullmatch(name.replace("transaction_date", "date"), raw[name].strip(), re.I)}
+    description = raw["description"].strip()
+    header = "description" in labels and len(labels) >= 3
+    heading = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+",
+                                description, re.I))
+    note = bool(re.fullmatch(
+        r"(?:(?:this (?:page|section) )?(?:is )?(?:intentionally left blank|left intentionally blank)|"
+        r"endnotes|summary of contents|privacy act statement)[.!:]?", description, re.I))
+    if (header or heading or note) and cues:
+        return "unknown", "structural_and_data_evidence_conflict"
+    if header:
+        return "heading", "multiple_column_header_labels"
+    if heading and not any(raw[name].strip() for name in ("type", "transaction_date", "notification", "amount")):
+        return "heading", "explicit_account_section_heading"
+    if note and not any(raw[name].strip() for name in ("type", "transaction_date", "notification", "amount")):
+        return "note", "explicit_non_data_notice"
+    if _known_value(shapes["description"]) and cues:
+        return "data_candidate", "asset_text_with_transaction_field_evidence"
+    if not any(value.strip() for value in raw.values()):
+        return "unknown", "empty_ocr_is_not_blank_source_evidence"
+    return "unknown", "possible_continuation_or_unreadable_fields"
+
+
+def _content_slot_bands(page: dict) -> list[bool]:
+    """Revalidate saved grid bands even when column positions are unknown."""
+    slots = page.get("slots")
+    count = page.get("physical_slot_count")
+    if not isinstance(slots, list) or (count != len(slots) and not (count is None and not slots)):
+        raise ValueError("physical slot count differs from saved grid")
+    previous_bottom, rounding_ambiguous = -1., []
+    for index, slot in enumerate(slots, 1):
+        band = slot.get("band_pdf_points")
+        if (type(slot.get("slot_index")) is not int or slot["slot_index"] != index or
+                not isinstance(band, list) or len(band) != 2 or
+                any(type(v) not in (int, float) or not isfinite(v) for v in band) or
+                not 0 <= band[0] < band[1] or band[0] < previous_bottom):
+            raise ValueError("saved slot order or PDF point band is invalid")
+        previous_bottom = band[1]
+        ambiguous = False
+        for word in slot.get("words", []):
+            box = word.get("bbox_pdf_points")
+            if (not isinstance(box, list) or len(box) != 4 or
+                    any(type(v) not in (int, float) or not isfinite(v) for v in box) or
+                    not box[0] < box[2] or not box[1] < box[3]):
+                raise ValueError("saved word geometry is invalid")
+            center = (box[1] + box[3]) / 2
+            if not band[0] <= center < band[1]:
+                # v2 stores word coordinates rounded to 0.01 point after assigning
+                # by the unrounded center. Keep that rounding ambiguity explicit.
+                if not band[0] - .0051 <= center <= band[1] + .0051:
+                    raise ValueError("saved word position differs from source slot band")
+                ambiguous = True
+        rounding_ambiguous.append(ambiguous)
+    return rounding_ambiguous
+
+
+def observe_content_rows(observations: list[dict], *, document_page_count: int,
+                         secondary_observations: list[dict] | None = None) -> dict:
+    """Account for saved grids and single-row observations, without qualification.
+
+    The whole-document page count must come from the bound source metadata,
+    never from the selected OCR page count. Incomplete fragments remain explicit
+    rather than being joined by printed number, asset name or array position.
+    """
+    from .source_row_ledger import page_ledger, report_ledger
+
+    if type(document_page_count) is not int or document_page_count < 1:
+        raise ValueError("bound document page count is required")
+    fields = observe_field_shapes(observations, secondary_observations=secondary_observations)
+    sha = fields["source_sha256"]
+    originals = {}
+    for item in observations:
+        if item.get("coordinate_frame", "pdf_points") != "pdf_points":
+            raise ValueError("OGE content rows require PDF point coordinates")
+        for page in item["pages"]:
+            number = page["page_number"]
+            if type(number) is not int or not 1 <= number <= document_page_count:
+                raise ValueError("observed page outside bound document")
+            originals[number] = page
+    pages, rows, unresolved, content = [], [], [], []
+    for page in fields["pages"]:
+        number = page["page_number"]
+        original = originals[number]
+        rounding_ambiguous = _content_slot_bands(original)
+        if page["status"] == "geometry_unknown":
+            unknown_slots = [{"local_key": str(slot["slot_index"]),
+                              "bounds": slot["band_pdf_points"], "disposition": "unknown"}
+                             for slot in original["slots"]]
+            content.extend({"page_number": number, "slot_key": slot["local_key"],
+                            "disposition": "unknown", "reason": "column_geometry_unknown",
+                            "field_observation_ref": None} for slot in unknown_slots)
+            pages.append(page_ledger(
+                source_id="oge", document_sha256=sha, page_number=number,
+                adapter_version="oge-278t-content-rows/v1", coverage="unknown", slots=unknown_slots,
+                coverage_reason="column_geometry_unknown", coordinate_frame="pdf_points"))
+            continue
+        raw_slots = original["slots"]
+        slots = []
+        for index, (raw_slot, row) in enumerate(zip(raw_slots, page["slots"], strict=True), 1):
+            band = raw_slot["band_pdf_points"]
+            disposition, reason = _content_disposition(row)
+            key = str(index)
+            reference = {"page_number": number, "slot_key": key}
+            observation_ref = row["field_readings"]["description"]["observations"][0]["source_ref"]
+            slots.append({"local_key": key, "bounds": band,
+                          "disposition": disposition, "observation_ref": observation_ref})
+            content.append({**reference, "disposition": disposition, "reason": reason,
+                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
+                            "field_observation_ref": observation_ref})
+            if disposition != "data_candidate":
+                continue
+            # Single row evidence requires one observed description/type/date/
+            # amount, source word geometry, no unrelated words or field crossing.
+            # This local relationship is not an assertion that the values are true.
+            complete = all(_known_value(row["field_shapes"][field]) is not None
+                           for field in ("description", "type", "transaction_date", "amount"))
+            geometry = row["word_evidence"]
+            conflicts = any(reading.get("consistency") == "conflicting_observations"
+                            for reading in row["field_readings"].values())
+            crossed = any(w["scope"] == "field_boundary" for reading in row["field_readings"].values()
+                          for w in reading["geometry_warnings"])
+            if (complete and geometry["status"] == "source_words_linked" and
+                    not geometry["unassigned_word_indices"] and not crossed and not conflicts and
+                    not rounding_ambiguous[index - 1]):
+                rows.append({"local_key": f"page:{number}:slot:{key}", "slot_refs": [reference],
+                             "observation_ref": observation_ref})
+            else:
+                unresolved.append({**reference, "reason": "single_disclosure_relation_not_established"})
+        pages.append(page_ledger(
+            source_id="oge", document_sha256=sha, page_number=number,
+            adapter_version="oge-278t-content-rows/v1", coverage="located", slots=slots,
+            coordinate_frame="pdf_points"))
+    ledger = report_ledger(
+        source_id="oge", document_sha256=sha, adapter_version="oge-278t-content-rows/v1",
+        page_count=document_page_count, pages=pages, logical_rows=rows,
+        unresolved_data_slots=unresolved)
+    return {"field_observations": fields, "slot_content": content,
+            "source_report_ledger": ledger, "production_mutation_authorized": False}
 
 
 def compare_field_observations(left: dict, right: dict) -> dict:

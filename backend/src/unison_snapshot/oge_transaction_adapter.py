@@ -57,7 +57,10 @@ def _row_key(row: dict[str, Any]) -> str:
 
 
 def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
-                              run_id: str = "offline-replay") -> dict:
+                              run_id: str = "offline-replay",
+                              raster_observations: list[dict] | None = None,
+                              document_page_count: int | None = None,
+                              secondary_field_observations: list[dict] | None = None) -> dict:
     """Map a parsed, archived 278-T document to ledger rows with full accounting.
 
     This adapter is offline only. It requires the parser's extracted table rows,
@@ -245,7 +248,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         raise OgeCatalogError("OGE parser disposition has rows absent from source row inventory")
     if sum(accounted.values()) != len(source_rows):
         raise OgeCatalogError("OGE 278-T row disposition accounting failed")
-    return {"schema_version": "oge-278t-ledger-adapter/v1",
+    result = {"schema_version": "oge-278t-ledger-adapter/v1",
             "document_id": extraction.get("document_id"),
             "source_sha256": source_sha,
             "parser_id": PARSER_ID,
@@ -256,3 +259,61 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "row_count": len(source_rows),
             "counts": accounted,
             "rows": output_rows}
+    if raster_observations is not None:
+        result.update(_source_content_relations(
+            extraction, raster_observations, document_page_count=document_page_count,
+            secondary_field_observations=secondary_field_observations))
+    elif document_page_count is not None or secondary_field_observations is not None:
+        raise OgeCatalogError("content relations require saved raster observations")
+    return result
+
+
+def _source_content_relations(extraction: dict, observations: list[dict], *,
+                              document_page_count: int,
+                              secondary_field_observations: list[dict] | None) -> dict:
+    """Connect original grids to the existing adapter without changing its facts."""
+    from .oge_278t_field_shadow import observe_content_rows
+    from .oge_278t_page_shadow import reconcile_raster_ocr_rows
+
+    if any(item.get("source_sha256") != extraction["source_sha256"] for item in observations):
+        raise OgeCatalogError("content observations differ from extraction source")
+    observed = observe_content_rows(
+        observations, document_page_count=document_page_count,
+        secondary_observations=secondary_field_observations)
+    ledger = observed["source_report_ledger"]
+    census = {"source_sha256": extraction["source_sha256"], "results": [
+        {"page_number": page["page_number"],
+         "status": "physical_slots_located" if page["slots"] else "coverage_unknown",
+         "physical_row_bands": [slot["bounds"] for slot in page["slots"]]}
+        for page in ledger["pages"]]}
+    source_indices, positioned, relations = [], [], []
+    for index, row in enumerate(extraction["source_rows"]):
+        if not 1 <= row["page_number"] <= document_page_count:
+            raise OgeCatalogError("parser row outside bound document page range")
+        frame = row.get("coordinate_frame", extraction.get("coordinate_frame"))
+        reason = ("parser_row_geometry_unavailable" if row.get("geometry_top") is None else
+                  "parser_coordinate_frame_unavailable" if frame != "pdf_points" else None)
+        relations.append({"source_row_index": index, "status": reason or "outside_observed_grid",
+                          "slot_refs": [], "logical_row_keys": []})
+        if reason is None:
+            positioned.append(row)
+            source_indices.append(index)
+    reconciled = reconcile_raster_ocr_rows(
+        census, positioned, expected_sha256=extraction["source_sha256"],
+        ocr_source_sha256=extraction["source_sha256"])
+    local_rows = {}
+    for row in ledger["logical_rows"]:
+        for ref in row["slot_refs"]:
+            local_rows.setdefault((ref["page_number"], ref["slot_key"]), []).append(row["local_key"])
+    slot_matches = []
+    for slot in reconciled["slots"]:
+        refs = {"page_number": slot["page_number"], "slot_key": str(slot["slot_index"])}
+        indices = [source_indices[index] for index in slot["ocr_row_indices"]]
+        keys = local_rows.get((refs["page_number"], refs["slot_key"]), [])
+        slot_matches.append({**refs, "source_row_indices": indices,
+                             "status": slot["status"], "logical_row_keys": keys})
+        for index in indices:
+            relations[index].update({"slot_refs": [refs], "logical_row_keys": keys,
+                "status": "multiple_parser_rows_in_slot" if len(indices) > 1 else
+                "geometry_match_only" if len(keys) == 1 else "slot_relation_unresolved"})
+    return {**observed, "parser_row_relations": relations, "slot_parser_matches": slot_matches}
