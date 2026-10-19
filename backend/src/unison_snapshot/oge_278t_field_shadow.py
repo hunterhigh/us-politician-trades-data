@@ -34,6 +34,7 @@ _SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_obser
               "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
               "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
+_CONTENT_RULES = "oge-278t-content-rows/v3"
 
 
 def _word_evidence(slot: dict, page: dict) -> dict:
@@ -495,6 +496,90 @@ def _content_slot_bands(page: dict) -> list[bool]:
     return rounding_ambiguous
 
 
+def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: dict) -> bool:
+    """Require complete boxes inside the actual horizontal field crop.
+
+    The original read join permits recorded pixel rounding / crop overhangs;
+    that horizontal tolerance cannot replace primary column-boundary evidence.
+    Vertical assignment retains the existing bound-read center/overhang rules;
+    column OCR is cropped by x, not separately cropped to each physical row.
+    """
+    if (read.get("method") != "column_ocr" or read.get("geometry_status") != "source_bound"
+            or _known_value(read["shape"]) is None or not read.get("detections")):
+        return False
+    positions, edges = _FIELD_COLUMNS[field], page["column_edges_pdf_points"]
+    left, right = edges[min(positions)] + .6, edges[max(positions) + 1] - 1.5
+    top, bottom = slot["band_pdf_points"]
+    return all(left <= box[0] < box[2] <= right and top <= (box[1] + box[3]) / 2 < bottom
+               for box in (detection["bbox_pdf_points"] for detection in read["detections"]))
+
+
+def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
+                            source_slot: dict, source_page: dict) -> dict:
+    """Use all bound reads to establish a local relation, without choosing facts.
+
+    One unambiguous recognized secondary read can supply missing primary shape
+    evidence. Repeated reads do not outvote conflicting values or remove geometry
+    blockers. Supporting references identify the actual field and read index.
+    """
+    reasons, field_evidence = [], {}
+    for field in ("description", "type", "transaction_date", "amount"):
+        evidence = row["field_readings"][field]
+        recognized = [(index, read, _known_value(read["shape"]))
+                      for index, read in enumerate(evidence["observations"])
+                      if read.get("geometry_status") != "ambiguous" and
+                      _known_value(read["shape"]) is not None]
+        values = {repr(value) for _, _, value in recognized}
+        if len(values) > 1:
+            status = "conflicting_observations"
+            reasons.append(f"{field}_observation_conflict")
+        elif values:
+            status = "recognized_observations"
+        else:
+            status = "missing_observation"
+            reasons.append(f"{field}_observation_missing")
+        field_evidence[field] = {
+            "status": status,
+            "supporting_observations": [{"observation_index": index, "source_ref": read["source_ref"]}
+                                        for index, read, _ in recognized],
+            "primary_recognized": any(index == 0 for index, _, _ in recognized),
+            "secondary_recognized": any(index > 0 for index, _, _ in recognized),
+            "qualification": "not_assessed"}
+    geometry = row["word_evidence"]
+    if geometry["status"] != "source_words_linked":
+        reasons.append("word_geometry_unavailable")
+    if geometry["unassigned_word_indices"]:
+        reasons.append("unassigned_column_words")
+    crossing_refs, geometry_evidence, unresolved_geometry_fields = set(), {}, []
+    for field, reading in row["field_readings"].items():
+        warnings = [warning for warning in reading["geometry_warnings"]
+                    if warning["scope"] == "field_boundary"]
+        if not warnings:
+            continue
+        crossing_refs.update(warning["crossing_word_ref"] for warning in warnings)
+        supports = [{"observation_index": index, "source_ref": read["source_ref"]}
+                    for index, read in enumerate(reading["observations"]) if index > 0 and
+                    _complete_secondary_geometry(read, field=field, slot=source_slot, page=source_page)]
+        geometry_evidence[field] = {
+            "status": "complete_secondary_geometry" if supports else "unresolved_primary_boundary",
+            "supporting_observations": supports,
+            "basis": "full_secondary_boxes_inside_horizontal_source_field_crop",
+            "vertical_assignment_basis": "existing_bound_read_center_and_overhang_validation",
+            "primary_crossing_word_refs": sorted({warning["crossing_word_ref"] for warning in warnings})}
+        if not supports:
+            unresolved_geometry_fields.append(field)
+    if unresolved_geometry_fields:
+        reasons.append("cross_field_word_geometry")
+    if rounding_ambiguous:
+        reasons.append("word_center_rounding_ambiguous")
+    return {"schema_version": "oge-278t-relation-evidence/v1",
+            "status": "supported_observation_relation" if not reasons else "unresolved",
+            "blocking_reasons": sorted(reasons), "fields": field_evidence,
+            "crossing_word_refs": sorted(crossing_refs), "field_geometry_evidence": geometry_evidence,
+            "unresolved_geometry_fields": sorted(unresolved_geometry_fields),
+            "qualification": "not_assessed"}
+
+
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
                          secondary_observations: list[dict] | None = None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
@@ -518,7 +603,9 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             if type(number) is not int or not 1 <= number <= document_page_count:
                 raise ValueError("observed page outside bound document")
             originals[number] = page
-    pages, rows, unresolved, content = [], [], [], []
+    pages, rows, unresolved, content, logical_evidence = [], [], [], [], []
+    blocking_counts: Counter[str] = Counter()
+    secondary_only_counts: Counter[str] = Counter()
     for page in fields["pages"]:
         number = page["page_number"]
         original = originals[number]
@@ -532,7 +619,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                             "field_observation_ref": None} for slot in unknown_slots)
             pages.append(page_ledger(
                 source_id="oge", document_sha256=sha, page_number=number,
-                adapter_version="oge-278t-content-rows/v1", coverage="unknown", slots=unknown_slots,
+                adapter_version=_CONTENT_RULES, coverage="unknown", slots=unknown_slots,
                 coverage_reason="column_geometry_unknown", coordinate_frame="pdf_points"))
             continue
         raw_slots = original["slots"]
@@ -545,37 +632,41 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             observation_ref = row["field_readings"]["description"]["observations"][0]["source_ref"]
             slots.append({"local_key": key, "bounds": band,
                           "disposition": disposition, "observation_ref": observation_ref})
-            content.append({**reference, "disposition": disposition, "reason": reason,
-                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
-                            "field_observation_ref": observation_ref})
+            content_row = {**reference, "disposition": disposition, "reason": reason,
+                           "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
+                           "field_observation_ref": observation_ref}
+            content.append(content_row)
             if disposition != "data_candidate":
                 continue
-            # Single row evidence requires one observed description/type/date/
-            # amount, source word geometry, no unrelated words or field crossing.
-            # This local relationship is not an assertion that the values are true.
-            complete = all(_known_value(row["field_shapes"][field]) is not None
-                           for field in ("description", "type", "transaction_date", "amount"))
-            geometry = row["word_evidence"]
-            conflicts = any(reading.get("consistency") == "conflicting_observations"
-                            for reading in row["field_readings"].values())
-            crossed = any(w["scope"] == "field_boundary" for reading in row["field_readings"].values()
-                          for w in reading["geometry_warnings"])
-            if (complete and geometry["status"] == "source_words_linked" and
-                    not geometry["unassigned_word_indices"] and not crossed and not conflicts and
-                    not rounding_ambiguous[index - 1]):
-                rows.append({"local_key": f"page:{number}:slot:{key}", "slot_refs": [reference],
+            relation = _row_relation_evidence(row, rounding_ambiguous=rounding_ambiguous[index - 1],
+                                               source_slot=raw_slot, source_page=original)
+            content_row["relation_evidence"] = relation
+            if relation["status"] == "supported_observation_relation":
+                local_key = f"page:{number}:slot:{key}"
+                rows.append({"local_key": local_key, "slot_refs": [reference],
                              "observation_ref": observation_ref})
+                logical_evidence.append({"local_key": local_key, "slot_refs": [reference],
+                                         "field_evidence": relation["fields"],
+                                         "field_geometry_evidence": relation["field_geometry_evidence"],
+                                         "qualification": "not_assessed"})
+                secondary_only_counts.update(field for field, evidence in relation["fields"].items()
+                                             if evidence["secondary_recognized"] and not evidence["primary_recognized"])
             else:
+                blocking_counts.update(relation["blocking_reasons"])
                 unresolved.append({**reference, "reason": "single_disclosure_relation_not_established"})
         pages.append(page_ledger(
             source_id="oge", document_sha256=sha, page_number=number,
-            adapter_version="oge-278t-content-rows/v1", coverage="located", slots=slots,
+            adapter_version=_CONTENT_RULES, coverage="located", slots=slots,
             coordinate_frame="pdf_points"))
     ledger = report_ledger(
-        source_id="oge", document_sha256=sha, adapter_version="oge-278t-content-rows/v1",
+        source_id="oge", document_sha256=sha, adapter_version=_CONTENT_RULES,
         page_count=document_page_count, pages=pages, logical_rows=rows,
         unresolved_data_slots=unresolved)
     return {"field_observations": fields, "slot_content": content,
+            "logical_row_field_evidence": logical_evidence,
+            "relation_evidence_summary": {
+                "unresolved_blocking_reason_counts": dict(sorted(blocking_counts.items())),
+                "secondary_only_supported_field_counts": dict(sorted(secondary_only_counts.items()))},
             "source_report_ledger": ledger, "production_mutation_authorized": False}
 
 
