@@ -129,11 +129,15 @@ def _marks(words: list[dict], y: float, low: float, high: float) -> list[dict]:
 
 
 def _paper_row(source_sha: str, page_number: int, position: int,
-               words: list[dict], y: float) -> dict:
+               words: list[dict], y: float, *, grid_slot: dict | None = None) -> dict:
     reasons: list[str] = []
     date_words = [word for word in words
                   if 1650 <= _center(word)[0] < 1940 and abs(_center(word)[1] - y) <= 48 and
                   _DATE.fullmatch(word["text"])]
+    if grid_slot is not None:
+        left, top, right, bottom = grid_slot["key_cells"]["date"]["box_px"]
+        date_words = [word for word in words if
+                      left <= _center(word)[0] < right and top <= _center(word)[1] < bottom]
     if len(date_words) != 1:
         reasons.append("paper_date_mark_ambiguous")
         transaction_date = None
@@ -149,6 +153,9 @@ def _paper_row(source_sha: str, page_number: int, position: int,
     type_marks = _marks(words, y, 1380, 1665)
     type_indexes = [_nearest(_center(word)[0], _TYPE_CENTERS) for word in type_marks]
     type_indexes = [index for index in type_indexes if index is not None]
+    if grid_slot is not None:
+        type_indexes = [list(_TYPE_CENTERS.values()).index(value)
+                        for value in grid_slot["type_marks"]]
     if len(type_indexes) != 1:
         reasons.append("paper_transaction_type_mark_ambiguous")
         transaction_type = None
@@ -158,6 +165,10 @@ def _paper_row(source_sha: str, page_number: int, position: int,
     amount_marks = _marks(words, y, 1930, 2925)
     amount_indexes = [_nearest(_center(word)[0], _AMOUNT_CENTERS) for word in amount_marks]
     amount_indexes = [index for index in amount_indexes if index is not None]
+    if grid_slot is not None:
+        from .senate_slots_shadow import AMOUNT_CELLS
+        labels = [label for label, _ in AMOUNT_CELLS]
+        amount_indexes = [labels.index(value) for value in grid_slot["amount_marks"]]
     if len(amount_indexes) != 1:
         reasons.append("paper_amount_mark_ambiguous")
         amount_raw = None
@@ -169,6 +180,8 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         # shared explicit threshold / null-upper-bound contract.
 
     asset_cell, asset_confidence = _join_cell(words, y)
+    if grid_slot is not None:
+        asset_cell, asset_confidence = _grid_asset_cell(words, grid_slot)
     owner_match = _OWNER.fullmatch(asset_cell)
     if owner_match is None:
         reasons.append("paper_owner_ocr_ambiguous")
@@ -204,6 +217,137 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         "quarantine_reasons": sorted(set(reasons)),
         "ocr_min_confidence": asset_confidence,
     }
+
+
+def _grid_asset_cell(words: list[dict], slot: dict) -> tuple[str, float | None]:
+    top, bottom = slot["row_bounds_px"]
+    selected = [word for word in words if 650 <= _center(word)[0] < 1385 and
+                top + 6 <= _center(word)[1] < bottom - 6]
+    selected.sort(key=lambda word: (round(_center(word)[1] / 25), word["left"]))
+    return (" ".join(word["text"] for word in selected).strip(),
+            min((word["confidence"] for word in selected), default=None))
+
+
+def parse_paper_grid_observations(report: dict, manifest: dict, observation: dict,
+                                  pages: list[dict], page_images: dict[int, bytes]) -> dict:
+    """Interpret fixed source-bound slots for a previously failed report.
+
+    The saved grid defines row positions; OCR no longer decides whether an
+    unreadable date or missing X makes a physical row disappear. Existing
+    extraction rows are deliberately not merged or re-keyed by this path.
+    """
+    from io import BytesIO
+    from PIL import Image
+    from .senate_paper_observation import _source_report_relations
+    from .senate_slots_shadow import TYPE_CELLS, AMOUNT_CELLS, _mark_count
+
+    document_id, source_sha = report.get("document_id"), manifest.get("entrypoint_source_sha256")
+    if (report.get("source_id") != "senate_efd" or report.get("access_method") != "paper_ptr" or
+            manifest.get("document_id") != document_id or
+            manifest.get("schema_version") != PAPER_PAGE_MANIFEST_SCHEMA or
+            manifest.get("evidence_complete") is not True or
+            observation.get("document_id") != document_id or
+            observation.get("entrypoint_source_sha256") != source_sha or
+            observation.get("manifest_sha256") != manifest.get("manifest_sha256") or
+            observation.get("coverage_status") != "fixed_slots_observed" or
+            observation.get("legacy_extraction_failed") is not True or
+            observation.get("legacy_extraction_count") != 0 or
+            observation.get("source_report_ledger") != _source_report_relations(observation)):
+        raise SenateEfdError("Senate grid facts require a bound previously failed source")
+    listed = {page["page_number"]: page["sha256"] for page in manifest["pages"]}
+    observed = {page["page_number"]: page["page_sha256"] for page in observation["pages"]}
+    by_page = {page["page_number"]: _normalized_words(page) for page in pages}
+    if (len(by_page) != len(pages) or set(page_images) != set(observed) or
+            not set(observed) <= set(by_page) or len(observed) != len(observation["pages"]) or
+            any(page.get("source_sha256") != observed.get(page["page_number"]) for page in pages)):
+        raise SenateEfdError("Senate grid word pages or source images are missing or repeated")
+    images = {}
+    for number, expected_sha in observed.items():
+        raw = page_images[number]
+        if listed.get(number) != expected_sha or hashlib.sha256(raw).hexdigest() != expected_sha:
+            raise SenateEfdError("Senate grid source image differs from archived page")
+        image = Image.open(BytesIO(raw)).convert("L")
+        if image.size != (3400, 4400):
+            raise SenateEfdError("Senate grid source image has unsupported dimensions")
+        images[number] = image
+    rows, account, scope_unknown, previous_page = [], None, False, None
+    slots = sorted(observation["slots"], key=lambda slot: (slot["page_number"], slot["grid_slot"]))
+    for slot in slots:
+        number, label = slot["page_number"], slot["label"]
+        if previous_page is not None and number > previous_page + 1:
+            account, scope_unknown = None, True
+        previous_page = number
+        if label == "unknown":
+            account, scope_unknown = None, True
+            continue
+        if label == "heading_candidate":
+            text, confidence = _grid_asset_cell(by_page[number], slot)
+            if text.endswith(":") and _OWNER.fullmatch(text) and confidence is not None and confidence >= 85:
+                account, scope_unknown = text, False
+            else:
+                account, scope_unknown = None, True
+            continue
+        if label != "data_observed":
+            continue
+        if slot.get("column_calibration") != "verified":
+            raise SenateEfdError("Senate grid data row lacks calibrated columns")
+        image = images[number]
+        for field, cells in (("direction", TYPE_CELLS), ("amount", AMOUNT_CELLS)):
+            reads = slot["key_cells"][field]
+            if [read["label"] for read in reads] != [value for value, _ in cells]:
+                raise SenateEfdError("Senate grid mark columns changed")
+            signals = []
+            for read in reads:
+                box = read["box_px"]
+                if hashlib.sha256(image.crop(tuple(box)).tobytes()).hexdigest() != read["grayscale_sha256"]:
+                    raise SenateEfdError("Senate grid mark crop differs from source")
+                count = _mark_count(image, *read["center_px"])
+                if count != read["dark_sample_count"] or read["mark_signal"] != (count >= 25):
+                    raise SenateEfdError("Senate grid mark signal differs from source")
+                if count >= 25:
+                    signals.append(read["label"])
+            if signals != slot["type_marks" if field == "direction" else "amount_marks"]:
+                raise SenateEfdError("Senate grid mark interpretation differs from source")
+        date = slot["key_cells"]["date"]
+        if hashlib.sha256(image.crop(tuple(date["box_px"])).tobytes()).hexdigest() != date["grayscale_sha256"]:
+            raise SenateEfdError("Senate grid date crop differs from source")
+        row = _paper_row(source_sha, number, len(rows) + 1, by_page[number],
+                         sum(slot["row_bounds_px"]) / 2, grid_slot=slot)
+        reasons = row["quarantine_reasons"]
+        prior_dates = {date.get("page_ocr_parsed"), date.get("cell_ocr_parsed")}
+        prior_dates.discard(None)
+        if date.get("conflict") or any(value != row["transaction_date"] for value in prior_dates):
+            reasons.append("paper_date_observation_conflict")
+        if scope_unknown:
+            reasons.append("paper_account_scope_unresolved")
+        if row["asset_type_raw"] == "Other":
+            row["asset_type_raw"] = None
+            row["asset_type_disclosure"] = "not_disclosed"
+        if account:
+            row["asset_name_raw"] = f"{row['asset_name_raw']} (Account: {account})"
+        row["account_heading_raw"] = account
+        row["source_slot"] = {"page_number": number, "grid_slot": slot["grid_slot"],
+                              "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
+        row["quarantine_reasons"] = sorted(set(reasons))
+        row["qualification_status"] = "quarantined" if reasons else "eligible"
+        rows.append(row)
+    try:
+        filed = datetime.strptime(report["portal_listed_date"], "%Y-%m-%d").strftime("%m/%d/%Y")
+    except (KeyError, TypeError, ValueError):
+        raise SenateEfdError("Senate grid source catalog filing date is invalid") from None
+    return {"schema_version": PAPER_EXTRACTION_SCHEMA, "parser_version": PARSER_VERSION,
+            "paper_rule_version": PAPER_OCR_RULE_VERSION, "source_id": "senate_efd",
+            "document_id": document_id, "source_sha256": source_sha, "source_url": report["document_url"],
+            "filer_name": report["filer_name"], "portal_listed_date": report["portal_listed_date"],
+            "report_label_date": report.get("report_label_date"),
+            "report_amendment_number": report.get("report_amendment_number"),
+            "report_title_date": report.get("report_label_date"), "catalog_title_date_matches": True,
+            "filed_at_raw": f"Filed {filed}", "document_disposition": "transactions_parsed",
+            "evidence_complete": True, "page_manifest_sha256": manifest["manifest_sha256"],
+            "page_count": manifest["page_count"], "transactions": rows,
+            "source_report_ledger": observation["source_report_ledger"],
+            "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
+            "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows)}
 
 
 def parse_paper_word_pages(report: dict, manifest: dict, pages: list[dict]) -> dict:
@@ -334,7 +478,9 @@ def _load_page(evidence_root: Path, item: dict, page_number: int,
 
 
 def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
-                                   *, executable: str = "tesseract") -> dict:
+                                   *, executable: str = "tesseract",
+                                   grid_observations: dict[str, dict] | None = None,
+                                   cached_word_pages: dict[str, list[dict]] | None = None) -> dict:
     """Extract every current paper viewer from immutable archived page bytes."""
 
     status = json.loads((review_root / "status" / "senate_efd.json").read_text(encoding="utf-8"))
@@ -352,6 +498,10 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
         inspections[item.get("document_id")] = item
     if not reports or set(reports) != set(inspections):
         raise SenateEfdError("Senate paper catalog and inspection set differ")
+    grids = grid_observations or {}
+    cached_pages = cached_word_pages or {}
+    if set(grids) != set(cached_pages) or not set(grids) <= set(reports):
+        raise SenateEfdError("Senate saved grid inputs do not match selected paper reports")
 
     extractions, failures = [], []
     for document_id in sorted(reports):
@@ -362,9 +512,22 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
             inspection = inspections[document_id]
             if manifest.get("entrypoint_source_sha256") != inspection.get("source_sha256"):
                 raise SenateEfdError("Senate paper manifest and inspection evidence differ")
-            pages = [_load_page(evidence_root, manifest, number, executable=executable)
-                     for number in range(1, manifest.get("page_count", 0) + 1)]
-            extractions.append(parse_paper_word_pages(reports[document_id], manifest, pages))
+            if document_id in grids:
+                observation = grids[document_id]
+                archived = {page["page_number"]: page for page in manifest["pages"]}
+                images = {}
+                for observed in observation["pages"]:
+                    number = observed["page_number"]
+                    path = (evidence_root / archived[number]["archive_path"]).resolve()
+                    if not path.is_relative_to(evidence_root.resolve()):
+                        raise SenateEfdError("Senate saved grid image escaped evidence root")
+                    images[number] = path.read_bytes()
+                extractions.append(parse_paper_grid_observations(
+                    reports[document_id], manifest, observation, cached_pages[document_id], images))
+            else:
+                pages = [_load_page(evidence_root, manifest, number, executable=executable)
+                         for number in range(1, manifest.get("page_count", 0) + 1)]
+                extractions.append(parse_paper_word_pages(reports[document_id], manifest, pages))
         except (OSError, json.JSONDecodeError, SenateEfdError) as exc:
             failures.append({
                 "schema_version": "senate-efd-paper-ptr-failure/v1",

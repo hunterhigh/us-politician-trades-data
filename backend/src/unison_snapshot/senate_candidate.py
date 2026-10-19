@@ -423,6 +423,19 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(asset_name, str) or not asset_name.strip():
         reasons.append("asset_name_invalid")
     instrument = INSTRUMENT_TYPES.get(row.get("asset_type_raw"))
+    source_slot = row.get("source_slot")
+    source_ledger = extraction.get("source_report_ledger")
+    grid_missing_type = (
+        extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA and
+        extraction.get("paper_rule_version") == "senate-paper-form-geometry-2026-10-v2" and
+        row.get("asset_type_raw") is None and row.get("asset_type_disclosure") == "not_disclosed" and
+        isinstance(source_slot, dict) and isinstance(source_ledger, dict) and
+        source_ledger.get("document_sha256") == extraction.get("source_sha256") and
+        any({"page_number": source_slot.get("page_number"),
+             "slot_key": str(source_slot.get("grid_slot"))} in logical.get("slot_refs", [])
+            for logical in source_ledger.get("logical_rows", [])))
+    if grid_missing_type:
+        instrument = "Unspecified"
     reviewed_source = (
         (extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
          extraction.get("source_sha256") ==
@@ -648,8 +661,34 @@ def build_senate_candidate(
         extraction_values.append(extraction)
     if any(not isinstance(item.get("transactions"), list) for item in extraction_values):
         raise SenateEfdError("Senate extraction artifact has no transaction array")
-    electronic_ledgers = []
+    electronic_ledgers, paper_ledgers = [], []
     for item in extraction_values:
+        if item.get("schema_version") == PAPER_EXTRACTION_SCHEMA and "source_report_ledger" in item:
+            from .source_row_ledger import report_ledger
+            supplied = item["source_report_ledger"]
+            try:
+                if any(row.get("qualification") != "not_assessed" for row in supplied["logical_rows"]):
+                    raise ValueError("Source row ledger cannot grant qualification")
+                arguments = {key: supplied[key] for key in (
+                    "source_id", "document_sha256", "adapter_version", "page_count", "pages",
+                    "unresolved_data_slots")}
+                arguments["logical_rows"] = [{key: value for key, value in row.items()
+                                               if key != "qualification"} for row in supplied["logical_rows"]]
+                arguments["pages"] = [page for page in supplied["pages"]
+                                      if page["page_number"] not in supplied["unobserved_pages"]]
+                checked = report_ledger(**arguments)
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SenateEfdError("Senate paper source row ledger is invalid") from exc
+            if (supplied != checked or checked["source_id"] != "senate_efd" or
+                    checked["document_sha256"] != item["source_sha256"]):
+                raise SenateEfdError("Senate paper source row ledger differs from extraction")
+            locations = [(row.get("source_slot", {}).get("page_number"),
+                          str(row.get("source_slot", {}).get("grid_slot"))) for row in item["transactions"]]
+            linked = [(ref["page_number"], ref["slot_key"]) for row in checked["logical_rows"]
+                      for ref in row["slot_refs"]]
+            if len(locations) != len(set(locations)) or sorted(locations) != sorted(linked):
+                raise SenateEfdError("Senate paper facts do not conserve source grid rows")
+            paper_ledgers.append({"document_id": item["document_id"], "ledger": checked})
         if item.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA:
             continue
         ledger = electronic_ptr_source_ledger(item["source_sha256"], item["transactions"])
@@ -802,6 +841,14 @@ def build_senate_candidate(
                 "source_sha256": extraction.get("source_sha256"),
             })
             continue
+        source_coverage_unknown = (isinstance(extraction.get("source_report_ledger"), dict) and
+                                   extraction["source_report_ledger"].get("relation_coverage") != "accounted")
+        if source_coverage_unknown and not extraction["transactions"]:
+            report_reasons["source_row_coverage_incomplete"] += 1
+            quarantined_reports.append({"document_id": document_id,
+                                        "reasons": ["source_row_coverage_incomplete"],
+                                        "source_sha256": extraction["source_sha256"]})
+            continue
         person = _person(identity)
         person_id = person["id"]
         if person_id in people and people[person_id] != person:
@@ -854,7 +901,7 @@ def build_senate_candidate(
                 people[person_id] = person
                 person_documents[person_id] = document_id
             qualified_reports += 1
-            if report_quarantined_rows:
+            if report_quarantined_rows or source_coverage_unknown:
                 partially_qualified_reports += 1
             else:
                 fully_qualified_reports += 1
@@ -1002,6 +1049,7 @@ def build_senate_candidate(
         "candidate_holding_count": len(candidate["reported_holdings"]),
         "paper_pending_projection": paper_pending_audit,
         "electronic_source_report_ledgers": electronic_ledgers,
+        "paper_source_report_ledgers": paper_ledgers,
         **annual_audit,
         "qualified_rows": qualified_rows,
         "quarantined_report_count": len(quarantined_reports),
