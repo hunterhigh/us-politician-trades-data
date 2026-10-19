@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from copy import deepcopy
 import json
 from pathlib import Path
 import sys
@@ -60,6 +61,65 @@ class OgeDisclosureStatusTests(unittest.TestCase):
 
     def build(self, transactions=None, holdings=None):
         return build_oge_status(self.evidence, self.review, transactions or [], holdings or [])
+
+    def observed_reference(self):
+        self.archive()
+        old = {"schema_version": "oge-278t-extraction/v1", "parser_version": "oge-278t-pdf/v2",
+            "source_id": "oge", "document_id": self.doc, "source_sha256": self.sha, "source_url": self.url,
+            "transactions": [{"extraction_id": "oge-278t:" + "1" * 24, "page_number": 2}],
+            "quarantined": [{"extraction_id": "oge-278t:" + str(i) * 24, "page_number": 2} for i in (2, 3)]}
+        self.write(self.review, f"oge/extractions/{self.doc}/{self.sha}/parser-v1.json", old)
+        digest = hashlib.sha256(json.dumps(old, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        slots = [{"source_sha256": self.sha, "page_number": 2, "slot_key": str(i),
+                  "disposition": "materialized" if i == 1 else "unresolved"} for i in (1, 2)]
+        slots[0]["extraction_id"] = "oge-278t:" + "b" * 24
+        return {"document_id": self.doc, "source_sha256": self.sha, "promoted_count": 0,
+            "quarantined_count": 2, "quarantine_count_unit": "observed_slots_not_whole_source_unique_rows",
+            "unique_source_quarantined_row_count": None,
+            "legacy_normalized_reference_count": 1, "legacy_quarantined_reference_count": 2,
+            "document_reasons": ["filed_at_invalid"], "quarantined": [
+                {"extraction_id": slots[0]["extraction_id"], "reasons": ["filed_at_invalid"]},
+                {"observation_reference": {key: slots[1][key] for key in ("source_sha256", "page_number", "slot_key")},
+                 "reasons": ["type_reading_unresolved"]}],
+            "observation_receipt": {"schema_version": "oge-278t-observed-facts/v1", "source_sha256": self.sha,
+                "coverage_complete": False, "legacy_inventory_basis": "normalized_disposition_reference_without_physical_inventory",
+                "legacy_normalized_not_sent_to_qualification": True, "unique_source_row_count": None,
+                "legacy_reference_sha256": digest, "legacy_normalized_transaction_count": 1,
+                "legacy_quarantined_reference_count": 2, "rows": slots, "observed_slot_count": 2,
+                "unknown_regions": [], "unobserved_pages": [1, 3], "geometry_unknown_pages": [],
+                "page_count_basis": "declared_only"}}
+
+    def test_bound_observed_counts_remain_separate_from_unknown_whole_source_total(self):
+        audit = self.observed_reference()
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        record = self.build()[0]["reports"][0]
+        self.assertIsNone(record["quarantined_row_count"])
+        self.assertIsNone(record["unique_source_quarantined_row_count"])
+        self.assertEqual(record["observed_quarantined_slot_count"], 2)
+        self.assertEqual(record["observed_slot_count"], 2)
+        self.assertEqual(record["legacy_normalized_reference_count"], 1)
+        self.assertEqual(record["legacy_quarantined_reference_count"], 2)
+        self.assertEqual(record["qualification_state"], "quarantined")
+        self.assertEqual(record["source_observation_coverage"]["unobserved_pages"], [1, 3])
+        audit["promoted_count"] = 1
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        self.assertEqual(self.build()[0]["reports"][0]["qualification_state"], "partial")
+
+    def test_observation_unit_label_cannot_replace_receipt_and_reference_binding(self):
+        original = self.observed_reference()
+        cases = []
+        changed = deepcopy(original); changed.pop("observation_receipt"); cases.append(changed)
+        changed = deepcopy(original); changed.pop("quarantine_count_unit"); cases.append(changed)
+        changed = deepcopy(original); changed["legacy_normalized_reference_count"] = 146; cases.append(changed)
+        changed = deepcopy(original); changed["observation_receipt"]["legacy_reference_sha256"] = "f" * 64; cases.append(changed)
+        changed = deepcopy(original); changed["observation_receipt"]["rows"][1]["slot_key"] = "1"; cases.append(changed)
+        changed = deepcopy(original); changed["quarantined_count"] = 0; cases.append(changed)
+        changed = deepcopy(original); changed["quarantined"][1]["observation_reference"]["source_sha256"] = "b" * 64; cases.append(changed)
+        for index, audit in enumerate(cases):
+            with self.subTest(case=index):
+                self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+                with self.assertRaises(ValueError):
+                    self.build()
 
     def test_manual_cover_date_is_visible_after_source_bound_qualification(self):
         self.catalog([{"access_method": "direct_pdf", "source_document_id": self.doc,
