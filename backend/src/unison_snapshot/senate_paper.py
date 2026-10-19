@@ -262,6 +262,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             any(page.get("source_sha256") != observed.get(page["page_number"]) for page in pages)):
         raise SenateEfdError("Senate grid word pages or source images are missing or repeated")
     images = {}
+    cache_sha = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
+                                         separators=(",", ":")).encode("utf8")).hexdigest()
     for number, expected_sha in observed.items():
         raw = page_images[number]
         if listed.get(number) != expected_sha or hashlib.sha256(raw).hexdigest() != expected_sha:
@@ -328,6 +330,18 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             raise SenateEfdError("Senate grid date crop differs from source")
         row = _paper_row(source_sha, number, len(rows) + 1, by_page[number],
                          sum(slot["row_bounds_px"]) / 2, grid_slot=slot)
+        asset_raw, asset_confidence = _grid_asset_cell(by_page[number], slot)
+        left, top, right, bottom = date["box_px"]
+        date_words = [word for word in by_page[number] if
+                      left <= _center(word)[0] < right and top <= _center(word)[1] < bottom]
+        row["field_observations"] = {
+            "cached_word_pages_sha256": cache_sha, "asset_raw": asset_raw,
+            "asset_min_confidence": asset_confidence,
+            "date_raw": " ".join(word["text"] for word in date_words),
+            "date_min_confidence": min((word["confidence"] for word in date_words), default=None),
+            "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
+            "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
+        }
         reasons = row["quarantine_reasons"]
         prior_dates = {date.get("page_ocr_parsed"), date.get("cell_ocr_parsed")}
         prior_dates.discard(None)
@@ -360,6 +374,7 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "filed_at_raw": f"Filed {filed}", "document_disposition": "transactions_parsed",
             "evidence_complete": True, "page_manifest_sha256": manifest["manifest_sha256"],
             "page_count": manifest["page_count"], "transactions": rows,
+            "cached_word_pages_sha256": cache_sha,
             "source_report_ledger": observation["source_report_ledger"],
             "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
             "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows)}
