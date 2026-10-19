@@ -189,6 +189,62 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
                 "page_count_basis": receipt.get("page_count_basis")}}
 
 
+def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> list[str]:
+    """Reproduce retained source bindings before adding them to qualification."""
+    from .whitehouse_278t import (GENERIC_PARSER_VERSION, validate_generic_whitehouse_report,
+        _generic_table_rows, _inherit_whitehouse_generic_rows)
+    if audit.get("parser_version") != GENERIC_PARSER_VERSION:
+        return []
+    ids, count = audit.get("retained_ids"), _count(audit.get("retained_count"))
+    if (not isinstance(ids, list) or any(not isinstance(value, str) for value in ids) or
+            count is None or len(ids) != count or len(set(ids)) != count or
+            sorted(ids) != sorted(row.get("extraction_id") for row in _rows(audit, "rows")
+                                  if row.get("status") == "retained_existing")):
+        raise ValueError("White House retained identities do not match candidate decisions")
+    if not ids:
+        return []
+    sha, binding = audit.get("source_sha256"), audit.get("retained_source_bindings")
+    if (review is None or sha not in record["source_versions"] or not isinstance(binding, dict) or
+            binding.get("schema_version") != "whitehouse-generic-retained-source/v1" or
+            binding.get("source_sha256") != sha or
+            binding.get("legacy_cache_hash_is_reference_only") is not True):
+        raise ValueError("White House retained identities lack archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    cached = [_read(path) for path in sorted(folder.glob("*.json"))
+              if not path.name.endswith(".failure.json")]
+    reports = [item for item in cached if item.get("parser_version") == GENERIC_PARSER_VERSION]
+    def canonical(value):
+        return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    legacy = [item for item in cached if canonical(item) == binding.get("legacy_extraction_canonical_sha256")]
+    if len(reports) != 1 or len(legacy) != 1:
+        raise ValueError("White House retained identities lack unique current and legacy caches")
+    report = reports[0]
+    if any(report.get(key) != value for key, value in (("document_id", record["report_id"]),
+            ("source_sha256", sha), ("source_url", record["source_url"]))):
+        raise ValueError("White House retained cache crossed report sources")
+    validate_generic_whitehouse_report(report)
+    good, bad, _ = _generic_table_rows([(row["page_number"], row["cells"])
+        for row in report["source_rows"]], source_sha256=sha)
+    reproduced = _inherit_whitehouse_generic_rows({**report, "transactions": good, "quarantined": bad}, legacy[0])
+    source_rows = {row["extraction_id"]: row for row in reproduced["transactions"]
+                   if row.get("legacy_inheritance") and not row.get("reasons") and
+                   not row["legacy_inheritance"].get("new_observation_reasons")}
+    if not set(ids) <= set(source_rows):
+        raise ValueError("White House retained identities were not reproduced from raw source cells")
+    for identifier in ids:
+        stored = [row for row in report["transactions"] if row.get("extraction_id") == identifier]
+        if len(stored) != 1 or stored[0] != source_rows[identifier]:
+            raise ValueError("White House retained cache differs from its source replay")
+    expected = [{"formal_id": identifier, "page_number": source_rows[identifier]["page_number"],
+        "source_rows_index": source_rows[identifier]["source_rows_index"],
+        "raw_cells_canonical_sha256": canonical(source_rows[identifier]["cells"]),
+        "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"} for identifier in ids]
+    if binding.get("rows") != expected:
+        raise ValueError("White House retained cell bindings disagree with source replay")
+    return ids
+
+
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> None:
     receipt = audit.get("observation_receipt")
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
@@ -198,6 +254,12 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> No
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
+    retained = _whitehouse_retained_ids(record, audit, review)
+    if retained:
+        if promoted is None:
+            raise ValueError("White House retained qualification lacks a promoted count")
+        promoted += len(retained)
+        record["qualified_retained_transaction_ids"] = retained
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
@@ -577,7 +639,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
-        _apply_audit(record, audit)
+        _apply_audit(record, audit, review=review)
         version_bound = _check_version(record, audit)
         if not version_bound:
             _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
@@ -663,7 +725,9 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
                     record["reason_codes"].append("exact_source_copy_alias")
                 else:
                     retained_rows = [row for row in _rows(trade, "retained_rows") if row.get("document_id") == report_id]
-                    retained = sum(row.get("formal_source_url", url) == url for row in retained_rows)
+                    counted = set(record.get("qualified_retained_transaction_ids", []))
+                    retained = sum(row.get("formal_source_url", url) == url and
+                                   row.get("formal_transaction_id") not in counted for row in retained_rows)
                     if retained:
                         record["qualified_transaction_count"] = (record["qualified_transaction_count"] or 0) + retained
                         record["qualification_state"] = ("partial" if record["quarantined_row_count"] else "qualified")
