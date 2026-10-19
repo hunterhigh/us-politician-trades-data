@@ -1157,3 +1157,181 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
             for row in transactions if row.get("source_bound_row_recovery")
         ],
     }
+
+
+
+def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) -> dict:
+    """Bind a printed target only through an explicit original-source URL."""
+    urls = label.get("predecessor_urls", [])
+    if not urls:
+        return {"status":"pending","reasons":["replacement_target_document_unresolved"],
+            "target_printed_number":label["target_printed_number"]}
+    matches=[]
+    for bundle in targets:
+        root=Path(bundle["evidence_root"]).resolve()
+        meta_path=Path(bundle["archive_metadata_path"]).resolve()
+        if not meta_path.is_relative_to(root):
+            raise OgeCatalogError("replacement archive metadata escapes the pinned evidence root")
+        metadata,pdf,sha = _read_archived_source(root,meta_path)
+        if metadata["document_url"] not in urls:
+            continue
+        target_url=urlsplit(metadata["document_url"])
+        if target_url.scheme!="https" or target_url.hostname not in {"extapps2.oge.gov","www2.oge.gov","www.oge.gov","oge.gov"}:
+            raise OgeCatalogError("replacement target URL is not an official OGE source")
+        original=bundle.get("extraction")
+        if (not isinstance(original,dict) or original.get("schema_version") != EXTRACTION_SCHEMA or
+                any(original.get(a)!=metadata.get(b) for a,b in (("document_id","document_id"),("source_sha256","sha256"),
+                    ("source_url","document_url"),("catalog_filer_name","filer_name"))) or
+                original.get("catalog_filer_name")!=filer_name):
+            raise OgeCatalogError("replacement target cache differs from its original archive")
+        candidates=[row for row in original.get("transactions",[])+original.get("quarantined",[])
+                    if row.get("row_number")==label["target_printed_number"]]
+        if len(candidates)!=1:
+            continue
+        row=candidates[0]
+        if not isinstance(row.get("cells"),list) or len(row["cells"])!=6:
+            continue
+        good,bad=parse_table_rows([(row["page_number"],row["cells"])],source_sha=sha,
+            default_owner=row.get("owner","Undisclosed"),allow_open_amounts=True,allow_exchange=True,
+            account_title=row.get("account_title"))
+        if len(good+bad)!=1 or any((good+bad)[0].get(field)!=row.get(field) for field in
+                ("extraction_id","owner","asset_name","ticker","transaction_type","transaction_date","amount_low","amount_high","amount_low_exclusive")):
+            raise OgeCatalogError("replacement original source row ID differs from exact raw cells")
+        import pdfplumber
+        with pdfplumber.open(pdf) as target_pdf:
+            page_number=row.get("page_number")
+            if type(page_number) is not int or not 1<=page_number<=len(target_pdf.pages):
+                continue
+            original_page=target_pdf.pages[page_number-1]
+            original_tables=_extract_borderless_transaction_tables(original_page) or original_page.extract_tables() or []
+            same_raw=[cells for table in original_tables for cells in table if isinstance(cells,list) and
+                [_compact(cell) for cell in cells]==row["cells"]]
+            if len(same_raw)!=1:
+                continue
+        matches.append({"target_document_id":metadata["document_id"],"target_source_sha256":sha,
+            "target_source_url":metadata["document_url"],"target_extraction_id":row["extraction_id"],
+            "target_page_number":row["page_number"],"target_printed_number":label["target_printed_number"],
+            "target_raw_row_basis":"unique_same_page_native_table_cells_reobserved_from_archive",
+            "archive_metadata_sha256":hashlib.sha256(meta_path.read_bytes()).hexdigest(),
+            "source_label_word_indices":label["word_indices"],"source_label_raw":label["text"]})
+    if len(matches)!=1:
+        return {"status":"pending","reasons":["replacement_original_source_or_unique_row_unverified"],
+            "target_printed_number":label["target_printed_number"],"source_urls_observed":urls}
+    return {"status":"bound_replacement_target","target":matches[0],
+        "reasons":["replacement_application_requires_source_reconciliation"]}
+
+
+def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, *, observations: list[dict],
+        archived_pdf_path: str, replacement_targets: list[dict] | None = None,
+        formal_reference_ids: list[str] | None = None) -> dict:
+    """Consume fixed native observations in the existing observed-extraction lane.
+
+    No cover is manufactured. Original unknown pages and unresolved amendment
+    targets stay unknown; replacement rows never become additive new trades.
+    """
+    from copy import deepcopy
+    from .oge_278t_page_shadow import observe_native_exhibit_page,interpret_native_exhibit_page
+    from .oge_transaction_adapter import (OBSERVED_PARSER_VERSION,_observation_input_extraction,
+        legacy_disposition_reference,adapt_oge_278t_extraction)
+    if not isinstance(extraction,dict) or extraction.get("parser_version") not in {PARSER_VERSION,GENERIC_PARSER_VERSION}:
+        raise OgeCatalogError("native exhibit interpretation requires an original supported extraction")
+    original=deepcopy(extraction)
+    prepared=_observation_input_extraction(extraction)
+    reference=None
+    if "source_rows" not in prepared:
+        reference=legacy_disposition_reference(original,catalog_record)
+        prepared={**deepcopy(original),"source_rows":[],"transactions":[],"quarantined":[]}
+    adapt_oge_278t_extraction(prepared,catalog_record)
+    if not isinstance(observations,list) or not observations:
+        raise OgeCatalogError("native exhibit observations are missing")
+    targets=[] if replacement_targets is None else replacement_targets
+    if not isinstance(targets,list):
+        raise OgeCatalogError("replacement target references must be a list")
+    rebuilt=[];seen_pages=set();page_count=None
+    for item in observations:
+        if not isinstance(item,dict) or item.get("source_sha256")!=extraction["source_sha256"] or type(item.get("page_number")) is not int or item.get("page_number") in seen_pages:
+            raise OgeCatalogError("native exhibit observations cross sources or repeat a page")
+        seen_pages.add(item["page_number"])
+        # This is a bounded native read of the selected archived page only.
+        actual=observe_native_exhibit_page(Path(archived_pdf_path),source_sha256=extraction["source_sha256"],page_number=item["page_number"])
+        if actual!=item:
+            raise OgeCatalogError("saved native exhibit words/tables differ from original archived page")
+        if page_count is not None and page_count!=actual["document_page_count"]:
+            raise OgeCatalogError("native exhibit document page inventories differ")
+        page_count=actual["document_page_count"]
+        rebuilt.append(interpret_native_exhibit_page(actual))
+    result=deepcopy(prepared)
+    result.update(parser_version=OBSERVED_PARSER_VERSION,source_parser_version=extraction["parser_version"],
+        document_page_count=page_count,native_exhibit_observations=deepcopy(observations))
+    if reference is not None:
+        result["legacy_disposition_reference"]=reference
+    protected=set(formal_reference_ids or [])
+    if reference:
+        known={row["extraction_id"] for row in original["transactions"]+original["quarantined"]}
+        if protected-known:
+            raise OgeCatalogError("native exhibit formal references are outside the original cache")
+    receipts=[]
+    overlapping_pages={r["page_number"] for r in prepared["source_rows"]}&seen_pages
+    if overlapping_pages:
+        # Without physical locators, old extracted rows cannot be silently
+        # counted again as the newly observed replacement blocks.
+        result["document_reasons"]=sorted(set(result.get("document_reasons",[])+["native_exhibit_prior_inventory_relation_unresolved"]))
+        result["evidence_complete"]=False
+    names=("printed_number","description","type","transaction_date","notification","amount")
+    prior_keys={(row["page_number"],tuple(row["cells"])) for row in result["source_rows"]}
+    for page in rebuilt:
+        for block in page["blocks"]:
+            ref={"method":"embedded_native_pdf_words","source_sha256":extraction["source_sha256"],
+                "page_number":page["page_number"],"table_index":block["table_index"],
+                "input_observation_canonical_sha256":page["input_observation_canonical_sha256"],
+                "table_bounds":block["table_bounds"],"field_word_indices":block.get("field_word_indices",{}),
+                "label":block.get("label"),"partition_basis":block["partition_basis"],
+                "unassigned_body_word_indices":block.get("unassigned_body_word_indices",[]),
+                "partition_crossing_word_indices":block.get("partition_crossing_word_indices",[])}
+            if page["page_number"] in overlapping_pages:
+                receipts.append({**ref,"disposition":"unresolved","reasons":["native_exhibit_prior_inventory_relation_unresolved"]});continue
+            if block["status"]!="replacement_row_candidate":
+                receipts.append({**ref,"disposition":"unresolved","reasons":block["reasons"]});continue
+            relation=_native_exhibit_target(block["label"],targets,extraction["catalog_filer_name"])
+            ref["replacement_relation"]=relation
+            cells=[block["raw_columns"][name] for name in names]
+            good,bad=parse_table_rows([(page["page_number"],cells)],source_sha=extraction["source_sha256"],
+                default_owner="Undisclosed",allow_open_amounts=True,allow_exchange=True)
+            if len(good+bad)!=1:
+                receipts.append({**ref,"disposition":"unresolved","reasons":["replacement_body_not_one_parser_row"]});continue
+            row=(good+bad)[0]
+            reasons=set(row.get("reasons",[])+relation["reasons"])
+            if re.fullmatch(r"\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{2}",cells[3]):
+                reasons.add("transaction_date_century_unbound")
+            if block.get("partition_crossing_word_indices") or block.get("unassigned_body_word_indices"):
+                reasons.add("native_header_field_partition_ambiguous")
+            physical={"page_number":page["page_number"],"cells":cells,"native_exhibit_reference":ref}
+            key=(physical["page_number"],tuple(cells))
+            if key in prior_keys:
+                raise OgeCatalogError("native exhibit row already exists in original source inventory")
+            prior_keys.add(key)
+            result["source_rows"].append(physical)
+            result["quarantined"].append({**row,"reasons":sorted(reasons),"native_exhibit_reference":ref,
+                "observation_reference":ref,"owner_disclosure_basis":"not_disclosed_in_bound_six_column_table"})
+            receipts.append({**ref,"disposition":"quarantined","extraction_id":row["extraction_id"],"reasons":sorted(reasons)})
+    if any(row["disposition"]=="quarantined" for row in receipts):
+        result["legacy_document_reasons"]=deepcopy(extraction.get("document_reasons",[]))
+        result["document_reasons"]=[reason for reason in result.get("document_reasons",[]) if reason not in
+            {"transaction_table_not_found","no_transaction_rows_found"}]
+        result["evidence_complete"]=not result["document_reasons"]
+    result["observation_receipt"]={"schema_version":"oge-278t-observed-facts/v1","mode":"native_exhibit_substitution",
+        "source_sha256":extraction["source_sha256"],"rows":receipts,"observed_slot_count":len(receipts),
+        "observation_unit":"native_replacement_table_block","unresolved_slot_count":sum(r["disposition"]=="unresolved" for r in receipts),
+        "unobserved_pages":[p for p in range(1,page_count+1) if p not in seen_pages],"geometry_unknown_pages":[],
+        "unknown_regions":[{"page_number":page["page_number"],"reason":"native_exhibit_block_or_prior_inventory_relation_unresolved",
+            "input_observation_canonical_sha256":page["input_observation_canonical_sha256"]} for page in rebuilt if
+            not page["blocks"] or page["unused_label_indices"] or page["page_number"] in overlapping_pages or
+            any(block["status"]!="replacement_row_candidate" for block in page["blocks"])],"coverage_complete":False,"page_count_basis":"source_sha256_verified_pdf",
+        "legacy_inventory_basis":prepared.get("legacy_inventory_basis","saved_physical_inventory"),
+        "legacy_document_reasons":result.get("legacy_document_reasons",[]),
+        "unique_source_row_count":None,"protected_formal_reference_ids":sorted(protected),
+        **({"legacy_reference_sha256":reference["source_extraction_sha256"],
+            "legacy_normalized_transaction_count":reference["normalized_transaction_count"],
+            "legacy_quarantined_reference_count":reference["quarantined_reference_count"],
+            "legacy_normalized_not_sent_to_qualification":True} if reference else {})}
+    return result

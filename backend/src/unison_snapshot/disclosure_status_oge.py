@@ -207,6 +207,71 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
                 "page_count_basis": receipt.get("page_count_basis")}}
 
 
+def _native_exhibit_counts(record: dict, audit: dict) -> dict:
+    """A replacement block count is never a whole-document transaction total."""
+    receipt = audit["observation_receipt"]
+    sha = audit.get("source_sha256")
+    if (receipt.get("schema_version") != "oge-278t-observed-facts/v1" or
+            sha not in record["source_versions"] or receipt.get("source_sha256") != sha or
+            audit.get("document_id") != record["report_id"] or receipt.get("coverage_complete") is not False or
+            receipt.get("observation_unit") != "native_replacement_table_block" or
+            receipt.get("unique_source_row_count", "missing") is not None):
+        raise ValueError("OGE native replacement coverage lacks consistent source evidence")
+    rows = _rows(receipt, "rows")
+    slots, quarantined = {}, {}
+    for row in rows:
+        page, table = row.get("page_number"), row.get("table_index")
+        if (type(page) is not int or page < 1 or type(table) is not int or table < 0 or
+                (page, table) in slots or row.get("source_sha256") != sha or
+                row.get("method") != "embedded_native_pdf_words" or
+                not _SHA.fullmatch(row.get("input_observation_canonical_sha256") or "") or
+                row.get("disposition") not in {"quarantined", "unresolved"}):
+            raise ValueError("OGE native replacement receipt repeats or changes a source block")
+        slots[page, table] = row
+        if row["disposition"] == "quarantined":
+            identifier = row.get("extraction_id")
+            if not isinstance(identifier, str) or identifier in quarantined:
+                raise ValueError("OGE native replacement block identity is not unique")
+            quarantined[identifier] = row
+    if _count(receipt.get("observed_slot_count")) != len(rows):
+        raise ValueError("OGE native replacement block counts do not close")
+    bound = set()
+    for row in _rows(audit, "quarantined"):
+        ref = row.get("native_exhibit_reference")
+        if ref is None:
+            continue  # Existing inventory is not a new replacement block.
+        identifier = row.get("extraction_id")
+        expected = quarantined.get(identifier)
+        if (expected is None or identifier in bound or ref != {
+                key: value for key, value in expected.items()
+                if key not in {"extraction_id", "disposition", "reasons"}}):
+            raise ValueError("OGE quarantine differs from its native replacement source block")
+        bound.add(identifier)
+    if bound != set(quarantined):
+        raise ValueError("OGE native replacement quarantine is incomplete")
+    unobserved = receipt.get("unobserved_pages")
+    if (not isinstance(unobserved, list) or any(type(p) is not int or p < 1 for p in unobserved) or
+            unobserved != sorted(set(unobserved)) or set(unobserved) & {p for p, _ in slots}):
+        raise ValueError("OGE native replacement page coverage overlaps")
+    known_pages = {p for p, _ in slots}
+    for region in _rows(receipt, "unknown_regions"):
+        page = region.get("page_number")
+        if (type(page) is not int or page < 1 or page in unobserved or
+                not _SHA.fullmatch(region.get("input_observation_canonical_sha256") or "")):
+            raise ValueError("OGE native replacement unknown region is unbound")
+        known_pages.add(page)
+    all_pages = set(unobserved) | known_pages
+    if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
+        raise ValueError("OGE native replacement page coverage has unexplained gaps")
+    return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "quarantine_count_unit": "native_replacement_blocks_not_whole_source_unique_rows",
+        "observed_replacement_block_count": len(rows),
+        "observed_quarantined_replacement_block_count": len(quarantined),
+        "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
+            "unknown_regions": receipt.get("unknown_regions", []),
+            "page_count_basis": receipt.get("page_count_basis")}}
+
+
 def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> list[str]:
     """Reproduce retained source bindings before adding them to qualification."""
     from .whitehouse_278t import (GENERIC_PARSER_VERSION, validate_generic_whitehouse_report,
@@ -265,10 +330,12 @@ def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> 
 
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> None:
     receipt = audit.get("observation_receipt")
+    native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
             "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
         raise ValueError("OGE legacy reference observation counts require their explicit unit")
-    separate_counts = (_observed_reference_counts(record, audit, review)
+    separate_counts = (_native_exhibit_counts(record, audit) if native_exhibit else
+                       _observed_reference_counts(record, audit, review)
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))

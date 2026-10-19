@@ -44,6 +44,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                          review_commit: str | None = None,
                          workflow_run_id: str | None = None,
                          saved_observations_path: str | Path | None = None,
+                         saved_exhibit_observations_path: str | Path | None = None,
                          legacy_extractions_path: str | Path | None = None,
                          candidate_base_path: str | Path | None = None,
                          data_cutoff_at: str | None = None) -> dict[str, Any]:
@@ -75,12 +76,15 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         "extraction_batch": Path(extraction_batch_path),
     }
     values = {name: _read_json(path) for name, path in input_paths.items()}
-    integration = saved_observations_path is not None
+    integration = saved_observations_path is not None or saved_exhibit_observations_path is not None
     if integration != (candidate_base_path is not None) or integration != (data_cutoff_at is not None):
         raise OgeShadowInputError("observed candidate run requires observations, base and cutoff together")
-    saved = _read_json(Path(saved_observations_path)) if integration else {}
+    saved = _read_json(Path(saved_observations_path)) if saved_observations_path is not None else {}
+    exhibits = _read_json(Path(saved_exhibit_observations_path)) if saved_exhibit_observations_path is not None else {}
     if not isinstance(saved, dict):
         raise OgeShadowInputError("saved observation input must map document IDs to bound observations")
+    if not isinstance(exhibits,dict) or set(exhibits)&set(saved):
+        raise OgeShadowInputError("native exhibit observations must be a disjoint document mapping")
     if legacy_extractions_path is not None and not integration:
         raise OgeShadowInputError("legacy extraction input requires a candidate base")
     legacy = _read_json(Path(legacy_extractions_path)) if legacy_extractions_path is not None else {}
@@ -150,9 +154,12 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     rows: list[dict[str, Any]] = []
     input_hashes = [{"artifact_type": name, "sha256": _sha256(path)}
                     for name, path in input_paths.items()]
+    if saved_observations_path is not None:
+        input_hashes.append({"artifact_type":"saved_observations","sha256":_sha256(Path(saved_observations_path))})
+    if saved_exhibit_observations_path is not None:
+        input_hashes.append({"artifact_type":"saved_native_exhibit_observations","sha256":_sha256(Path(saved_exhibit_observations_path))})
     if integration:
-        input_hashes.extend([{"artifact_type": "saved_observations", "sha256": _sha256(Path(saved_observations_path))},
-                             {"artifact_type": "candidate_base", "sha256": _sha256(Path(candidate_base_path))}])
+        input_hashes.append({"artifact_type":"candidate_base","sha256":_sha256(Path(candidate_base_path))})
     if legacy_extractions_path is not None:
         input_hashes.append({"artifact_type": "legacy_extractions", "sha256": _sha256(Path(legacy_extractions_path))})
     seen_ids: set[str] = set()
@@ -202,11 +209,11 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                     extraction.get("document_id") != document_id or
                     extraction.get("source_sha256") != source_sha):
                 raise OgeShadowInputError(f"{document_id}: extraction differs from archived document")
-            if document_id in saved:
+            if document_id in saved or document_id in exhibits:
                 extraction = _observation_input_extraction(extraction)
                 if "source_rows" not in extraction:
                     source_rows_reference = legacy_disposition_reference(extraction, record)
-            if not isinstance(extraction.get("source_rows"), list) and source_rows_reference is None:
+            if not isinstance(extraction.get("source_rows"), list) and source_rows_reference is None and document_id not in exhibits:
                 if integration:
                     raise OgeShadowInputError(f"{document_id}: observed integration requires saved source_rows; no automatic reparse")
                 if evidence_path_root is None:
@@ -246,6 +253,9 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                   and row.get("verification_status") == "official_matched"]
                     extraction = materialize_oge_278t_observations(extraction, record,
                         formal_reference_ids=formal_ids, **saved[document_id])
+                if document_id in exhibits:
+                    from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits
+                    extraction = materialize_saved_oge_278t_exhibits(extraction,record,**exhibits[document_id])
                 adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
             except Exception as exc:
                 raise OgeShadowInputError(
@@ -287,7 +297,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         candidate, audit = build_oge_candidate(
             catalog, original_extractions, candidate_base,
             data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved,
-            legacy_extractions_by_document=legacy)
+            legacy_extractions_by_document=legacy,saved_exhibit_observations_by_document=exhibits)
         for name, value in (("candidate.json", candidate), ("candidate_audit.json", audit)):
             artifacts[name] = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
         # Exercise the existing final builder locally; no publication or refs.

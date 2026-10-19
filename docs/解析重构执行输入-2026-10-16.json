@@ -239,10 +239,17 @@
         "path": "oge/extractions/0bdccce7de13aefa85258e8a002de2b5/2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2/oge-278t-pdf-v2.json",
         "sha256": "37876e5d676a13084aefa68fadc3245827b6881ea98209d2cc97bd73c9557fe8"
       },
-      "format_routing_status": "T08_to_verify_from_content_not_filename",
+      "format_routing_status": "existing_oge_v2_cache_consumed_no_new_format_signoff",
       "observed_legacy_counts": {
+        "source_rows": 560,
         "quarantined_rows": 489,
         "transactions": 26
+      },
+      "observed_existing_adapter_counts": {
+        "qualified": 0,
+        "quarantined": 515,
+        "excluded": 17,
+        "unrecognized": 28
       },
       "qualification_status": "not_accepted_by_this_identity_binding",
       "requirement_id": "B1",
