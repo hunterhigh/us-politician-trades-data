@@ -8,9 +8,9 @@ import unittest
 from unison_snapshot.builder import normalize
 from unison_snapshot.senate import SenateEfdError
 from unison_snapshot.senate_candidate import (
-    AMENDMENT_COMPARE_RULE_VERSION, build_senate_candidate,
+    AMENDMENT_COMPARE_RULE_VERSION, build_senate_candidate, _transaction,
 )
-from unison_snapshot.senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+from unison_snapshot.senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, electronic_ptr_source_ledger
 from unison_snapshot.senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
@@ -99,6 +99,36 @@ def extraction(document_id: str, rows=None, **updates):
 
 
 class SenateCandidateTests(unittest.TestCase):
+    def test_official_open_and_largest_finite_amounts_reach_candidate_exactly(self):
+        item = extraction("11111111-1111-4111-8111-111111111111")
+        for raw, low, high, exclusive in [
+                ("Over $1,000,000", 1000000, None, True),
+                ("Over $50,000,000", 50000000, None, True),
+                ("$25,000,001 - $50,000,000", 25000001, 50000000, None)]:
+            with self.subTest(amount=raw):
+                tx, reasons = _transaction(row(amount_raw=raw), item, identity(item["document_id"]))
+                self.assertEqual(reasons, [])
+                self.assertEqual((tx["amount_low"], tx["amount_high"], tx.get("amount_low_exclusive")),
+                                 (low, high, exclusive))
+                self.assertEqual(tx["id"], row()["extraction_id"])
+
+    def test_candidate_consumes_electronic_row_ledger_and_rejects_drift(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "11111111-1111-4111-8111-111111111111"
+            item = extraction(document_id)
+            item["source_report_ledger"] = electronic_ptr_source_ledger(
+                item["source_sha256"], item["transactions"])
+            state = self.fixture(root, [identity(document_id)], [item])
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(candidate["transactions"][0]["id"], item["transactions"][0]["extraction_id"])
+            self.assertEqual(audit["electronic_source_report_ledgers"][0]["ledger"]["logical_row_count"], 1)
+            item["source_report_ledger"]["logical_rows"] = []
+            path = root / "senate_efd/extractions" / document_id / item["source_sha256"] / f"{PARSER}.json"
+            path.write_text(json.dumps(item), encoding="utf-8")
+            with self.assertRaisesRegex(SenateEfdError, "row ledger differs"):
+                build_senate_candidate(root, state, deepcopy(BASE))
+
     def fixture(self, root: Path, identities: list[dict], extractions: list[dict],
                 failures: list[dict] | None = None):
         failures = failures or []

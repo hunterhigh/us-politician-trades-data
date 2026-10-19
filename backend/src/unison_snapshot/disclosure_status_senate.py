@@ -234,6 +234,32 @@ def build_senate_status(evidence_root: Path, review_root: Path,
             "publication_transaction_ids": [], "publication_binding": "unknown",
         }
 
+    # Apply only source-bound coverage produced by the candidate's verified
+    # pending projection. Physical slots never become quarantined row counts.
+    pending = audit.get("paper_pending_projection") if audit_active else None
+    coverage_rows = pending.get("source_report_coverage", []) if isinstance(pending, dict) else []
+    seen_coverage = set()
+    for coverage in coverage_rows:
+        document_id = coverage.get("document_id")
+        sha = coverage.get("source_sha256")
+        if document_id in seen_coverage:
+            raise ValueError("Senate paper coverage repeats a report")
+        seen_coverage.add(document_id)
+        record = records.get(document_id)
+        if record is None or sha not in record["source_versions"]:
+            continue
+        active_shas = {item["source_sha256"] for item in extractions[document_id]}
+        if active_shas and active_shas != {sha}:
+            continue
+        record["source_row_coverage"] = coverage
+        if coverage.get("relation_coverage") != "accounted":
+            record["reason_codes"] = sorted({*record["reason_codes"], "source_row_coverage_incomplete"})
+            if record["qualification_state"] == "qualified":
+                record["qualification_state"] = "partial"
+            elif record["qualification_state"] == "zero_transactions":
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+
     qualified_id_to_report = {}
     for document_id, rows in qualified.items():
         for row in rows:

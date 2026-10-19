@@ -24,7 +24,7 @@ from .senate_candidate import _person
 from .senate_identity import _member_rows, _without_suffix, _words, match_report_identity
 from .senate_members import SenateRosterError, build_roster
 from .senate_reports import _report_parser
-from .senate_annual_transactions import observe_part4b
+from .senate_annual_transactions import SCHEMA as PART4B_SCHEMA, observe_part4b, relate_part4b_to_candidate
 
 
 SCHEMA = "senate-efd-annual-review/v1"
@@ -333,7 +333,7 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                 transaction_observation = observe_part4b(metadata, raw)
                 transaction_relative = (Path("senate_efd/annual/part4b") /
                                         report["document_id"] / metadata["source_sha256"] /
-                                        "observation-v1.json")
+                                        "observation-v2.json")
                 _write_once(review_root / transaction_relative,
                             _json(transaction_observation))
                 transaction_error = None
@@ -513,10 +513,43 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                               f"{annual['holding_count']} holdings qualified")
     compatibility = ("same_raw_source" if annual_roster_sha == expected_roster_sha256
                      else "same_members")
+    transaction_relations = []
+    for report in annual.get("reports", []):
+        if report.get("publication_state") != "qualified":
+            continue
+        observation_path = report.get("part4b_observation_path")
+        if not isinstance(observation_path, str) or not observation_path.endswith("/observation-v2.json"):
+            transaction_relations.append({"document_id": report["document_id"],
+                                          "status": "part4b_observation_unavailable",
+                                          "observed_row_count": None})
+            continue
+        source_sha = report.get("source_sha256")
+        expected_path = (Path("senate_efd/annual/part4b") / report["document_id"] /
+                         str(source_sha) / "observation-v2.json")
+        if observation_path != expected_path.as_posix():
+            raise SenateEfdError("Senate annual Part 4b observation path crosses source identity")
+        observation = json.loads((review_root / expected_path).read_bytes())
+        if (observation.get("schema_version") != PART4B_SCHEMA or
+                observation.get("document_id") != report["document_id"] or
+                observation.get("source_sha256") != source_sha):
+            raise SenateEfdError("Senate annual Part 4b observation differs from selected report")
+        if evidence_root is None:
+            transaction_relations.append({"document_id": report["document_id"],
+                                          "status": "archived_bytes_verification_required",
+                                          "observed_row_count": observation.get("part4b_printed_row_count")})
+            continue
+        source_folder = evidence_root / "senate_efd/annual/reports" / report["document_id"]
+        metadata = json.loads((source_folder / f"{source_sha}.metadata.json").read_bytes())
+        raw = (source_folder / f"{source_sha}.html").read_bytes()
+        if observe_part4b(metadata, raw) != observation:
+            raise SenateEfdError("Senate annual Part 4b observation differs from archived bytes")
+        transaction_relations.append(relate_part4b_to_candidate(
+            observation, person_id=report["person_id"], transactions=candidate["transactions"]))
     return candidate, {"annual_status": "included",
                        "annual_roster_compatibility": compatibility,
                        "annual_roster_sha256": annual_roster_sha,
                        "ptr_roster_sha256": expected_roster_sha256,
                        "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
                        "annual_qualified_report_count": annual["qualified_report_count"],
-                       "annual_holding_count": annual["holding_count"]}
+                       "annual_holding_count": annual["holding_count"],
+                       "annual_part4b_relationships": transaction_relations}

@@ -27,7 +27,7 @@ from .senate_reports import (
 
 PAPER_EXTRACTION_SCHEMA = "senate-efd-paper-ptr-extraction/v1"
 PAPER_EXTRACTION_BATCH_SCHEMA = "senate-efd-paper-ptr-extraction-batch/v1"
-PAPER_OCR_RULE_VERSION = "senate-paper-form-geometry-2026-09-v1"
+PAPER_OCR_RULE_VERSION = "senate-paper-form-geometry-2026-10-v2"
 _FORM_WIDTH = 3400.0
 _FORM_HEIGHT = 4400.0
 _DATE = re.compile(r"[0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}")
@@ -41,12 +41,13 @@ _AMOUNTS = (
     "$100,001 - $250,000",
     "$250,001 - $500,000",
     "$500,001 - $1,000,000",
+    "Over $1,000,000",
     "$1,000,001 - $5,000,000",
     "$5,000,001 - $25,000,000",
     "$25,000,001 - $50,000,000",
     "Over $50,000,000",
 )
-_AMOUNT_CENTERS = (1980, 2077, 2168, 2255, 2342, 2431, 2528, 2617, 2704, 2792)
+_AMOUNT_CENTERS = (1980, 2077, 2168, 2255, 2342, 2431, 2528, 2617, 2704, 2792, 2880)
 _TYPE_CENTERS = {1429: "purchase", 1518: "sale", 1612: "exchange"}
 
 
@@ -162,8 +163,10 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         amount_raw = None
     else:
         amount_raw = _AMOUNTS[amount_indexes[0]]
-        if amount_indexes[0] >= 8:
-            reasons.append("paper_amount_range_not_supported")
+        # The legacy form prints an open-ended $1m column before the later
+        # finite bands. Its position must not shift every following amount.
+        # Open ranges retain their exact label. The candidate applies the
+        # shared explicit threshold / null-upper-bound contract.
 
     asset_cell, asset_confidence = _join_cell(words, y)
     owner_match = _OWNER.fullmatch(asset_cell)

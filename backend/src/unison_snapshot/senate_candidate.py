@@ -11,7 +11,7 @@ import re
 from urllib.parse import urlsplit
 
 from .senate import SenateEfdError
-from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, electronic_ptr_source_ledger
 from .senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
@@ -29,7 +29,9 @@ AMOUNT_RANGES = {
     "$500,001 - $1,000,000": (500001, 1000000),
     "$1,000,001 - $5,000,000": (1000001, 5000000),
     "$5,000,001 - $25,000,000": (5000001, 25000000),
+    "$25,000,001 - $50,000,000": (25000001, 50000000),
 }
+OPEN_AMOUNTS = {"Over $1,000,000": 1000000, "Over $50,000,000": 50000000}
 INSTRUMENT_TYPES = {
     "Stock": "Stock",
     "Stock Option": "Option",
@@ -405,6 +407,9 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(extraction_id, str) or not re.fullmatch(r"senate-ptr:[0-9a-f]{24}", extraction_id):
         reasons.append("extraction_id_invalid")
     amount = AMOUNT_RANGES.get(row.get("amount_raw"))
+    open_threshold = OPEN_AMOUNTS.get(row.get("amount_raw"))
+    if amount is None and open_threshold is not None:
+        amount = (open_threshold, None)
     if amount is None:
         reasons.append("amount_range_not_supported")
     transaction_type = row.get("transaction_type")
@@ -489,6 +494,7 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
         "filed_at": f"{filed_date}T00:00:00Z",
         "amount_low": amount[0],
         "amount_high": amount[1],
+        **({"amount_low_exclusive": True} if open_threshold is not None else {}),
         "position_effect": "unknown",
         "position_effect_basis": None,
         "source_id": "senate_efd",
@@ -544,6 +550,15 @@ def build_senate_candidate(
                     len(item["ledger"]["coverage_unknown_pages"]) for item in relations),
                 "qualified_transaction_count": None,
             }
+            paper_pending_audit["source_report_coverage"] = [{
+                    "document_id": item["document_id"],
+                    "source_sha256": item["ledger"]["document_sha256"],
+                    "relation_coverage": item["ledger"]["relation_coverage"],
+                    "logical_row_count": item["ledger"]["logical_row_count"],
+                    "unknown_slot_count": item["ledger"]["disposition_counts"].get("unknown", 0),
+                    "coverage_unknown_pages": item["ledger"]["coverage_unknown_pages"],
+                    "unobserved_pages": item["ledger"]["unobserved_pages"],
+                } for item in relations]
     status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
     state_catalog = state_status.get("catalog")
     state_reports = state_status.get("reports")
@@ -633,6 +648,14 @@ def build_senate_candidate(
         extraction_values.append(extraction)
     if any(not isinstance(item.get("transactions"), list) for item in extraction_values):
         raise SenateEfdError("Senate extraction artifact has no transaction array")
+    electronic_ledgers = []
+    for item in extraction_values:
+        if item.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA:
+            continue
+        ledger = electronic_ptr_source_ledger(item["source_sha256"], item["transactions"])
+        if "source_report_ledger" in item and item["source_report_ledger"] != ledger:
+            raise SenateEfdError("Senate electronic source row ledger differs from its extraction")
+        electronic_ledgers.append({"document_id": item["document_id"], "ledger": ledger})
     extraction_document_ids = [item.get("document_id") for item in extraction_values]
     if (len(set(extraction_document_ids)) != len(extraction_document_ids) or
             any(document_id not in identity_by_document for document_id in extraction_document_ids)):
@@ -978,6 +1001,7 @@ def build_senate_candidate(
         "candidate_transaction_count": len(transactions),
         "candidate_holding_count": len(candidate["reported_holdings"]),
         "paper_pending_projection": paper_pending_audit,
+        "electronic_source_report_ledgers": electronic_ledgers,
         **annual_audit,
         "qualified_rows": qualified_rows,
         "quarantined_report_count": len(quarantined_reports),

@@ -14,6 +14,8 @@ from unison_snapshot.senate_annual import (
 from unison_snapshot.senate import SenateEfdError
 from tests.test_senate_identity import member, roster
 from tests.test_senate_members import ADA_CA, xml
+from tests.test_senate_annual_transactions import sample as transaction_sample
+from unison_snapshot.senate_annual_transactions import observe_part4b
 
 
 def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
@@ -31,6 +33,43 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
 
 
 class SenateAnnualTests(unittest.TestCase):
+    def test_actual_overlay_reads_source_bound_part4b_without_duplicate_promotion(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            evidence, review = root / "evidence", root / "review"
+            metadata, raw = transaction_sample()
+            document = metadata["document_id"]
+            sha = metadata["source_sha256"]
+            original = evidence / "senate_efd/annual/reports" / document
+            original.mkdir(parents=True)
+            (original / f"{sha}.html").write_bytes(raw)
+            (original / f"{sha}.metadata.json").write_bytes(_json(metadata))
+            observation = observe_part4b(metadata, raw)
+            relative = Path("senate_efd/annual/part4b") / document / sha / "observation-v2.json"
+            (review / relative).parent.mkdir(parents=True)
+            (review / relative).write_bytes(_json(observation))
+            current = review / "senate_efd/annual/current.json"
+            current.write_bytes(_json({
+                "schema_version": "senate-efd-annual-review/v1", "source_id": "senate_efd",
+                "roster_sha256": "a" * 64, "people": [], "reported_holdings": [],
+                "qualified_report_count": 1, "holding_count": 0,
+                "reports": [{"document_id": document, "person_id": "senate:example",
+                             "source_sha256": sha, "publication_state": "qualified",
+                             "part4b_observation_path": relative.as_posix()}]}))
+            base = {"people": [], "transactions": [], "reported_holdings": [], "source_health": []}
+            candidate, audit = overlay_annual_candidate(
+                base, review, expected_roster_sha256="a" * 64, evidence_root=evidence)
+            relation = audit["annual_part4b_relationships"][0]
+            self.assertEqual(relation["observed_row_count"], 1)
+            self.assertEqual(relation["rows"][0]["status"], "ptr_relationship_unresolved")
+            self.assertEqual(candidate["transactions"], [])
+            self.assertEqual(candidate["reported_holdings"], [])
+            observation["rows"][0]["asset_name_raw"] = "Changed after extraction"
+            (review / relative).write_bytes(_json(observation))
+            with self.assertRaisesRegex(SenateEfdError, "differs from archived bytes"):
+                overlay_annual_candidate(base, review, expected_roster_sha256="a" * 64,
+                                         evidence_root=evidence)
+
     def test_overlay_accepts_timestamp_only_roster_change_with_archived_evidence(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

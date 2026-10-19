@@ -100,6 +100,23 @@ class FakeSession:
 
 
 class SenateReportsTest(unittest.TestCase):
+    def test_electronic_rows_have_source_bound_position_ledger(self):
+        raw = html()
+        result = parse_electronic_ptr(metadata_for(raw), raw, include_source_ledger=True)
+        ledger = result["source_report_ledger"]
+        self.assertEqual(ledger["document_sha256"], result["source_sha256"])
+        self.assertEqual((ledger["logical_row_count"], ledger["linked_data_slot_count"]), (2, 2))
+        self.assertEqual(ledger["relation_coverage"], "accounted")
+        self.assertEqual(ledger["pages"][0]["coordinate_frame"],
+                         "html_transaction_table_row_ordinal")
+        self.assertEqual([row["observation_ref"] for row in ledger["logical_rows"]],
+                         ["transactions/0", "transactions/1"])
+        self.assertIsNone(ledger["qualified_transaction_count"])
+        empty = html(rows=[])
+        zero = parse_electronic_ptr(metadata_for(empty), empty, include_source_ledger=True)
+        self.assertEqual(zero["source_report_ledger"]["logical_row_count"], 0)
+        self.assertFalse(zero["evidence_complete"])
+
     def test_download_requires_both_source_gates(self):
         fake = FakeSession(html())
         for config in (SenateSourceConfig(), SenateSourceConfig(enabled=True)):

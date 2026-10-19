@@ -5,7 +5,7 @@ import hashlib
 import unittest
 
 from unison_snapshot.senate import SenateEfdError
-from unison_snapshot.senate_annual_transactions import observe_part4b
+from unison_snapshot.senate_annual_transactions import observe_part4b, relate_part4b_to_candidate
 
 
 def sample() -> tuple[dict, bytes]:
@@ -33,6 +33,67 @@ def sample() -> tuple[dict, bytes]:
 
 
 class SenateAnnualTransactionsTests(unittest.TestCase):
+    def test_missing_ptr_summary_does_not_drop_independent_annual_transactions(self):
+        metadata, raw = sample()
+        start, end = raw.index(b"<table>"), raw.index(b"</table>") + len(b"</table>")
+        changed = raw[:start] + raw[end:]
+        result = observe_part4b({**metadata, "source_sha256": hashlib.sha256(changed).hexdigest(),
+                               "byte_length": len(changed)}, changed)
+        self.assertEqual(result["part4b_printed_row_count"], 1)
+        self.assertIsNone(result["part4a_ptr_summary_row_count"])
+
+    def test_exact_ptr_field_match_is_visible_but_never_merges_disclosure_rows(self):
+        metadata, raw = sample()
+        observation = observe_part4b(metadata, raw)
+        tx = {"id": "senate-ptr:" + "a" * 24, "source_id": "senate_efd",
+              "person_id": "senate:example", "owner": "Spouse", "ticker": None,
+              "asset_name": "Example Fund", "transaction_date": "2025-11-12",
+              "transaction_type": "sale", "amount_low": 500001, "amount_high": 1000000}
+        relation = relate_part4b_to_candidate(observation, person_id="senate:example", transactions=[tx])
+        self.assertEqual(relation["rows"][0]["status"], "possible_ptr_overlap")
+        self.assertEqual(relation["rows"][0]["possible_ptr_transaction_ids"], [tx["id"]])
+        self.assertIsNone(relation["rows"][0]["formal_transaction_id"])
+        self.assertEqual(relation["new_candidate_transaction_count"], 0)
+        other_account = {**tx, "id": "senate-ptr:" + "b" * 24}
+        relation = relate_part4b_to_candidate(observation, person_id="senate:example",
+                                             transactions=[tx, other_account])
+        self.assertEqual(len(relation["rows"][0]["possible_ptr_transaction_ids"]), 2)
+
+    def test_explicit_no_without_table_is_zero_but_missing_section_is_unknown(self):
+        metadata, raw = sample()
+        start = raw.index(b"<h3>Part 4b.")
+        no = (raw[:start] + b"<h3>Part 4b. Transactions</h3><p>Did you, your spouse, or "
+              b"dependent child buy, sell, or exchange an asset where the transaction "
+              b"exceeded $1,000 and was not reported on Part 4a? <strong>No</strong></p>"
+              b"</body></html>")
+        def observe(content):
+            return observe_part4b({**metadata, "source_sha256": hashlib.sha256(content).hexdigest(),
+                                   "byte_length": len(content)}, content)
+        result = observe(no)
+        self.assertEqual(result["section_disposition"], "explicit_no_transactions")
+        self.assertEqual(result["source_report_ledger"]["logical_row_count"], 0)
+        with self.assertRaisesRegex(SenateEfdError, "missing or ambiguous"):
+            observe(no.replace(b"<strong>No</strong>", b"<strong>Yes</strong>"))
+        with self.assertRaisesRegex(SenateEfdError, "heading"):
+            observe(no.replace(b"<h3>Part 4b. Transactions</h3>", b""))
+
+    def test_matching_headers_in_another_section_cannot_supply_part4b(self):
+        metadata, raw = sample()
+        changed = raw.replace(b"<h3>Part 4b. Transactions</h3>",
+                              b"<h3>Part 4b. Transactions</h3><h3>Part 5. Gifts</h3>")
+        with self.assertRaisesRegex(SenateEfdError, "table is missing"):
+            observe_part4b({**metadata, "source_sha256": hashlib.sha256(changed).hexdigest(),
+                           "byte_length": len(changed)}, changed)
+
+    def test_unknown_direction_stays_an_observed_row(self):
+        metadata, raw = sample()
+        changed = raw.replace(b"Sale (Full)", b"Unclear")
+        result = observe_part4b({**metadata, "source_sha256": hashlib.sha256(changed).hexdigest(),
+                               "byte_length": len(changed)}, changed)
+        self.assertEqual(len(result["rows"]), 1)
+        self.assertIn("transaction_type_unsupported", result["rows"][0]["problems"])
+        self.assertIsNone(result["rows"][0]["transaction_type"])
+
     def test_separate_4b_from_ptr_summary(self):
         metadata, raw = sample()
         result = observe_part4b(metadata, raw)
