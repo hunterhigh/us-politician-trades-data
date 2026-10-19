@@ -106,6 +106,32 @@ class NativeExhibitTests(unittest.TestCase):
             with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=original),self.assertRaises(OgeCatalogError):
                 materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(changed))
 
+    def test_report_status_keeps_block_count_separate_from_unknown_source_total(self):
+        from unison_snapshot.disclosure_status_oge import _apply_audit
+        obs=observation()
+        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+            _,audit=build_oge_candidate(catalog(),[empty_source()],base(),data_cutoff_at="2025-06-04T00:00:00Z",
+                saved_exhibit_observations_by_document={DOCUMENT_ID:bundle(obs)})
+        report=audit["reports"][0]
+        def record():
+            return {"report_id":DOCUMENT_ID,"source_versions":["a"*64],"reason_codes":[]}
+        value=record();_apply_audit(value,report)
+        self.assertEqual(value["qualification_state"],"quarantined")
+        self.assertIsNone(value["quarantined_row_count"])
+        self.assertEqual(value["observed_replacement_block_count"],1)
+        self.assertEqual(value["observed_quarantined_replacement_block_count"],1)
+        self.assertEqual(value["source_observation_coverage"]["unobserved_pages"],[1,2,4])
+        for mode in ("duplicate","source","reference","unknown_page","missing_quarantine"):
+            changed=deepcopy(report);receipt=changed["observation_receipt"]
+            if mode=="duplicate":
+                receipt["rows"].append(deepcopy(receipt["rows"][0]));receipt["observed_slot_count"]=2
+            elif mode=="source":receipt["rows"][0]["source_sha256"]="b"*64
+            elif mode=="reference":changed["quarantined"][0]["native_exhibit_reference"]["table_index"]=1
+            elif mode=="unknown_page":receipt["unobserved_pages"].append(3)
+            else:changed["quarantined"]=[]
+            with self.subTest(mode=mode),self.assertRaises(ValueError):
+                _apply_audit(record(),changed)
+
     def test_printed_number_payload_is_not_authority_for_a_predecessor(self):
         obs=observation()
         with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
