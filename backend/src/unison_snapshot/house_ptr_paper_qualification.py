@@ -118,6 +118,10 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 raise ValueError("House paper physical slot is invalid or duplicated")
             seen.add(slot)
             disposition = physical.get("disposition")
+            # Geometry alone cannot prove a short first band is an example.
+            # Keep it unresolved until source-bound semantic classification.
+            if disposition == "title_legend":
+                disposition = "unknown"
             if disposition not in physical_counts:
                 raise ValueError("House paper physical disposition is unknown")
             physical_counts[disposition] += 1
@@ -202,6 +206,8 @@ def qualify_paper_observation(observation: dict, metadata: dict,
         for physical in page["rows"]:
             slot = (page["page"], physical["physical_band_index"])
             state = "heading" if slot in heading_by_slot else physical["disposition"]
+            if state == "title_legend":
+                state = "unknown"
             key = str(physical["physical_band_index"])
             slots.append({"local_key": key, "bounds": physical["band"],
                           "disposition": state, "observation_ref": f"pages/{page['page']}/bands/{key}"})
@@ -225,6 +231,107 @@ def qualify_paper_observation(observation: dict, metadata: dict,
 
 
 FACT_PARSER_VERSION = "house-paper-source-bound-qualification-v2"
+
+
+def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict | None:
+    """Prove an explicit statement on every complete physical source page.
+
+    Geometry is recomputed without OCR so omitted bands/pages cannot turn a
+    partial observation into a report-level zero. Empty OCR alone never counts.
+    """
+    import io
+    import pdfplumber
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+    from .house_ptr_fixed_source_core import check_source_cells
+
+    pages = observation.get("pages", [])
+    if not pages or any(page.get("region_status") != "located_shadow" or
+                        page.get("cell_status") != "raw_observed_unverified" or
+                        page.get("coordinate_frame") != "original_page" for page in pages):
+        return None
+    statement_pattern = (r"(?:Nothing to report|No transactions? to report)"
+                         r"(?: for [A-Za-z]+ 20\d{2})?\.?")
+    if not any(row.get("disposition") == "unknown" and re.fullmatch(statement_pattern,
+               str(((row.get("cells") or {}).get("asset") or {}).get("raw_text", "")).strip(), re.I)
+               for page in pages for row in page.get("rows", [])):
+        return None
+    import numpy as np
+    check_source_cells(pdf_bytes, observation, page_count=len(pages),
+                       allow_unobserved=False, verify_crop_hashes=True)
+    statements = []
+    ledgers = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page, source in zip(pages, pdf.pages):
+            image = source.to_image(resolution=200).original
+            grid = locate_transaction_grid(image)
+            columns = _column_boxes(grid, image)
+            if columns.get("status") != "located_shadow":
+                return None
+            physical = grid.get("physical_row_bands", [])
+            rows = page["rows"]
+            if len(rows) != len(physical) or not rows:
+                return None
+            slots = []
+            page_statements = []
+            for index, (row, band) in enumerate(zip(rows, physical), 1):
+                if (row["physical_band_index"] != index or row["band"] != band["band"] or
+                        row["disposition"] != band["disposition"]):
+                    return None
+                cells = row["cells"]
+                if not isinstance(cells, dict):
+                    return None
+                expected = [(cells[name], columns[column]) for name, column in (
+                    ("owner", "owner"), ("asset", "asset"),
+                    ("event_date", "event"), ("notification_date", "notification"))]
+                for name, column in (("direction", "action"), ("amount", "amount")):
+                    bounds = list(zip(columns[column], columns[column][1:]))
+                    if len(cells[name]) != len(bounds):
+                        return None
+                    expected.extend(zip(cells[name], bounds))
+                for cell, (left, right) in expected:
+                    top, bottom = band["band"]
+                    if (cell.get("bbox_normalized") != [left, top, right, bottom] or
+                            cell.get("bbox_pixels") != [int(left * image.width), int(top * image.height),
+                                                        int(right * image.width), int(bottom * image.height)]):
+                        return None
+                asset = cells["asset"].get("raw_text", "").strip()
+                others = [cells[k] for k in ("owner", "event_date", "notification_date")]
+                others += cells["direction"] + cells["amount"]
+                def empty(cell):
+                    if cell.get("raw_text", "").strip():
+                        return False
+                    pixels = np.asarray(image.crop(tuple(cell["bbox_pixels"])).convert("L"))
+                    py, px = max(1, pixels.shape[0] // 6), max(1, pixels.shape[1] // 6)
+                    interior = pixels[py:-py, px:-px]
+                    return bool(interior.size and not (interior < 100).any())
+                state = row["disposition"]
+                if state == "title_legend" and index == 1 and re.fullmatch(
+                        r"Example\s+Mega\s+Corp\s+Common\s+Stock", asset, re.I):
+                    disposition = "note"
+                elif state == "unknown" and all(empty(cell) for cell in others) and re.fullmatch(
+                        statement_pattern, asset, re.I):
+                    page_statements.append({"page": page["page"], "physical_band_index": index,
+                                            "statement": asset})
+                    disposition = "note"
+                elif state == "blank" and all(empty(cell) for cell in [cells["asset"], *others]):
+                    disposition = "blank"
+                else:
+                    return None
+                slots.append({"local_key": str(index), "bounds": row["band"],
+                              "disposition": disposition})
+            if len(page_statements) != 1:
+                return None
+            statements.extend(page_statements)
+            ledgers.append(page_ledger(source_id="house_clerk",
+                document_sha256=observation["source_sha256"], adapter_version=FACT_PARSER_VERSION,
+                page_number=page["page"], coverage="located", slots=slots,
+                coordinate_frame="normalized_source_page"))
+    return {"declaration": {"status": "explicit_no_transactions", "statements": statements,
+                            "method": "complete_source_bound_paper_statement/v1"},
+            "ledger": report_ledger(source_id="house_clerk",
+                document_sha256=observation["source_sha256"], adapter_version=FACT_PARSER_VERSION,
+                page_count=len(pages), pages=ledgers, logical_rows=[])}
 
 
 def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata: dict,
@@ -253,6 +360,20 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
             raise ValueError("House prior qualification source mismatch")
         if prior_qualification.get("transactions"):
             return deepcopy(prior_qualification)
+    zero = _source_bound_no_transactions(pdf_bytes, observation)
+    if zero is not None:
+        extraction = {"schema_version": SCHEMA, "parser_version": FACT_PARSER_VERSION,
+            "source_sha256": source_sha, "source": metadata,
+            "extraction_method": "source_bound_paper_cells", "transactions": [],
+            "document_disposition": zero["declaration"], "source_report_ledger": zero["ledger"]}
+        result = qualify_automatic(extraction, identity)
+        result["materialized_extraction"] = extraction
+        result["observation_materialization"] = {"source_sha256": source_sha,
+            "observation_sha256": hashlib.sha256(json.dumps(observation, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "observed_data_row_count": 0, "unresolved_physical_row_count": 0,
+            "production_mutation_authorized": False}
+        return result
     baseline = qualify_paper_observation(observation, metadata, identity, amount_header=amount_header)
     source_slots = check_source_cells(pdf_bytes, observation,
         page_count=len(observation["pages"]), allow_unobserved=True, verify_crop_hashes=True)

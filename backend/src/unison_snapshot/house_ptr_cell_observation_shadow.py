@@ -218,7 +218,7 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 record["ocr_error"] = str(error)
             if number == 1 and words and region.get("coordinate_frame") == "original_page":
                 from .house_ptr import _legacy_filing_status
-                statuses = {_legacy_filing_status({"_image": image}, words, page.width, page.height, compact)
+                statuses = {_legacy_filing_status({"_image": image.convert("L")}, words, page.width, page.height, compact)
                             for compact in (False, True)} - {None}
                 record["filing_status_observation"] = next(iter(statuses)) if len(statuses) == 1 else None
             for index, physical in enumerate(region["physical_row_bands"], 1):
