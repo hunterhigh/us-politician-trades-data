@@ -29,7 +29,7 @@ from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
     discover_congress_senate_members,
 )
-from .legacy import load
+from .legacy import load, processor_version_for
 from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
@@ -573,7 +573,7 @@ def main() -> None:
                                   generated_at=generated_at)
             _write_atomic(args.output, result)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -595,7 +595,7 @@ def main() -> None:
             _write_atomic(args.output, result)
             _write_atomic(args.audit_output, audit)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -629,7 +629,7 @@ def main() -> None:
                 cutoff_audit["candidate_sha256"] = digest(encode(result))
                 _write_atomic(args.audit_output, cutoff_audit)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -662,7 +662,7 @@ def main() -> None:
                                                    previous_market=previous_market)
             result["meta"].update(generated_at=checked_at,
                                   snapshot_id="prepublication-validation")
-            version = ("v2" if audit["accepted_count"] else "v1")
+            version = ("v3" if processor_version_for(result) == "v3" else "v2" if audit["accepted_count"] else "v1")
             processor = load("process_snapshot", version=version)
             processor.build_snapshot(result)
             identity = deepcopy(result)
@@ -711,7 +711,7 @@ def main() -> None:
             result = validation.snapshot
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"
-            processor = load("process_snapshot")
+            processor = load("process_snapshot", version="v3" if processor_version_for(result) == "v3" else "v1")
             processor.build_snapshot(result)
             identity = deepcopy(result)
             identity["meta"].pop("snapshot_id", None)
@@ -724,7 +724,7 @@ def main() -> None:
             if args.processed_output:
                 _write_atomic(args.processed_output, processed)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
