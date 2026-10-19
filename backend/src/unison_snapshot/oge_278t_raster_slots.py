@@ -217,6 +217,21 @@ def _oge_2024_column_edges(page) -> list[float] | None:
     return _oge_2024_column_geometry(page)["edges_pdf_points"]
 
 
+def _scanline_intervals(selected, *, first: int, scale_y: float) -> list[dict]:
+    """Losslessly group observed scanlines; these intervals grant no support."""
+    intervals = []
+    for offset, value in enumerate(selected):
+        if not value:
+            continue
+        row = first + offset
+        if intervals and row == intervals[-1][1]:
+            intervals[-1][1] = row + 1
+        else:
+            intervals.append([row, row + 1])
+    return [{"scanline_range": [a,b], "scanline_count": b-a,
+             "y_span_pdf_points": [a/scale_y,b/scale_y]} for a,b in intervals]
+
+
 def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
                          slope=0., reference_y=0., require_fixed_x=False) -> dict:
     """Trace a scanned rule, allowing <= .75pt blank gaps, not missing segments.
@@ -229,24 +244,29 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
     left, right = int((x - 3) * scale_x), int((x + 3) * scale_x)
     first, last = int(top * scale_y), int(bottom * scale_y)
     if not (0 <= left < right <= gray.shape[1] and 0 <= first < last <= gray.shape[0]):
-        return {"status": "unknown", "reason": "pixel_window_outside_page"}
+        return {"status": "unknown", "reason": "pixel_window_outside_page",
+                "failure_reasons": ["witness_window_outside_page"]}
     if slope:
         centers = x + slope * (np.arange(first,last)/scale_y-reference_y)
         starts = ((centers-3)*scale_x).astype(int)
         width = right-left
         if starts.min() < 0 or starts.max()+width > gray.shape[1]:
-            return {"status": "unknown", "reason": "pixel_window_outside_page"}
-        mask = gray[np.arange(first,last)[:,None], starts[:,None]+np.arange(width)] < 160
+            return {"status": "unknown", "reason": "pixel_window_outside_page",
+                "failure_reasons": ["witness_window_outside_page"]}
+        window = gray[np.arange(first,last)[:,None], starts[:,None]+np.arange(width)]
     else:
-        mask = gray[first:last, left:right] < 160
+        window = gray[first:last, left:right]
+    mask = window < 160
     if mask.size == 0:
-        return {"status": "unknown", "reason": "empty_rule_window"}
+        return {"status": "unknown", "reason": "empty_rule_window",
+                "failure_reasons": ["empty_witness_window"]}
     max_gap = max(1, int(.75 * scale_y))
     jump = max(1, int(scale_x))
     # The state is consecutive blank scanlines since the last connected pixel.
     state = np.where(mask[0], 0, max_gap + 1)
     connected = bool((state == 0).any())
-    for row in mask[1:]:
+    first_disconnected = None if connected else first
+    for scanline, row in enumerate(mask[1:], start=first+1):
         nearby = state.copy()
         for shift in range(1, jump + 1):
             nearby[shift:] = np.minimum(nearby[shift:], state[:-shift])
@@ -254,6 +274,8 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
         state = np.where(row & (nearby <= max_gap), 0, state + 1)
         if not (state <= max_gap).any():
             connected = False
+            if first_disconnected is None:
+                first_disconnected = scanline
             break
     width = mask.sum(axis=1)
     runs = mask[:, 0].astype(int) + (~mask[:, :-1] & mask[:, 1:]).sum(axis=1)
@@ -270,7 +292,48 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
     axis_span = float(np.ptp(observed[thin])) if require_fixed_x and thin.any() else None
     confirmed = (connected and bool((state == 0).any()) and all(v > .5 for v in thirds)
                  and deviation is not None and deviation <= allowed_deviation)
+    # Explain all failures without changing any acceptance rule. In particular,
+    # an empty black mask is not proof that the source image has no gray line.
+    blank = ~mask.any(axis=1)
+    off_track = thin & (np.abs(observed-expected)/scale_x > allowed_deviation)
+    reasons = []
+    if not connected:
+        reasons.append("line_connection_interrupted")
+    elif not bool((state == 0).any()):
+        reasons.append("line_endpoint_without_black_support")
+    if not all(v > .5 for v in thirds):
+        reasons.append("thin_line_support_insufficient")
+    if deviation is None:
+        reasons.append("no_thin_center_observed")
+    elif deviation > allowed_deviation:
+        reasons.append("line_center_off_trajectory")
+    blank_intervals = _scanline_intervals(blank, first=first, scale_y=scale_y)
+    off_track_intervals = _scanline_intervals(off_track, first=first, scale_y=scale_y)
+    # Sample first/middle/last rows per failed interval; all interval extents
+    # and counts remain complete. Samples are raw pixels, not guessed causes.
+    samples = []
+    for kind, intervals in (("black_mask_empty",blank_intervals),
+                            ("thin_center_off_trajectory",off_track_intervals)):
+        for interval in intervals:
+            a,b = interval["scanline_range"]
+            for scanline in sorted({a,(a+b-1)//2,b-1}):
+                offset = scanline-first
+                samples.append({"kind":kind, "scanline":scanline,
+                    "y_pdf_points":scanline/scale_y,
+                    "expected_x_pdf_points":float(expected[offset]/scale_x),
+                    "observed_thin_center_x_pdf_points":float(observed[offset]/scale_x) if thin[offset] else None,
+                    "window_x0_pdf_points":float((starts[offset] if slope else left)/scale_x),
+                    "gray_values":window[offset].tolist()})
     return {"status": "confirmed" if confirmed else "unknown",
+            "failure_reasons": reasons,
+            "first_disconnected_scanline": first_disconnected,
+            "first_disconnected_y_pdf_points": first_disconnected/scale_y if first_disconnected is not None else None,
+            "black_mask_empty_intervals": blank_intervals,
+            "off_trajectory_intervals": off_track_intervals,
+            "multiple_stroke_intervals": _scanline_intervals(runs > 1, first=first, scale_y=scale_y),
+            "failure_pixel_samples": samples,
+            "failure_pixel_sampling": "first_middle_last_scanline_per_interval",
+            "black_pixel_threshold_exclusive": 160,
             **({"axis_center_span_pixels": axis_span} if require_fixed_x else {}),
             "x_pdf_points": round(x, 3), "span_pdf_points": [top, bottom],
             "max_blank_gap_scanlines": max_gap, "max_lateral_step_pixels": jump,

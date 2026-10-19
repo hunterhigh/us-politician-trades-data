@@ -200,6 +200,55 @@ class ImageGridTests(unittest.TestCase):
             self.assertEqual(out["confirmed_physical_slot_count"],0)
             self.assertEqual(out["pages"][0]["raster_column_geometry"],"unknown")
 
+    def test_faint_pixels_are_preserved_as_evidence_but_not_promoted(self):
+        image=np.full((600,40),255,np.uint8);image[:,20]=0
+        image[250:253,20]=206
+        out=_image_rule_witness(image,x=10,top=0,bottom=300,scale_x=2,scale_y=2)
+        self.assertEqual(out['status'],'unknown')
+        self.assertIn('line_connection_interrupted',out['failure_reasons'])
+        gap=out['black_mask_empty_intervals'][0]
+        self.assertEqual(gap['scanline_range'],[250,253])
+        self.assertEqual(gap['y_span_pdf_points'],[125,126.5])
+        self.assertEqual(out['first_disconnected_scanline'],251)
+        self.assertEqual([s['scanline'] for s in out['failure_pixel_samples']],[250,251,252])
+        self.assertTrue(all(206 in s['gray_values'] for s in out['failure_pixel_samples']))
+        self.assertEqual(out['black_pixel_threshold_exclusive'],160)
+
+    def test_terminal_gray_or_white_pixel_has_an_explicit_failure_reason(self):
+        for gray in (206,255):
+            image=np.full((600,40),255,np.uint8);image[:,20]=0;image[-1,20]=gray
+            out=_image_rule_witness(image,x=10,top=0,bottom=300,scale_x=2,scale_y=2)
+            with self.subTest(gray=gray):
+                self.assertEqual(out['status'],'unknown')
+                self.assertEqual(out['failure_reasons'],['line_endpoint_without_black_support'])
+                self.assertIsNone(out['first_disconnected_scanline'])
+                self.assertEqual(out['black_mask_empty_intervals'][0]['scanline_range'],[599,600])
+
+    def test_all_failure_categories_survive_together_and_samples_bind_coordinates(self):
+        image=np.full((600,40),255,np.uint8);image[:,20]=0
+        image[250:253,:]=255
+        image[400:405,20]=255;image[400:405,24]=0
+        out=_image_rule_witness(image,x=10,top=0,bottom=300,scale_x=2,scale_y=2)
+        self.assertEqual(out['status'],'unknown')
+        self.assertEqual(set(out['failure_reasons']),{'line_connection_interrupted','line_center_off_trajectory'})
+        self.assertEqual(out['off_trajectory_intervals'][0]['scanline_range'],[400,405])
+        sample=next(s for s in out['failure_pixel_samples'] if s['kind']=='thin_center_off_trajectory')
+        self.assertEqual(sample['expected_x_pdf_points'],10)
+        self.assertEqual(sample['observed_thin_center_x_pdf_points'],12)
+        self.assertEqual(sample['window_x0_pdf_points'],7)
+        self.assertEqual(sample['gray_values'][10],0)
+        clipped=_image_rule_witness(image,x=1,top=0,bottom=300,scale_x=2,scale_y=2)
+        self.assertEqual(clipped['failure_reasons'],['witness_window_outside_page'])
+
+    def test_multiple_strokes_are_observed_without_being_called_source_causes(self):
+        image=np.full((600,40),255,np.uint8);image[:,[18,22]]=0
+        out=_image_rule_witness(image,x=10,top=0,bottom=300,scale_x=2,scale_y=2)
+        self.assertEqual(out['status'],'unknown')
+        self.assertIn('thin_line_support_insufficient',out['failure_reasons'])
+        self.assertIn('no_thin_center_observed',out['failure_reasons'])
+        self.assertEqual(out['multiple_stroke_intervals'][0]['scanline_range'],[0,600])
+        self.assertNotIn('source_cause',out)
+
     def test_short_scan_gap_is_bounded_and_text_relay_cannot_connect(self):
         image=np.full((600,40),255,np.uint8);image[:,20]=0;image[250:252,:]=255
         kwargs=dict(x=10,top=0,bottom=300,scale_x=2,scale_y=2)
