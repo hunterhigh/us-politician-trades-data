@@ -111,7 +111,7 @@ def _engine(executable: str | None) -> tuple[str, str]:
 
 def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 200,
                   page_numbers: list[int] | None = None,
-                  max_pages: int = 100) -> tuple[list[OcrPage], str]:
+                  max_pages: int = 100, force_mediabox: bool = False) -> tuple[list[OcrPage], str]:
     """Render and OCR a bounded, one-based page selection from an open PDF."""
 
     if type(resolution) is not int or not 150 <= resolution <= 400:
@@ -127,7 +127,8 @@ def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 
         for page_number in selected:
             page = document.pages[page_number - 1]
             image_path = Path(folder) / f"page-{page_number:04d}.png"
-            image = page.to_image(resolution=resolution, antialias=True).original.convert("L")
+            render_options = {"force_mediabox": True} if force_mediabox else {}
+            image = page.to_image(resolution=resolution, antialias=True, **render_options).original.convert("L")
             image.save(image_path, format="PNG")
             try:
                 completed = subprocess.run(

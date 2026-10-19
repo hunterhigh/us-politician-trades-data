@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
+from statistics import median
 
 from .ocr_geometry import ocr_pdf_pages
 from .oge_278t_page_shadow import (probe_oge_2024_alternate_bands,
-                                   probe_raster_row_bands)
+                                   probe_raster_row_bands, _raster_rule_centers)
 
 
 SCHEMA = "oge-278t-raster-slot-observation/v2"
@@ -139,6 +141,173 @@ def _oge_2024_column_edges(page) -> list[float] | None:
     return _oge_2024_column_geometry(page)["edges_pdf_points"]
 
 
+def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y) -> dict:
+    """Trace a scanned rule, allowing <= .75pt blank gaps, not missing segments.
+
+    This is separate from the unchanged strict vector corroboration rule.
+    Every scanline must connect within 1pt laterally, and each third needs
+    majority unique thin-rule support. Horizontal intersections are not proof.
+    """
+    import numpy as np
+    left, right = int((x - 3) * scale_x), int((x + 3) * scale_x)
+    first, last = int(top * scale_y), int(bottom * scale_y)
+    if not (0 <= left < right <= gray.shape[1] and 0 <= first < last <= gray.shape[0]):
+        return {"status": "unknown", "reason": "pixel_window_outside_page"}
+    mask = gray[first:last, left:right] < 160
+    if mask.size == 0:
+        return {"status": "unknown", "reason": "empty_rule_window"}
+    max_gap = max(1, int(.75 * scale_y))
+    jump = max(1, int(scale_x))
+    # The state is consecutive blank scanlines since the last connected pixel.
+    state = np.where(mask[0], 0, max_gap + 1)
+    connected = bool((state == 0).any())
+    for row in mask[1:]:
+        nearby = state.copy()
+        for shift in range(1, jump + 1):
+            nearby[shift:] = np.minimum(nearby[shift:], state[:-shift])
+            nearby[:-shift] = np.minimum(nearby[:-shift], state[shift:])
+        state = np.where(row & (nearby <= max_gap), 0, state + 1)
+        if not (state <= max_gap).any():
+            connected = False
+            break
+    width = mask.sum(axis=1)
+    runs = mask[:, 0].astype(int) + (~mask[:, :-1] & mask[:, 1:]).sum(axis=1)
+    thin = (width >= 1) & (width <= max(1, int(2 * scale_x))) & (runs == 1)
+    thirds = [round(float(part.mean()), 6) for part in np.array_split(thin, 3)]
+    confirmed = connected and bool((state == 0).any()) and all(v > .5 for v in thirds)
+    return {"status": "confirmed" if confirmed else "unknown",
+            "x_pdf_points": round(x, 3), "span_pdf_points": [top, bottom],
+            "max_blank_gap_scanlines": max_gap, "max_lateral_step_pixels": jump,
+            "thin_rule_support_by_third": thirds}
+
+
+def _oge_2024_image_grid(page) -> dict:
+    """Find same-page image lines, pending independent OCR header role checks.
+
+    No expected x, row count, printed number or neighbouring page fills a gap.
+    The supported form envelope permits variable description/amount widths.
+    """
+    import numpy as np
+    unknown = {"status": "unknown", "basis": "image_rules",
+               "edges_pdf_points": None, "weak_rule_observations": []}
+    if tuple(page.bbox) != (0, 0, page.width, page.height):
+        return {**unknown, "reason": "unsupported_raster_coordinate_frame"}
+    image = page.to_image(resolution=216, force_mediabox=True).original.convert("L")
+    gray = np.asarray(image)
+    sx, sy = gray.shape[1] / page.width, gray.shape[0] / page.height
+    mask = gray < 160
+    expanded = mask.copy()
+    radius = max(1, int(sx))
+    for shift in range(1, radius + 1):
+        expanded[:, shift:] |= mask[:, :-shift]
+        expanded[:, :-shift] |= mask[:, shift:]
+    hits = np.flatnonzero(expanded.mean(axis=0) > .60)
+    groups = []
+    for pixel in hits:
+        x = float(pixel) / sx
+        if not 80 <= x <= 710:
+            continue
+        if groups and x - groups[-1][-1] <= 2.5:
+            groups[-1].append(x)
+        else:
+            groups.append([x])
+    edges = [round(float(median(group)), 3) for group in groups]
+    limits = ((30, 60), (250, 345), (38, 65), (40, 75), (30, 65), (45, 105))
+    if (len(edges) != 7 or not 80 <= edges[0] <= 120 or not 675 <= edges[-1] <= 710 or
+            any(group[-1] - group[0] > 6 for group in groups) or
+            any(not low <= b-a <= high for a,b,(low,high) in zip(edges, edges[1:], limits))):
+        return {**unknown, "reason": "image_column_profile_unknown",
+                "candidate_edges_pdf_points": edges}
+    # Three disjoint strips in number/description columns independently count
+    # horizontal rules. They are derived from observed boundaries, not a row total.
+    strips = [(edges[0] + .30*(edges[1]-edges[0]), edges[0] + .65*(edges[1]-edges[0]))]
+    strips += [(edges[1] + f*(edges[2]-edges[1]),
+                edges[1] + f*(edges[2]-edges[1]) + 15) for f in (.20, .40)]
+    rules = [_raster_rule_centers(gray, points_per_pixel=1/sy, x_points_per_pixel=1/sx,
+                                 x0=a, x1=b) for a,b in strips]
+    if (len(rules[0]) < 6 or len({len(row) for row in rules}) != 1 or
+            any(max(row)-min(row) > 2 for row in zip(*rules))):
+        return {**unknown, "reason": "image_horizontal_rules_disagree",
+                "strip_rule_counts": [len(row) for row in rules]}
+    centers = [round(median(row), 1) for row in zip(*rules)]
+    gaps = [b-a for a,b in zip(centers, centers[1:])]
+    typical = median(gaps)
+    if (not 8 <= typical <= 25 or any(not 8 <= gap <= min(25, typical*1.5) for gap in gaps)
+            or centers[-1]-centers[0] < 200):
+        return {**unknown, "reason": "image_row_profile_unknown"}
+    crossings = []
+    for y in centers:
+        support = [round(float((gray[max(0,int((y-2)*sy)):int((y+2)*sy),
+                                    int((a+3)*sx):int((b-3)*sx)] < 160).any(axis=0).mean()), 6)
+                   for a,b in zip(edges, edges[1:])]
+        crossings.append(support)
+    if any(value < .95 for row in crossings for value in row):
+        return {**unknown, "reason": "image_horizontal_rule_not_across_columns",
+                "horizontal_rule_support_by_column": crossings}
+    top, bottom = centers[0]+2, centers[-1]-2
+    witnesses = [_image_rule_witness(gray, x=x, top=top, bottom=bottom,
+                                     scale_x=sx, scale_y=sy) for x in edges]
+    if any(item["status"] != "confirmed" for item in witnesses):
+        return {**unknown, "reason": "image_vertical_rule_not_connected",
+                "weak_rule_observations": witnesses}
+    return {"status": "candidate", "basis": "same_page_image_grid",
+            "layout_profile": "oge_2024_variable_column_widths",
+            "edges_pdf_points": edges, "weak_rule_observations": witnesses,
+            "physical_row_bands": [[a,b] for a,b in zip(centers, centers[1:])],
+            "horizontal_rule_strips_pdf_points": strips, "strip_rule_positions": rules,
+            "horizontal_rule_support_by_column": crossings,
+            "header_band_pdf_points": [max(50, centers[0]-60), centers[0]],
+            "render_coordinate_frame": "displayed_mediabox",
+            "render_page_bbox": list(page.bbox), "render_rotation": page.rotation,
+            "render_source_cropbox": list(page.cropbox),
+            "render_pdf_points_per_pixel": [1/sx, 1/sy],
+            "render_pixel_size": [image.width, image.height]}
+
+
+def _header_role_evidence(words: list[dict], geometry: dict) -> dict:
+    """Recognize fixed form labels only; fuzzy labels never correct a fact."""
+    def near(a, b):
+        if a == b:
+            return True
+        if abs(len(a)-len(b)) > 1:
+            return False
+        return any(a[:i]+a[i+1:] == b for i in range(len(a))) if len(a)>len(b) else (
+            any(b[:i]+b[i+1:] == a for i in range(len(b))) if len(b)>len(a) else
+            sum(x != y for x,y in zip(a,b)) == 1)
+    top, bottom = geometry["header_band_pdf_points"]
+    edges = geometry["edges_pdf_points"]
+    labels = {}
+    for column, label in enumerate(("description", "type", "date", "notification", "amount"), 1):
+        hits = [i for i,w in enumerate(words) if top <= (w["top"]+w["bottom"])/2 < bottom
+                and w["top"] >= top-3 and w["bottom"] <= bottom+3
+                and edges[column] <= (w["x0"]+w["x1"])/2 < edges[column+1]
+                and w["x0"] >= edges[column]-2 and w["x1"] <= edges[column+1]+2
+                and near(re.sub(r"[^a-z]", "", w["text"].lower()), label)]
+        labels[label] = hits
+    title = [i for i,w in enumerate(words) if w["bottom"] < top and
+             re.sub(r"[^a-z0-9]", "", w["text"].lower()) in {"oge", "form", "2024", "278t", "2787"}]
+    title_groups = []
+    for i in sorted(title, key=lambda i: words[i]["top"]):
+        if title_groups and words[i]["top"]-words[title_groups[-1][0]]["top"] <= 3:
+            title_groups[-1].append(i)
+        else:
+            title_groups.append([i])
+    coherent_titles = []
+    for group in title_groups:
+        ordered = sorted(group, key=lambda i: words[i]["x0"])
+        values = [re.sub(r"[^a-z0-9]", "", words[i]["text"].lower()) for i in ordered]
+        if (len(values) == 4 and values[:2] == ["oge", "form"] and
+                values[2] in {"278t", "2787"} and values[3] == "2024"):
+            coherent_titles.append(ordered)
+    confirmed = all(len(hits) == 1 for hits in labels.values()) and len(coherent_titles) == 1
+    if len(coherent_titles) == 1:
+        title = coherent_titles[0]
+    indices = sorted(set(title + [i for hits in labels.values() for i in hits]))
+    return {"status": "confirmed" if confirmed else "unknown", "label_word_indices": labels,
+            "title_word_indices": title, "observed_words": [{"index":i, **words[i]} for i in indices],
+            "maximum_label_character_edits": 1, "fact_resolution": "not_assessed"}
+
+
 def _observe_slot_columns(words: list[dict], edges: list[float] | None) -> dict:
     """Assign saved words by same-page columns, retaining out-of-column words."""
     if edges is None:
@@ -176,7 +345,15 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
     with pdfplumber.open(source) as document:
         geometry = {number: _oge_2024_column_geometry(document.pages[number - 1])
                     for number in page_numbers}
-        edges_by_page = {number: item["edges_pdf_points"] for number, item in geometry.items()}
+        for number, item in list(geometry.items()):
+            if item["status"] == "unknown":
+                image_grid = _oge_2024_image_grid(document.pages[number - 1])
+                if image_grid["status"] == "candidate":
+                    geometry[number] = image_grid
+                else:
+                    geometry[number] = {**item, "image_fallback_observation": image_grid}
+        edges_by_page = {number: item["edges_pdf_points"] if item["status"] == "confirmed" else None
+                         for number, item in geometry.items()}
     retry_pages = [page["page_number"] for page in census["results"]
                    if page["status"] != "physical_slots_located" and
                    edges_by_page[page["page_number"]] is not None]
@@ -191,6 +368,12 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
                          for page in census["results"]]
     for page in census["results"]:
         page["column_geometry_observation"] = geometry[page["page_number"]]
+        image_grid = geometry[page["page_number"]]
+        if image_grid.get("basis") == "same_page_image_grid":
+            # Other census consumers must not count a pending template as a
+            # confirmed grid. Only observe_raster_slots can check its OCR header.
+            page.update(status="coverage_unknown", physical_row_bands=[],
+                        row_detection_basis="same_page_image_grid_pending_header")
     return census, edges_by_page
 
 
@@ -218,16 +401,18 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     import pdfplumber
     with pdfplumber.open(source) as document:
         known_pages = [page["page_number"] for page in census["results"]
-                       if page["status"] == "physical_slots_located"]
+                       if page["status"] == "physical_slots_located" or
+                       page["column_geometry_observation"].get("status") == "candidate"]
         ocr_pages, engine = (ocr_pdf_pages(
             document, page_numbers=known_pages, max_pages=MAX_PAGES_PER_RUN,
-            resolution=resolution, executable=executable)
+            resolution=resolution, executable=executable, force_mediabox=True)
             if known_pages else ([], None))
     ocr_by_page = dict(zip(known_pages, ocr_pages, strict=True))
     pages = []
     for page in census["results"]:
         number = page["page_number"]
-        if page["status"] != "physical_slots_located":
+        image_candidate = page["column_geometry_observation"].get("status") == "candidate"
+        if page["status"] != "physical_slots_located" and not image_candidate:
             pages.append({"page_number": number,
                           "coverage": "physical_slots_unknown",
                           "physical_slot_count": None,
@@ -235,10 +420,23 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                           "slots": [], "ocr_word_count": None})
             continue
         words = ocr_by_page[number].extract_words()
-        column_edges = edges_by_page[number]
+        geometry = page["column_geometry_observation"]
+        if geometry.get("basis") == "same_page_image_grid":
+            header = _header_role_evidence(words, geometry)
+            geometry = {**geometry, "header_role_evidence": header,
+                        "status": header["status"]}
+            if header["status"] != "confirmed":
+                pages.append({"page_number": number, "coverage": "physical_slots_unknown",
+                              "physical_slot_count": None, "slots": [],
+                              "column_geometry_observation": geometry,
+                              "unbound_page_ocr_words": words, "ocr_word_count": len(words),
+                              "render_coordinate_frame": "displayed_mediabox"})
+                continue
+        column_edges = geometry["edges_pdf_points"] if image_candidate else edges_by_page[number]
+        bands = geometry["physical_row_bands"] if image_candidate else page["physical_row_bands"]
         slots = []
         assigned: set[int] = set()
-        for index, band in enumerate(page["physical_row_bands"], start=1):
+        for index, band in enumerate(bands, start=1):
             top, bottom = band
             selected = [
                 (position, word) for position, word in enumerate(words)
@@ -260,12 +458,13 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                           "words": observations})
         pages.append({"page_number": number,
                       "coverage": "physical_slots_located",
-                      "row_detection_basis": page.get(
-                          "row_detection_basis", "three_strip_grid"),
+                      "row_detection_basis": ("same_page_image_grid_header_confirmed" if image_candidate else
+                          page.get("row_detection_basis", "three_strip_grid")),
                       "column_geometry": ("oge_2024_six_column_grid" if column_edges
                                           else "unknown"),
                       "column_edges_pdf_points": column_edges,
-                      "column_geometry_observation": page["column_geometry_observation"],
+                      "column_geometry_observation": geometry,
+                      "render_coordinate_frame": "displayed_mediabox",
                       "physical_slot_count": len(slots),
                       "slots": slots,
                       "ocr_word_count": len(words),
@@ -275,6 +474,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
             "selected_page_numbers": page_numbers,
             "ocr_engine": engine,
             "ocr_resolution_dpi": resolution,
+            "render_coordinate_frame": "displayed_mediabox",
             "confirmed_physical_slot_count": sum(
                 page["physical_slot_count"] or 0 for page in pages),
             "slots_with_ocr_words": sum(
