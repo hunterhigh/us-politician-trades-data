@@ -1023,7 +1023,7 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
         return None
     try:
         value = json.loads(checkpoint.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return None
     expected = {
         "schema_version": EXTRACTION_SCHEMA,
@@ -1046,8 +1046,21 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
             type(value.get("evidence_complete")) is not bool):
         return None
     if generic:
-        from .oge_transaction_adapter import generic_cover_evidence_valid
-        if not generic_cover_evidence_valid(value):
+        # Integrity is independent of eligibility: a correctly bound negative
+        # result remains reusable when a filing date is genuinely absent.
+        evidence = value.get("cover_date_evidence")
+        count = value.get("document_page_count")
+        try:
+            replay = read_278t_cover_dates(evidence.get("cover_text"), source_sha256=source_sha)
+        except (AttributeError, OgeCatalogError, TypeError):
+            return None
+        if (any(not isinstance(reason, str) for reason in value["document_reasons"]) or
+                replay != evidence or value.get("filed_at") != replay["filed_at"] or
+                not set(replay["document_reasons"]) <= set(value["document_reasons"]) or
+                type(count) is not int or count < 1 or
+                not isinstance(value.get("source_rows"), list) or any(
+                    not isinstance(row, dict) or type(row.get("page_number")) is not int or
+                    not 1 <= row["page_number"] <= count for row in value["source_rows"])):
             return None
     if not generic and fixed_source and value.get("filing_date_evidence") != \
             TRUMP_SEPT_2026_FILING_DATE_EVIDENCE:

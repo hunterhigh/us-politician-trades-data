@@ -55,6 +55,12 @@ class GenericOgeCliTests(unittest.TestCase):
             parsed['cover_date_evidence']['source_sha256'] = 'b'*64
             target.write_text(json.dumps(parsed), encoding='utf-8')
             self.assertIsNone(load_reusable_extraction(root, path, root/'reuse', generic=True))
+            cover['text'] = 'Agency Review\nDate: 09/20/2026'
+            with patch('unison_snapshot.oge_reports._extract_pdf', return_value=(cover['text'], [(2,row)], [(2,row)], cover)):
+                negative = parse_archived_pdf(root, path, generic=True)
+            self.assertIsNone(negative['filed_at'])
+            target.write_text(json.dumps(negative), encoding='utf-8')
+            self.assertEqual(load_reusable_extraction(root, path, root/'reuse', generic=True), negative)
 
     def test_extract_cli_passes_explicit_generic_mode_to_existing_parser(self):
         with tempfile.TemporaryDirectory() as directory:
