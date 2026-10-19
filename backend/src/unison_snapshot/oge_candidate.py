@@ -209,7 +209,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         data_cutoff_at: str,
                         catalog_history: list[dict] | None = None,
                         saved_observations_by_document: dict | None = None,
-                        legacy_extractions_by_document: dict | None = None) -> tuple[dict, dict]:
+                        legacy_extractions_by_document: dict | None = None,
+                        saved_exhibit_observations_by_document: dict | None = None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -256,6 +257,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     saved = saved_observations_by_document or {}
     if not isinstance(saved, dict) or set(saved) - set(direct_by_id):
         raise OgeCatalogError("saved observation documents are outside the catalog")
+    exhibits = {} if saved_exhibit_observations_by_document is None else saved_exhibit_observations_by_document
+    if not isinstance(exhibits,dict) or set(exhibits)-set(direct_by_id) or set(exhibits)&set(saved):
+        raise OgeCatalogError("native exhibit observations are outside the catalog or overlap raster inputs")
     retained_from_history = len(set(direct_by_id) - set(current_direct_by_id))
     legacy_inputs = legacy_extractions_by_document or {}
     if not isinstance(legacy_inputs, dict) or set(legacy_inputs) - set(direct_by_id):
@@ -279,8 +283,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
         generic = extraction.get("parser_version") == GENERIC_PARSER_VERSION
-        observed = document_id in saved
-        retained = [row for row in base.get("transactions", []) if (generic or observed and "source_rows" not in extraction) and
+        observed = document_id in saved or document_id in exhibits
+        retained = [row for row in base.get("transactions", []) if (generic or document_id in exhibits or observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
                     and row.get("verification_status") == "official_matched"]
         if any(row.get("source_url") != extraction.get("source_url") for row in retained):
@@ -291,8 +295,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         legacy_reference_rows = {}
         if observed:
             from .oge_transaction_adapter import materialize_oge_278t_observations, _validated_legacy_reference
-            extraction = materialize_oge_278t_observations(extraction, record,
-                formal_reference_ids=[row["id"] for row in retained], **saved[document_id])
+            if document_id in saved:
+                extraction = materialize_oge_278t_observations(extraction, record,
+                    formal_reference_ids=[row["id"] for row in retained], **saved[document_id])
+            else:
+                from .oge_reports import materialize_saved_oge_278t_exhibits
+                extraction = materialize_saved_oge_278t_exhibits(extraction,record,
+                    formal_reference_ids=[row["id"] for row in retained],**exhibits[document_id])
             reference = _validated_legacy_reference(extraction, record)
             if reference is not None:
                 original = reference["source_extraction"]
@@ -420,7 +429,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_reasons.append("transaction_date_invalid")
             if row_reasons or key is None or record is None:
                 row_quarantines.append({"extraction_id": extraction_id,
-                                        "reasons": sorted(set(row_reasons))})
+                                        "reasons": sorted(set(row_reasons)),
+                                        **({"native_exhibit_reference":row["native_exhibit_reference"]} if row.get("native_exhibit_reference") else {})})
                 continue
             person_id = TRUMP_PERSON_ID if fixed_trump else _person_id(key)
             people.setdefault(person_id, {

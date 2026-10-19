@@ -357,6 +357,7 @@ def main() -> None:
     oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
     oge_candidate.add_argument("--generic", action="store_true")
     oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
+    oge_candidate.add_argument("--saved-exhibit-observations", type=Path)
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
     oge_candidate.add_argument("--output", type=Path, required=True)
@@ -1073,7 +1074,9 @@ def main() -> None:
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
                 catalog_history=catalog_history,
-                **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}))
+                **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}),
+                **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
+                   if args.saved_exhibit_observations else {}))
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
                            allow_empty_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
