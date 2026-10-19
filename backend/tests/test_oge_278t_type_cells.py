@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -39,7 +40,9 @@ def read(data,text="sale"):
     with tempfile.TemporaryDirectory() as folder:
         source=Path(folder)/"mock.pdf";source.write_bytes(b"synthetic source")
         data["source_sha256"]=hashlib.sha256(source.read_bytes()).hexdigest()
-        with patch("pdfplumber.open") as opened, patch("rapidocr_onnxruntime.RapidOCR",Engine):
+        with patch("pdfplumber.open") as opened, \
+             patch.dict(sys.modules, {"rapidocr_onnxruntime": SimpleNamespace(RapidOCR=Engine)}), \
+             patch("importlib.metadata.version", return_value="synthetic-test-engine"):
             opened.return_value.__enter__.return_value=document
             result=observe_type_cells(source,slots_observation=data,selected_slots={2:[1]},
                                       crop_directory=Path(folder)/"crops")

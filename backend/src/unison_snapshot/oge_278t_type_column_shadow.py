@@ -236,7 +236,6 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
     from importlib.metadata import version
     import numpy as np
     import pdfplumber
-    from rapidocr_onnxruntime import RapidOCR
     from .oge_278t_raster_slots import column_edges_at_y, column_geometry_sha256
 
     if (slots_observation.get("schema_version") != _INPUT_SCHEMA or
@@ -309,6 +308,7 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
                                "processing": "unaltered_source_pixels_no_grid_removal",
                                "ocr_resolution_dpi": resolution}
                     if engine is None:
+                        from rapidocr_onnxruntime import RapidOCR
                         engine = RapidOCR()
                     detections, _elapsed = engine(np.asarray(crop))
                     read_count += 1
