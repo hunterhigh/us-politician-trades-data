@@ -318,6 +318,8 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                                    "person_id": person_id, "status": "not_uniquely_archived"})
             continue
         metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
+        transaction_observation = transaction_relative = None
+        transaction_error = "annual_source_not_parsed"
         try:
             if (metadata.get("document_id") != report["document_id"] or
                     metadata.get("document_url") != report["document_url"] or
@@ -325,10 +327,6 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                     metadata.get("amendment_number") != report["amendment_number"]):
                 raise SenateEfdError("Senate annual archive conflicts with catalog")
             raw = (folder / f"{metadata['source_sha256']}.html").read_bytes()
-            extraction = extract_annual(metadata, raw)
-            relative = (Path("senate_efd/annual/extractions") / report["document_id"] /
-                        metadata["source_sha256"] / f"{PARSER_VERSION}.json")
-            _write_once(review_root / relative, _json(extraction))
             try:
                 transaction_observation = observe_part4b(metadata, raw)
                 transaction_relative = (Path("senate_efd/annual/part4b") /
@@ -342,6 +340,12 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                 transaction_observation = None
                 transaction_relative = None
                 transaction_error = str(exc)[:200]
+            # The annual asset section and transaction section are independent
+            # disclosures. A malformed Part 3 row must not erase readable 4b.
+            extraction = extract_annual(metadata, raw)
+            relative = (Path("senate_efd/annual/extractions") / report["document_id"] /
+                        metadata["source_sha256"] / f"{PARSER_VERSION}.json")
+            _write_once(review_root / relative, _json(extraction))
             status = "extracted"
         except (SenateEfdError, OSError, KeyError, ValueError) as exc:
             extraction = None
@@ -353,20 +357,20 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                   "amendment_number": report["amendment_number"],
                   "source_sha256": metadata.get("source_sha256"), "status": status,
                   "extraction_path": relative.as_posix() if relative else None}
+        record["part4b_observation_status"] = (
+            "observed" if transaction_observation is not None else "unresolved")
+        record["part4b_observation_path"] = (
+            transaction_relative.as_posix() if transaction_relative else None)
+        record["part4b_printed_row_count"] = (
+            transaction_observation["part4b_printed_row_count"]
+            if transaction_observation is not None else None)
+        if transaction_error is not None:
+            record["part4b_observation_error"] = transaction_error
         if extraction is not None:
             record["row_count"] = extraction["row_count"]
             record["quarantined_row_count"] = sum(
                 row["disposition"] == "quarantined" for row in extraction["rows"])
             record["filed_at"] = extraction["filed_at"]
-            record["part4b_observation_status"] = (
-                "observed" if transaction_observation is not None else "unresolved")
-            record["part4b_observation_path"] = (
-                transaction_relative.as_posix() if transaction_relative else None)
-            record["part4b_printed_row_count"] = (
-                transaction_observation["part4b_printed_row_count"]
-                if transaction_observation is not None else None)
-            if transaction_error is not None:
-                record["part4b_observation_error"] = transaction_error
             by_person[person_id].append((report, extraction, record))
         else:
             record["error"] = error
@@ -515,7 +519,7 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                      else "same_members")
     transaction_relations = []
     for report in annual.get("reports", []):
-        if report.get("publication_state") != "qualified":
+        if report.get("publication_state") == "superseded":
             continue
         observation_path = report.get("part4b_observation_path")
         if not isinstance(observation_path, str) or not observation_path.endswith("/observation-v2.json"):
@@ -543,8 +547,10 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
         raw = (source_folder / f"{source_sha}.html").read_bytes()
         if observe_part4b(metadata, raw) != observation:
             raise SenateEfdError("Senate annual Part 4b observation differs from archived bytes")
-        transaction_relations.append(relate_part4b_to_candidate(
-            observation, person_id=report["person_id"], transactions=candidate["transactions"]))
+        relation = relate_part4b_to_candidate(
+            observation, person_id=report["person_id"], transactions=candidate["transactions"])
+        relation["annual_report_publication_state"] = report.get("publication_state")
+        transaction_relations.append(relation)
     return candidate, {"annual_status": "included",
                        "annual_roster_compatibility": compatibility,
                        "annual_roster_sha256": annual_roster_sha,

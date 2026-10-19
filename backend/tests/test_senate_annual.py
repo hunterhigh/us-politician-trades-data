@@ -33,6 +33,45 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
 
 
 class SenateAnnualTests(unittest.TestCase):
+    def test_broken_holdings_table_does_not_discard_readable_transaction_section(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            evidence, review = root / "evidence", root / "review"
+            document = "11111111-1111-4111-8111-111111111111"
+            _, transaction_raw = transaction_sample()
+            section = transaction_raw.split(b"<body>", 1)[1].split(b"</body>", 1)[0]
+            raw = annual_html().replace(b"<th>Asset</th>", b"<th>Changed Asset</th>")
+            raw = raw.replace(b"</body>", section + b"</body>")
+            sha = hashlib.sha256(raw).hexdigest()
+            url = f"https://efdsearch.senate.gov/search/view/annual/{document}/"
+            metadata = {"schema_version": "senate-efd-annual-archive/v1", "document_id": document,
+                        "document_url": url, "source_sha256": sha, "byte_length": len(raw),
+                        "filer_name": "Ada Example", "office": "Example, Ada (Senator)",
+                        "report_year": 2025, "amendment_number": 0, "portal_listed_date": "2026-05-01"}
+            original = evidence / "senate_efd/annual/reports" / document
+            original.mkdir(parents=True)
+            (original / f"{sha}.html").write_bytes(raw)
+            (original / f"{sha}.metadata.json").write_bytes(_json(metadata))
+            catalog = evidence / "senate_efd/annual/catalog/current.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_bytes(_json({"schema_version": DISCOVERY_SCHEMA, "source_id": "senate_efd",
+                                       "catalog_record_count": 1, "annual_report_count": 1,
+                                       "nonannual_count": 0, "reports": [{
+                                           "catalog_index": 0, "document_id": document, "document_url": url,
+                                           "filer_name": "Ada Example", "office": "Example, Ada (Senator)",
+                                           "portal_listed_date": "2026-05-01", "report_year": 2025,
+                                           "amendment_number": 0}]}))
+            members = roster(member("A000001", "Ada", "Example"))
+            result = build_annual_review(evidence, review, members)
+            self.assertEqual(result["reports"][0]["status"], "extraction_failed")
+            self.assertEqual(result["reports"][0]["part4b_printed_row_count"], 1)
+            base = {"people": [], "transactions": [], "reported_holdings": [], "source_health": []}
+            candidate, audit = overlay_annual_candidate(
+                base, review, expected_roster_sha256=members["metadata"]["sha256"], evidence_root=evidence)
+            self.assertEqual(audit["annual_part4b_relationships"][0]["observed_row_count"], 1)
+            self.assertEqual(candidate["reported_holdings"], [])
+            self.assertEqual(candidate["transactions"], [])
+
     def test_actual_overlay_reads_source_bound_part4b_without_duplicate_promotion(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
