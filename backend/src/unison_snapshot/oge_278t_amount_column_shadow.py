@@ -72,6 +72,8 @@ def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
                         "detections_outside_slots": page["detections_outside_slots"],
                         "slots": row_results})
     return {"schema_version": SCHEMA, "source_sha256": reading["source_sha256"],
+            **({"input_column_geometry_sha256": reading["input_column_geometry_sha256"]}
+               if "input_column_geometry_sha256" in reading else {}),
             "ocr_engine": reading["ocr_engine"],
             "ocr_resolution_dpi": reading["ocr_resolution_dpi"],
             "input_ocr_resolution_dpi": reading["input_ocr_resolution_dpi"],

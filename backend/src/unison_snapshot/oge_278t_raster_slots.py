@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+from math import isfinite
 import re
 from pathlib import Path
 from statistics import median
@@ -16,6 +18,80 @@ SCHEMA = "oge-278t-raster-slot-observation/v2"
 MAX_PAGES_PER_RUN = 8
 _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
+
+
+def column_edges_at_y(page: dict, y: float) -> list[float]:
+    """Evaluate source-PDF column lines; absence of a model keeps legacy x's."""
+    edges = page["column_edges_pdf_points"]
+    model = page.get("column_line_model")
+    if model is None:
+        return edges
+    slopes = model.get("slopes_dx_per_dy")
+    reference = model.get("reference_y_pdf_points")
+    domain = model.get("valid_y_span_pdf_points")
+    if (model.get("schema_version") != "oge-278t-column-lines/v1" or
+            not isinstance(slopes, list) or len(slopes) != 7 or
+            len(edges) != 7 or type(reference) not in (int, float) or not isfinite(reference) or
+            type(y) not in (int, float) or not isfinite(y) or
+            any(type(v) not in (int, float) or not isfinite(v) or abs(v) > .015 for v in slopes) or
+            any(type(v) not in (int, float) or not isfinite(v) for v in edges) or
+            model.get("coordinate_frame") != "displayed_mediabox" or
+            page.get("render_coordinate_frame") != "displayed_mediabox" or
+            not isinstance(domain, list) or len(domain) != 2 or
+            any(type(v) not in (int,float) or not isfinite(v) for v in domain) or
+            not domain[0] <= y <= domain[1]):
+        raise ValueError("invalid source-PDF column line model")
+    sections = model.get("regional_observations")
+    if (not domain[0] < domain[1] or max(slopes)-min(slopes) > .008 or
+            not isinstance(sections,list) or len(sections) != 3):
+        raise ValueError("column line model lacks bounded regional evidence")
+    ys = []
+    previous = domain[0]
+    for section in sections:
+        span, positions = section.get("y_span_pdf_points"), section.get("edges")
+        if (not isinstance(span,list) or len(span) != 2 or
+                any(type(v) not in (int,float) or not isfinite(v) for v in span) or
+                not previous <= span[0] < span[1] <= domain[1] or
+                not isinstance(positions,list) or len(positions) != 7 or
+                any(type(v) not in (int,float) or not isfinite(v) for v in positions) or
+                any(a >= b for a,b in zip(positions,positions[1:]))):
+            raise ValueError("column line model regional evidence is invalid")
+        previous = span[1]
+        ys.append((span[0]+span[1])/2)
+    expected_ref = sum(ys)/3
+    denominator = sum((v-expected_ref)**2 for v in ys)
+    expected_edges = [sum(sec["edges"][i] for sec in sections)/3 for i in range(7)]
+    expected_slopes = [sum((v-expected_ref)*(sec["edges"][i]-expected_edges[i])
+                      for v,sec in zip(ys,sections))/denominator for i in range(7)]
+    residual = max(abs(sec["edges"][i]-edges[i]-slopes[i]*(v-reference))
+                   for i in range(7) for v,sec in zip(ys,sections))
+    if (abs(reference-expected_ref) > 1e-6 or residual > .75 or
+            any(abs(a-b) > 1e-6 for a,b in zip(edges,expected_edges)) or
+            any(abs(a-b) > 1e-6 for a,b in zip(slopes,expected_slopes))):
+        raise ValueError("column line model differs from fitted regional evidence")
+    observed = page.get("column_geometry_observation", {}).get("column_line_model")
+    if observed is not None and observed != model:
+        raise ValueError("column line model differs from saved geometry evidence")
+    result = [x + slope * (y-reference) for x, slope in zip(edges, slopes)]
+    if any(a >= b for a,b in zip(result, result[1:])):
+        raise ValueError("source-PDF column lines cross")
+    return result
+
+
+def column_crop_bounds(page: dict, start: int, end: int, top: float, bottom: float,
+                       left_pad: float = .6, right_pad: float = 1.5) -> tuple[float, float]:
+    """Rectangle enclosing a sloped column; evidence still checks actual lines."""
+    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+    if domain:
+        top,bottom = max(top,domain[0]),min(bottom,domain[1])
+    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
+    return min(a[start], b[start])+left_pad, max(a[end], b[end])-right_pad
+
+
+def column_geometry_sha256(page: dict) -> str:
+    return hashlib.sha256(json.dumps({"edges": page.get("column_edges_pdf_points"),
+        "model": page.get("column_line_model"), "frame": page.get("render_coordinate_frame")},
+        sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
 
 def _column_profile_matches(edges: list[float]) -> bool:
@@ -141,7 +217,8 @@ def _oge_2024_column_edges(page) -> list[float] | None:
     return _oge_2024_column_geometry(page)["edges_pdf_points"]
 
 
-def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y) -> dict:
+def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
+                         slope=0., reference_y=0.) -> dict:
     """Trace a scanned rule, allowing <= .75pt blank gaps, not missing segments.
 
     This is separate from the unchanged strict vector corroboration rule.
@@ -153,7 +230,15 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y) -> dict:
     first, last = int(top * scale_y), int(bottom * scale_y)
     if not (0 <= left < right <= gray.shape[1] and 0 <= first < last <= gray.shape[0]):
         return {"status": "unknown", "reason": "pixel_window_outside_page"}
-    mask = gray[first:last, left:right] < 160
+    if slope:
+        centers = x + slope * (np.arange(first,last)/scale_y-reference_y)
+        starts = ((centers-3)*scale_x).astype(int)
+        width = right-left
+        if starts.min() < 0 or starts.max()+width > gray.shape[1]:
+            return {"status": "unknown", "reason": "pixel_window_outside_page"}
+        mask = gray[np.arange(first,last)[:,None], starts[:,None]+np.arange(width)] < 160
+    else:
+        mask = gray[first:last, left:right] < 160
     if mask.size == 0:
         return {"status": "unknown", "reason": "empty_rule_window"}
     max_gap = max(1, int(.75 * scale_y))
@@ -181,7 +266,7 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y) -> dict:
             "thin_rule_support_by_third": thirds}
 
 
-def _oge_2024_image_grid(page) -> dict:
+def _oge_2024_axis_image_grid(page, *, fit=None) -> dict:
     """Find same-page image lines, pending independent OCR header role checks.
 
     No expected x, row count, printed number or neighbouring page fills a gap.
@@ -211,10 +296,13 @@ def _oge_2024_image_grid(page) -> dict:
             groups[-1].append(x)
         else:
             groups.append([x])
-    edges = [round(float(median(group)), 3) for group in groups]
-    limits = ((30, 60), (250, 345), (38, 65), (40, 75), (30, 65), (45, 105))
-    if (len(edges) != 7 or not 80 <= edges[0] <= 120 or not 675 <= edges[-1] <= 710 or
-            any(group[-1] - group[0] > 6 for group in groups) or
+    edges = fit["edges"] if fit else [round(float(median(group)), 3) for group in groups]
+    limits = ((30, 60), (250, 365 if fit else 345), (38, 65), (40, 75), (30, 65), (45, 110 if fit else 105))
+    placement = (20 <= edges[0] < edges[-1] <= page.width-20 and 540 <= edges[-1]-edges[0] <= 660
+                 if fit and len(edges) == 7 else len(edges) == 7 and
+                 80 <= edges[0] <= 120 and 675 <= edges[-1] <= 710)
+    if (len(edges) != 7 or not placement or
+            (not fit and any(group[-1] - group[0] > 6 for group in groups)) or
             any(not low <= b-a <= high for a,b,(low,high) in zip(edges, edges[1:], limits))):
         return {**unknown, "reason": "image_column_profile_unknown",
                 "candidate_edges_pdf_points": edges}
@@ -237,31 +325,99 @@ def _oge_2024_image_grid(page) -> dict:
         return {**unknown, "reason": "image_row_profile_unknown"}
     crossings = []
     for y in centers:
+        local_edges = column_edges_at_y({"column_edges_pdf_points": edges,
+                                       "column_line_model": fit["model"], "render_coordinate_frame":"displayed_mediabox"}, y) if fit else edges
         support = [round(float((gray[max(0,int((y-2)*sy)):int((y+2)*sy),
                                     int((a+3)*sx):int((b-3)*sx)] < 160).any(axis=0).mean()), 6)
-                   for a,b in zip(edges, edges[1:])]
+                   for a,b in zip(local_edges, local_edges[1:])]
         crossings.append(support)
     if any(value < .95 for row in crossings for value in row):
         return {**unknown, "reason": "image_horizontal_rule_not_across_columns",
                 "horizontal_rule_support_by_column": crossings}
-    top, bottom = centers[0]+2, centers[-1]-2
+    if fit:
+        # Include the existing 3pt header-box overhang in the witnessed domain.
+        fit["model"]["valid_y_span_pdf_points"] = [max(50,centers[0]-23),centers[-1]]
+        if any(section["y_span_pdf_points"][0] < fit["model"]["valid_y_span_pdf_points"][0] or
+               section["y_span_pdf_points"][1] > centers[-1]
+               for section in fit["model"]["regional_observations"]):
+            return {**unknown,"reason":"regional_evidence_outside_table_domain"}
+    if fit:
+        modeled = {"column_edges_pdf_points":edges,"column_line_model":fit["model"],
+                   "render_coordinate_frame":"displayed_mediabox"}
+        for endpoint in fit["model"]["valid_y_span_pdf_points"]:
+            local = column_edges_at_y(modeled,endpoint)
+            if any(not low <= b-a <= high for a,b,(low,high) in zip(local,local[1:],limits)):
+                return {**unknown,"reason":"column_widths_outside_supported_domain"}
+    top, bottom = (fit["model"]["valid_y_span_pdf_points"][0] if fit else centers[0]+2), (centers[-1] if fit else centers[-1]-2)
     witnesses = [_image_rule_witness(gray, x=x, top=top, bottom=bottom,
-                                     scale_x=sx, scale_y=sy) for x in edges]
+                                     scale_x=sx, scale_y=sy,
+                                     slope=fit["model"]["slopes_dx_per_dy"][i] if fit else 0.,
+                                     reference_y=fit["model"]["reference_y_pdf_points"] if fit else 0.)
+                 for i,x in enumerate(edges)]
     if any(item["status"] != "confirmed" for item in witnesses):
         return {**unknown, "reason": "image_vertical_rule_not_connected",
                 "weak_rule_observations": witnesses}
-    return {"status": "candidate", "basis": "same_page_image_grid",
+    return {**({"column_line_model": fit["model"]} if fit else {}),
+            "status": "candidate", "basis": "same_page_image_grid",
             "layout_profile": "oge_2024_variable_column_widths",
             "edges_pdf_points": edges, "weak_rule_observations": witnesses,
             "physical_row_bands": [[a,b] for a,b in zip(centers, centers[1:])],
             "horizontal_rule_strips_pdf_points": strips, "strip_rule_positions": rules,
             "horizontal_rule_support_by_column": crossings,
-            "header_band_pdf_points": [max(50, centers[0]-60), centers[0]],
+            "header_band_pdf_points": [max(50, centers[0]-(20 if fit else 60)), centers[0]],
             "render_coordinate_frame": "displayed_mediabox",
             "render_page_bbox": list(page.bbox), "render_rotation": page.rotation,
             "render_source_cropbox": list(page.cropbox),
             "render_pdf_points_per_pixel": [1/sx, 1/sy],
             "render_pixel_size": [image.width, image.height]}
+
+
+def _oge_2024_image_grid(page) -> dict:
+    """Try the legacy axis path first, then fit observed lines in three regions."""
+    axis = _oge_2024_axis_image_grid(page)
+    if axis["status"] == "candidate" or axis.get("reason") == "unsupported_raster_coordinate_frame":
+        return axis
+    import numpy as np
+    gray = np.asarray(page.to_image(resolution=216, force_mediabox=True).original.convert("L"))
+    sx, sy = gray.shape[1]/page.width, gray.shape[0]/page.height
+    sections = []
+    for low, high in ((.20,.40),(.45,.65),(.70,.90)):
+        top, bottom = page.height*low, page.height*high
+        mask = gray[int(top*sy):int(bottom*sy)] < 160
+        expanded = mask.copy()
+        for shift in range(1,max(1,int(sx))+1):
+            expanded[:,shift:] |= mask[:,:-shift]
+            expanded[:,:-shift] |= mask[:,shift:]
+        groups = []
+        for pixel in np.flatnonzero(expanded.mean(axis=0) > .70):
+            x = float(pixel)/sx
+            if not 20 <= x <= page.width-20:
+                continue
+            if groups and x-groups[-1][-1] <= 2.5:
+                groups[-1].append(x)
+            else:
+                groups.append([x])
+        positions = [float(median(group)) for group in groups]
+        if len(positions) != 7 or any(group[-1]-group[0] > 6 for group in groups):
+            return {**axis, "drift_fallback_reason": "regional_columns_missing_or_ambiguous",
+                    "regional_column_counts": [len(item["edges"]) for item in sections]+[len(positions)]}
+        sections.append({"y_span_pdf_points": [top,bottom], "edges": positions})
+    ys = [(item["y_span_pdf_points"][0]+item["y_span_pdf_points"][1])/2 for item in sections]
+    reference = sum(ys)/3
+    denominator = sum((y-reference)**2 for y in ys)
+    edges = [sum(item["edges"][i] for item in sections)/3 for i in range(7)]
+    slopes = [sum((y-reference)*(item["edges"][i]-edges[i]) for y,item in zip(ys,sections))/denominator
+              for i in range(7)]
+    residual = max(abs(item["edges"][i]-(edges[i]+slopes[i]*(y-reference)))
+                   for i in range(7) for y,item in zip(ys,sections))
+    if max(abs(s) for s in slopes) > .015 or max(slopes)-min(slopes) > .008 or residual > .75:
+        return {**axis, "drift_fallback_reason": "regional_lines_do_not_fit_bounded_model"}
+    model = {"schema_version": "oge-278t-column-lines/v1", "reference_y_pdf_points": reference,
+             "slopes_dx_per_dy": slopes, "regional_observations": sections,
+             "maximum_fit_residual_pdf_points": residual, "coordinate_frame": "displayed_mediabox",
+             "valid_y_span_pdf_points": [0.,page.height]}
+    fitted = _oge_2024_axis_image_grid(page, fit={"edges": edges, "model": model})
+    return fitted if fitted["status"] == "candidate" else {**axis, "drift_fallback_observation": fitted}
 
 
 def _header_role_evidence(words: list[dict], geometry: dict) -> dict:
@@ -275,14 +431,29 @@ def _header_role_evidence(words: list[dict], geometry: dict) -> dict:
             any(b[:i]+b[i+1:] == a for i in range(len(b))) if len(b)>len(a) else
             sum(x != y for x,y in zip(a,b)) == 1)
     top, bottom = geometry["header_band_pdf_points"]
-    edges = geometry["edges_pdf_points"]
     labels = {}
+    shape = {"column_edges_pdf_points": geometry["edges_pdf_points"],
+             "column_line_model": geometry.get("column_line_model"),
+             "render_coordinate_frame": geometry.get("render_coordinate_frame")}
     for column, label in enumerate(("description", "type", "date", "notification", "amount"), 1):
-        hits = [i for i,w in enumerate(words) if top <= (w["top"]+w["bottom"])/2 < bottom
-                and w["top"] >= top-3 and w["bottom"] <= bottom+3
-                and edges[column] <= (w["x0"]+w["x1"])/2 < edges[column+1]
-                and w["x0"] >= edges[column]-2 and w["x1"] <= edges[column+1]+2
-                and near(re.sub(r"[^a-z]", "", w["text"].lower()), label)]
+        hits = []
+        for i,w in enumerate(words):
+            center = (w["top"]+w["bottom"])/2
+            if not (top <= center < bottom and w["top"] >= top-3 and w["bottom"] <= bottom+3):
+                continue
+            if not near(re.sub(r"[^a-z]", "", w["text"].lower()),label):
+                continue
+            domain = (geometry.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+            if domain and not domain[0] <= w["top"] < w["bottom"] <= domain[1]:
+                continue
+            local = column_edges_at_y(shape, center)
+            a,b = column_edges_at_y(shape,w["top"]),column_edges_at_y(shape,w["bottom"])
+            if (top <= center < bottom and w["top"] >= top-3 and w["bottom"] <= bottom+3
+                    and local[column] <= (w["x0"]+w["x1"])/2 < local[column+1]
+                    and w["x0"] >= max(a[column],b[column])-2
+                    and w["x1"] <= min(a[column+1],b[column+1])+2
+                    and near(re.sub(r"[^a-z]", "", w["text"].lower()),label)):
+                hits.append(i)
         labels[label] = hits
     title = [i for i,w in enumerate(words) if w["bottom"] < top and
              re.sub(r"[^a-z0-9]", "", w["text"].lower()) in {"oge", "form", "2024", "278t", "2787"}]
@@ -308,7 +479,7 @@ def _header_role_evidence(words: list[dict], geometry: dict) -> dict:
             "maximum_label_character_edits": 1, "fact_resolution": "not_assessed"}
 
 
-def _observe_slot_columns(words: list[dict], edges: list[float] | None) -> dict:
+def _observe_slot_columns(words: list[dict], edges: list[float] | None, *, page: dict | None = None) -> dict:
     """Assign saved words by same-page columns, retaining out-of-column words."""
     if edges is None:
         return {"column_observation": None, "boundary_crossing_word_count": None,
@@ -317,15 +488,24 @@ def _observe_slot_columns(words: list[dict], edges: list[float] | None) -> dict:
         raise ValueError("six-column observation requires seven ordered boundaries")
     by_column: dict[str, list[int]] = {name: [] for name in _COLUMNS}
     crossings = assigned = 0
+    outside_domain = []
     for index, word in enumerate(words):
-        x0, _, x1, _ = word["bbox_pdf_points"]
-        for name, left, right in zip(_COLUMNS, edges[:-1], edges[1:], strict=True):
+        x0, top, x1, bottom = word["bbox_pdf_points"]
+        local = column_edges_at_y(page, (top+bottom)/2) if page else edges
+        for name, left, right in zip(_COLUMNS, local[:-1], local[1:], strict=True):
             if left <= (x0 + x1) / 2 < right:
                 by_column[name].append(index)
                 assigned += 1
                 break
-        crossings += any(x0 < edge < x1 for edge in edges[1:-1])
-    return {"column_observation": {
+        domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points") if page else None
+        if domain and not domain[0] <= top < bottom <= domain[1]:
+            outside_domain.append(index)
+            top,bottom = max(top,domain[0]),min(bottom,domain[1])
+        a,b = (column_edges_at_y(page,top),column_edges_at_y(page,bottom)) if page else (edges,edges)
+        crossings += any(x0 < max(left,right) and x1 > min(left,right)
+                         for left,right in zip(a[1:-1],b[1:-1]))
+    return {**({"column_model_outside_word_indices": outside_domain} if page and page.get("column_line_model") else {}),
+            "column_observation": {
                 name: {"raw_ocr_text": " ".join(words[index]["text"] for index in indices),
                        "word_indices": indices} for name, indices in by_column.items()},
             "boundary_crossing_word_count": crossings,
@@ -434,6 +614,9 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                 continue
         column_edges = geometry["edges_pdf_points"] if image_candidate else edges_by_page[number]
         bands = geometry["physical_row_bands"] if image_candidate else page["physical_row_bands"]
+        column_page = {"column_edges_pdf_points": column_edges,
+                       "column_line_model": geometry.get("column_line_model"),
+             "render_coordinate_frame": geometry.get("render_coordinate_frame")}
         slots = []
         assigned: set[int] = set()
         for index, band in enumerate(bands, start=1):
@@ -454,7 +637,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                           "ocr_status": ("words_observed" if observations else
                                          "no_words_observed_unknown_content"),
                           "raw_ocr_text": " ".join(item["text"] for item in observations),
-                          **_observe_slot_columns(observations, column_edges),
+                          **_observe_slot_columns(observations, column_edges, page=column_page),
                           "words": observations})
         pages.append({"page_number": number,
                       "coverage": "physical_slots_located",
@@ -464,6 +647,8 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                                           else "unknown"),
                       "column_edges_pdf_points": column_edges,
                       "column_geometry_observation": geometry,
+                      **({"column_line_model": geometry["column_line_model"]}
+                         if "column_line_model" in geometry else {}),
                       "render_coordinate_frame": "displayed_mediabox",
                       "physical_slot_count": len(slots),
                       "slots": slots,

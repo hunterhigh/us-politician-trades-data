@@ -70,8 +70,9 @@ def observe_rapid_column(pdf_path: Path, *, slots_observation: dict,
                     any(a[1] > b[0] for a, b in zip(bands, bands[1:])):
                 raise ValueError(f"page {number} has overlapping slot bands")
             start, end, left_pad, right_pad = _COLUMN_CROPS[column]
-            left, right = edges[start] + left_pad, edges[end] - right_pad
             top, bottom = bands[0][0], bands[-1][1] + 2
+            from .oge_278t_raster_slots import column_crop_bounds
+            left, right = column_crop_bounds(page,start,end,top,bottom,left_pad,right_pad)
             if right <= left or bottom > document.pages[number - 1].height:
                 raise ValueError(f"page {number} has invalid {column} crop")
             image = document.pages[number - 1].crop(
@@ -118,8 +119,13 @@ def observe_rapid_column(pdf_path: Path, *, slots_observation: dict,
                             "slot_count": len(row_results),
                             "detections_outside_slots": unassigned,
                             "slots": row_results})
-    return {"source_sha256": source_sha256,
+    result = {"source_sha256": source_sha256,
             "ocr_engine": f"rapidocr-onnxruntime {version('rapidocr-onnxruntime')}",
             "ocr_resolution_dpi": resolution,
             "input_ocr_resolution_dpi": slots_observation.get("ocr_resolution_dpi"),
             "pages": results}
+    if any(page.get("column_line_model") is not None for page in pages):
+        from .oge_278t_raster_slots import column_geometry_sha256
+        result["input_column_geometry_sha256"] = {str(page["page_number"]): column_geometry_sha256(page)
+                                                   for page in pages}
+    return result
