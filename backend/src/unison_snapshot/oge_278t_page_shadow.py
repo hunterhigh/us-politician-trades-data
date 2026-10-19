@@ -436,11 +436,12 @@ def probe_number_cells(path: Path, *, expected_sha256: str,
 
 
 def _raster_rule_centers(gray, *, points_per_pixel: float,
-                         x0: float, x1: float) -> list[float]:
+                         x0: float, x1: float, x_points_per_pixel: float | None = None) -> list[float]:
     """Detect dark horizontal rules in one narrow, text-light image strip."""
     import numpy as np
 
-    left, right = int(x0 / points_per_pixel), int(x1 / points_per_pixel)
+    x_scale = x_points_per_pixel if x_points_per_pixel is not None else points_per_pixel
+    left, right = int(x0 / x_scale), int(x1 / x_scale)
     ratio = (gray[:, left:right] < 160).mean(axis=1)
     pixels = np.flatnonzero(ratio > .9)
     groups: list[list[int]] = []
@@ -481,24 +482,23 @@ def probe_raster_row_bands(path: Path, *, expected_sha256: str,
     """
     try:
         import numpy as np
-        import pymupdf
+        import pdfplumber
     except ImportError:
-        raise RuntimeError("numpy and pymupdf are required for raster census") from None
+        raise RuntimeError("numpy and pdfplumber are required for raster census") from None
     source = Path(path)
     source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     if source_sha256 != expected_sha256:
         raise ValueError("PDF bytes do not match the fixed source SHA-256")
     results = []
-    with pymupdf.open(source) as document:
+    with pdfplumber.open(source) as document:
         for number in page_numbers:
-            if not 1 <= number <= len(document):
+            if not 1 <= number <= len(document.pages):
                 raise ValueError("raster census page is outside the PDF")
-            pixmap = document[number - 1].get_pixmap(
-                matrix=pymupdf.Matrix(3, 3), colorspace=pymupdf.csGRAY,
-                alpha=False)
-            gray = np.frombuffer(pixmap.samples, np.uint8).reshape(
-                pixmap.height, pixmap.width)
-            strips = [_raster_rule_centers(gray, points_per_pixel=1 / 3,
+            page = document.pages[number - 1]
+            gray = np.asarray(page.to_image(
+                resolution=216, force_mediabox=True).original.convert("L"))
+            strips = [_raster_rule_centers(gray, points_per_pixel=page.height/gray.shape[0],
+                                           x_points_per_pixel=page.width/gray.shape[1],
                                            x0=left, x1=right)
                       for left, right in ((100, 135), (110, 135), (125, 140))]
             centers = _raster_rule_consensus(strips)
@@ -523,9 +523,9 @@ def probe_oge_2024_alternate_bands(path: Path, *, expected_sha256: str,
     """
     try:
         import numpy as np
-        import pymupdf
+        import pdfplumber
     except ImportError:
-        raise RuntimeError("numpy and pymupdf are required for raster census") from None
+        raise RuntimeError("numpy and pdfplumber are required for raster census") from None
     source = Path(path)
     actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
@@ -533,16 +533,15 @@ def probe_oge_2024_alternate_bands(path: Path, *, expected_sha256: str,
     if len(page_numbers) > 8 or len(set(page_numbers)) != len(page_numbers):
         raise ValueError("2024 raster census needs at most 8 distinct pages")
     results = []
-    with pymupdf.open(source) as document:
+    with pdfplumber.open(source) as document:
         for number in page_numbers:
-            if type(number) is not int or not 1 <= number <= len(document):
+            if type(number) is not int or not 1 <= number <= len(document.pages):
                 raise ValueError("raster census page is outside the PDF")
-            pixmap = document[number - 1].get_pixmap(
-                matrix=pymupdf.Matrix(3, 3), colorspace=pymupdf.csGRAY,
-                alpha=False)
-            gray = np.frombuffer(pixmap.samples, np.uint8).reshape(
-                pixmap.height, pixmap.width)
-            strips = [_raster_rule_centers(gray, points_per_pixel=1 / 3,
+            page = document.pages[number - 1]
+            gray = np.asarray(page.to_image(
+                resolution=216, force_mediabox=True).original.convert("L"))
+            strips = [_raster_rule_centers(gray, points_per_pixel=page.height/gray.shape[0],
+                                           x_points_per_pixel=page.width/gray.shape[1],
                                            x0=left, x1=right)
                       for left, right in ((110, 135), (200, 220), (250, 270))]
             raw_counts = [len(values) for values in strips]
