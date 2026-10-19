@@ -4,12 +4,13 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime
 import hashlib
+import json
 import re
 
 from .builder import timestamp
 from .oge import OgeCatalogError, SCHEMA as CATALOG_SCHEMA
 from .oge_reports import (
-    EXTRACTION_SCHEMA, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
+    EXTRACTION_SCHEMA, GENERIC_PARSER_VERSION, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
     TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -79,10 +80,136 @@ def _instrument(asset_name: str, ticker: str | None) -> str:
     return "Unspecified"
 
 
+def _legacy_default_owner_evidence(legacy: dict, old: dict) -> dict | None:
+    """Distinguish the v2 default from an explicit owner using its whole input."""
+    from .oge_reports import parse_table_rows, _ACCOUNT_HEADING
+    from .oge_transaction_adapter import _row_key, _cells
+    if (legacy.get("parser_version") != PARSER_VERSION or old.get("owner") != "Self"
+            or old.get("owner_observation_reference") or old.get("owner_disclosure_basis")):
+        return None
+    inventory = legacy.get("source_rows")
+    if not isinstance(inventory, list):
+        return None
+    physical = [(row["page_number"], _cells(row["cells"])) for row in inventory]
+    locators = [index for index, (page, cells) in enumerate(physical)
+                if _row_key({"page_number": page, "cells": cells}) == _row_key(old)]
+    if len(locators) != 1:
+        return None
+    # A malformed preceding label does not prove absence of explicit scope.
+    for _, cells in physical[:locators[0]]:
+        if (len(cells) == 6 and cells[1] and not any((cells[2], cells[3], cells[5]))
+                and not _ACCOUNT_HEADING.fullmatch(cells[1])
+                and not re.fullmatch(r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", cells[1], re.I)
+                and "intentionally" not in cells[1].casefold()):
+            return None
+    replays = []
+    for default in ("Self", "Undisclosed"):
+        good, bad = parse_table_rows(physical, source_sha=legacy["source_sha256"], default_owner=default)
+        matches = [row for row in good + bad if _row_key(row) == _row_key(old)]
+        if len(matches) != 1:
+            return None
+        replays.append(matches[0])
+    fields = ("asset_name", "ticker", "transaction_type", "transaction_date", "amount_low", "amount_high")
+    if (replays[0]["owner"] != "Self" or replays[1]["owner"] != "Undisclosed"
+            or any(replays[0].get(field) != old.get(field) for field in fields)):
+        return None
+    return {"source_sha256": legacy["source_sha256"], "document_id": legacy["document_id"],
+            "legacy_parser_version": PARSER_VERSION, "source_rows_index": locators[0],
+            "page_number": old["page_number"], "cells": deepcopy(old["cells"]),
+            "source_rows_sha256": hashlib.sha256(json.dumps(inventory, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "basis": "whole_saved_source_input_replayed_with_two_defaults_no_explicit_owner"}
+
+
+def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
+                            formal: list[dict], record: dict) -> tuple[dict, dict]:
+    """Only an exact source row can carry an old formal identity into v7."""
+    from .oge_transaction_adapter import _row_key, adapt_oge_278t_extraction
+    result = deepcopy(extraction)
+    receipt = {"retained_formal_ids": [row["id"] for row in formal], "field_corrections": [],
+               "inherited_ids": [], "unbound_formal_ids": [], "blocked_new_count": 0}
+    if len(set(receipt["retained_formal_ids"])) != len(formal):
+        raise OgeCatalogError("existing formal report repeats an identity")
+    if not formal:
+        return result, receipt
+    bound = {}
+    if legacy is not None:
+        if (not isinstance(legacy, dict) or any(legacy.get(field) != extraction.get(field)
+                for field in ("document_id", "source_id", "source_sha256", "source_url",
+                              "catalog_filer_name", "agency", "position_title")) or
+                legacy.get("schema_version") != EXTRACTION_SCHEMA):
+            raise OgeCatalogError("legacy extraction differs from generic source")
+        # This validates inventory closure/catalog binding without re-extraction.
+        adapt_oge_278t_extraction(legacy, record)
+        for old in legacy["transactions"]:
+            identifier = old.get("extraction_id")
+            if identifier in bound:
+                raise OgeCatalogError("legacy extraction repeats a formal identity")
+            bound[identifier] = old
+    proven = {}
+    compare = ("owner", "ticker", "transaction_type", "transaction_date",
+               "amount_low", "amount_high", "amount_low_exclusive")
+    for fact in formal:
+        old = bound.get(fact["id"])
+        if (old is not None and isinstance(old.get("cells"), list)
+                and all(fact.get(field) == old.get(field) for field in compare)
+                and fact.get("asset_name") == (f"{old['asset_name']} — {old['account_title']}"
+                                               if old.get("account_title") else old.get("asset_name"))
+                and fact.get("person_id") == (TRUMP_PERSON_ID if _fixed_trump_sept_source(legacy, record)
+                                               else _person_id(_identity_key(record)))
+                and fact.get("filed_at") == f"{legacy.get('filed_at')}T00:00:00Z"):
+            key = (_row_key(old), old.get("account_title"))
+            proven.setdefault(key, []).append(old)
+        else:
+            receipt["unbound_formal_ids"].append(fact["id"])
+    all_new = result["transactions"] + result["quarantined"]
+    counts = {}
+    for row in all_new:
+        key = (_row_key(row), row.get("account_title"))
+        counts[key] = counts.get(key, 0) + 1
+    for key, rows in proven.items():
+        if len(rows) == 1 and counts.get(key) == 1:
+            receipt["inherited_ids"].append(rows[0]["extraction_id"])
+    inherited = set(receipt["inherited_ids"])
+    unmatched_pages = {old.get("page_number") for rows in proven.values() for old in rows
+                       if old["extraction_id"] not in inherited}
+    qualified, quarantined = [], []
+    for disposition, rows in (("qualified", result["transactions"]), ("quarantined", result["quarantined"])):
+        for row in rows:
+            key = (_row_key(row), row.get("account_title"))
+            matches = proven.get(key, [])
+            if len(matches) == 1 and matches[0]["extraction_id"] in inherited:
+                retained = deepcopy(matches[0])
+                retained["legacy_inheritance"] = {"basis": "same_source_exact_cells_and_formal_projection",
+                    "source_sha256": extraction["source_sha256"], "new_parser_version": GENERIC_PARSER_VERSION,
+                    "new_observation_reasons": row.get("reasons", [])}
+                proof = (_legacy_default_owner_evidence(legacy, retained) if
+                         row.get("owner") == "Undisclosed" and row.get("owner_disclosure_basis") ==
+                         "not_disclosed_in_bound_six_column_table" else None)
+                if proof is not None:
+                    correction = {"extraction_id": retained["extraction_id"], "field": "owner",
+                        "old_value": "Self", "new_value": "Undisclosed",
+                        "rule": "approved_v2_default_self_to_undisclosed/v1", "source_reference": proof}
+                    retained["owner"] = "Undisclosed"
+                    retained["owner_disclosure_basis"] = row["owner_disclosure_basis"]
+                    retained["legacy_inheritance"]["field_corrections"] = [correction]
+                    receipt["field_corrections"].append(correction)
+                qualified.append(retained)
+            elif receipt["unbound_formal_ids"] or legacy is None or row.get("page_number") in unmatched_pages:
+                reason = "legacy_source_binding_missing" if receipt["unbound_formal_ids"] or legacy is None else "legacy_row_correspondence_unresolved"
+                quarantined.append({**row, "reasons": sorted(set(row.get("reasons", []) + [reason]))})
+                receipt["blocked_new_count"] += 1
+            else:
+                (qualified if disposition == "qualified" else quarantined).append(row)
+    result["transactions"], result["quarantined"] = qualified, quarantined
+    return result, receipt
+
+
 def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         data_cutoff_at: str,
                         catalog_history: list[dict] | None = None,
-                        saved_observations_by_document: dict | None = None) -> tuple[dict, dict]:
+                        saved_observations_by_document: dict | None = None,
+                        legacy_extractions_by_document: dict | None = None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -130,6 +257,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     if not isinstance(saved, dict) or set(saved) - set(direct_by_id):
         raise OgeCatalogError("saved observation documents are outside the catalog")
     retained_from_history = len(set(direct_by_id) - set(current_direct_by_id))
+    legacy_inputs = legacy_extractions_by_document or {}
+    if not isinstance(legacy_inputs, dict) or set(legacy_inputs) - set(direct_by_id):
+        raise OgeCatalogError("legacy extraction documents are outside the catalog")
 
     identity_variants: dict[str, set[tuple[str, str, str]]] = {}
     for record in direct_by_id.values():
@@ -148,6 +278,15 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
+        generic = extraction.get("parser_version") == GENERIC_PARSER_VERSION
+        retained = [row for row in base.get("transactions", []) if generic and
+                    row.get("source_id") == "oge" and row.get("filing_id") == document_id
+                    and row.get("verification_status") == "official_matched"]
+        if any(row.get("source_url") != extraction.get("source_url") for row in retained):
+            raise OgeCatalogError("existing formal facts differ from generic report URL")
+        inheritance = None
+        if generic and record is not None:
+            extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record)
         observed = document_id in saved
         if observed:
             from .oge_transaction_adapter import materialize_oge_278t_observations
@@ -155,7 +294,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         reasons = []
         fixed_trump = _fixed_trump_sept_source(extraction, record)
         supported_parser = (
-            observed or extraction.get("parser_version") == PARSER_VERSION
+            observed or extraction.get("parser_version") in {PARSER_VERSION, GENERIC_PARSER_VERSION}
             or (extraction.get("parser_version") in {
                 TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -178,6 +317,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             reasons.append("catalog_binding_mismatch")
         if extraction.get("evidence_complete") is not True or extraction.get("document_reasons"):
             reasons.append("document_evidence_incomplete")
+        from .oge_transaction_adapter import generic_cover_evidence_valid, open_amount_qualified, amount_range_qualified
+        if generic and not generic_cover_evidence_valid(extraction):
+            reasons.append("cover_date_evidence_invalid")
         if record is not None and record.get("pending_final_oge_disposition") is True:
             reasons.append("pending_final_oge_disposition")
         if record is not None and record.get("amended_label"):
@@ -200,6 +342,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             reasons.append("extraction_rows_invalid")
             source_rows, source_quarantine = [], []
         report_promoted = 0
+        retained_by_id = {row["id"]: row for row in retained}
         row_quarantines = list(source_quarantine)
         for row in source_rows:
             row_reasons = list(reasons)
@@ -207,19 +350,36 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if extraction_id in retained_by_id and row.get("legacy_inheritance"):
+                if extraction_id in promoted_ids:
+                    raise OgeCatalogError("inherited formal identity is duplicated")
+                retained_fact = deepcopy(retained_by_id.pop(extraction_id))
+                for correction in row["legacy_inheritance"].get("field_corrections", []):
+                    if (correction["rule"] != "approved_v2_default_self_to_undisclosed/v1" or
+                            correction["field"] != "owner" or retained_fact["owner"] != correction["old_value"]):
+                        raise OgeCatalogError("unsupported inherited formal field correction")
+                    retained_fact["owner"] = correction["new_value"]
+                transactions.append(retained_fact)
+                promoted_ids.add(extraction_id)
+                report_promoted += 1
+                continue
             if (not isinstance(extraction_id, str) or extraction_id in seen_extractions or
                     not extraction_id.startswith("oge-278t:")):
                 row_reasons.append("extraction_id_invalid_or_duplicated")
             else:
                 seen_extractions.add(extraction_id)
-            if row.get("transaction_type") not in {"purchase", "sale"}:
+            if row.get("transaction_type") not in {"purchase", "sale", "exchange"}:
                 row_reasons.append("transaction_type_not_supported")
             if row.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
-                    observed and row.get("owner") == "Undisclosed"
+                    (observed or generic) and row.get("owner") == "Undisclosed"
                     and row.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
-                    and row.get("observation_reference", {}).get("source_sha256") == extraction.get("source_sha256")):
+                    and (generic and generic_cover_evidence_valid(extraction) or
+                         row.get("observation_reference", {}).get("source_sha256") == extraction.get("source_sha256"))):
                 row_reasons.append("owner_not_supported")
-            if type(row.get("amount_low")) is not int or type(row.get("amount_high")) is not int:
+            is_open = open_amount_qualified(row, extraction.get("parser_version"))
+            if not is_open and (type(row.get("amount_low")) is not int or type(row.get("amount_high")) is not int):
+                row_reasons.append("amount_range_invalid")
+            elif (generic or observed) and not amount_range_qualified(row, extraction.get("parser_version")):
                 row_reasons.append("amount_range_invalid")
             asset_name = row.get("asset_name")
             if not isinstance(asset_name, str) or not asset_name.strip():
@@ -262,7 +422,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 "filing_id": document_id,
                 "person_id": person_id,
                 "owner": row["owner"],
-                "asset_name": asset_name,
+                "asset_name": f"{asset_name} — {row['account_title']}" if row.get("account_title") else asset_name,
                 "ticker": ticker,
                 "ticker_mapping_basis": "filing_explicit" if ticker else None,
                 "instrument_type": _instrument(asset_name, ticker),
@@ -274,6 +434,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 "filed_at": f"{filed}T00:00:00Z",
                 "amount_low": row["amount_low"],
                 "amount_high": row["amount_high"],
+                **({"amount_low_exclusive": True} if is_open else {}),
                 "position_effect": "unknown",
                 "position_effect_basis": None,
                 "source_id": "oge",
@@ -282,8 +443,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 "verification_status": "official_matched",
             })
             report_promoted += 1
+        for fact in retained_by_id.values():
+            if fact["id"] in promoted_ids:
+                raise OgeCatalogError("retained formal identity is duplicated")
+            transactions.append(deepcopy(fact))
+            promoted_ids.add(fact["id"])
+            report_promoted += 1
+        if retained:
+            needed_people = {row["person_id"] for row in retained}
+            for person in base.get("people", []):
+                if person.get("id") in needed_people:
+                    people[person["id"]] = deepcopy(person)
+            if needed_people - set(people):
+                raise OgeCatalogError("retained formal people are absent from base")
         audit_reports.append({
             "document_id": document_id,
+            **({"legacy_inheritance": inheritance} if inheritance is not None else {}),
+            **({"cover_date_evidence": extraction.get("cover_date_evidence"),
+                "source_sha256": extraction["source_sha256"]} if generic else {}),
             **({"source_sha256": extraction["source_sha256"],
                 "observation_receipt": extraction["observation_receipt"]}
                if observed else {}),

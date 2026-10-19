@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_annual import PARSER_VERSION, SCHEMA, extract_annual_pdf
+from unison_snapshot.oge_annual import PARSER_VERSION, QUALIFIED_PARSER_VERSION, SCHEMA, extract_annual_pdf
 from unison_snapshot.oge_whitehouse import ANNUAL_ARCHIVE_SCHEMA
 
 
@@ -17,14 +17,23 @@ _ID = re.compile(r"[0-9a-f]{32}")
 _OUTPUT_NAME = "oge-278e-tables-v1.json"
 
 
-def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
+def extract_archived_reports(evidence_root: Path, review_root: Path, *, parser_version: str = PARSER_VERSION,
+                             document_ids: list[str] | None = None) -> dict:
     """Write audits only to review, never to the frontend candidate or main."""
     evidence = evidence_root.resolve()
     review = review_root.resolve()
     source = evidence / "oge" / "annual" / "reports"
     results = []
     failures = []
+    if parser_version not in {PARSER_VERSION, QUALIFIED_PARSER_VERSION}:
+        raise OgeCatalogError("annual review parser version is unsupported")
+    if parser_version == QUALIFIED_PARSER_VERSION and not document_ids:
+        raise OgeCatalogError("v3 annual development requires a fixed document allowlist")
+    if document_ids is not None and any(not _ID.fullmatch(value) for value in document_ids):
+        raise OgeCatalogError("annual document allowlist is invalid")
     for metadata_path in sorted(source.glob("*/*.json")):
+        if document_ids is not None and metadata_path.parent.name not in document_ids:
+            continue
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         document_id = metadata.get("document_id")
         sha = metadata.get("sha256")
@@ -37,18 +46,20 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
         pdf = evidence / metadata["archive_path"]
         try:
             result = extract_annual_pdf(pdf, source_url=metadata["document_url"],
-                                        source_sha256=sha, expected_filer=metadata["filer_name"])
+                                        source_sha256=sha, expected_filer=metadata["filer_name"],
+                                        **({"parser_version": parser_version} if parser_version != PARSER_VERSION else {}))
         except OgeCatalogError as exc:
             # Scanned annual covers can fail the strict text parser. Keep the
             # source and the reason visible without stopping other files.
             failures.append({"document_id": document_id, "source_sha256": sha,
                              "reason": str(exc)})
             continue
-        if result.get("schema_version") != SCHEMA or result.get("parser_version") != PARSER_VERSION:
+        if result.get("schema_version") != SCHEMA or result.get("parser_version") != parser_version:
             raise OgeCatalogError("OGE annual extraction contract is invalid")
         result["source_document_id"] = document_id
         result["evidence_archive_path"] = metadata["archive_path"]
-        target = review / "oge" / "annual" / "extractions" / document_id / sha / _OUTPUT_NAME
+        target = review / "oge" / "annual" / "extractions" / document_id / sha / (
+            _OUTPUT_NAME if parser_version == PARSER_VERSION else "oge-278e-tables-v3.json")
         target.parent.mkdir(parents=True, exist_ok=True)
         content = json.dumps(result, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":")).encode("utf-8")
@@ -67,18 +78,18 @@ def extract_archived_reports(evidence_root: Path, review_root: Path) -> dict:
             "production_qualification": result["production_qualification"],
             "promoted_to_candidate": 0,
         })
-    if not results:
+    if not results and (parser_version == PARSER_VERSION or not failures):
         raise OgeCatalogError("No archived annual OGE PDF is available for review")
     summary = {
         "schema_version": "oge-278e-annual-review-status/v1",
-        "parser_version": PARSER_VERSION,
+        "parser_version": parser_version,
         "archived_reports_reviewed": len(results),
         "archived_reports_failed": len(failures),
         "promoted_to_candidate": 0,
         "reports": results,
         "failures": failures,
     }
-    target = review / "oge" / "annual" / "extraction-status.json"
+    target = review / "oge" / "annual" / ("extraction-status.json" if parser_version == PARSER_VERSION else "extraction-status-v3.json")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(summary, ensure_ascii=False, sort_keys=True,
                                  separators=(",", ":")), encoding="utf-8")
@@ -89,8 +100,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--review-root", type=Path, required=True)
+    parser.add_argument("--parser-version", choices=(PARSER_VERSION, QUALIFIED_PARSER_VERSION), default=PARSER_VERSION)
+    parser.add_argument("--document-id", action="append")
     args = parser.parse_args()
-    summary = extract_archived_reports(args.evidence_root, args.review_root)
+    summary = extract_archived_reports(args.evidence_root, args.review_root, parser_version=args.parser_version,
+                                       document_ids=args.document_id)
     print(json.dumps({"reviewed": summary["archived_reports_reviewed"],
                       "promoted": summary["promoted_to_candidate"]}))
 

@@ -40,6 +40,25 @@ def page(number, words=None):
 
 
 class SenatePaperTests(unittest.TestCase):
+    def test_all_official_amount_columns_keep_their_meaning(self):
+        bands = [
+            (1980, "$1,001 - $15,000"), (2077, "$15,001 - $50,000"),
+            (2168, "$50,001 - $100,000"), (2255, "$100,001 - $250,000"),
+            (2342, "$250,001 - $500,000"), (2431, "$500,001 - $1,000,000"),
+            (2528, "Over $1,000,000"), (2617, "$1,000,001 - $5,000,000"),
+            (2704, "$5,000,001 - $25,000,000"),
+            (2792, "$25,000,001 - $50,000,000"), (2880, "Over $50,000,000"),
+        ]
+        for center, amount in bands:
+            with self.subTest(amount=amount):
+                words = [word("(S)", 650, 2280), word("Acme", 760, 2280),
+                         word("(Stock)", 980, 2280), word("09/01/26", 1730, 2280),
+                         word("X", 1412, 2280), word("X", center - 17, 2280)]
+                row = parse_paper_word_pages(
+                    REPORT, MANIFEST, [page(1), page(2, words)])["transactions"][0]
+                self.assertEqual(row["amount_raw"], amount)
+                self.assertNotIn("paper_amount_range_not_supported", row["quarantine_reasons"])
+
     def test_extracts_geometry_bound_row_and_skips_printed_example(self):
         words = [
             # The form's printed example is above the bounded data region.

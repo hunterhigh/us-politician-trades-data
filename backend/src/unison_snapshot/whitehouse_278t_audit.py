@@ -6,6 +6,7 @@ date or the equivalence of two PDFs.  This module never publishes facts.
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import date
 import hashlib
 import math
@@ -40,6 +41,70 @@ _OFFICE_LABELS = {
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _EXTRACTION_ID = re.compile(r"oge-278t:[0-9a-f]{24}")
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+
+
+def resolve_exact_source_reports(extractions: list[dict], coverage: dict, *,
+                                existing_transactions: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
+    """Opt-in exact-byte aliases; differing interpretations never choose a winner.
+
+    The regular audit still assesses every canonical row. This relation only
+    removes additional URLs for the same bytes and reliable catalog identity.
+    No field-based cross-report equivalence is inferred here.
+    """
+    catalog = [row for row in coverage.get("reports", [])
+               if row.get("document_type") == "278t"]
+    document_ids = [report.get("document_id") for report in extractions]
+    if (any(not isinstance(value, str) or not value for value in document_ids) or
+            len(set(document_ids)) != len(document_ids)):
+        raise OgeCatalogError("White House exact-source document identities are missing or duplicated")
+    groups = defaultdict(list)
+    for report in extractions:
+        identity, reasons = _catalog_identity(report, catalog)
+        sha = report.get("source_sha256")
+        source = urlsplit(report.get("source_url") or "")
+        official = (source.scheme == "https" and source.netloc.casefold() in {
+            "whitehouse.gov", "www.whitehouse.gov"} and not source.fragment and
+            source.path.startswith("/wp-content/uploads/") and source.path.casefold().endswith(".pdf"))
+        if (identity is not None and not reasons and official and
+                report.get("schema_version") == EXTRACTION_SCHEMA and
+                isinstance(sha, str) and _SHA256.fullmatch(sha)):
+            groups[(sha, _identity_key(identity))].append(report)
+    aliases, removed = [], set()
+    for (sha, identity_key), reports in groups.items():
+        if len(reports) < 2:
+            continue
+        if len(reports) != sum(report.get("source_sha256") == sha for report in extractions):
+            continue
+        def interpretation(report):
+            result = deepcopy(report)
+            for key in ("document_id", "source_url"):
+                result.pop(key, None)
+            result["transactions"] = [{key: value for key, value in row.items() if key != "extraction_id"}
+                                      for row in report.get("transactions", [])]
+            return result
+        if any(interpretation(report) != interpretation(reports[0]) for report in reports[1:]):
+            continue
+        numbers = [row.get("row_number") for row in [*reports[0]["transactions"], *reports[0]["quarantined"]]]
+        if len(set(numbers)) != len(numbers):
+            continue
+        existing_urls = {row.get("source_url") for row in existing_transactions or []}
+        prior = [report for report in reports if report["source_url"] in existing_urls]
+        if len(prior) > 1:
+            continue
+        canonical = prior[0] if prior else min(reports, key=lambda report: report["document_id"])
+        members = sorted(reports, key=lambda report: report["document_id"])
+        aliases.append({"source_sha256": sha, "identity_key": list(identity_key),
+                        "canonical_document_id": canonical["document_id"],
+                        "sources": [{"document_id": report["document_id"],
+                                     "source_url": report["source_url"],
+                                     "source_sha256": sha,
+                                     "rows": [{"row_number": row.get("row_number"),
+                                               "extraction_id": row.get("extraction_id")}
+                                              for row in [*report["transactions"], *report["quarantined"]]]}
+                                    for report in members]})
+        removed.update(report["document_id"] for report in members if report is not canonical)
+    return ([deepcopy(report) for report in extractions if report["document_id"] not in removed],
+            sorted(aliases, key=lambda relation: relation["canonical_document_id"]))
 
 
 def _words(value: str) -> str:
@@ -326,7 +391,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                           existing_oge_candidate: dict,
                           annual_extractions: list[dict] | None = None,
                           directory_index: dict | None = None,
-                          annual_identity_people: list[dict] | None = None) -> dict:
+                          annual_identity_people: list[dict] | None = None,
+                          source_complete_extractions: list[dict] | None = None) -> dict:
     """Assess each archived public PDF and row without modifying source data.
 
     The caller must provide a verified OGE coverage artifact and the current
@@ -372,7 +438,23 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
            any(not isinstance(reason, str) for reason in item["document_reasons"])
            for item in extractions):
         raise OgeCatalogError("White House 278-T extraction contract is invalid")
-    for item in extractions:
+    complete = extractions if source_complete_extractions is None else source_complete_extractions
+    if source_complete_extractions is not None:
+        originals = {item["document_id"]: item for item in complete}
+        if len(originals) != len(complete):
+            raise OgeCatalogError("White House complete source census repeats a document")
+        for item in extractions:
+            original = originals.get(item["document_id"])
+            if original is None or {key: value for key, value in item.items() if key not in {"transactions", "quarantined"}} != {
+                    key: value for key, value in original.items() if key not in {"transactions", "quarantined"}}:
+                raise OgeCatalogError("White House selected rows changed complete source identity")
+            raw_rows = {row["extraction_id"]: row for row in [*original["transactions"], *original["quarantined"]]}
+            for row in [*item["transactions"], *item["quarantined"]]:
+                raw = raw_rows.get(row["extraction_id"])
+                if raw is None or {key: value for key, value in row.items() if key != "reasons"} != {
+                        key: value for key, value in raw.items() if key != "reasons"}:
+                    raise OgeCatalogError("White House selected row differs from complete source observation")
+    for item in complete:
         rows = [*item["transactions"], *item["quarantined"]]
         if str(item.get("extraction_method", "")).startswith(
                 "tesseract_ocr_geometry"):

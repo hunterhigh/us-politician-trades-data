@@ -234,6 +234,49 @@ def build_senate_status(evidence_root: Path, review_root: Path,
             "publication_transaction_ids": [], "publication_binding": "unknown",
         }
 
+    # Apply only source-bound coverage produced by the candidate's verified
+    # pending projection. Physical slots never become quarantined row counts.
+    pending = audit.get("paper_pending_projection") if audit_active else None
+    coverage_rows = list(pending.get("source_report_coverage", [])) if isinstance(pending, dict) else []
+    if audit_active:
+        for item in audit.get("paper_source_report_ledgers", []):
+            ledger = item["ledger"]
+            coverage_rows.append({"document_id": item["document_id"],
+                                  "source_sha256": ledger["document_sha256"],
+                                  "relation_coverage": ledger["relation_coverage"],
+                                  "logical_row_count": ledger["logical_row_count"],
+                                  "unknown_slot_count": ledger["disposition_counts"].get("unknown", 0),
+                                  "coverage_unknown_pages": ledger["coverage_unknown_pages"],
+                                  "unobserved_pages": ledger["unobserved_pages"]})
+    seen_coverage = {}
+    for coverage in coverage_rows:
+        document_id = coverage.get("document_id")
+        sha = coverage.get("source_sha256")
+        if document_id in seen_coverage:
+            if seen_coverage[document_id] != coverage:
+                raise ValueError("Senate paper coverage disagrees for a report")
+            continue
+        seen_coverage[document_id] = coverage
+        record = records.get(document_id)
+        if record is None or sha not in record["source_versions"]:
+            continue
+        active_shas = {item["source_sha256"] for item in extractions[document_id]}
+        if active_shas and active_shas != {sha}:
+            continue
+        record["source_row_coverage"] = coverage
+        if coverage.get("relation_coverage") != "accounted":
+            record["reason_codes"] = sorted({*record["reason_codes"], "source_row_coverage_incomplete"})
+            if record["qualification_state"] == "qualified":
+                record["qualification_state"] = "partial"
+            elif record["qualification_state"] == "zero_transactions":
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+            elif (record["qualification_state"] == "quarantined" and
+                  record["qualified_transaction_count"] == record["quarantined_row_count"] == 0):
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+                record["quarantined_row_count"] = None
+
     qualified_id_to_report = {}
     for document_id, rows in qualified.items():
         for row in rows:

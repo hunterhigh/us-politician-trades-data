@@ -61,9 +61,12 @@ class ObservedCandidateTests(unittest.TestCase):
     def test_owner_absence_does_not_inherit_parser_default(self):
         result, audit = candidate(bundle([ROW]))
         self.assertEqual(len(result["transactions"]), 2)
-        alpha = next(r for r in result["transactions"] if r["asset_name"] == "ALPHA")
+        alpha = next(row for row in result["transactions"] if row["asset_name"] == "ALPHA")
         self.assertEqual(alpha["owner"], "Undisclosed")
-        # User-approved unknown owner still passes the existing final consumer.
+        receipt = audit["reports"][0]["observation_receipt"]["rows"][0]
+        self.assertEqual(receipt["effective_account_context"]["status"], "not_observed")
+        self.assertIn("coverage_warning", receipt["effective_account_context"])
+        # Missing optional account title is independent of approved unknown owner.
         self.assertTrue(build(result, generated_at="2025-06-04T00:00:00Z", allow_production=True).manifest["snapshot_id"])
 
     def test_owner_heading_conflict_never_becomes_undisclosed_fallback(self):

@@ -418,6 +418,25 @@ def build_oge_status(evidence_root: Path, review_root: Path,
         direct["limitations"].append("direct_qualification_artifact_unavailable")
 
     public = _build_whitehouse(evidence, review)
+    trade = _read(review / "whitehouse/qualifications/candidate-current.json")
+    if trade.get("schema_version") == "whitehouse-278t-exact-source-candidate/v1":
+        direct_by_id = {row["report_id"]: row for row in direct["reports"]}
+        public_by_id = {row["report_id"]: row for row in public["reports"]}
+        for relation in _rows(trade, "cross_source_relations"):
+            record = direct_by_id.get(relation.get("oge_document_id"))
+            canonical = public_by_id.get(relation.get("canonical_document_id"))
+            sha = relation.get("source_sha256")
+            if (record is None or canonical is None or sha not in record["source_versions"] or
+                    sha not in canonical["source_versions"] or record["source_url"] != relation.get("oge_source_url")):
+                direct["limitations"].append("cross_source_exact_alias_archive_binding_unavailable")
+                continue
+            record["exact_source_related_report_id"] = canonical["report_id"]
+            record["exact_source_sha256"] = sha
+            if relation.get("oge_formal_transaction_count") == 0:
+                record["qualification_state"] = "superseded"
+                record["qualified_transaction_count"] = 0
+                record["quarantined_row_count"] = 0
+                record["reason_codes"].append("exact_source_copy_alias_to_whitehouse")
     result = [direct, request, public]
     _bind_publication(result, transactions, holdings)
     return result
@@ -535,6 +554,44 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if _date(audit.get("filing_date")):
             record["filed_date" if version_bound else "observed_filed_date"] = audit["filing_date"]
             record["filed_date_basis" if version_bound else "observed_filed_date_basis"] = "qualified_annual_report"
+    if trade.get("schema_version") == "whitehouse-278t-exact-source-candidate/v1":
+        for group in _rows(trade, "exact_source_aliases"):
+            canonical_id, sha = group.get("canonical_document_id"), group.get("source_sha256")
+            sources = _rows(group, "aliases")
+            canonical_source = next((source for source in sources
+                                     if source.get("document_id") == canonical_id), None)
+            if canonical_source is None:
+                raise ValueError("White House exact-source relation has no canonical source")
+            canonical_versions = {item["sha256"] for item in archives.get(canonical_id, [])}
+            for source in sources:
+                report_id, url = source.get("document_id"), source.get("source_url")
+                if (_official_id(url, True) != report_id or source.get("source_sha256") != sha):
+                    raise ValueError("White House exact-source alias identity is invalid")
+                record = by_id.setdefault(report_id, _record(report_id, url, "278t", "historical"))
+                if sha not in record["source_versions"] or sha not in canonical_versions:
+                    record["reason_codes"].append("exact_source_alias_archive_binding_missing")
+                    continue
+                record["exact_source_canonical_report_id"] = canonical_id
+                record["exact_source_sha256"] = sha
+                record["document_type"] = "278t"
+                if report_id != canonical_id:
+                    record["qualification_state"] = "superseded"
+                    record["qualified_transaction_count"] = 0
+                    record["quarantined_row_count"] = 0
+                    record["reason_codes"].append("exact_source_copy_alias")
+                else:
+                    retained_rows = [row for row in _rows(trade, "retained_rows") if row.get("document_id") == report_id]
+                    retained = sum(row.get("formal_source_url", url) == url for row in retained_rows)
+                    if retained:
+                        record["qualified_transaction_count"] = (record["qualified_transaction_count"] or 0) + retained
+                        record["qualification_state"] = ("partial" if record["quarantined_row_count"] else "qualified")
+                    foreign = [row for row in retained_rows if row.get("formal_source_url", url) != url]
+                    if foreign and len(foreign) == group.get("canonical_row_count"):
+                        record["qualification_state"] = "superseded"
+                        record["qualified_transaction_count"] = 0
+                        record["quarantined_row_count"] = 0
+                        record["reason_codes"].append("exact_source_rows_retained_at_official_oge_url")
+                        record["exact_source_formal_url"] = foreign[0]["formal_source_url"]
     scope["reports"] = list(by_id.values())
     return scope
 

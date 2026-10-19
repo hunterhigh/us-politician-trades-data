@@ -43,7 +43,7 @@ def observe_printed_number_sequence(observations: list[dict]) -> dict:
             counts["geometry_unknown_pages"] += 1
             continue
         slots = page.get("slots")
-        if not isinstance(slots, list) or not slots or len(slots) != physical_count or \
+        if not isinstance(slots, list) or len(slots) != physical_count or \
                 [slot.get("slot_index") for slot in slots] != list(range(1, len(slots) + 1)):
             raise ValueError(f"page {number} has invalid physical slots")
         raw_numbers = []

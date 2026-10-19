@@ -11,12 +11,12 @@ import re
 from urllib.parse import urlsplit
 
 from .senate import SenateEfdError
-from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA
+from .senate_reports import ELECTRONIC_EXTRACTION_SCHEMA, electronic_ptr_source_ledger
 from .senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
-CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-10-v4"
 AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v2"
 AMENDMENT_SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
 AMENDMENT_SUPPLEMENT_POINTER_SCHEMA = "senate-amendment-supplement-pointer/v1"
@@ -29,7 +29,9 @@ AMOUNT_RANGES = {
     "$500,001 - $1,000,000": (500001, 1000000),
     "$1,000,001 - $5,000,000": (1000001, 5000000),
     "$5,000,001 - $25,000,000": (5000001, 25000000),
+    "$25,000,001 - $50,000,000": (25000001, 50000000),
 }
+OPEN_AMOUNTS = {"Over $1,000,000": 1000000, "Over $50,000,000": 50000000}
 INSTRUMENT_TYPES = {
     "Stock": "Stock",
     "Stock Option": "Option",
@@ -394,6 +396,20 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not valid_reasons:
         reasons.append("qualification_reasons_invalid")
         raw_reasons = []
+    # Frozen electronic v2 extraction quarantined the official Exchange enum
+    # only because of an obsolete frontend assumption. The current HTML
+    # displays Other and counts these disclosure rows. Reassess that one rule
+    # here, preserving archived extraction bytes, source-row IDs and all other
+    # blockers. No two-sided trade or buy/sell interpretation is inferred.
+    explicit_exchange = (row.get("transaction_type") == "exchange" and
+                         isinstance(row.get("transaction_type_raw"), str) and
+                         row["transaction_type_raw"].strip().casefold() == "exchange")
+    if (explicit_exchange and qualification_status == "quarantined" and valid_reasons and
+            "exchange_requires_contract_resolution" in raw_reasons):
+        raw_reasons = [reason for reason in raw_reasons
+                       if reason != "exchange_requires_contract_resolution"]
+        if not raw_reasons:
+            qualification_status = "eligible"
     if qualification_status == "eligible":
         if raw_reasons:
             reasons.extend(["qualification_state_inconsistent", *raw_reasons])
@@ -405,10 +421,13 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(extraction_id, str) or not re.fullmatch(r"senate-ptr:[0-9a-f]{24}", extraction_id):
         reasons.append("extraction_id_invalid")
     amount = AMOUNT_RANGES.get(row.get("amount_raw"))
+    open_threshold = OPEN_AMOUNTS.get(row.get("amount_raw"))
+    if amount is None and open_threshold is not None:
+        amount = (open_threshold, None)
     if amount is None:
         reasons.append("amount_range_not_supported")
     transaction_type = row.get("transaction_type")
-    if transaction_type not in {"purchase", "sale"}:
+    if transaction_type not in {"purchase", "sale"} and not explicit_exchange:
         reasons.append("transaction_type_not_supported")
     owner_raw = row.get("owner_raw")
     if owner_raw not in {"Self", "Joint", "Spouse", "Child"}:
@@ -418,6 +437,19 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not isinstance(asset_name, str) or not asset_name.strip():
         reasons.append("asset_name_invalid")
     instrument = INSTRUMENT_TYPES.get(row.get("asset_type_raw"))
+    source_slot = row.get("source_slot")
+    source_ledger = extraction.get("source_report_ledger")
+    grid_missing_type = (
+        extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA and
+        extraction.get("paper_rule_version") == "senate-paper-form-geometry-2026-10-v2" and
+        row.get("asset_type_raw") is None and row.get("asset_type_disclosure") == "not_disclosed" and
+        isinstance(source_slot, dict) and isinstance(source_ledger, dict) and
+        source_ledger.get("document_sha256") == extraction.get("source_sha256") and
+        any({"page_number": source_slot.get("page_number"),
+             "slot_key": str(source_slot.get("grid_slot"))} in logical.get("slot_refs", [])
+            for logical in source_ledger.get("logical_rows", [])))
+    if grid_missing_type:
+        instrument = "Unspecified"
     reviewed_source = (
         (extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
          extraction.get("source_sha256") ==
@@ -489,6 +521,7 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
         "filed_at": f"{filed_date}T00:00:00Z",
         "amount_low": amount[0],
         "amount_high": amount[1],
+        **({"amount_low_exclusive": True} if open_threshold is not None else {}),
         "position_effect": "unknown",
         "position_effect_basis": None,
         "source_id": "senate_efd",
@@ -544,6 +577,15 @@ def build_senate_candidate(
                     len(item["ledger"]["coverage_unknown_pages"]) for item in relations),
                 "qualified_transaction_count": None,
             }
+            paper_pending_audit["source_report_coverage"] = [{
+                    "document_id": item["document_id"],
+                    "source_sha256": item["ledger"]["document_sha256"],
+                    "relation_coverage": item["ledger"]["relation_coverage"],
+                    "logical_row_count": item["ledger"]["logical_row_count"],
+                    "unknown_slot_count": item["ledger"]["disposition_counts"].get("unknown", 0),
+                    "coverage_unknown_pages": item["ledger"]["coverage_unknown_pages"],
+                    "unobserved_pages": item["ledger"]["unobserved_pages"],
+                } for item in relations]
     status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
     state_catalog = state_status.get("catalog")
     state_reports = state_status.get("reports")
@@ -633,6 +675,40 @@ def build_senate_candidate(
         extraction_values.append(extraction)
     if any(not isinstance(item.get("transactions"), list) for item in extraction_values):
         raise SenateEfdError("Senate extraction artifact has no transaction array")
+    electronic_ledgers, paper_ledgers = [], []
+    for item in extraction_values:
+        if item.get("schema_version") == PAPER_EXTRACTION_SCHEMA and "source_report_ledger" in item:
+            from .source_row_ledger import report_ledger
+            supplied = item["source_report_ledger"]
+            try:
+                if any(row.get("qualification") != "not_assessed" for row in supplied["logical_rows"]):
+                    raise ValueError("Source row ledger cannot grant qualification")
+                arguments = {key: supplied[key] for key in (
+                    "source_id", "document_sha256", "adapter_version", "page_count", "pages",
+                    "unresolved_data_slots")}
+                arguments["logical_rows"] = [{key: value for key, value in row.items()
+                                               if key != "qualification"} for row in supplied["logical_rows"]]
+                arguments["pages"] = [page for page in supplied["pages"]
+                                      if page["page_number"] not in supplied["unobserved_pages"]]
+                checked = report_ledger(**arguments)
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SenateEfdError("Senate paper source row ledger is invalid") from exc
+            if (supplied != checked or checked["source_id"] != "senate_efd" or
+                    checked["document_sha256"] != item["source_sha256"]):
+                raise SenateEfdError("Senate paper source row ledger differs from extraction")
+            locations = [(row.get("source_slot", {}).get("page_number"),
+                          str(row.get("source_slot", {}).get("grid_slot"))) for row in item["transactions"]]
+            linked = [(ref["page_number"], ref["slot_key"]) for row in checked["logical_rows"]
+                      for ref in row["slot_refs"]]
+            if len(locations) != len(set(locations)) or sorted(locations) != sorted(linked):
+                raise SenateEfdError("Senate paper facts do not conserve source grid rows")
+            paper_ledgers.append({"document_id": item["document_id"], "ledger": checked})
+        if item.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA:
+            continue
+        ledger = electronic_ptr_source_ledger(item["source_sha256"], item["transactions"])
+        if "source_report_ledger" in item and item["source_report_ledger"] != ledger:
+            raise SenateEfdError("Senate electronic source row ledger differs from its extraction")
+        electronic_ledgers.append({"document_id": item["document_id"], "ledger": ledger})
     extraction_document_ids = [item.get("document_id") for item in extraction_values]
     if (len(set(extraction_document_ids)) != len(extraction_document_ids) or
             any(document_id not in identity_by_document for document_id in extraction_document_ids)):
@@ -779,6 +855,14 @@ def build_senate_candidate(
                 "source_sha256": extraction.get("source_sha256"),
             })
             continue
+        source_coverage_unknown = (isinstance(extraction.get("source_report_ledger"), dict) and
+                                   extraction["source_report_ledger"].get("relation_coverage") != "accounted")
+        if source_coverage_unknown and not extraction["transactions"]:
+            report_reasons["source_row_coverage_incomplete"] += 1
+            quarantined_reports.append({"document_id": document_id,
+                                        "reasons": ["source_row_coverage_incomplete"],
+                                        "source_sha256": extraction["source_sha256"]})
+            continue
         person = _person(identity)
         person_id = person["id"]
         if person_id in people and people[person_id] != person:
@@ -831,7 +915,7 @@ def build_senate_candidate(
                 people[person_id] = person
                 person_documents[person_id] = document_id
             qualified_reports += 1
-            if report_quarantined_rows:
+            if report_quarantined_rows or source_coverage_unknown:
                 partially_qualified_reports += 1
             else:
                 fully_qualified_reports += 1
@@ -978,6 +1062,8 @@ def build_senate_candidate(
         "candidate_transaction_count": len(transactions),
         "candidate_holding_count": len(candidate["reported_holdings"]),
         "paper_pending_projection": paper_pending_audit,
+        "electronic_source_report_ledgers": electronic_ledgers,
+        "paper_source_report_ledgers": paper_ledgers,
         **annual_audit,
         "qualified_rows": qualified_rows,
         "quarantined_report_count": len(quarantined_reports),

@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
-PARSER_VERSION = "house-ptr-2026-04"
+PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
 PARSER_RETRY_VERSION = "house-parser-suite-2026-08"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
@@ -154,33 +154,42 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
         return exact, exact + (1 if cents and cents != "00" else 0), "exact"
     matched = AMOUNT_OVER_RE.fullmatch(value)
     if matched:
-        # Dollar values are integral in the frontend contract, so "over" starts at the next dollar.
-        return int(matched.group(1).replace(",", "")) + 1, None, "open_ended"
+        # Keep the disclosed threshold; an explicit exclusive marker carries "over".
+        return int(matched.group(1).replace(",", "")), None, "open_ended"
     return None
 
 
 def _modern_date_anchors(words: list[dict], width: float) -> list[float]:
-    """Find transaction-date rows without treating a notification date as an anchor."""
-    dates = [word for word in words if DATE_RE.fullmatch(_clean(str(word.get("text", ""))))]
-    anchors: list[float] = []
-    # pdfplumber can place a glyph fractionally left of the drawn cell border.  One point is
-    # intentionally smaller than the gap between the transaction and notification columns.
-    left = 0.53 * width - 1.0
-    split = 0.62 * width
-    right = 0.725 * width + 1.0
-    transactions = sorted((word for word in dates
-                           if left <= float(word["x0"]) < split),
-                          key=lambda word: float(word["top"]))
-    for transaction in transactions:
-        top = float(transaction["top"])
-        same_line = [word for word in dates
-                     if abs(float(word["top"]) - top) <= 2.0
-                     and left <= float(word["x0"]) < right]
-        # Requiring the second, rightward date prevents a slightly left-shifted notification
-        # date from being promoted to a transaction anchor by the boundary tolerance.
-        if not any(float(word["x0"]) >= split for word in same_line):
-            continue
-        anchors.append(top)
+    """Locate native rows without requiring the optional notification value.
+
+    A rightward notice date alone cannot anchor a row. Direction, an asset
+    cell and an amount also locate rows with a damaged/missing event date,
+    which must reach qualification rather than disappear.
+    """
+    left, split = 0.53 * width - 1.0, 0.62 * width
+    candidates = [word for word in words
+                  if (left <= float(word["x0"]) < split and
+                      DATE_RE.fullmatch(_clean(str(word.get("text", "")))))
+                  or (0.42 * width <= float(word["x0"]) < 0.53 * width and
+                      re.fullmatch(r"[PSE](?:\s*\(partial\))?",
+                                   _clean(str(word.get("text", ""))), re.I))]
+    anchors = []
+    for candidate in sorted(candidates, key=lambda item: float(item["top"])):
+        top = float(candidate["top"])
+        line = [word for word in words if abs(float(word["top"]) - top) <= 2.0]
+        has_asset = any(0.165 * width <= float(word["x0"]) < 0.42 * width for word in line)
+        has_type = any(0.42 * width <= float(word["x0"]) < 0.53 * width and
+                       re.fullmatch(r"[PSE](?:\s*\(partial\))?",
+                                    _clean(str(word.get("text", ""))), re.I) for word in line)
+        has_notice = any(split <= float(word["x0"]) < 0.725 * width + 1 and
+                         DATE_RE.fullmatch(_clean(str(word.get("text", "")))) for word in line)
+        has_amount = any(0.725 * width <= float(word["x0"]) < 0.90 * width and
+                         "$" in str(word.get("text", "")) for word in line)
+        event_token = left <= float(candidate["x0"]) < split
+        if has_asset and ((event_token and (has_type or has_notice)) or
+                          (has_type and has_amount)):
+            if not any(abs(top - existing) <= 2 for existing in anchors):
+                anchors.append(top)
     return anchors
 
 
@@ -423,6 +432,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
                 "transaction_type": transaction_type, "transaction_date": transaction_date,
                 "notification_date": notification_date, "amount_low": amount[0],
                 "amount_high": amount[1], "amount_kind": amount[2], "amount_raw": None,
+                **({"amount_low_exclusive": False} if amount[1] is None else {}),
                 "ocr_confidence": (round(sum(confidences) / len(confidences), 2) if confidences else None),
                 "subholding_of": None, "location": None, "description": None,
                 "evidence": {"page": page_index + 1, "pages": [page_index + 1],
@@ -547,7 +557,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             evidence_segments.append({"page": segment_page_index + 1,
                                       "bbox_points": [round(0.04 * segment["width"], 2), round(start, 2),
                                                        round(0.90 * segment["width"], 2), round(end, 2)]})
-        transaction_date = _line(words, x0=0.53 * width - 1.0, x1=0.62 * width, top=top)
+        transaction_date = _line(words, x0=0.53 * width - 1.0, x1=0.62 * width - 1.0, top=top)
         notification_date = _line(words, x0=0.62 * width, x1=0.725 * width, top=top)
         raw_type = _line(words, x0=0.42 * width, x1=0.53 * width, top=top)
         reported_transaction_id = _line(words, x0=0.04 * width, x1=0.105 * width, top=top)
@@ -597,21 +607,27 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                 details[last_detail] = (details[last_detail] + " " + line).strip()
         if "filing_status" in details:
             details["filing_status"] = _canonical_filing_status(details["filing_status"])
-        try:
-            transaction_iso = datetime.strptime(transaction_date, "%m/%d/%Y").date().isoformat()
-            notification_iso = datetime.strptime(notification_date, "%m/%d/%Y").date().isoformat()
-        except ValueError:
-            raise HouseIndexError("House PTR row has an invalid date") from None
+        field_problems = []
+        def event_iso(raw: str, field: str) -> str | None:
+            try:
+                return datetime.strptime(raw, "%m/%d/%Y").date().isoformat()
+            except ValueError:
+                if field == "transaction_date":
+                    field_problems.append("transaction_date_invalid")
+                return None
+        transaction_iso = event_iso(transaction_date, "transaction_date")
+        notification_iso = event_iso(notification_date, "notification_date")
         amount_value = _parse_amount(amount)
         asset_match = ASSET_RE.fullmatch(asset)
         type_code = raw_type[:1]
-        if not amount_value or not asset_match or type_code not in TYPE_CODES:
-            failures = ",".join(name for name, valid in (("amount", amount_value is not None),
-                ("asset", asset_match is not None), ("transaction_type", type_code in TYPE_CODES)) if not valid)
-            raise HouseIndexError(
-                f"House PTR page {page_number} row {position + 1} has unsupported {failures} layout")
-        asset_name, ticker, asset_type_code = asset_match.groups()
-        amount_low, amount_high, amount_kind = amount_value
+        if amount_value is None:
+            field_problems.append("amount_cell_unresolved")
+        if asset_match is None:
+            field_problems.append("asset_cell_unresolved")
+        if type_code not in TYPE_CODES:
+            field_problems.append("transaction_type_unresolved")
+        asset_name, ticker, asset_type_code = asset_match.groups() if asset_match else (asset, None, None)
+        amount_low, amount_high, amount_kind = amount_value if amount_value else (None, None, None)
         option_type, strike_price, expiration_date = _parse_option_details(details.get("description")) \
             if ASSET_TYPES.get(asset_type_code) == "Option" else (None, None, None)
         ocr_confidences = [float(word["ocr_confidence"]) for _, word in block
@@ -647,12 +663,17 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "strike_price": strike_price,
             "expiration_date": expiration_date,
             "transaction_type_raw": raw_type,
-            "transaction_type": TYPE_CODES[type_code],
+            "transaction_type": TYPE_CODES.get(type_code),
             "transaction_date": transaction_iso,
             "notification_date": notification_iso,
+            "field_problems": field_problems,
+            "raw_cells": {"asset": asset, "owner": raw_owner, "type": raw_type,
+                          "transaction_date": transaction_date, "notification_date": notification_date,
+                          "amount": amount},
             "amount_low": amount_low,
             "amount_high": amount_high,
             "amount_kind": amount_kind,
+            **({"amount_low_exclusive": True} if amount_kind == "open_ended" else {}),
             "amount_raw": amount,
             "ocr_confidence": (round(sum(ocr_confidences) / len(ocr_confidences), 2)
                                if ocr_confidences else None),
@@ -672,6 +693,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
     return {
+        "source_report_ledger": _modern_report_ledger(source_sha256, page_data, extracted),
         "schema_version": SCHEMA,
         "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
@@ -684,6 +706,32 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
     }
+
+
+def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) -> dict:
+    from .source_row_ledger import page_ledger, report_ledger
+    page_slots = {number: [] for number in range(1, len(pages) + 1)}
+    logical = []
+    for index, row in enumerate(rows, start=1):
+        refs = []
+        for segment in row["evidence"]["segments"]:
+            number = segment["page"]
+            key = f"row-{index}-segment-{number}"
+            bounds = segment["bbox_points"]
+            page_slots[number].append({"local_key": key, "bounds": [bounds[1], bounds[3]],
+                                       "disposition": "data_candidate",
+                                       "observation_ref": row["extraction_id"]})
+            refs.append({"page_number": number, "slot_key": key})
+        logical.append({"local_key": f"row-{index}", "slot_refs": refs,
+                        "observation_ref": row["extraction_id"]})
+    observed = [page_ledger(source_id="house_clerk", document_sha256=source_sha,
+                  page_number=number, adapter_version=PARSER_VERSION,
+                  coverage="unknown", coverage_reason="native_row_anchors_not_complete_page_census",
+                  coordinate_frame="source_page_pdf_points", slots=page_slots[number])
+                for number in page_slots]
+    return report_ledger(source_id="house_clerk", document_sha256=source_sha,
+                         adapter_version=PARSER_VERSION, page_count=len(pages),
+                         pages=observed, logical_rows=logical)
 
 
 def qualify_automatic(extraction: dict, identity: dict) -> dict:
@@ -717,13 +765,16 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
     quarantined: list[dict] = []
     advisories: list[dict] = []
     for row in extraction.get("transactions", []):
-        reasons: list[str] = []
+        reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
             reasons.append("identity_not_deterministic")
         if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
             reasons.append("revision_relationship_unresolved")
-        if row.get("amount_kind") == "open_ended" or row.get("amount_high") is None:
-            reasons.append("open_ended_amount_not_representable")
+        if row.get("amount_high") is None:
+            if row.get("amount_kind") != "open_ended":
+                reasons.append("amount_upper_bound_missing")
+            elif type(row.get("amount_low_exclusive")) is not bool:
+                reasons.append("open_ended_amount_not_representable")
         if str(extraction.get("extraction_method", "")).startswith("tesseract_") and (
                 not isinstance(row.get("ocr_confidence"), (int, float))
                 or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):
@@ -739,7 +790,7 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
                 r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
             reasons.append("ticker_invalid")
         low, high = row.get("amount_low"), row.get("amount_high")
-        if type(low) is not int or (high is not None and type(high) is not int) or \
+        if type(low) is not int or low < 0 or (high is not None and type(high) is not int) or \
                 (type(high) is int and not 0 <= low <= high):
             reasons.append("amount_invalid")
         parsed_dates = {}
@@ -796,7 +847,9 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             **({"option_type": option_type, "strike_price": strike_price,
                 "expiration_date": expiration_date} if row.get("instrument_type") == "Option" else {}),
             "transaction_date": row["transaction_date"], "filed_at": filed_at,
-            "amount_low": low, "amount_high": high, "position_effect": "unknown",
+            "amount_low": low, "amount_high": high,
+            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
+            "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": source["source_url"], "verification_status": "official_matched",
         })
@@ -815,6 +868,8 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         "document_id": document_id,
         "identity": identity,
         "document_disposition": disposition,
+        **({"source_report_ledger": extraction["source_report_ledger"]}
+           if "source_report_ledger" in extraction else {}),
         "transactions": transactions,
         "quarantined": quarantined,
         "advisories": advisories,
@@ -1072,7 +1127,9 @@ def promote_review(extraction: dict, review: dict) -> dict:
             advisories.append({"extraction_id": extraction_id, "issues": notice_issues,
                                "source_sha256": extraction.get("source_sha256")})
         low, high = row.get("amount_low"), row.get("amount_high")
-        if type(low) is not int or type(high) is not int or not 0 <= low <= high:
+        if (type(low) is not int or low < 0 or
+                (high is None and type(row.get("amount_low_exclusive")) is not bool) or
+                (high is not None and (type(high) is not int or low > high))):
             raise HouseIndexError("House PTR reviewed row has an invalid amount range")
         transactions.append({
             "id": extraction_id, "filing_id": review["document_id"], "person_id": person_id,
@@ -1080,7 +1137,9 @@ def promote_review(extraction: dict, review: dict) -> dict:
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
             "transaction_date": row["transaction_date"], "filed_at": filed_at_text,
-            "amount_low": low, "amount_high": high, "position_effect": "unknown",
+            "amount_low": low, "amount_high": high,
+            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
+            "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": extraction["source"]["source_url"], "verification_status": "official_matched",
         })

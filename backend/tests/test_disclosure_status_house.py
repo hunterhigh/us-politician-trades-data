@@ -94,6 +94,23 @@ class HouseDisclosureStatusTests(unittest.TestCase):
         self.assertIsNone(reports["5"]["qualified_transaction_count"])
         self.assertEqual(reports["2"]["reason_codes"], ["amount_unknown"])
 
+    def test_observed_rows_do_not_claim_complete_source_coverage(self):
+        self.archive("1")
+        self.artifact("extractions", "1")
+        ledger = {"source_id": "house_clerk", "document_sha256": "a" * 64,
+                  "relation_coverage": "partial_unknown"}
+        self.artifact("qualifications", "1", transactions=[{"id": "one"}],
+                      quarantined=[], qualification={}, source_report_ledger=ledger)
+        report = self.result()["reports"][0]
+        self.assertEqual(report["qualification_state"], "partial")
+        self.assertEqual(report["qualified_transaction_count"], 1)
+        self.assertIn("source_row_coverage_incomplete", report["reason_codes"])
+        ledger["document_sha256"] = "b" * 64
+        self.artifact("qualifications", "1", transactions=[{"id": "one"}],
+                      quarantined=[], qualification={}, source_report_ledger=ledger)
+        with self.assertRaisesRegex(ValueError, "ledger provenance mismatch"):
+            self.result()
+
     def test_latest_source_version_does_not_reuse_old_qualification(self):
         self.archive("1", timestamp="2026-10-14T00:00:00Z")
         self.artifact("extractions", "1")

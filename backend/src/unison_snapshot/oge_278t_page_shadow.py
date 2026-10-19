@@ -627,10 +627,10 @@ def reconcile_raster_ocr_rows(census: dict, ocr_records: list[dict], *,
         previous_bottom = -1.0
         for position, band in enumerate(bands, start=1):
             if (not isinstance(band, list) or len(band) != 2 or
-                    not all(isinstance(value, (int, float)) for value in band)):
+                    not all(type(value) in (int, float) and math.isfinite(value) for value in band)):
                 raise ValueError("raster slot band is invalid")
             top, bottom = map(float, band)
-            if top < previous_bottom or top >= bottom:
+            if top < 0 or top < previous_bottom or top >= bottom:
                 raise ValueError("raster slot bands overlap or are unordered")
             previous_bottom = bottom
             matches = [index for index, row_top in by_page.get(number, [])

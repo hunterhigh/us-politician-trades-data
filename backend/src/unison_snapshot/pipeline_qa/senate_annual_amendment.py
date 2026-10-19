@@ -19,7 +19,8 @@ from .migration_inventory import InventoryError, git_object
 
 
 _SHA = re.compile(r"[0-9a-f]{64}")
-_EXTRACTION = "senate-efd-annual-html-2026-09-v2.json"
+_EXTRACTIONS = ("senate-efd-annual-html-2026-10-v3.json",
+                "senate-efd-annual-html-2026-09-v2.json")
 _FACT_EXCLUDE = {"id", "filing_id", "source_url", "filed_at",
                  "ticker", "ticker_mapping_basis"}
 
@@ -56,10 +57,21 @@ def _report(repo: Path, evidence_commit: str, review_commit: str,
             metadata.get("document_url") !=
             f"https://efdsearch.senate.gov/search/view/annual/{filing_id}/"):
         raise InventoryError("Senate annual archive bytes or metadata mismatch")
-    extraction = _json(read_object(
-        repo, review_commit,
-        f"senate_efd/annual/extractions/{filing_id}/{digest}/{_EXTRACTION}"),
-        "Senate annual extraction")
+    for extraction_name in _EXTRACTIONS:
+        try:
+            extraction_raw = read_object(
+                repo, review_commit,
+                f"senate_efd/annual/extractions/{filing_id}/{digest}/{extraction_name}")
+        except (InventoryError, KeyError):
+            continue
+        # A present but invalid new artifact must not fall back to an older
+        # successful parse. Only absence permits the frozen legacy reader.
+        extraction = _json(extraction_raw, "Senate annual extraction")
+        if extraction_name == _EXTRACTIONS[0] and extraction.get("parser_version") != extraction_name[:-5]:
+            raise InventoryError("Senate annual new parser version does not match its artifact")
+        break
+    else:
+        raise InventoryError("Senate annual supported extraction is unavailable")
     if (extraction.get("source_sha256") != digest or
             extraction.get("document_id") != filing_id or
             extraction.get("source_url") != metadata["document_url"] or

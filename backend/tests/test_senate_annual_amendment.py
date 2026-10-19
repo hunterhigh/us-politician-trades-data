@@ -70,6 +70,27 @@ def _fixture():
 
 
 class SenateAnnualAmendmentTests(unittest.TestCase):
+    def test_current_parser_uses_existing_source_bound_amendment_rule(self):
+        fixture = _fixture()
+        objects = fixture[0]
+        for key in list(objects):
+            commit, path = key
+            if commit != REVIEW or NEW_ID not in path:
+                continue
+            extraction = json.loads(objects.pop(key))
+            extraction["parser_version"] = "senate-efd-annual-html-2026-10-v3"
+            objects[(commit, path.replace("2026-09-v2", "2026-10-v3"))] = json.dumps(extraction).encode()
+        report = self._run(fixture)
+        self.assertEqual(report["counts"]["reported_holdings"]["rekey"], 1)
+
+    def test_bad_new_extraction_is_not_hidden_by_available_legacy_parse(self):
+        fixture = _fixture()
+        objects = fixture[0]
+        path = next(path for commit, path in objects if commit == REVIEW and NEW_ID in path)
+        objects[(REVIEW, path.replace("2026-09-v2", "2026-10-v3"))] = b"{broken"
+        with self.assertRaisesRegex(InventoryError, "invalid Senate annual extraction"):
+            self._run(fixture)
+
     def _run(self, fixture):
         objects, paths, previous, unified, prepared, sources = fixture
         def read_object(repo, commit, path):

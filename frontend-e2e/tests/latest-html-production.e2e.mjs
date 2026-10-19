@@ -4,7 +4,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright-core';
+import { execFileSync } from 'node:child_process';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
+  ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright-core');
 
 // Extracted byte-for-byte outside the DATA assignment from the user-designated
 // 2026-09-29 HTML (source SHA-256 d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4).
@@ -36,7 +38,10 @@ if (previousRoot) {
   newTransactions = data.transactions.filter(row => !oldIds.has(row.id));
 }
 const money = value => '$' + new Intl.NumberFormat('en-US').format(value);
-const amountRange = row => `${money(row.amount_low)}–${money(row.amount_high)}`;
+const openAmount = (row, prefix = 'amount') => row[`${prefix}_high`] === null && typeof row[`${prefix}_low_exclusive`] === 'boolean';
+const amountRange = row => openAmount(row)
+  ? `${row.amount_low_exclusive ? 'Over ' : 'At least '}${money(row.amount_low)} · upper limit not disclosed`
+  : `${money(row.amount_low)}–${money(row.amount_high)}`;
 const dateLabel = value => {
   const [, year, month, day] = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/) || [];
   return year ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(month)-1]} ${Number(day)}` : String(value);
@@ -63,7 +68,20 @@ const work = mkdtempSync(path.join(tmpdir(), 'latest-html-'));
 const html = path.join(work, 'dashboard.html');
 // Keep the producer's exact serialized bytes (including its escaping) when
 // exercising the designated page code. Parsing above is only for assertions.
-writeFileSync(html, templateText.replace(PLACEHOLDER, match[1]), 'utf8');
+const hasOpen = data.transactions.some(row => openAmount(row)) || data.reported_holdings.some(row => openAmount(row, 'value'));
+if (hasOpen) assert.equal(data.meta.amount_policy, 'bounded-and-open-separate/v1');
+const approvedAmounts = data.meta.amount_policy === 'bounded-and-open-separate/v1';
+let selectedTemplate = templateText;
+if (approvedAmounts) {
+  // Reconstruct the explicit approved patch from repository code; do not trust
+  // arbitrary HTML around the producer's serialized DATA assignment.
+  const renderer = path.resolve(root, '../../frontend-contract-v3/scripts/render_dashboard.py');
+  selectedTemplate = execFileSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
+    'import runpy,sys;from pathlib import Path;sys.path.insert(0,str(Path(sys.argv[1]).resolve().parents[2]/"review-input/us-politician-trades-watch/scripts"));m=runpy.run_path(sys.argv[1]);print(m["approved_template"](),end="")', renderer],
+    { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+  assert.equal(selectedTemplate.split(PLACEHOLDER).length, 2);
+}
+writeFileSync(html, selectedTemplate.replace(PLACEHOLDER, match[1]), 'utf8');
 const browser = await chromium.launch({
   executablePath: browserExecutable(), headless: true,
   args: ['--allow-file-access-from-files'],
@@ -273,6 +291,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ status: 'passed', template_sha256: TEMPLATE_SHA256,
+    amount_policy: approvedAmounts ? data.meta.amount_policy : 'original-bounded',
     cutoff: data.meta.data_cutoff_at, transactions: data.transactions.length,
     new_transactions_checked: newTransactions.length, previous_board_compared: Boolean(previousRoot) }));
 } finally {

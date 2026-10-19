@@ -56,6 +56,22 @@ class HousePtrKeyFieldsShadowTests(unittest.TestCase):
         self.assertIn("event_date_ocr_edge_noise", row["source_quality_flags"])
         self.assertEqual(row["status"], "raw_fields_present_unverified")
 
+    def test_two_digit_year_requires_the_official_filing_year(self):
+        observed = report()
+        cells = observed["pages"][0]["rows"][0]["cells"]
+        cells["event_date"]["raw_text"] = "02/20/26 |"
+        cells["notification_date"]["raw_text"] = "03/02/26"
+        unknown = read_house_ptr_key_fields(observed)["rows"][0]
+        self.assertIsNone(unknown["fields"]["event_date"])
+        row = read_house_ptr_key_fields(observed, filing_year=2026)["rows"][0]
+        self.assertEqual(row["fields"]["event_date"], "2026-02-20")
+        self.assertEqual(row["fields"]["notification_date"], "2026-03-02")
+        self.assertEqual(cells["event_date"]["raw_text"], "02/20/26 |")
+        cells["event_date"]["raw_text"] = "02/20/99"
+        unrelated = read_house_ptr_key_fields(observed, filing_year=2026)["rows"][0]
+        self.assertIsNone(unrelated["fields"]["event_date"])
+        self.assertEqual(unrelated["fields"]["event_date_status"], "short_year_outside_filing_period")
+
     def test_noisy_date_and_second_mark_leave_field_blockers(self):
         observed = report()
         fields = observed["pages"][0]["rows"][0]["cells"]

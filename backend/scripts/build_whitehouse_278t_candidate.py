@@ -26,7 +26,10 @@ from urllib.parse import urlsplit
 from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
-from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_278t_candidate import (
+    build_whitehouse_278t_review_candidate, audit_whitehouse_278t_exact_source_candidate,
+    build_whitehouse_278t_exact_source_candidate, EXACT_COPY_SCHEMA,
+)
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
@@ -305,7 +308,8 @@ def _strip_prior_whitehouse(candidate: dict, audit: dict,
 
 
 def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
-        audit_out: Path, expected_report_count: int | None = None) -> dict:
+        audit_out: Path, expected_report_count: int | None = None,
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
@@ -313,8 +317,28 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     (extractions, annual_extractions, oge_coverage, directory, annual_people,
      provenance, failure_count) = _verify_review(
         review_root, expected_report_count=expected_report_count)
+    bindings = None
+    if exact_source_bindings is not None:
+        if not exact_source_copies:
+            raise ValueError("Exact source bindings require --exact-source-copies")
+        bindings, binding_sha = _read_object(exact_source_bindings)
+        provenance["exact_source_binding_file_sha256"] = binding_sha
     base, base_sha = _read_object(oge_candidate)
-    if any(urlsplit(row.get("source_url") or "").hostname in
+    if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
+        prior, _ = _read_object(audit_out)
+        if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
+                prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance):
+            normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
+            return {"idempotent": True, "audit_schema": EXACT_COPY_SCHEMA,
+                    "report_count": prior["report_count"],
+                    "promoted_transaction_count": prior["promoted_transaction_count"],
+                    "quarantined_row_count": prior["quarantined_row_count"],
+                    "exact_source_aliases": prior["exact_source_aliases"],
+                    "source_report_count": prior["source_report_count"],
+                    **({"cross_source_relations": prior["cross_source_relations"]}
+                       if "cross_source_relations" in prior else {}),
+                    "retained_existing_transaction_count": prior["retained_existing_transaction_count"]}
+    if not exact_source_copies and any(urlsplit(row.get("source_url") or "").hostname in
            {"whitehouse.gov", "www.whitehouse.gov"}
            for row in base.get("transactions", [])):
         if not audit_out.is_file() or candidate_out.resolve() != oge_candidate.resolve():
@@ -333,13 +357,19 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         ticker_audit = (_read_object(mapping_path)[0] if mapping_path.is_file() else None)
         base = _strip_prior_whitehouse(base, prior, ticker_audit)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
-    eligibility = audit_whitehouse_278t(
-        extractions, oge_coverage, base, annual_extractions, directory, annual_people)
-    candidate, conservation = build_whitehouse_278t_review_candidate(
+    eligibility = (audit_whitehouse_278t_exact_source_candidate(
+        base, extractions, oge_coverage, annual_extractions=annual_extractions,
+        directory_index=directory, annual_identity_people=annual_people,
+        source_bindings=bindings) if exact_source_copies else
+        audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions, directory, annual_people))
+    candidate_builder = (build_whitehouse_278t_exact_source_candidate if exact_source_copies else
+                         build_whitehouse_278t_review_candidate)
+    candidate, conservation = candidate_builder(
         base, extractions, eligibility, oge_coverage,
         data_cutoff_at=base["meta"]["data_cutoff_at"],
         annual_extractions=annual_extractions, directory_index=directory,
-        annual_identity_people=annual_people)
+        annual_identity_people=annual_people,
+        **({"source_bindings": bindings} if exact_source_copies else {}))
     conservation["catalog_report_count"] = len(extractions) + failure_count
     conservation["extraction_failure_count"] = failure_count
     if failure_count:
@@ -359,6 +389,13 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     audit_raw = _json_bytes(conservation)
     _write_pair(candidate_out, candidate_raw, audit_out, audit_raw)
     return {"idempotent": False, "report_count": conservation["report_count"],
+            **({"audit_schema": conservation["schema_version"],
+                "exact_source_aliases": conservation["exact_source_aliases"],
+                "source_report_count": conservation["source_report_count"],
+                **({"cross_source_relations": conservation["cross_source_relations"]}
+                   if "cross_source_relations" in conservation else {}),
+                "retained_existing_transaction_count": conservation["retained_existing_transaction_count"]}
+               if exact_source_copies else {}),
             "promoted_transaction_count": conservation["promoted_transaction_count"],
             "quarantined_row_count": conservation["quarantined_row_count"],
             "extraction_failure_count": failure_count}
@@ -371,11 +408,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--candidate-out", type=Path, required=True)
     parser.add_argument("--audit-out", type=Path, required=True)
     parser.add_argument("--expected-report-count", type=int)
+    parser.add_argument("--exact-source-copies", action="store_true",
+                        help="Opt in to same-PDF SHA aliases with reliable matching filer identity; preserve existing formal IDs")
+    parser.add_argument("--exact-source-bindings", type=Path,
+                        help="Optional archived OGE/White House metadata and old row receipts for cross-source aliases")
     args = parser.parse_args(argv)
     try:
         result = run(oge_candidate=args.oge_candidate, review_root=args.review_root,
                      candidate_out=args.candidate_out, audit_out=args.audit_out,
-                     expected_report_count=args.expected_report_count)
+                     expected_report_count=args.expected_report_count,
+                     exact_source_copies=args.exact_source_copies,
+                     exact_source_bindings=args.exact_source_bindings)
     except (OgeCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"White House 278-T candidate failed: {exc}", file=sys.stderr)
         return 1

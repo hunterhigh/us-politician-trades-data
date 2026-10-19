@@ -271,8 +271,10 @@ class HousePtrTests(unittest.TestCase):
             word("Nothing", 180, 250), word("to", 235, 250), word("report", 250, 250),
         ])
         next(item for item in pages[0]["words"] if item["text"] == "$1,001")["text"] = "unknown"
-        with self.assertRaisesRegex(HouseIndexError, "unsupported amount layout"):
-            parse_word_pages(META, "3" * 64, pages, copy_allowed=True)
+        extraction = parse_word_pages(META, "3" * 64, pages, copy_allowed=True)
+        self.assertNotIn("document_disposition", extraction)
+        self.assertIn("amount_cell_unresolved", extraction["transactions"][0]["field_problems"])
+        self.assertEqual(len(qualify_automatic(extraction, IDENTITY)["quarantined"]), 2)
 
     def test_bad_identity_and_unknown_layout_fail_closed(self):
         bad_header = fixture_pages()
@@ -281,8 +283,8 @@ class HousePtrTests(unittest.TestCase):
             parse_word_pages(META, "a" * 64, bad_header, copy_allowed=True)
         bad_amount = fixture_pages()
         next(word for word in bad_amount[0]["words"] if word["text"] == "$1,001")["text"] = "unknown"
-        with self.assertRaises(HouseIndexError):
-            parse_word_pages(META, "a" * 64, bad_amount, copy_allowed=True)
+        extraction = parse_word_pages(META, "a" * 64, bad_amount, copy_allowed=True)
+        self.assertIn("amount_cell_unresolved", extraction["transactions"][0]["field_problems"])
         with self.assertRaisesRegex(HouseIndexError, "requires OCR"):
             parse_word_pages(META, "a" * 64, [{"width": 612, "height": 792, "words": []}],
                              copy_allowed=True)
@@ -303,7 +305,8 @@ class HousePtrTests(unittest.TestCase):
                                         word("$1,000,000", 520, 326)])
         opened = parse_word_pages(META, "e" * 64, open_pages, copy_allowed=True)["transactions"][0]
         self.assertEqual((opened["amount_low"], opened["amount_high"], opened["amount_kind"]),
-                         (1000001, None, "open_ended"))
+                         (1000000, None, "open_ended"))
+        self.assertIs(opened["amount_low_exclusive"], True)
 
     def test_exact_cent_amount_uses_enclosing_integer_bounds_without_losing_source(self):
         pages = deepcopy(fixture_pages())
@@ -339,8 +342,9 @@ class HousePtrTests(unittest.TestCase):
              if item["text"] == "09/01/2026")["x0"] = 0.62 * notification_only[0]["width"] - 0.66
         notification_only[0]["words"] = [
             item for item in notification_only[0]["words"] if item["top"] < 393]
-        with self.assertRaisesRegex(HouseIndexError, "no recognized transaction rows"):
-            parse_word_pages(META, "0" * 64, notification_only, copy_allowed=True)
+        extraction = parse_word_pages(META, "0" * 64, notification_only, copy_allowed=True)
+        self.assertIsNone(extraction["transactions"][0]["transaction_date"])
+        self.assertEqual(len(qualify_automatic(extraction, IDENTITY)["transactions"]), 0)
 
     def test_filing_status_ignores_path_note_and_final_row_details_can_cross_page(self):
         polluted = deepcopy(fixture_pages())
@@ -364,8 +368,44 @@ class HousePtrTests(unittest.TestCase):
         no_detail = deepcopy(continued)
         no_detail[1]["words"] = [item for item in no_detail[1]["words"]
                                   if item["text"] not in {"Filing", "Status:", "New"}]
-        with self.assertRaisesRegex(HouseIndexError, "unsupported .*amount.* layout"):
-            parse_word_pages(META, "3" * 64, no_detail, copy_allowed=True)
+        unresolved = parse_word_pages(META, "3" * 64, no_detail, copy_allowed=True)
+        self.assertIn("amount_cell_unresolved", unresolved["transactions"][0]["field_problems"])
+
+
+    def test_missing_notice_and_bad_neighbor_reach_existing_candidate(self):
+        import json
+        import tempfile
+        from unison_snapshot.house_candidate import build_house_candidate
+        from test_house_candidate import BASE
+        pages = fixture_pages()
+        pages[0]["words"] = [item for item in pages[0]["words"] if item["text"] != "09/01/2026"]
+        next(item for item in pages[0]["words"] if item["text"] == "$15,001")["text"] = "unknown"
+        extraction = parse_word_pages(META, "4" * 64, pages, copy_allowed=True)
+        self.assertEqual(len(extraction["transactions"]), 2)
+        qualified = qualify_automatic(extraction, IDENTITY)
+        self.assertEqual((len(qualified["transactions"]), len(qualified["quarantined"])), (1, 1))
+        self.assertEqual(qualified["advisories"][0]["issues"], ["notification_date_invalid"])
+        self.assertEqual(qualified["source_report_ledger"]["logical_row_count"], 2)
+        self.assertEqual(qualified["source_report_ledger"]["relation_coverage"], "partial_unknown")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / "house_clerk/qualifications/2026/20000001/fixture.json"
+            target.parent.mkdir(parents=True)
+            target.write_text(json.dumps(qualified), encoding="utf-8")
+            status = root / "status/summary.json"
+            status.parent.mkdir(parents=True)
+            status.write_text(json.dumps({"parser_commit": "a" * 40, "pending_parse_count": 0,
+                "qualification_count": 1, "qualified_transaction_count": 1,
+                "quarantined_row_count": 1, "evidence_count": 1, "extracted_count": 1,
+                "failure_count": 0}), encoding="utf-8")
+            result = build_house_candidate(root, {"status": "ok", "run_at": "2026-09-18T12:00:00Z",
+                           "counts": {"archived": 1, "pending": 0, "failed": 0}}, deepcopy(BASE))
+            self.assertEqual(result["transactions"], qualified["transactions"])
+
+    def test_unchanged_native_ids_and_fields_are_preserved(self):
+        extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        self.assertEqual([row["extraction_id"] for row in extraction["transactions"]],
+                         ["house-ptr:d2161cf0764a2b2e5f47b935", "house-ptr:2cbdaad69cadf38bb2bccbb2"])
 
     def test_pending_review_cannot_be_promoted(self):
         extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
@@ -415,9 +455,13 @@ class HousePtrTests(unittest.TestCase):
         open_pages[0]["words"].extend([word("Over", 446, 326), word("$1,000,000", 486, 326)])
         open_extraction = parse_word_pages(META, "e" * 64, open_pages, copy_allowed=True)
         open_result = qualify_automatic(open_extraction, IDENTITY)
-        first_quarantine = next(item for item in open_result["quarantined"]
-                                if item["extraction_id"] == open_extraction["transactions"][0]["extraction_id"])
-        self.assertIn("open_ended_amount_not_representable", first_quarantine["reasons"])
+        opened = open_result["transactions"][0]
+        self.assertEqual((opened["amount_low"], opened["amount_high"], opened["amount_low_exclusive"]),
+                         (1000000, None, True))
+        del open_extraction["transactions"][0]["amount_low_exclusive"]
+        unknown = qualify_automatic(open_extraction, IDENTITY)
+        self.assertTrue(any("open_ended_amount_not_representable" in row["reasons"]
+                            for row in unknown["quarantined"]))
 
         ocr_extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False,
                                           ocr_engine="tesseract 5.3.0")

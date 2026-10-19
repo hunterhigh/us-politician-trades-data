@@ -6,7 +6,8 @@ import re
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
-from .legacy import PROCESSOR_V2_SHA256, load
+from .legacy import PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256, load
+from .disclosure_amounts import POLICY as AMOUNT_POLICY, is_open_amount, validate_amount
 from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
                            SOURCE_ID as MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID,
                            UNSUPPORTED_REASONS, MIXED_UNSUPPORTED_REASONS,
@@ -27,6 +28,8 @@ FIELDS = {
     "transactions": set("id filing_id person_id owner asset_name ticker ticker_mapping_basis instrument_type option_type strike_price expiration_date transaction_type transaction_date filed_at amount_low amount_high position_effect position_effect_basis source_id source source_url verification_status".split()),
     "reported_holdings": set("id filing_id person_id owner asset_name ticker ticker_mapping_basis instrument_type report_period_end filed_at value_low value_high change_from_prior source_id source source_url verification_status".split()),
 }
+OPTIONAL_FIELDS = {"transactions": {"amount_low_exclusive"},
+                   "reported_holdings": {"value_low_exclusive"}}
 
 
 @dataclass(frozen=True)
@@ -77,8 +80,9 @@ def normalize(payload: dict, *, allow_production: bool = False,
             continue
         seen = set()
         for row in rows:
-            if set(row) - FIELDS[kind]:
-                raise ValueError(f"Unexpected fields in {kind}: {sorted(set(row) - FIELDS[kind])}")
+            allowed = FIELDS[kind] | OPTIONAL_FIELDS.get(kind, set())
+            if set(row) - allowed:
+                raise ValueError(f"Unexpected fields in {kind}: {sorted(set(row) - allowed)}")
             key = required(row, "id")
             if key in seen:
                 raise ValueError(f"Duplicate {kind} id: {key}")
@@ -116,9 +120,7 @@ def normalize(payload: dict, *, allow_production: bool = False,
                 raise ValueError("Filing precedes disclosed event")
             if filed > timestamp(data["meta"]["data_cutoff_at"]):
                 raise ValueError("Filing exceeds coverage cutoff")
-            lo, hi = row.get(prefix + "_low"), row.get(prefix + "_high")
-            if type(lo) is not int or type(hi) is not int or not 0 <= lo <= hi:
-                raise ValueError("Disclosure ranges must be explicit nonnegative integers")
+            validate_amount(row, prefix)
             if kind == "transactions":
                 option_fields = (row.get("option_type"), row.get("strike_price"),
                                  row.get("expiration_date"))
@@ -175,6 +177,11 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # independent from coverage validation, which still reflects market rows.
     processor_version = "v2"
     processor_sha = PROCESSOR_V2_SHA256
+    has_open = any(is_open_amount(row, prefix)
+                   for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
+                   for row in data[kind])
+    if has_open:
+        processor_version, processor_sha = "v3", PROCESSOR_V3_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")
@@ -297,6 +304,8 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 "source_health": data["source_health"], "status_revision": digest(encode(data["source_health"])),
                 "is_demo": data["meta"]["is_demo"], "processor_sha256": processor_sha,
                 "coverage": coverage, **settings}
+    if has_open:
+        manifest["amount_policy"] = AMOUNT_POLICY
     if market_commit is not None:
         manifest["market_commit"] = market_commit
         manifest["market_pages"] = list(market_pages or [])
