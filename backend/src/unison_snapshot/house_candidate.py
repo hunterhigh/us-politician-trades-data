@@ -114,7 +114,9 @@ def _paper_pending_count(qualification: dict) -> int:
     return len(projected)
 
 
-def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> dict:
+def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
+                          annual_transaction_inputs: list[dict] | None = None,
+                          annual_transaction_audit: dict | None = None) -> dict:
     review_root = review_root.resolve()
     source_status = review_root / "status" / "house_clerk.json"
     summary = _read_json(source_status if source_status.is_file()
@@ -265,9 +267,36 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict) -> 
                                   for row in health]
     if not any(row.get("source_id") == "house_clerk" for row in health):
         candidate["source_health"].append(house_health)
+    # Consume saved annual B observations in the actual source candidate call.
+    # These decisions cannot replace PTRs or alter the holding report selector.
+    from .house_annual_sections import consume_schedule_b_inputs
+    inputs = annual_transaction_inputs
+    if inputs is None:
+        inputs = []
+        for path in sorted((review_root / "house_clerk/holding_section_observations").glob("*/*/*.json")):
+            relative = path.relative_to(review_root / "house_clerk/holding_section_observations")
+            observation = _read_json(path, "House annual section observation")
+            extract_path = review_root / "house_clerk/holding_extractions" / relative
+            identity_path = review_root / "house_clerk/holding_identities" / relative
+            inputs.append({"observation": observation,
+                           "extraction": _read_json(extract_path, "House annual extraction") if extract_path.is_file() else {},
+                           "identity": _read_json(identity_path, "House annual identity") if identity_path.is_file() else {}})
+    annual_audit = consume_schedule_b_inputs(inputs, transactions=candidate["transactions"],
+                                             reported_holdings=candidate["reported_holdings"])
+    if annual_transaction_audit is not None:
+        annual_transaction_audit.clear()
+        annual_transaction_audit.update(annual_audit)
+    if annual_audit["reports"]:
+        for row in candidate["source_health"]:
+            if row.get("source_id") == "house_clerk":
+                row["detail"] += (f"; annual B: {annual_audit['observed_row_count']} observations, "
+                                  f"{annual_audit['candidate_disposition_counts'].get('blocked_pending_relationship', 0)} blocked, "
+                                  f"{annual_audit['candidate_disposition_counts'].get('excluded_exact_source_copy', 0)} exact-copy exclusions")
     return candidate
 
 
-def load_house_candidate(review_root: Path, state_status_path: Path, base_path: Path) -> dict:
+def load_house_candidate(review_root: Path, state_status_path: Path, base_path: Path, *,
+                         annual_transaction_audit: dict | None = None) -> dict:
     return build_house_candidate(review_root, _read_json(state_status_path, "House source state"),
-                                 _read_json(base_path, "House candidate base"))
+                                 _read_json(base_path, "House candidate base"),
+                                 annual_transaction_audit=annual_transaction_audit)

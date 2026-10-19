@@ -12,7 +12,7 @@ from test_oge_content_relations import saved, column_read
 from test_oge_shadow_run import _inputs
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import build_oge_candidate
-from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations
+from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations, adapt_oge_278t_extraction
 from unison_snapshot.disclosure_status_oge import _apply_audit
 from unison_snapshot.oge_278t_field_shadow import observe_content_rows
 from unison_snapshot.builder import build
@@ -207,17 +207,84 @@ class ObservedCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(OgeCatalogError, "page count"):
             candidate(old=old)
 
-    def test_old_empty_cache_needs_no_scan_but_old_facts_without_inventory_fail(self):
+    def test_old_empty_cache_and_nonempty_reference_have_distinct_inventory_meanings(self):
         old = original()
         del old["source_rows"]
-        with self.assertRaises(OgeCatalogError):
-            candidate(old=old)
+        before = deepcopy(old)
+        result, audit = candidate(old=old)
+        self.assertEqual(len(result["transactions"]), 1)  # Only the independently observed new row.
+        self.assertEqual(old, before)
+        self.assertNotIn(old["transactions"][0]["extraction_id"], {row["id"] for row in result["transactions"]})
+        self.assertTrue(audit["reports"][0]["observation_receipt"]["legacy_normalized_not_sent_to_qualification"])
+        self.assertEqual(audit["reports"][0]["observation_receipt"]["legacy_normalized_transaction_count"], 1)
         old["transactions"] = []
         result, audit = candidate(old=old)
         self.assertEqual(len(result["transactions"]), 1)
         self.assertNotIn("source_rows", old)
         self.assertEqual(audit["reports"][0]["observation_receipt"]["legacy_inventory_basis"],
                          "empty_legacy_dispositions_without_physical_inventory")
+
+    def test_normalized_reference_without_cells_preserves_formal_fact_but_not_unknown_overlap(self):
+        old = original()
+        formal, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+        del old["source_rows"]
+        del old["transactions"][0]["cells"]
+        old["transactions"][0]["page_number"] = 2
+        before = deepcopy(formal["transactions"])
+        result, audit = build_oge_candidate(catalog(), [old], formal, data_cutoff_at="2025-06-04T00:00:00Z",
+            saved_observations_by_document={DOCUMENT_ID: bundle()})
+        self.assertEqual(result["transactions"], before)
+        self.assertIn("legacy_row_correspondence_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+        self.assertEqual(audit["reports"][0]["legacy_inheritance"]["retained_formal_ids"], [before[0]["id"]])
+
+    def test_nonformal_normalized_cache_does_not_block_new_same_page_observation(self):
+        old = original()
+        del old["source_rows"]
+        del old["transactions"][0]["cells"]
+        old["transactions"][0]["page_number"] = 2
+        result, audit = candidate(old=old)
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertEqual(result["transactions"][0]["asset_name"], "ALPHA")
+        self.assertNotIn("legacy_row_correspondence_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+        self.assertEqual(audit["reports"][0]["legacy_normalized_reference_count"], 1)
+
+    def test_unknown_formal_reference_is_preserved_and_blocks_unbound_new_overlap(self):
+        old = original()
+        formal, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
+        formal["transactions"][0]["id"] = "oge-278t:" + "e" * 24
+        del old["source_rows"]
+        del old["transactions"][0]["cells"]
+        before = deepcopy(formal["transactions"])
+        result, audit = build_oge_candidate(catalog(), [old], formal, data_cutoff_at="2025-06-04T00:00:00Z",
+            saved_observations_by_document={DOCUMENT_ID: bundle()})
+        self.assertEqual(result["transactions"], before)
+        self.assertIn("legacy_formal_reference_unbound", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+
+    def test_reference_can_feed_real_adapter_without_inventing_old_physical_rows(self):
+        old = original()
+        del old["source_rows"]
+        del old["transactions"][0]["cells"]
+        before = deepcopy(old)
+        materialized = materialize_oge_278t_observations(old, direct(), **bundle([ROW]))
+        adapted = adapt_oge_278t_extraction(materialized, direct())
+        self.assertEqual(old, before)
+        self.assertEqual(materialized["legacy_disposition_reference"]["source_extraction"], old)
+        self.assertEqual(adapted["row_count"], 1)
+        self.assertEqual(adapted["legacy_disposition_reference"]["normalized_transaction_count"], 1)
+        self.assertFalse(materialized["observation_receipt"]["coverage_complete"])
+        materialized["legacy_disposition_reference"]["source_extraction"]["transactions"][0]["asset_name"] = "tampered"
+        with self.assertRaisesRegex(OgeCatalogError, "altered or crossed"):
+            adapt_oge_278t_extraction(materialized, direct())
+
+    def test_nonempty_reference_rejects_cross_source_or_out_of_range_old_locators(self):
+        old = original()
+        del old["source_rows"]
+        old["transactions"][0]["page_number"] = 4
+        with self.assertRaisesRegex(OgeCatalogError, "page count"):
+            candidate(old=old)
+        old["source_url"] += "?wrong"
+        with self.assertRaisesRegex(OgeCatalogError, "archived catalog source"):
+            candidate(old=old)
 
     def test_existing_runner_writes_actual_candidate_and_bound_receipt(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -255,6 +322,35 @@ class ObservedCandidateTests(unittest.TestCase):
                               "ticker": None, "filing_id": DOCUMENT_ID, "source_url": old["source_url"]})
             for output in manifest["outputs"]:
                 self.assertEqual(hashlib.sha256((inputs["output_dir"] / output["path"]).read_bytes()).hexdigest(), output["sha256"])
+
+    def test_existing_runner_consumes_nonempty_legacy_reference_without_reparse(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            inputs = _inputs(root)
+            old = original()
+            del old["source_rows"]
+            del old["transactions"][0]["cells"]
+            for file in inputs["extractions_dir"].glob("*.json"):
+                file.unlink()
+            (inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").write_text(json.dumps(old))
+            inputs["catalog_path"].write_text(json.dumps(catalog()))
+            archive = json.loads(inputs["archive_batch_path"].read_text())
+            archive["reports"][0].update(document_id=DOCUMENT_ID, document_url=old["source_url"],
+                filer_name=direct()["filer_name"], agency=direct()["agency"],
+                position_title=direct()["position_title"], catalog_added_date=direct()["catalog_added_date"],
+                archive_path=f"oge/reports/{DOCUMENT_ID}/{'a'*64}.pdf")
+            inputs["archive_batch_path"].write_text(json.dumps(archive))
+            observations, candidate_base = root / "saved.json", root / "base.json"
+            observations.write_text(json.dumps({DOCUMENT_ID: bundle()}))
+            candidate_base.write_text(json.dumps(base()))
+            with patch("unison_snapshot.pipeline_qa.oge_run.parse_archived_pdf", side_effect=AssertionError("must not reparse")):
+                manifest = build_oge_shadow_run(**inputs, saved_observations_path=observations,
+                    candidate_base_path=candidate_base, data_cutoff_at="2025-06-04T00:00:00Z")
+            actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf8"))
+            self.assertEqual(len(actual["transactions"]), 1)
+            self.assertEqual(manifest["documents"][0]["legacy_normalized_reference_count"], 1)
+            self.assertEqual(manifest["documents"][0]["legacy_physical_inventory_status"], "not_saved")
+            self.assertEqual(json.loads((inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").read_text()), old)
 
 
 if __name__ == "__main__":

@@ -113,13 +113,174 @@ def _date(value: object) -> str | None:
     return value
 
 
-def _apply_audit(record: dict, audit: dict) -> None:
+def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -> dict:
+    """Keep a verified observation count separate from an unknown source total."""
+    if audit.get("quarantine_count_unit") != "observed_slots_not_whole_source_unique_rows" or review is None:
+        raise ValueError("OGE observation count unit requires its bound legacy reference")
+    receipt, sha = audit.get("observation_receipt"), audit.get("source_sha256")
+    if (not isinstance(receipt, dict) or receipt.get("schema_version") != "oge-278t-observed-facts/v1" or
+            not isinstance(sha, str) or sha not in record["source_versions"] or
+            audit.get("document_id") != record["report_id"] or receipt.get("source_sha256") != sha or
+            receipt.get("legacy_inventory_basis") != "normalized_disposition_reference_without_physical_inventory" or
+            receipt.get("legacy_normalized_not_sent_to_qualification") is not True or
+            receipt.get("coverage_complete") is not False or
+            "unique_source_quarantined_row_count" not in audit or audit["unique_source_quarantined_row_count"] is not None or
+            "unique_source_row_count" not in receipt or receipt["unique_source_row_count"] is not None):
+        raise ValueError("OGE observed/reference counts lack consistent source evidence")
+    normalized = _count(audit.get("legacy_normalized_reference_count"))
+    old_quarantine = _count(audit.get("legacy_quarantined_reference_count"))
+    if (normalized is None or old_quarantine is None or normalized + old_quarantine == 0 or
+            receipt.get("legacy_normalized_transaction_count") != normalized or
+            receipt.get("legacy_quarantined_reference_count") != old_quarantine):
+        raise ValueError("OGE legacy reference counts disagree")
+    matched = []
+    for path in sorted((review / "oge/extractions" / record["report_id"] / sha).glob("*.json")):
+        if path.name.endswith(".failure.json"):
+            continue
+        old = _read(path)
+        if hashlib.sha256(json.dumps(old, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":")).encode()).hexdigest() == receipt.get("legacy_reference_sha256"):
+            matched.append(old)
+    if len(matched) != 1:
+        raise ValueError("OGE observed counts have no unique saved legacy reference")
+    old = matched[0]
+    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") != "oge-278t-pdf/v2" or
+            old.get("source_id") != "oge" or old.get("document_id") != record["report_id"] or
+            old.get("source_sha256") != sha or old.get("source_url") != record["source_url"] or "source_rows" in old or
+            len(_rows(old, "transactions")) != normalized or len(_rows(old, "quarantined")) != old_quarantine):
+        raise ValueError("OGE legacy reference differs from archived report identity")
+    rows = _rows(receipt, "rows")
+    locations, by_id = {}, defaultdict(list)
+    for row in rows:
+        page, slot = row.get("page_number"), row.get("slot_key")
+        key = (page, slot)
+        if (type(page) is not int or page < 1 or not isinstance(slot, str) or not re.fullmatch(r"[1-9]\d*", slot) or
+                key in locations or row.get("source_sha256") != sha or row.get("disposition") not in {
+                    "materialized", "quarantined", "unresolved", "retained_legacy", "excluded"}):
+            raise ValueError("OGE observed receipt repeats or changes a source slot")
+        locations[key] = row
+        if isinstance(row.get("extraction_id"), str):
+            by_id[row["extraction_id"]].append(key)
+    observed = _count(receipt.get("observed_slot_count"))
+    unknown = _rows(receipt, "unknown_regions")
+    if observed is None or len(rows) + len(unknown) != observed:
+        raise ValueError("OGE observed receipt slot counts do not close")
+    geometry = receipt.get("geometry_unknown_pages")
+    if (not isinstance(geometry, list) or any(type(page) is not int or page < 1 for page in geometry) or
+            geometry != sorted(set(geometry)) or set(geometry) & {page for page, _ in locations}):
+        raise ValueError("OGE geometry-unknown pages disagree with observed source slots")
+    unknown_locations = set()
+    for row in unknown:
+        page, slot = row.get("page_number"), row.get("slot_key")
+        key = (page, slot)
+        if (type(page) is not int or page not in geometry or not isinstance(slot, str) or
+                not re.fullmatch(r"[1-9]\d*", slot) or key in locations or key in unknown_locations or
+                row.get("source_sha256", sha) != sha or row.get("disposition") != "unknown" or
+                row.get("reason") != "column_geometry_unknown" or row.get("field_observation_ref") is not None):
+            raise ValueError("OGE unknown regions repeat or change source geometry slots")
+        unknown_locations.add(key)
+    quarantined_slots = set()
+    for row in _rows(audit, "quarantined"):
+        ref = row.get("observation_reference")
+        keys = ([(ref.get("page_number"), ref.get("slot_key"))] if isinstance(ref, dict) and
+                ref.get("source_sha256") == sha else by_id.get(row.get("extraction_id"), []))
+        if len(keys) != 1 or keys[0] not in locations or keys[0] in quarantined_slots:
+            raise ValueError("OGE quarantine does not bind uniquely to observed slots")
+        quarantined_slots.add(keys[0])
+    if len(quarantined_slots) != _count(audit.get("quarantined_count")):
+        raise ValueError("OGE observed quarantine count differs from its receipt")
+    unobserved = receipt.get("unobserved_pages")
+    if (not isinstance(unobserved, list) or any(type(page) is not int or page < 1 for page in unobserved) or
+            unobserved != sorted(set(unobserved)) or
+            set(unobserved) & ({page for page, _ in locations} | set(geometry))):
+        raise ValueError("OGE observed/unobserved page coverage is inconsistent")
+    all_pages = set(unobserved) | {page for page, _ in locations} | set(geometry)
+    if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
+        raise ValueError("OGE source page coverage has unexplained gaps")
+    return {"quarantined_row_count": None, "observed_quarantined_slot_count": len(quarantined_slots),
+            "observed_slot_count": observed, "legacy_normalized_reference_count": normalized,
+            "legacy_quarantined_reference_count": old_quarantine,
+            "quarantine_count_unit": audit["quarantine_count_unit"], "unique_source_quarantined_row_count": None,
+            "legacy_reference_sha256": receipt["legacy_reference_sha256"],
+            "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
+                "geometry_unknown_pages": receipt.get("geometry_unknown_pages", []),
+                "page_count_basis": receipt.get("page_count_basis")}}
+
+
+def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> list[str]:
+    """Reproduce retained source bindings before adding them to qualification."""
+    from .whitehouse_278t import (GENERIC_PARSER_VERSION, validate_generic_whitehouse_report,
+        _generic_table_rows, _inherit_whitehouse_generic_rows)
+    if audit.get("parser_version") != GENERIC_PARSER_VERSION:
+        return []
+    ids, count = audit.get("retained_ids"), _count(audit.get("retained_count"))
+    if (not isinstance(ids, list) or any(not isinstance(value, str) for value in ids) or
+            count is None or len(ids) != count or len(set(ids)) != count or
+            sorted(ids) != sorted(row.get("extraction_id") for row in _rows(audit, "rows")
+                                  if row.get("status") == "retained_existing")):
+        raise ValueError("White House retained identities do not match candidate decisions")
+    if not ids:
+        return []
+    sha, binding = audit.get("source_sha256"), audit.get("retained_source_bindings")
+    if (review is None or sha not in record["source_versions"] or not isinstance(binding, dict) or
+            binding.get("schema_version") != "whitehouse-generic-retained-source/v1" or
+            binding.get("source_sha256") != sha or
+            binding.get("legacy_cache_hash_is_reference_only") is not True):
+        raise ValueError("White House retained identities lack archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    cached = [_read(path) for path in sorted(folder.glob("*.json"))
+              if not path.name.endswith(".failure.json")]
+    reports = [item for item in cached if item.get("parser_version") == GENERIC_PARSER_VERSION]
+    def canonical(value):
+        return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    legacy = [item for item in cached if canonical(item) == binding.get("legacy_extraction_canonical_sha256")]
+    if len(reports) != 1 or len(legacy) != 1:
+        raise ValueError("White House retained identities lack unique current and legacy caches")
+    report = reports[0]
+    if any(report.get(key) != value for key, value in (("document_id", record["report_id"]),
+            ("source_sha256", sha), ("source_url", record["source_url"]))):
+        raise ValueError("White House retained cache crossed report sources")
+    validate_generic_whitehouse_report(report)
+    good, bad, _ = _generic_table_rows([(row["page_number"], row["cells"])
+        for row in report["source_rows"]], source_sha256=sha)
+    reproduced = _inherit_whitehouse_generic_rows({**report, "transactions": good, "quarantined": bad}, legacy[0])
+    source_rows = {row["extraction_id"]: row for row in reproduced["transactions"]
+                   if row.get("legacy_inheritance") and not row.get("reasons") and
+                   not row["legacy_inheritance"].get("new_observation_reasons")}
+    if not set(ids) <= set(source_rows):
+        raise ValueError("White House retained identities were not reproduced from raw source cells")
+    for identifier in ids:
+        stored = [row for row in report["transactions"] if row.get("extraction_id") == identifier]
+        if len(stored) != 1 or stored[0] != source_rows[identifier]:
+            raise ValueError("White House retained cache differs from its source replay")
+    expected = [{"formal_id": identifier, "page_number": source_rows[identifier]["page_number"],
+        "source_rows_index": source_rows[identifier]["source_rows_index"],
+        "raw_cells_canonical_sha256": canonical(source_rows[identifier]["cells"]),
+        "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"} for identifier in ids]
+    if binding.get("rows") != expected:
+        raise ValueError("White House retained cell bindings disagree with source replay")
+    return ids
+
+
+def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> None:
+    receipt = audit.get("observation_receipt")
+    if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
+            "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
+        raise ValueError("OGE legacy reference observation counts require their explicit unit")
+    separate_counts = (_observed_reference_counts(record, audit, review)
+                       if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
+    retained = _whitehouse_retained_ids(record, audit, review)
+    if retained:
+        if promoted is None:
+            raise ValueError("White House retained qualification lacks a promoted count")
+        promoted += len(retained)
+        record["qualified_retained_transaction_ids"] = retained
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
-    receipt = audit.get("observation_receipt")
     incomplete_observations = isinstance(receipt, dict) and receipt.get("coverage_complete") is not True
     if incomplete_observations:
         record["reason_codes"].append("observed_source_coverage_incomplete")
@@ -134,6 +295,7 @@ def _apply_audit(record: dict, audit: dict) -> None:
         record["qualification_state"] = "unknown"
     else:
         record["qualification_state"] = "zero_transactions"
+    record.update(separate_counts)
 
 
 def _unbound_qualification(record: dict, reason: str) -> None:
@@ -408,7 +570,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             record["acquisition_state"] = "not_archived"
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
-            _apply_audit(record, audit_by_id[report_id])
+            _apply_audit(record, audit_by_id[report_id], review=review)
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
@@ -495,7 +657,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
-        _apply_audit(record, audit)
+        _apply_audit(record, audit, review=review)
         version_bound = _check_version(record, audit)
         if not version_bound:
             _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
@@ -581,7 +743,9 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
                     record["reason_codes"].append("exact_source_copy_alias")
                 else:
                     retained_rows = [row for row in _rows(trade, "retained_rows") if row.get("document_id") == report_id]
-                    retained = sum(row.get("formal_source_url", url) == url for row in retained_rows)
+                    counted = set(record.get("qualified_retained_transaction_ids", []))
+                    retained = sum(row.get("formal_source_url", url) == url and
+                                   row.get("formal_transaction_id") not in counted for row in retained_rows)
                     if retained:
                         record["qualified_transaction_count"] = (record["qualified_transaction_count"] or 0) + retained
                         record["qualification_state"] = ("partial" if record["quarantined_row_count"] else "qualified")

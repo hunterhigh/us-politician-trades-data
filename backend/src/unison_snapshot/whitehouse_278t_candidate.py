@@ -18,7 +18,8 @@ from .builder import ARRAYS, FIELDS, normalize, timestamp
 from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
-from .whitehouse_278t import _ELECTRONIC_SIGNATURE, _first_last
+from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION,
+    generic_existing_fact, generic_whitehouse_filing_date)
 from .whitehouse_278t_audit import (
     AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
     resolve_exact_source_reports,
@@ -220,21 +221,21 @@ def build_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[d
                 old = retained.get((canonical, row["row_number"]))
                 outcome = outcomes.get((canonical, row["row_number"]))
                 row["formal_transaction_id"] = (old["formal_transaction_id"] if old else
-                    outcome["extraction_id"] if outcome and outcome["status"] == "promoted" else None)
+                    outcome["extraction_id"] if outcome and outcome["status"] in {"promoted", "retained_existing"} else None)
                 row["canonical_status"] = old["status"] if old else outcome["status"] if outcome else "unresolved"
                 row["reasons"] = outcome["reasons"] if outcome else []
                 if source["document_id"] != canonical:
                     alias_row_count += 1
     total = sum(len(report["transactions"]) + len(report["quarantined"]) for report in extractions)
     if (result["promoted_transaction_count"] + result["quarantined_row_count"] +
-            len(expected["retained_rows"]) + alias_row_count != total):
+            len(expected["retained_rows"]) + len(result.get("retained_existing_transaction_ids", [])) + alias_row_count != total):
         raise OgeCatalogError("White House exact-source row dispositions do not conserve")
     result.update(schema_version=EXACT_COPY_SCHEMA,
                   source_report_count=len(extractions), source_row_count=total,
                   exact_source_alias_row_count=alias_row_count,
                   exact_source_aliases=aliases,
                   retained_rows=expected["retained_rows"],
-                  retained_existing_transaction_count=len(expected["retained_rows"]))
+                  retained_existing_transaction_count=len(expected["retained_rows"])+len(result.get("retained_existing_transaction_ids", [])))
     if "cross_source_relations" in expected:
         result["cross_source_relations"] = expected["cross_source_relations"]
     if "removed_duplicate_formal_rows" in expected:
@@ -259,6 +260,8 @@ def _official_pdf_url(value: object) -> bool:
 
 def _signature_date(report: dict) -> str | None:
     """Use validated exact-source filing or official disclosure-date evidence."""
+    if report.get("parser_version") == GENERIC_PARSER_VERSION:
+        return generic_whitehouse_filing_date(report)
     source_bound = source_bound_filing_date(report)
     if source_bound is not None:
         return source_bound
@@ -322,7 +325,13 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
         "source_url": report["source_url"],
         "verification_status": "official_matched",
     }
-    if set(fact) != FIELDS["transactions"]:
+    if report.get("parser_version") == GENERIC_PARSER_VERSION:
+        title = row.get("account_title")
+        if title:
+            fact["asset_name"] = f"{row['asset_name']} — {title}"
+        if "amount_low_exclusive" in row:
+            fact["amount_low_exclusive"] = row["amount_low_exclusive"]
+    if set(fact) != FIELDS["transactions"] | ({"amount_low_exclusive"} if "amount_low_exclusive" in fact else set()):
         raise OgeCatalogError("White House 278-T transaction field contract changed")
     return fact
 
@@ -393,6 +402,8 @@ def build_whitehouse_278t_review_candidate(
     seen_documents: set[str] = set()
     audit_reports = []
     added_transactions = []
+    corrected_existing = {}
+    retained_existing = []
     added_people = {}
     for report, qualified in zip(extractions, expected_audit["reports"], strict=True):
         document_id = report["document_id"]
@@ -460,10 +471,11 @@ def build_whitehouse_278t_review_candidate(
             if (row_id != decision["extraction_id"] or
                     source_row.get("row_number") != decision["row_number"]):
                 raise OgeCatalogError("White House 278-T audit row is misaligned")
+            retained = generic_existing_fact(report, source_row, candidate["transactions"])
             if decision["status"] == "eligible" and not reasons:
                 if not isinstance(row_id, str) or not _ID.fullmatch(row_id):
                     reasons.append("transaction_id_invalid")
-                elif row_id in existing_ids:
+                elif row_id in existing_ids and retained is None:
                     reasons.append("transaction_id_conflict_existing")
                 elif source_id_counts[row_id] > 1:
                     reasons.append("transaction_id_conflict_source")
@@ -474,19 +486,33 @@ def build_whitehouse_278t_review_candidate(
                         not _TICKER.fullmatch(source_row["ticker"])):
                     reasons.append("transaction_ticker_invalid")
             if decision["status"] == "eligible" and not reasons:
-                fact = _transaction(report, source_row, person["id"])
-                added_transactions.append(fact)
-                if person["id"] not in existing_people:
-                    added_people[person["id"]] = person
+                if retained is not None:
+                    retained_existing.append(row_id)
+                    inheritance = source_row.get("legacy_inheritance", {})
+                    corrections = [value for value in (inheritance.get("owner_correction"), inheritance.get("account_display_correction"))
+                                   if value and retained.get(value["field"]) != value["new_value"]]
+                    if corrections:
+                        replacement = deepcopy(retained)
+                        for correction in corrections:
+                            replacement[correction["field"]] = correction["new_value"]
+                        corrected_existing[row_id] = {"fact": replacement, "audit": [{**correction,
+                            "formal_id": row_id, "source_sha256": report["source_sha256"],
+                            "page_number": source_row["page_number"], "cells": source_row["cells"]} for correction in corrections]}
+                else:
+                    fact = _transaction(report, source_row, person["id"])
+                    added_transactions.append(fact)
+                    if person["id"] not in existing_people:
+                        added_people[person["id"]] = person
             row_results.append({
                 "extraction_id": row_id, "row_number": source_row.get("row_number"),
-                "status": "promoted" if decision["status"] == "eligible" and not reasons
-                          else "quarantined",
+                "status": ("retained_existing" if retained is not None else "promoted")
+                          if decision["status"] == "eligible" and not reasons else "quarantined",
                 "annual_part7_overlap": decision.get("annual_part7_overlap") is True,
                 "reasons": sorted(set(reasons)),
             })
         promoted_count = sum(row["status"] == "promoted" for row in row_results)
-        quarantined_count = len(row_results) - promoted_count
+        retained_count = sum(row["status"] == "retained_existing" for row in row_results)
+        quarantined_count = len(row_results) - promoted_count - retained_count
         audit_reports.append({
             "document_id": document_id, "source_url": report["source_url"],
             "source_sha256": report["source_sha256"],
@@ -495,11 +521,26 @@ def build_whitehouse_278t_review_candidate(
             "identity_basis": identity.get("identity_basis") if identity else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
+            **({"parser_version": GENERIC_PARSER_VERSION, "retained_count": retained_count,
+                "retained_ids": [row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
+                "retained_source_bindings": {"schema_version": "whitehouse-generic-retained-source/v1",
+                    "source_sha256": report["source_sha256"],
+                    "legacy_extraction_canonical_sha256": report.get("legacy_source_binding",{}).get("legacy_extraction_sha256"),
+                    "legacy_cache_hash_is_reference_only": True,
+                    "rows": [{"formal_id": row["extraction_id"], "page_number": source["page_number"],
+                        "source_rows_index": source.get("source_rows_index"),
+                        "raw_cells_canonical_sha256": hashlib.sha256(json.dumps(source.get("cells"),ensure_ascii=False,
+                            sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"}
+                        for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
+               if report.get("parser_version") == GENERIC_PARSER_VERSION else {}),
             "document_reasons": sorted(set(doc_reasons)), "rows": row_results,
         })
     if len(added_transactions) != sum(row["promoted_count"] for row in audit_reports):
         raise OgeCatalogError("White House 278-T promoted row count is inconsistent")
     candidate["people"].extend(added_people.values())
+    candidate["transactions"] = [corrected_existing[row["id"]]["fact"] if row["id"] in corrected_existing else row
+                                 for row in candidate["transactions"]]
     candidate["transactions"].extend(added_transactions)
     candidate["people"].sort(key=lambda row: row["id"])
     candidate["transactions"].sort(key=lambda row: row["id"])
@@ -507,7 +548,7 @@ def build_whitehouse_278t_review_candidate(
     total_rows = sum(row["source_row_count"] for row in audit_reports)
     promoted = sum(row["promoted_count"] for row in audit_reports)
     quarantined = sum(row["quarantined_count"] for row in audit_reports)
-    if promoted + quarantined != total_rows:
+    if promoted + quarantined + len(retained_existing) != total_rows:
         raise OgeCatalogError("White House 278-T row conservation failed")
     base_people = {row["id"]: row for row in base_oge_candidate["people"]}
     candidate_people = {row["id"]: row for row in candidate["people"]}
@@ -519,7 +560,7 @@ def build_whitehouse_278t_review_candidate(
         raise OgeCatalogError("White House 278-T candidate changed an existing person")
     if (len(base_transactions) != len(base_oge_candidate["transactions"]) or
             len(candidate_transactions) != len(candidate["transactions"]) or
-            any(candidate_transactions.get(key) != value
+            any(candidate_transactions.get(key) != corrected_existing.get(key, {}).get("fact", value)
                 for key, value in base_transactions.items())):
         raise OgeCatalogError("White House 278-T candidate changed an existing transaction")
     if (candidate["reported_holdings"] != base_oge_candidate["reported_holdings"] or
@@ -557,8 +598,11 @@ def build_whitehouse_278t_review_candidate(
         "annual_part7_overlap_count": expected_audit["annual_part7_overlap_count"],
         "annual_part7_incomparable_row_count":
             expected_audit["annual_part7_incomparable_row_count"],
-        "existing_transaction_mutation_count": 0,
-        "candidate_is_append_only": True,
+        "existing_transaction_mutation_count": len(corrected_existing),
+        "candidate_is_append_only": not corrected_existing,
+        **({"retained_existing_transaction_ids": retained_existing,
+            "source_field_corrections": [correction for row in corrected_existing.values() for correction in row["audit"]],
+            "owner_field_corrections": [correction for row in corrected_existing.values() for correction in row["audit"] if correction["field"] == "owner"]} if retained_existing else {}),
         "source_row_conservation_complete": True,
         "reports": audit_reports,
     }

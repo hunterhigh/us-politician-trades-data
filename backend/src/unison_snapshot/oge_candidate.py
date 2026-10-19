@@ -279,7 +279,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
         generic = extraction.get("parser_version") == GENERIC_PARSER_VERSION
-        retained = [row for row in base.get("transactions", []) if generic and
+        observed = document_id in saved
+        retained = [row for row in base.get("transactions", []) if (generic or observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
                     and row.get("verification_status") == "official_matched"]
         if any(row.get("source_url") != extraction.get("source_url") for row in retained):
@@ -287,10 +288,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         inheritance = None
         if generic and record is not None:
             extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record)
-        observed = document_id in saved
+        legacy_reference_rows = {}
         if observed:
-            from .oge_transaction_adapter import materialize_oge_278t_observations
-            extraction = materialize_oge_278t_observations(extraction, record, **saved[document_id])
+            from .oge_transaction_adapter import materialize_oge_278t_observations, _validated_legacy_reference
+            extraction = materialize_oge_278t_observations(extraction, record,
+                formal_reference_ids=[row["id"] for row in retained], **saved[document_id])
+            reference = _validated_legacy_reference(extraction, record)
+            if reference is not None:
+                original = reference["source_extraction"]
+                legacy_reference_rows = {row["extraction_id"]: row for row in original["transactions"]}
+                referenced_ids = {row["extraction_id"] for row in original["transactions"] + original["quarantined"]}
+                unbound = [row["id"] for row in retained if row["id"] not in referenced_ids]
+                inheritance = {"basis": "existing_formal_base_preserved_without_requalifying_normalized_reference",
+                    "retained_formal_ids": [row["id"] for row in retained], "unbound_formal_ids": unbound,
+                    "legacy_normalized_transaction_count": len(legacy_reference_rows)}
+                if unbound:
+                    for row in extraction["transactions"]:
+                        if row.get("extraction_id") not in referenced_ids:
+                            row["reasons"] = sorted(set(row.get("reasons", []) + ["legacy_formal_reference_unbound"]))
         reasons = []
         fixed_trump = _fixed_trump_sept_source(extraction, record)
         supported_parser = (
@@ -350,6 +365,16 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if legacy_reference_rows.get(extraction_id) == row:
+                if extraction_id in retained_by_id:
+                    transactions.append(deepcopy(retained_by_id.pop(extraction_id)))
+                    if extraction_id in promoted_ids:
+                        raise OgeCatalogError("retained legacy reference repeats a formal identity")
+                    promoted_ids.add(extraction_id)
+                    report_promoted += 1
+                    continue
+                row_reasons.append("legacy_normalized_reference_without_formal_binding")
+            row_reasons.extend(row.get("reasons", []))
             if extraction_id in retained_by_id and row.get("legacy_inheritance"):
                 if extraction_id in promoted_ids:
                     raise OgeCatalogError("inherited formal identity is duplicated")
@@ -464,6 +489,11 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             **({"source_sha256": extraction["source_sha256"],
                 "observation_receipt": extraction["observation_receipt"]}
                if observed else {}),
+            **({"legacy_normalized_reference_count": extraction["legacy_disposition_reference"]["normalized_transaction_count"],
+                "legacy_quarantined_reference_count": extraction["legacy_disposition_reference"]["quarantined_reference_count"],
+                "quarantine_count_unit": "observed_slots_not_whole_source_unique_rows",
+                "unique_source_quarantined_row_count": None}
+               if extraction.get("legacy_disposition_reference") else {}),
             **({"source_sha256": extraction["source_sha256"]}
                if "manual_filing_date_evidence" in extraction else {}),
             **({"manual_filing_date_evidence": extraction["manual_filing_date_evidence"]}

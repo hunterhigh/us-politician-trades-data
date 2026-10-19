@@ -166,9 +166,80 @@ def relate_part4b_to_candidate(observation: dict, *, person_id: str,
         rows.append({"observation_id": row["observation_id"],
                      "printed_row_number": row["printed_row_number"],
                      "status": status, "possible_ptr_transaction_ids": sorted(matches),
-                     "problems": row["problems"], "formal_transaction_id": None})
+                     "problems": row["problems"], "formal_transaction_id": None,
+                     "source_reference": {"document_id": observation["document_id"],
+                         "source_sha256": observation["source_sha256"],
+                         "source_url": observation["source_url"], "section": "Part 4b",
+                         "printed_row_number": row["printed_row_number"],
+                         "observation_id": row["observation_id"]},
+                     "candidate_disposition": "blocked_pending_relationship",
+                     "candidate_blocking_reasons": sorted(set([*row["problems"],
+                         "multiple_field_matches_no_official_row_link" if len(matches)>1 else
+                         "field_match_without_official_row_link" if matches else
+                         "no_official_ptr_row_reference_or_verified_new_disclosure"]))})
     return {"document_id": observation["document_id"], "source_sha256": observation["source_sha256"],
             "person_id": person_id, "source_report_ledger": observation["source_report_ledger"],
             "observed_row_count": len(rows), "rows": rows,
             "relationship_counts": dict(sorted(Counter(row["status"] for row in rows).items())),
             "new_candidate_transaction_count": 0}
+
+
+RELATION_RULE = "senate-annual-part4b-candidate-decisions/v1"
+
+
+def consume_part4b_candidate_decisions(annual_audit: dict, *, transactions: list[dict]) -> dict:
+    """Consume the overlay's byte-verified relations without rewriting PTRs.
+
+    The existing annual overlay reproduces exact source-copy decisions from
+    archived originals. Here those report decisions receive per-row candidate
+    dispositions. Unproven field overlaps remain blocked; aliases cannot add
+    rows or silently replace any existing formal transaction.
+    """
+    from copy import deepcopy
+    reports = deepcopy(annual_audit.get("annual_part4b_relationships", []))
+    formal_ids = {r["id"] for r in transactions}
+    by_document = {r["document_id"]:r for r in reports}
+    declared = {alias:copy for copy in annual_audit.get("annual_exact_source_copies", [])
+                for alias in copy["alias_document_ids"]}
+    for report in reports:
+        if report.get("status") == "resolved_exact_source_copy":
+            proof = declared.get(report["document_id"])
+            canonical = by_document.get(report.get("canonical_document_id"))
+            if (not proof or proof.get("basis") != "same_verified_archived_bytes_and_report_context" or
+                    proof.get("source_sha256") != report.get("source_sha256") or
+                    proof.get("canonical_document_id") != report.get("canonical_document_id") or
+                    canonical is None or canonical.get("source_sha256") != report.get("source_sha256") or
+                    not isinstance(canonical.get("rows"),list)):
+                report.update(candidate_disposition="blocked_pending_relationship",
+                    candidate_blocking_reasons=["verified_canonical_part4b_rows_unavailable"])
+                continue
+            report["rows"] = []
+            for row in canonical["rows"]:
+                report["rows"].append({"observation_id":row["observation_id"],
+                    "printed_row_number":row["printed_row_number"],
+                    "source_reference":{"document_id":report["document_id"],
+                        "source_sha256":report["source_sha256"],"section":"Part 4b",
+                        "printed_row_number":row["printed_row_number"]},
+                    "canonical_document_id":proof["canonical_document_id"],
+                    "canonical_observation_id":row["observation_id"],
+                    "candidate_disposition":"excluded_exact_source_copy",
+                    "candidate_blocking_reasons":[],"formal_transaction_id":None,
+                    "relation_basis":proof["basis"]})
+            report["candidate_disposition"]="excluded_exact_source_copy"
+        elif not isinstance(report.get("rows"),list):
+            report.update(candidate_disposition="blocked_pending_relationship",
+                candidate_blocking_reasons=[report.get("status", "part4b_observation_unavailable")])
+        else:
+            for row in report["rows"]:
+                if not set(row.get("possible_ptr_transaction_ids", [])) <= formal_ids:
+                    raise SenateEfdError("Annual relation references a non-current formal PTR")
+                if row.get("candidate_disposition") != "blocked_pending_relationship" or not row.get("candidate_blocking_reasons"):
+                    raise SenateEfdError("Annual relation lacks a concrete candidate disposition")
+        report["candidate_disposition_counts"] = dict(sorted(Counter(
+            row["candidate_disposition"] for row in report.get("rows", [])).items()))
+    return {"schema_version":"senate-annual-transaction-candidate-audit/v1",
+            "rule_version":RELATION_RULE,"reports":reports,
+            "candidate_disposition_counts":dict(sorted(Counter(row["candidate_disposition"]
+                for report in reports for row in report.get("rows", [])).items())),
+            "reports_with_unknown_row_decisions":sum(not isinstance(r.get("rows"),list) for r in reports),
+            "new_candidate_transaction_count":0,"formal_transactions_unchanged":True}

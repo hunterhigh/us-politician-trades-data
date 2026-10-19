@@ -118,6 +118,34 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(date["bbox_points"], [14.4, 7.2, 21.6, 21.6])
         self.assertIsNone(date["value"])
 
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
+    def test_rgb_source_is_converted_for_legacy_cover_checkbox_reader(self):
+        from PIL import Image
+        source = b"source-rgb"
+        pdf = MagicMock()
+        pdf.__enter__.return_value = pdf
+        pdf.pages = [SimpleNamespace(width=200, height=100, to_image=lambda **kw:
+                     SimpleNamespace(original=Image.new("RGB", (600, 300), "white")))]
+        region = {"status": "located_shadow", "orientation_degrees": 0,
+                  "coordinate_frame": "original_page",
+                  "physical_row_bands": [{"band": [.5, .6], "disposition": "unknown"}]}
+        columns = {"status": "located_shadow", "owner": [0, .1], "asset": [.1, .4],
+                   "event": [.4, .6], "notification": [.6, .8], "action": [.1, .2],
+                   "action_labels": ["purchase"], "amount": [.8, .9]}
+        words = [{"x0": 10, "x1": 20, "top": 10, "bottom": 20,
+                  "text": "Initial", "ocr_confidence": 95}]
+        def cover(page, *args):
+            self.assertEqual(page["_image"].mode, "L")
+            return "New"
+        with patch("pdfplumber.open", return_value=pdf), patch(
+                "unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value=region), patch(
+                "unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value=columns), patch(
+                "unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages",
+                return_value=([OcrPage(width=200, height=100, words=words)], "cached")), patch(
+                "unison_snapshot.house_ptr._legacy_filing_status", side_effect=cover):
+            observed = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest())
+        self.assertEqual(observed["pages"][0]["filing_status_observation"], "New")
+
     def test_bounded_pages_preserve_original_census_without_rendering_skipped_pages(self):
         source = b"source-bound-two-page-fixture"
         pages = [MagicMock(), MagicMock()]
