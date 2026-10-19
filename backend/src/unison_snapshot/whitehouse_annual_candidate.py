@@ -132,13 +132,25 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
             existing_by_name.setdefault(key, []).append(person)
     people = {person["id"]: person for person in result["people"]}
     person_by_document = {}
+    unlinked_report_ids = []
     for key, report_rows in by_filer.items():
         matches = existing_by_name.get(key, [])
+        proposed = _person(report_rows[0])
         if len(matches) > 1:
-            raise OgeCatalogError("White House annual filer matches multiple OGE people")
-        person = matches[0] if matches else _person(report_rows[0])
+            exact = [person for person in matches if person["id"] == proposed["id"]]
+            if len(exact) == 1:
+                person = exact[0]
+            else:
+                # Retain the annual report's own source identity without
+                # guessing which same-name OGE person it represents.
+                person = proposed
+                unlinked_report_ids.append(report_rows[0]["document_id"])
+        else:
+            person = matches[0] if matches else proposed
         if person.get("disclosure_authority") != "oge":
             raise OgeCatalogError("White House annual filer conflicts with another authority")
+        if person["id"] in people and people[person["id"]] != person:
+            raise OgeCatalogError("White House annual person ID conflicts with OGE")
         people.setdefault(person["id"], person)
         person_by_document[report_rows[0]["document_id"]] = person["id"]
 
@@ -220,4 +232,5 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> t
         "annual_holding_count": len(added),
         "annual_transaction_count": len(added_transactions),
         "annual_unknown_owner_count": sum(row["asset_owner"] == "Unknown" for row in eligible_rows),
+        "annual_identity_unlinked_report_ids": sorted(unlinked_report_ids),
     }
