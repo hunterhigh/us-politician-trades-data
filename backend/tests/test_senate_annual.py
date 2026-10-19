@@ -33,6 +33,69 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
 
 
 class SenateAnnualTests(unittest.TestCase):
+    def _copy_review(self, root, *, same_bytes=True, preferred_second=False):
+        evidence, review = root / "evidence", root / "review"
+        reports = []
+        for number in (1, 2):
+            document = f"11111111-1111-4111-8111-{number:012d}"
+            raw = annual_html()
+            if number == 2 and not same_bytes:
+                raw = raw.replace(b"</body>", b"<!--same fields, different original--></body>")
+            sha = hashlib.sha256(raw).hexdigest()
+            url = f"https://efdsearch.senate.gov/search/view/annual/{document}/"
+            folder = evidence / "senate_efd/annual/reports" / document
+            folder.mkdir(parents=True)
+            (folder / f"{sha}.html").write_bytes(raw)
+            metadata = {"schema_version": "senate-efd-annual-archive/v1", "document_id": document,
+                        "document_url": url, "source_sha256": sha, "byte_length": len(raw),
+                        "filer_name": "Ada Example", "office": "Example, Ada (Senator)",
+                        "report_year": 2025, "amendment_number": 0, "portal_listed_date": "2026-05-01"}
+            (folder / f"{sha}.metadata.json").write_bytes(_json(metadata))
+            reports.append({"catalog_index": number - 1, "document_id": document, "document_url": url,
+                            "filer_name": "Ada Example", "office": "Example, Ada (Senator)",
+                            "report_year": 2025, "amendment_number": 0, "portal_listed_date": "2026-05-01"})
+        catalog = evidence / "senate_efd/annual/catalog/current.json"
+        catalog.parent.mkdir(parents=True)
+        catalog.write_bytes(_json({"schema_version": DISCOVERY_SCHEMA, "source_id": "senate_efd",
+                                  "catalog_record_count": 2, "annual_report_count": 2,
+                                  "nonannual_count": 0, "reports": reports}))
+        if preferred_second:
+            current = review / "senate_efd/annual/current.json"
+            current.parent.mkdir(parents=True)
+            current.write_bytes(_json({"reports": [{"document_id": reports[1]["document_id"],
+                                                   "publication_state": "qualified"}]}))
+        members = roster(member("A000001", "Ada", "Example"))
+        return evidence, review, members, build_annual_review(evidence, review, members)
+
+    def test_exact_archived_copies_are_consumed_once_and_keep_previously_selected_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            evidence, review, members, annual = self._copy_review(Path(directory), preferred_second=True)
+            self.assertEqual(annual["holding_count"], 1)
+            decision = annual["exact_source_copies"][0]
+            self.assertTrue(decision["canonical_document_id"].endswith("000000000002"))
+            self.assertEqual(annual["reported_holdings"][0]["filing_id"], decision["canonical_document_id"])
+            base = {"people": [], "transactions": [], "reported_holdings": [], "source_health": []}
+            candidate, audit = overlay_annual_candidate(
+                base, review, expected_roster_sha256=members["metadata"]["sha256"], evidence_root=evidence)
+            self.assertEqual(len(candidate["reported_holdings"]), 1)
+            self.assertEqual(audit["annual_exact_source_copies"], [decision])
+            self.assertEqual(sum(row.get("status") == "resolved_exact_source_copy"
+                                 for row in audit["annual_part4b_relationships"]), 1)
+            alias = decision["alias_document_ids"][0]
+            source = evidence / "senate_efd/annual/reports" / alias / (decision["source_sha256"] + ".html")
+            source.write_bytes(b"changed")
+            with self.assertRaisesRegex(SenateEfdError, "differs from archived source"):
+                overlay_annual_candidate(base, review, expected_roster_sha256=members["metadata"]["sha256"],
+                                         evidence_root=evidence)
+
+    def test_equal_fields_from_distinct_originals_do_not_resolve_duplicate_amendment_rank(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, _, annual = self._copy_review(Path(directory), same_bytes=False)
+            self.assertEqual(annual["exact_source_copies"], [])
+            self.assertEqual(annual["holding_count"], 0)
+            self.assertTrue(all(row["publication_state"] == "amendment_chain_unresolved"
+                                for row in annual["reports"]))
+
     def test_holding_open_values_preserve_exact_threshold_and_strictness(self):
         for value, expected in [("Over $50,000,000", (50000000, None, True)),
                                 ("Over $1,000,000", (1000000, None, True)),

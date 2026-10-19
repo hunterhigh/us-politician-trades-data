@@ -57,6 +57,34 @@ def _json(value: dict) -> bytes:
             "\n").encode("utf-8")
 
 
+def _exact_source_copy_groups(records: list[dict], verified_sources: dict[str, dict],
+                              *, preferred_document_ids: set[str] | None = None) -> list[dict]:
+    """Resolve aliases from exact source bytes, never from equal trade fields."""
+    groups = defaultdict(list)
+    for record in records:
+        metadata = verified_sources.get(record["document_id"])
+        if metadata is None:
+            continue
+        key = (record["person_id"], metadata["report_year"], metadata["amendment_number"],
+               metadata["source_sha256"], tuple(_without_suffix(_words(metadata["filer_name"]))))
+        groups[key].append(record)
+    preferred, decisions = preferred_document_ids or set(), []
+    for (person_id, year, rank, sha, _), members in sorted(groups.items()):
+        if len(members) < 2:
+            continue
+        chosen = [row for row in members if row["document_id"] in preferred]
+        if len(chosen) != 1:
+            chosen = sorted(members, key=lambda row: (
+                verified_sources[row["document_id"]]["portal_listed_date"], row["document_id"]))[:1]
+        canonical = chosen[0]["document_id"]
+        decisions.append({"person_id": person_id, "report_year": year, "amendment_number": rank,
+                          "source_sha256": sha, "canonical_document_id": canonical,
+                          "alias_document_ids": sorted(row["document_id"] for row in members
+                                                       if row["document_id"] != canonical),
+                          "basis": "same_verified_archived_bytes_and_report_context"})
+    return decisions
+
+
 def parse_annual_search_page(payload: object, *, start: int, length: int) -> tuple[int, list[dict], int]:
     if (not isinstance(payload, dict) or set(payload) !=
             {"draw", "recordsTotal", "recordsFiltered", "data", "result"} or
@@ -319,7 +347,11 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
     discovery = json.loads(catalog_raw)
     selected, selection = select_current_annual_versions(discovery, roster)
     by_person = defaultdict(list)
-    report_records, people, holdings = [], {}, []
+    report_records, people, holdings, verified_sources = [], {}, [], {}
+    previous_path = review_root / "senate_efd/annual/current.json"
+    previous = json.loads(previous_path.read_bytes()) if previous_path.is_file() else {}
+    preferred = {row["document_id"] for row in previous.get("reports", [])
+                 if row.get("publication_state") == "qualified"}
     for report in selected:
         person_id = report["identity"]["person_id"]
         folder = evidence_root / "senate_efd/annual/reports" / report["document_id"]
@@ -334,10 +366,16 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
         try:
             if (metadata.get("document_id") != report["document_id"] or
                     metadata.get("document_url") != report["document_url"] or
+                    metadata.get("portal_listed_date") != report["portal_listed_date"] or
                     metadata.get("report_year") != report["report_year"] or
                     metadata.get("amendment_number") != report["amendment_number"]):
                 raise SenateEfdError("Senate annual archive conflicts with catalog")
             raw = (folder / f"{metadata['source_sha256']}.html").read_bytes()
+            if (metadata.get("schema_version") != "senate-efd-annual-archive/v1" or
+                    hashlib.sha256(raw).hexdigest() != metadata["source_sha256"] or
+                    len(raw) != metadata.get("byte_length")):
+                raise SenateEfdError("Senate annual source bytes do not match archive")
+            verified_sources[report["document_id"]] = metadata
             try:
                 transaction_observation = observe_part4b(metadata, raw)
                 transaction_relative = (Path("senate_efd/annual/part4b") /
@@ -387,8 +425,14 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
             record["error"] = error
         report_records.append(record)
     report_by_id = {record["document_id"]: record for record in report_records}
+    source_copies = _exact_source_copy_groups(report_records, verified_sources, preferred_document_ids=preferred)
+    aliases = {alias: decision["canonical_document_id"] for decision in source_copies
+               for alias in decision["alias_document_ids"]}
+    for alias, canonical in aliases.items():
+        report_by_id[alias].update(publication_state="exact_source_copy", exact_source_copy_of=canonical)
     for person_id in sorted({row["identity"]["person_id"] for row in selected}):
-        versions = [row for row in selected if row["identity"]["person_id"] == person_id]
+        versions = [row for row in selected if row["identity"]["person_id"] == person_id and
+                    row["document_id"] not in aliases]
         ranks = [row["amendment_number"] for row in versions]
         if len(ranks) != len(set(ranks)) or sorted(ranks) != list(range(max(ranks) + 1)):
             for row in versions:
@@ -448,6 +492,7 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
               "catalog_sha256": hashlib.sha256(catalog_raw).hexdigest(),
               "roster_sha256": selection["roster_sha256"],
               "selection": selection, "selected_report_count": len(selected),
+              "exact_source_copies": source_copies,
               "reports": report_records, "people": sorted(people.values(), key=lambda x: x["id"]),
               "reported_holdings": sorted(holdings, key=lambda x: x["id"]),
               "qualified_report_count": sum(row.get("publication_state") == "qualified"
@@ -470,6 +515,57 @@ def _archived_roster_members(evidence_root: Path, sha: str) -> list[dict]:
         return build_roster(raw)["members"]
     except (OSError, SenateRosterError):
         raise SenateEfdError("Senate annual roster evidence is unavailable or invalid") from None
+
+
+def _verify_annual_source_copies(annual: dict, evidence_root: Path | None) -> list[dict]:
+    """Reproduce new source-copy decisions inside the actual consumer."""
+    if "exact_source_copies" not in annual:
+        return []  # Frozen legacy review artifacts retain their existing path.
+    declared = annual["exact_source_copies"]
+    if not isinstance(declared, list):
+        raise SenateEfdError("Senate annual exact source-copy decisions are invalid")
+    groups = defaultdict(list)
+    for record in annual.get("reports", []):
+        sha = record.get("source_sha256")
+        if isinstance(sha, str) and re.fullmatch(r"[0-9a-f]{64}", sha):
+            groups[(record.get("person_id"), record.get("report_year"),
+                    record.get("amendment_number"), sha)].append(record)
+    repeated = [record for group in groups.values() if len(group) > 1 for record in group]
+    if not repeated:
+        if declared:
+            raise SenateEfdError("Senate annual source-copy decision has no repeated original")
+        return []
+    if evidence_root is None:
+        raise SenateEfdError("Senate annual exact source copies require archived original bytes")
+    verified = {}
+    for record in repeated:
+        document, sha = record["document_id"], record["source_sha256"]
+        folder = evidence_root / "senate_efd/annual/reports" / document
+        metadata = json.loads((folder / f"{sha}.metadata.json").read_bytes())
+        raw = (folder / f"{sha}.html").read_bytes()
+        if (metadata.get("schema_version") != "senate-efd-annual-archive/v1" or
+                metadata.get("document_id") != document or metadata.get("source_sha256") != sha or
+                metadata.get("document_url") != f"{_URL_PREFIX}{document}/" or
+                hashlib.sha256(raw).hexdigest() != sha or metadata.get("byte_length") != len(raw) or
+                metadata.get("report_year") != record.get("report_year") or
+                metadata.get("amendment_number") != record.get("amendment_number")):
+            raise SenateEfdError("Senate annual source-copy decision differs from archived source")
+        verified[document] = metadata
+    preferred = {decision.get("canonical_document_id") for decision in declared}
+    expected = _exact_source_copy_groups(repeated, verified, preferred_document_ids=preferred)
+    if declared != expected:
+        raise SenateEfdError("Senate annual source-copy decisions do not reproduce from archived bytes")
+    alias_to_canonical = {alias: decision["canonical_document_id"] for decision in expected
+                          for alias in decision["alias_document_ids"]}
+    by_id = {record["document_id"]: record for record in annual["reports"]}
+    for alias, canonical in alias_to_canonical.items():
+        if (by_id[alias].get("publication_state") != "exact_source_copy" or
+                by_id[alias].get("exact_source_copy_of") != canonical or
+                by_id[canonical].get("publication_state") == "exact_source_copy"):
+            raise SenateEfdError("Senate annual source-copy report dispositions are inconsistent")
+    if any(row.get("filing_id") in alias_to_canonical for row in annual["reported_holdings"]):
+        raise SenateEfdError("Senate annual source-copy alias was promoted as an additional holding")
+    return expected
 
 
 def overlay_annual_candidate(candidate: dict, review_root: Path, *,
@@ -495,6 +591,7 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
         ptr_members = _archived_roster_members(evidence_root, expected_roster_sha256)
         if annual_members != ptr_members:
             raise SenateEfdError("Senate annual roster members differ from PTR roster")
+    exact_source_copies = _verify_annual_source_copies(annual, evidence_root)
     # Rebuild the annual projection from its current review artifact. A later
     # annual run must replace, not accumulate, prior-year or amended rows.
     candidate["reported_holdings"] = [
@@ -532,6 +629,14 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                      else "same_members")
     transaction_relations = []
     for report in annual.get("reports", []):
+        if report.get("publication_state") == "exact_source_copy":
+            transaction_relations.append({"document_id": report["document_id"],
+                                          "source_sha256": report["source_sha256"],
+                                          "canonical_document_id": report["exact_source_copy_of"],
+                                          "status": "resolved_exact_source_copy",
+                                          "observed_row_count": report.get("part4b_printed_row_count"),
+                                          "new_candidate_transaction_count": 0})
+            continue
         if report.get("publication_state") == "superseded":
             continue
         observation_path = report.get("part4b_observation_path")
@@ -571,4 +676,5 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                        "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
                        "annual_qualified_report_count": annual["qualified_report_count"],
                        "annual_holding_count": annual["holding_count"],
+                       "annual_exact_source_copies": exact_source_copies,
                        "annual_part4b_relationships": transaction_relations}
