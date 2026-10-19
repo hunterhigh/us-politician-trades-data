@@ -288,14 +288,17 @@ def _owner_heading(value: str) -> str | None:
     return None
 
 
-def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str) -> tuple[list[dict], list[dict]]:
+def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
+                     default_owner: str = "Self") -> tuple[list[dict], list[dict]]:
     """Parse extracted six-column table rows and preserve all rejected rows."""
 
     if not isinstance(rows, list) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T table parser input is invalid")
     transactions = []
     quarantined = []
-    owner = "Self"
+    if default_owner not in {"Self", "Spouse", "Dependent Child", "Undisclosed"}:
+        raise OgeCatalogError("OGE 278-T default owner is invalid")
+    owner = default_owner
     seen_numbers: set[int] = set()
     for page_number, raw_cells in rows:
         if type(page_number) is not int or page_number <= 0 or not isinstance(raw_cells, list):

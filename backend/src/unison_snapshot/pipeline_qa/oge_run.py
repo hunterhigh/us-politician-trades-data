@@ -12,6 +12,8 @@ from typing import Any
 from unison_snapshot.oge_reports import collapse_direct_catalog_records
 from unison_snapshot.oge_transaction_adapter import (
     PARSER_ID, RULES_VERSION, adapt_oge_278t_extraction,
+    materialize_oge_278t_observations,
+    _observation_input_extraction,
 )
 from unison_snapshot.oge_reports import parse_archived_pdf
 from unison_snapshot.pipeline_ledger import (
@@ -39,7 +41,10 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                          started_at: str, completed_at: str,
                          trigger: str = "local",
                          review_commit: str | None = None,
-                         workflow_run_id: str | None = None) -> dict[str, Any]:
+                         workflow_run_id: str | None = None,
+                         saved_observations_path: str | Path | None = None,
+                         candidate_base_path: str | Path | None = None,
+                         data_cutoff_at: str | None = None) -> dict[str, Any]:
     """Build a row ledger and manifest; never fetch sources or write Git refs."""
     if not isinstance(run_id, str) or not run_id.strip():
         raise OgeShadowInputError("run_id is required")
@@ -68,6 +73,13 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         "extraction_batch": Path(extraction_batch_path),
     }
     values = {name: _read_json(path) for name, path in input_paths.items()}
+    integration = saved_observations_path is not None
+    if integration != (candidate_base_path is not None) or integration != (data_cutoff_at is not None):
+        raise OgeShadowInputError("observed candidate run requires observations, base and cutoff together")
+    saved = _read_json(Path(saved_observations_path)) if integration else {}
+    if not isinstance(saved, dict):
+        raise OgeShadowInputError("saved observation input must map document IDs to bound observations")
+    original_extractions = []
     catalog, archive_batch, extraction_batch = (
         values["catalog"], values["archive_batch"], values["extraction_batch"])
     if not all(isinstance(item, dict) for item in values.values()):
@@ -128,6 +140,9 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     rows: list[dict[str, Any]] = []
     input_hashes = [{"artifact_type": name, "sha256": _sha256(path)}
                     for name, path in input_paths.items()]
+    if integration:
+        input_hashes.extend([{"artifact_type": "saved_observations", "sha256": _sha256(Path(saved_observations_path))},
+                             {"artifact_type": "candidate_base", "sha256": _sha256(Path(candidate_base_path))}])
     seen_ids: set[str] = set()
     for metadata in sorted(reports, key=lambda item: item.get("document_id", "")
                            if isinstance(item, dict) else ""):
@@ -174,7 +189,11 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                     extraction.get("document_id") != document_id or
                     extraction.get("source_sha256") != source_sha):
                 raise OgeShadowInputError(f"{document_id}: extraction differs from archived document")
+            if document_id in saved:
+                extraction = _observation_input_extraction(extraction)
             if not isinstance(extraction.get("source_rows"), list):
+                if integration:
+                    raise OgeShadowInputError(f"{document_id}: observed integration requires saved source_rows; no automatic reparse")
                 if evidence_path_root is None:
                     raise OgeShadowInputError(
                         f"{document_id}: source_rows missing and pinned evidence is unavailable")
@@ -196,7 +215,10 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                      "source_sha256": source_sha,
                                      "artifact_type_detail": "archive_metadata",
                                      "sha256": _sha256(metadata_path)})
+            original_extractions.append(extraction)
             try:
+                if document_id in saved:
+                    extraction = materialize_oge_278t_observations(extraction, record, **saved[document_id])
                 adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
             except Exception as exc:
                 raise OgeShadowInputError(
@@ -225,6 +247,22 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
 
     row_bytes = (json.dumps(rows, ensure_ascii=False, sort_keys=True,
                             separators=(",", ":")) + "\n").encode("utf-8")
+    artifacts = {"candidate_rows.json": row_bytes}
+    if integration:
+        from unison_snapshot.oge_candidate import build_oge_candidate
+        from unison_snapshot.builder import build
+        candidate, audit = build_oge_candidate(
+            catalog, original_extractions, _read_json(Path(candidate_base_path)),
+            data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved)
+        for name, value in (("candidate.json", candidate), ("candidate_audit.json", audit)):
+            artifacts[name] = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        # Exercise the existing final builder locally; no publication or refs.
+        try:
+            bundle = build(candidate, generated_at=completed_at, allow_production=True,
+                           allow_empty_production=True)
+        except ValueError as exc:
+            raise OgeShadowInputError(f"observed final snapshot construction failed: {exc}") from exc
+        artifacts.update({"snapshot/" + name: value for name, value in bundle.files.items()})
     row_counts = Counter(row["disposition"] for row in rows)
     doc_counts = Counter(doc["disposition"] for doc in documents)
     manifest = {
@@ -246,8 +284,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
             "unrecognized_rows": row_counts["unrecognized"],
         },
         "accounted_rows": len(rows),
-        "outputs": [{"artifact_type": "candidate_rows", "path": "candidate_rows.json",
-                     "sha256": hashlib.sha256(row_bytes).hexdigest()}],
+        "outputs": [{"artifact_type": name.removesuffix(".json"), "path": name,
+                     "sha256": hashlib.sha256(value).hexdigest()} for name, value in artifacts.items()],
         "input_artifacts": input_hashes,
         **({"workflow_run_id": workflow_run_id} if workflow_run_id else {}),
     }
@@ -256,7 +294,10 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     if output.exists() and any(output.iterdir()):
         raise OgeShadowInputError("shadow output directory must be new or empty")
     output.mkdir(parents=True, exist_ok=True)
-    (output / "candidate_rows.json").write_bytes(row_bytes)
+    for name, value in artifacts.items():
+        path = output / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(value)
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
         encoding="utf-8")

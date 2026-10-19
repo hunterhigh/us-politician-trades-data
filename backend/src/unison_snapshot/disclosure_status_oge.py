@@ -119,13 +119,19 @@ def _apply_audit(record: dict, audit: dict) -> None:
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
+    receipt = audit.get("observation_receipt")
+    incomplete_observations = isinstance(receipt, dict) and receipt.get("coverage_complete") is not True
+    if incomplete_observations:
+        record["reason_codes"].append("observed_source_coverage_incomplete")
     if promoted is None or quarantined is None:
         record["qualification_state"] = "unknown"
     elif promoted:
         record["qualification_state"] = (
-            "partial" if quarantined or audit.get("document_reasons") else "qualified")
+            "partial" if quarantined or audit.get("document_reasons") or incomplete_observations else "qualified")
     elif quarantined or audit.get("document_reasons"):
         record["qualification_state"] = "quarantined"
+    elif incomplete_observations:
+        record["qualification_state"] = "unknown"
     else:
         record["qualification_state"] = "zero_transactions"
 
