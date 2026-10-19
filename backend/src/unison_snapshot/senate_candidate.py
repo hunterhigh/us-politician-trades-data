@@ -531,6 +531,19 @@ def build_senate_candidate(
             "unobserved_page_count": pending["unobserved_page_count"],
             "qualified_transaction_count": 0,
         }
+        relations = pending.get("source_report_ledgers")
+        if relations is not None:
+            paper_pending_audit["source_report_relations"] = {
+                "report_count": len(relations),
+                "linked_observation_row_count": sum(
+                    item["ledger"]["logical_row_count"] for item in relations),
+                "coverage_unknown_report_count": sum(
+                    item["ledger"]["relation_coverage"] != "accounted"
+                    for item in relations),
+                "coverage_unknown_page_count": sum(
+                    len(item["ledger"]["coverage_unknown_pages"]) for item in relations),
+                "qualified_transaction_count": None,
+            }
     status = _read_json(review_root / "status" / "senate_efd.json", "Senate review status")
     state_catalog = state_status.get("catalog")
     state_reports = state_status.get("reports")

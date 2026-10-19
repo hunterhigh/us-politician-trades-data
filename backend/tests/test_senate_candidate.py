@@ -283,6 +283,63 @@ class SenateCandidateTests(unittest.TestCase):
             with self.assertRaisesRegex(SenateEfdError, "differs from its observation"):
                 build_senate_candidate(root, state, deepcopy(BASE))
 
+    def test_report_relations_reach_existing_candidate_audit_without_changing_trades(self):
+        from tests.test_senate_paper_observation import SenateReportRelationTests
+        from unison_snapshot.senate_paper_observation import project_pending_slots
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "11111111-1111-4111-8111-111111111111"
+            state = self.fixture(root, [identity(document_id)], [extraction(document_id)])
+            before, _ = build_senate_candidate(root, state, deepcopy(BASE))
+            observation = SenateReportRelationTests.observation()
+            pending = project_pending_slots(observation)
+            observed_path = root / "senate_efd/paper_slot_observations/current.json"
+            pending_path = root / "senate_efd/paper_pending_projections/current.json"
+            observed_path.parent.mkdir(parents=True)
+            pending_path.parent.mkdir(parents=True)
+            observed_path.write_text(json.dumps(observation), encoding="utf-8")
+            pending_path.write_text(json.dumps(pending), encoding="utf-8")
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(candidate, before)
+            self.assertEqual(audit["paper_pending_projection"]["source_report_relations"], {
+                "report_count": 1, "linked_observation_row_count": 2,
+                "coverage_unknown_report_count": 1, "coverage_unknown_page_count": 1,
+                "qualified_transaction_count": None})
+            pending["source_report_ledgers"][0]["ledger"]["logical_row_count"] = 3
+            pending_path.write_text(json.dumps(pending), encoding="utf-8")
+            with self.assertRaisesRegex(SenateEfdError, "differs from its observation"):
+                build_senate_candidate(root, state, deepcopy(BASE))
+
+    def test_unknown_source_relations_stay_unknown_in_candidate_audit(self):
+        from tests.test_senate_paper_observation import SenateReportRelationTests
+        from unison_snapshot.senate_paper_observation import (
+            project_pending_slots, _source_report_relations)
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            document_id = "11111111-1111-4111-8111-111111111111"
+            state = self.fixture(root, [identity(document_id)], [extraction(document_id)])
+            observation = SenateReportRelationTests.observation()
+            report = observation["reports"][0]
+            report.update(coverage_status="unknown_source_version", slots=[], pages=[],
+                          physical_grid_slot_count=None, label_counts={},
+                          unobserved_page_numbers=[1, 2, 3])
+            report["source_report_ledger"] = _source_report_relations(report)
+            observation.update(label_counts={}, unobserved_page_count=3)
+            pending = project_pending_slots(observation)
+            for directory, payload in (("paper_slot_observations", observation),
+                                       ("paper_pending_projections", pending)):
+                path = root / "senate_efd" / directory / "current.json"
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(payload), encoding="utf-8")
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(len(candidate["transactions"]), 1)
+            self.assertEqual(audit["paper_pending_projection"]["source_report_relations"], {
+                "report_count": 1, "linked_observation_row_count": 0,
+                "coverage_unknown_report_count": 1, "coverage_unknown_page_count": 3,
+                "qualified_transaction_count": None})
+
     def test_accepts_qualified_paper_extraction_without_inventing_filing_time(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
