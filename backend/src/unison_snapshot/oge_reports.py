@@ -17,6 +17,7 @@ from .oge import OgeCatalogError, OgeSourceConfig, require_collection_enabled
 REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
+GENERIC_PARSER_VERSION = "oge-278t-pdf/v7"
 TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
 TRUMP_SEPT_2026_SECOND_PASS_VERSION = "oge-278t-pdf/v4"
 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION = "oge-278t-pdf/v5"
@@ -68,6 +69,89 @@ _AMOUNTS = {
 _TYPES = {"Purchase": "purchase", "Sale": "sale", "Exchange": "exchange"}
 _TYPES_CASEFOLD = {key.casefold(): value for key, value in _TYPES.items()}
 _TABLE_HEADERS = ("#", "DESCRIPTION", "TYPE", "DATE", "NOTIFICATION", "AMOUNT")
+_OPEN_AMOUNT = re.compile(r"over\s*\$\s*(1,000,000|50,000,000)", re.I)
+
+
+def read_278t_cover_dates(text: str, *, source_sha256: str) -> dict:
+    """Read dates in explicit page-one roles, never from the transaction body.
+
+    Offsets refer to the unmodified embedded cover text. A section's label is
+    not evidence that an arbitrary date in its narrative is its signature date.
+    """
+    if not isinstance(text, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+        raise OgeCatalogError("cover date input is not source-bound text")
+    labels = (
+        ("filer_signature", r"Filer(?:['’]s)?\s+(?:Certification|Signature)|Signature\s+of\s+(?:Filer|Reporting\s+Individual)"),
+        ("electronic_signature_label", r"Electronic\s+Signature\b"),
+        ("agency_review", r"Agency\s+Ethics\s+Official(?:['’]s)?\s+Opinion|Agency\s+(?:Review|Certification)|DAEO\s+Signature"),
+        ("other_review", r"Other\s+review\s+conducted\s+by|Comments\s+of\s+Reviewing\s+Official"),
+        ("oge_certification", r"(?:U\.?S\.?\s+Office\s+of\s+Government\s+Ethics|OGE)\s+Certification"),
+        ("receipt", r"(?:Date\s+(?:of\s+)?(?:Receipt|Received)|Received\s+Date)\b"),
+        ("report_date", r"Date\s+of\s+Report\b"),
+        ("revision_date", r"Data\s+Revised\b"),
+        ("transaction_table", r"(?m)^\s*Transactions\b"),
+    )
+    markers = sorted((match.start(), match.end(), role, match.group())
+                     for role, pattern in labels
+                     for match in re.finditer(pattern, text, re.I))
+    dates = re.compile(
+        r"(?<![\w/])(?:\d{1,2}/\d{1,2}/(?:19|20)\d{2}|(?:19|20)\d{2}-\d{2}-\d{2}|"
+        r"(?:January|February|March|April|May|June|July|August|September|October|November|December)"
+        r"\s+\d{1,2},?\s+(?:19|20)\d{2})(?![\d/])", re.I)
+    observations, role = [], None
+    amendment = bool(re.search(r"(?im)^\s*(?:AMENDMENT\s+TO|AMENDED\s+(?:REPORT|PERIODIC))", text))
+    for index, (start, end, next_role, label) in enumerate(markers):
+        # The unqualified electronic-signature label belongs to the first
+        # filer block only; it cannot relabel a later reviewing official.
+        if next_role == "electronic_signature_label":
+            role = role or "filer_signature"
+        else:
+            role = next_role
+        stop = markers[index + 1][0] if index + 1 < len(markers) else len(text)
+        if role == "transaction_table":
+            continue
+        for match in dates.finditer(text, end, stop):
+            line_start = text.rfind("\n", start, match.start()) + 1
+            prefix = text[line_start:match.start()]
+            before_line = text[:line_start].rstrip().split("\n")[-1] if line_start else ""
+            explicit_date = bool(re.search(
+                r"\bdate(?:\s+signed|\s+of\s+signature)?(?:\s*\([^)]*\))?\s*[:\-]?\s*$", prefix, re.I))
+            electronic = bool(re.search(r"electronically\s+signed\s+on\s*$", prefix, re.I))
+            signature_label = role == "filer_signature" and bool(re.search(
+                r"(?:Filer(?:['’]s)?\s+Signature|Signature\s+of\s+(?:Filer|Reporting\s+Individual))", prefix, re.I))
+            following_date_label = bool(re.search(
+                r"\bdate(?:\s*\([^)]*\))?\s*:?\s*$", before_line, re.I))
+            if not (explicit_date or electronic or signature_label or following_date_label or
+                    role in {"receipt", "report_date", "revision_date"}):
+                continue
+            raw = match.group()
+            normalized = None
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%B %d, %Y", "%B %d %Y"):
+                try:
+                    normalized = datetime.strptime(raw, fmt).date().isoformat()
+                    break
+                except ValueError:
+                    pass
+            observations.append({"role": "amendment_filer_signature" if amendment and role == "filer_signature" else role,
+                "raw_date": raw, "date": normalized,
+                "status": "readable" if normalized else "invalid_calendar_date",
+                "text_span": [match.start(), match.end()], "role_label": label,
+                "role_label_span": [start, end], "method": "embedded_cover_text"})
+    filer_dates = [item for item in observations if item["role"] == "filer_signature"]
+    known = {item["date"] for item in filer_dates if item["date"] is not None}
+    if any(item["date"] is None for item in filer_dates):
+        reasons = ["filer_signature_date_invalid"]
+    elif len(known) > 1:
+        reasons = ["filer_signature_date_ambiguous"]
+    elif not known:
+        reasons = ["filer_signature_date_missing"]
+    else:
+        reasons = []
+    return {"schema_version": "oge-278t-cover-date-roles/v1", "source_sha256": source_sha256,
+            "page_number": 1, "cover_text": text,
+            "cover_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+            "observations": observations, "filed_at": next(iter(known)) if not reasons else None,
+            "document_reasons": reasons, "amendment_cover": amendment}
 
 
 def _compact(value: object) -> str:
@@ -289,11 +373,14 @@ def _owner_heading(value: str) -> str | None:
 
 
 def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
-                     default_owner: str = "Self") -> tuple[list[dict], list[dict]]:
+                     default_owner: str = "Self", allow_open_amounts: bool = False,
+                     account_title: str | None = None) -> tuple[list[dict], list[dict]]:
     """Parse extracted six-column table rows and preserve all rejected rows."""
 
     if not isinstance(rows, list) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T table parser input is invalid")
+    if account_title is not None and (not isinstance(account_title, str) or not account_title.strip()):
+        raise OgeCatalogError("OGE account title must be explicit nonempty source text")
     transactions = []
     quarantined = []
     if default_owner not in {"Self", "Spouse", "Dependent Child", "Undisclosed"}:
@@ -351,13 +438,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
             transaction_date = None
             reasons.append("transaction_date_invalid")
         amount = _amount(raw_amount)
-        if amount is None:
+        open_match = _OPEN_AMOUNT.fullmatch(raw_amount) if allow_open_amounts else None
+        if amount is None and open_match is None:
             reasons.append("amount_range_unsupported")
         ticker_match = re.search(r"\(([A-Z0-9][A-Z0-9.\-^/]{0,31})\)\s*$", description)
         ticker = ticker_match.group(1) if ticker_match and _TICKER.fullmatch(ticker_match.group(1)) else None
         asset_name = (description[:ticker_match.start()].rstrip(" ,") if ticker_match else description)
         stable = "|".join((source_sha, str(page_number), raw_number, description,
                            raw_type, raw_date, late_notice, raw_amount, owner))
+        if account_title is not None:
+            stable += "|account:" + account_title
         row = {
             "extraction_id": "oge-278t:" + hashlib.sha256(stable.encode()).hexdigest()[:24],
             "page_number": page_number,
@@ -370,12 +460,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
             "transaction_date": transaction_date,
             "late_notification_raw": late_notice or None,
             "amount_raw": raw_amount,
-            "amount_low": amount[0] if amount else None,
+            "amount_low": amount[0] if amount else int(open_match[1].replace(",", "")) if open_match else None,
             "amount_high": amount[1] if amount else None,
             # Keep the exact parser input beside normalized fields so a later
             # shadow adapter can account for every extracted physical row.
             "cells": cells,
         }
+        if open_match is not None:
+            row["amount_low_exclusive"] = True
+        if account_title is not None:
+            row["account_title"] = account_title
         if reasons:
             quarantined.append({**row, "cells": cells, "reasons": sorted(set(reasons))})
         else:
@@ -817,7 +911,8 @@ def _looks_like_transaction_table(table_rows: list[list[object]]) -> bool:
     return row_like >= 2
 
 
-def _extract_pdf(content_path: Path, *, include_inventory: bool = False):
+def _extract_pdf(content_path: Path, *, include_inventory: bool = False,
+                 include_cover: bool = False):
     try:
         import pdfplumber
     except ImportError:
@@ -861,8 +956,12 @@ def _extract_pdf(content_path: Path, *, include_inventory: bool = False):
     except Exception:
         raise OgeCatalogError("OGE 278-T PDF could not be extracted") from None
     if include_inventory:
-        return "\n".join(texts), rows, inventory
-    return "\n".join(texts), rows
+        result = ("\n".join(texts), rows, inventory)
+    else:
+        result = ("\n".join(texts), rows)
+    if include_cover:
+        return (*result, {"page_number": 1, "text": texts[0], "document_page_count": len(texts)})
+    return result
 
 
 def _read_archived_source(root: Path, metadata_path: Path) -> tuple[dict, Path, str]:
@@ -952,17 +1051,28 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
     return value
 
 
-def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
+def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False) -> dict:
     metadata, pdf_path, source_sha = _read_archived_source(root, metadata_path)
-    extracted = _extract_pdf(pdf_path, include_inventory=True)
-    if len(extracted) == 2:  # Keep patched/offline callers using the old return shape compatible.
+    extracted = (_extract_pdf(pdf_path, include_inventory=True, include_cover=True) if generic else
+                 _extract_pdf(pdf_path, include_inventory=True))
+    cover = None
+    if len(extracted) == 4:
+        text, rows, inventory, cover = extracted
+    elif len(extracted) == 2:  # Keep patched/offline callers using the old return shape compatible.
         text, rows = extracted
         inventory = rows
     else:
         text, rows, inventory = extracted
     signatures = _SIGNATURE_DATE.findall(text)
-    fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
-    if fixed_source:
+    fixed_source = not generic and _is_fixed_trump_september_source(metadata, source_sha)
+    date_evidence = None
+    if generic:
+        date_evidence = read_278t_cover_dates(cover["text"] if cover else "", source_sha256=source_sha)
+        filed_at = date_evidence["filed_at"]
+        filing_reasons = date_evidence["document_reasons"][:]
+        if cover is None:
+            filing_reasons.append("cover_text_not_separately_observed")
+    elif fixed_source:
         filed_at = TRUMP_SEPT_2026_FILING_DATE_EVIDENCE["filed_at"]
         filing_reasons = []
     elif len(signatures) != 1:
@@ -971,7 +1081,13 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     else:
         filed_at = _iso_date(signatures[0])
         filing_reasons = []
-    transactions, quarantined = parse_table_rows(rows, source_sha=source_sha)
+    transactions, quarantined = (parse_table_rows(inventory, source_sha=source_sha,
+                                default_owner="Undisclosed", allow_open_amounts=True) if generic else
+                                parse_table_rows(rows, source_sha=source_sha))
+    if generic:
+        for row in [*transactions, *quarantined]:
+            if row.get("owner") == "Undisclosed":
+                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
     if fixed_source:
         transactions, quarantined = _recover_fixed_trump_september_salo(
             transactions, quarantined)
@@ -988,7 +1104,7 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
     return {
         "schema_version": EXTRACTION_SCHEMA,
         "parser_version": (
-            TRUMP_SEPT_2026_PAGE7_PASS_VERSION
+            GENERIC_PARSER_VERSION if generic else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
             if fixed_source and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
             else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
             if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
@@ -1004,6 +1120,9 @@ def parse_archived_pdf(root: Path, metadata_path: Path) -> dict:
         "position_title": metadata["position_title"],
         "catalog_added_date": metadata["catalog_added_date"],
         "filed_at": filed_at,
+        **({"cover_date_evidence": date_evidence,
+            "document_page_count": cover["document_page_count"] if cover else None}
+           if generic else {}),
         **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
            if fixed_source else {}),
         "document_reasons": filing_reasons,
