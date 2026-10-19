@@ -120,9 +120,19 @@ class SenatePaperGridTests(unittest.TestCase):
                 result = extract_archived_paper_reports(
                     evidence, review, grid_observations={document: observation}, cached_word_pages={document: pages})
             self.assertEqual((result["extraction_count"], result["failure_count"], result["transaction_count"]), (1, 0, 1))
+            other = "22222222-2222-4222-8222-222222222222"
+            write(review / "senate_efd/discoveries" / ("c" * 64 + ".json"),
+                  {"reports": [report, {**report, "document_id": other}]})
+            result = extract_archived_paper_reports(
+                evidence, review, grid_observations={document: observation},
+                cached_word_pages={document: pages}, selected_document_ids=[document])
+            self.assertEqual(result["catalog_report_count"], 2)
+            self.assertEqual(result["report_count"], 1)
+            self.assertEqual(result["scope"], "selected_fixed_reports_not_full_catalog")
             image_path.write_bytes(b"Changed")
             result = extract_archived_paper_reports(
-                evidence, review, grid_observations={document: observation}, cached_word_pages={document: pages})
+                evidence, review, grid_observations={document: observation}, cached_word_pages={document: pages},
+                selected_document_ids=[document])
             self.assertEqual((result["extraction_count"], result["failure_count"]), (0, 1))
 
     def test_unknown_grid_is_not_a_successful_zero_transaction_report(self):

@@ -518,7 +518,8 @@ def _load_page(evidence_root: Path, item: dict, page_number: int,
 def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                                    *, executable: str = "tesseract",
                                    grid_observations: dict[str, dict] | None = None,
-                                   cached_word_pages: dict[str, list[dict]] | None = None) -> dict:
+                                   cached_word_pages: dict[str, list[dict]] | None = None,
+                                   selected_document_ids: list[str] | None = None) -> dict:
     """Extract every current paper viewer from immutable archived page bytes."""
 
     status = json.loads((review_root / "status" / "senate_efd.json").read_text(encoding="utf-8"))
@@ -527,10 +528,19 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                             f"{catalog_sha}.json").read_text(encoding="utf-8"))
     reports = {item.get("document_id"): item for item in discovery.get("reports", [])
                if isinstance(item, dict) and item.get("access_method") == "paper_ptr"}
+    catalog_report_count = len(reports)
+    if selected_document_ids is not None:
+        if (not isinstance(selected_document_ids, list) or not selected_document_ids or
+                len(selected_document_ids) != len(set(selected_document_ids)) or
+                not set(selected_document_ids) <= set(reports)):
+            raise SenateEfdError("Senate paper selected document IDs are outside the catalog or repeated")
+        reports = {key: value for key, value in reports.items() if key in selected_document_ids}
     inspections = {}
     for path in sorted((review_root / "senate_efd" / "paper_inspections").glob(
             f"*/*/{PARSER_VERSION}.json")):
         item = json.loads(path.read_text(encoding="utf-8"))
+        if selected_document_ids is not None and item.get("document_id") not in reports:
+            continue
         if item.get("schema_version") != PAPER_INSPECTION_SCHEMA:
             raise SenateEfdError("Senate paper inspection schema changed")
         inspections[item.get("document_id")] = item
@@ -540,6 +550,8 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
     cached_pages = cached_word_pages or {}
     if set(grids) != set(cached_pages) or not set(grids) <= set(reports):
         raise SenateEfdError("Senate saved grid inputs do not match selected paper reports")
+    if grid_observations is not None and set(grids) != set(reports):
+        raise SenateEfdError("Senate saved grid mode requires cached input for every selected report")
 
     extractions, failures = [], []
     for document_id in sorted(reports):
@@ -576,7 +588,7 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                 "source_sha256": inspections[document_id].get("source_sha256"),
                 "reason": str(exc),
             })
-    return {
+    result = {
         "schema_version": PAPER_EXTRACTION_BATCH_SCHEMA,
         "parser_version": PARSER_VERSION,
         "paper_rule_version": PAPER_OCR_RULE_VERSION,
@@ -591,3 +603,8 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
         "extractions": extractions,
         "failures": failures,
     }
+    if selected_document_ids is not None:
+        result.update(catalog_report_count=catalog_report_count,
+                      selected_document_ids=sorted(selected_document_ids),
+                      scope="selected_fixed_reports_not_full_catalog")
+    return result
