@@ -99,6 +99,49 @@ def extraction(document_id: str, rows=None, **updates):
 
 
 class SenateCandidateTests(unittest.TestCase):
+    def test_annual_ptr_relations_consume_resolved_current_ptr_without_new_trade(self):
+        from tests.test_senate_annual_transactions import sample
+        from unison_snapshot.senate_annual_transactions import observe_part4b
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            review, evidence = root / "review", root / "evidence"
+            original = "11111111-1111-4111-8111-111111111111"
+            amendment = "22222222-2222-4222-8222-222222222222"
+            old_id, new_id = "senate-ptr:" + "1" * 24, "senate-ptr:" + "2" * 24
+            def sale(identifier, raw_type):
+                return row(identifier, owner_raw="Spouse", ticker_raw=None,
+                           asset_name_raw="Example Fund", asset_type_raw="Other",
+                           transaction_type="sale", transaction_type_raw=raw_type,
+                           transaction_date="2025-11-12", amount_raw="$500,001 - $1,000,000")
+            before = extraction(original, [sale(old_id, "Sale (Full)")], source_sha256="d" * 64)
+            after = extraction(amendment, [sale(new_id, "Sale (Partial)")], source_sha256="e" * 64,
+                               report_amendment_number=1, portal_listed_date="2026-09-18",
+                               filed_at_raw="Filed 09/18/2026 @ 8:55 AM")
+            state = self.fixture(review, [identity(original), identity(amendment)], [before, after])
+            metadata, raw = sample()
+            observation = observe_part4b(metadata, raw)
+            document, sha = metadata["document_id"], metadata["source_sha256"]
+            folder = evidence / "senate_efd/annual/reports" / document
+            folder.mkdir(parents=True)
+            (folder / f"{sha}.html").write_bytes(raw)
+            (folder / f"{sha}.metadata.json").write_text(json.dumps(metadata), encoding="utf8")
+            relative = Path("senate_efd/annual/part4b") / document / sha / "observation-v2.json"
+            (review / relative).parent.mkdir(parents=True)
+            (review / relative).write_text(json.dumps(observation), encoding="utf8")
+            (review / "senate_efd/annual/current.json").write_text(json.dumps({
+                "schema_version": "senate-efd-annual-review/v1", "source_id": "senate_efd",
+                "roster_sha256": ROSTER_SHA, "people": [], "reported_holdings": [],
+                "qualified_report_count": 1, "holding_count": 0, "exact_source_copies": [],
+                "reports": [{"document_id": document, "person_id": "senate:S000001",
+                             "source_sha256": sha, "publication_state": "qualified",
+                             "part4b_observation_path": relative.as_posix()}]}), encoding="utf8")
+            candidate, audit = build_senate_candidate(review, state, deepcopy(BASE), evidence_root=evidence)
+            self.assertEqual([tx["id"] for tx in candidate["transactions"]], [new_id])
+            relation = audit["annual_part4b_relationships"][0]
+            self.assertEqual(relation["rows"][0]["possible_ptr_transaction_ids"], [new_id])
+            self.assertEqual(relation["new_candidate_transaction_count"], 0)
+            self.assertEqual(audit["superseded_report_count"], 1)
+
     def test_official_open_and_largest_finite_amounts_reach_candidate_exactly(self):
         item = extraction("11111111-1111-4111-8111-111111111111")
         for raw, low, high, exclusive in [
