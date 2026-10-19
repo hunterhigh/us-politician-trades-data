@@ -224,6 +224,15 @@ def build_house_status(evidence_root: Path, review_root: Path,
                     state = ("partial" if rows and quarantined else "qualified" if rows else
                              "quarantined" if quarantined else "zero_transactions"
                              if summary.get("zero_transaction_document_count") == 1 else "unknown")
+                    ledger = qualification.get("source_report_ledger")
+                    if ledger is not None:
+                        if (not isinstance(ledger, dict) or
+                                ledger.get("document_sha256") != selected or
+                                ledger.get("source_id") != "house_clerk"):
+                            raise ValueError("House source ledger provenance mismatch")
+                        if ledger.get("relation_coverage") != "accounted":
+                            reasons.add("source_row_coverage_incomplete")
+                            state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
                     if state == "unknown":
                         reasons.add("empty_qualification_without_zero_declaration")

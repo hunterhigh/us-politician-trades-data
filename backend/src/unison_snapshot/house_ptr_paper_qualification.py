@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
+from .source_row_ledger import page_ledger, report_ledger
 from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
@@ -194,6 +195,28 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             "document_reasons": document_reasons, "production_eligible": False,
         },
     }
+    pages = []
+    logical = []
+    for page in observation["pages"]:
+        slots = []
+        for physical in page["rows"]:
+            slot = (page["page"], physical["physical_band_index"])
+            state = "heading" if slot in heading_by_slot else physical["disposition"]
+            key = str(physical["physical_band_index"])
+            slots.append({"local_key": key, "bounds": physical["band"],
+                          "disposition": state, "observation_ref": f"pages/{page['page']}/bands/{key}"})
+            if state == "data_candidate":
+                logical.append({"local_key": f"p{page['page']}:band{key}",
+                                "slot_refs": [{"page_number": page["page"], "slot_key": key}]})
+        located = page.get("region_status") == "located_shadow"
+        pages.append(page_ledger(source_id="house_clerk", document_sha256=source_sha,
+            adapter_version=PARSER_VERSION, page_number=page["page"],
+            coverage="located" if located else "unknown", slots=slots,
+            coverage_reason=None if located else "paper_grid_coverage_unresolved",
+            coordinate_frame="normalized_source_page"))
+    result["source_report_ledger"] = report_ledger(source_id="house_clerk",
+        document_sha256=source_sha, adapter_version=PARSER_VERSION, page_count=len(pages),
+        pages=pages, logical_rows=logical)
     result["pending_transaction_projection"] = _pending_transaction_projection(result, metadata)
     if peer_metadata is not None:
         result["temporal_relation_observation"] = audit_paper_temporal_relations(

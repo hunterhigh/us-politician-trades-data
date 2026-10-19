@@ -15,7 +15,7 @@ from .house import HouseIndexError
 from .house_holdings import ASSET_RE, ASSET_TYPES, OWNER_CODES, _clean, _lines, _value
 
 
-SCHEMA = "house-annual-sections-observation/v1"
+SCHEMA = "house-annual-sections-observation/v2"
 DATE = re.compile(r"\d{2}/\d{2}/\d{4}")
 
 
@@ -62,16 +62,29 @@ def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
                          if _clean(word.get("text")) == token)
              for token in ("Asset", "Owner", "Date", "Tx.", "Amount", "Cap.")
              if any(_clean(word.get("text")) == token for word in header_words)}
-        if set(x) != {"Asset", "Owner", "Date", "Tx.", "Amount", "Cap."}:
+        if not {"Asset", "Owner", "Date", "Tx.", "Amount"}.issubset(x):
+            continue
+        x.setdefault("Cap.", float(page["width"]))
+        if not x["Asset"] < x["Owner"] < x["Date"] < x["Tx."] < x["Amount"] < x["Cap."]:
             continue
         pages_with_header.append(page_number)
-        anchors = sorted(((float(word["top"]), word) for word in words
-                          if float(word["top"]) > header_top + 10 and
-                          x["Date"] - 4 <= float(word["x0"]) < x["Tx."] - 2 and
-                          DATE.fullmatch(_clean(word.get("text")))),
-                         key=lambda item: (item[0], float(item[1]["x0"])))
+        section_end = min((top for top, tokens in lines if top > header_top + 10 and
+                           re.match(r"^Schedule\s+[AC-Z]\b", _clean(" ".join(
+                               str(word.get("text", "")) for word in tokens)), re.I)),
+                          default=float(page["height"]))
+        anchors = []
+        for top, tokens in lines:
+            if not header_top + 10 < top < section_end:
+                continue
+            dates = [word for word in tokens if x["Date"] - 4 <= float(word["x0"]) < x["Tx."] - 2
+                     and DATE.fullmatch(_clean(word.get("text")))]
+            kinds = [word for word in tokens if x["Tx."] - 4 <= float(word["x0"]) < x["Amount"] - 2
+                     and re.fullmatch(r"[PSE](?:\s*\(partial\))?", _clean(word.get("text")))]
+            asset = [word for word in tokens if x["Asset"] - 4 <= float(word["x0"]) < x["Owner"] - 2]
+            if dates or (kinds and asset):
+                anchors.append((top, dates[0] if len(dates) == 1 else {"text": ""}))
         for ordinal, (top, date_word) in enumerate(anchors, start=1):
-            end = anchors[ordinal][0] - 1 if ordinal < len(anchors) else float(page["height"])
+            end = anchors[ordinal][0] - 1 if ordinal < len(anchors) else section_end
             section_words = sorted((word for word in words
                                     if top - 1 <= float(word["top"]) < end),
                                    key=lambda word: (round(float(word["top"]), 1),
@@ -113,10 +126,20 @@ def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
                     f"{sha}:{page_number}:{top:.2f}".encode()).hexdigest()[:24],
                 "page_number": page_number, "top_points": round(top, 2),
                 "asset_raw": asset_raw, "owner_code_raw": owner_raw,
+                "asset_name": asset_match.group(1).strip() if asset_match else None,
+                "ticker": asset_match.group(2) if asset_match else None,
+                "asset_type_code": asset_match.group(3) if asset_match else None,
+                "instrument_type": ASSET_TYPES.get(asset_match.group(3)) if asset_match else None,
+                "owner": OWNER_CODES.get(owner_raw),
+                "transaction_type": {"P": "purchase", "S": "sale", "E": "exchange"}.get(kind_raw[:1]),
+                "evidence": {"page": page_number, "section": "Schedule B",
+                             "bbox_points": [x["Asset"] - 4, top - 1, x["Cap."], end]},
                 "transaction_type_raw": kind_raw, "transaction_date": event_date,
+                "transaction_date_raw": _clean(date_word["text"]),
                 "amount_raw": amount_raw,
                 "amount_low": amount[0] if amount else None,
                 "amount_high": amount[1] if amount else None,
+                **({"amount_low_exclusive": True} if amount and amount[1] is None else {}),
                 "problems": problems, "ptr_overlap_status": "unassessed",
                 "disposition": "pending_relationship_and_qualification",
             })
@@ -128,9 +151,13 @@ def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
             row["hierarchy_status"] == "parent_and_leaf_observed" for row in schedule_a),
         "schedule_a_rows": schedule_a,
         "schedule_b_header_pages": pages_with_header,
-        "schedule_b_date_anchored_row_count": len(schedule_b),
+        "schedule_b_date_anchored_row_count": sum(bool(DATE.fullmatch(row["transaction_date_raw"])) for row in schedule_b),
+        "schedule_b_observed_row_count": len(schedule_b),
+        "schedule_a_coverage": {"status": "extraction_rows_only",
+                                "unresolved_row_ids": [row["extraction_id"] for row in schedule_a
+                                 if row["holding_review_reasons"] or "unresolved" in row["hierarchy_status"]]},
         "schedule_b_rows": schedule_b,
-        "schedule_b_coverage_status": "date_anchored_only",
+        "schedule_b_coverage_status": "row_anchors_only_not_complete_census",
         "production_eligible_transaction_count": 0,
     }
 
