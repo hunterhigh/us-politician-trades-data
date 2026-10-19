@@ -10,6 +10,7 @@ from typing import Any
 
 from .oge import OgeCatalogError
 from .oge_reports import (
+    GENERIC_PARSER_VERSION,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
     collapse_direct_catalog_records,
 )
@@ -28,6 +29,89 @@ _AMOUNT_RANGES = {(1001, 15000), (15001, 50000), (50001, 100000),
                   (25000001, 50000000)}
 
 OBSERVED_PARSER_VERSION = "oge-278t-observed/v1"
+
+
+def generic_cover_evidence_valid(extraction: dict) -> bool:
+    """Replay role evidence; a serialized v7 label alone grants no eligibility."""
+    from .oge_reports import read_278t_cover_dates
+    evidence = extraction.get("cover_date_evidence")
+    count = extraction.get("document_page_count")
+    if not isinstance(evidence, dict) or type(count) is not int or count < 1:
+        return False
+    try:
+        replay = read_278t_cover_dates(evidence.get("cover_text"),
+                                     source_sha256=extraction.get("source_sha256"))
+    except (OgeCatalogError, TypeError):
+        return False
+    return (replay == evidence and not replay["document_reasons"]
+            and replay["filed_at"] == extraction.get("filed_at")
+            and isinstance(extraction.get("source_rows"), list)
+            and all(isinstance(row, dict) and type(row.get("page_number")) is int
+                    and 1 <= row["page_number"] <= count for row in extraction["source_rows"]))
+
+
+def _amount_readings(readings: list[dict]) -> list[tuple[dict, list, bool]]:
+    from .oge_278t_amount_categories import observe_template_amount
+    recognized = []
+    for read in readings:
+        if read.get("geometry_status") == "ambiguous":
+            continue
+        shape = read["shape"]
+        if shape.get("status") == "ocr_shape_only" and isinstance(shape.get("values"), list):
+            recognized.append((read, shape["values"], False))
+        category = observe_template_amount(read.get("raw_ocr_text", ""))
+        if category["status"] == "open_upper_template_shape":
+            recognized.append((read, [category["minimum_exclusive"], None], True))
+    return recognized
+
+
+def open_amount_qualified(row: dict, parser_version: str) -> bool:
+    from .oge_278t_amount_categories import observe_template_amount
+    if parser_version not in {GENERIC_PARSER_VERSION, OBSERVED_PARSER_VERSION}:
+        return False
+    raw = row.get("amount_raw")
+    if not isinstance(raw, str):
+        return False
+    category = observe_template_amount(raw)
+    return (category["status"] == "open_upper_template_shape"
+            and type(row.get("amount_low")) is int
+            and row["amount_low"] == category["minimum_exclusive"]
+            and row.get("amount_low_exclusive") is True and row.get("amount_high") is None)
+
+
+def amount_range_qualified(row: dict, parser_version: str) -> bool:
+    return (open_amount_qualified(row, parser_version) or
+            type(row.get("amount_low")) is int and type(row.get("amount_high")) is int
+            and (row["amount_low"], row["amount_high"]) in _AMOUNT_RANGES
+            and row.get("amount_low_exclusive") is not True)
+
+
+def _bound_transaction_start_page(extraction: dict, observations: list[dict]) -> int | None:
+    """Require cover role and the same first native/physical table header.
+
+    A first saved page number, printed number, or missing previous observation
+    supplies no proof that a source account heading did not precede it.
+    """
+    if not generic_cover_evidence_valid(extraction):
+        return None
+    cover = extraction["cover_date_evidence"]["cover_text"]
+    if not re.search(r"Periodic\s+Transaction\s+Report", cover, re.I):
+        return None
+    inventory = [row for row in extraction["source_rows"] if any(_cells(row.get("cells")))]
+    if not inventory:
+        return None
+    first = inventory[0]
+    header = _cells(first.get("cells"))
+    # Only the cover is accounted before this first table. A gap stays unknown.
+    if first["page_number"] != 2 or _structural_disposition(header) != ("excluded", "table_header"):
+        return None
+    pages = sorted((page for item in observations for page in item["pages"]), key=lambda page: page["page_number"])
+    if not pages or pages[0]["page_number"] != first["page_number"] or not pages[0].get("slots"):
+        return None
+    columns = pages[0]["slots"][0].get("column_observation", {})
+    names = ("printed_number", "description", "type", "transaction_date", "notification", "amount")
+    observed = [" ".join(columns.get(name, {}).get("raw_ocr_text", "").split()) for name in names]
+    return first["page_number"] if observed == header else None
 
 
 def _observation_input_extraction(extraction: dict) -> dict:
@@ -56,8 +140,11 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     from .oge_278t_field_shadow import observe_content_rows
     from .oge_reports import PARSER_VERSION, _owner_heading, parse_table_rows
 
-    if extraction.get("parser_version") != PARSER_VERSION:
+    if extraction.get("parser_version") not in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
         raise OgeCatalogError("observed interpretation requires an original generic extraction")
+    if (extraction.get("parser_version") == GENERIC_PARSER_VERSION and
+            extraction.get("document_page_count") != document_page_count):
+        raise OgeCatalogError("saved page count differs from generic extraction")
     extraction = _observation_input_extraction(extraction)
     # Validate the old report/catalog contract before overlaying observations.
     adapt_oge_278t_extraction(extraction, catalog_record)
@@ -86,6 +173,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
     result = deepcopy(extraction)
+    result["source_parser_version"] = extraction["parser_version"]
     result["parser_version"] = OBSERVED_PARSER_VERSION
     old_rows = extraction["transactions"] + extraction["quarantined"]
     old_by_key: dict[str, list[dict]] = {}
@@ -100,6 +188,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     previous_page = None
     used_old_ids = set()
     unknown_pages = []
+    proven_start_page = _bound_transaction_start_page(extraction, observations)
+    account_prefix_unknown = proven_start_page is None
     old_source_keys = {_row_key(row) for row in extraction["source_rows"]}
     raw_pages = {page["page_number"]: page for item in observations for page in item["pages"]}
 
@@ -116,12 +206,15 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             owner_conflicted = owner_conflicted or owner_reference is not None
             owner = None
             owner_reference = None
+            if previous_page is not None:
+                account_prefix_unknown = True
         previous_page = page_number
         if page.get("status") != "field_shapes_observed":
             unknown_pages.append(page_number)
             owner_conflicted = owner_conflicted or owner_reference is not None
             owner = None
             owner_reference = None
+            account_prefix_unknown = True
             continue
         for slot_ordinal, slot in enumerate(page.get("slots", []), 1):
             slot_key = str(slot_ordinal)
@@ -143,7 +236,9 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 if relation and relation.get("status") != "supported_observation_relation":
                     receipt.update(disposition="unresolved", reasons=["retained_legacy_with_observation_conflict", *relation.get("blocking_reasons", [])])
                 continue
-            owner_heading_text = " ".join(cells[1].casefold().split())
+            structural = observation.get("structural_evidence", {})
+            ordered_description = structural.get("description_text")
+            owner_heading_text = " ".join((ordered_description or "").casefold().split())
             heading = _owner_heading(owner_heading_text) if (not any((cells[2], cells[3], cells[5])) and
                 re.fullmatch(r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", owner_heading_text)) else None
             if heading:
@@ -151,7 +246,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 descriptions = {r["shape"].get("value") for r in readings
                                 if r["shape"].get("status") == "ocr_text_only"}
                 words = slot.get("word_evidence", {})
-                safe = (len(descriptions) == 1 and words.get("status") == "source_words_linked"
+                safe = (structural.get("status") == "supported_label" and
+                        len(descriptions) == 1 and words.get("status") == "source_words_linked"
                         and not words.get("crossing_words") and not words.get("unassigned_word_indices")
                         and not observation.get("word_center_rounding_ambiguous")
                         and not raw_pages[page_number]["slots"][slot_ordinal - 1].get("column_model_outside_word_indices")
@@ -160,12 +256,16 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 owner_reference = reference if safe else None
                 owner_conflicted = not safe
                 if safe:
+                    account_prefix_unknown = False
                     receipt.update(disposition="excluded", reasons=["explicit_owner_heading"])
                 else:
                     receipt["reasons"] = ["owner_heading_observation_unresolved"]
                     defer(physical, reference, receipt["reasons"])
                 continue
             if observation["disposition"] in {"heading", "note", "blank"}:
+                if (observation["disposition"] == "heading" and
+                        observation.get("account_context", {}).get("status") == "observed"):
+                    account_prefix_unknown = False
                 receipt.update(disposition="excluded", reasons=[observation["reason"]])
                 continue
             if observation["disposition"] != "data_candidate":
@@ -174,18 +274,25 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 owner_conflicted = owner_conflicted or owner_reference is not None
                 owner = None
                 owner_reference = None
+                account_prefix_unknown = True
                 continue
             reasons = []
             relation = observation.get("relation_evidence", {})
+            amount_readings = _amount_readings(slot["field_readings"]["amount"]["observations"])
+            amount_keys = {(tuple(value), exclusive) for _, value, exclusive in amount_readings}
+            open_amount = len(amount_keys) == 1 and next(iter(amount_keys))[1] is True
             if relation.get("status") != "supported_observation_relation":
-                reasons.extend(relation.get("blocking_reasons") or ["field_relation_unresolved"])
+                blockers = relation.get("blocking_reasons") or ["field_relation_unresolved"]
+                reasons.extend(reason for reason in blockers
+                               if not (open_amount and reason == "amount_observation_missing"))
             values = {}
             field_evidence = {}
             for field in ("description", "type", "transaction_date", "amount", "printed_number"):
                 readings = slot["field_readings"][field]["observations"]
-                recognized = [r["shape"].get("values", r["shape"].get("value"))
+                recognized = ([value for _, value, _ in amount_readings] if field == "amount" else
+                              [r["shape"].get("values", r["shape"].get("value"))
                               for r in readings if r.get("geometry_status") != "ambiguous"
-                              and r["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+                              and r["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}])
                 distinct = {json.dumps(value, sort_keys=True) for value in recognized}
                 if len(distinct) != 1:
                     reasons.append(field + "_reading_unresolved")
@@ -194,6 +301,18 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                     field_evidence[field] = [r["source_ref"] for r in readings
                                              if r.get("geometry_status") != "ambiguous"
                                              and r["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+                    if field == "amount":
+                        field_evidence[field] = [read["source_ref"] for read, _, _ in amount_readings]
+            account = observation.get("account_context", {})
+            if account.get("status") == "observed":
+                account_prefix_unknown = False
+            effective_account = deepcopy(account)
+            if account.get("status") == "none_observed" and account_prefix_unknown:
+                effective_account.update(status="unknown", reason="preceding_account_scope_not_observed")
+            receipt["effective_account_context"] = effective_account
+            if effective_account.get("status") == "unknown":
+                reasons.append("account_context_unresolved")
+            account_title = account.get("title") if account.get("status") == "observed" else None
             if owner_conflicted:
                 reasons.append("owner_heading_observation_unresolved")
             # An unmatched old row might be the same disclosure with OCR variation.
@@ -202,7 +321,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                               row.get("extraction_id") not in used_old_ids for row in old_rows):
                 reasons.append("legacy_row_correspondence_unresolved")
             amount = values.get("amount")
-            if not isinstance(amount, list) or tuple(amount) not in _AMOUNT_RANGES:
+            if not isinstance(amount, list) or (tuple(amount) not in _AMOUNT_RANGES and not open_amount):
                 reasons.append("amount_range_not_qualified")
             if reasons:
                 receipt["reasons"] = sorted(set(reasons))
@@ -210,14 +329,16 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 continue
             normalized_cells = [str(values["printed_number"]), values["description"],
                                 values["type"], date.fromisoformat(values["transaction_date"]).strftime("%m/%d/%Y"),
-                                cells[4], f"${amount[0]:,} - ${amount[1]:,}"]
+                                cells[4], f"Over ${amount[0]:,}" if open_amount else f"${amount[0]:,} - ${amount[1]:,}"]
             good, bad = parse_table_rows([(page_number, normalized_cells)], source_sha=sha,
-                                         default_owner=owner or "Undisclosed")
+                                         default_owner=owner or "Undisclosed", allow_open_amounts=True,
+                                         account_title=account_title)
             row = (good + bad)[0]
             row["cells"] = cells
             row["observation_reference"] = reference
             row["field_observation_references"] = field_evidence
             row["owner_observation_reference"] = owner_reference
+            row["account_context"] = deepcopy(account)
             if owner is None:
                 row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
             # Use the existing formal identity algorithm, never a page/slot ID.
@@ -230,6 +351,10 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         result["legacy_document_reasons"] = deepcopy(extraction.get("document_reasons", []))
         result["document_reasons"] = [reason for reason in extraction.get("document_reasons", [])
                                       if reason not in {"transaction_table_not_found", "no_transaction_rows_found"}]
+        if result["legacy_document_reasons"] != result["document_reasons"]:
+            # Only the table-discovery blocker has just acquired source evidence;
+            # date/identity/other document blockers remain effective.
+            result["evidence_complete"] = not result["document_reasons"]
     result["observation_receipt"] = {
         "schema_version": "oge-278t-observed-facts/v1", "source_sha256": sha,
         "rows": receipt_rows, "unresolved_slot_count": unresolved,
@@ -240,6 +365,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "page_count_basis": "source_sha256_verified_pdf" if page_count_verified else "declared_only",
         "legacy_inventory_basis": extraction.get("legacy_inventory_basis", "saved_physical_inventory"),
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
+        "initial_account_scope_basis": ("bound_cover_and_first_table_header" if proven_start_page is not None
+                                         else "unknown_before_observed_region"),
         "coverage_complete": page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
     }
     return result
@@ -313,6 +440,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         report_reasons = []
     if extraction.get("evidence_complete") is not True or extraction.get("document_reasons"):
         report_reasons.append("document_evidence_incomplete")
+    if (extraction.get("parser_version") == GENERIC_PARSER_VERSION or
+            extraction.get("source_parser_version") == GENERIC_PARSER_VERSION) and not generic_cover_evidence_valid(extraction):
+        report_reasons.append("cover_date_evidence_invalid")
     if catalog_record.get("pending_final_oge_disposition") is True:
         report_reasons.append("pending_final_oge_disposition")
     if catalog_record.get("amended_label"):
@@ -378,19 +508,17 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                     parsed_day = None
                 if normalized.get("transaction_type") not in {"purchase", "sale"}:
                     reasons.append("transaction_type_not_qualified")
-                if (type(normalized.get("amount_low")) is not int or
-                        type(normalized.get("amount_high")) is not int or
-                        (normalized.get("amount_low"), normalized.get("amount_high"))
-                        not in _AMOUNT_RANGES):
+                if not amount_range_qualified(normalized, parser_version):
                     reasons.append("amount_range_not_qualified")
                 if (parsed_day is None or filed_day is None or parsed_day > filed_day):
                     reasons.append("transaction_date_not_qualified")
                 if not isinstance(normalized.get("asset_name"), str) or not normalized["asset_name"].strip():
                     reasons.append("asset_name_not_qualified")
                 if normalized.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
-                        parser_version == OBSERVED_PARSER_VERSION and normalized.get("owner") == "Undisclosed"
+                        parser_version in {OBSERVED_PARSER_VERSION, GENERIC_PARSER_VERSION} and normalized.get("owner") == "Undisclosed"
                         and normalized.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
-                        and normalized.get("observation_reference", {}).get("source_sha256") == source_sha):
+                        and (parser_version == GENERIC_PARSER_VERSION and generic_cover_evidence_valid(extraction) or
+                             normalized.get("observation_reference", {}).get("source_sha256") == source_sha)):
                     reasons.append("owner_not_qualified")
                 if reasons:
                     disposition = "quarantined"
@@ -423,6 +551,11 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "amount_high": (raw_cells[5] if len(raw_cells) > 5 else None,
                             normalized.get("amount_high")),
         }
+        is_open = open_amount_qualified(normalized, parser_version)
+        required = ["asset_name", "transaction_type", "transaction_date", "owner", "amount_low"]
+        required.append("amount_low_exclusive" if is_open else "amount_high")
+        if is_open:
+            fields["amount_low_exclusive"] = (raw_cells[5] if len(raw_cells) > 5 else None, True)
         observations = []
         for field, (raw_value, value) in fields.items():
             observation_id = f"{physical_index}:{field}"
@@ -435,8 +568,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 "method": "ocr" if normalized.get("observation_reference") else "embedded_text",
                 "confidence": None,
                 "selected": value is not None,
-                "required_for_projection": field in {"asset_name", "transaction_type",
-                    "transaction_date", "owner", "amount_low", "amount_high"},
+                "required_for_projection": field in required,
                 "locations": [{"page": raw["page_number"],
                                "row_locator": str(physical_index),
                                "kind": evidence_kind}],
@@ -460,9 +592,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "evidence_locations": [{"page": raw["page_number"],
                                     "row_locator": str(physical_index),
                                     "kind": evidence_kind}],
-            "required_projection_fields": (["asset_name", "transaction_type", "transaction_date",
-                                             "owner", "amount_low", "amount_high"]
-                                            if disposition == "qualified" else []),
+            "required_projection_fields": required if disposition == "qualified" else [],
         }
         validate_candidate_row(candidate)
         output_rows.append(candidate)

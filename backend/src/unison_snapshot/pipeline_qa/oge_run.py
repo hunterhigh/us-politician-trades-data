@@ -43,6 +43,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                          review_commit: str | None = None,
                          workflow_run_id: str | None = None,
                          saved_observations_path: str | Path | None = None,
+                         legacy_extractions_path: str | Path | None = None,
                          candidate_base_path: str | Path | None = None,
                          data_cutoff_at: str | None = None) -> dict[str, Any]:
     """Build a row ledger and manifest; never fetch sources or write Git refs."""
@@ -79,6 +80,12 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     saved = _read_json(Path(saved_observations_path)) if integration else {}
     if not isinstance(saved, dict):
         raise OgeShadowInputError("saved observation input must map document IDs to bound observations")
+    if legacy_extractions_path is not None and not integration:
+        raise OgeShadowInputError("legacy extraction input requires a candidate base")
+    legacy = _read_json(Path(legacy_extractions_path)) if legacy_extractions_path is not None else {}
+    if not isinstance(legacy, dict):
+        raise OgeShadowInputError("legacy extraction input must map document IDs to extractions")
+    candidate_base = _read_json(Path(candidate_base_path)) if integration else None
     original_extractions = []
     catalog, archive_batch, extraction_batch = (
         values["catalog"], values["archive_batch"], values["extraction_batch"])
@@ -94,6 +101,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         [row for row in catalog_rows if isinstance(row, dict) and
          row.get("access_method") == "direct_pdf"])
     by_id = {record["source_document_id"]: record for record in direct}
+    if set(legacy) - set(by_id):
+        raise OgeShadowInputError("legacy extraction documents are outside the catalog")
     reports = archive_batch.get("reports")
     failures = extraction_batch.get("failures")
     if not isinstance(reports, list) or not isinstance(failures, list):
@@ -143,6 +152,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
     if integration:
         input_hashes.extend([{"artifact_type": "saved_observations", "sha256": _sha256(Path(saved_observations_path))},
                              {"artifact_type": "candidate_base", "sha256": _sha256(Path(candidate_base_path))}])
+    if legacy_extractions_path is not None:
+        input_hashes.append({"artifact_type": "legacy_extractions", "sha256": _sha256(Path(legacy_extractions_path))})
     seen_ids: set[str] = set()
     for metadata in sorted(reports, key=lambda item: item.get("document_id", "")
                            if isinstance(item, dict) else ""):
@@ -217,6 +228,13 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                      "sha256": _sha256(metadata_path)})
             original_extractions.append(extraction)
             try:
+                from unison_snapshot.oge_reports import GENERIC_PARSER_VERSION
+                if integration and extraction.get("parser_version") == GENERIC_PARSER_VERSION:
+                    from unison_snapshot.oge_candidate import _inherit_generic_legacy
+                    formal = [row for row in candidate_base.get("transactions", [])
+                              if row.get("source_id") == "oge" and row.get("filing_id") == document_id
+                              and row.get("verification_status") == "official_matched"]
+                    extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record)
                 if document_id in saved:
                     extraction = materialize_oge_278t_observations(extraction, record, **saved[document_id])
                 adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
@@ -252,8 +270,9 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         from unison_snapshot.oge_candidate import build_oge_candidate
         from unison_snapshot.builder import build
         candidate, audit = build_oge_candidate(
-            catalog, original_extractions, _read_json(Path(candidate_base_path)),
-            data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved)
+            catalog, original_extractions, candidate_base,
+            data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved,
+            legacy_extractions_by_document=legacy)
         for name, value in (("candidate.json", candidate), ("candidate_audit.json", audit)):
             artifacts[name] = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
         # Exercise the existing final builder locally; no publication or refs.

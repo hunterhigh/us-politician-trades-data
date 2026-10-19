@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--extractions-dir", required=True)
     parser.add_argument("--evidence-root")
     parser.add_argument("--saved-observations")
+    parser.add_argument("--legacy-extractions", help="JSON map of document IDs to source-bound legacy extractions")
     parser.add_argument("--candidate-base")
     parser.add_argument("--data-cutoff-at")
     parser.add_argument("--output-dir", required=True)
@@ -39,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
             extractions_dir=args.extractions_dir, output_dir=args.output_dir,
             evidence_root=args.evidence_root,
             saved_observations_path=args.saved_observations,
+            legacy_extractions_path=args.legacy_extractions,
             candidate_base_path=args.candidate_base, data_cutoff_at=args.data_cutoff_at,
             run_id=args.run_id, code_commit=args.code_commit,
             evidence_commit=args.evidence_commit,
