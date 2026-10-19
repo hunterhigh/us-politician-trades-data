@@ -177,6 +177,22 @@ class HouseHoldingTests(unittest.TestCase):
         self.assertFalse(unknown["production_eligible"])
         self.assertIn("value_bounds_unresolved", unknown["qualification_reasons"])
 
+    def test_parent_type_code_does_not_split_or_truncate_its_leaf(self):
+        source = wrapped_page()
+        source["words"] += [word("[IR]", 95, 130)]
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(len(rows), 1)
+        self.assertIn("Example Fund", rows[0]["asset_name"])
+        self.assertEqual(rows[0]["asset_type_code"], "MF")
+        self.assertEqual(rows[0]["review_reasons"], [])
+
+    def test_unrecognized_value_literal_is_retained_for_explanation(self):
+        source = page(bad_value=True)
+        next(item for item in source["words"] if item["text"] == "Undetermined")["text"] = "Not established"
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(rows[0]["value_raw"], "Not established")
+        self.assertIn("value_not_representable", rows[0]["review_reasons"])
+
     def test_one_unsupported_row_quarantines_the_whole_report(self):
         rows, _ = extract_schedule_a_pages([page(bad_value=True)], source_sha256=SHA)
         result = qualify_financial_report(extraction(rows), IDENTITY)

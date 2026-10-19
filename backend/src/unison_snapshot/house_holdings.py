@@ -169,6 +169,12 @@ def _value(value: str) -> tuple[int, int | None] | None:
     return None
 
 
+
+def _asset_code_close(raw: str) -> re.Match[str] | None:
+    """A code followed immediately by an arrow belongs to a parent account."""
+    return next((match for match in re.finditer(r"\[[A-Z0-9]{2}\]", raw)
+                 if not raw[match.end():].lstrip().startswith("⇒")), None)
+
 def annual_report_period_from_pdf(full_text: str, metadata: dict) -> tuple[str, str]:
     """Return a period only when the PDF itself closes the annual-member semantics.
 
@@ -263,10 +269,10 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             value_text = _clean(" ".join(str(word.get("text", "")) for word in value_words))
             has_code = any(re.fullmatch(r"\[[A-Z0-9]{2}\]", _clean(word.get("text")))
                            for word in asset_words)
-            prior_closed = (not anchors or any(
-                re.fullmatch(r"\[[A-Z0-9]{2}\]", _clean(word.get("text")))
-                for candidate_top, tokens in lines if anchors[-1][0] <= candidate_top < top
+            prior_asset = _clean(" ".join(str(word.get("text", ""))
+                for candidate_top, tokens in lines if anchors and anchors[-1][0] <= candidate_top < top
                 for word in tokens if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2))
+            prior_closed = not anchors or _asset_code_close(prior_asset) is not None
             if asset_words and (value_text.startswith("$") or value_text in {"None", "Undetermined"}
                                 or re.match(r"^(?:Spouse/DC\s+)?Over\b", value_text, re.I)
                                 or (has_code and prior_closed)):
@@ -302,15 +308,16 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 if not top - 1 <= value_top < end:
                     continue
                 cells = [word for word in candidate_words
-                         if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2]
+                         if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2
+                         and float(word.get("size") or base_size) >= base_size - .2]
                 cell = _clean(" ".join(str(word.get("text", "")) for word in cells))
-                if cell and re.fullmatch(r"[$0-9,.+\- ]+|None|Undetermined|(?:Spouse/DC\s+)?Over(?:\s+[$0-9,.]+)?", cell, re.I):
+                if cell:
                     value_lines.append(cell)
             asset = _clean(" ".join(str(word.get("text", "")) for word in sorted(
                 asset_words, key=lambda word: (round(float(word["top"]), 1), float(word["x0"])))))
             # A type code closes the printed asset cell. Later account titles
             # belong to another row, including rows with an open/unknown value.
-            closed = re.search(r"\[[A-Z0-9]{2}\]", asset)
+            closed = _asset_code_close(asset)
             if closed:
                 asset = asset[:closed.end()]
             owner_code = _clean(" ".join(str(word.get("text", "")) for word in owner_words))
