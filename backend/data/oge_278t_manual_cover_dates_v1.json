@@ -1,0 +1,159 @@
+{
+  "schema_version": "oge-manual-cover-date-observations/v1",
+  "status": "observation_only",
+  "source": "archived_official_pdf_cover",
+  "observations": [
+    {
+      "document_id": "024d876aae518c5085258ceb006e7e2e",
+      "source_sha256": "69eebaec96c824352bf5a60a7664c1941f77ce10dd12b14dec020f0c410b5ff1",
+      "page_number": 1,
+      "field_role": "amendment_signature_date",
+      "raw_reading": "1/14/26",
+      "observed_date": "2026-01-14"
+    },
+    {
+      "document_id": "0bdccce7de13aefa85258e8a002de2b5",
+      "source_sha256": "2e667abb21d0d737f0860ba7ec18d5896e5974eec8895d21e451ee5718b010b2",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "Sept 17/26",
+      "observed_date": "2026-09-17"
+    },
+    {
+      "document_id": "174165f6e1e120b185258db000347f54",
+      "source_sha256": "460e19fa82ef26ce297f52868a688d321a372b2117df260d990d3764c3778091",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "2/26/26",
+      "observed_date": "2026-02-26"
+    },
+    {
+      "document_id": "18353894fe440b3685258d430031a337",
+      "source_sha256": "cc66d6294e60d93f20cd834668faffb96251114316f2f9a1d182ebc32245cd24",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "10/20/25",
+      "observed_date": "2025-10-20"
+    },
+    {
+      "document_id": "268353939b7dacb585258d81003471b1",
+      "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "1/14/26",
+      "observed_date": "2026-01-14"
+    },
+    {
+      "document_id": "2bf91f890f718acb85258e5b002de16b",
+      "source_sha256": "dfa4d453c1008370a001043bad41f1149fbe18b0800588157c10c4631e5476c6",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "Aug 12/26",
+      "observed_date": "2026-08-12"
+    },
+    {
+      "document_id": "2c89623dc721f62585258d430031a32a",
+      "source_sha256": "41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "10/20/25",
+      "observed_date": "2025-10-20"
+    },
+    {
+      "document_id": "322b8a28db21cc9285258cfd002c0d0b",
+      "source_sha256": "bae8f150a50b1de9e3ee19417bfc59172f1a7d0cbc3faa22e9202713112d79f0",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "Sept 3/25",
+      "observed_date": "2025-09-03"
+    },
+    {
+      "document_id": "405e4ec4e27be8d185258df7002dd1c0",
+      "source_sha256": "00e56352e83731329841caedaa09328cd87ed02ec235c07058a3b351407479be",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "5/8/26",
+      "observed_date": "2026-05-08"
+    },
+    {
+      "document_id": "5315a095a2ee1b9185258ceb006e7e36",
+      "source_sha256": "ac36181ee271ff8f92aa30b06414921b92c3b69d735519b44a2511d7bac7466b",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "8/12/25",
+      "observed_date": "2025-08-12"
+    },
+    {
+      "document_id": "5326d3af5be7c25385258df7002dd1b7",
+      "source_sha256": "c4f1ceaca8d703769828cf69000425aca5dbebc30e2d82880f603984ef7aa51a",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "5/8/26",
+      "observed_date": "2026-05-08"
+    },
+    {
+      "document_id": "87bfe542a2751e0285258d6600346fcd",
+      "source_sha256": "22bc47470752fc85a42804a260d53bc8fc232b5476535fac32e43134fb047d1f",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "12/18/25",
+      "observed_date": "2025-12-18"
+    },
+    {
+      "document_id": "903a217dc18563ec85258d4a0031b044",
+      "source_sha256": "6b9258f6b3b1e46a5a1b73caed93e8751b1a3fed5befa59ca058bbd0bd949c36",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "11/14/25",
+      "observed_date": "2025-11-14"
+    },
+    {
+      "document_id": "aa799a2729b4d1be85258d430031a320",
+      "source_sha256": "8e2b8ede940b8ebc9abd7590b4f6b2016dec844a7eea35c263ac494ea805ec68",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "10/17/25",
+      "observed_date": "2025-10-17"
+    },
+    {
+      "document_id": "ac43530823bd60d485258e27002ddef7",
+      "source_sha256": "b928fded2e3583e2cc5305bd230d944a198e226a3e04aee486883db03b40eca2",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "June 25/26",
+      "observed_date": "2026-06-25"
+    },
+    {
+      "document_id": "bcf60d94b8f1e59285258db000347f61",
+      "source_sha256": "8a5e83d9886fd6753759ca620116880cbaf7a427bb8533be33ddf919605f5232",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "2/26/26",
+      "observed_date": "2026-02-26"
+    },
+    {
+      "document_id": "cd75555856a7d2e485258de4002dd4a0",
+      "source_sha256": "191e89135107fee06ea7655d071d92eee5e266cdf4d6001e3527c3da79b97af0",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "4/20/26",
+      "observed_date": "2026-04-20"
+    },
+    {
+      "document_id": "e9c024e25c9e4b2085258ceb006e7e23",
+      "source_sha256": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "8/12/25",
+      "observed_date": "2025-08-12"
+    },
+    {
+      "document_id": "f9ca13b970439e8f85258e27002ddf15",
+      "source_sha256": "89d331853a821b576dc63284228f277637a8325bf8eb2e094f2807589c778f46",
+      "page_number": 1,
+      "field_role": "filer_signature_date",
+      "raw_reading": "June 25/26",
+      "observed_date": "2026-06-25"
+    }
+  ]
+}
