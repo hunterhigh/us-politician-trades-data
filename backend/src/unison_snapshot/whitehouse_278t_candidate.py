@@ -489,7 +489,8 @@ def build_whitehouse_278t_review_candidate(
                 if retained is not None:
                     retained_existing.append(row_id)
                     inheritance = source_row.get("legacy_inheritance", {})
-                    corrections = [value for value in (inheritance.get("owner_correction"), inheritance.get("account_display_correction")) if value]
+                    corrections = [value for value in (inheritance.get("owner_correction"), inheritance.get("account_display_correction"))
+                                   if value and retained.get(value["field"]) != value["new_value"]]
                     if corrections:
                         replacement = deepcopy(retained)
                         for correction in corrections:

@@ -1045,7 +1045,10 @@ def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict
     if (fact.get("source_url") != report.get("source_url") or fact.get("filing_id") != report.get("document_id") or
             fact.get("filed_at") != f"{report.get('filed_at')}T00:00:00Z" or
             any(fact.get(field) != (f"{old['asset_name']} — {old['account_title']}"
-                if field == "asset_name" and old.get("account_title") else old.get(field)) for field in fields)):
+                if field == "asset_name" and old.get("account_title") else old.get(field)) and not
+                (field == "owner" and inheritance.get("owner_correction") and fact.get("owner") == row.get("owner")) and not
+                (field == "asset_name" and inheritance.get("account_display_correction") and
+                 fact.get("asset_name") == inheritance["account_display_correction"].get("new_value")) for field in fields)):
         return None
     if any(row.get(field) != old.get(field) for field in fields if field != "owner"):
         return None

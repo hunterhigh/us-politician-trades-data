@@ -326,6 +326,7 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             raise ValueError("Exact source bindings require --exact-source-copies")
         bindings, binding_sha = _read_object(exact_source_bindings)
         provenance["exact_source_binding_file_sha256"] = binding_sha
+    generic_mode = any(row.get("parser_version") == GENERIC_PARSER_VERSION for row in extractions)
     base, base_sha = _read_object(oge_candidate)
     if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
@@ -341,7 +342,15 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                     **({"cross_source_relations": prior["cross_source_relations"]}
                        if "cross_source_relations" in prior else {}),
                     "retained_existing_transaction_count": prior["retained_existing_transaction_count"]}
-    if not exact_source_copies and any(urlsplit(row.get("source_url") or "").hostname in
+    if generic_mode and not exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
+        prior, _ = _read_object(audit_out)
+        if prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance:
+            normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
+            return {"idempotent":True,"report_count":prior["report_count"],
+                "promoted_transaction_count":prior["promoted_transaction_count"],
+                "quarantined_row_count":prior["quarantined_row_count"],
+                "extraction_failure_count":prior.get("extraction_failure_count",0)}
+    if not exact_source_copies and not generic_mode and any(urlsplit(row.get("source_url") or "").hostname in
            {"whitehouse.gov", "www.whitehouse.gov"}
            for row in base.get("transactions", [])):
         if not audit_out.is_file() or candidate_out.resolve() != oge_candidate.resolve():
@@ -358,7 +367,8 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         mapping_path = (review_root / "whitehouse/278t/"
                         "trump-2026-ticker-mapping-current.json")
         ticker_audit = (_read_object(mapping_path)[0] if mapping_path.is_file() else None)
-        base = _strip_prior_whitehouse(base, prior, ticker_audit)
+        if not generic_mode:
+            base = _strip_prior_whitehouse(base, prior, ticker_audit)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
     eligibility = (audit_whitehouse_278t_exact_source_candidate(
         base, extractions, oge_coverage, annual_extractions=annual_extractions,

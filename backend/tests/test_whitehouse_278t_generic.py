@@ -27,7 +27,7 @@ COVER=("Periodic Transaction Report (OGE Form 278-T)\nFiler's Information\nWiles
        "Filer's Certification\nDate: 06/13/2026\nAgency Ethics Official's Opinion\nDate: 06/15/2026\n")
 ROW=["1","ALPHA","Exchange","06/01/2026","No","Over $50,000,000"]
 
-def report(rows=None,cover=COVER,legacy=None):
+def report(rows=None,cover=COVER,legacy=None,document_id=DOC):
     rows=[(2,ROW)] if rows is None else rows
     with tempfile.TemporaryDirectory() as folder:
         path=Path(folder)/"source.pdf";path.write_bytes(PDF)
@@ -35,7 +35,7 @@ def report(rows=None,cover=COVER,legacy=None):
                 {"page_number":1,"text":cover,"document_page_count":3})), patch(
                 "unison_snapshot.whitehouse_278t._extract_ocr_pdf", side_effect=AssertionError("new OCR forbidden")):
             return parse_generic_whitehouse_278t_pdf(path,source_url=URL,source_sha256=SHA,
-                document_id=DOC,filer_name="Wiles, Susie",legacy_extraction=legacy)
+                document_id=document_id,filer_name="Wiles, Susie",legacy_extraction=legacy)
 
 def consume(item,base=None):
     base=_base() if base is None else base
@@ -219,6 +219,31 @@ class GenericWhiteHouseTests(unittest.TestCase):
         self.assertIsNone(final["transactions"][0]["amount_high"])
         self.assertNotIn(GENERIC_PARSER_VERSION,_trade_versions(URL,SHA))
         self.assertEqual(_trade_versions(URL,SHA,generic_trade=True),(GENERIC_PARSER_VERSION,))
+        # Existing official rows must use source-bound inheritance rather
+        # than the legacy CLI's blanket audit-pair refusal or delete/rebuild.
+        raw=ROW[:];raw[2]="Purchase";raw[-1]="$1,001 - $15,000"
+        oldrows,_=parse_table_rows([(2,raw)],source_sha=SHA)
+        legacy={"schema_version":"whitehouse-278t-extraction/v1","parser_version":"whitehouse-278t-hybrid-geometry/v2",
+            "document_id":case.report["document_id"],"source_url":URL,"source_sha256":SHA,
+            "filer_name":"Wiles, Susie","transactions":oldrows,"quarantined":[]}
+        case.report=report([(2,raw)],legacy=legacy,document_id=legacy["document_id"])
+        case._write_inputs()
+        from unison_snapshot.whitehouse_278t_candidate import _person
+        person=_person(_catalog()["reports"][0]);older=deepcopy(case.report);older["parser_version"]=legacy["parser_version"]
+        base["people"]=[person];base["transactions"]=[_transaction(older,oldrows[0],person["id"])]
+        _write(case.oge,base);case.audit_out.unlink()
+        args=["--oge-candidate",str(case.oge),"--review-root",str(case.review),"--candidate-out",str(case.oge),
+            "--audit-out",str(case.audit_out)]
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args),0)
+        result=json.loads(case.audit_out.read_text(encoding="utf-8"))
+        self.assertEqual(result["reports"][0]["retained_ids"],[oldrows[0]["extraction_id"]])
+        self.assertEqual(result["existing_transaction_mutation_count"],1)
+        before=case.oge.read_bytes()
+        with redirect_stdout(io.StringIO()) as captured:
+            self.assertEqual(main(args),0)
+        self.assertTrue(json.loads(captured.getvalue())["idempotent"])
+        self.assertEqual(case.oge.read_bytes(),before)
 
     def test_extraction_cli_is_explicit_fixed_source_without_default_cache_changes(self):
         from test_whitehouse_extract import WhiteHouseExtractTests, script
