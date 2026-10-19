@@ -23,7 +23,7 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
     suffix = f" (Amendment {amendment})" if amendment else ""
     return (f"<!doctype html><html><body><h1>Annual Report for Calendar 2025{suffix}</h1>"
             f"<h2>Senator Ada Example (Example, Ada)</h2><p>Filed {filed} @ 1:00 PM</p>"
-            "<table><tr><th></th><th>Asset</th><th>Asset Type</th><th>Owner</th>"
+            "<h3>Part 3. Assets</h3><table><tr><th></th><th>Asset</th><th>Asset Type</th><th>Owner</th>"
             "<th>Value</th><th>Income Type</th><th>Income</th></tr>"
             f"<tr><td>1</td><td>ACME - Acme Corp</td><td>Corporate SecuritiesStock</td>"
             f"<td>Self</td><td>{value}</td><td>Dividends</td><td>--</td></tr>"
@@ -33,6 +33,32 @@ def annual_html(*, amendment: int = 0, value: str = "$1,001 - $15,000",
 
 
 class SenateAnnualTests(unittest.TestCase):
+    def test_holding_open_values_preserve_exact_threshold_and_strictness(self):
+        for value, expected in [("Over $50,000,000", (50000000, None, True)),
+                                ("Over $1,000,000", (1000000, None, True)),
+                                ("$1,000,001+", (1000001, None, False))]:
+            with self.subTest(value=value):
+                raw = annual_html(value=value)
+                metadata = {"schema_version": "senate-efd-annual-archive/v1", "document_id": "example",
+                            "document_url": "https://efdsearch.senate.gov/search/view/annual/example/",
+                            "source_sha256": hashlib.sha256(raw).hexdigest(), "byte_length": len(raw),
+                            "filer_name": "Ada Example", "report_year": 2025,
+                            "amendment_number": 0, "portal_listed_date": "2026-05-01"}
+                row = extract_annual(metadata, raw)["rows"][0]
+                self.assertEqual(row["disposition"], "eligible")
+                self.assertEqual((row["value_low"], row["value_high"], row["value_low_exclusive"]), expected)
+                self.assertEqual(row["value_raw"], value)
+
+    def test_holdings_headers_in_another_section_cannot_supply_part3(self):
+        raw = annual_html().replace(b"<h3>Part 3. Assets</h3>", b"<h3>Part 5. Gifts</h3>")
+        metadata = {"schema_version": "senate-efd-annual-archive/v1", "document_id": "example",
+                    "document_url": "https://efdsearch.senate.gov/search/view/annual/example/",
+                    "source_sha256": hashlib.sha256(raw).hexdigest(), "byte_length": len(raw),
+                    "filer_name": "Ada Example", "report_year": 2025,
+                    "amendment_number": 0, "portal_listed_date": "2026-05-01"}
+        with self.assertRaisesRegex(SenateEfdError, "Part 3 asset table"):
+            extract_annual(metadata, raw)
+
     def test_broken_holdings_table_does_not_discard_readable_transaction_section(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

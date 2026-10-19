@@ -30,12 +30,14 @@ from .senate_annual_transactions import SCHEMA as PART4B_SCHEMA, observe_part4b,
 SCHEMA = "senate-efd-annual-review/v1"
 DISCOVERY_SCHEMA = "senate-efd-annual-discovery/v1"
 EXTRACTION_SCHEMA = "senate-efd-annual-extraction/v1"
-PARSER_VERSION = "senate-efd-annual-html-2026-09-v2"
+PARSER_VERSION = "senate-efd-annual-html-2026-10-v3"
 MAX_HTML_BYTES = 25 * 1024 * 1024
 _URL_PREFIX = "https://efdsearch.senate.gov/search/view/annual/"
 _LABEL = re.compile(r"Annual Report for CY (20\d{2})(?: \(Amendment ([1-9]\d*)\))?")
 _TITLE = re.compile(r"Annual Report for Calendar (20\d{2})(?: \(Amendment ([1-9]\d*)\))?")
 _VALUE = re.compile(r"\$([\d,]+)\s*-\s*\$([\d,]+)")
+_OPEN_VALUE = {"Over $1,000,000": 1000000, "Over $50,000,000": 50000000}
+_PLUS_VALUE = re.compile(r"\$((?:\d{1,3}(?:,\d{3})+|\d+))\+")
 _NUMBER = re.compile(r"[1-9]\d*(?:\.[1-9]\d*)*")
 _TICKER = re.compile(r"([A-Z0-9][A-Z0-9.\-^/]{0,31})\s+-\s+(.+)")
 _ASSET_HEADERS = ("Asset", "Asset Type", "Owner", "Value", "Income Type", "Income")
@@ -248,8 +250,9 @@ def extract_annual(metadata: dict, raw: bytes) -> dict:
     filing_match = re.fullmatch(r"Filed (\d{2}/\d{2}/\d{4}) @ .+", filed[0])
     filing_day = datetime.strptime(filing_match[1], "%m/%d/%Y").date().isoformat()
     tables = [table for table in parsed.tables if len(table.headers) == 7 and
-              table.headers[1:] == _ASSET_HEADERS and table.headers[0] in {"", "#"}]
-    if len(tables) != 1:
+              table.headers[1:] == _ASSET_HEADERS and table.headers[0] in {"", "#"} and
+              table.section == "Part 3. Assets"]
+    if (len(tables) != 1 or sum(text == "Part 3. Assets" for tag, text in parsed.headings if tag == "h3") != 1):
         raise SenateEfdError("Senate annual Part 3 asset table is absent or ambiguous")
     rows, seen_numbers, parent_names = [], set(), {}
     for cells in tables[0].rows:
@@ -263,8 +266,11 @@ def extract_annual(metadata: dict, raw: bytes) -> dict:
         if owner not in {"Self", "Spouse", "Joint", "Child"}:
             reasons.append("owner_unresolved")
         amount = _VALUE.fullmatch(value)
+        open_value = _OPEN_VALUE.get(value)
+        plus_value = _PLUS_VALUE.fullmatch(value)
+        low_exclusive = True if open_value is not None else False if plus_value else None
         excluded = value in {"--", "None (or less than $1,001)"}
-        if not amount and not excluded:
+        if not amount and not excluded and open_value is None and plus_value is None:
             reasons.append("value_range_open_or_unreadable")
         parent = ".".join(number.split(".")[:-1])
         context = parent_names.get(parent)
@@ -277,6 +283,10 @@ def extract_annual(metadata: dict, raw: bytes) -> dict:
         asset_name = ticker_match[2] if ticker_match else name
         value_low = int(amount[1].replace(",", "")) if amount else None
         value_high = int(amount[2].replace(",", "")) if amount else None
+        if open_value is not None or plus_value:
+            value_low = open_value if open_value is not None else int(plus_value[1].replace(",", ""))
+            if value_low <= 0:
+                reasons.append("value_range_invalid")
         if amount and (value_low <= 0 or value_high < value_low):
             reasons.append("value_range_invalid")
         row_id = "senate-annual:" + hashlib.sha256(
@@ -286,6 +296,7 @@ def extract_annual(metadata: dict, raw: bytes) -> dict:
                      "owner": "Dependent Child" if owner == "Child" else owner,
                      "ticker": ticker, "value_raw": value,
                      "value_low": value_low, "value_high": value_high,
+                     **({"value_low_exclusive": low_exclusive} if low_exclusive is not None else {}),
                      "income_type_raw": income_type, "income_raw": income,
                      "disposition": "excluded" if excluded else
                                     "quarantined" if reasons else "eligible",
@@ -424,6 +435,8 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict) ->
                              "report_period_end": extraction["report_period_end"],
                              "filed_at": extraction["filed_at"] + "T00:00:00Z",
                              "value_low": row["value_low"], "value_high": row["value_high"],
+                             **({"value_low_exclusive": row["value_low_exclusive"]}
+                                if "value_low_exclusive" in row else {}),
                              "change_from_prior": "unknown", "source_id": "senate_efd",
                              "source": "U.S. Senate eFD", "source_url": extraction["source_url"],
                              "verification_status": "official_matched"})
