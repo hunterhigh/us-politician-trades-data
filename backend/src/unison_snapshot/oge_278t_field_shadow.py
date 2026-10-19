@@ -37,7 +37,7 @@ _SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_obser
               "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
               "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
-_CONTENT_RULES = "oge-278t-content-rows/v3"
+_CONTENT_RULES = "oge-278t-content-rows/v4"
 
 
 def _word_evidence(slot: dict, page: dict) -> dict:
@@ -600,10 +600,12 @@ def _content_disposition(row: dict) -> tuple[str, str]:
     # A single '#' can be a bad printed number on a genuine data row.
     labels = {name for name in _COLUMNS[1:] if
               re.fullmatch(name.replace("transaction_date", "date"), raw[name].strip(), re.I)}
-    description = raw["description"].strip()
+    description = (row["description_reading"].get("ordered_ocr_text") or raw["description"]).strip()
     header = "description" in labels and len(labels) >= 3
-    heading = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+",
-                                description, re.I))
+    heading = bool(re.fullmatch(
+        r"(?:(?:investment|retirement) account\s*#[0-9]+|"
+        r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?))",
+        description, re.I))
     note = bool(re.fullmatch(
         r"(?:(?:this (?:page|section) )?(?:is )?(?:intentionally left blank|left intentionally blank)|"
         r"endnotes|summary of contents|privacy act statement)[.!:]?", description, re.I))
@@ -623,6 +625,113 @@ def _content_disposition(row: dict) -> tuple[str, str]:
     if not any(value.strip() for value in raw.values()):
         return "unknown", "empty_ocr_is_not_blank_source_evidence"
     return "unknown", "possible_continuation_or_unreadable_fields"
+
+
+def _structural_evidence(row: dict, source_slot: dict, *, rounding: bool) -> dict:
+    """A recognizable label is not enough when its source scope is ambiguous."""
+    reasons = []
+    words = row["word_evidence"]
+    if words["status"] != "source_words_linked":
+        reasons.append("structural_word_geometry_unavailable")
+    if words["crossing_words"] or words["unassigned_word_indices"]:
+        reasons.append("structural_word_geometry_ambiguous")
+    if rounding or source_slot.get("column_model_outside_word_indices"):
+        reasons.append("structural_word_position_ambiguous")
+    readings = row["field_readings"]["description"]["observations"]
+    if row["description_reading"].get("ordered_ocr_text") is None:
+        reasons.append("structural_description_order_unresolved")
+    values = {repr(_known_value(read["shape"])) for read in readings
+              if _known_value(read["shape"]) is not None}
+    if len(values) > 1:
+        reasons.append("structural_description_conflict")
+    if any(read.get("geometry_status") == "ambiguous" for read in readings):
+        reasons.append("structural_secondary_geometry_ambiguous")
+    return {"status": "supported_label" if not reasons else "unresolved",
+            "blocking_reasons": reasons,
+            "description_text": row["description_reading"].get("ordered_ocr_text"),
+            "description_observation_refs": [read["source_ref"] for read in readings],
+            "qualification": "not_assessed"}
+
+
+def _account_context(title: str | None = None, reference: dict | None = None,
+                     *, unknown: bool = False) -> dict:
+    return {"status": "unknown" if unknown else "observed" if title is not None else "none_observed",
+            "title": title, "heading_slot_ref": deepcopy(reference),
+            "qualification": "not_assessed"}
+
+
+_CONTINUATION_LABEL = re.compile(
+    r"^\s*\(?\s*(?:continued|continuation|cont[.'’]?d)\b", re.I)
+
+
+def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
+    """Keep suspected fragments unresolved; adjacency never proves a join.
+
+    Explicit continuation text also inhibits a possible preceding standalone
+    disclosure. Description-only fragments without such text do not invalidate
+    unrelated good rows. No printed number or matching asset supplies a link.
+    """
+    field_rows = {(page["page_number"], str(index)): row
+                  for page in fields["pages"] for index, row in enumerate(page["slots"], 1)}
+    fragments, previous_data = [], None
+    previous_page = None
+    for item in content:
+        number = item["page_number"]
+        if previous_page is not None and number not in {previous_page, previous_page + 1}:
+            previous_data = None
+        previous_page = number
+        row = field_rows.get((number, item["slot_key"]))
+        if row is None:
+            previous_data = None
+            continue
+        raw = row["raw_columns"]
+        description = row["description_reading"].get("ordered_ocr_text") or raw["description"]
+        explicit = bool(_CONTINUATION_LABEL.search(description))
+        dates = {tuple(int(value) for value in match) for match in _DATE.findall(raw["transaction_date"])}
+        money = [int(value.replace(",", "")) for value in
+                 _MONEY.findall(raw["notification"] + " " + raw["amount"])]
+        amount_pairs = {tuple(money[i:i+2]) for i in range(0, len(money)-1, 2)}
+        directions = {value.casefold() for value in
+                      re.findall(r"\b(?:purchase|sale|exchange)\b", raw["type"], re.I)}
+        # Repeated identical OCR tokens do not prove two disclosures. Preserve
+        # them in primary readings and let existing auxiliary conflict rules
+        # govern; only distinct transaction signals flag a possible split.
+        multiple = len(dates) > 1 or len(amount_pairs) > 1 or len(directions) > 1
+        incomplete = (item["disposition"] == "unknown" and
+                      any(value.strip() for value in raw.values()))
+        if explicit or multiple or incomplete:
+            kind = ("multiple_transaction_signals" if multiple else "explicit_continuation_label"
+                    if explicit else "unresolved_content_fragment")
+            candidates = []
+            if (explicit and previous_data is not None and
+                    item["account_context"] == previous_data["account_context"] and
+                    item["account_context"]["status"] != "unknown"):
+                candidates = [{"page_number": previous_data["page_number"],
+                               "slot_key": previous_data["slot_key"]}]
+            fragment = {"slot_ref": {"page_number": number, "slot_key": item["slot_key"]},
+                        "kind": kind, "status": "unresolved",
+                        "candidate_parent_slot_refs": candidates,
+                        "reason": "source_fragment_relation_not_established",
+                        "field_observation_ref": item["field_observation_ref"],
+                        "account_context": deepcopy(item["account_context"]),
+                        "qualification": "not_assessed"}
+            fragments.append(fragment)
+            item["fragment_relation"] = deepcopy(fragment)
+            affected = ([item] if item["disposition"] == "data_candidate" else [])
+            if candidates:
+                affected.append(previous_data)
+            for target in affected:
+                relation = target["relation_evidence"]
+                relation["status"] = "unresolved"
+                reason = ("multiple_transaction_signals_in_slot" if target is item and multiple else
+                          "explicit_continuation_relation_unresolved")
+                relation["blocking_reasons"] = sorted(set(relation["blocking_reasons"] + [reason]))
+        if item["disposition"] == "data_candidate":
+            previous_data = item
+        elif not (item["disposition"] == "heading" and
+                  item["reason"] == "multiple_column_header_labels"):
+            previous_data = None
+    return fragments
 
 
 def _content_slot_bands(page: dict) -> list[bool]:
@@ -775,11 +884,14 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             if type(number) is not int or not 1 <= number <= document_page_count:
                 raise ValueError("observed page outside bound document")
             originals[number] = page
-    pages, rows, unresolved, content, logical_evidence = [], [], [], [], []
-    blocking_counts: Counter[str] = Counter()
-    secondary_only_counts: Counter[str] = Counter()
+    pages, rows, content, logical_evidence = [], [], [], []
+    account = _account_context()
+    previous_page = None
     for page in fields["pages"]:
         number = page["page_number"]
+        if previous_page is not None and number != previous_page + 1:
+            account = _account_context(unknown=True)
+        previous_page = number
         original = originals[number]
         rounding_ambiguous = _content_slot_bands(original)
         if page["status"] == "geometry_unknown":
@@ -788,7 +900,9 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                              for slot in original["slots"]]
             content.extend({"page_number": number, "slot_key": slot["local_key"],
                             "disposition": "unknown", "reason": "column_geometry_unknown",
-                            "field_observation_ref": None} for slot in unknown_slots)
+                            "field_observation_ref": None,
+                            "account_context": _account_context(unknown=True)} for slot in unknown_slots)
+            account = _account_context(unknown=True)
             pages.append(page_ledger(
                 source_id="oge", document_sha256=sha, page_number=number,
                 adapter_version=_CONTENT_RULES, coverage="unknown", slots=unknown_slots,
@@ -799,15 +913,33 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
         for index, (raw_slot, row) in enumerate(zip(raw_slots, page["slots"], strict=True), 1):
             band = raw_slot["band_pdf_points"]
             disposition, reason = _content_disposition(row)
+            structural = None
+            if disposition in {"heading", "note", "blank"}:
+                structural = _structural_evidence(row, raw_slot, rounding=rounding_ambiguous[index - 1])
+                if structural["status"] != "supported_label":
+                    disposition, reason = "unknown", "structural_label_unresolved"
             key = str(index)
             reference = {"page_number": number, "slot_key": key}
             observation_ref = row["field_readings"]["description"]["observations"][0]["source_ref"]
+            if disposition == "heading" and reason == "explicit_account_section_heading":
+                title = row["description_reading"]["ordered_ocr_text"]
+                # Owner labels establish owner context in the materializer;
+                # they must not be displayed as investment-account titles.
+                if re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", title, re.I):
+                    account = _account_context(title, reference)
+                else:
+                    account = _account_context()
             slots.append({"local_key": key, "bounds": band,
                           "disposition": disposition, "observation_ref": observation_ref})
             content_row = {**reference, "disposition": disposition, "reason": reason,
                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
-                           "field_observation_ref": observation_ref}
+                           "field_observation_ref": observation_ref,
+                           "account_context": deepcopy(account)}
+            if structural is not None:
+                content_row["structural_evidence"] = structural
             content.append(content_row)
+            if disposition == "unknown":
+                account = _account_context(unknown=True)
             if disposition != "data_candidate":
                 continue
             relation = _row_relation_evidence(row, rounding_ambiguous=rounding_ambiguous[index - 1],
@@ -820,22 +952,40 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 logical_evidence.append({"local_key": local_key, "slot_refs": [reference],
                                          "field_evidence": relation["fields"],
                                          "field_geometry_evidence": relation["field_geometry_evidence"],
+                                         "account_context": deepcopy(account),
                                          "qualification": "not_assessed"})
-                secondary_only_counts.update(field for field, evidence in relation["fields"].items()
-                                             if evidence["secondary_recognized"] and not evidence["primary_recognized"])
-            else:
-                blocking_counts.update(relation["blocking_reasons"])
-                unresolved.append({**reference, "reason": "single_disclosure_relation_not_established"})
         pages.append(page_ledger(
             source_id="oge", document_sha256=sha, page_number=number,
             adapter_version=_CONTENT_RULES, coverage="located", slots=slots,
             coordinate_frame="pdf_points"))
+    fragments = _fragment_constraints(content, fields)
+    # Fragment checks may inhibit a previously complete-looking single slot.
+    # Rebuild local links and counts from final relations, retaining all reads.
+    inhibited = {(item["page_number"], item["slot_key"]): item for item in content
+                 if item["disposition"] == "data_candidate" and
+                 item["relation_evidence"]["status"] != "supported_observation_relation"}
+    rows = [row for row in rows if not any((ref["page_number"], ref["slot_key"]) in inhibited
+                                         for ref in row["slot_refs"])]
+    kept_keys = {row["local_key"] for row in rows}
+    logical_evidence = [row for row in logical_evidence if row["local_key"] in kept_keys]
+    unresolved = [{"page_number": number, "slot_key": key,
+                   "reason": "single_disclosure_relation_not_established"}
+                  for number, key in inhibited]
+    blocking_counts = Counter(reason for item in inhibited.values()
+                              for reason in item["relation_evidence"]["blocking_reasons"])
+    secondary_only_counts = Counter(field for row in logical_evidence
+                                    for field, evidence in row["field_evidence"].items()
+                                    if evidence["secondary_recognized"] and not evidence["primary_recognized"])
     ledger = report_ledger(
         source_id="oge", document_sha256=sha, adapter_version=_CONTENT_RULES,
         page_count=document_page_count, pages=pages, logical_rows=rows,
         unresolved_data_slots=unresolved)
+    from .oge_278t_printed_number_shadow import observe_printed_number_sequence
+    printed = observe_printed_number_sequence(observations)
     return {"field_observations": fields, "slot_content": content,
             "logical_row_field_evidence": logical_evidence,
+            "fragment_relations": fragments,
+            "printed_number_observation": printed,
             "relation_evidence_summary": {
                 "unresolved_blocking_reason_counts": dict(sorted(blocking_counts.items())),
                 "secondary_only_supported_field_counts": dict(sorted(secondary_only_counts.items()))},
