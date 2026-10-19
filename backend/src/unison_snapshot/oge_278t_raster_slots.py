@@ -16,35 +16,151 @@ _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
 
 
-def _oge_2024_column_edges(page) -> list[float] | None:
-    """Locate all seven ruled boundaries of the 2024 six-column form.
+def _column_profile_matches(edges: list[float]) -> bool:
+    if len(edges) != 7 or not 80 <= edges[0] <= 120 or not 675 <= edges[-1] <= 710:
+        return False
+    return all(abs((right - left) - target) <= limit
+               for left, right, target, limit in zip(
+                   edges[:-1], edges[1:], (45, 310, 51, 57, 47, 82),
+                   (12, 18, 12, 12, 12, 18), strict=True))
 
-    A missing line makes the page unknown; adjacent page geometry is never
-    copied into it.  OCR text has no role in locating these boundaries.
+
+def _rule_pixel_confirmation(gray, *, x: float, top: float, bottom: float,
+                             scale_x: float, scale_y: float) -> dict:
+    """Require one unbroken dark path plus majority thin-line support per third.
+
+    A path may move one pixel horizontally per scanline, but cannot bridge a
+    blank scanline. Text, horizontal rules or a dark block alone do not satisfy
+    both requirements. No OCR or expected transaction count is involved.
     """
-    lines = sorted((float(line["x0"]), abs(float(line["y1"]) - float(line["y0"])))
+    import numpy as np
+
+    left, right = int((x - 3) * scale_x), int((x + 3) * scale_x)
+    first, last = int(top * scale_y), int(bottom * scale_y)
+    if not (0 <= left < right <= gray.shape[1] and 0 <= first < last <= gray.shape[0]):
+        return {"status": "unknown", "reason": "pixel_window_outside_page"}
+    mask = gray[first:last, left:right] < 160
+    reach = mask[0].copy()
+    continuous_height = 1 if reach.any() else 0
+    if continuous_height:
+        for row in mask[1:]:
+            reach = (reach | np.r_[False, reach[:-1]] | np.r_[reach[1:], False]) & row
+            if not reach.any():
+                break
+            continuous_height += 1
+    width = mask.sum(axis=1)
+    runs = mask[:, 0].astype(int) + (~mask[:, :-1] & mask[:, 1:]).sum(axis=1)
+    thin = (width >= 1) & (width <= max(1, int(2 * scale_x))) & (runs == 1)
+    supports = [round(float(part.mean()), 6) for part in np.array_split(thin, 3)]
+    confirmed = continuous_height == len(mask) and all(value > .5 for value in supports)
+    return {"status": "confirmed" if confirmed else "unknown",
+            "reason": None if confirmed else "no_continuous_unique_thin_rule",
+            "x_pdf_points": x, "checked_span_pdf_points": [top, bottom],
+            "continuous_path_scanlines": continuous_height, "checked_scanlines": len(mask),
+            "thin_rule_support_by_third": supports}
+
+
+def _oge_2024_column_geometry(page) -> dict:
+    """Locate seven same-page rules; corroborate short vectors from page pixels.
+
+    The original strong-vector path is unchanged. The restricted fallback
+    never supplies a missing x from the template or another page: all seven
+    candidates must already have vector evidence and match this form profile.
+    """
+    lines = sorted((float(line["x0"]), abs(float(line["y1"]) - float(line["y0"])),
+                    float(line["top"]), float(line["bottom"]))
                    for line in page.lines
                    if abs(float(line["x1"]) - float(line["x0"])) <= 1 and
                    abs(float(line["y1"]) - float(line["y0"])) >= 15)
-    groups: list[list[tuple[float, float]]] = []
-    for x, length in lines:
+    groups = []
+    for x, length, top, bottom in lines:
         if groups and x - groups[-1][-1][0] <= 2.5:
-            groups[-1].append((x, length))
+            groups[-1].append((x, length, top, bottom))
         else:
-            groups.append([(x, length)])
-    edges = [round(sum(x * length for x, length in group) /
-                   sum(length for _, length in group), 1)
-             for group in groups if sum(length for _, length in group) >= 200]
-    if len(edges) != 7 or not 80 <= edges[0] <= 120 or \
-            not 675 <= edges[-1] <= 710:
-        return None
-    gaps = [right - left for left, right in zip(edges, edges[1:])]
-    expected = (45, 310, 51, 57, 47, 82)
-    tolerance = (12, 18, 12, 12, 12, 18)
-    if any(abs(gap - target) > limit
-           for gap, target, limit in zip(gaps, expected, tolerance, strict=True)):
-        return None
-    return edges
+            groups.append([(x, length, top, bottom)])
+    def edge(group):
+        return round(sum(x * length for x, length, _, _ in group) /
+                     sum(length for _, length, _, _ in group), 1)
+
+    strong = [group for group in groups if sum(line[1] for line in group) >= 200]
+    edges = [edge(group) for group in strong]
+    if _column_profile_matches(edges):
+        return {"status": "confirmed", "basis": "strong_vector_rules",
+                "edges_pdf_points": edges, "weak_rule_observations": []}
+    unknown = {"status": "unknown", "basis": None, "edges_pdf_points": None,
+               "weak_rule_observations": []}
+    candidates = [group for group in groups if sum(line[1] for line in group) >= 40]
+    edges = [edge(group) for group in candidates]
+    if len(strong) < 5 or not _column_profile_matches(edges):
+        return {**unknown, "reason": "insufficient_same_page_vector_profile"}
+    # pdfplumber lines and to_image share displayed page coordinates, including
+    # /Rotate. A cropped origin would need an additional transform; leave it unknown.
+    if tuple(page.bbox) != (0, 0, page.width, page.height):
+        return {**unknown, "reason": "unsupported_raster_coordinate_frame"}
+    top = max(min(line[2] for line in group) for group in strong) + 40
+    bottom = min(max(line[3] for line in group) for group in strong) - 10
+    if bottom - top < 120:
+        return {**unknown, "reason": "insufficient_common_grid_span"}
+    weak = [group for group in candidates if sum(line[1] for line in group) < 200]
+    gaps = []
+    for group in weak:
+        cursor, uncovered = top, []
+        for _, _, start, end in sorted(group, key=lambda line: line[2]):
+            start, end = max(top, start), min(bottom, end)
+            if start >= end:
+                continue
+            if start > cursor:
+                uncovered.append([cursor, start])
+            cursor = max(cursor, end)
+        if bottom > cursor:
+            uncovered.append([cursor, bottom])
+        gap = max(uncovered, key=lambda span: span[1] - span[0], default=[top, top])
+        if gap[1] - gap[0] < 40:
+            return {**unknown, "reason": "no_independent_pixel_witness_span"}
+        gaps.append(gap)
+    import numpy as np
+
+    gray = np.asarray(page.to_image(resolution=216, force_mediabox=True).original.convert("L"))
+    scale_x, scale_y = gray.shape[1] / page.width, gray.shape[0] / page.height
+    confirmations = [
+        {**_rule_pixel_confirmation(gray, x=edge(group), top=top, bottom=bottom,
+                                   scale_x=scale_x, scale_y=scale_y),
+         "vector_length_pdf_points": round(sum(line[1] for line in group), 3),
+         "vector_uncovered_span_pdf_points": gap}
+        for group, gap in zip(weak, gaps, strict=True)]
+    if not confirmations or any(item["status"] != "confirmed" for item in confirmations):
+        return {**unknown, "reason": "weak_vector_not_confirmed_by_pixels",
+                "weak_rule_observations": confirmations}
+    return {"status": "confirmed", "basis": "same_page_vector_and_pixel_rules",
+            "edges_pdf_points": edges, "weak_rule_observations": confirmations}
+
+
+def _oge_2024_column_edges(page) -> list[float] | None:
+    return _oge_2024_column_geometry(page)["edges_pdf_points"]
+
+
+def _observe_slot_columns(words: list[dict], edges: list[float] | None) -> dict:
+    """Assign saved words by same-page columns, retaining out-of-column words."""
+    if edges is None:
+        return {"column_observation": None, "boundary_crossing_word_count": None,
+                "unassigned_column_word_count": None}
+    if len(edges) != 7 or any(left >= right for left, right in zip(edges, edges[1:])):
+        raise ValueError("six-column observation requires seven ordered boundaries")
+    by_column: dict[str, list[int]] = {name: [] for name in _COLUMNS}
+    crossings = assigned = 0
+    for index, word in enumerate(words):
+        x0, _, x1, _ = word["bbox_pdf_points"]
+        for name, left, right in zip(_COLUMNS, edges[:-1], edges[1:], strict=True):
+            if left <= (x0 + x1) / 2 < right:
+                by_column[name].append(index)
+                assigned += 1
+                break
+        crossings += any(x0 < edge < x1 for edge in edges[1:-1])
+    return {"column_observation": {
+                name: {"raw_ocr_text": " ".join(words[index]["text"] for index in indices),
+                       "word_indices": indices} for name, indices in by_column.items()},
+            "boundary_crossing_word_count": crossings,
+            "unassigned_column_word_count": len(words) - assigned}
 
 
 def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
@@ -58,8 +174,9 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
     census = probe_raster_row_bands(
         source, expected_sha256=expected_sha256, page_numbers=page_numbers)
     with pdfplumber.open(source) as document:
-        edges_by_page = {number: _oge_2024_column_edges(document.pages[number - 1])
-                         for number in page_numbers}
+        geometry = {number: _oge_2024_column_geometry(document.pages[number - 1])
+                    for number in page_numbers}
+        edges_by_page = {number: item["edges_pdf_points"] for number, item in geometry.items()}
     retry_pages = [page["page_number"] for page in census["results"]
                    if page["status"] != "physical_slots_located" and
                    edges_by_page[page["page_number"]] is not None]
@@ -72,6 +189,8 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
                           if page["status"] == "physical_slots_located"})
     census["results"] = [recovered.get(page["page_number"], page)
                          for page in census["results"]]
+    for page in census["results"]:
+        page["column_geometry_observation"] = geometry[page["page_number"]]
     return census, edges_by_page
 
 
@@ -112,6 +231,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
             pages.append({"page_number": number,
                           "coverage": "physical_slots_unknown",
                           "physical_slot_count": None,
+                          "column_geometry_observation": page["column_geometry_observation"],
                           "slots": [], "ocr_word_count": None})
             continue
         words = ocr_by_page[number].extract_words()
@@ -131,38 +251,12 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                                                  for key in ("x0", "top", "x1", "bottom")],
                              "confidence": round(float(word["ocr_confidence"]), 2)}
                             for word in ordered]
-            column_observation = None
-            boundary_crossing = None
-            unassigned_column_words = None
-            if column_edges is not None:
-                by_column: dict[str, list[int]] = {name: [] for name in _COLUMNS}
-                boundary_crossing = 0
-                assigned_columns = 0
-                for word_index, word in enumerate(observations):
-                    x0, _, x1, _ = word["bbox_pdf_points"]
-                    midpoint = (x0 + x1) / 2
-                    for name, left, right in zip(
-                            _COLUMNS, column_edges, column_edges[1:], strict=True):
-                        if left <= midpoint < right:
-                            by_column[name].append(word_index)
-                            assigned_columns += 1
-                            break
-                    boundary_crossing += any(x0 < edge < x1
-                                             for edge in column_edges[1:-1])
-                column_observation = {
-                    name: {"raw_ocr_text": " ".join(
-                        observations[index]["text"] for index in indices),
-                           "word_indices": indices}
-                    for name, indices in by_column.items()}
-                unassigned_column_words = len(observations) - assigned_columns
             slots.append({"slot_index": index,
                           "band_pdf_points": band,
                           "ocr_status": ("words_observed" if observations else
                                          "no_words_observed_unknown_content"),
                           "raw_ocr_text": " ".join(item["text"] for item in observations),
-                          "column_observation": column_observation,
-                          "boundary_crossing_word_count": boundary_crossing,
-                          "unassigned_column_word_count": unassigned_column_words,
+                          **_observe_slot_columns(observations, column_edges),
                           "words": observations})
         pages.append({"page_number": number,
                       "coverage": "physical_slots_located",
@@ -171,6 +265,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                       "column_geometry": ("oge_2024_six_column_grid" if column_edges
                                           else "unknown"),
                       "column_edges_pdf_points": column_edges,
+                      "column_geometry_observation": page["column_geometry_observation"],
                       "physical_slot_count": len(slots),
                       "slots": slots,
                       "ocr_word_count": len(words),

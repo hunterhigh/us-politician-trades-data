@@ -127,6 +127,8 @@ def audit_278t_format(pdf_path: Path, *, extraction: dict | None = None,
                       "raster_column_geometry": (
                           "oge_2024_six_column_grid" if column_edges.get(number)
                           else "unknown" if number in column_edges else None),
+                      "raster_column_geometry_observation": (
+                          census_page.get("column_geometry_observation") if census_page else None),
                       "count_only_match": (physical == len(observed)
                                            if physical is not None else None),
                       "geometry_count_match": (geometry == len(observed)
