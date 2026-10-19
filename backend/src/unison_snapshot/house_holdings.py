@@ -330,8 +330,6 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             excluded = raw_value == "None"
             if not excluded and parsed_value is None:
                 reasons.append("value_not_representable")
-            if parsed_value and parsed_value[1] is None:
-                reasons.append("open_ended_value_requires_product_decision")
             stable = "|".join((source_sha256, str(page_index + 1), f"{top:.2f}", asset,
                                owner_code, raw_value))
             extracted.append({
@@ -492,6 +490,12 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
             raise HouseIndexError("House holding extraction row is invalid")
         if row.get("review_reasons"):
             report_reasons.extend(str(reason) for reason in row["review_reasons"])
+        if not row.get("excluded_no_reportable_value"):
+            low, high = row.get("value_low"), row.get("value_high")
+            if (type(low) is not int or low < 0 or
+                    (high is None and type(row.get("value_low_exclusive")) is not bool) or
+                    (high is not None and (type(high) is not int or low > high))):
+                report_reasons.append("value_bounds_unresolved")
     eligible = not report_reasons
     holdings: list[dict] = []
     excluded: list[dict] = []
@@ -510,6 +514,8 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
                 "report_period_end": extraction["report_period_end"],
                 "filed_at": f"{source['filed_date']}T00:00:00Z",
                 "value_low": row["value_low"], "value_high": row["value_high"],
+                **({"value_low_exclusive": row["value_low_exclusive"]}
+                   if row["value_high"] is None else {}),
                 "change_from_prior": "unknown", "source_id": "house_clerk",
                 "source": "U.S. House Clerk", "source_url": source["source_url"],
                 "verification_status": "official_matched",

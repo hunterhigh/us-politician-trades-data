@@ -155,7 +155,7 @@ class HouseHoldingTests(unittest.TestCase):
         self.assertEqual(row["evidence"]["continuation"]["page"], 2)
         self.assertEqual(row["review_reasons"], [])
 
-    def test_open_value_keeps_source_semantics_without_silent_product_approval(self):
+    def test_approved_open_value_keeps_source_semantics_and_enters_holdings(self):
         source = wrapped_page()
         for item in source["words"]:
             if item["text"] == "$50,001":
@@ -168,8 +168,14 @@ class HouseHoldingTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual((rows[0]["value_low"], rows[0]["value_high"], rows[0]["value_low_exclusive"]),
                          (1000000, None, True))
-        self.assertIn("open_ended_value_requires_product_decision", rows[0]["review_reasons"])
-        self.assertFalse(qualify_financial_report(extraction(rows), IDENTITY)["production_eligible"])
+        self.assertEqual(rows[0]["review_reasons"], [])
+        result = qualify_financial_report(extraction(rows), IDENTITY)
+        self.assertTrue(result["production_eligible"])
+        self.assertIs(result["holdings"][0]["value_low_exclusive"], True)
+        del rows[0]["value_low_exclusive"]
+        unknown = qualify_financial_report(extraction(rows), IDENTITY)
+        self.assertFalse(unknown["production_eligible"])
+        self.assertIn("value_bounds_unresolved", unknown["qualification_reasons"])
 
     def test_one_unsupported_row_quarantines_the_whole_report(self):
         rows, _ = extract_schedule_a_pages([page(bad_value=True)], source_sha256=SHA)
