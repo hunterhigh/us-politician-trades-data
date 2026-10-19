@@ -169,8 +169,8 @@ class GenericCandidateTests(unittest.TestCase):
         result, _ = candidate({"observations": [data], "document_page_count": 3})
         self.assertEqual(next(row for row in result["transactions"] if row["asset_name"] == "ALPHA")["owner"], "Spouse")
         result, audit = candidate(bundle([["", "?", "", "", "", ""], ROW]))
-        self.assertEqual(len(result["transactions"]), 1)
-        self.assertIn("account_context_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+        self.assertEqual(len(result["transactions"]), 2)
+        self.assertEqual(audit["reports"][0]["observation_receipt"]["rows"][-1]["effective_account_context"]["status"], "not_observed")
 
     def test_generic_saved_page_count_and_missing_high_are_not_relaxed(self):
         with self.assertRaisesRegex(OgeCatalogError, "page count differs"):
@@ -180,7 +180,7 @@ class GenericCandidateTests(unittest.TestCase):
         self.assertEqual(build(missing)[0]["transactions"], [])
         self.assertEqual(adapt_oge_278t_extraction(missing, direct())["counts"]["qualified"], 0)
 
-    def test_first_saved_page_requires_bound_start_evidence_not_page_number(self):
+    def test_optional_account_title_does_not_require_cover_or_table_start(self):
         header = ["#", "Description", "Type", "Date", "Notification", "Amount"]
         source = generic()
         source.update(transactions=[], quarantined=[], source_rows=[{"page_number": 2, "cells": header}])
@@ -188,10 +188,10 @@ class GenericCandidateTests(unittest.TestCase):
             "Periodic Transaction Report\nFiler's Certification\nDate: 06/03/2025", source_sha256="a"*64)
         data = saved([header, ROW])
         positive = materialize_oge_278t_observations(source, direct(), observations=[data], document_page_count=3)
-        self.assertEqual(positive["observation_receipt"]["initial_account_scope_basis"], "bound_cover_and_first_table_header")
+        self.assertEqual(positive["observation_receipt"]["initial_account_scope_basis"], "optional_account_title_not_observed_no_absence_claim")
         self.assertEqual(len(positive["transactions"]), 1)
         self.assertEqual(positive["transactions"][0]["owner"], "Undisclosed")
-        # Same page 2 alone, cover alone, and an unobserved prior table do not prove scope.
+        # Missing earlier observation is a coverage warning, not a title requirement.
         for mode in ["no_native_header", "no_cover_role", "later_page"]:
             changed, observed = deepcopy(source), deepcopy(data)
             if mode == "no_native_header":
@@ -201,8 +201,62 @@ class GenericCandidateTests(unittest.TestCase):
             else:
                 observed["pages"][0]["page_number"] = 3
             result = materialize_oge_278t_observations(changed, direct(), observations=[observed], document_page_count=3)
-            self.assertFalse(result["transactions"])
-            self.assertIn("account_context_unresolved", result["observation_receipt"]["rows"][-1]["reasons"])
+            self.assertEqual(len(result["transactions"]), 1)
+            receipt = result["observation_receipt"]["rows"][-1]
+            self.assertNotIn("account_context_unresolved", receipt["reasons"])
+            self.assertEqual(receipt["effective_account_context"]["status"], "not_observed")
+            self.assertIn("coverage_warning", receipt["effective_account_context"])
+
+    def test_late_first_page_does_not_invent_required_title(self):
+        observed = saved([ROW])
+        observed["pages"][0]["page_number"] = 18
+        result, audit = candidate({"observations": [observed], "document_page_count": 20})
+        self.assertEqual(len(result["transactions"]), 2)
+        receipt = audit["reports"][0]["observation_receipt"]
+        self.assertFalse(receipt["coverage_complete"])
+        self.assertIn(17, receipt["unobserved_pages"])
+        self.assertEqual(receipt["rows"][0]["effective_account_context"]["status"], "not_observed")
+
+    def test_actual_lost_account_scope_still_blocks(self):
+        first = saved([["", "Investment account #1", "", "", "", ""]])
+        last = saved([ROW])
+        last["pages"][0]["page_number"] = 4
+        result, audit = candidate({"observations": [first, last], "document_page_count": 4})
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertIn("account_context_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+
+    def test_ambiguous_explicit_account_heading_stays_blocked(self):
+        observed = saved([["", "Investment account #1", "", "", "", ""], ROW])
+        slot = observed["pages"][0]["slots"][0]
+        slot["words"][0]["bbox_pdf_points"][0] = 9.9
+        slot.update(_observe_slot_columns(slot["words"], EDGES))
+        result, audit = candidate({"observations": [observed], "document_page_count": 3})
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertIn("account_context_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+
+    def test_unknown_region_without_known_scope_is_coverage_warning(self):
+        unknown = saved()
+        unknown["pages"][0]["column_geometry"] = "unknown"
+        last = saved([ROW])
+        last["pages"][0]["page_number"] = 3
+        result, audit = candidate({"observations": [unknown, last], "document_page_count": 3})
+        self.assertEqual(len(result["transactions"]), 2)
+        receipt = audit["reports"][0]["observation_receipt"]
+        self.assertFalse(receipt["coverage_complete"])
+        self.assertEqual(receipt["rows"][-1]["effective_account_context"]["status"], "not_observed")
+
+    def test_gap_without_established_scope_is_not_a_lost_account(self):
+        first = saved([ROW])
+        last = saved([ROW])
+        last["pages"][0]["page_number"] = 4
+        result, audit = candidate({"observations": [first, last], "document_page_count": 4})
+        self.assertEqual(len(result["transactions"]), 3)
+        self.assertNotIn("account_context_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
+
+    def test_explicit_continuation_scope_stays_unresolved(self):
+        result, audit = candidate(bundle([["", "Continued from previous page", "", "", "", ""], ROW]))
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertIn("account_context_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])
 
     def test_explicit_account_scope_allows_approved_undisclosed_owner(self):
         result, _ = candidate(bundle([["", "Investment account #1", "", "", "", ""], ROW]))

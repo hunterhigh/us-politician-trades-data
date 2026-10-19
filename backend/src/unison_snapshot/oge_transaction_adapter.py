@@ -86,34 +86,6 @@ def amount_range_qualified(row: dict, parser_version: str) -> bool:
             and row.get("amount_low_exclusive") is not True)
 
 
-def _bound_transaction_start_page(extraction: dict, observations: list[dict]) -> int | None:
-    """Require cover role and the same first native/physical table header.
-
-    A first saved page number, printed number, or missing previous observation
-    supplies no proof that a source account heading did not precede it.
-    """
-    if not generic_cover_evidence_valid(extraction):
-        return None
-    cover = extraction["cover_date_evidence"]["cover_text"]
-    if not re.search(r"Periodic\s+Transaction\s+Report", cover, re.I):
-        return None
-    inventory = [row for row in extraction["source_rows"] if any(_cells(row.get("cells")))]
-    if not inventory:
-        return None
-    first = inventory[0]
-    header = _cells(first.get("cells"))
-    # Only the cover is accounted before this first table. A gap stays unknown.
-    if first["page_number"] != 2 or _structural_disposition(header) != ("excluded", "table_header"):
-        return None
-    pages = sorted((page for item in observations for page in item["pages"]), key=lambda page: page["page_number"])
-    if not pages or pages[0]["page_number"] != first["page_number"] or not pages[0].get("slots"):
-        return None
-    columns = pages[0]["slots"][0].get("column_observation", {})
-    names = ("printed_number", "description", "type", "transaction_date", "notification", "amount")
-    observed = [" ".join(columns.get(name, {}).get("raw_ocr_text", "").split()) for name in names]
-    return first["page_number"] if observed == header else None
-
-
 def _observation_input_extraction(extraction: dict) -> dict:
     """Older empty-disposition caches have no physical inventory to preserve.
 
@@ -188,8 +160,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     previous_page = None
     used_old_ids = set()
     unknown_pages = []
-    proven_start_page = _bound_transaction_start_page(extraction, observations)
-    account_prefix_unknown = proven_start_page is None
+    account_established = False
+    account_scope_lost = False
     old_source_keys = {_row_key(row) for row in extraction["source_rows"]}
     raw_pages = {page["page_number"]: page for item in observations for page in item["pages"]}
 
@@ -207,14 +179,14 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             owner = None
             owner_reference = None
             if previous_page is not None:
-                account_prefix_unknown = True
+                account_scope_lost = account_scope_lost or account_established
         previous_page = page_number
         if page.get("status") != "field_shapes_observed":
             unknown_pages.append(page_number)
             owner_conflicted = owner_conflicted or owner_reference is not None
             owner = None
             owner_reference = None
-            account_prefix_unknown = True
+            account_scope_lost = account_scope_lost or account_established
             continue
         for slot_ordinal, slot in enumerate(page.get("slots", []), 1):
             slot_key = str(slot_ordinal)
@@ -256,7 +228,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 owner_reference = reference if safe else None
                 owner_conflicted = not safe
                 if safe:
-                    account_prefix_unknown = False
+                    account_established = account_scope_lost = False
                     receipt.update(disposition="excluded", reasons=["explicit_owner_heading"])
                 else:
                     receipt["reasons"] = ["owner_heading_observation_unresolved"]
@@ -265,7 +237,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             if observation["disposition"] in {"heading", "note", "blank"}:
                 if (observation["disposition"] == "heading" and
                         observation.get("account_context", {}).get("status") == "observed"):
-                    account_prefix_unknown = False
+                    account_established, account_scope_lost = True, False
                 receipt.update(disposition="excluded", reasons=[observation["reason"]])
                 continue
             if observation["disposition"] != "data_candidate":
@@ -274,7 +246,13 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 owner_conflicted = owner_conflicted or owner_reference is not None
                 owner = None
                 owner_reference = None
-                account_prefix_unknown = True
+                # Unknown OCR is not evidence that an optional account title
+                # was present. Actual lost scope or an explicit ambiguous
+                # account/continuation label does require resolution.
+                label = ordered_description or cells[1]
+                explicit_scope = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", label, re.I)
+                                      or re.match(r"\s*(?:continued|continuation|cont[.'’]?d)\b", label, re.I))
+                account_scope_lost = account_scope_lost or account_established or explicit_scope
                 continue
             reasons = []
             relation = observation.get("relation_evidence", {})
@@ -305,14 +283,19 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                         field_evidence[field] = [read["source_ref"] for read, _, _ in amount_readings]
             account = observation.get("account_context", {})
             if account.get("status") == "observed":
-                account_prefix_unknown = False
+                account_established = True
             effective_account = deepcopy(account)
-            if account.get("status") == "none_observed" and account_prefix_unknown:
-                effective_account.update(status="unknown", reason="preceding_account_scope_not_observed")
+            if account_scope_lost:
+                effective_account.update(status="unknown", reason="established_or_explicit_account_scope_unresolved")
+            elif account.get("status") in {"none_observed", "unknown"}:
+                effective_account.update(status="not_observed", title=None,
+                    reason="optional_account_title_not_observed",
+                    coverage_warning="preceding_region_or_title_not_observed_no_absence_claim")
+            receipt["source_account_context"] = deepcopy(account)
             receipt["effective_account_context"] = effective_account
-            if effective_account.get("status") == "unknown":
+            if account_scope_lost:
                 reasons.append("account_context_unresolved")
-            account_title = account.get("title") if account.get("status") == "observed" else None
+            account_title = effective_account.get("title") if effective_account.get("status") == "observed" else None
             if owner_conflicted:
                 reasons.append("owner_heading_observation_unresolved")
             # An unmatched old row might be the same disclosure with OCR variation.
@@ -338,7 +321,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             row["observation_reference"] = reference
             row["field_observation_references"] = field_evidence
             row["owner_observation_reference"] = owner_reference
-            row["account_context"] = deepcopy(account)
+            row["account_context"] = effective_account
             if owner is None:
                 row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
             # Use the existing formal identity algorithm, never a page/slot ID.
@@ -365,8 +348,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "page_count_basis": "source_sha256_verified_pdf" if page_count_verified else "declared_only",
         "legacy_inventory_basis": extraction.get("legacy_inventory_basis", "saved_physical_inventory"),
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
-        "initial_account_scope_basis": ("bound_cover_and_first_table_header" if proven_start_page is not None
-                                         else "unknown_before_observed_region"),
+        "initial_account_scope_basis": "optional_account_title_not_observed_no_absence_claim",
         "coverage_complete": page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
     }
     return result
