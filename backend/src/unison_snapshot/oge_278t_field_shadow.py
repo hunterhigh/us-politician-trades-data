@@ -16,6 +16,7 @@ import json
 from math import isfinite
 import re
 from statistics import median
+from .oge_278t_raster_slots import column_edges_at_y, column_crop_bounds, column_geometry_sha256
 
 
 SCHEMA = "oge-278t-field-shadow/v1"
@@ -57,7 +58,9 @@ def _word_evidence(slot: dict, page: dict) -> dict:
                 any(type(v) not in (int, float) or not isfinite(v) for v in box) or
                 box[0] >= box[2] or box[1] >= box[3]):
             raise ValueError("field word geometry is invalid")
-    derived = _observe_slot_columns(words, edges)
+    derived = _observe_slot_columns(words, edges, page=page)
+    if slot.get("column_model_outside_word_indices", []) != derived.get("column_model_outside_word_indices", []):
+        raise ValueError("saved word model-domain references differ from geometry")
     owner = {}
     for name, expected in derived["column_observation"].items():
         saved = slot["column_observation"][name]
@@ -66,11 +69,17 @@ def _word_evidence(slot: dict, page: dict) -> dict:
         owner.update({index: name for index in expected["word_indices"]})
     crossings = []
     for index, word in enumerate(words):
-        x0, _, x1, _ = word["bbox_pdf_points"]
+        x0, top, x1, bottom = word["bbox_pdf_points"]
+        local = column_edges_at_y(page, (top+bottom)/2)
+        domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+        if domain:
+            top,bottom = max(top,domain[0]),min(bottom,domain[1])
+        a,b = column_edges_at_y(page,top),column_edges_at_y(page,bottom)
         boundaries = [{"left_column": _COLUMNS[i - 1], "right_column": _COLUMNS[i],
                        "x_pdf_points": edge,
-                       "shorter_overhang_pdf_points": round(min(edge - x0, x1 - edge), 4)}
-                      for i, edge in enumerate(edges[1:-1], 1) if x0 < edge < x1]
+                       "shorter_overhang_pdf_points": round(max(0,min(edge - x0, x1 - edge)), 4)}
+                      for i, edge in enumerate(local[1:-1], 1)
+                      if x0 < max(a[i],b[i]) and x1 > min(a[i],b[i])]
         if boundaries:
             crossings.append({"word_index": index, "text": word["text"],
                               "bbox_pdf_points": list(word["bbox_pdf_points"]),
@@ -173,6 +182,11 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
             if number not in source_pages:
                 raise ValueError("secondary field read references a page outside selected observations")
             original, original_page = source_pages[number]
+            if (original_page.get("column_line_model") is not None or
+                    "input_column_geometry_sha256" in reading) and (
+                    reading.get("input_column_geometry_sha256", {}).get(str(number)) !=
+                    column_geometry_sha256(original_page)):
+                raise ValueError("secondary read differs from source column line model")
             if field == "description":
                 expected_input = hashlib.sha256(json.dumps(
                     original_page, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
@@ -237,11 +251,21 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                             any(type(v) not in (int, float) or not isfinite(v) for v in box) or
                             box[0] >= box[2] or box[1] >= box[3] or
                             not base["band_pdf_points"][0] <= (box[1] + box[3]) / 2 <
-                            base["band_pdf_points"][1] or
-                            not edges[left] <= (box[0] + box[2]) / 2 < edges[right]):
+                            base["band_pdf_points"][1]):
                         raise ValueError("secondary detection is outside its source field or slot")
-                    if (box[0] < edges[left] + .6 - rounding or
-                            box[2] > edges[right] - 1.5 + rounding or
+                    local = column_edges_at_y(original_page, (box[1]+box[3])/2)
+                    domain = (original_page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+                    y0,y1 = box[1],box[3]
+                    if domain and not domain[0] <= y0 < y1 <= domain[1]:
+                        geometry_issues.append("detection_outside_column_model_domain")
+                        y0,y1 = max(y0,domain[0]),min(y1,domain[1])
+                    a,b = column_edges_at_y(original_page,y0),column_edges_at_y(original_page,y1)
+                    if not local[left] <= (box[0]+box[2])/2 < local[right]:
+                        if original_page.get("column_line_model") is None:
+                            raise ValueError("secondary detection is outside its source field or slot")
+                        geometry_issues.append("detection_outside_sloped_field")
+                    if (box[0] < max(a[left],b[left]) + .6 - rounding or
+                            box[2] > min(a[right],b[right]) - 1.5 + rounding or
                             max(base["band_pdf_points"][0] - box[1],
                                 box[3] - base["band_pdf_points"][1], 0) > 3.0 + .02):
                         geometry_issues.append("detection_extends_beyond_crop_or_slot")
@@ -346,12 +370,18 @@ def _validate_description_unassigned(page: dict, original_page: dict) -> None:
     if not isinstance(detections, list) or page.get("words_outside_slots") != len(detections):
         raise ValueError("description unassigned detections are missing or miscounted")
     edges = original_page["column_edges_pdf_points"]
+    if original_page.get("column_line_model") is not None:
+        slots = original_page["slots"]
+        left,right = column_crop_bounds(original_page,1,2,slots[0]["band_pdf_points"][0],
+                                        slots[-1]["band_pdf_points"][1]+2)
+    else:
+        left,right = edges[1],edges[2]
     for item in detections:
         box = item.get("bbox_pdf_points")
         if (not isinstance(item.get("text"), str) or not isinstance(box, list) or len(box) != 4 or
                 any(type(v) not in (int, float) or not isfinite(v) for v in box) or
                 not box[0] < box[2] or not box[1] < box[3] or
-                not edges[1] <= (box[0] + box[2]) / 2 < edges[2]):
+                not left <= (box[0] + box[2]) / 2 < right):
             raise ValueError("description unassigned detection geometry is invalid")
         owners = [slot for slot in original_page["slots"] if
                   slot["band_pdf_points"][0] <= (box[1] + box[3]) / 2 < slot["band_pdf_points"][1]]
@@ -639,11 +669,19 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     if (read.get("method") != "column_ocr" or read.get("geometry_status") != "source_bound"
             or _known_value(read["shape"]) is None or not read.get("detections")):
         return False
-    positions, edges = _FIELD_COLUMNS[field], page["column_edges_pdf_points"]
-    left, right = edges[min(positions)] + .6, edges[max(positions) + 1] - 1.5
+    positions = _FIELD_COLUMNS[field]
+    start,end = min(positions),max(positions)+1
     top, bottom = slot["band_pdf_points"]
-    return all(left <= box[0] < box[2] <= right and top <= (box[1] + box[3]) / 2 < bottom
-               for box in (detection["bbox_pdf_points"] for detection in read["detections"]))
+    for detection in read["detections"]:
+        box = detection["bbox_pdf_points"]
+        domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+        if domain and not domain[0] <= box[1] < box[3] <= domain[1]:
+            return False
+        a,b = column_edges_at_y(page,box[1]),column_edges_at_y(page,box[3])
+        if not (max(a[start],b[start])+.6 <= box[0] < box[2] <= min(a[end],b[end])-1.5
+                and top <= (box[1]+box[3])/2 < bottom):
+            return False
+    return True
 
 
 def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
@@ -655,6 +693,8 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
     blockers. Supporting references identify the actual field and read index.
     """
     reasons, field_evidence = [], {}
+    if source_slot.get("column_model_outside_word_indices"):
+        reasons.append("source_words_outside_column_model_domain")
     for field in ("description", "type", "transaction_date", "amount"):
         evidence = row["field_readings"][field]
         recognized = [(index, read, _known_value(read["shape"]))
@@ -837,6 +877,8 @@ def compare_field_observations(left: dict, right: dict) -> dict:
         first, second = left_pages[number], right_pages[number]
         if first.get("column_geometry") != second.get("column_geometry") or \
                 first.get("column_edges_pdf_points") != second.get("column_edges_pdf_points") or \
+                first.get("column_line_model") != second.get("column_line_model") or \
+                first.get("render_coordinate_frame") != second.get("render_coordinate_frame") or \
                 first.get("physical_slot_count") != second.get("physical_slot_count"):
             raise ValueError(f"page {number} grid geometry differs between OCR passes")
         if first.get("column_geometry") != "oge_2024_six_column_grid":

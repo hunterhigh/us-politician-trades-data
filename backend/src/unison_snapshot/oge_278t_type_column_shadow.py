@@ -41,6 +41,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                          executable: str | None, resolution: int, field: str,
                          page_numbers: list[int] | None = None) -> dict:
     from .oge_278t_field_shadow import _description_detection_reading, _description_shape
+    from .oge_278t_raster_slots import column_crop_bounds, column_geometry_sha256
 
     if slots_observation.get("schema_version") != _INPUT_SCHEMA:
         raise ValueError("expected saved 278-T raster slot observations v2")
@@ -93,8 +94,8 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                     any(a[1] > b[0] for a, b in zip(bands, bands[1:])):
                 raise ValueError(f"page {number} has overlapping slot bands")
             column_index = 2 if field == "type" else 1
-            left, right = edges[column_index] + 0.6, edges[column_index + 1] - 1.5
             top, bottom = bands[0][0], bands[-1][1] + 2
+            left, right = column_crop_bounds(page, column_index, column_index+1, top, bottom)
             if right <= left or bottom > document.pages[number - 1].height:
                 raise ValueError(f"page {number} has invalid type-column crop")
             crop = document.pages[number - 1].crop((left, top, right, bottom))
@@ -215,4 +216,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
         result["input_page_canonical_sha256"] = {str(page["page_number"]): hashlib.sha256(json.dumps(
             page, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
             for page in pages}
+    if any(page.get("column_line_model") is not None for page in pages):
+        result["input_column_geometry_sha256"] = {str(page["page_number"]): column_geometry_sha256(page)
+                                                   for page in pages}
     return result
