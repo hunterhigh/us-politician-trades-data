@@ -18,6 +18,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--extraction-batch", required=True)
     parser.add_argument("--extractions-dir", required=True)
     parser.add_argument("--evidence-root")
+    parser.add_argument("--saved-observations")
+    parser.add_argument("--candidate-base")
+    parser.add_argument("--data-cutoff-at")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--code-commit", required=True)
@@ -35,6 +38,8 @@ def main(argv: list[str] | None = None) -> int:
             extraction_batch_path=args.extraction_batch,
             extractions_dir=args.extractions_dir, output_dir=args.output_dir,
             evidence_root=args.evidence_root,
+            saved_observations_path=args.saved_observations,
+            candidate_base_path=args.candidate_base, data_cutoff_at=args.data_cutoff_at,
             run_id=args.run_id, code_commit=args.code_commit,
             evidence_commit=args.evidence_commit,
             review_commit=args.review_commit,

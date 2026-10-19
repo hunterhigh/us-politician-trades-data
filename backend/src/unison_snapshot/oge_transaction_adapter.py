@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from copy import deepcopy
 from datetime import date
 from typing import Any
 
@@ -25,6 +26,223 @@ _AMOUNT_RANGES = {(1001, 15000), (15001, 50000), (50001, 100000),
                   (100001, 250000), (250001, 500000), (500001, 1000000),
                   (1000001, 5000000), (5000001, 25000000),
                   (25000001, 50000000)}
+
+OBSERVED_PARSER_VERSION = "oge-278t-observed/v1"
+
+
+def _observation_input_extraction(extraction: dict) -> dict:
+    """Older empty-disposition caches have no physical inventory to preserve.
+
+    An empty inventory here describes the old parser output, never the PDF.
+    Saved observations still account for observed/unknown source coverage.
+    """
+    if "source_rows" not in extraction and extraction.get("transactions") == [] and extraction.get("quarantined") == []:
+        result = deepcopy(extraction)
+        result["source_rows"] = []
+        result["legacy_inventory_basis"] = "empty_legacy_dispositions_without_physical_inventory"
+        return result
+    return extraction
+
+
+def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
+                                     observations: list[dict], document_page_count: int,
+                                     secondary_observations: list[dict] | None = None,
+                                     archived_pdf_path: str | None = None) -> dict:
+    """Interpret saved source-bound readings without scanning or replacing old facts.
+
+    The candidate builder calls this function itself. A serialized version label
+    is not sufficient authority to bypass its original extraction checks.
+    """
+    from .oge_278t_field_shadow import observe_content_rows
+    from .oge_reports import PARSER_VERSION, _owner_heading, parse_table_rows
+
+    if extraction.get("parser_version") != PARSER_VERSION:
+        raise OgeCatalogError("observed interpretation requires an original generic extraction")
+    extraction = _observation_input_extraction(extraction)
+    # Validate the old report/catalog contract before overlaying observations.
+    adapt_oge_278t_extraction(extraction, catalog_record)
+    sha = extraction["source_sha256"]
+    page_count_verified = False
+    if archived_pdf_path is not None:
+        from pathlib import Path
+        import pdfplumber
+        source_path = Path(archived_pdf_path)
+        if hashlib.sha256(source_path.read_bytes()).hexdigest() != sha:
+            raise OgeCatalogError("page count PDF differs from observation source")
+        # Read only the archived page inventory, never re-extract text or OCR.
+        with pdfplumber.open(source_path) as document:
+            if len(document.pages) != document_page_count:
+                raise OgeCatalogError("saved page count differs from archived PDF")
+        page_count_verified = True
+    if type(document_page_count) is not int or document_page_count < 1 or any(
+            type(row.get("page_number")) is not int or not 1 <= row["page_number"] <= document_page_count
+            for row in extraction["source_rows"]):
+        raise OgeCatalogError("saved page count does not contain original source rows")
+    if not observations or any(item.get("source_sha256") != sha for item in observations):
+        raise OgeCatalogError("saved observations differ from extraction source")
+    try:
+        content = observe_content_rows(observations, document_page_count=document_page_count,
+                                       secondary_observations=secondary_observations)
+    except ValueError as exc:
+        raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
+    result = deepcopy(extraction)
+    result["parser_version"] = OBSERVED_PARSER_VERSION
+    old_rows = extraction["transactions"] + extraction["quarantined"]
+    old_by_key: dict[str, list[dict]] = {}
+    for row in old_rows:
+        old_by_key.setdefault(_row_key(row), []).append(row)
+    dispositions = {(row["page_number"], row["slot_key"]): row
+                    for row in content["slot_content"]}
+    receipt_rows = []
+    owner = None
+    owner_reference = None
+    owner_conflicted = False
+    previous_page = None
+    used_old_ids = set()
+    unknown_pages = []
+    old_source_keys = {_row_key(row) for row in extraction["source_rows"]}
+    raw_pages = {page["page_number"]: page for item in observations for page in item["pages"]}
+
+    def defer(physical, reference, reasons):
+        if _row_key(physical) not in old_source_keys:
+            result["source_rows"].append(physical)
+            result["quarantined"].append({**physical, "observation_reference": reference,
+                                           "reasons": sorted(set(reasons))})
+
+    names = ("printed_number", "description", "type", "transaction_date", "notification", "amount")
+    for page in sorted(content["field_observations"]["pages"], key=lambda p: p["page_number"]):
+        page_number = page["page_number"]
+        if previous_page is None or page_number != previous_page + 1:
+            owner_conflicted = owner_conflicted or owner_reference is not None
+            owner = None
+            owner_reference = None
+        previous_page = page_number
+        if page.get("status") != "field_shapes_observed":
+            unknown_pages.append(page_number)
+            owner_conflicted = owner_conflicted or owner_reference is not None
+            owner = None
+            owner_reference = None
+            continue
+        for slot_ordinal, slot in enumerate(page.get("slots", []), 1):
+            slot_key = str(slot_ordinal)
+            observation = dispositions[(page_number, slot_key)]
+            cells = [slot["raw_columns"].get(name, "") for name in names]
+            physical = {"page_number": page_number, "cells": cells}
+            reference = {"source_sha256": sha, "page_number": page_number,
+                         "slot_key": slot_key,
+                         "field_observation_ref": observation.get("field_observation_ref")}
+            receipt = {**reference, "disposition": "unresolved", "reasons": []}
+            receipt_rows.append(receipt)
+            matches = old_by_key.get(_row_key(physical), [])
+            if len(matches) == 1 and matches[0].get("extraction_id") not in used_old_ids:
+                # Preserve existing IDs and qualified/unqualified facts verbatim.
+                existing = matches[0]
+                used_old_ids.add(existing.get("extraction_id"))
+                receipt.update(disposition="retained_legacy", extraction_id=existing.get("extraction_id"))
+                relation = observation.get("relation_evidence")
+                if relation and relation.get("status") != "supported_observation_relation":
+                    receipt.update(disposition="unresolved", reasons=["retained_legacy_with_observation_conflict", *relation.get("blocking_reasons", [])])
+                continue
+            owner_heading_text = " ".join(cells[1].casefold().split())
+            heading = _owner_heading(owner_heading_text) if (not any((cells[2], cells[3], cells[5])) and
+                re.fullmatch(r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", owner_heading_text)) else None
+            if heading:
+                readings = slot["field_readings"]["description"]["observations"]
+                descriptions = {r["shape"].get("value") for r in readings
+                                if r["shape"].get("status") == "ocr_text_only"}
+                words = slot.get("word_evidence", {})
+                safe = (len(descriptions) == 1 and words.get("status") == "source_words_linked"
+                        and not words.get("crossing_words") and not words.get("unassigned_word_indices")
+                        and not observation.get("word_center_rounding_ambiguous")
+                        and not raw_pages[page_number]["slots"][slot_ordinal - 1].get("column_model_outside_word_indices")
+                        and not any(r.get("geometry_status") == "ambiguous" for r in readings))
+                owner = heading if safe else None
+                owner_reference = reference if safe else None
+                owner_conflicted = not safe
+                if safe:
+                    receipt.update(disposition="excluded", reasons=["explicit_owner_heading"])
+                else:
+                    receipt["reasons"] = ["owner_heading_observation_unresolved"]
+                    defer(physical, reference, receipt["reasons"])
+                continue
+            if observation["disposition"] in {"heading", "note", "blank"}:
+                receipt.update(disposition="excluded", reasons=[observation["reason"]])
+                continue
+            if observation["disposition"] != "data_candidate":
+                receipt["reasons"] = [observation["reason"]]
+                defer(physical, reference, receipt["reasons"])
+                owner_conflicted = owner_conflicted or owner_reference is not None
+                owner = None
+                owner_reference = None
+                continue
+            reasons = []
+            relation = observation.get("relation_evidence", {})
+            if relation.get("status") != "supported_observation_relation":
+                reasons.extend(relation.get("blocking_reasons") or ["field_relation_unresolved"])
+            values = {}
+            field_evidence = {}
+            for field in ("description", "type", "transaction_date", "amount", "printed_number"):
+                readings = slot["field_readings"][field]["observations"]
+                recognized = [r["shape"].get("values", r["shape"].get("value"))
+                              for r in readings if r.get("geometry_status") != "ambiguous"
+                              and r["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+                distinct = {json.dumps(value, sort_keys=True) for value in recognized}
+                if len(distinct) != 1:
+                    reasons.append(field + "_reading_unresolved")
+                else:
+                    values[field] = recognized[0]
+                    field_evidence[field] = [r["source_ref"] for r in readings
+                                             if r.get("geometry_status") != "ambiguous"
+                                             and r["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+            if owner_conflicted:
+                reasons.append("owner_heading_observation_unresolved")
+            # An unmatched old row might be the same disclosure with OCR variation.
+            # Never mint a second formal ID based only on a printed row number.
+            if matches or any(row.get("page_number") == page_number and
+                              row.get("extraction_id") not in used_old_ids for row in old_rows):
+                reasons.append("legacy_row_correspondence_unresolved")
+            amount = values.get("amount")
+            if not isinstance(amount, list) or tuple(amount) not in _AMOUNT_RANGES:
+                reasons.append("amount_range_not_qualified")
+            if reasons:
+                receipt["reasons"] = sorted(set(reasons))
+                defer(physical, reference, reasons)
+                continue
+            normalized_cells = [str(values["printed_number"]), values["description"],
+                                values["type"], date.fromisoformat(values["transaction_date"]).strftime("%m/%d/%Y"),
+                                cells[4], f"${amount[0]:,} - ${amount[1]:,}"]
+            good, bad = parse_table_rows([(page_number, normalized_cells)], source_sha=sha,
+                                         default_owner=owner or "Undisclosed")
+            row = (good + bad)[0]
+            row["cells"] = cells
+            row["observation_reference"] = reference
+            row["field_observation_references"] = field_evidence
+            row["owner_observation_reference"] = owner_reference
+            if owner is None:
+                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
+            # Use the existing formal identity algorithm, never a page/slot ID.
+            result["source_rows"].append(physical)
+            result["transactions" if good else "quarantined"].append(row)
+            receipt.update(disposition="materialized" if good else "quarantined",
+                           extraction_id=row["extraction_id"], reasons=row.get("reasons", []))
+    unresolved = sum(row["disposition"] == "unresolved" for row in receipt_rows)
+    if any(row["disposition"] in {"materialized", "quarantined"} for row in receipt_rows):
+        result["legacy_document_reasons"] = deepcopy(extraction.get("document_reasons", []))
+        result["document_reasons"] = [reason for reason in extraction.get("document_reasons", [])
+                                      if reason not in {"transaction_table_not_found", "no_transaction_rows_found"}]
+    result["observation_receipt"] = {
+        "schema_version": "oge-278t-observed-facts/v1", "source_sha256": sha,
+        "rows": receipt_rows, "unresolved_slot_count": unresolved,
+        "observed_slot_count": len(content["slot_content"]),
+        "unknown_regions": [row for row in content["slot_content"] if row["page_number"] in unknown_pages],
+        "unobserved_pages": content["source_report_ledger"]["unobserved_pages"],
+        "geometry_unknown_pages": unknown_pages,
+        "page_count_basis": "source_sha256_verified_pdf" if page_count_verified else "declared_only",
+        "legacy_inventory_basis": extraction.get("legacy_inventory_basis", "saved_physical_inventory"),
+        "legacy_document_reasons": result.get("legacy_document_reasons", []),
+        "coverage_complete": page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
+    }
+    return result
 
 
 def _cells(value: object) -> list[str]:
@@ -169,7 +387,10 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                     reasons.append("transaction_date_not_qualified")
                 if not isinstance(normalized.get("asset_name"), str) or not normalized["asset_name"].strip():
                     reasons.append("asset_name_not_qualified")
-                if normalized.get("owner") not in {"Self", "Spouse", "Dependent Child"}:
+                if normalized.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
+                        parser_version == OBSERVED_PARSER_VERSION and normalized.get("owner") == "Undisclosed"
+                        and normalized.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
+                        and normalized.get("observation_reference", {}).get("source_sha256") == source_sha):
                     reasons.append("owner_not_qualified")
                 if reasons:
                     disposition = "quarantined"
@@ -211,7 +432,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 "field": field,
                 "raw_value": raw_value if isinstance(raw_value, (str, int, float, bool)) else None,
                 "normalized_value": value if isinstance(value, (str, int, float, bool)) else None,
-                "method": "embedded_text",
+                "method": "ocr" if normalized.get("observation_reference") else "embedded_text",
                 "confidence": None,
                 "selected": value is not None,
                 "required_for_projection": field in {"asset_name", "transaction_type",
@@ -219,7 +440,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 "locations": [{"page": raw["page_number"],
                                "row_locator": str(physical_index),
                                "kind": evidence_kind}],
-                "conditions": {"source_field": field},
+                "conditions": {"source_field": field,
+                               **({"observation_reference": normalized["observation_reference"]}
+                                  if normalized.get("observation_reference") else {})},
             })
         candidate = {
             "schema_version": CANDIDATE_ROW_SCHEMA,

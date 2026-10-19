@@ -81,7 +81,8 @@ def _instrument(asset_name: str, ticker: str | None) -> str:
 
 def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         data_cutoff_at: str,
-                        catalog_history: list[dict] | None = None) -> tuple[dict, dict]:
+                        catalog_history: list[dict] | None = None,
+                        saved_observations_by_document: dict | None = None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -125,6 +126,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         history_count += 1
     direct, _ = collapse_direct_catalog_records(all_direct)
     direct_by_id = {record["source_document_id"]: record for record in direct}
+    saved = saved_observations_by_document or {}
+    if not isinstance(saved, dict) or set(saved) - set(direct_by_id):
+        raise OgeCatalogError("saved observation documents are outside the catalog")
     retained_from_history = len(set(direct_by_id) - set(current_direct_by_id))
 
     identity_variants: dict[str, set[tuple[str, str, str]]] = {}
@@ -144,10 +148,14 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
+        observed = document_id in saved
+        if observed:
+            from .oge_transaction_adapter import materialize_oge_278t_observations
+            extraction = materialize_oge_278t_observations(extraction, record, **saved[document_id])
         reasons = []
         fixed_trump = _fixed_trump_sept_source(extraction, record)
         supported_parser = (
-            extraction.get("parser_version") == PARSER_VERSION
+            observed or extraction.get("parser_version") == PARSER_VERSION
             or (extraction.get("parser_version") in {
                 TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -206,7 +214,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 seen_extractions.add(extraction_id)
             if row.get("transaction_type") not in {"purchase", "sale"}:
                 row_reasons.append("transaction_type_not_supported")
-            if row.get("owner") not in {"Self", "Spouse", "Dependent Child"}:
+            if row.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
+                    observed and row.get("owner") == "Undisclosed"
+                    and row.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
+                    and row.get("observation_reference", {}).get("source_sha256") == extraction.get("source_sha256")):
                 row_reasons.append("owner_not_supported")
             if type(row.get("amount_low")) is not int or type(row.get("amount_high")) is not int:
                 row_reasons.append("amount_range_invalid")
@@ -218,7 +229,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_reasons.append("ticker_invalid")
             try:
                 transaction_day = datetime.strptime(row.get("transaction_date"), "%Y-%m-%d").date()
-                if filed_day is None or transaction_day > filed_day:
+                if filed_day is not None and transaction_day > filed_day:
                     row_reasons.append("date_sequence_invalid")
             except (TypeError, ValueError):
                 row_reasons.append("transaction_date_invalid")
@@ -273,6 +284,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             report_promoted += 1
         audit_reports.append({
             "document_id": document_id,
+            **({"source_sha256": extraction["source_sha256"],
+                "observation_receipt": extraction["observation_receipt"]}
+               if observed else {}),
             **({"source_sha256": extraction["source_sha256"]}
                if "manual_filing_date_evidence" in extraction else {}),
             **({"manual_filing_date_evidence": extraction["manual_filing_date_evidence"]}
