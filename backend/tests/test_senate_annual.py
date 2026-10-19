@@ -188,6 +188,11 @@ class SenateAnnualTests(unittest.TestCase):
             candidate, audit = overlay_annual_candidate(
                 base, review, expected_roster_sha256="a" * 64, evidence_root=evidence)
             relation = audit["annual_part4b_relationships"][0]
+            self.assertEqual(audit["annual_review_sha256"],
+                             hashlib.sha256(current.read_bytes()).hexdigest())
+            self.assertNotEqual(audit["annual_review_sha256"], sha)
+            self.assertEqual(relation["source_sha256"], hashlib.sha256(raw).hexdigest())
+            self.assertEqual(relation["source_sha256"], sha)
             self.assertEqual(relation["observed_row_count"], 1)
             self.assertEqual(relation["rows"][0]["status"], "ptr_relationship_unresolved")
             self.assertEqual(candidate["transactions"], [])

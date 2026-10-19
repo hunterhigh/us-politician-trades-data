@@ -574,8 +574,8 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
     path = review_root / "senate_efd/annual/current.json"
     if not path.is_file():
         return candidate, {"annual_status": "not_available", "annual_holding_count": 0}
-    raw = path.read_bytes()
-    annual = json.loads(raw)
+    annual_raw = path.read_bytes()
+    annual = json.loads(annual_raw)
     annual_roster_sha = annual.get("roster_sha256")
     if (annual.get("schema_version") != SCHEMA or annual.get("source_id") != "senate_efd" or
             not isinstance(annual_roster_sha, str) or
@@ -662,8 +662,8 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
             continue
         source_folder = evidence_root / "senate_efd/annual/reports" / report["document_id"]
         metadata = json.loads((source_folder / f"{source_sha}.metadata.json").read_bytes())
-        raw = (source_folder / f"{source_sha}.html").read_bytes()
-        if observe_part4b(metadata, raw) != observation:
+        source_raw = (source_folder / f"{source_sha}.html").read_bytes()
+        if observe_part4b(metadata, source_raw) != observation:
             raise SenateEfdError("Senate annual Part 4b observation differs from archived bytes")
         relation = relate_part4b_to_candidate(
             observation, person_id=report["person_id"], transactions=candidate["transactions"])
@@ -673,7 +673,7 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                        "annual_roster_compatibility": compatibility,
                        "annual_roster_sha256": annual_roster_sha,
                        "ptr_roster_sha256": expected_roster_sha256,
-                       "annual_review_sha256": hashlib.sha256(raw).hexdigest(),
+                       "annual_review_sha256": hashlib.sha256(annual_raw).hexdigest(),
                        "annual_qualified_report_count": annual["qualified_report_count"],
                        "annual_holding_count": annual["holding_count"],
                        "annual_exact_source_copies": exact_source_copies,
