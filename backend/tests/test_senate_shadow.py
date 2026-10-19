@@ -105,8 +105,10 @@ class SenateShadowTests(unittest.TestCase):
         self.assertEqual(len(manifest["documents"]), 122)
         self.assertEqual(sum(item["row_count"] for item in manifest["documents"]), len(rows))
         self.assertEqual(len(rows), 1647)
-        self.assertEqual(manifest["counts"]["qualified_rows"], 1435)
-        self.assertEqual(manifest["counts"]["quarantined_rows"], 171)
+        # One exact official Exchange row is eligible under the latest HTML;
+        # the complete archived disclosure-row universe stays unchanged.
+        self.assertEqual(manifest["counts"]["qualified_rows"], 1436)
+        self.assertEqual(manifest["counts"]["quarantined_rows"], 170)
         self.assertEqual(manifest["counts"]["excluded_rows"], 41)
         self.assertEqual(manifest["counts"]["failed_documents"], 0)
         self.assertEqual(manifest["unaccounted_source_row_count"], 0)
