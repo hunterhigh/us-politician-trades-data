@@ -218,7 +218,7 @@ def _oge_2024_column_edges(page) -> list[float] | None:
 
 
 def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
-                         slope=0., reference_y=0.) -> dict:
+                         slope=0., reference_y=0., require_fixed_x=False) -> dict:
     """Trace a scanned rule, allowing <= .75pt blank gaps, not missing segments.
 
     This is separate from the unchanged strict vector corroboration rule.
@@ -259,18 +259,45 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
     runs = mask[:, 0].astype(int) + (~mask[:, :-1] & mask[:, 1:]).sum(axis=1)
     thin = (width >= 1) & (width <= max(1, int(2 * scale_x))) & (runs == 1)
     thirds = [round(float(part.mean()), 6) for part in np.array_split(thin, 3)]
-    confirmed = connected and bool((state == 0).any()) and all(v > .5 for v in thirds)
+    # Connectivity inside a broad window does not prove the assumed line.
+    # Bound every observed thin center, including short bends which regional
+    # medians would hide. A linear model uses the same .75pt residual bound.
+    positions = (mask @ np.arange(mask.shape[1])) / np.maximum(width, 1)
+    observed = positions + (starts if slope else left)
+    expected = (x + slope*(np.arange(first,last)/scale_y-reference_y))*scale_x
+    deviation = float(np.max(np.abs(observed[thin]-expected[thin])))/scale_x if thin.any() else None
+    allowed_deviation = 1/scale_x if require_fixed_x else .75
+    axis_span = float(np.ptp(observed[thin])) if require_fixed_x and thin.any() else None
+    confirmed = (connected and bool((state == 0).any()) and all(v > .5 for v in thirds)
+                 and deviation is not None and deviation <= allowed_deviation)
     return {"status": "confirmed" if confirmed else "unknown",
+            **({"axis_center_span_pixels": axis_span} if require_fixed_x else {}),
             "x_pdf_points": round(x, 3), "span_pdf_points": [top, bottom],
             "max_blank_gap_scanlines": max_gap, "max_lateral_step_pixels": jump,
+            "maximum_center_deviation_pdf_points": deviation,
+            "allowed_center_deviation_pdf_points": allowed_deviation,
             "thin_rule_support_by_third": thirds}
+
+
+def _image_columns_sampleable(edges: list[float], *, page_width: float,
+                              scale_x: float) -> bool:
+    """Require seven visible lines and a pixel interior for every column.
+
+    Width is not a form identifier. The same-page rules remain candidates
+    until the existing form title and per-column header gate confirms roles.
+    Three points on each side are needed by the vertical/horizontal witnesses.
+    """
+    return (len(edges) == 7 and
+            all(type(x) in (int, float) and isfinite(x) for x in edges) and
+            3 <= edges[0] < edges[-1] <= page_width-3 and
+            all((b-a-6)*scale_x >= 1 for a,b in zip(edges, edges[1:])))
 
 
 def _oge_2024_axis_image_grid(page, *, fit=None) -> dict:
     """Find same-page image lines, pending independent OCR header role checks.
 
     No expected x, row count, printed number or neighbouring page fills a gap.
-    The supported form envelope permits variable description/amount widths.
+    Page-local sampling bounds permit variable column widths and placement.
     """
     import numpy as np
     unknown = {"status": "unknown", "basis": "image_rules",
@@ -290,27 +317,22 @@ def _oge_2024_axis_image_grid(page, *, fit=None) -> dict:
     groups = []
     for pixel in hits:
         x = float(pixel) / sx
-        if not 80 <= x <= 710:
+        if not 3 <= x <= page.width-3:
             continue
         if groups and x - groups[-1][-1] <= 2.5:
             groups[-1].append(x)
         else:
             groups.append([x])
     edges = fit["edges"] if fit else [round(float(median(group)), 3) for group in groups]
-    limits = ((30, 60), (250, 365 if fit else 345), (38, 65), (40, 75), (30, 65), (45, 110 if fit else 105))
-    placement = (20 <= edges[0] < edges[-1] <= page.width-20 and 540 <= edges[-1]-edges[0] <= 660
-                 if fit and len(edges) == 7 else len(edges) == 7 and
-                 80 <= edges[0] <= 120 and 675 <= edges[-1] <= 710)
-    if (len(edges) != 7 or not placement or
-            (not fit and any(group[-1] - group[0] > 6 for group in groups)) or
-            any(not low <= b-a <= high for a,b,(low,high) in zip(edges, edges[1:], limits))):
+    if (not _image_columns_sampleable(edges, page_width=page.width, scale_x=sx) or
+            (not fit and any(group[-1] - group[0] > 6 for group in groups))):
         return {**unknown, "reason": "image_column_profile_unknown",
                 "candidate_edges_pdf_points": edges}
     # Three disjoint strips in number/description columns independently count
     # horizontal rules. They are derived from observed boundaries, not a row total.
     strips = [(edges[0] + .30*(edges[1]-edges[0]), edges[0] + .65*(edges[1]-edges[0]))]
     strips += [(edges[1] + f*(edges[2]-edges[1]),
-                edges[1] + f*(edges[2]-edges[1]) + 15) for f in (.20, .40)]
+                edges[1] + f*(edges[2]-edges[1]) + min(15, .15*(edges[2]-edges[1]))) for f in (.20, .40)]
     rules = [_raster_rule_centers(gray, points_per_pixel=1/sy, x_points_per_pixel=1/sx,
                                  x0=a, x1=b) for a,b in strips]
     if (len(rules[0]) < 6 or len({len(row) for row in rules}) != 1 or
@@ -327,11 +349,13 @@ def _oge_2024_axis_image_grid(page, *, fit=None) -> dict:
     for y in centers:
         local_edges = column_edges_at_y({"column_edges_pdf_points": edges,
                                        "column_line_model": fit["model"], "render_coordinate_frame":"displayed_mediabox"}, y) if fit else edges
+        if not _image_columns_sampleable(local_edges, page_width=page.width, scale_x=sx):
+            return {**unknown, "reason": "column_widths_outside_supported_domain"}
         support = [round(float((gray[max(0,int((y-2)*sy)):int((y+2)*sy),
                                     int((a+3)*sx):int((b-3)*sx)] < 160).any(axis=0).mean()), 6)
                    for a,b in zip(local_edges, local_edges[1:])]
         crossings.append(support)
-    if any(value < .95 for row in crossings for value in row):
+    if any(not isfinite(value) or value < .95 for row in crossings for value in row):
         return {**unknown, "reason": "image_horizontal_rule_not_across_columns",
                 "horizontal_rule_support_by_column": crossings}
     if fit:
@@ -346,13 +370,25 @@ def _oge_2024_axis_image_grid(page, *, fit=None) -> dict:
                    "render_coordinate_frame":"displayed_mediabox"}
         for endpoint in fit["model"]["valid_y_span_pdf_points"]:
             local = column_edges_at_y(modeled,endpoint)
-            if any(not low <= b-a <= high for a,b,(low,high) in zip(local,local[1:],limits)):
+            if not _image_columns_sampleable(local, page_width=page.width, scale_x=sx):
                 return {**unknown,"reason":"column_widths_outside_supported_domain"}
+    # Each census strip must remain in its own column throughout the table.
+    # Measuring adjacent cells cannot substitute for independent strip evidence.
+    endpoints = ([column_edges_at_y(modeled, y) for y in fit["model"]["valid_y_span_pdf_points"]]
+                 if fit else [edges])
+    for (left, right), column in zip(strips, (0, 1, 1), strict=True):
+        if (not max(row[column] for row in endpoints) <= left < right <=
+                min(row[column+1] for row in endpoints) or
+                int(right*sx) <= int(left*sx)):
+            return {**unknown, "reason": "image_strip_outside_observed_column"}
+    if strips[1][1] >= strips[2][0]:
+        return {**unknown, "reason": "image_strips_overlap"}
     top, bottom = (fit["model"]["valid_y_span_pdf_points"][0] if fit else centers[0]+2), (centers[-1] if fit else centers[-1]-2)
     witnesses = [_image_rule_witness(gray, x=x, top=top, bottom=bottom,
                                      scale_x=sx, scale_y=sy,
                                      slope=fit["model"]["slopes_dx_per_dy"][i] if fit else 0.,
-                                     reference_y=fit["model"]["reference_y_pdf_points"] if fit else 0.)
+                                     reference_y=fit["model"]["reference_y_pdf_points"] if fit else 0.,
+                                     require_fixed_x=not bool(fit))
                  for i,x in enumerate(edges)]
     if any(item["status"] != "confirmed" for item in witnesses):
         return {**unknown, "reason": "image_vertical_rule_not_connected",
@@ -391,33 +427,65 @@ def _oge_2024_image_grid(page) -> dict:
         groups = []
         for pixel in np.flatnonzero(expanded.mean(axis=0) > .70):
             x = float(pixel)/sx
-            if not 20 <= x <= page.width-20:
+            if not 3 <= x <= page.width-3:
                 continue
             if groups and x-groups[-1][-1] <= 2.5:
                 groups[-1].append(x)
             else:
                 groups.append([x])
         positions = [float(median(group)) for group in groups]
-        if len(positions) != 7 or any(group[-1]-group[0] > 6 for group in groups):
+        if not 7 <= len(positions) <= 14 or any(group[-1]-group[0] > 6 for group in groups):
             return {**axis, "drift_fallback_reason": "regional_columns_missing_or_ambiguous",
-                    "regional_column_counts": [len(item["edges"]) for item in sections]+[len(positions)]}
+                    "regional_column_counts": [len(item["edges"]) for item in sections]+[len(positions)],
+                    "regional_candidate_line_observations": sections + [
+                        {"y_span_pdf_points": [top,bottom], "edges": positions}],
+                    "candidate_window_count": None}
         sections.append({"y_span_pdf_points": [top,bottom], "edges": positions})
-    ys = [(item["y_span_pdf_points"][0]+item["y_span_pdf_points"][1])/2 for item in sections]
-    reference = sum(ys)/3
-    denominator = sum((y-reference)**2 for y in ys)
-    edges = [sum(item["edges"][i] for item in sections)/3 for i in range(7)]
-    slopes = [sum((y-reference)*(item["edges"][i]-edges[i]) for y,item in zip(ys,sections))/denominator
-              for i in range(7)]
-    residual = max(abs(item["edges"][i]-(edges[i]+slopes[i]*(y-reference)))
-                   for i in range(7) for y,item in zip(ys,sections))
-    if max(abs(s) for s in slopes) > .015 or max(slopes)-min(slopes) > .008 or residual > .75:
-        return {**axis, "drift_fallback_reason": "regional_lines_do_not_fit_bounded_model"}
-    model = {"schema_version": "oge-278t-column-lines/v1", "reference_y_pdf_points": reference,
-             "slopes_dx_per_dy": slopes, "regional_observations": sections,
-             "maximum_fit_residual_pdf_points": residual, "coordinate_frame": "displayed_mediabox",
-             "valid_y_span_pdf_points": [0.,page.height]}
-    fitted = _oge_2024_axis_image_grid(page, fit={"edges": edges, "model": model})
-    return fitted if fitted["status"] == "candidate" else {**axis, "drift_fallback_observation": fitted}
+    counts = [len(section["edges"]) for section in sections]
+    if len(set(counts)) != 1:
+        return {**axis, "drift_fallback_reason": "regional_column_counts_disagree",
+                "regional_column_counts": counts,
+                "regional_candidate_line_observations": sections, "candidate_window_count": None}
+    # Scan-image borders may add outside lines. Never skip an internal line:
+    # test consecutive seven-line windows and require a unique fully witnessed
+    # six-column grid. Multiple plausible grids remain explicitly ambiguous.
+    candidates, failures = [], []
+    diagnostics = {"regional_candidate_line_observations": sections,
+                   "candidate_window_count": counts[0]-6}
+    for start in range(counts[0]-6):
+        selected = [{**section, "edges": section["edges"][start:start+7]} for section in sections]
+        ys = [(item["y_span_pdf_points"][0]+item["y_span_pdf_points"][1])/2 for item in selected]
+        reference = sum(ys)/3
+        denominator = sum((y-reference)**2 for y in ys)
+        edges = [sum(item["edges"][i] for item in selected)/3 for i in range(7)]
+        slopes = [sum((y-reference)*(item["edges"][i]-edges[i]) for y,item in zip(ys,selected))/denominator
+                  for i in range(7)]
+        residual = max(abs(item["edges"][i]-(edges[i]+slopes[i]*(y-reference)))
+                       for i in range(7) for y,item in zip(ys,selected))
+        if max(abs(s) for s in slopes) > .015 or max(slopes)-min(slopes) > .008 or residual > .75:
+            failures.append({"status":"unknown", "reason":"regional_lines_do_not_fit_bounded_model",
+                             "candidate_start_index": start})
+            continue
+        model = {"schema_version": "oge-278t-column-lines/v1", "reference_y_pdf_points": reference,
+                 "slopes_dx_per_dy": slopes, "regional_observations": selected,
+                 "maximum_fit_residual_pdf_points": residual, "coordinate_frame": "displayed_mediabox",
+                 "valid_y_span_pdf_points": [0.,page.height]}
+        fitted = _oge_2024_axis_image_grid(page, fit={"edges": edges, "model": model})
+        fitted = {**fitted, "candidate_start_index": start}
+        if fitted["status"] == "candidate":candidates.append(fitted)
+        else:failures.append(fitted)
+    if len(candidates) == 1:
+        result = candidates[0]
+        if counts[0] > 7:
+            result = {**result, **diagnostics, "candidate_window_failures": failures,
+                      "unique_supported_grid_count": 1}
+        return result
+    if candidates:
+        return {**axis, **diagnostics, "drift_fallback_reason": "multiple_supported_image_grids",
+                "supported_grid_count": len(candidates), "supported_image_grids": candidates,
+                "candidate_window_failures": failures}
+    return {**axis, **diagnostics, **({"drift_fallback_observation": failures[0]} if counts[0] == 7 else
+                                     {"candidate_window_failures": failures})}
 
 
 def _header_role_evidence(words: list[dict], geometry: dict) -> dict:

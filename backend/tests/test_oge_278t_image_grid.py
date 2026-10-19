@@ -21,12 +21,13 @@ from unison_snapshot.ocr_geometry import ocr_pdf_pages
 EDGES = [104., 150., 473., 524., 581., 628., 686.]
 
 
-def grid_page(scale=3, kind=None):
+def grid_page(scale=3, kind=None, edges=None):
+    edges = EDGES if edges is None else edges
     pixels=np.full((612*scale,792*scale),255,np.uint8)
-    for x in EDGES:
+    for x in edges:
         pixels[80*scale:582*scale,int(x*scale)]=0
     for y in range(116,582,15):
-        pixels[y*scale,int(EDGES[0]*scale):int(EDGES[-1]*scale)+1]=0
+        pixels[y*scale,int(edges[0]*scale):int(edges[-1]*scale)+1]=0
     if kind=='missing':
         pixels[:,int(EDGES[3]*scale)-3:int(EDGES[3]*scale)+4]=255
     elif kind=='extra':
@@ -48,10 +49,10 @@ def grid_page(scale=3, kind=None):
     return page
 
 
-def header_words():
+def header_words(edges=EDGES):
     words=[]
     for i,label in enumerate(('Description','Type','Date','Notification','Amount'),1):
-        words.append({'text':label,'x0':EDGES[i]+3,'x1':EDGES[i]+30,'top':105.,'bottom':113.,
+        words.append({'text':label,'x0':edges[i]+3,'x1':edges[i]+30,'top':105.,'bottom':113.,
                       'ocr_confidence':90.})
     for i,label in enumerate(('OGE','Form','278-T','2024')):
         words.append({'text':label,'x0':104+i*30,'x1':130+i*30,'top':19.,'bottom':26.,
@@ -69,6 +70,72 @@ class ImageGridTests(unittest.TestCase):
         self.assertEqual(out['render_rotation'],90)
         page.to_image.assert_called_once_with(resolution=216,force_mediabox=True)
         self.assertEqual(_header_role_evidence(header_words(),out)['status'],'confirmed')
+
+    def test_wide_narrow_and_shifted_layouts_use_observed_columns_and_header_roles(self):
+        for edges in ([55.,101.,523.,574.,631.,678.,736.],
+                      [20.,65.,210.,280.,400.,510.,770.],
+                      [4.,45.,190.,265.,370.,480.,785.],
+                      [50.,95.,155.,240.,350.,460.,735.]):
+            with self.subTest(edges=edges):
+                out=_oge_2024_image_grid(grid_page(edges=edges))
+                self.assertEqual(out['status'],'candidate')
+                self.assertEqual(len(out['physical_row_bands']),31)
+                for actual,expected in zip(out['edges_pdf_points'],edges):self.assertLess(abs(actual-expected),.5)
+                self.assertEqual(_header_role_evidence(header_words(edges),out)['status'],'confirmed')
+                strips=out['horizontal_rule_strips_pdf_points']
+                self.assertLess(strips[1][1],strips[2][0])
+                for (left,right),col in zip(strips,(0,1,1)):
+                    self.assertTrue(edges[col] <= left < right <= edges[col+1])
+                wrong=header_words(edges);wrong[7]['text']='278e'
+                self.assertEqual(_header_role_evidence(wrong,out)['status'],'unknown')
+
+    def test_outer_scan_borders_do_not_replace_real_columns_or_hide_ambiguity(self):
+        page=grid_page();pixels=np.asarray(page.to_image().original).copy()
+        pixels[80*3:582*3,4*3]=0;pixels[80*3:582*3,785*3]=0
+        page.to_image=Mock(return_value=SimpleNamespace(original=Image.fromarray(pixels)))
+        out=_oge_2024_image_grid(page)
+        self.assertEqual(out['status'],'candidate')
+        self.assertEqual(out['unique_supported_grid_count'],1)
+        self.assertEqual(out['candidate_window_count'],3)
+        self.assertEqual(len(out['regional_candidate_line_observations'][0]['edges']),9)
+        for actual,expected in zip(out['edges_pdf_points'],EDGES):self.assertLess(abs(actual-expected),.5)
+        # An actual extra internal rule has more than one plausible window.
+        ambiguous=_oge_2024_image_grid(grid_page(kind='extra'))
+        self.assertEqual(ambiguous['status'],'unknown')
+        self.assertEqual(ambiguous['drift_fallback_reason'],'multiple_supported_image_grids')
+        self.assertEqual(ambiguous['supported_grid_count'],2)
+        self.assertEqual(ambiguous['candidate_window_count'],2)
+        self.assertEqual(len(ambiguous['regional_candidate_line_observations'][0]['edges']),8)
+        self.assertEqual([g['candidate_start_index'] for g in ambiguous['supported_image_grids']],[0,1])
+
+    def test_local_bend_cannot_hide_in_flat_or_fitted_regional_medians(self):
+        pixels=np.full((612*3,792*3),255,np.uint8)
+        for row in range(80*3,582*3):
+            y=row/3
+            for i,x in enumerate(EDGES):
+                bend=2*np.sin(np.pi*(y-270)/60) if i==3 and 270<y<330 else 0
+                pixels[row,int((x+bend)*3)]=0
+        for y in range(116,582,15):pixels[y*3,int(EDGES[0]*3):int(EDGES[-1]*3)+1]=0
+        page=grid_page()
+        page.to_image=Mock(return_value=SimpleNamespace(original=Image.fromarray(pixels)))
+        unknown=_oge_2024_image_grid(page)
+        self.assertEqual(unknown['status'],'unknown')
+        self.assertEqual(unknown['candidate_window_count'],1)
+        self.assertEqual(len(unknown['regional_candidate_line_observations']),3)
+        self.assertEqual(unknown['drift_fallback_observation']['candidate_start_index'],0)
+
+    def test_visible_sampling_bounds_reject_empty_columns_and_clipped_rule_windows(self):
+        from unison_snapshot.oge_278t_raster_slots import _image_columns_sampleable
+        valid=[4.,45.,190.,265.,370.,480.,785.]
+        self.assertTrue(_image_columns_sampleable(valid,page_width=792,scale_x=3))
+        for bad in ([2.9,*valid[1:]], [*valid[:-1],789.1],
+                    [4.,10.,190.,265.,370.,480.,785.],
+                    [4.,10.1,190.,265.,370.,480.,785.],
+                    [4.,45.,float('nan'),265.,370.,480.,785.],
+                    [4.,45.,float('inf'),265.,370.,480.,785.],valid[:-1],list(reversed(valid))):
+            with self.subTest(edges=bad):
+                self.assertFalse(_image_columns_sampleable(bad,page_width=792,scale_x=3))
+        self.assertEqual(_oge_2024_image_grid(grid_page(edges=[50,95,101,240,350,460,735]))['status'],'unknown')
 
     def test_actual_media_pixel_scale_is_used_for_both_axes(self):
         a=_oge_2024_image_grid(grid_page(scale=2));b=_oge_2024_image_grid(grid_page(scale=3))
@@ -206,6 +273,23 @@ class MediaCoordinateTests(unittest.TestCase):
         self.assertEqual(out["pages"][0]["row_detection_basis"],"same_page_image_grid_header_confirmed")
         self.assertEqual(out["pages"][0]["column_geometry_observation"]["status"],"confirmed")
         self.assertFalse(out["production_mutation_authorized"])
+
+    def test_wide_geometry_with_wrong_form_does_not_produce_slots(self):
+        edges=[55.,101.,523.,574.,631.,678.,736.]
+        grid=_oge_2024_image_grid(grid_page(edges=edges));words=header_words(edges)
+        words[7]['text']='278e'
+        census={'results':[{'page_number':1,'status':'coverage_unknown',
+                 'physical_row_bands':[],'column_geometry_observation':grid}]}
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'source';path.write_bytes(b'synthetic')
+            with patch('unison_snapshot.oge_278t_raster_slots.census_with_2024_fallback',return_value=(census,{1:None})),patch(
+                    'pdfplumber.open'),patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages',return_value=(
+                        [SimpleNamespace(extract_words=lambda:words)],'synthetic')):
+                out=observe_raster_slots(path,expected_sha256=hashlib.sha256(b'synthetic').hexdigest(),page_numbers=[1])
+        self.assertEqual(out['confirmed_physical_slot_count'],0)
+        self.assertEqual(out['pages'][0]['coverage'],'physical_slots_unknown')
+        self.assertEqual(out['pages'][0]['unbound_page_ocr_words'],words)
+        self.assertFalse(out['production_mutation_authorized'])
 
     def test_wrong_header_does_not_produce_slots_and_retains_unbound_ocr(self):
         grid=_oge_2024_image_grid(grid_page());words=header_words();words[7]['text']='278e'
