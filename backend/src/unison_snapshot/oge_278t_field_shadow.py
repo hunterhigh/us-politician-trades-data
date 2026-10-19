@@ -149,6 +149,80 @@ def _description_text_difference(left: str, right: str) -> dict:
             "fact_resolution": "not_assessed"}
 
 
+def _validate_type_cell_crop(reading: dict, slot: dict, original: dict, page: dict) -> None:
+    """Reproduce the unaltered cell's source identity and reversible crop map."""
+    selected = reading.get("selected_slots", {})
+    number, index = page["page_number"], slot["slot_index"]
+    if (not isinstance(selected, dict) or not selected or
+            any(not isinstance(v, list) or not v or len(set(v)) != len(v) or
+                any(type(i) is not int or i < 1 for i in v) for v in selected.values()) or
+            not 1 <= sum(map(len, selected.values())) <= 9):
+        raise ValueError("Type cell selection is invalid")
+    expected = hashlib.sha256(json.dumps(original, ensure_ascii=False, sort_keys=True,
+                              separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    page_hash = hashlib.sha256(json.dumps(page, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    if (reading.get("input_observation_canonical_sha256") != expected or
+            reading.get("input_page_canonical_sha256", {}).get(str(number)) != page_hash):
+        raise ValueError("Type cell read differs from bound primary input")
+    if (not set(selected.get(str(number), [])) <= {s["slot_index"] for s in page["slots"]} or
+            set(selected) != {str(p["page_number"]) for p in reading["pages"]} or
+            reading.get("summary", {}).get("selected_cell_count") != sum(map(len, selected.values())) or
+            reading.get("summary", {}).get("ocr_invocation_count") != sum(map(len, selected.values()))):
+        raise ValueError("Type cell selection/summary differs from bound slots")
+    receipt = slot.get("cell_crop")
+    if index in selected.get(str(number), []) and page["slots"][index-1].get("column_model_outside_word_indices"):
+        raise ValueError("Type cell primary words exceed witnessed model domain")
+    if index not in selected.get(str(number), []):
+        if receipt is not None or slot.get("column_words") or slot.get("column_raw_ocr_text"):
+            raise ValueError("Unselected Type cell contains readings")
+        return
+    if (not isinstance(receipt, dict) or receipt.get("schema_version") != "oge-278t-type-cell-crop/v1" or
+            receipt.get("source_sha256") != original["source_sha256"] or
+            receipt.get("page_number") != number or receipt.get("slot_index") != index or
+            receipt.get("field_role") != "type" or
+            receipt.get("render_coordinate_frame") != "displayed_mediabox" or
+            page.get("render_coordinate_frame") != "displayed_mediabox" or
+            receipt.get("processing") != "unaltered_source_pixels_no_grid_removal" or
+            receipt.get("ocr_resolution_dpi") != reading["ocr_resolution_dpi"] or
+            not re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("raw_crop_pixel_sha256"))) or
+            receipt.get("raw_crop_pixel_sha256") != receipt.get("derived_crop_pixel_sha256")):
+        raise ValueError("Type cell crop source or raw pixels differ")
+    size, pixels = receipt.get("source_page_size_pdf_points"), receipt.get("source_render_pixel_size")
+    if (not isinstance(size, list) or len(size) != 2 or
+            any(type(v) not in (int,float) or not isfinite(v) or v <= 0 for v in size) or
+            not isinstance(pixels, list) or len(pixels) != 2 or
+            any(type(v) is not int or v <= 0 for v in pixels)):
+        raise ValueError("Type cell render dimensions are invalid")
+    dpi = reading["ocr_resolution_dpi"]
+    if any(abs(pixel-dimension*dpi/72) > 1.01 for pixel,dimension in zip(pixels,size)):
+        raise ValueError("Type cell rendered dimensions differ from resolution")
+    frame = page.get("column_geometry_observation", {}).get("render_page_bbox")
+    if frame is not None and (frame[:2] != [0,0] or frame[2:] != size):
+        raise ValueError("Type cell page dimensions differ from bound source frame")
+    sx, sy = pixels[0]/size[0], pixels[1]/size[1]
+    from math import ceil, floor
+    band = slot["band_pdf_points"]
+    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+    if domain and not domain[0] <= band[0] < band[1] <= domain[1]:
+        raise ValueError("Type cell lies outside witnessed model domain")
+    top, bottom = band[0]+.6, band[1]-.6
+    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
+    bounds = [ceil((max(a[2],b[2])+.6)*sx), ceil(top*sy),
+              floor((min(a[3],b[3])-1.5)*sx), floor(bottom*sy)]
+    x0,y0,x1,y1 = bounds
+    if (not 0 <= x0 < x1 <= pixels[0] or not 0 <= y0 < y1 <= pixels[1] or
+            receipt.get("crop_pixel_bounds") != bounds or
+            receipt.get("crop_pdf_points") != [x0/sx,y0/sy,x1/sx,y1/sy] or
+            receipt.get("pixel_to_pdf_scale") != [1/sx,1/sy]):
+        raise ValueError("Type cell crop differs from source role or pixel mapping")
+    for word in slot["column_words"]:
+        box = word.get("bbox_pdf_points", [])
+        if (len(box) != 4 or not x0/sx-.011 <= box[0] < box[2] <= x1/sx+.011 or
+                not y0/sy-.011 <= box[1] < box[3] <= y1/sy+.011):
+            raise ValueError("Type cell detection escaped its source crop")
+
+
 def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict]) -> None:
     """Join saved reads by source/page/slot/band, never by equal row totals."""
     source_pages = {page["page_number"]: (item, page)
@@ -217,6 +291,13 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 _validate_description_unassigned(page, original_page)
             for slot_index, slot in slots.items():
                 base = base_slots[slot_index]
+                cell_mode = reading.get("read_mode") == "bound_single_type_cells/v1"
+                if cell_mode:
+                    if field != "type":
+                        raise ValueError("Type cell receipt used on another field")
+                    _validate_type_cell_crop(reading, slot, original, original_page)
+                elif "cell_crop" in slot:
+                    raise ValueError("Type cell receipt lacks bound read mode")
                 if slot.get("band_pdf_points") != base.get("band_pdf_points"):
                     raise ValueError("secondary field slot band differs from source slot")
                 identity = (field, number, slot_index, reading["ocr_engine"], reading["ocr_resolution_dpi"])
@@ -295,6 +376,8 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     "engine": reading["ocr_engine"], "resolution_dpi": reading["ocr_resolution_dpi"],
                     "source_ref": f"secondary_observations/{read_index}/pages/{page_index}/slots/"
                                   f"{page['slots'].index(slot)}"}
+                if cell_mode and slot.get("cell_crop") is not None:
+                    observation["cell_crop"] = deepcopy(slot["cell_crop"])
                 if field == "amount":
                     from .oge_278t_amount_categories import observe_template_amount
                     observation["template_category"] = observe_template_amount(raw)
@@ -793,6 +876,38 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     return True
 
 
+def _description_unaffected_by_local_type(row: dict, warnings: list[dict], *,
+                                          source_slot: dict, source_page: dict) -> list[dict]:
+    """A Type-only bad page box cannot block separately bounded asset words.
+
+    Only the opt-in single-cell proof resolves this neighbour warning. A word
+    assigned to the asset, an unknown owner, another crossed column, or an asset
+    box touching the boundary retains the original blocker. Type conflicts are
+    independently retained by the value comparison above.
+    """
+    indices = row["field_readings"]["description"]["observations"][0].get("word_indices")
+    if not indices:
+        return []
+    for warning in warnings:
+        crossing = row["word_evidence"]["crossing_words"][warning["crossing_word_ref"]]
+        if (crossing.get("assigned_column") != "type" or crossing["word_index"] in indices or
+                any({b["left_column"],b["right_column"]} != {"description","type"}
+                    for b in crossing["boundaries"])):
+            return []
+    for i in indices:
+        box = source_slot["words"][i]["bbox_pdf_points"]
+        domain = (source_page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+        if domain and not domain[0] <= box[1] < box[3] <= domain[1]:
+            return []
+        a,b = column_edges_at_y(source_page,box[1]),column_edges_at_y(source_page,box[3])
+        if not max(a[1],b[1])+.6 <= box[0] < box[2] <= min(a[2],b[2])-1.5:
+            return []
+    return [{"field": "type", "observation_index": i, "source_ref": read["source_ref"]}
+            for i,read in enumerate(row["field_readings"]["type"]["observations"]) if i > 0 and
+            read.get("cell_crop") and _complete_secondary_geometry(
+                read, field="type", slot=source_slot, page=source_page)]
+
+
 def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
                             source_slot: dict, source_page: dict) -> dict:
     """Use all bound reads to establish a local relation, without choosing facts.
@@ -841,10 +956,16 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
         supports = [{"observation_index": index, "source_ref": read["source_ref"]}
                     for index, read in enumerate(reading["observations"]) if index > 0 and
                     _complete_secondary_geometry(read, field=field, slot=source_slot, page=source_page)]
+        neighbour_support = (_description_unaffected_by_local_type(
+            row, warnings, source_slot=source_slot, source_page=source_page)
+            if field == "description" and not supports else [])
+        if neighbour_support:
+            supports = neighbour_support
         geometry_evidence[field] = {
             "status": "complete_secondary_geometry" if supports else "unresolved_primary_boundary",
             "supporting_observations": supports,
-            "basis": "full_secondary_boxes_inside_horizontal_source_field_crop",
+            "basis": ("bound_type_cell_and_unaffected_description_boxes" if neighbour_support else
+                      "full_secondary_boxes_inside_horizontal_source_field_crop"),
             "vertical_assignment_basis": "existing_bound_read_center_and_overhang_validation",
             "primary_crossing_word_refs": sorted({warning["crossing_word_ref"] for warning in warnings})}
         if not supports:
@@ -874,6 +995,9 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     if type(document_page_count) is not int or document_page_count < 1:
         raise ValueError("bound document page count is required")
     fields = observe_field_shapes(observations, secondary_observations=secondary_observations)
+    content_rules = ("oge-278t-content-rows/v5-type-cells" if any(
+        reading.get("read_mode") == "bound_single_type_cells/v1"
+        for reading in secondary_observations or []) else _CONTENT_RULES)
     sha = fields["source_sha256"]
     originals = {}
     for item in observations:
@@ -905,7 +1029,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             account = _account_context(unknown=True)
             pages.append(page_ledger(
                 source_id="oge", document_sha256=sha, page_number=number,
-                adapter_version=_CONTENT_RULES, coverage="unknown", slots=unknown_slots,
+                adapter_version=content_rules, coverage="unknown", slots=unknown_slots,
                 coverage_reason="column_geometry_unknown", coordinate_frame="pdf_points"))
             continue
         raw_slots = original["slots"]
@@ -956,7 +1080,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                                          "qualification": "not_assessed"})
         pages.append(page_ledger(
             source_id="oge", document_sha256=sha, page_number=number,
-            adapter_version=_CONTENT_RULES, coverage="located", slots=slots,
+            adapter_version=content_rules, coverage="located", slots=slots,
             coordinate_frame="pdf_points"))
     fragments = _fragment_constraints(content, fields)
     # Fragment checks may inhibit a previously complete-looking single slot.
@@ -977,7 +1101,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                                     for field, evidence in row["field_evidence"].items()
                                     if evidence["secondary_recognized"] and not evidence["primary_recognized"])
     ledger = report_ledger(
-        source_id="oge", document_sha256=sha, adapter_version=_CONTENT_RULES,
+        source_id="oge", document_sha256=sha, adapter_version=content_rules,
         page_count=document_page_count, pages=pages, logical_rows=rows,
         unresolved_data_slots=unresolved)
     from .oge_278t_printed_number_shadow import observe_printed_number_sequence

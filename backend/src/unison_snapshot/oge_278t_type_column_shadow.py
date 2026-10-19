@@ -220,3 +220,130 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
         result["input_column_geometry_sha256"] = {str(page["page_number"]): column_geometry_sha256(page)
                                                    for page in pages}
     return result
+
+
+def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
+                       selected_slots: dict[int, list[int]], resolution: int = 300,
+                       crop_directory: Path | None = None) -> dict:
+    """Read at most nine explicit Type cells once, using existing RapidOCR.
+
+    No grid removal, character replacement, geometry expansion or fallback OCR
+    is performed. Source pixels are cropped strictly inside the witnessed field.
+    The legacy column schema retains empty unselected slots; its new receipt is
+    consumed only after the original observation and model are reproduced.
+    """
+    from math import ceil, floor, isfinite
+    from importlib.metadata import version
+    import numpy as np
+    import pdfplumber
+    from rapidocr_onnxruntime import RapidOCR
+    from .oge_278t_raster_slots import column_edges_at_y, column_geometry_sha256
+
+    if (slots_observation.get("schema_version") != _INPUT_SCHEMA or
+            type(resolution) is not int or not 200 <= resolution <= 400 or
+            not isinstance(selected_slots, dict) or not selected_slots or
+            any(type(number) is not int or not isinstance(indices, list) or not indices or
+                any(type(i) is not int or i < 1 for i in indices) or len(set(indices)) != len(indices)
+                for number, indices in selected_slots.items()) or
+            not 1 <= sum(map(len, selected_slots.values())) <= 9):
+        raise ValueError("Type cell read requires one to nine explicit source slots")
+    pages = slots_observation.get("pages")
+    if (not isinstance(pages, list) or len({p["page_number"] for p in pages}) != len(pages) or
+            not set(selected_slots) <= {p["page_number"] for p in pages}):
+        raise ValueError("Type cell selection differs from saved source pages")
+    source = Path(pdf_path)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    if sha != slots_observation.get("source_sha256"):
+        raise ValueError("Type cell source SHA-256 differs")
+    result_pages, engine, read_count = [], None, 0
+    with pdfplumber.open(source) as document:
+        for page in pages:
+            number = page["page_number"]
+            if number not in selected_slots:
+                continue
+            slots = page.get("slots", [])
+            if (page.get("column_geometry") != "oge_2024_six_column_grid" or
+                    page.get("render_coordinate_frame") != "displayed_mediabox" or
+                    not 1 <= number <= len(document.pages) or
+                    len(slots) != page.get("physical_slot_count") or
+                    [s.get("slot_index") for s in slots] != list(range(1, len(slots)+1)) or
+                    not set(selected_slots[number]) <= set(range(1, len(slots)+1))):
+                raise ValueError("Type cell read lacks confirmed source roles/slots")
+            pdf_page = document.pages[number-1]
+            if tuple(pdf_page.bbox) != (0, 0, pdf_page.width, pdf_page.height):
+                raise ValueError("Type cell page uses unsupported coordinate frame")
+            image = pdf_page.to_image(resolution=resolution, force_mediabox=True,
+                                      antialias=True).original.convert("RGB")
+            sx, sy = image.width/pdf_page.width, image.height/pdf_page.height
+            output = []
+            for slot in slots:
+                index, band = slot["slot_index"], slot["band_pdf_points"]
+                raw, words, receipt = "", [], None
+                if index in selected_slots[number]:
+                    if slot.get("column_model_outside_word_indices"):
+                        raise ValueError("Type cell primary words exceed witnessed model domain")
+                    top, bottom = band[0]+.6, band[1]-.6
+                    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+                    if domain and not domain[0] <= band[0] < band[1] <= domain[1]:
+                        raise ValueError("Type cell is outside witnessed source domain")
+                    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
+                    left, right = max(a[2], b[2])+.6, min(a[3], b[3])-1.5
+                    pixels = [ceil(left*sx), ceil(top*sy), floor(right*sx), floor(bottom*sy)]
+                    x0,y0,x1,y1 = pixels
+                    if not (0 <= x0 < x1 <= image.width and 0 <= y0 < y1 <= image.height):
+                        raise ValueError("Type cell crop is outside source image")
+                    crop = image.crop(tuple(pixels))
+                    pixel_sha = hashlib.sha256(crop.tobytes()).hexdigest()
+                    if crop_directory is not None:
+                        directory = Path(crop_directory)
+                        directory.mkdir(parents=True, exist_ok=True)
+                        crop.save(directory/f"{sha}-p{number}-s{index}-{pixel_sha}.png")
+                    receipt = {"schema_version": "oge-278t-type-cell-crop/v1", "source_sha256": sha,
+                               "page_number": number, "slot_index": index, "field_role": "type",
+                               "render_coordinate_frame": "displayed_mediabox",
+                               "source_page_size_pdf_points": [pdf_page.width, pdf_page.height],
+                               "source_render_pixel_size": list(image.size), "crop_pixel_bounds": pixels,
+                               "crop_pdf_points": [x0/sx, y0/sy, x1/sx, y1/sy],
+                               "pixel_to_pdf_scale": [1/sx, 1/sy],
+                               "raw_crop_pixel_sha256": pixel_sha, "derived_crop_pixel_sha256": pixel_sha,
+                               "processing": "unaltered_source_pixels_no_grid_removal",
+                               "ocr_resolution_dpi": resolution}
+                    if engine is None:
+                        engine = RapidOCR()
+                    detections, _elapsed = engine(np.asarray(crop))
+                    read_count += 1
+                    for box, text, confidence in detections or []:
+                        values = [v for point in box for v in point]
+                        if (not isinstance(text, str) or
+                                any(type(v) not in (int,float) or not isfinite(v) for v in values)):
+                            raise ValueError("Type cell OCR returned invalid geometry")
+                        words.append({"text": text, "confidence": round(float(confidence), 3),
+                            "bbox_pdf_points": [round((x0+min(p[0] for p in box))/sx, 2),
+                                                round((y0+min(p[1] for p in box))/sy, 2),
+                                                round((x0+max(p[0] for p in box))/sx, 2),
+                                                round((y0+max(p[1] for p in box))/sy, 2)]})
+                    words.sort(key=lambda w: (w["bbox_pdf_points"][1], w["bbox_pdf_points"][0]))
+                    raw = " ".join(w["text"] for w in words)
+                normalized = raw.strip().casefold()
+                output.append({"slot_index": index, "band_pdf_points": band,
+                    "column_raw_ocr_text": raw, "column_words": words,
+                    "column_shape": normalized if len(words) == 1 and normalized in _TYPE else None,
+                    "page_raw_ocr_text": slot["column_observation"]["type"]["raw_ocr_text"],
+                    **({"cell_crop": receipt} if receipt else {}), "qualification": "not_assessed"})
+            result_pages.append({"page_number": number, "status": "type_column_observed",
+                                 "slot_count": len(output), "slots": output})
+    return {"schema_version": SCHEMA, "source_sha256": sha,
+        "read_mode": "bound_single_type_cells/v1",
+        "selected_slots": {str(n): sorted(indices) for n,indices in selected_slots.items()},
+        "ocr_engine": f"rapidocr-onnxruntime {version('rapidocr-onnxruntime')} single-type-cell",
+        "ocr_resolution_dpi": resolution, "input_ocr_resolution_dpi": slots_observation.get("ocr_resolution_dpi"),
+        "input_observation_canonical_sha256": hashlib.sha256(json.dumps(slots_observation,
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest(),
+        "input_page_canonical_sha256": {str(p["page_number"]): hashlib.sha256(json.dumps(p,
+            ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+            for p in pages if p["page_number"] in selected_slots},
+        "input_column_geometry_sha256": {str(p["page_number"]): column_geometry_sha256(p)
+            for p in pages if p["page_number"] in selected_slots},
+        "summary": {"observed_slots": sum(p["slot_count"] for p in result_pages),
+                    "selected_cell_count": read_count, "ocr_invocation_count": read_count},
+        "pages": result_pages, "production_mutation_authorized": False}
