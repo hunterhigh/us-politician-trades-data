@@ -33,7 +33,7 @@ from unison_snapshot.whitehouse_278t_candidate import (
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION as TRADE_PARSER,
+    PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
 )
 from unison_snapshot.oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
@@ -61,12 +61,13 @@ def _json_bytes(value: dict) -> bytes:
                        allow_nan=False) + "\n").encode("utf-8")
 
 
-def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[
+def _verify_review(review_root: Path, *, expected_report_count: int | None,
+                   coverage_input: Path | None = None, extraction_status_input: Path | None = None) -> tuple[
         list[dict], list[dict], dict, dict, list[dict], dict, int]:
-    coverage, coverage_sha = _read_object(review_root / "whitehouse/coverage-current.json")
+    coverage, coverage_sha = _read_object(coverage_input or review_root / "whitehouse/coverage-current.json")
     directory, directory_sha = _read_object(
         review_root / "whitehouse/disclosures/index-current.json")
-    status, status_sha = _read_object(review_root / "whitehouse/extraction-status.json")
+    status, status_sha = _read_object(extraction_status_input or review_root / "whitehouse/extraction-status.json")
     oge_coverage, oge_coverage_sha = _read_object(
         review_root / "oge/whitehouse/coverage-current.json")
     annual_identity_path = review_root / "whitehouse/annual/filer-reported-current.json"
@@ -124,7 +125,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         folder = Path("whitehouse/extractions") / match[1] / versions[0]
         parser_version = row.get("extraction_parser_version")
         if parser_version is None:
-            available = [version for version in TRADE_PARSERS
+            available = [version for version in TRADE_PARSERS if version != GENERIC_PARSER_VERSION
                          if (review_root / folder /
                              f"{version.replace('/', '-')}.json").is_file()]
             parser_version = available[0] if available else TRADE_PARSER
@@ -309,14 +310,16 @@ def _strip_prior_whitehouse(candidate: dict, audit: dict,
 
 def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         audit_out: Path, expected_report_count: int | None = None,
-        exact_source_copies: bool = False, exact_source_bindings: Path | None = None) -> dict:
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
+        coverage_input: Path | None = None, extraction_status_input: Path | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
         raise ValueError("Expected White House report count must be positive")
     (extractions, annual_extractions, oge_coverage, directory, annual_people,
      provenance, failure_count) = _verify_review(
-        review_root, expected_report_count=expected_report_count)
+        review_root, expected_report_count=expected_report_count,
+        coverage_input=coverage_input, extraction_status_input=extraction_status_input)
     bindings = None
     if exact_source_bindings is not None:
         if not exact_source_copies:
@@ -412,13 +415,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="Opt in to same-PDF SHA aliases with reliable matching filer identity; preserve existing formal IDs")
     parser.add_argument("--exact-source-bindings", type=Path,
                         help="Optional archived OGE/White House metadata and old row receipts for cross-source aliases")
+    parser.add_argument("--coverage-input", type=Path)
+    parser.add_argument("--extraction-status-input", type=Path)
     args = parser.parse_args(argv)
     try:
         result = run(oge_candidate=args.oge_candidate, review_root=args.review_root,
                      candidate_out=args.candidate_out, audit_out=args.audit_out,
                      expected_report_count=args.expected_report_count,
                      exact_source_copies=args.exact_source_copies,
-                     exact_source_bindings=args.exact_source_bindings)
+                     exact_source_bindings=args.exact_source_bindings, coverage_input=args.coverage_input,
+                     extraction_status_input=args.extraction_status_input)
     except (OgeCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"White House 278-T candidate failed: {exc}", file=sys.stderr)
         return 1

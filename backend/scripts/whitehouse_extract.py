@@ -22,7 +22,8 @@ from unison_snapshot.oge_278e_public import (
     parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION as TRADE_PARSER_VERSION,
+    PARSER_VERSION as TRADE_PARSER_VERSION, GENERIC_PARSER_VERSION,
+    parse_generic_whitehouse_278t_pdf,
     TRUMP_2026_PARSER_VERSION,
     TradeOcrCheckpointPending,
     extract_whitehouse_278t_pdf_checkpointed,
@@ -97,7 +98,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                   start_after_id: str | None = None,
                   ocr_page_limit: int = 50,
                   document_id: str | None = None,
-                  source_sha256: str | None = None) -> dict:
+                  source_sha256: str | None = None, generic_trade: bool = False) -> dict:
+    if generic_trade and (document_id is None or source_sha256 is None):
+        raise ValueError("Generic White House parsing requires a fixed document and source SHA")
     if type(limit) is not int or not 0 <= limit <= 100:
         raise ValueError("White House extraction limit must be between 0 and 100")
     if type(ocr_page_limit) is not int or not 25 <= ocr_page_limit <= 100:
@@ -126,7 +129,9 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
-        version = (trade_parser_version_for_source(
+        if generic_trade and kind != "278t":
+            raise ValueError("Generic trade parsing requires a 278-T source")
+        version = (GENERIC_PARSER_VERSION if generic_trade else trade_parser_version_for_source(
                        metadata.get("document_url"), metadata.get("sha256"))
                    if kind == "278t" else
                    parser_version_for_source(metadata.get("document_url"),
@@ -169,6 +174,11 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                       "source_sha256": metadata["sha256"]}
             def parse(path: Path) -> dict:
                 if kind == "278t":
+                    if generic_trade:
+                        old_path = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
+                        old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.is_file() else None
+                        return parse_generic_whitehouse_278t_pdf(path, **common, document_id=metadata["document_id"],
+                            filer_name=name, amended_label=metadata.get("link_label"), legacy_extraction=old)
                     if version == TRUMP_2026_PARSER_VERSION:
                         prior = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
                         if prior.is_file():
@@ -266,13 +276,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--document-id")
     parser.add_argument("--source-sha256")
     parser.add_argument("--status-output", type=Path)
+    parser.add_argument("--generic-trade", action="store_true", help="Fixed-source native role parsing without new OCR")
     args = parser.parse_args(argv)
     try:
+        if (args.document_id is not None or args.generic_trade) and args.status_output is None:
+            raise ValueError("Fixed/generic White House replay requires a separate status output")
         status = extract_batch(args.evidence_root, args.review_root, limit=args.limit,
                                start_after_id=args.start_after_id,
                                ocr_page_limit=args.ocr_page_limit,
                                document_id=args.document_id,
-                               source_sha256=args.source_sha256)
+                               source_sha256=args.source_sha256, generic_trade=args.generic_trade)
         status_output = (args.status_output or
                          args.review_root / "whitehouse/extraction-status.json")
         if args.document_id is not None and args.status_output is None:

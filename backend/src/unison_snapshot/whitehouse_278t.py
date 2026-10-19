@@ -21,6 +21,7 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
 PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
+GENERIC_PARSER_VERSION = "whitehouse-278t-native-roles/v5"
 TRUMP_081225_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v3"
 TRUMP_081225_DOCUMENT_ID = "wh-url:1a6bbff2a684fedd76ac9f59"
 TRUMP_081225_SOURCE_URL = (
@@ -88,7 +89,7 @@ _TRUMP_2026_BY_SOURCE = {
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
 SUPPORTED_PARSER_VERSIONS = (
     PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
-    *LEGACY_PARSER_VERSIONS)
+    *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION)
 MAX_INLINE_OCR_PAGES = 100
 MAX_CHECKPOINT_OCR_PAGES = 200
 OCR_CHECKPOINT_SCHEMA = "whitehouse-278t-ocr-checkpoint/v1"
@@ -859,6 +860,340 @@ def extract_whitehouse_278t_pdf_checkpointed(
         ocr_engine=next(iter(engines)),
         extraction_method="tesseract_ocr_geometry_checkpointed",
         ocr_checkpoint=status)
+
+
+
+def _generic_table_rows(inventory: list, *, source_sha256: str) -> tuple[list, list, list]:
+    """Interpret exact six-cell rows; optional labels establish source scope."""
+    from .oge_reports import _compact, _owner_heading, _ACCOUNT_HEADING
+    transactions, quarantined, structural = [], [], []
+    owner, title, lost_scope, previous_page = "Undisclosed", None, False, None
+    seen = set()
+    for index, (page, raw) in enumerate(inventory):
+        cells = [_compact(cell) for cell in raw]
+        if previous_page is not None and page > previous_page + 1 and (title or owner != "Undisclosed"):
+            lost_scope = True
+        previous_page = page
+        if len(cells) == 6:
+            description = cells[1]
+            label = not any((cells[0], cells[2], cells[3], cells[5]))
+            explicit_owner = (_owner_heading(description) if label and re.fullmatch(
+                r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", description, re.I) else None)
+            if explicit_owner:
+                owner, title, lost_scope = explicit_owner, None, False
+                structural.append({"source_rows_index": index, "kind": "owner_heading", "text": description})
+                continue
+            if label and _ACCOUNT_HEADING.fullmatch(description):
+                title, lost_scope = description, False
+                structural.append({"source_rows_index": index, "kind": "account_heading", "text": description})
+                continue
+            if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
+                lost_scope = True
+                structural.append({"source_rows_index": index, "kind": "ambiguous_owner_heading", "text": description})
+            if label and re.search(r"\b(?:EXHIBIT|AMENDMENT|REPLAC(?:E|EMENT)|CONTINUED)\b", description, re.I):
+                lost_scope = True
+                structural.append({"source_rows_index": index, "kind": "unresolved_report_relation", "text": description})
+                continue
+        if cells and cells[0] == "#" and not any(cells[1:]):
+            structural.append({"source_rows_index": index, "kind": "unknown_table_content", "text": "#"})
+        good, bad = parse_table_rows([(page, cells)], source_sha=source_sha256,
+            default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)
+        for row in good + bad:
+            row["source_rows_index"] = index
+            row["account_context"] = {"status": "unknown" if lost_scope else "observed" if title else "not_observed", "title": title}
+            if row["owner"] == "Undisclosed":
+                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
+            key = (page, row.get("row_number"), title)
+            reasons = list(row.get("reasons", []))
+            if row.get("row_number") is not None and key in seen:
+                reasons.append("same_page_account_row_number_ambiguous")
+            seen.add(key)
+            if lost_scope:
+                reasons.append("account_context_unresolved")
+            if reasons:
+                quarantined.append({**row, "reasons": sorted(set(reasons))})
+            else:
+                transactions.append(row)
+    # Both occurrences remain unresolved; never pick the first duplicate.
+    duplicates = {(r["page_number"], r.get("row_number"), r.get("account_title"))
+                  for r in quarantined if "same_page_account_row_number_ambiguous" in r["reasons"]}
+    kept = []
+    for row in transactions:
+        if (row["page_number"], row.get("row_number"), row.get("account_title")) in duplicates:
+            quarantined.append({**row, "reasons": ["same_page_account_row_number_ambiguous"]})
+        else:
+            kept.append(row)
+    return kept, quarantined, structural
+
+
+def _inherit_whitehouse_generic_rows(result: dict, legacy: dict | None) -> dict:
+    """Bind old identities by exact source cells; retain all old parsed facts."""
+    if legacy is None:
+        return result
+    if (not isinstance(legacy, dict) or legacy.get("schema_version") != EXTRACTION_SCHEMA or
+            legacy.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+            any(legacy.get(key) != result.get(key) for key in
+                ("document_id", "source_sha256", "source_url", "filer_name"))):
+        raise OgeCatalogError("White House generic legacy source binding differs")
+    def key(row):
+        return (row.get("page_number"), tuple(row.get("cells", [])))
+    inventory = [(r["page_number"], r["cells"]) for r in result["source_rows"]]
+    replay_good, replay_bad = parse_table_rows(inventory, source_sha=result["source_sha256"], default_owner="Self")
+    replay_by_id = {}
+    for replay in replay_good+replay_bad:
+        replay_by_id.setdefault(replay["extraction_id"], []).append(replay)
+    old_by_key, new_counts = {}, {}
+    for original in legacy.get("transactions", []):
+        row = deepcopy(original)
+        if not isinstance(row.get("cells"), list):
+            # Early WH caches omit cells. The original stable ID hashes every
+            # raw cell and owner; exact replay of that ID plus the full fact
+            # projection proves the input, rather than matching by page/number.
+            matches = [r for r in replay_by_id.get(row.get("extraction_id"), []) if
+                all(r.get(field) == row.get(field) for field in ("page_number", "row_number", "owner", "asset_name", "ticker",
+                    "transaction_type", "transaction_date", "amount_low", "amount_high"))]
+            if len(matches) == 1:
+                row["cells"] = deepcopy(matches[0]["cells"])
+                row["legacy_cell_binding"] = "all_raw_cells_stable_id_and_projection_replayed"
+        old_by_key.setdefault(key(row), []).append(row)
+    for row in result["transactions"] + result["quarantined"]:
+        new_counts[key(row)] = new_counts.get(key(row), 0) + 1
+    inherited = set()
+    for collection in ("transactions", "quarantined"):
+        rows = []
+        for row in result[collection]:
+            matches = old_by_key.get(key(row), [])
+            if len(matches) == 1 and len(key(row)[1]) == 6 and new_counts[key(row)] == 1:
+                old = matches[0]
+                retained = deepcopy(old)
+                retained["source_rows_index"] = row["source_rows_index"]
+                retained["account_context"] = deepcopy(row["account_context"])
+                retained["legacy_inheritance"] = {"basis": "same_pdf_exact_page_cells", "source_sha256": result["source_sha256"],
+                    "legacy_parser_version": legacy["parser_version"], "legacy_row": deepcopy(old),
+                    "new_observation_reasons": row.get("reasons", [])}
+                # Identity preservation is separate from a factual default-owner correction.
+                proof = [r for r in replay_by_id.get(old.get("extraction_id"),[]) if key(r) == key(old)]
+                if (old.get("owner") == "Self" and row.get("owner") == "Undisclosed" and not row.get("reasons") and len(proof) == 1 and
+                        proof[0].get("owner") == "Self" and proof[0].get("extraction_id") == old.get("extraction_id")):
+                    retained["owner"] = "Undisclosed"
+                    retained["owner_disclosure_basis"] = row["owner_disclosure_basis"]
+                    retained["legacy_inheritance"]["owner_correction"] = {"field": "owner", "old_value": "Self", "new_value": "Undisclosed",
+                        "rule": "approved_default_self_to_undisclosed/v1", "source_rows_index": row["source_rows_index"]}
+                approved_owner = retained.get("legacy_inheritance", {}).get("owner_correction")
+                differences = {field: {"old_value": old.get(field), "new_value": row.get(field)} for field in
+                    ("owner", "asset_name", "ticker", "transaction_type", "transaction_date", "amount_low", "amount_high", "amount_low_exclusive")
+                    if old.get(field) != row.get(field) and not (field == "owner" and approved_owner)}
+                if differences:
+                    retained["legacy_inheritance"]["unresolved_field_differences"] = differences
+                if row.get("account_title") and not old.get("account_title"):
+                    retained["account_title"] = row["account_title"]
+                    retained["legacy_inheritance"]["account_display_correction"] = {
+                        "field": "asset_name", "rule": "approved_source_account_title_display/v1",
+                        "old_value": old["asset_name"], "new_value": f"{old['asset_name']} — {row['account_title']}"}
+                rows.append(retained)
+                inherited.add(old["extraction_id"])
+            else:
+                rows.append(row)
+        result[collection] = rows
+    # Legacy facts not found by exact cells remain visible, never silently disappear.
+    for old in legacy.get("transactions", []):
+        if old.get("extraction_id") not in inherited:
+            result["transactions"].append({**deepcopy(old), "legacy_unmatched": True})
+    legacy_hash = hashlib.sha256(json.dumps(legacy, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    result["legacy_source_binding"] = {"source_sha256": result["source_sha256"], "legacy_extraction_sha256": legacy_hash,
+        "inherited_ids": sorted(inherited), "unmatched_ids": sorted(r["extraction_id"] for r in legacy.get("transactions", []) if r["extraction_id"] not in inherited)}
+    return result
+
+
+
+
+def _validate_generic_legacy_owner(report: dict, row: dict, expected: dict, replay_by_id: dict) -> None:
+    """Reprove the old default using all original raw cells at consumption time."""
+    inheritance = row["legacy_inheritance"]
+    old = inheritance.get("legacy_row", {})
+    correction = inheritance.get("owner_correction")
+    if correction is None:
+        if row.get("owner") != old.get("owner"):
+            raise OgeCatalogError("White House generic inherited owner changed without a rule")
+        return
+    matches = replay_by_id.get(old.get("extraction_id"), [])
+    fields = ("page_number", "row_number", "owner", "asset_name", "ticker", "transaction_type", "transaction_date",
+              "amount_low", "amount_high", "amount_low_exclusive", "cells")
+    required = {"field":"owner","old_value":"Self","new_value":"Undisclosed",
+        "rule":"approved_default_self_to_undisclosed/v1","source_rows_index":expected["source_rows_index"]}
+    if (correction != required or expected.get("owner") != "Undisclosed" or expected.get("reasons") or
+            row.get("owner") != "Undisclosed" or old.get("owner") != "Self" or len(matches) != 1 or
+            any(matches[0].get(field) != old.get(field) for field in fields) or
+            old.get("extraction_id") != row.get("extraction_id")):
+        raise OgeCatalogError("White House generic default-owner correction failed raw input replay")
+
+
+def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict | None:
+    """Only exact-source inherited rows can reference an existing formal fact."""
+    inheritance = row.get("legacy_inheritance", {})
+    old = inheritance.get("legacy_row", {})
+    matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
+    if (report.get("parser_version") != GENERIC_PARSER_VERSION or len(matches) != 1 or
+            inheritance.get("source_sha256") != report.get("source_sha256") or
+            inheritance.get("basis") != "same_pdf_exact_page_cells" or
+            old.get("extraction_id") != row.get("extraction_id") or
+            old.get("page_number") != row.get("page_number") or old.get("cells") != row.get("cells") or
+            len(row.get("cells", [])) != 6):
+        return None
+    fact = matches[0]
+    fields = ("owner", "asset_name", "ticker", "transaction_type", "transaction_date", "amount_low", "amount_high", "amount_low_exclusive")
+    if (fact.get("source_url") != report.get("source_url") or fact.get("filing_id") != report.get("document_id") or
+            fact.get("filed_at") != f"{report.get('filed_at')}T00:00:00Z" or
+            any(fact.get(field) != (f"{old['asset_name']} — {old['account_title']}"
+                if field == "asset_name" and old.get("account_title") else old.get(field)) for field in fields)):
+        return None
+    if any(row.get(field) != old.get(field) for field in fields if field != "owner"):
+        return None
+    if row.get("owner") != old.get("owner"):
+        correction = inheritance.get("owner_correction", {})
+        if (old.get("owner") != "Self" or row.get("owner") != "Undisclosed" or
+                correction.get("rule") != "approved_default_self_to_undisclosed/v1"):
+            return None
+    return fact
+
+
+
+def _generic_cover_identity(text: str) -> tuple:
+    name, position, agency, role_raw, reasons = _filer_information(text)
+    if name is None:
+        info = re.search(r"Filer(?:'|’)?s\s+Information\s*\n([^\n]+)\n([^\n]+)\n", text, re.I)
+        if info:
+            name, role_raw = info[1].strip(), info[2].strip()
+            position, sep, agency = role_raw.rpartition(" - ")
+            position, agency = (position.strip(), agency.strip()) if sep else (role_raw, None)
+            reasons = []
+    return name, position, agency, role_raw, reasons
+
+
+def generic_whitehouse_filing_date(report: dict) -> str | None:
+    """Validate same-source first-page role evidence without borrowing another date."""
+    from .oge_reports import read_278t_cover_dates
+    evidence = report.get("cover_date_evidence", {})
+    if (not isinstance(evidence.get("cover_text"), str) or
+            read_278t_cover_dates(evidence["cover_text"], source_sha256=report["source_sha256"]) != evidence or
+            evidence.get("filed_at") != report.get("filed_at") or type(report.get("page_count")) is not int or report["page_count"] < 1):
+        raise OgeCatalogError("White House generic cover role evidence differs")
+    return evidence["filed_at"]
+
+
+def validate_generic_whitehouse_report(report: dict) -> dict:
+    """Recompute roles and exact row interpretations before qualification."""
+    generic_whitehouse_filing_date(report)
+    name, position, agency, role_raw, identity_reasons = _generic_cover_identity(report["cover_date_evidence"]["cover_text"])
+    if any(report.get(field) != value for field,value in (("pdf_filer_name",name),("pdf_position_title",position),
+            ("pdf_agency_label",agency),("pdf_position_agency_raw",role_raw))):
+        raise OgeCatalogError("White House generic cover identity differs from raw text")
+    required = list(report["cover_date_evidence"]["document_reasons"]) + identity_reasons
+    if not re.search(r"OGE\s+Form\s+278[- ]?T\b", report["cover_date_evidence"]["cover_text"], re.I):
+        required.append("278t_form_title_not_verified")
+    if name is not None and _first_last(name) != _first_last(report.get("filer_name") or ""):
+        required.append("pdf_filer_name_mismatch")
+    if not set(required) <= set(report.get("document_reasons",[])):
+        raise OgeCatalogError("White House generic document lost source role reasons")
+    if report.get("source_row_count") != len(report["transactions"])+len(report["quarantined"]):
+        raise OgeCatalogError("White House generic reported row count differs")
+    physical = report.get("source_rows")
+    if not isinstance(physical, list) or any(not isinstance(r,dict) or type(r.get("page_number")) is not int or
+            not 1 <= r["page_number"] <= report["page_count"] or not isinstance(r.get("cells"),list) or
+            any(not isinstance(c,str) for c in r["cells"]) for r in physical):
+        raise OgeCatalogError("White House generic source inventory is invalid")
+    good, bad, structural = _generic_table_rows([(r["page_number"], r["cells"]) for r in physical], source_sha256=report["source_sha256"])
+    if structural != report.get("structural_rows"):
+        raise OgeCatalogError("White House generic structural evidence differs")
+    by_key = {}
+    for row in good+bad:
+        by_key.setdefault((row["page_number"],tuple(row["cells"])),[]).append(row)
+    actual_count = sum(not r.get("legacy_unmatched") for r in report["transactions"]+report["quarantined"])
+    if actual_count != len(good)+len(bad):
+        raise OgeCatalogError("White House generic row inventory is not closed")
+    fields = ("owner", "asset_name", "ticker", "transaction_type", "transaction_date", "amount_low", "amount_high", "amount_low_exclusive", "extraction_id")
+    replay_by_id = {}
+    if any(r.get("legacy_inheritance",{}).get("owner_correction") for r in report["transactions"]+report["quarantined"]):
+        replay_good,replay_bad = parse_table_rows([(r["page_number"],r["cells"]) for r in physical],
+            source_sha=report["source_sha256"],default_owner="Self")
+        for replay in replay_good+replay_bad:
+            replay_by_id.setdefault(replay["extraction_id"],[]).append(replay)
+    seen = set()
+    for row in report["transactions"]+report["quarantined"]:
+        if row.get("legacy_unmatched"):
+            continue
+        key = (row.get("page_number"),tuple(row.get("cells",[])))
+        matches = by_key.get(key,[])
+        matches = [match for match in matches if match["source_rows_index"] == row.get("source_rows_index")]
+        locator = row.get("source_rows_index")
+        if locator in seen or len(matches) != 1:
+            raise OgeCatalogError("White House generic physical row is ambiguous")
+        seen.add(locator)
+        expected = matches[0]
+        inherited = row.get("legacy_inheritance")
+        if inherited:
+            if inherited.get("new_observation_reasons") != expected.get("reasons",[]):
+                raise OgeCatalogError("White House generic inherited row lost new conflicts")
+            _validate_generic_legacy_owner(report, row, expected, replay_by_id)
+            old = inherited.get("legacy_row", {})
+            if (inherited.get("basis") != "same_pdf_exact_page_cells" or inherited.get("source_sha256") != report["source_sha256"] or
+                    old.get("page_number") != row.get("page_number") or old.get("cells") != row.get("cells") or
+                    old.get("extraction_id") != row.get("extraction_id")):
+                raise OgeCatalogError("White House generic inherited source binding differs")
+            differences = {field:{"old_value":old.get(field),"new_value":expected.get(field)} for field in fields
+                if field != "extraction_id" and old.get(field) != expected.get(field) and
+                   not (field == "owner" and inherited.get("owner_correction"))}
+            if differences != inherited.get("unresolved_field_differences",{}):
+                raise OgeCatalogError("White House generic inherited field differences were altered")
+            display = inherited.get("account_display_correction")
+            if display is not None and (not expected.get("account_title") or old.get("account_title") or
+                    row.get("account_title") != expected["account_title"] or display != {
+                        "field":"asset_name","rule":"approved_source_account_title_display/v1", "old_value":old["asset_name"],
+                        "new_value":f"{old['asset_name']} — {expected['account_title']}"}):
+                raise OgeCatalogError("White House generic account display correction differs from source")
+        elif any(row.get(field) != expected.get(field) for field in fields) or row.get("reasons",[]) != expected.get("reasons",[]):
+            raise OgeCatalogError("White House generic row differs from source interpretation")
+    return by_key
+
+
+def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
+        source_sha256: str, document_id: str, filer_name: str,
+        amended_label: str | None = None, legacy_extraction: dict | None = None) -> dict:
+    """Opt-in native parsing; scans remain unknown without new OCR side effects."""
+    from .oge_reports import read_278t_cover_dates, _compact
+    _validate_source(source_url, source_sha256, document_id, filer_name)
+    content = Path(pdf_path).read_bytes()
+    _validate_pdf(content)
+    if hashlib.sha256(content).hexdigest() != source_sha256:
+        raise OgeCatalogError("White House generic source PDF hash differs")
+    text, _, inventory, cover = _extract_pdf(Path(pdf_path), include_inventory=True, include_cover=True)
+    dates = read_278t_cover_dates(cover["text"], source_sha256=source_sha256)
+    name, position, agency, role_raw, identity_reasons = _generic_cover_identity(cover["text"])
+    reasons = list(dates["document_reasons"]) + identity_reasons
+    if not re.search(r"OGE\s+Form\s+278[- ]?T\b", cover["text"], re.I):
+        reasons.append("278t_form_title_not_verified")
+    if name is not None and _first_last(name) != _first_last(filer_name):
+        reasons.append("pdf_filer_name_mismatch")
+    if amended_label and "amend" in amended_label.casefold() or dates["amendment_cover"]:
+        reasons.append("amendment_relationship_unresolved")
+    if re.search(r"\bEXHIBIT\s+[A-Z]\b|\bData\s+Revised\b", text, re.I):
+        reasons.append("replacement_block_relationship_unresolved")
+    good, bad, structural = _generic_table_rows(inventory, source_sha256=source_sha256)
+    if not good and not bad:
+        reasons.append("transaction_table_not_found_native_text_only")
+    result = {"schema_version": EXTRACTION_SCHEMA, "parser_version": GENERIC_PARSER_VERSION,
+        "source_id": "oge", "document_id": document_id, "source_url": source_url, "source_sha256": source_sha256,
+        "filer_name": filer_name, "pdf_filer_name": name, "pdf_position_title": position,
+        "pdf_agency_label": agency, "pdf_position_agency_raw": role_raw, "filed_at": dates["filed_at"],
+        "signature_method": "source_cover_roles", "cover_date_evidence": dates,
+        "filing_date_evidence": None, "filer_identity_evidence": None,
+        "amended_label": amended_label, "extraction_method": "same_pass_native_text_table", "ocr_engine": None,
+        "page_count": cover["document_page_count"], "transactions": good, "quarantined": bad,
+        "source_rows": [{"page_number": p, "cells": [_compact(c) for c in row]} for p,row in inventory],
+        "structural_rows": structural, "document_reasons": sorted(set(reasons)), "evidence_complete": not reasons}
+    result = _inherit_whitehouse_generic_rows(result, legacy_extraction)
+    result["source_row_count"] = len(result["transactions"]) + len(result["quarantined"])
+    return result
 
 
 def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
