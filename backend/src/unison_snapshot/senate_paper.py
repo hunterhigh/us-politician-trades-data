@@ -272,12 +272,13 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
         if image.size != (3400, 4400):
             raise SenateEfdError("Senate grid source image has unsupported dimensions")
         images[number] = image
-    rows, account, scope_unknown, previous_page = [], None, False, None
+    rows, account, account_ref, scope_unknown, previous_page = [], None, None, False, None
     slots = sorted(observation["slots"], key=lambda slot: (slot["page_number"], slot["grid_slot"]))
     for slot in slots:
         number, label = slot["page_number"], slot["label"]
         if previous_page is not None and number > previous_page + 1:
             account, scope_unknown = None, account is not None
+            account_ref = None
         previous_page = number
         if label == "unknown":
             # An unreadable transaction or a noisy blank is not evidence of a
@@ -294,15 +295,21 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             if explicit_heading:
                 if confidence is not None and confidence >= 85:
                     account, scope_unknown = text, False
+                    account_ref = {"page_number": number, "grid_slot": slot["grid_slot"],
+                                   "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
                 else:
                     account, scope_unknown = None, True
+                    account_ref = None
             continue
         if label == "heading_candidate":
             text, confidence = _grid_asset_cell(by_page[number], slot)
             if text.endswith(":") and _OWNER.fullmatch(text) and confidence is not None and confidence >= 85:
                 account, scope_unknown = text, False
+                account_ref = {"page_number": number, "grid_slot": slot["grid_slot"],
+                               "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
             else:
                 account, scope_unknown = None, True
+                account_ref = None
             continue
         if label != "data_observed":
             continue
@@ -355,6 +362,7 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
         if account:
             row["asset_name_raw"] = f"{row['asset_name_raw']} (Account: {account})"
         row["account_heading_raw"] = account
+        row["account_heading_source_slot"] = account_ref
         row["source_slot"] = {"page_number": number, "grid_slot": slot["grid_slot"],
                               "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
         row["quarantine_reasons"] = sorted(set(reasons))

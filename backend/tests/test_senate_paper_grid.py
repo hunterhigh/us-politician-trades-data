@@ -91,6 +91,9 @@ class SenatePaperGridTests(unittest.TestCase):
                 self.assertEqual("paper_account_scope_unresolved" in row["quarantine_reasons"], blocked)
                 if heading and not blocked:
                     self.assertIn("(Account: (S) Account)", row["asset_name_raw"])
+                    self.assertEqual(row["account_heading_source_slot"]["grid_slot"], 1)
+                elif heading is None:
+                    self.assertIsNone(row["account_heading_source_slot"])
 
     def test_existing_batch_runner_consumes_saved_words_without_ocr(self):
         report, manifest, observation, pages, images = inputs()
