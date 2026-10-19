@@ -194,6 +194,8 @@ def main() -> None:
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
     candidate.add_argument("--html-output", type=Path)
+    candidate.add_argument("--annual-transaction-audit-out", type=Path,
+                           help="Save source-bound annual transaction relationship decisions")
     senate_candidate = sub.add_parser("build-senate-candidate")
     senate_candidate.add_argument("--review-root", type=Path, required=True)
     senate_candidate.add_argument("--evidence-root", type=Path)
@@ -572,12 +574,24 @@ def main() -> None:
                 document_id=args.document_id)
             print(json.dumps(result, sort_keys=True))
         elif args.command == "build-house-candidate":
-            result = load_house_candidate(args.review_root, args.state_status, args.base)
+            annual_audit = None
+            if args.annual_transaction_audit_out:
+                if args.annual_transaction_audit_out.resolve() in {
+                        path.resolve() for path in (args.output, args.html_output, args.base, args.state_status)
+                        if path is not None}:
+                    raise ValueError("Annual transaction audit must have its own output path")
+                annual_audit = {}
+                result = load_house_candidate(args.review_root, args.state_status, args.base,
+                                              annual_transaction_audit=annual_audit)
+            else:
+                result = load_house_candidate(args.review_root, args.state_status, args.base)
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
                                   generated_at=generated_at)
             _write_atomic(args.output, result)
+            if annual_audit is not None:
+                _write_atomic(args.annual_transaction_audit_out, annual_audit)
             if args.html_output:
                 renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))

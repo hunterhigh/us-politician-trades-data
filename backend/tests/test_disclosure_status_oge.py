@@ -121,6 +121,35 @@ class OgeDisclosureStatusTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.build()
 
+    def test_unknown_regions_bind_unique_geometry_slots_without_inventing_source_sha(self):
+        original = self.observed_reference()
+        receipt = original["observation_receipt"]
+        receipt.update(unknown_regions=[{"page_number": 3, "slot_key": "1", "disposition": "unknown",
+            "reason": "column_geometry_unknown", "field_observation_ref": None}],
+            geometry_unknown_pages=[3], unobserved_pages=[1], observed_slot_count=3)
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [original]})
+        self.assertEqual(self.build()[0]["reports"][0]["observed_slot_count"], 3)
+        for change in ("empty", "duplicate", "known", "source", "geometry", "unobserved"):
+            audit = deepcopy(original)
+            current = audit["observation_receipt"]
+            if change == "empty":
+                current["unknown_regions"] = [{}]
+            elif change == "duplicate":
+                current["unknown_regions"] *= 2
+                current["observed_slot_count"] = 4
+            elif change == "known":
+                current["unknown_regions"][0]["page_number"] = 2
+            elif change == "source":
+                current["unknown_regions"][0]["source_sha256"] = "f" * 64
+            elif change == "geometry":
+                current["geometry_unknown_pages"] = []
+            else:
+                current["unobserved_pages"] = [1, 3]
+            with self.subTest(change=change):
+                self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+                with self.assertRaises(ValueError):
+                    self.build()
+
     def test_manual_cover_date_is_visible_after_source_bound_qualification(self):
         self.catalog([{"access_method": "direct_pdf", "source_document_id": self.doc,
                       "document_url": self.url, "catalog_index": 1}])

@@ -165,6 +165,20 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
     unknown = _rows(receipt, "unknown_regions")
     if observed is None or len(rows) + len(unknown) != observed:
         raise ValueError("OGE observed receipt slot counts do not close")
+    geometry = receipt.get("geometry_unknown_pages")
+    if (not isinstance(geometry, list) or any(type(page) is not int or page < 1 for page in geometry) or
+            geometry != sorted(set(geometry)) or set(geometry) & {page for page, _ in locations}):
+        raise ValueError("OGE geometry-unknown pages disagree with observed source slots")
+    unknown_locations = set()
+    for row in unknown:
+        page, slot = row.get("page_number"), row.get("slot_key")
+        key = (page, slot)
+        if (type(page) is not int or page not in geometry or not isinstance(slot, str) or
+                not re.fullmatch(r"[1-9]\d*", slot) or key in locations or key in unknown_locations or
+                row.get("source_sha256", sha) != sha or row.get("disposition") != "unknown" or
+                row.get("reason") != "column_geometry_unknown" or row.get("field_observation_ref") is not None):
+            raise ValueError("OGE unknown regions repeat or change source geometry slots")
+        unknown_locations.add(key)
     quarantined_slots = set()
     for row in _rows(audit, "quarantined"):
         ref = row.get("observation_reference")
@@ -177,8 +191,12 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
         raise ValueError("OGE observed quarantine count differs from its receipt")
     unobserved = receipt.get("unobserved_pages")
     if (not isinstance(unobserved, list) or any(type(page) is not int or page < 1 for page in unobserved) or
-            unobserved != sorted(set(unobserved)) or set(unobserved) & {page for page, _ in locations}):
+            unobserved != sorted(set(unobserved)) or
+            set(unobserved) & ({page for page, _ in locations} | set(geometry))):
         raise ValueError("OGE observed/unobserved page coverage is inconsistent")
+    all_pages = set(unobserved) | {page for page, _ in locations} | set(geometry)
+    if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
+        raise ValueError("OGE source page coverage has unexplained gaps")
     return {"quarantined_row_count": None, "observed_quarantined_slot_count": len(quarantined_slots),
             "observed_slot_count": observed, "legacy_normalized_reference_count": normalized,
             "legacy_quarantined_reference_count": old_quarantine,
