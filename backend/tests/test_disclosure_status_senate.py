@@ -86,6 +86,25 @@ class SenateStatusTests(unittest.TestCase):
             self.assertEqual(result["paper_coverage_observations"]["physical_slot_count"], 483)
             self.assertEqual(result, build_senate_status(evidence, review, list(reversed(txs)), [])[0])
 
+    def test_source_relation_observations_do_not_change_qualification_or_public_counts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence, review = self.fixture(Path(folder), ["report"])
+            self.archive(evidence, "report")
+            self.extract(review, "report", 1)
+            pending = {"physical_slot_count": 2, "unknown_slot_count": 1,
+                       "unobserved_page_count": 1, "qualified_transaction_count": 0}
+            self.audit(review, paper_pending_projection=pending)
+            before = build_senate_status(evidence, review, [], [])
+            pending["source_report_relations"] = {
+                "report_count": 1, "linked_observation_row_count": 2,
+                "coverage_unknown_report_count": 1, "coverage_unknown_page_count": 1,
+                "qualified_transaction_count": None}
+            self.audit(review, paper_pending_projection=pending)
+            after = build_senate_status(evidence, review, [], [])
+            self.assertEqual(after, before)
+            self.assertEqual(after[0]["reports"][0]["qualification_state"], "not_evaluated")
+            self.assertIsNone(after[0]["reports"][0]["quarantined_row_count"])
+
     def test_missing_inputs_are_unknown_and_formal_ids_do_not_create_reports(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

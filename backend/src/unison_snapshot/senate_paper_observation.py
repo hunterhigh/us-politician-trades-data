@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
+from .source_row_ledger import report_ledger, senate_shadow_pages
 
 SCHEMA = "senate-paper-slot-comparison/v3"
 PENDING_SCHEMA = "senate-paper-pending-slot-projection/v3"
@@ -20,6 +21,45 @@ LEDGER_FILES = (
     "senate-paper-viewer-remainders.json",
     "senate-paper-legacy-extracted-grid.json",
 )
+
+
+def _source_report_relations(report: dict) -> dict:
+    """Bind classified data observations, without treating them as qualified facts."""
+    count = report.get("archive_page_count")
+    if type(count) is not int or count < 1:
+        raise ValueError("Senate paper archive page count is missing")
+    numbers = [page["page_number"] for page in report["pages"]]
+    missing = report["unobserved_page_numbers"]
+    if (len(set(numbers)) != len(numbers) or len(set(missing)) != len(missing)
+            or set(numbers) & set(missing)
+            or sorted(numbers + missing) != list(range(1, count + 1))):
+        raise ValueError("Senate paper archive pages are missing, repeated or unbound")
+    if (report["coverage_status"] != "fixed_slots_observed" and
+            (report["slots"] or report["pages"] or report["physical_grid_slot_count"] is not None)):
+        raise ValueError("Senate paper unknown source version contains observed slots")
+    if report["coverage_status"] == "fixed_slots_observed":
+        if len(report["slots"]) != report["physical_grid_slot_count"]:
+            raise ValueError("Senate paper report slot count differs from observations")
+        if any(slot["page_number"] not in numbers for slot in report["slots"]):
+            raise ValueError("Senate paper slot references an unobserved page")
+        for page in report["pages"]:
+            labels = Counter(slot["label"] for slot in report["slots"]
+                             if slot["page_number"] == page["page_number"])
+            if dict(labels) != page["label_counts"]:
+                raise ValueError("Senate paper page label counts differ from slots")
+        pages = senate_shadow_pages(report)
+    else:
+        pages = []
+    return report_ledger(
+        source_id="senate_efd", document_sha256=report["entrypoint_source_sha256"],
+        adapter_version="senate-paper-slot-comparison/v3/report-relations-v1",
+        page_count=count, pages=pages, logical_rows=[
+            {"local_key": f"p{slot['page_number']}:slot{slot['grid_slot']}",
+             "slot_refs": [{"page_number": slot["page_number"],
+                            "slot_key": str(slot["grid_slot"])}],
+             "observation_ref": f"slots/{index}"}
+            for index, slot in enumerate(report["slots"])
+            if slot["label"] == "data_observed"])
 
 
 def _fixed_ledgers(docs_root: Path) -> dict[str, dict]:
@@ -56,12 +96,18 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if manifest.get("document_id") != document_id or not manifest.get("evidence_complete"):
             raise ValueError(f"Senate paper manifest incomplete: {document_id}")
+        page_count = manifest.get("page_count")
+        if (type(page_count) is not int or page_count < 1 or
+                [page["page_number"] for page in manifest["pages"]] !=
+                list(range(1, page_count + 1))):
+            raise ValueError("Senate paper archive page sequence is incomplete")
         source_sha = manifest["entrypoint_source_sha256"]
         extraction = extraction_by_id.get(document_id) or failure_by_id.get(document_id)
         extracted_sha = extraction.get("source_sha256")
         if extracted_sha is not None and extracted_sha != source_sha:
             raise ValueError(f"Senate paper extraction and archive differ: {document_id}")
         common = {"document_id": document_id,
+                  "archive_page_count": page_count,
                   "entrypoint_source_sha256": source_sha,
                   "manifest_sha256": manifest["manifest_sha256"],
                   "legacy_extraction_count": len(extraction_by_id.get(document_id, {}).get(
@@ -69,11 +115,13 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
                   "legacy_extraction_failed": document_id in failure_by_id}
         if (ledger is None or ledger.get("entrypoint_source_sha256") != source_sha or
                 ledger.get("manifest_sha256") != manifest["manifest_sha256"]):
-            results.append({**common, "coverage_status": "unknown_source_version",
+            unknown = {**common, "coverage_status": "unknown_source_version",
                             "physical_grid_slot_count": None, "label_counts": {},
                             "pages": [], "unobserved_page_numbers": [
                                 page["page_number"] for page in manifest["pages"]],
-                            "slots": []})
+                            "slots": []}
+            unknown["source_report_ledger"] = _source_report_relations(unknown)
+            results.append(unknown)
             continue
         page_paths = {}
         for page in manifest["pages"]:
@@ -121,13 +169,15 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
                            for row in account_scope["rows"]}
             if classified_data != scoped_data:
                 raise ValueError("Senate paper account scope and data slots differ")
-        results.append({**common, "coverage_status": "fixed_slots_observed",
+        result = {**common, "coverage_status": "fixed_slots_observed",
                         "physical_grid_slot_count": classified["physical_grid_slot_count"],
                         "label_counts": classified["label_counts"],
                         "pages": page_comparison,
                         "unobserved_page_numbers": unobserved_page_numbers,
                         "slots": classified["slots"],
-                        "account_scope_observation": account_scope})
+                        "account_scope_observation": account_scope}
+        result["source_report_ledger"] = _source_report_relations(result)
+        results.append(result)
     return {"schema_version": SCHEMA,
             "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
             "slot_classification_schema_version": SLOT_SCHEMA,
@@ -165,9 +215,18 @@ def project_pending_slots(observation: dict) -> dict:
     pending, unknown = [], []
     account_scoped_count = 0
     seen: set[tuple[str, int, int]] = set()
-    for report in reports:
+    relations = []
+    carries_relations = any("archive_page_count" in report or
+                            "source_report_ledger" in report for report in reports)
+    for index, report in enumerate(reports):
         document_id = report["document_id"]
         source_sha = report["entrypoint_source_sha256"]
+        if carries_relations:
+            expected = _source_report_relations(report)
+            if report.get("source_report_ledger") != expected:
+                raise ValueError("Senate paper source report relations differ from observations")
+            relations.append({"document_id": document_id,
+                              "observation_ref": f"reports/{index}", "ledger": expected})
         if report["coverage_status"] != "fixed_slots_observed":
             continue
         page_sha = {page["page_number"]: page["page_sha256"]
@@ -276,7 +335,7 @@ def project_pending_slots(observation: dict) -> dict:
         raise ValueError("Senate paper data slots did not all reach pending projection")
     if len(unknown) != observation.get("label_counts", {}).get("unknown", 0):
         raise ValueError("Senate paper unknown slots did not all reach coverage ledger")
-    return {"schema_version": PENDING_SCHEMA,
+    result = {"schema_version": PENDING_SCHEMA,
             "source_id": "senate_efd",
             "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
             "observation_schema_version": SCHEMA,
@@ -292,3 +351,14 @@ def project_pending_slots(observation: dict) -> dict:
             "unobserved_page_count": observation["unobserved_page_count"],
             "pending_rows": pending,
             "unknown_slots": unknown}
+    # Additive nested contract: historical v3 observations retain byte-for-byte
+    # projection semantics. New observations must reproduce their source links.
+    if carries_relations:
+        if (len({item["document_id"] for item in relations}) != len(relations) or
+                sum(len(item["ledger"]["unobserved_pages"]) for item in relations) !=
+                observation["unobserved_page_count"]):
+            raise ValueError("Senate paper report relation coverage summary differs")
+        if sum(item["ledger"]["logical_row_count"] for item in relations) != len(pending):
+            raise ValueError("Senate paper source links lost pending data observations")
+        result["source_report_ledgers"] = relations
+    return result
