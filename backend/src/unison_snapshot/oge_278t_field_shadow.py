@@ -280,7 +280,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     observation["unassigned_detections"] = [deepcopy(unassigned[i]) for i in overlaps]
                 target["observations"].append(observation)
                 observed_count += 1
-        if reading.get("summary", {}).get("observed_slots", 0) != observed_count:
+        # Producers omit the zero counter only when every selected page is unknown.
+        default_count = 0 if pages and all(page["status"] == "geometry_unknown" for page in pages) else None
+        if reading.get("summary", {}).get("observed_slots", default_count) != observed_count:
             raise ValueError("secondary field summary differs from linked slots")
     counts = Counter()
     description_pair_counts = Counter()

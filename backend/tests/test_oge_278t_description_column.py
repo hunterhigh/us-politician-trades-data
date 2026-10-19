@@ -204,6 +204,15 @@ class DescriptionColumnTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             observe_field_shapes([base],secondary_observations=[bad])
 
+    def test_empty_or_observed_reads_still_require_explicit_summary(self):
+        reading=self.produce()
+        bad=deepcopy(reading); bad["summary"].pop("observed_slots")
+        with self.assertRaises(ValueError):
+            observe_field_shapes([self.base],secondary_observations=[bad])
+        bad=deepcopy(reading); bad["pages"]=[]; bad["input_page_canonical_sha256"]={}; bad["summary"]={}
+        with self.assertRaises(ValueError):
+            observe_field_shapes([self.base],secondary_observations=[bad])
+
     def test_cli_reuses_saved_description_without_executing_ocr(self):
         reading = self.produce()
         primary, secondary, target = [self.root / name for name in ["primary.json", "description.json", "out.json"]]
