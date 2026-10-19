@@ -30,6 +30,93 @@ def build(base, reports):
 
 
 class ExactSourceTests(unittest.TestCase):
+    def _cross_fixture(self):
+        report = copies()[0]
+        for row in report["transactions"]:
+            row["page_number"] = 1
+        base, _ = build(_base(), [report])
+        doc = "3" * 32
+        url = f"https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/{doc}/$FILE/copy.pdf"
+        parsed = {"schema_version": "oge-278t-extraction/v1", "document_id": doc,
+                  "source_url": url, "source_sha256": report["source_sha256"],
+                  "catalog_filer_name": report["pdf_filer_name"],
+                  "transactions": deepcopy(report["transactions"]), "quarantined": []}
+        for index, row in enumerate(parsed["transactions"], 1):
+            row["extraction_id"] = "oge-278t:" + str(index) * 24
+        by_number = {row["row_number"]: row for row in parsed["transactions"]}
+        for fact in base["transactions"]:
+            original = next(row for row in report["transactions"] if row["extraction_id"] == fact["id"])
+            fact.update(id=by_number[original["row_number"]]["extraction_id"], source_url=url, filing_id=doc)
+        bindings = {"schema_version": "whitehouse-278t-exact-source-bindings/v1", "reports": [{
+            "whitehouse_archive": {"document_id": report["document_id"], "document_url": report["source_url"],
+                                   "sha256": report["source_sha256"]},
+            "oge_archive": {"document_id": doc, "document_url": url, "sha256": report["source_sha256"]},
+            "oge_extraction": parsed}]}
+        return base, report, bindings
+
+    def _build_cross(self, base, report, bindings):
+        checked = audit_exact(base, [report], _catalog(), source_bindings=bindings)
+        return build_exact(base, [report], checked, _catalog(), source_bindings=bindings,
+                           data_cutoff_at="2025-06-14T00:00:00Z")
+
+    def test_cross_source_old_ids_require_same_pdf_physical_row_and_actual_formal_id(self):
+        base, report, bindings = self._cross_fixture()
+        candidate, audit = self._build_cross(base, report, bindings)
+        self.assertEqual(candidate["transactions"], sorted(base["transactions"], key=lambda row: row["id"]))
+        self.assertEqual(audit["retained_existing_transaction_count"], 3)
+        bindings["reports"][0]["oge_archive"]["sha256"] = "d" * 64
+        with self.assertRaisesRegex(OgeCatalogError, "same PDF and filer"):
+            self._build_cross(base, report, bindings)
+
+    def test_cross_source_missing_observation_does_not_block_new_canonical_rows(self):
+        _, report, bindings = self._cross_fixture()
+        bindings["reports"][0]["oge_extraction"]["transactions"] = []
+        candidate, audit = self._build_cross(_base(), report, bindings)
+        self.assertEqual(len(candidate["transactions"]), 3)
+        self.assertEqual(audit["promoted_transaction_count"], 3)
+        self.assertTrue(all(row["status"] == "no_old_formal_fact" for row in audit["cross_source_relations"][0]["rows"]))
+
+    def test_cross_source_status_excludes_unpublished_oge_copy_and_counts_wh_once(self):
+        from unison_snapshot.disclosure_status_oge import build_oge_status
+        _, report, bindings = self._cross_fixture()
+        old, _ = build(_base(), [report])
+        candidate, audit = self._build_cross(old, report, bindings)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for kind in ("oge", "whitehouse"):
+                item = bindings["reports"][0][kind + "_archive"]
+                prefix = "oge/reports" if kind == "oge" else "whitehouse/disclosures/reports"
+                path = root / "evidence" / prefix / item["document_id"].split(":")[-1] / (item["sha256"] + ".json")
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(item), encoding="utf8")
+            path = root / "review/whitehouse/qualifications/candidate-current.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(audit), encoding="utf8")
+            scopes = build_oge_status(root / "evidence", root / "review", candidate["transactions"], [])
+            self.assertEqual(scopes[0]["reports"][0]["qualification_state"], "superseded")
+            self.assertEqual(scopes[0]["reports"][0]["publication_transaction_ids"], [])
+            self.assertEqual(len(scopes[2]["reports"][0]["publication_transaction_ids"]), 3)
+            self.assertEqual(scopes[2]["reports"][0]["qualified_transaction_count"], 3)
+
+    def test_cross_source_conflicting_old_fact_blocks_only_that_row(self):
+        base, report, bindings = self._cross_fixture()
+        base["transactions"][0]["owner"] = "Spouse"
+        candidate, audit = self._build_cross(base, report, bindings)
+        self.assertEqual(len(candidate["transactions"]), 3)
+        self.assertEqual(audit["retained_existing_transaction_count"], 2)
+        self.assertEqual(audit["quarantined_row_count"], 1)
+        self.assertIn("existing_exact_source_row_interpretation_conflict", audit["reports"][0]["rows"][0]["reasons"])
+
+    def test_proven_old_double_formal_fact_collapses_to_one_id_with_receipt(self):
+        base, report, bindings = self._cross_fixture()
+        wh, _ = build(_base(), [report])
+        base["transactions"].append(wh["transactions"][0])
+        candidate, audit = self._build_cross(base, report, bindings)
+        self.assertEqual(len(base["transactions"]), 4)
+        self.assertEqual(len(candidate["transactions"]), 3)
+        self.assertEqual(len(audit["removed_duplicate_formal_rows"]), 1)
+        self.assertFalse(audit["candidate_is_append_only"])
+
     def test_exact_bytes_consumed_once_and_all_links_retained(self):
         reports = copies()
         before = deepcopy(reports)

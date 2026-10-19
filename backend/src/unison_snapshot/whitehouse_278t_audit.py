@@ -391,7 +391,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                           existing_oge_candidate: dict,
                           annual_extractions: list[dict] | None = None,
                           directory_index: dict | None = None,
-                          annual_identity_people: list[dict] | None = None) -> dict:
+                          annual_identity_people: list[dict] | None = None,
+                          source_complete_extractions: list[dict] | None = None) -> dict:
     """Assess each archived public PDF and row without modifying source data.
 
     The caller must provide a verified OGE coverage artifact and the current
@@ -437,7 +438,23 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
            any(not isinstance(reason, str) for reason in item["document_reasons"])
            for item in extractions):
         raise OgeCatalogError("White House 278-T extraction contract is invalid")
-    for item in extractions:
+    complete = extractions if source_complete_extractions is None else source_complete_extractions
+    if source_complete_extractions is not None:
+        originals = {item["document_id"]: item for item in complete}
+        if len(originals) != len(complete):
+            raise OgeCatalogError("White House complete source census repeats a document")
+        for item in extractions:
+            original = originals.get(item["document_id"])
+            if original is None or {key: value for key, value in item.items() if key not in {"transactions", "quarantined"}} != {
+                    key: value for key, value in original.items() if key not in {"transactions", "quarantined"}}:
+                raise OgeCatalogError("White House selected rows changed complete source identity")
+            raw_rows = {row["extraction_id"]: row for row in [*original["transactions"], *original["quarantined"]]}
+            for row in [*item["transactions"], *item["quarantined"]]:
+                raw = raw_rows.get(row["extraction_id"])
+                if raw is None or {key: value for key, value in row.items() if key != "reasons"} != {
+                        key: value for key, value in raw.items() if key != "reasons"}:
+                    raise OgeCatalogError("White House selected row differs from complete source observation")
+    for item in complete:
         rows = [*item["transactions"], *item["quarantined"]]
         if str(item.get("extraction_method", "")).startswith(
                 "tesseract_ocr_geometry"):
