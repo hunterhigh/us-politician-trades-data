@@ -66,6 +66,32 @@ def inputs(*, date="09/01/26", missing_asset_type=True):
 
 @unittest.skipIf(Image is None, "optional Senate image dependency unavailable")
 class SenatePaperGridTests(unittest.TestCase):
+    def test_noisy_slot_is_not_a_required_account_but_explicit_unreadable_heading_is(self):
+        for heading, confidence, blocked in [(None, 98, False),
+                                               ("(S) Account", 98, False),
+                                               ("(S) Account", 50, True)]:
+            with self.subTest(heading=heading, confidence=confidence):
+                args = inputs()
+                observation = args[2]
+                data = observation["slots"][0]
+                data["grid_slot"] = 2
+                unknown = deepcopy(data)
+                unknown.update(grid_slot=1, row_bounds_px=[2102, 2236], label="unknown",
+                               type_marks=[], amount_marks=[], date_ocr_raw="")
+                observation["slots"] = [unknown, data]
+                observation["physical_grid_slot_count"] = 2
+                observation["label_counts"] = {"unknown": 1, "data_observed": 1}
+                observation["pages"][0].update(physical_grid_slot_count=2,
+                                               label_counts=observation["label_counts"])
+                observation["source_report_ledger"] = _source_report_relations(observation)
+                if heading:
+                    args[3][0]["words"].append(word(heading, 650, 2140, confidence=confidence))
+                extraction = parse_paper_grid_observations(*args)
+                row = extraction["transactions"][0]
+                self.assertEqual("paper_account_scope_unresolved" in row["quarantine_reasons"], blocked)
+                if heading and not blocked:
+                    self.assertIn("(Account: (S) Account)", row["asset_name_raw"])
+
     def test_existing_batch_runner_consumes_saved_words_without_ocr(self):
         report, manifest, observation, pages, images = inputs()
         document = report["document_id"]

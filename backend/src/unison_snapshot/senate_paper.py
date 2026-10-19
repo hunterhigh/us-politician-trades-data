@@ -275,10 +275,25 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
     for slot in slots:
         number, label = slot["page_number"], slot["label"]
         if previous_page is not None and number > previous_page + 1:
-            account, scope_unknown = None, True
+            account, scope_unknown = None, account is not None
         previous_page = number
         if label == "unknown":
-            account, scope_unknown = None, True
+            # An unreadable transaction or a noisy blank is not evidence of a
+            # new account. The legacy form also prints unindented account
+            # headings without a colon; child transaction names are indented.
+            text, confidence = _grid_asset_cell(by_page[number], slot)
+            top, bottom = slot["row_bounds_px"]
+            unindented = any(600 <= word["left"] < 750 and
+                            top + 6 <= _center(word)[1] < bottom - 6 and
+                            _OWNER.match(word["text"]) for word in by_page[number])
+            explicit_heading = (slot.get("column_calibration") == "verified" and
+                                unindented and not slot["type_marks"] and not slot["amount_marks"] and
+                                not slot["date_ocr_raw"] and _OWNER.fullmatch(text))
+            if explicit_heading:
+                if confidence is not None and confidence >= 85:
+                    account, scope_unknown = text, False
+                else:
+                    account, scope_unknown = None, True
             continue
         if label == "heading_candidate":
             text, confidence = _grid_asset_cell(by_page[number], slot)
