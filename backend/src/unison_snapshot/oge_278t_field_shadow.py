@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from datetime import date
+from difflib import SequenceMatcher
 import hashlib
 import json
 from math import isfinite
@@ -114,6 +115,29 @@ def _known_value(shape: dict):
     if shape["status"] not in {"ocr_shape_only", "ocr_text_only"}:
         return None
     return shape.get("values", shape.get("value"))
+
+
+def _description_text_difference(left: str, right: str) -> dict:
+    """Describe literal differences; never use these labels to reconcile facts."""
+    if left == right:
+        kind = "exact_text"
+    elif re.findall(r"\d+", left) != re.findall(r"\d+", right):
+        kind = "numeric_tokens_changed"
+    elif left.lower() == right.lower():
+        kind = "case_variant"
+    elif re.sub(r"\s+", "", left) == re.sub(r"\s+", "", right):
+        kind = "whitespace_variant"
+    elif left.strip(" .,:;|[]()") == right.strip(" .,:;|[]()"):
+        kind = "edge_punctuation"
+    else:
+        kind = "text_change"
+    # Output offsets into shape.value (physical word order), never raw_ocr_text.
+    spans = ([{"operation": operation, "left_range": [i, j], "right_range": [a, b]}
+              for operation, i, j, a, b in SequenceMatcher(None, left, right).get_opcodes()
+              if operation != "equal"] if len(left) + len(right) <= 4096 else None)
+    return {"difference_kind": kind, "changed_spans": spans,
+            "detail_status": "available" if spans is not None else "omitted_for_long_text",
+            "fact_resolution": "not_assessed"}
 
 
 def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict]) -> None:
@@ -256,9 +280,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     observation["unassigned_detections"] = [deepcopy(unassigned[i]) for i in overlaps]
                 target["observations"].append(observation)
                 observed_count += 1
-        if reading.get("summary", {}).get("observed_slots") != observed_count:
+        if reading.get("summary", {}).get("observed_slots", 0) != observed_count:
             raise ValueError("secondary field summary differs from linked slots")
     counts = Counter()
+    description_pair_counts = Counter()
+    description_ineligible_pairs = 0
+    has_description_pairs = False
     for row in rows.values():
         for field, evidence in row["field_readings"].items():
             values = [_known_value(obs["shape"]) for obs in evidence["observations"]]
@@ -281,9 +308,35 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
             if ambiguous:
                 counts[f"{field}_geometry_ambiguous_observations"] += ambiguous
             counts[f"{field}_{consistency}"] += 1
+            if field == "description" and len(evidence["observations"]) > 1:
+                has_description_pairs = True
+                comparisons = []
+                primary = evidence["observations"][0]
+                for index, other in enumerate(evidence["observations"][1:], 1):
+                    left, right = values[0], values[index]
+                    recognized = isinstance(left, str) and isinstance(right, str)
+                    eligible = recognized and all(obs.get("geometry_status") != "ambiguous"
+                                                  for obs in (primary, other))
+                    difference = (_description_text_difference(left, right) if recognized else {
+                        "difference_kind": "unrecognized_observation", "changed_spans": None,
+                        "detail_status": "unavailable", "fact_resolution": "not_assessed"})
+                    comparisons.append({"left_observation_index": 0, "right_observation_index": index,
+                        "left_source_ref": primary["source_ref"], "right_source_ref": other["source_ref"],
+                        "text_basis": "shape.value",
+                        "eligible_for_existing_conflict_rule": eligible, **difference})
+                    if eligible:
+                        description_pair_counts[difference["difference_kind"]] += 1
+                    else:
+                        description_ineligible_pairs += 1
+                evidence["text_comparisons"] = comparisons
     result["secondary_field_summary"] = dict(sorted(counts.items()))
     result["secondary_geometry_unknown_pages"] = coverage
     result["secondary_input_refs"] = input_refs
+    if has_description_pairs:
+        result["description_text_comparison_summary"] = {
+            "eligible_pair_counts": dict(sorted(description_pair_counts.items())),
+            "ineligible_pair_count": description_ineligible_pairs,
+            "fact_resolution": "not_assessed"}
 
 
 def _validate_description_unassigned(page: dict, original_page: dict) -> None:

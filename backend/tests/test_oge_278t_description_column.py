@@ -72,6 +72,9 @@ class DescriptionColumnTests(unittest.TestCase):
         out = observe_field_shapes([base], secondary_observations=[reading])
         field = out["pages"][0]["slots"][0]["field_readings"]["description"]
         self.assertEqual(field["consistency"], "conflicting_observations")
+        pair = field["text_comparisons"][0]
+        self.assertEqual(pair["text_basis"], "shape.value")
+        self.assertEqual(pair["changed_spans"], [{"operation":"insert", "left_range":[5,5], "right_range":[5,19]}])
 
     def test_case_spacing_and_financial_characters_are_not_silently_corrected(self):
         for text in ["Alpha", "AL PHA", "ALPHA-5.25%-2031-A"]:
@@ -142,6 +145,64 @@ class DescriptionColumnTests(unittest.TestCase):
         out = observe_field_shapes([self.base], secondary_observations=[reading])
         obs = out["pages"][0]["slots"][0]["field_readings"]["description"]["observations"][1]
         self.assertEqual(obs["geometry_status"], "ambiguous")
+
+    def test_difference_labels_preserve_literal_conflicts_and_source_offsets(self):
+        cases = [("ALPHA", "exact_text"), ("Alpha", "case_variant"),
+                 ("AL PHA", "whitespace_variant"), ("[ALPHA", "edge_punctuation"),
+                 ("ALPHA 5.25% 2031", "numeric_tokens_changed"), ("BETA", "text_change")]
+        for text, kind in cases:
+            with self.subTest(kind=kind):
+                out = observe_content_rows([self.base], document_page_count=2, secondary_observations=[self.produce([word(text)])])
+                fields = out["field_observations"]
+                field = fields["pages"][0]["slots"][0]["field_readings"]["description"]
+                pair = field["text_comparisons"][0]
+                self.assertEqual(pair["difference_kind"], kind)
+                self.assertEqual(pair["fact_resolution"], "not_assessed")
+                self.assertTrue(pair["eligible_for_existing_conflict_rule"])
+                self.assertEqual(pair["left_source_ref"], field["observations"][0]["source_ref"])
+                self.assertEqual(pair["right_source_ref"], field["observations"][1]["source_ref"])
+                for span in pair["changed_spans"]:
+                    a,b=span["left_range"]; c,d=span["right_range"]
+                    self.assertNotEqual("ALPHA"[a:b], text[c:d])
+                self.assertEqual(fields["description_text_comparison_summary"]["eligible_pair_counts"], {kind:1})
+                self.assertEqual(field["consistency"], "matching_observations" if kind == "exact_text" else "conflicting_observations")
+                self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1 if kind == "exact_text" else 0)
+                self.assertEqual(field["observations"][1]["shape"]["value"], text)
+
+    def test_numeric_series_and_long_text_diagnostics(self):
+        from unison_snapshot.oge_278t_field_shadow import _description_text_difference
+        for left,right,kind in [("5.25% 2031", "5.75% 2031", "numeric_tokens_changed"),
+                                ("5.25% 2031", "5.25% 2032", "numeric_tokens_changed"),
+                                ("SERIES A", "SERIES B", "text_change")]:
+            self.assertEqual(_description_text_difference(left,right)["difference_kind"],kind)
+        detail = _description_text_difference("A"*3000,"B"*3000)
+        self.assertIsNone(detail["changed_spans"])
+        self.assertEqual(detail["detail_status"],"omitted_for_long_text")
+
+    def test_ambiguous_or_unread_pairs_do_not_count_as_eligible(self):
+        for words in [[], [word("ALPHA"), word("SPILL",1,-4,25,8)]]:
+            out=observe_field_shapes([self.base],secondary_observations=[self.produce(words)])
+            summary=out["description_text_comparison_summary"]
+            self.assertEqual(summary["eligible_pair_counts"],{})
+            self.assertEqual(summary["ineligible_pair_count"],1)
+
+    def test_all_geometry_unknown_remains_unknown_without_summary_crash(self):
+        base=deepcopy(self.base)
+        base["pages"][0] = {"page_number":2,"coverage":"physical_slots_unknown",
+                            "physical_slot_count":None,"slots":[]}
+        with patch("unison_snapshot.oge_278t_type_column_shadow.ocr_rendered_image") as ocr:
+            import pdfplumber
+            with patch.object(pdfplumber,"open") as opened:
+                opened.return_value.__enter__.return_value=SimpleNamespace(pages=[object(),object()])
+                reading=observe_description_column(self.pdf,slots_observation=base)
+            ocr.assert_not_called()
+        self.assertNotIn("observed_slots",reading["summary"])
+        out=observe_content_rows([base],document_page_count=2,secondary_observations=[reading])
+        self.assertIsNone(out["source_report_ledger"]["physical_slot_count"])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"],0)
+        bad=deepcopy(reading); bad["summary"]["observed_slots"]=1
+        with self.assertRaises(ValueError):
+            observe_field_shapes([base],secondary_observations=[bad])
 
     def test_cli_reuses_saved_description_without_executing_ocr(self):
         reading = self.produce()
