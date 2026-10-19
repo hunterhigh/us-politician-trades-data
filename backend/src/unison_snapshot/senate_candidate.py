@@ -16,7 +16,7 @@ from .senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
-CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-09-v3"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-10-v4"
 AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v2"
 AMENDMENT_SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
 AMENDMENT_SUPPLEMENT_POINTER_SCHEMA = "senate-amendment-supplement-pointer/v1"
@@ -396,6 +396,20 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if not valid_reasons:
         reasons.append("qualification_reasons_invalid")
         raw_reasons = []
+    # Frozen electronic v2 extraction quarantined the official Exchange enum
+    # only because of an obsolete frontend assumption. The current HTML
+    # displays Other and counts these disclosure rows. Reassess that one rule
+    # here, preserving archived extraction bytes, source-row IDs and all other
+    # blockers. No two-sided trade or buy/sell interpretation is inferred.
+    explicit_exchange = (row.get("transaction_type") == "exchange" and
+                         isinstance(row.get("transaction_type_raw"), str) and
+                         row["transaction_type_raw"].strip().casefold() == "exchange")
+    if (explicit_exchange and qualification_status == "quarantined" and valid_reasons and
+            "exchange_requires_contract_resolution" in raw_reasons):
+        raw_reasons = [reason for reason in raw_reasons
+                       if reason != "exchange_requires_contract_resolution"]
+        if not raw_reasons:
+            qualification_status = "eligible"
     if qualification_status == "eligible":
         if raw_reasons:
             reasons.extend(["qualification_state_inconsistent", *raw_reasons])
@@ -413,7 +427,7 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if amount is None:
         reasons.append("amount_range_not_supported")
     transaction_type = row.get("transaction_type")
-    if transaction_type not in {"purchase", "sale"}:
+    if transaction_type not in {"purchase", "sale"} and not explicit_exchange:
         reasons.append("transaction_type_not_supported")
     owner_raw = row.get("owner_raw")
     if owner_raw not in {"Self", "Joint", "Spouse", "Child"}:

@@ -99,6 +99,80 @@ def extraction(document_id: str, rows=None, **updates):
 
 
 class SenateCandidateTests(unittest.TestCase):
+    def test_official_exchange_reaches_candidate_and_final_consumer_without_buy_sell_inference(self):
+        from tests.test_senate_reports import html, metadata_for
+        from unison_snapshot.senate_reports import parse_electronic_ptr
+        from unison_snapshot.builder import build
+        from unison_snapshot.legacy import load
+        raw = html(rows=[["1", "09/01/2026", "Self", "--", "Acme", "Stock",
+                          "Exchange", "$1,001 - $15,000", ""]])
+        parsed = parse_electronic_ptr(metadata_for(raw), raw)
+        # Frozen parser output remains unchanged; the candidate resolves only
+        # the obsolete exchange-specific rule from the exact official enum.
+        self.assertEqual(parsed["transactions"][0]["quarantine_reasons"],
+                         ["exchange_requires_contract_resolution"])
+        doc = parsed["document_id"]
+        item = extraction(doc, parsed["transactions"], source_sha256=parsed["source_sha256"])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            state = self.fixture(root, [identity(doc)], [item])
+            before = deepcopy(item)
+            data, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(item, before)
+            self.assertEqual(audit["candidate_transaction_count"], 1)
+            tx = data["transactions"][0]
+            self.assertEqual(tx["id"], parsed["transactions"][0]["extraction_id"])
+            self.assertEqual(tx["transaction_type"], "exchange")
+            self.assertEqual(tx["position_effect"], "unknown")
+            built = build(data, generated_at="2026-09-20T12:00:00Z", allow_production=True)
+            self.assertTrue(built.manifest["snapshot_id"])
+            data["meta"]["snapshot_id"] = "exchange-test"
+            result = load("process_snapshot", version="v2").build_snapshot(data)
+            self.assertEqual(len(result["transactions"]), 1)
+            from datetime import date
+            moves = load("process_snapshot", version="v2").build_market_moves(
+                [dict(tx, ticker="ACME")], {}, date(2026, 9, 18), 30)
+            self.assertEqual(moves[0]["transaction_count"], 1)
+            self.assertEqual(moves[0]["buy_count"], 0)
+            self.assertEqual(moves[0]["sell_count"], 0)
+
+    def test_paper_exchange_mark_reaches_real_candidate(self):
+        from tests.test_senate_paper import REPORT, MANIFEST, page, word
+        from unison_snapshot.senate_paper import parse_paper_word_pages
+        from unison_snapshot.builder import build
+        words = [word("(S)", 650, 2280), word("Acme", 760, 2280),
+                 word("(Stock)", 980, 2280), word("09/01/26", 1730, 2280),
+                 word("X", 1595, 2280), word("X", 1963, 2280)]
+        parsed = parse_paper_word_pages(REPORT, MANIFEST, [page(1), page(2, words)])
+        observed = parsed["transactions"][0]
+        self.assertEqual(observed["transaction_type_raw"], "Exchange")
+        doc = REPORT["document_id"]
+        item = extraction(doc, [observed], schema_version=PAPER_EXTRACTION_SCHEMA,
+                          source_url=REPORT["document_url"], source_sha256=parsed["source_sha256"])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            state = self.fixture(root, [identity(doc)], [item])
+            data, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(audit["candidate_transaction_count"], 1)
+            self.assertEqual(data["transactions"][0]["id"], observed["extraction_id"])
+            self.assertEqual(data["transactions"][0]["transaction_type"], "exchange")
+            self.assertTrue(build(data, generated_at="2026-09-20T12:00:00Z",
+                                  allow_production=True).manifest["snapshot_id"])
+
+    def test_exchange_does_not_relax_unknown_direction_or_other_blockers(self):
+        item = extraction("11111111-1111-4111-8111-111111111111")
+        for updates in [dict(transaction_type="exchange", transaction_type_raw="Exchange",
+                             qualification_status="quarantined", quarantine_reasons=[]),
+                        dict(transaction_type="exchange", transaction_type_raw="Gift"),
+                        dict(transaction_type="unknown", transaction_type_raw="Exchange"),
+                        dict(transaction_type="exchange", transaction_type_raw="Exchange",
+                             qualification_status="quarantined",
+                             quarantine_reasons=["exchange_requires_contract_resolution", "unreadable"])]:
+            with self.subTest(updates=updates):
+                tx, reasons = _transaction(row(**updates), item, identity(item["document_id"]))
+                self.assertIsNone(tx)
+                self.assertTrue(reasons)
+
     def test_annual_ptr_relations_consume_resolved_current_ptr_without_new_trade(self):
         from tests.test_senate_annual_transactions import sample
         from unison_snapshot.senate_annual_transactions import observe_part4b
@@ -477,7 +551,7 @@ class SenateCandidateTests(unittest.TestCase):
                 extraction(amendment_id, [row("senate-ptr:311111111111111111111111")],
                            report_amendment_number=1),
                 extraction(unresolved_id, [row("senate-ptr:411111111111111111111111")]),
-                extraction(normal_id, [row("senate-ptr:511111111111111111111111", transaction_type="exchange"),
+                extraction(normal_id, [row("senate-ptr:511111111111111111111111", transaction_type="unrecognized"),
                                        row("senate-ptr:611111111111111111111111", ticker_raw="-- AMCR")],
                            report_title_date="2026-09-18", report_label_date="2026-09-18"),
             ]
