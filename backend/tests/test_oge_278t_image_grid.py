@@ -214,6 +214,16 @@ class ImageGridTests(unittest.TestCase):
         self.assertTrue(all(206 in s['gray_values'] for s in out['failure_pixel_samples']))
         self.assertEqual(out['black_pixel_threshold_exclusive'],160)
 
+    def test_terminal_gray_or_white_pixel_has_an_explicit_failure_reason(self):
+        for gray in (206,255):
+            image=np.full((600,40),255,np.uint8);image[:,20]=0;image[-1,20]=gray
+            out=_image_rule_witness(image,x=10,top=0,bottom=300,scale_x=2,scale_y=2)
+            with self.subTest(gray=gray):
+                self.assertEqual(out['status'],'unknown')
+                self.assertEqual(out['failure_reasons'],['line_endpoint_without_black_support'])
+                self.assertIsNone(out['first_disconnected_scanline'])
+                self.assertEqual(out['black_mask_empty_intervals'][0]['scanline_range'],[599,600])
+
     def test_all_failure_categories_survive_together_and_samples_bind_coordinates(self):
         image=np.full((600,40),255,np.uint8);image[:,20]=0
         image[250:253,:]=255

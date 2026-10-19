@@ -299,6 +299,8 @@ def _image_rule_witness(gray, *, x, top, bottom, scale_x, scale_y,
     reasons = []
     if not connected:
         reasons.append("line_connection_interrupted")
+    elif not bool((state == 0).any()):
+        reasons.append("line_endpoint_without_black_support")
     if not all(v > .5 for v in thirds):
         reasons.append("thin_line_support_insufficient")
     if deviation is None:
