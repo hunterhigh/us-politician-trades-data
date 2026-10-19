@@ -53,6 +53,7 @@ from .oge import (
 )
 from .oge_reports import (
     PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
+    GENERIC_PARSER_VERSION as OGE_GENERIC_PARSER_VERSION,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
     TRUMP_SEPT_2026_SECOND_PASS_VERSION,
     TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -344,6 +345,7 @@ def main() -> None:
     oge_extract.add_argument("--batch", type=Path, required=True)
     oge_extract.add_argument("--archive", type=Path, required=True)
     oge_extract.add_argument("--reuse-root", type=Path)
+    oge_extract.add_argument("--generic", action="store_true")
     oge_extract.add_argument("--output-dir", type=Path, required=True)
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
@@ -351,6 +353,8 @@ def main() -> None:
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
     oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
+    oge_candidate.add_argument("--generic", action="store_true")
+    oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
     oge_candidate.add_argument("--output", type=Path, required=True)
@@ -948,10 +952,12 @@ def main() -> None:
                     f"{metadata.get('sha256')}.json"
                 try:
                     result = (load_reusable_oge_extraction(
-                        args.archive, metadata_path, args.reuse_root)
+                        args.archive, metadata_path, args.reuse_root,
+                        **({"generic": True} if args.generic else {}))
                         if args.reuse_root else None)
                     if result is None:
-                        result = parse_oge_archived_pdf(args.archive, metadata_path)
+                        result = parse_oge_archived_pdf(args.archive, metadata_path,
+                                                       **({"generic": True} if args.generic else {}))
                         parsed_count += 1
                     else:
                         reused_count += 1
@@ -977,6 +983,18 @@ def main() -> None:
         elif args.command == "build-oge-candidate":
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
             selected_extractions = {}
+            legacy_extractions = {}
+            if args.legacy_extractions_dir:
+                if not args.generic:
+                    raise OgeCatalogError("Legacy inheritance input requires explicit generic mode")
+                for path in sorted(args.legacy_extractions_dir.rglob("*.json")):
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    if value.get("parser_version") != OGE_REPORT_PARSER_VERSION:
+                        continue
+                    key = value.get("document_id")
+                    if not isinstance(key, str) or key in legacy_extractions:
+                        raise OgeCatalogError("Legacy extraction document identity is missing or duplicated")
+                    legacy_extractions[key] = value
             for path in sorted(args.extractions_dir.rglob("*.json")):
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
@@ -985,7 +1003,8 @@ def main() -> None:
                                    TRUMP_SEPT_2026_PARSER_VERSION,
                                    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION}:
+                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
+                        args.generic and version == OGE_GENERIC_PARSER_VERSION):
                     continue
                 if version in {TRUMP_SEPT_2026_PARSER_VERSION,
                                TRUMP_SEPT_2026_SECOND_PASS_VERSION,
@@ -997,6 +1016,20 @@ def main() -> None:
                     raise OgeCatalogError("Source-bound OGE extraction is not the fixed report")
                 previous = selected_extractions.get(document_id)
                 if previous is not None:
+                    if args.generic and OGE_GENERIC_PARSER_VERSION in {version, previous.get("parser_version")}:
+                        if version == previous.get("parser_version") or any(
+                                value.get(field) != previous.get(field)
+                                for field in ("source_sha256", "source_url", "document_id")):
+                            raise OgeCatalogError("Generic and legacy source versions are ambiguous")
+                        older = previous if version == OGE_GENERIC_PARSER_VERSION else value
+                        if older.get("parser_version") == OGE_REPORT_PARSER_VERSION:
+                            supplied = legacy_extractions.get(document_id)
+                            if supplied is not None and supplied != older:
+                                raise OgeCatalogError("Conflicting bound legacy extractions")
+                            legacy_extractions[document_id] = older
+                        if version == OGE_GENERIC_PARSER_VERSION:
+                            selected_extractions[document_id] = value
+                        continue
                     if (document_id != TRUMP_SEPT_2026_DOCUMENT_ID or
                             version == previous.get("parser_version")):
                         raise OgeCatalogError("OGE extraction document ID is duplicated")
@@ -1025,7 +1058,8 @@ def main() -> None:
             base = json.loads(args.base.read_text(encoding="utf-8"))
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
-                catalog_history=catalog_history)
+                catalog_history=catalog_history,
+                **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}))
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
                            allow_empty_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],

@@ -998,7 +998,7 @@ def _is_fixed_trump_september_source(metadata: dict, source_sha: str) -> bool:
 
 
 def load_reusable_extraction(root: Path, metadata_path: Path,
-                             reuse_root: Path) -> dict | None:
+                             reuse_root: Path, *, generic: bool = False) -> dict | None:
     """Load a source- and parser-bound review result after re-hashing its PDF.
 
     Review data is a durable checkpoint, not a substitute for evidence checks.
@@ -1010,7 +1010,7 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
     metadata, _, source_sha = _read_archived_source(root, metadata_path)
     fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
     parser_version = (
-        TRUMP_SEPT_2026_PAGE7_PASS_VERSION
+        GENERIC_PARSER_VERSION if generic else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
         if fixed_source and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
         else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
         if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
@@ -1045,7 +1045,11 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
             not isinstance(value.get("document_reasons"), list) or
             type(value.get("evidence_complete")) is not bool):
         return None
-    if fixed_source and value.get("filing_date_evidence") != \
+    if generic:
+        from .oge_transaction_adapter import generic_cover_evidence_valid
+        if not generic_cover_evidence_valid(value):
+            return None
+    if not generic and fixed_source and value.get("filing_date_evidence") != \
             TRUMP_SEPT_2026_FILING_DATE_EVIDENCE:
         return None
     return value
