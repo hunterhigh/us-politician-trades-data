@@ -365,6 +365,12 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
         row["account_heading_source_slot"] = account_ref
         row["source_slot"] = {"page_number": number, "grid_slot": slot["grid_slot"],
                               "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
+        # Reuse the formal paper source-slot fingerprint already used by both
+        # delivered fixed reports. OCR text is evidence, not row identity.
+        fingerprint = "|".join((source_sha, str(number), observed[number],
+                                str(slot["grid_slot"]), slot["row_crop_sha256"]))
+        row["extraction_id"] = "senate-ptr:" + hashlib.sha256(fingerprint.encode("ascii")).hexdigest()[:24]
+        row["row_number"] = slot["grid_slot"]
         row["quarantine_reasons"] = sorted(set(reasons))
         row["qualification_status"] = "quarantined" if reasons else "eligible"
         rows.append(row)

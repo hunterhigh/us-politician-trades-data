@@ -180,6 +180,15 @@ class SenatePaperGridTests(unittest.TestCase):
         self.assertEqual(result["quarantined_transaction_count"], 1)
         result = parse_paper_grid_observations(*inputs(date="09/02/26"))
         self.assertIn("paper_date_observation_conflict", result["transactions"][0]["quarantine_reasons"])
+        original = parse_paper_grid_observations(*inputs())
+        self.assertEqual(result["transactions"][0]["extraction_id"],
+                         original["transactions"][0]["extraction_id"])
+        args = inputs()
+        slot = args[2]["slots"][0]
+        expected = "senate-ptr:" + hashlib.sha256("|".join((
+            args[1]["entrypoint_source_sha256"], "2", args[3][0]["source_sha256"], "1",
+            slot["row_crop_sha256"])).encode("ascii")).hexdigest()[:24]
+        self.assertEqual(original["transactions"][0]["extraction_id"], expected)
 
     def test_source_or_mark_tampering_cannot_create_a_fact(self):
         args = inputs()
