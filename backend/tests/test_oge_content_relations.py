@@ -9,7 +9,9 @@ import tempfile
 import unittest
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes
+from unison_snapshot.oge_278t_field_shadow import (
+    _amount_shape, _date_shape, observe_content_rows, observe_field_shapes,
+)
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
 
@@ -31,6 +33,24 @@ def saved(rows=None):
             "ocr_engine": "synthetic", "ocr_resolution_dpi": 200,
             "pages": [{"page_number": 2, "column_geometry": "oge_2024_six_column_grid",
                        "column_edges_pdf_points": EDGES, "physical_slot_count": len(slots), "slots": slots}]}
+
+
+def column_read(data, field, raw):
+    names = {"type": ["type"], "transaction_date": ["transaction_date"], "amount": ["notification", "amount"]}[field]
+    columns = data["pages"][0]["slots"][0]["column_observation"]
+    kind = {"type": "type", "transaction_date": "date", "amount": "amount"}[field]
+    shape = (_date_shape(raw) if field == "transaction_date" else _amount_shape(raw)
+             if field == "amount" else raw)
+    left, right = {"type": (71, 78), "transaction_date": (81, 98), "amount": (111, 148)}[field]
+    return {"schema_version": f"oge-278t-{kind}-column-observation/v{'2' if field == 'amount' else '1'}",
+            "source_sha256": data["source_sha256"], "ocr_engine": "synthetic-column",
+            "ocr_resolution_dpi": 300, "input_ocr_resolution_dpi": 200, "summary": {"observed_slots": 1},
+            "pages": [{"page_number": 2, "status": kind + "_column_observed", "slot_count": 1,
+                       "slots": [{"slot_index": 1, "band_pdf_points": [100, 115],
+                                  "page_raw_ocr_text": " ".join(columns[name]["raw_ocr_text"] for name in names),
+                                  "column_raw_ocr_text": raw, "column_shape": shape,
+                                  "column_words" if field == "type" else "column_detections": [
+                                      {"text": raw, "bbox_pdf_points": [left, 102, right, 108]}]}]}]}
 
 
 class OgeContentRelationsTests(unittest.TestCase):
@@ -123,6 +143,123 @@ class OgeContentRelationsTests(unittest.TestCase):
         previous = observe_field_shapes([data])
         self.assertEqual({key: out[key] for key in previous}, previous)
         self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
+
+    def test_bound_secondary_read_can_supply_missing_shape_without_rewriting_primary(self):
+        for field, index, raw in [("type", 2, "purchase"), ("transaction_date", 3, "01/02/2026"),
+                                  ("amount", 5, "$1,001 - $15,000")]:
+            with self.subTest(field=field):
+                cells = ["1", "ALPHA", "purchase", "01/02/2026", "No", "$1,001 - $15,000"]
+                cells[index] = "?"
+                data = saved([cells])
+                reading = column_read(data, field, raw)
+                before = deepcopy((data, reading))
+                out = observe_content_rows([data], document_page_count=4, secondary_observations=[reading])
+                self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
+                self.assertEqual(out["field_observations"], observe_field_shapes([data], secondary_observations=[reading]))
+                self.assertEqual(out["field_observations"]["pages"][0]["slots"][0]["field_shapes"][field]["status"], "unknown")
+                evidence = out["logical_row_field_evidence"][0]["field_evidence"][field]
+                self.assertFalse(evidence["primary_recognized"])
+                self.assertTrue(evidence["secondary_recognized"])
+                self.assertEqual(evidence["supporting_observations"], [{
+                    "observation_index": 1, "source_ref": "secondary_observations/0/pages/0/slots/0"}])
+                self.assertEqual(out["relation_evidence_summary"]["secondary_only_supported_field_counts"], {field: 1})
+                self.assertEqual((data, reading), before)
+                self.assertNotIn("selected_value", json.dumps(out))
+
+    def test_missing_fields_have_specific_reasons_instead_of_inferred_continuation(self):
+        out = self.observe(saved([["1", "ALPHA", "?", "?", "No", "?"]]))
+        reasons = out["slot_content"][0].get("relation_evidence")
+        # No recognizable transaction content at all stays unknown, not a data candidate.
+        self.assertIsNone(reasons)
+        out = self.observe(saved([["1", "ALPHA", "purchase", "?", "No", "?"]]))
+        self.assertEqual(out["slot_content"][0]["relation_evidence"]["blocking_reasons"],
+                         ["amount_observation_missing", "transaction_date_observation_missing"])
+
+    def test_secondary_read_cannot_bypass_cross_field_geometry(self):
+        data = saved([["1", "ALPHA", "?", "01/02/2026", "No", "$1,001 - $15,000"]])
+        slot = data["pages"][0]["slots"][0]
+        slot["words"][2]["bbox_pdf_points"][0] = 69.9
+        slot.update(_observe_slot_columns(slot["words"], EDGES))
+        out = observe_content_rows([data], document_page_count=4,
+                                   secondary_observations=[column_read(data, "type", "purchase")])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
+        self.assertEqual(out["slot_content"][0]["relation_evidence"]["blocking_reasons"], ["cross_field_word_geometry"])
+
+    def test_ambiguous_secondary_cannot_supply_missing_primary(self):
+        data = saved([["1", "ALPHA", "?", "01/02/2026", "No", "$1,001 - $15,000"]])
+        reading = column_read(data, "type", "purchase")
+        reading["pages"][0]["slots"][0]["column_words"][0]["bbox_pdf_points"] = [65, 102, 84, 108]
+        out = observe_content_rows([data], document_page_count=4, secondary_observations=[reading])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
+        self.assertEqual(out["slot_content"][0]["relation_evidence"]["blocking_reasons"], ["type_observation_missing"])
+
+    def test_repeated_matching_readings_never_outvote_a_conflict(self):
+        data = saved()
+        readings = [column_read(data, "transaction_date", text)
+                    for text in ["01/03/2026", "01/02/2026", "01/02/2026"]]
+        for index, reading in enumerate(readings):
+            reading["ocr_engine"] += str(index)
+        out = observe_content_rows([data], document_page_count=4, secondary_observations=readings)
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
+        self.assertEqual(out["slot_content"][0]["relation_evidence"]["blocking_reasons"],
+                         ["transaction_date_observation_conflict"])
+
+    def test_parser_adapter_keeps_old_dispositions_when_secondary_adds_a_relation(self):
+        data = saved([["1", "ALPHA", "?", "01/02/2026", "No", "$1,001 - $15,000"]])
+        extraction, catalog = self.adapter_inputs([{"page_number": 2, "cells": ["1", "ALPHA", "?", "", "", ""]}])
+        old = adapt_oge_278t_extraction(extraction, catalog)
+        out = adapt_oge_278t_extraction(extraction, catalog, raster_observations=[data], document_page_count=4,
+                                        secondary_field_observations=[column_read(data, "type", "purchase")])
+        self.assertEqual({key: out[key] for key in old}, old)
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
+        self.assertEqual(out["source_report_ledger"]["qualified_transaction_count"], None)
+
+    def date_crossing_case(self):
+        data = saved()
+        slot = data["pages"][0]["slots"][0]
+        slot["words"][3]["bbox_pdf_points"][2] = 101
+        slot.update(_observe_slot_columns(slot["words"], EDGES))
+        return data, [column_read(data, "transaction_date", "01/02/2026"),
+                      column_read(data, "amount", "$1,001 - $15,000")]
+
+    def test_every_affected_field_requires_its_own_complete_geometry_read(self):
+        data, readings = self.date_crossing_case()
+        out = observe_content_rows([data], document_page_count=4, secondary_observations=readings[:1])
+        relation = out["slot_content"][0]["relation_evidence"]
+        self.assertEqual(relation["unresolved_geometry_fields"], ["amount"])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
+        out = observe_content_rows([data], document_page_count=4, secondary_observations=readings)
+        relation = out["slot_content"][0]["relation_evidence"]
+        self.assertEqual(relation["unresolved_geometry_fields"], [])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
+        self.assertTrue(relation["crossing_word_refs"])
+        self.assertEqual(set(relation["field_geometry_evidence"]), {"transaction_date", "amount"})
+        self.assertEqual(out["field_observations"], observe_field_shapes([data], secondary_observations=readings))
+        geometry = out["logical_row_field_evidence"][0]["field_geometry_evidence"]
+        self.assertEqual(geometry, relation["field_geometry_evidence"])
+        self.assertEqual(geometry["amount"]["supporting_observations"], [{
+            "observation_index": 1, "source_ref": "secondary_observations/1/pages/0/slots/0"}])
+
+    def test_aux_geometry_does_not_ignore_primary_field_conflict(self):
+        data, readings = self.date_crossing_case()
+        readings[1] = column_read(data, "amount", "$15,001 - $50,000")
+        out = observe_content_rows([data], document_page_count=4, secondary_observations=readings)
+        relation = out["slot_content"][0]["relation_evidence"]
+        self.assertEqual(relation["unresolved_geometry_fields"], [])
+        self.assertEqual(relation["blocking_reasons"], ["amount_observation_conflict"])
+        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
+
+    def test_crop_rounding_or_ambiguous_vertical_geometry_cannot_replace_primary_geometry(self):
+        for box, status in [([80.5, 102, 98, 108], "source_bound"), ([81, 102, 98, 118.1], "ambiguous")]:
+            with self.subTest(box=box):
+                data, readings = self.date_crossing_case()
+                readings[0]["pages"][0]["slots"][0]["column_detections"][0]["bbox_pdf_points"] = box
+                out = observe_content_rows([data], document_page_count=4, secondary_observations=readings)
+                field = out["field_observations"]["pages"][0]["slots"][0]["field_readings"]["transaction_date"]
+                self.assertEqual(field["observations"][1]["geometry_status"], status)
+                relation = out["slot_content"][0]["relation_evidence"]
+                self.assertEqual(relation["unresolved_geometry_fields"], ["transaction_date"])
+                self.assertEqual(out["source_report_ledger"]["logical_row_count"], 0)
 
     def test_geometry_and_scope_mismatches_fail(self):
         for mutate in (
