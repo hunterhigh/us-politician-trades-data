@@ -135,6 +135,34 @@ class WhiteHouseAnnualCandidateTests(unittest.TestCase):
         self.assertEqual(len(result["people"]), 1)
         self.assertEqual(result["reported_holdings"][0]["person_id"], person["id"])
 
+    def test_multiple_same_name_people_require_exact_annual_identity(self) -> None:
+        first, _ = overlay_whitehouse_annual_candidate(_base(), self.root)
+        exact = first["people"][0]
+        other = {**exact, "id": "oge:" + "f" * 16}
+        base = _base()
+        base["people"] = [exact, other]
+        legacy = first["reported_holdings"][0]
+        base["reported_holdings"] = [
+            {**legacy, "id": f"legacy-{index}", "filing_id": "existing",
+             "person_id": person["id"]}
+            for index, person in enumerate((exact, other), 1)
+        ]
+        result, audit = overlay_whitehouse_annual_candidate(base, self.root)
+        self.assertEqual(audit["annual_holding_count"], 1)
+        added = next(row for row in result["reported_holdings"]
+                     if row["id"].startswith("wh-annual:"))
+        self.assertEqual(added["person_id"], exact["id"])
+
+        base["people"][0] = {**exact, "id": "oge:" + "e" * 16}
+        base["reported_holdings"][0]["person_id"] = "oge:" + "e" * 16
+        result, audit = overlay_whitehouse_annual_candidate(base, self.root)
+        added = next(row for row in result["reported_holdings"]
+                     if row["id"].startswith("wh-annual:"))
+        self.assertNotIn(added["person_id"],
+                         {person["id"] for person in base["people"]})
+        self.assertEqual(audit["annual_identity_unlinked_report_ids"],
+                         [_annual()["reports"][0]["document_id"]])
+
     def test_partial_report_is_labeled_without_claiming_completeness(self) -> None:
         annual = _annual()
         report = annual["reports"][0]
