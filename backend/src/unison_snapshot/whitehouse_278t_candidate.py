@@ -214,9 +214,14 @@ def build_whitehouse_278t_review_candidate(
                           row.get("office_type", "").casefold() ==
                           identity["agency"].casefold()]
             if len(compatible) > 1:
-                raise OgeCatalogError(
-                    "White House 278-T filer matches multiple existing OGE people")
-            if len(compatible) == 1:
+                exact = [row for row in compatible
+                         if row.get("id") == identity["person_id"]]
+                if len(exact) == 1:
+                    person = exact[0]
+                else:
+                    doc_reasons.append("existing_oge_person_ambiguous")
+                    person = None
+            elif len(compatible) == 1:
                 person = compatible[0]
             elif matches:
                 raise OgeCatalogError(

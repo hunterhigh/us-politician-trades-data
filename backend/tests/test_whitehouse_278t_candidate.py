@@ -12,7 +12,9 @@ from unison_snapshot.whitehouse_278t_audit import (
     audit_whitehouse_278t,
 )
 from unison_snapshot.whitehouse_278t import TRUMP_081225_PARSER_VERSION
-from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_278t_candidate import (
+    _person, build_whitehouse_278t_review_candidate,
+)
 from unison_snapshot.whitehouse_annual_candidate import _person as annual_person
 
 
@@ -143,6 +145,41 @@ def _trump_source_bound():
 
 
 class WhiteHouse278TCandidateTests(unittest.TestCase):
+    def test_multiple_same_name_oge_people_use_exact_id_or_quarantine_report(self):
+        report = _wiles()
+        report["source_url"] = "https://www.whitehouse.gov/wp-content/uploads/2025/06/Wiles-2.pdf"
+        report["document_id"] = "wh-url:" + hashlib.sha256(
+            report["source_url"].encode()).hexdigest()[:24]
+        report["source_sha256"] = "c" * 64
+        for index, row in enumerate(report["transactions"], 1):
+            row["extraction_id"] = f"oge-278t:{index:024x}"
+            row["asset_name"] = f"Unrelated Asset {index}"
+            row["ticker"] = None
+        audit = audit_whitehouse_278t([report], _catalog(), _base())
+        identity = audit["reports"][0]["matched_catalog_identity"]
+        exact = _person(identity)
+        other = {**exact, "id": "oge:" + "f" * 16}
+        base, _ = _build()
+        base["people"].append(other)
+        audit = audit_whitehouse_278t([report], _catalog(), base)
+        candidate, result = build_whitehouse_278t_review_candidate(
+            base, [report], audit, _catalog(),
+            data_cutoff_at="2025-06-14T00:00:00Z")
+        self.assertEqual(result["promoted_transaction_count"], 3)
+        self.assertEqual({row["person_id"] for row in candidate["transactions"]},
+                         {exact["id"]})
+
+        base["people"] = [{**exact, "id": "oge:" + "e" * 16}, other]
+        for row in base["transactions"]:
+            row["person_id"] = "oge:" + "e" * 16
+        audit = audit_whitehouse_278t([report], _catalog(), base)
+        candidate, result = build_whitehouse_278t_review_candidate(
+            base, [report], audit, _catalog(),
+            data_cutoff_at="2025-06-14T00:00:00Z")
+        self.assertEqual(len(candidate["transactions"]), len(base["transactions"]))
+        self.assertIn("existing_oge_person_ambiguous",
+                      result["reports"][0]["document_reasons"])
+
     def test_qualified_annual_identity_is_reused_before_annual_overlay(self):
         base, _ = _build()
         report = _wiles()
