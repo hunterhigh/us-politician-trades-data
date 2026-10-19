@@ -1022,6 +1022,9 @@ def build_senate_candidate(
     candidate, annual_audit = overlay_annual_candidate(
         candidate, review_root, expected_roster_sha256=roster_sha,
         evidence_root=evidence_root)
+    from .senate_annual_transactions import consume_part4b_candidate_decisions
+    annual_audit["annual_transaction_candidate_decisions"] = consume_part4b_candidate_decisions(
+        annual_audit, transactions=candidate["transactions"])
     audit = {
         "schema_version": CANDIDATE_AUDIT_SCHEMA,
         "builder_version": CANDIDATE_BUILDER_VERSION,

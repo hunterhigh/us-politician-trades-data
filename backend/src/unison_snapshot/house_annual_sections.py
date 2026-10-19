@@ -227,3 +227,140 @@ def observe_archived_annual_pdf(pdf_path: Path, extraction: dict) -> dict:
                   "words": page.extract_words(keep_blank_chars=False, extra_attrs=["size"])}
                  for page in document.pages]
     return observe_annual_sections(pages, extraction)
+
+
+RELATION_RULE = "house-annual-b-candidate-relations/v1"
+
+
+def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
+                              reported_holdings: list[dict]) -> dict:
+    """Decide existing annual observations inside the real candidate consumer.
+
+    No annual row is a new formal PTR. A verified exact report copy can be
+    excluded once; equal fields merely expose possible overlaps. Optional raw
+    source bytes prove copies, and cached pages reproduce parsed observations.
+    Missing proof blocks the new observations, never replaces old formal rows.
+    """
+    from collections import Counter
+    import json
+    from urllib.parse import urlsplit
+    reports, verified = [], {}
+    seen = set()
+    for payload in inputs:
+        observation, extraction, identity = (payload.get(name) for name in
+                                             ("observation", "extraction", "identity"))
+        source = observation.get("source", {}) if isinstance(observation, dict) else {}
+        document, sha = source.get("document_id"), observation.get("source_sha256") if isinstance(observation, dict) else None
+        source_url = source.get("source_url")
+        reasons = []
+        if (not isinstance(observation, dict) or observation.get("schema_version") != SCHEMA or
+                not isinstance(extraction, dict) or not isinstance(identity, dict) or
+                extraction.get("source_sha256") != sha or extraction.get("source") != source or
+                not re.fullmatch(r"[0-9a-f]{64}", str(sha)) or
+                not re.fullmatch(r"house:[A-Z][0-9]{6}", str(identity.get("person_id"))) or
+                identity.get("document_id") != document or source.get("source_id") != "house_clerk" or
+                not re.fullmatch(r"20[0-9]{2}", str(source.get("filing_year"))) or
+                not isinstance(source_url, str) or urlsplit(source_url).scheme != "https" or
+                urlsplit(source_url).hostname != "disclosures-clerk.house.gov"):
+            reasons.append("annual_source_or_identity_binding_invalid")
+        key = (document, sha)
+        if key in seen:
+            reasons.append("annual_observation_input_repeated")
+        seen.add(key)
+        rows = observation.get("schedule_b_rows") if isinstance(observation, dict) else None
+        if not isinstance(rows, list):
+            rows = []
+            reasons.append("schedule_b_rows_unknown")
+        elif observation.get("schedule_b_observed_row_count") != len(rows):
+            reasons.append("schedule_b_row_count_inconsistent")
+        if payload.get("pages") is not None and not reasons:
+            try:
+                if observe_annual_sections(payload["pages"], extraction) != observation:
+                    reasons.append("annual_observation_differs_from_saved_pages")
+            except (ValueError, KeyError, TypeError):
+                reasons.append("annual_saved_page_observation_invalid")
+        elif payload.get("pages") is None:
+            reasons.append("annual_saved_page_reproduction_unavailable")
+        raw = payload.get("source_bytes")
+        bytes_verified = isinstance(raw, bytes) and hashlib.sha256(raw).hexdigest() == sha
+        if raw is not None and not bytes_verified:
+            reasons.append("annual_source_bytes_hash_mismatch")
+        report = {"document_id": document, "source_sha256": sha,
+                  "person_id": identity.get("person_id") if isinstance(identity, dict) else None,
+                  "source_url": source_url, "source": source,
+                  "input_observation_sha256": hashlib.sha256(json.dumps(observation,
+                      ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                  "observed_row_count": len(rows) if "schedule_b_rows_unknown" not in reasons else None,
+                  "coverage_status": observation.get("schedule_b_coverage_status") if isinstance(observation, dict) else "unknown",
+                  "report_blocking_reasons": sorted(set(reasons)), "rows": []}
+        for row in rows:
+            expected = "house-annual-b:" + hashlib.sha256(
+                f"{sha}:{row.get('page_number')}:{row.get('top_points', 0):.2f}".encode()).hexdigest()[:24]
+            blockers = [*reasons, *row.get("problems", [])]
+            if row.get("observation_id") != expected:
+                blockers.append("annual_row_source_position_invalid")
+            matches = []
+            if not blockers:
+                for tx in transactions:
+                    if (tx.get("source_id") == "house_clerk" and tx.get("person_id") == report["person_id"] and
+                            all(tx.get(name) == row.get(name) for name in (
+                                "asset_name", "owner", "ticker", "transaction_type", "transaction_date",
+                                "amount_low", "amount_high", "amount_low_exclusive"))):
+                        matches.append(tx["id"])
+            blockers.append("multiple_field_matches_no_official_row_link" if len(matches)>1 else
+                            "field_match_without_official_row_link" if matches else
+                            "official_annual_ptr_row_correspondence_unproven")
+            relation_status = ("possible_ptr_overlap" if matches else "field_or_source_problems_unresolved"
+                               if len(blockers)>1 else "ptr_relationship_unresolved")
+            report["rows"].append({"observation_id": row.get("observation_id"),
+                "source_reference": {"document_id": document, "source_sha256": sha,
+                    "source_url": source_url, "section": "Schedule B", "evidence": row.get("evidence")},
+                "relation_status": relation_status, "possible_ptr_transaction_ids": sorted(matches),
+                "candidate_disposition": "blocked_pending_relationship",
+                "candidate_blocking_reasons": sorted(set(blockers)),
+                "formal_transaction_id": None})
+        reports.append(report)
+        if bytes_verified and not reasons:
+            verified[key] = (payload, report)
+    # Only exact original bytes plus the same reliable report context establish
+    # report aliases. Never group financial rows by matching fields.
+    groups = {}
+    for key,(payload,report) in verified.items():
+        source=report["source"]
+        context=(report["person_id"],source.get("filing_year"),source.get("filing_type"),
+                 source.get("filed_date"),report["source_sha256"])
+        groups.setdefault(context,[]).append((payload,report))
+    selected = {r.get("filing_id") for r in reported_holdings}
+    for group in groups.values():
+        if len(group)<2:
+            continue
+        preferred=[r for _,r in group if r["document_id"] in selected]
+        if len(preferred)>1:
+            for _,report in group:
+                report["report_blocking_reasons"].append("multiple_existing_formal_reports_share_original")
+            continue
+        canonical = preferred[0] if preferred else min((r for _,r in group),key=lambda r:r["document_id"])
+        canonical_payload=next(p for p,r in group if r is canonical)
+        canonical_rows=canonical_payload["observation"]["schedule_b_rows"]
+        for payload,report in group:
+            if report is canonical:
+                continue
+            if payload["observation"]["schedule_b_rows"] != canonical_rows:
+                report["report_blocking_reasons"].append("same_source_bytes_but_row_interpretation_differs")
+                continue
+            for row in report["rows"]:
+                row.update(relation_status="resolved_exact_source_copy",
+                    candidate_disposition="excluded_exact_source_copy", candidate_blocking_reasons=[],
+                    canonical_document_id=canonical["document_id"],
+                    canonical_observation_id=row["observation_id"],
+                    relation_basis="same_verified_original_bytes_and_report_context")
+    for report in reports:
+        for row in report["rows"]:
+            if row["candidate_disposition"] == "blocked_pending_relationship":
+                row["candidate_blocking_reasons"] = sorted(set([
+                    *row["candidate_blocking_reasons"], *report["report_blocking_reasons"]]))
+    return {"schema_version": "house-annual-b-candidate-audit/v1", "rule_version": RELATION_RULE,
+            "reports": reports, "observed_row_count": sum(r["observed_row_count"] or 0 for r in reports),
+            "candidate_disposition_counts": dict(sorted(Counter(row["candidate_disposition"]
+                for report in reports for row in report["rows"]).items())),
+            "new_candidate_transaction_count": 0, "formal_transactions_unchanged": True}
