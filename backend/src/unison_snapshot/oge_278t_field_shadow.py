@@ -31,6 +31,7 @@ _HEADER = re.compile(r"\b(description|type|date|notification|amount)\b", re.I)
 _FIELD_COLUMNS = {"printed_number": (0,), "description": (1,), "type": (2,),
                   "transaction_date": (3,), "amount": (4, 5)}
 _SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_observed"),
+              "oge-278t-description-column-observation/v1": ("description", "description_column_observed"),
               "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
               "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
@@ -136,12 +137,24 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
         pages = reading.get("pages")
         if not isinstance(pages, list) or len({p["page_number"] for p in pages}) != len(pages):
             raise ValueError("secondary field read pages are missing or repeated")
+        if field == "description":
+            fingerprint = reading.get("input_observation_canonical_sha256")
+            page_hashes = reading.get("input_page_canonical_sha256")
+            if (not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint) or
+                    not isinstance(page_hashes, dict) or set(page_hashes) != {str(p["page_number"]) for p in pages}):
+                raise ValueError("description read lacks bound input provenance")
         observed_count = 0
         for page_index, page in enumerate(pages):
             number = page["page_number"]
             if number not in source_pages:
                 raise ValueError("secondary field read references a page outside selected observations")
             original, original_page = source_pages[number]
+            if field == "description":
+                expected_input = hashlib.sha256(json.dumps(
+                    original_page, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                    allow_nan=False).encode()).hexdigest()
+                if reading["input_page_canonical_sha256"][str(number)] != expected_input:
+                    raise ValueError("description read differs from bound primary input")
             if page["status"] == "geometry_unknown":
                 if page.get("slots") != []:
                     raise ValueError("unknown secondary geometry contains field rows")
@@ -161,6 +174,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
             if (len(slots) != len(page["slots"]) or len(base_slots) != len(original_page["slots"]) or
                     set(slots) != set(base_slots) or page.get("slot_count") != len(slots)):
                 raise ValueError("secondary field slots are missing, duplicated or unbound")
+            unassigned = page.get("unassigned_detections", [])
+            if field == "description":
+                _validate_description_unassigned(page, original_page)
             for slot_index, slot in slots.items():
                 base = base_slots[slot_index]
                 if slot.get("band_pdf_points") != base.get("band_pdf_points"):
@@ -182,6 +198,14 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 left, right = min(_FIELD_COLUMNS[field]), max(_FIELD_COLUMNS[field]) + 1
                 rounding = 72.0 / dpi + .02
                 geometry_issues = []
+                if field == "description":
+                    overlaps = [i for i, item in enumerate(unassigned)
+                                if item["bbox_pdf_points"][1] < base["band_pdf_points"][1] and
+                                item["bbox_pdf_points"][3] > base["band_pdf_points"][0]]
+                    if slot.get("unassigned_detection_indices") != overlaps:
+                        raise ValueError("description unassigned references differ from geometry")
+                    if overlaps:
+                        geometry_issues.append("unassigned_description_detections_overlap_slot")
                 for detection in detections:
                     box = detection.get("bbox_pdf_points")
                     if (not isinstance(detection.get("text"), str) or
@@ -201,6 +225,11 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     raise ValueError("secondary text differs from saved detections")
                 if field == "amount":
                     shape = _amount_shape(raw)
+                elif field == "description":
+                    description_reading = _description_detection_reading(detections)
+                    shape = _description_shape(description_reading)
+                    if slot.get("column_reading") != description_reading:
+                        raise ValueError("description physical reading differs from detections")
                 elif field == "transaction_date":
                     shape = _date_shape(raw) if len(detections) == 1 else {
                         "status": "unknown", "value": None,
@@ -221,6 +250,10 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if field == "amount":
                     from .oge_278t_amount_categories import observe_template_amount
                     observation["template_category"] = observe_template_amount(raw)
+                elif field == "description":
+                    observation["description_reading"] = description_reading
+                    observation["page_unassigned_detection_indices"] = overlaps
+                    observation["unassigned_detections"] = [deepcopy(unassigned[i]) for i in overlaps]
                 target["observations"].append(observation)
                 observed_count += 1
         if reading.get("summary", {}).get("observed_slots") != observed_count:
@@ -251,6 +284,36 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
     result["secondary_field_summary"] = dict(sorted(counts.items()))
     result["secondary_geometry_unknown_pages"] = coverage
     result["secondary_input_refs"] = input_refs
+
+
+def _validate_description_unassigned(page: dict, original_page: dict) -> None:
+    detections = page.get("unassigned_detections")
+    if not isinstance(detections, list) or page.get("words_outside_slots") != len(detections):
+        raise ValueError("description unassigned detections are missing or miscounted")
+    edges = original_page["column_edges_pdf_points"]
+    for item in detections:
+        box = item.get("bbox_pdf_points")
+        if (not isinstance(item.get("text"), str) or not isinstance(box, list) or len(box) != 4 or
+                any(type(v) not in (int, float) or not isfinite(v) for v in box) or
+                not box[0] < box[2] or not box[1] < box[3] or
+                not edges[1] <= (box[0] + box[2]) / 2 < edges[2]):
+            raise ValueError("description unassigned detection geometry is invalid")
+        owners = [slot for slot in original_page["slots"] if
+                  slot["band_pdf_points"][0] <= (box[1] + box[3]) / 2 < slot["band_pdf_points"][1]]
+        if item.get("reason") == "center_rounding_ambiguous":
+            center = item.get("unrounded_center_pdf_points")
+            original_owners = [slot for slot in original_page["slots"] if
+                               slot["band_pdf_points"][0] <= center < slot["band_pdf_points"][1]] if type(center) in (int, float) and isfinite(center) else owners
+            if (type(center) not in (int, float) or not isfinite(center) or
+                    abs(center - (box[1] + box[3]) / 2) > .0051 or owners == original_owners):
+                raise ValueError("description center rounding ambiguity lacks its source basis")
+            continue
+        overhang = max(owners[0]["band_pdf_points"][0] - box[1],
+                       box[3] - owners[0]["band_pdf_points"][1], 0) if len(owners) == 1 else None
+        expected_reason = "vertical_overhang" if overhang is not None and overhang > 3.0 else "outside_slot_bands"
+        if (len(owners) == 1 and overhang <= 3.0 or
+                item.get("reason") != expected_reason):
+            raise ValueError("description detection marked unassigned without its geometry basis")
 
 
 def _date_shape(raw: str) -> dict:
@@ -331,6 +394,20 @@ def _description_reading(slot: dict) -> dict:
             "line_word_indices": lines, "reason": None}
 
 
+def _description_detection_reading(detections: list[dict]) -> dict:
+    """Reuse the physical reading order for every word; keep detector order raw."""
+    return _description_reading({
+        "words": detections, "column_observation": {"description": {
+            "raw_ocr_text": " ".join(item["text"] for item in detections),
+            "word_indices": list(range(len(detections)))}}})
+
+
+def _description_shape(reading: dict) -> dict:
+    description = (reading["ordered_ocr_text"] or "").strip()
+    return {"status": "ocr_text_only" if description and not _HEADER.search(description) else "unknown",
+            "value": description or None}
+
+
 def observe_field_shapes(observations: list[dict], *,
                          secondary_observations: list[dict] | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
@@ -366,7 +443,6 @@ def observe_field_shapes(observations: list[dict], *,
                 printed_number = raw["printed_number"].strip()
                 direction = raw["type"].strip().casefold()
                 description_reading = _description_reading(slot)
-                description = (description_reading["ordered_ocr_text"] or "").strip()
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
@@ -377,9 +453,7 @@ def observe_field_shapes(observations: list[dict], *,
                                        "unknown",
                                        "value": int(printed_number) if
                                        re.fullmatch(r"[1-9][0-9]*", printed_number) else None},
-                    "description": {"status": "ocr_text_only" if description and
-                                    not _HEADER.search(description) else "unknown",
-                                    "value": description or None},
+                    "description": _description_shape(description_reading),
                     "type": {"status": "ocr_shape_only" if direction in _TYPE else
                              "unknown", "value": direction if direction in _TYPE
                              else None},
@@ -433,7 +507,7 @@ def observe_field_shapes(observations: list[dict], *,
 
 def _content_disposition(row: dict) -> tuple[str, str]:
     """Recognize content separately from shape completeness and eligibility."""
-    raw, shapes = row["raw_columns"], row["field_shapes"]
+    raw = row["raw_columns"]
     cues = [field for field in ("type", "transaction_date", "amount")
             if any(_known_value(read["shape"]) is not None and
                    read.get("geometry_status") != "ambiguous"
@@ -456,7 +530,10 @@ def _content_disposition(row: dict) -> tuple[str, str]:
         return "heading", "explicit_account_section_heading"
     if note and not any(raw[name].strip() for name in ("type", "transaction_date", "notification", "amount")):
         return "note", "explicit_non_data_notice"
-    if _known_value(shapes["description"]) and cues:
+    description_observed = any(_known_value(read["shape"]) is not None and
+                               read.get("geometry_status") != "ambiguous"
+                               for read in row["field_readings"]["description"]["observations"])
+    if description_observed and cues:
         return "data_candidate", "asset_text_with_transaction_field_evidence"
     if not any(value.strip() for value in raw.values()):
         return "unknown", "empty_ocr_is_not_blank_source_evidence"
