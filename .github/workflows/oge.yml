@@ -411,6 +411,7 @@ jobs:
             --catalog .local/oge-catalog.json \
             --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
             --extractions-dir "$REVIEW_ROOT/oge/extractions" \
+            --manual-cover-dates-dir "$REVIEW_ROOT/oge/manual_cover_dates" \
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json"
