@@ -140,7 +140,7 @@ def _cell(image, words: list[dict], page, *, label: str,
 
 def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                           executable: str | None = None, dpi: int = 200,
-                          max_pages: int = 12) -> dict:
+                          max_pages: int = 12, page_numbers: list[int] | None = None) -> dict:
     """Observe physical rows and key cells without eligibility or fact IDs."""
     if hashlib.sha256(pdf_bytes).hexdigest() != source_sha256:
         raise ValueError("House PTR shadow source hash mismatch")
@@ -154,7 +154,17 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         if not 1 <= len(pdf.pages) <= max_pages:
             raise ValueError("House PTR shadow page count is outside bounds")
+        if (page_numbers is not None and (not isinstance(page_numbers, list) or not page_numbers or
+                any(type(number) is not int or not 1 <= number <= len(pdf.pages) for number in page_numbers) or
+                len(set(page_numbers)) != len(page_numbers))):
+            raise ValueError("House PTR shadow selected pages are invalid")
+        selected = set(range(1, len(pdf.pages) + 1)) if page_numbers is None else set(page_numbers)
         for number, page in enumerate(pdf.pages, 1):
+            if number not in selected:
+                pages_out.append({"page": number, "region_status": "coverage_unknown",
+                    "region_reason": "page_not_selected", "rows": [],
+                    "cell_status": "unobserved_not_selected", "coordinate_frame": "original_page"})
+                continue
             image = page.to_image(resolution=dpi).original
             region = locate_transaction_grid(image)
             record = {"page": number, "region_status": region["status"],
@@ -206,6 +216,11 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 record["ocr_engine"] = None
                 record["cell_status"] = "image_only_ocr_unavailable"
                 record["ocr_error"] = str(error)
+            if number == 1 and words and region.get("coordinate_frame") == "original_page":
+                from .house_ptr import _legacy_filing_status
+                statuses = {_legacy_filing_status({"_image": image}, words, page.width, page.height, compact)
+                            for compact in (False, True)} - {None}
+                record["filing_status_observation"] = next(iter(statuses)) if len(statuses) == 1 else None
             for index, physical in enumerate(region["physical_row_bands"], 1):
                 y0, y1 = physical["band"]
                 cells = {"owner": _cell(image, words, cell_page, label="owner",

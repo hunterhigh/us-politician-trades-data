@@ -770,9 +770,11 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             reasons.append("identity_not_deterministic")
         if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
             reasons.append("revision_relationship_unresolved")
-        if row.get("amount_high") is None and (row.get("amount_kind") != "open_ended" or
-                type(row.get("amount_low_exclusive")) is not bool):
-            reasons.append("open_ended_amount_not_representable")
+        if row.get("amount_high") is None:
+            if row.get("amount_kind") != "open_ended":
+                reasons.append("amount_upper_bound_missing")
+            elif type(row.get("amount_low_exclusive")) is not bool:
+                reasons.append("open_ended_amount_not_representable")
         if str(extraction.get("extraction_method", "")).startswith("tesseract_") and (
                 not isinstance(row.get("ocr_confidence"), (int, float))
                 or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):

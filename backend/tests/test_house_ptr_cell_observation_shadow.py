@@ -118,6 +118,23 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(date["bbox_points"], [14.4, 7.2, 21.6, 21.6])
         self.assertIsNone(date["value"])
 
+    def test_bounded_pages_preserve_original_census_without_rendering_skipped_pages(self):
+        source = b"source-bound-two-page-fixture"
+        pages = [MagicMock(), MagicMock()]
+        pages[1].to_image.return_value = SimpleNamespace(original=object())
+        pdf = MagicMock()
+        pdf.pages = pages
+        pdf.__enter__.return_value = pdf
+        with (patch("pdfplumber.open", return_value=pdf),
+              patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid",
+                    return_value={"status": "coverage_unknown", "reason": "unlocated"})):
+            result = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest(),
+                                           page_numbers=[2])
+        pages[0].to_image.assert_not_called()
+        self.assertEqual(len(result["pages"]), 2)
+        self.assertEqual(result["pages"][0]["region_reason"], "page_not_selected")
+        self.assertEqual(result["pages"][1]["page"], 2)
+
     def test_short_grid_locates_asset_and_both_date_columns(self):
         region = {"bands": [{"upper": .1, "vertical_x": [.12, .35, .46, .53, .60]},
                             {"upper": .2}], "header_band": [.2, .25],

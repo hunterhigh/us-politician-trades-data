@@ -41,6 +41,19 @@ class HousePaperSectionContextTests(unittest.TestCase):
         self.assertNotEqual(keys[1], keys[2])
         self.assertEqual(result["sections"][0]["title_crop_sha256"], "b" * 64)
 
+    def test_unobserved_page_breaks_account_scope(self):
+        observation = {"schema_version": "house-ptr-cell-observation-shadow/v3",
+            "qualification_status": "unverified_shadow_only", "source_sha256": "a" * 64,
+            "pages": [
+                {"page": 1, "rows": [
+                    {"physical_band_index": 1, "disposition": "unknown", "cells": heading_cells("FAMILY TRUST")},
+                    {"physical_band_index": 2, "disposition": "data_candidate", "cells": None}]},
+                {"page": 2, "rows": [], "region_status": "coverage_unknown"},
+                {"page": 3, "rows": [{"physical_band_index": 1, "disposition": "data_candidate", "cells": None}]}]}
+        result = relate_house_ptr_sections(observation)
+        self.assertIsNotNone(result["data_rows"][0]["section_key"])
+        self.assertIsNone(result["data_rows"][1]["section_key"])
+
     def test_marked_or_last_unknown_row_stays_unclassified(self):
         observation = {"schema_version": "house-ptr-cell-observation-shadow/v3",
                        "qualification_status": "unverified_shadow_only",
