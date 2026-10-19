@@ -162,6 +162,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     unknown_pages = []
     account_established = False
     account_scope_lost = False
+    established_account_context = None
     old_source_keys = {_row_key(row) for row in extraction["source_rows"]}
     raw_pages = {page["page_number"]: page for item in observations for page in item["pages"]}
 
@@ -229,6 +230,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 owner_conflicted = not safe
                 if safe:
                     account_established = account_scope_lost = False
+                    established_account_context = None
                     receipt.update(disposition="excluded", reasons=["explicit_owner_heading"])
                 else:
                     receipt["reasons"] = ["owner_heading_observation_unresolved"]
@@ -238,21 +240,25 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 if (observation["disposition"] == "heading" and
                         observation.get("account_context", {}).get("status") == "observed"):
                     account_established, account_scope_lost = True, False
+                    established_account_context = deepcopy(observation["account_context"])
                 receipt.update(disposition="excluded", reasons=[observation["reason"]])
                 continue
             if observation["disposition"] != "data_candidate":
                 receipt["reasons"] = [observation["reason"]]
                 defer(physical, reference, receipt["reasons"])
-                owner_conflicted = owner_conflicted or owner_reference is not None
-                owner = None
-                owner_reference = None
                 # Unknown OCR is not evidence that an optional account title
                 # was present. Actual lost scope or an explicit ambiguous
                 # account/continuation label does require resolution.
                 label = ordered_description or cells[1]
                 explicit_scope = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", label, re.I)
                                       or re.match(r"\s*(?:continued|continuation|cont[.'’]?d)\b", label, re.I))
-                account_scope_lost = account_scope_lost or account_established or explicit_scope
+                explicit_owner = bool(re.fullmatch(
+                    r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", label, re.I))
+                account_scope_lost = account_scope_lost or explicit_scope or explicit_owner
+                if explicit_scope or explicit_owner:
+                    owner_conflicted = owner_conflicted or owner_reference is not None or explicit_owner
+                    owner = None
+                    owner_reference = None
                 continue
             reasons = []
             relation = observation.get("relation_evidence", {})
@@ -284,9 +290,14 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             account = observation.get("account_context", {})
             if account.get("status") == "observed":
                 account_established = True
+                established_account_context = deepcopy(account)
             effective_account = deepcopy(account)
             if account_scope_lost:
                 effective_account.update(status="unknown", reason="established_or_explicit_account_scope_unresolved")
+            elif account_established and established_account_context is not None:
+                effective_account = deepcopy(established_account_context)
+                if account.get("status") != "observed":
+                    effective_account["coverage_warning"] = "non_scope_unknown_slot_retained_separately"
             elif account.get("status") in {"none_observed", "unknown"}:
                 effective_account.update(status="not_observed", title=None,
                     reason="optional_account_title_not_observed",

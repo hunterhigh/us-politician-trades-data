@@ -273,6 +273,21 @@ class GenericCandidateTests(unittest.TestCase):
         self.assertFalse(receipt["coverage_complete"])
         self.assertEqual(receipt["rows"][-1]["effective_account_context"]["status"], "not_observed")
 
+    def test_same_page_unknown_number_or_empty_slot_does_not_erase_scope(self):
+        for noise in [["#", "", "", "", "", ""], ["", "", "", "", "", ""]]:
+            for heading in [[], [["", "Investment account #1", "", "", "", ""]],
+                            [["", "Filer assets", "", "", "", ""]]]:
+                result, audit = candidate(bundle([*heading, noise, ROW]))
+                self.assertEqual(len(result["transactions"]), 2)
+                row = next(row for row in result["transactions"] if row["asset_name"].startswith("ALPHA"))
+                self.assertEqual(row["owner"], "Self" if heading and heading[0][1] == "Filer assets" else "Undisclosed")
+                self.assertEqual(row["asset_name"], "ALPHA — Investment account #1"
+                                 if heading and heading[0][1].startswith("Investment") else "ALPHA")
+                receipt = audit["reports"][0]["observation_receipt"]
+                self.assertEqual(receipt["unresolved_slot_count"], 1)
+                self.assertFalse(receipt["coverage_complete"])
+                self.assertNotIn("account_context_unresolved", receipt["rows"][-1]["reasons"])
+
     def test_gap_without_established_scope_is_not_a_lost_account(self):
         first = saved([ROW])
         last = saved([ROW])
