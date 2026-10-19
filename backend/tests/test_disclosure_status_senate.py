@@ -18,6 +18,23 @@ def write(root: Path, name: str, value: dict):
 
 
 class SenateStatusTests(unittest.TestCase):
+    def test_no_known_rows_with_unknown_coverage_has_unknown_status_counts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence, review = self.fixture(Path(folder), ["report"])
+            self.archive(evidence, "report")
+            self.extract(review, "report", 0)
+            self.audit(review,
+                quarantined_reports=[{"document_id": "report", "source_sha256": SHA,
+                                      "reasons": ["source_row_coverage_incomplete"]}],
+                paper_pending_projection={"source_report_coverage": [
+                    {"document_id": "report", "source_sha256": SHA,
+                     "relation_coverage": "partial_unknown", "logical_row_count": 0,
+                     "unknown_slot_count": 8, "coverage_unknown_pages": [1]}]})
+            record = build_senate_status(evidence, review, [], [])[0]["reports"][0]
+            self.assertEqual(record["qualification_state"], "unknown")
+            self.assertIsNone(record["qualified_transaction_count"])
+            self.assertIsNone(record["quarantined_row_count"])
+
     def test_bound_unknown_pages_keep_known_transactions_but_prevent_full_report_claim(self):
         with tempfile.TemporaryDirectory() as folder:
             evidence, review = self.fixture(Path(folder), ["report"])

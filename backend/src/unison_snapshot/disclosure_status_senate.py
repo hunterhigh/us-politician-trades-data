@@ -271,6 +271,11 @@ def build_senate_status(evidence_root: Path, review_root: Path,
             elif record["qualification_state"] == "zero_transactions":
                 record["qualification_state"] = "unknown"
                 record["qualified_transaction_count"] = None
+            elif (record["qualification_state"] == "quarantined" and
+                  record["qualified_transaction_count"] == record["quarantined_row_count"] == 0):
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+                record["quarantined_row_count"] = None
 
     qualified_id_to_report = {}
     for document_id, rows in qualified.items():
