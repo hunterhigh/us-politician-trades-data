@@ -14,6 +14,7 @@ from unison_snapshot.oge_transaction_adapter import (
     PARSER_ID, RULES_VERSION, adapt_oge_278t_extraction,
     materialize_oge_278t_observations,
     _observation_input_extraction,
+    legacy_disposition_reference,
 )
 from unison_snapshot.oge_reports import parse_archived_pdf
 from unison_snapshot.pipeline_ledger import (
@@ -194,6 +195,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
             reason = "extraction_failed"
         else:
             source_rows_recovered = False
+            source_rows_reference = None
             expected_files.add(extraction_path.name)
             extraction = _read_json(extraction_path)
             if (not isinstance(extraction, dict) or
@@ -202,7 +204,9 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                 raise OgeShadowInputError(f"{document_id}: extraction differs from archived document")
             if document_id in saved:
                 extraction = _observation_input_extraction(extraction)
-            if not isinstance(extraction.get("source_rows"), list):
+                if "source_rows" not in extraction:
+                    source_rows_reference = legacy_disposition_reference(extraction, record)
+            if not isinstance(extraction.get("source_rows"), list) and source_rows_reference is None:
                 if integration:
                     raise OgeShadowInputError(f"{document_id}: observed integration requires saved source_rows; no automatic reparse")
                 if evidence_path_root is None:
@@ -236,7 +240,12 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                               and row.get("verification_status") == "official_matched"]
                     extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record)
                 if document_id in saved:
-                    extraction = materialize_oge_278t_observations(extraction, record, **saved[document_id])
+                    formal_ids = [row["id"] for row in candidate_base.get("transactions", [])
+                                  if row.get("source_id") == "oge" and row.get("filing_id") == document_id
+                                  and row.get("source_url") == record["document_url"]
+                                  and row.get("verification_status") == "official_matched"]
+                    extraction = materialize_oge_278t_observations(extraction, record,
+                        formal_reference_ids=formal_ids, **saved[document_id])
                 adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
             except Exception as exc:
                 raise OgeShadowInputError(
@@ -259,6 +268,12 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                           "idempotency_key": key, "disposition": disposition,
                           **({"source_rows_status": "recovered_from_pinned_evidence_after_equivalence_check"}
                              if not failed_by_id.get(document_id) and source_rows_recovered else {}),
+                          **({"source_rows_status": "saved_observation_rows_with_legacy_disposition_reference",
+                              "legacy_reference_sha256": source_rows_reference["source_extraction_sha256"],
+                              "legacy_normalized_reference_count": source_rows_reference["normalized_transaction_count"],
+                              "legacy_quarantined_reference_count": source_rows_reference["quarantined_reference_count"],
+                              "legacy_physical_inventory_status": "not_saved"}
+                             if not failed_by_id.get(document_id) and source_rows_reference else {}),
                           **({"reason": reason} if reason else {})})
     if set(failed_by_id) - seen_ids or available != expected_files:
         raise OgeShadowInputError("OGE failure or extraction files do not match archived report inventory")

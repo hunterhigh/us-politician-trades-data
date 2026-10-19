@@ -29,6 +29,50 @@ _AMOUNT_RANGES = {(1001, 15000), (15001, 50000), (50001, 100000),
                   (25000001, 50000000)}
 
 OBSERVED_PARSER_VERSION = "oge-278t-observed/v1"
+LEGACY_REFERENCE_SCHEMA = "oge-278t-legacy-disposition-reference/v1"
+
+
+def legacy_disposition_reference(extraction: dict, catalog_record: dict) -> dict:
+    """Bind normalized old output without inventing a physical row inventory."""
+    from .oge_reports import PARSER_VERSION, EXTRACTION_SCHEMA
+    collapse_direct_catalog_records([catalog_record])
+    if (extraction.get("schema_version") != EXTRACTION_SCHEMA or extraction.get("parser_version") != PARSER_VERSION or
+            "source_rows" in extraction or extraction.get("source_id") != "oge" or
+            not re.fullmatch(r"[0-9a-f]{64}", extraction.get("source_sha256") or "") or
+            any(extraction.get(a) != catalog_record.get(b) for a, b in (
+                ("document_id", "source_document_id"), ("source_url", "document_url"),
+                ("catalog_filer_name", "filer_name"), ("agency", "agency"), ("position_title", "position_title")))):
+        raise OgeCatalogError("legacy disposition reference differs from the archived catalog source")
+    for field in ("transactions", "quarantined"):
+        if not isinstance(extraction.get(field), list) or any(not isinstance(row, dict) for row in extraction[field]):
+            raise OgeCatalogError("legacy disposition reference rows are malformed")
+    rows = extraction["transactions"] + extraction["quarantined"]
+    ids = [row.get("extraction_id") for row in rows]
+    if (any(not isinstance(value, str) or
+            not re.fullmatch(r"oge-278t:[0-9a-f]{24}", value) for value in ids) or len(set(ids)) != len(ids) or
+            any(type(row.get("page_number")) is not int or row["page_number"] < 1 for row in rows)):
+        raise OgeCatalogError("legacy disposition reference has invalid or repeated source locators")
+    raw = json.dumps(extraction, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return {"schema_version": LEGACY_REFERENCE_SCHEMA, "source_extraction_sha256": hashlib.sha256(raw).hexdigest(),
+            "normalized_transaction_count": len(extraction["transactions"]),
+            "quarantined_reference_count": len(extraction["quarantined"]),
+            "physical_inventory_status": "not_saved", "qualification_policy": "reference_only_not_requalified",
+            "source_extraction": deepcopy(extraction)}
+
+
+def _validated_legacy_reference(extraction: dict, record: dict) -> dict | None:
+    reference = extraction.get("legacy_disposition_reference")
+    if reference is None:
+        return None
+    if (extraction.get("parser_version") != OBSERVED_PARSER_VERSION or not isinstance(reference, dict) or
+            not isinstance(reference.get("source_extraction"), dict)):
+        raise OgeCatalogError("legacy disposition reference is not a materialized source")
+    original = reference["source_extraction"]
+    if reference != legacy_disposition_reference(original, record) or any(
+            original.get(field) != extraction.get(field) for field in (
+                "document_id", "source_sha256", "source_url", "source_id", "catalog_filer_name", "agency", "position_title")):
+        raise OgeCatalogError("legacy disposition reference was altered or crossed sources")
+    return reference
 
 
 def generic_cover_evidence_valid(extraction: dict) -> bool:
@@ -103,7 +147,8 @@ def _observation_input_extraction(extraction: dict) -> dict:
 def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                      observations: list[dict], document_page_count: int,
                                      secondary_observations: list[dict] | None = None,
-                                     archived_pdf_path: str | None = None) -> dict:
+                                     archived_pdf_path: str | None = None,
+                                     formal_reference_ids: list[str] | None = None) -> dict:
     """Interpret saved source-bound readings without scanning or replacing old facts.
 
     The candidate builder calls this function itself. A serialized version label
@@ -117,9 +162,13 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     if (extraction.get("parser_version") == GENERIC_PARSER_VERSION and
             extraction.get("document_page_count") != document_page_count):
         raise OgeCatalogError("saved page count differs from generic extraction")
-    extraction = _observation_input_extraction(extraction)
+    legacy_reference = (legacy_disposition_reference(extraction, catalog_record)
+                        if "source_rows" not in extraction and
+                        (extraction.get("transactions") or extraction.get("quarantined")) else None)
+    extraction = _observation_input_extraction(extraction) if legacy_reference is None else extraction
     # Validate the old report/catalog contract before overlaying observations.
-    adapt_oge_278t_extraction(extraction, catalog_record)
+    if legacy_reference is None:
+        adapt_oge_278t_extraction(extraction, catalog_record)
     sha = extraction["source_sha256"]
     page_count_verified = False
     if archived_pdf_path is not None:
@@ -135,7 +184,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         page_count_verified = True
     if type(document_page_count) is not int or document_page_count < 1 or any(
             type(row.get("page_number")) is not int or not 1 <= row["page_number"] <= document_page_count
-            for row in extraction["source_rows"]):
+            for row in (extraction.get("source_rows", []) +
+                        (extraction["transactions"] + extraction["quarantined"] if legacy_reference else []))):
         raise OgeCatalogError("saved page count does not contain original source rows")
     if not observations or any(item.get("source_sha256") != sha for item in observations):
         raise OgeCatalogError("saved observations differ from extraction source")
@@ -145,9 +195,21 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
     result = deepcopy(extraction)
+    if legacy_reference is not None:
+        result["source_rows"] = []  # Populated only by actual saved observations below.
+        result["transactions"], result["quarantined"] = [], []
+        result["source_rows_basis"] = "saved_observation_rows_only"
+        result["legacy_disposition_reference"] = legacy_reference
     result["source_parser_version"] = extraction["parser_version"]
     result["parser_version"] = OBSERVED_PARSER_VERSION
     old_rows = extraction["transactions"] + extraction["quarantined"]
+    all_reference_ids = {row["extraction_id"] for row in old_rows}
+    if formal_reference_ids is not None and (not isinstance(formal_reference_ids, list) or
+            any(not isinstance(value, str) for value in formal_reference_ids)):
+        raise OgeCatalogError("formal reference IDs must come from the existing candidate")
+    protected_ids = set(formal_reference_ids or [])
+    if legacy_reference is not None:
+        old_rows = [row for row in old_rows if row["extraction_id"] in protected_ids]
     old_by_key: dict[str, list[dict]] = {}
     for row in old_rows:
         old_by_key.setdefault(_row_key(row), []).append(row)
@@ -163,7 +225,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     account_established = False
     account_scope_lost = False
     established_account_context = None
-    old_source_keys = {_row_key(row) for row in extraction["source_rows"]}
+    old_source_keys = {_row_key(row) for row in extraction.get("source_rows", [])}
     raw_pages = {page["page_number"]: page for item in observations for page in item["pages"]}
 
     def defer(physical, reference, reasons):
@@ -204,6 +266,10 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 # Preserve existing IDs and qualified/unqualified facts verbatim.
                 existing = matches[0]
                 used_old_ids.add(existing.get("extraction_id"))
+                if legacy_reference is not None:
+                    result["source_rows"].append(physical)
+                    kind = "transactions" if existing in extraction["transactions"] else "quarantined"
+                    result[kind].append(deepcopy(existing))
                 receipt.update(disposition="retained_legacy", extraction_id=existing.get("extraction_id"))
                 relation = observation.get("relation_evidence")
                 if relation and relation.get("status") != "supported_observation_relation":
@@ -314,6 +380,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             if matches or any(row.get("page_number") == page_number and
                               row.get("extraction_id") not in used_old_ids for row in old_rows):
                 reasons.append("legacy_row_correspondence_unresolved")
+            if protected_ids - all_reference_ids:
+                reasons.append("legacy_formal_reference_unbound")
             amount = values.get("amount")
             if not isinstance(amount, list) or (tuple(amount) not in _AMOUNT_RANGES and not open_amount):
                 reasons.append("amount_range_not_qualified")
@@ -357,10 +425,17 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "unobserved_pages": content["source_report_ledger"]["unobserved_pages"],
         "geometry_unknown_pages": unknown_pages,
         "page_count_basis": "source_sha256_verified_pdf" if page_count_verified else "declared_only",
-        "legacy_inventory_basis": extraction.get("legacy_inventory_basis", "saved_physical_inventory"),
+        "legacy_inventory_basis": ("normalized_disposition_reference_without_physical_inventory" if legacy_reference else
+                                   extraction.get("legacy_inventory_basis", "saved_physical_inventory")),
+        **({"legacy_reference_sha256": legacy_reference["source_extraction_sha256"],
+            "legacy_normalized_transaction_count": legacy_reference["normalized_transaction_count"],
+            "legacy_quarantined_reference_count": legacy_reference["quarantined_reference_count"],
+            "legacy_normalized_not_sent_to_qualification": True,
+            "protected_formal_reference_ids": sorted(protected_ids),
+            "unique_source_row_count": None} if legacy_reference else {}),
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
         "initial_account_scope_basis": "optional_account_title_not_observed_no_absence_claim",
-        "coverage_complete": page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
+        "coverage_complete": not legacy_reference and page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
     }
     return result
 
@@ -419,6 +494,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if (not isinstance(source_rows, list) or not isinstance(transactions, list) or
             not isinstance(quarantined, list)):
         raise OgeCatalogError("OGE 278-T adapter requires source rows and parser dispositions")
+    legacy_reference = _validated_legacy_reference(extraction, catalog_record)
     if (extraction.get("source_id") != "oge" or
             catalog_record.get("source_id", "oge") != "oge" or
             catalog_record.get("document_type", "278_transaction") != "278_transaction" or
@@ -590,7 +666,11 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         validate_candidate_row(candidate)
         output_rows.append(candidate)
         accounted[disposition] += 1
-    if any(queue for queue in dispositions.values()):
+    legacy_rows = ({row["extraction_id"]: row for row in
+                   legacy_reference["source_extraction"]["transactions"] +
+                   legacy_reference["source_extraction"]["quarantined"]} if legacy_reference else {})
+    if any(legacy_rows.get(row.get("extraction_id")) != row
+           for queue in dispositions.values() for _, row, _ in queue):
         raise OgeCatalogError("OGE parser disposition has rows absent from source row inventory")
     if sum(accounted.values()) != len(source_rows):
         raise OgeCatalogError("OGE 278-T row disposition accounting failed")
@@ -605,6 +685,10 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "row_count": len(source_rows),
             "counts": accounted,
             "rows": output_rows}
+    if legacy_reference:
+        result["legacy_disposition_reference"] = {key: value for key, value in legacy_reference.items()
+                                                    if key != "source_extraction"}
+        result["physical_inventory_status"] = "observed_rows_only_legacy_inventory_not_saved"
     if raster_observations is not None:
         result.update(_source_content_relations(
             extraction, raster_observations, document_page_count=document_page_count,
