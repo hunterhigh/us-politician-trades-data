@@ -44,13 +44,14 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
             self.assertEqual(record['source_observation_coverage']['geometry_unknown_pages'],[2])
 
     def test_source_receipt_refs_and_parser_cannot_diverge_from_bound_cache(self):
-        for kind in ['source','receipt','refs','parser','missing_cache','duplicate_cache']:
+        for kind in ['source','receipt','refs','parser','filed_date','missing_cache','duplicate_cache']:
             with self.subTest(kind=kind),tempfile.TemporaryDirectory() as directory:
                 root=Path(directory);record,audit,cache=self.fixture(root)
                 if kind=='source':audit['source_sha256']='d'*64
                 if kind=='receipt':audit['observation_receipt']['coverage_complete']=True
                 if kind=='refs':audit['saved_ocr_input']['checkpoint_sha256']='d'*64
                 if kind=='parser':audit.pop('parser_version')
+                if kind=='filed_date':audit['filed_at']='2027-01-01'
                 if kind=='missing_cache':cache.unlink()
                 if kind=='duplicate_cache':cache.with_name('duplicate.json').write_bytes(cache.read_bytes())
                 with self.assertRaises(ValueError):_apply_audit(record,audit,review=root)
@@ -71,6 +72,60 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                 with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
                     with self.assertRaisesRegex(ValueError,'conserve'):
                         _apply_audit(record,audit,review=root)
+
+    def test_partial_regions_words_and_known_slots_are_bound_and_total_stays_unknown(self):
+        for change in [None,'regions','words','known_count','unit_removed']:
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);record,audit,cache=self.fixture(root)
+                report=json.loads(cache.read_text(encoding='utf-8'))
+                partial=[{'page_number':2,'known_physical_slot_count':2,
+                    'whole_page_physical_slot_count':None,'unresolved_regions':[[100,120]],
+                    'unbound_page_ocr_words':[{'word_index':1},{'word_index':2}]}]
+                report['content_observations']={'partial_geometry_pages':partial}
+                report['raw_page_observations']=[{'page_number':2,'words':[{},{}]}]
+                report['observation_receipt'].update(local_row_geometry_mode='strict_joint_boundaries/v1',
+                    geometry_partial_pages=[2],unresolved_regions=[{'page_number':2,'regions':[[100,120]]}],
+                    whole_selected_table_slot_count=None,unbound_observed_word_count=2,
+                    observed_physical_slot_count=2,
+                    unbound_observed_word_unit='selected_table_page_words_outside_known_slots',
+                    unbound_observed_word_pages=[{'page_number':2,'word_count':2,'basis':'partial_grid_unbound_saved_words'}])
+                cache.write_text(json.dumps(report),encoding='utf-8')
+                audit.update(observation_receipt=deepcopy(report['observation_receipt']),
+                             partial_geometry_pages=deepcopy(partial))
+                if change=='regions':audit['partial_geometry_pages'][0]['unresolved_regions']=[]
+                if change=='words':audit['partial_geometry_pages'][0]['unbound_page_ocr_words']=[]
+                if change=='known_count':audit['partial_geometry_pages'][0]['whole_page_physical_slot_count']=2
+                if change=='unit_removed':
+                    report['observation_receipt'].pop('local_row_geometry_mode')
+                    audit['observation_receipt']=deepcopy(report['observation_receipt'])
+                    cache.write_text(json.dumps(report),encoding='utf-8')
+                with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                    if change is not None:
+                        with self.assertRaises(ValueError):_apply_audit(record,audit,review=root)
+                    else:
+                        _apply_audit(record,audit,review=root)
+                        coverage=record['source_observation_coverage']
+                        self.assertIsNone(coverage['whole_selected_table_slot_count'])
+                        self.assertEqual(coverage['unbound_observed_word_count'],2)
+                        self.assertEqual(coverage['geometry_partial_pages'],[2])
+
+    def test_whole_unknown_geometry_keeps_all_saved_words_unbound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);record,audit,cache=self.fixture(root)
+            report=json.loads(cache.read_text(encoding='utf-8'))
+            report['raw_page_observations']=[{'page_number':1,'words':[{}]},
+                                              {'page_number':2,'words':[{}, {}, {}]}]
+            report['observation_receipt'].update(local_row_geometry_mode='strict_joint_boundaries/v1',
+                geometry_partial_pages=[],unresolved_regions=[],whole_selected_table_slot_count=None,
+                unbound_observed_word_count=3,
+                unbound_observed_word_unit='selected_table_page_words_outside_known_slots',
+                unbound_observed_word_pages=[{'page_number':2,'word_count':3,'basis':'geometry_unknown_all_saved_words'}])
+            cache.write_text(json.dumps(report),encoding='utf-8')
+            audit['observation_receipt']=deepcopy(report['observation_receipt'])
+            with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                _apply_audit(record,audit,review=root)
+            self.assertEqual(record['source_observation_coverage']['unbound_observed_word_count'],3)
+            self.assertIsNone(record['quarantined_row_count'])
 
 
 if __name__=='__main__':unittest.main()

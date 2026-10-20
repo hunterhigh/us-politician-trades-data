@@ -348,7 +348,7 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
         raise ValueError("White House saved-word status requires a unique current cache")
     report = reports[0]
     if any(report.get(key) != audit.get(key) for key in
-           ("document_id", "source_sha256", "source_url", "saved_ocr_input", "observation_receipt")):
+           ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt")):
         raise ValueError("White House saved-word audit differs from its source cache")
     # This validator materializes again from the referenced checkpoint and PDF
     # when available. A matching receipt/digest alone is not source validation.
@@ -387,13 +387,60 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
     slots = _count(receipt.get("observed_physical_slot_count"))
     if words is None or slots is None:
         raise ValueError("White House saved-word observed counts are missing")
+    partial = (report.get("content_observations") or {}).get("partial_geometry_pages", [])
+    partial_counts = {}
+    if receipt.get("local_row_geometry_mode") is not None:
+        regions = [{"page_number": page["page_number"], "regions": page["unresolved_regions"]}
+                   for page in partial]
+        partial_by_page = {page["page_number"]: page for page in partial}
+        geometry_by_page = {page["page_number"]: page for page in
+                            _rows(report.get("geometry_observations") or {}, "pages")}
+        unbound_pages = []
+        for raw_page in _rows(report, "raw_page_observations"):
+            number = raw_page["page_number"]
+            if number == 1:
+                continue
+            if number in partial_by_page:
+                count = len(partial_by_page[number]["unbound_page_ocr_words"])
+                basis = "partial_grid_unbound_saved_words"
+            elif geometry_by_page.get(number, {}).get("coverage") == "physical_slots_located":
+                count = _count(geometry_by_page[number].get("words_outside_slots"))
+                basis = "fully_located_grid_words_outside_slots"
+            else:
+                count = len(_rows(raw_page, "words"))
+                basis = "geometry_unknown_all_saved_words"
+            if count is None:
+                raise ValueError("White House observed words lack a source count")
+            unbound_pages.append({"page_number": number, "word_count": count, "basis": basis})
+        if (receipt["local_row_geometry_mode"] != "strict_joint_boundaries/v1" or
+                audit.get("partial_geometry_pages", []) != partial or
+                receipt.get("geometry_partial_pages") != [page["page_number"] for page in partial] or
+                receipt.get("unresolved_regions") != regions or
+                receipt.get("unbound_observed_word_unit") != "selected_table_page_words_outside_known_slots" or
+                receipt.get("unbound_observed_word_pages") != unbound_pages or
+                _count(receipt.get("unbound_observed_word_count")) != sum(page["word_count"] for page in unbound_pages) or
+                receipt.get("whole_selected_table_slot_count", "missing") !=
+                (None if partial or receipt.get("geometry_unknown_pages") else slots)):
+            raise ValueError("White House local geometry status differs from source coverage")
+        if any(_count(page.get("known_physical_slot_count")) is None or
+               page.get("whole_page_physical_slot_count", "missing") is not None for page in partial):
+            raise ValueError("White House local slot counts cannot claim a complete page census")
+        partial_counts = {"local_row_geometry_mode": receipt["local_row_geometry_mode"],
+            "geometry_partial_pages": receipt["geometry_partial_pages"],
+            "unresolved_regions": regions,
+            "whole_selected_table_slot_count": receipt["whole_selected_table_slot_count"],
+            "unbound_observed_word_count": receipt["unbound_observed_word_count"],
+            "unbound_observed_word_unit": receipt["unbound_observed_word_unit"],
+            "unbound_observed_word_pages": unbound_pages}
+    elif partial or audit.get("partial_geometry_pages"):
+        raise ValueError("White House partial source coverage requires its explicit local mode")
     return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
         "quarantine_count_unit": "saved_ocr_entries_not_whole_source_unique_rows",
         "observed_quarantined_entry_count": _count(audit.get("quarantined_count")),
         "observed_word_page_count": words, "observed_physical_slot_count": slots,
-        "source_observation_coverage": {key: receipt.get(key) for key in
+        "source_observation_coverage": {**partial_counts, **{key: receipt.get(key) for key in
             ("coverage_complete", "unobserved_pages", "geometry_unknown_pages",
-             "page_count_basis", "source_original_verified", "selected_page_numbers")}}
+             "page_count_basis", "source_original_verified", "selected_page_numbers")}}}
 
 
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
