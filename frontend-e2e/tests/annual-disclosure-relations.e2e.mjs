@@ -18,9 +18,10 @@ try {
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(pathToFileURL(source).href);
   const checked=[];
-  // Sample every relation status and a normal PTR, including reusing the drawer.
-  const sample=[...new Set(relations.map(r=>r.status))].map(status=>relations.find(r=>r.status===status));
-  for(const relation of sample){
+  // Check every disclosure relation and reuse the drawer to detect stale notes.
+  assert.ok(relations.length,'At least one annual disclosure relation required');
+  for(const relation of relations){
+    assert.equal(data.transactions.filter(t=>t.id===relation.transaction_id).length,1);
     await page.evaluate(id=>openTransaction(id),relation.transaction_id);
     const note=page.locator('[data-cross-report-transaction-id]');
     assert.equal(await note.count(),1);
