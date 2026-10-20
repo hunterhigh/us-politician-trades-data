@@ -373,19 +373,38 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
     source_rows = [*_rows(report, "transactions"), *_rows(report, "quarantined")]
     decisions = _rows(audit, "rows")
     source_ids = [row.get("extraction_id") for row in source_rows]
+    retained_ids = audit.get("retained_ids", [])
+    retained_count = _count(audit.get("retained_count", 0))
+    allowed_statuses = {"promoted", "quarantined"} | ({"retained_existing"} if geometry_mode else set())
     if (None in source_ids or len(set(source_ids)) != len(source_ids) or
             [row.get("extraction_id") for row in decisions] != source_ids or
             _count(audit.get("source_row_count")) != len(source_rows) or
-            any(row.get("status") not in {"promoted", "quarantined"} for row in decisions) or
+            any(row.get("status") not in allowed_statuses for row in decisions) or
             _count(audit.get("promoted_count")) != sum(row["status"] == "promoted" for row in decisions) or
             _count(audit.get("quarantined_count")) != sum(row["status"] == "quarantined" for row in decisions) or
-            _count(audit.get("retained_count", 0)) != 0 or audit.get("retained_ids", [])):
+            retained_count != sum(row["status"] == "retained_existing" for row in decisions) or
+            retained_ids != [row["extraction_id"] for row in decisions if row["status"] == "retained_existing"]):
         raise ValueError("White House saved-word decisions do not conserve their source rows")
+    if retained_ids or audit.get("current_source_retained_bindings") is not None:
+        def canonical(value):
+            return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        expected_binding = {"schema_version": "whitehouse-saved-current-retained/v1",
+            "source_sha256": sha, "document_id": report["document_id"], "parser_version": parser,
+            "geometry_mode": geometry_mode, "rows": [
+                {"formal_id": row["extraction_id"], "source_rows_index": row.get("source_rows_index"),
+                 "page_number": row.get("page_number"), "raw_cells_canonical_sha256": canonical(row.get("cells")),
+                 "basis": "current_source_replayed_exact_formal_projection"}
+                for row in source_rows if row["extraction_id"] in retained_ids]}
+        if geometry_mode is None or audit.get("current_source_retained_bindings") != expected_binding:
+            raise ValueError("White House saved-word retained facts lack current source bindings")
+    qualified_source_ids = {row["extraction_id"] for row in _rows(report, "transactions")}
     for source, decision in zip(source_rows, decisions, strict=True):
         source_reasons, reasons = source.get("reasons", []), decision.get("reasons", [])
         if (not isinstance(reasons, list) or not isinstance(source_reasons, list) or
                 not set(source_reasons) <= set(reasons) or
-                decision.get("status") == "promoted" and (reasons or source_reasons)):
+                decision.get("status") in {"promoted", "retained_existing"} and
+                (reasons or source_reasons or source["extraction_id"] not in qualified_source_ids)):
             raise ValueError("White House saved-word decision drops a source blocker")
     source_document_reasons = report.get("document_reasons", [])
     audit_document_reasons = audit.get("document_reasons", [])
@@ -393,7 +412,7 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
             not isinstance(audit_document_reasons, list) or
             not set(source_document_reasons) <= set(audit_document_reasons)):
         raise ValueError("White House saved-word audit drops a source document blocker")
-    if (audit.get("promoted_count") and (receipt.get("source_original_verified") is not True or
+    if ((audit.get("promoted_count") or retained_count) and (receipt.get("source_original_verified") is not True or
             _date(report.get("filed_at")) is None or source_document_reasons or audit_document_reasons)):
         raise ValueError("White House saved-word promotion lacks verified source or filing date")
     if (receipt.get("schema_version") != "whitehouse-278t-saved-ocr-receipt/v1" or
@@ -454,6 +473,7 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
     elif partial or audit.get("partial_geometry_pages"):
         raise ValueError("White House partial source coverage requires its explicit local mode")
     return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "qualified_retained_transaction_ids": retained_ids,
         "quarantine_count_unit": "saved_ocr_entries_not_whole_source_unique_rows",
         "observed_quarantined_entry_count": _count(audit.get("quarantined_count")),
         "observed_word_page_count": words, "observed_physical_slot_count": slots,
@@ -481,7 +501,8 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
-    retained = _whitehouse_retained_ids(record, audit, review)
+    retained = (separate_counts.pop("qualified_retained_transaction_ids", []) if saved_whitehouse else
+                _whitehouse_retained_ids(record, audit, review))
     if retained:
         if promoted is None:
             raise ValueError("White House retained qualification lacks a promoted count")

@@ -1,5 +1,6 @@
 """Count-unit/binding checks; the source consumer itself is tested separately."""
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -168,6 +169,53 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                         _apply_audit(record,audit,review=root)
                         self.assertIsNone(record['quarantined_row_count'])
                         self.assertEqual(record['source_observation_coverage']['local_row_geometry_mode'],mode)
+                    else:
+                        with self.assertRaises(ValueError):_apply_audit(record,audit,review=root)
+
+    def test_dual_retained_ids_require_current_replayed_source_and_qualification(self):
+        for change in [None,'binding','missing_binding','ids','count','source_reason','document_reason','source_quarantine']:
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);record,audit,cache=self.fixture(root)
+                report=json.loads(cache.read_text(encoding='utf-8'))
+                mode='source_pdf_dual_axis/v1';parser='whitehouse-278t-saved-ocr-dual-axis/v7'
+                source={'extraction_id':'retained-one','source_rows_index':0,'page_number':2,
+                    'cells':['1','ALPHA','purchase','01/01/2026','No','$1,001 - $15,000'],'reasons':[]}
+                report.update(parser_version=parser,geometry_mode=mode,filed_at='2026-05-08',
+                    document_reasons=[],transactions=[source],raw_page_observations=[{'page_number':2,'words':[{}]}])
+                report['saved_ocr_input']['geometry_mode']=mode
+                report['observation_receipt'].update(geometry_mode=mode,local_row_geometry_mode=mode,
+                    source_original_verified=True,geometry_partial_pages=[],unresolved_regions=[],
+                    whole_selected_table_slot_count=None,unbound_observed_word_count=1,
+                    unbound_observed_word_unit='selected_table_page_words_outside_known_slots',
+                    unbound_observed_word_pages=[{'page_number':2,'word_count':1,
+                                                'basis':'geometry_unknown_all_saved_words'}])
+                binding={'schema_version':'whitehouse-saved-current-retained/v1',
+                    'source_sha256':report['source_sha256'],'document_id':report['document_id'],
+                    'parser_version':parser,'geometry_mode':mode,'rows':[{
+                        'formal_id':'retained-one','source_rows_index':0,'page_number':2,
+                        'raw_cells_canonical_sha256':hashlib.sha256(json.dumps(source['cells'],
+                            ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                        'basis':'current_source_replayed_exact_formal_projection'}]}
+                if change=='source_reason':source['reasons']=['date_unreadable']
+                if change=='document_reason':report['document_reasons']=['ocr_source_filing_date_conflict']
+                if change=='source_quarantine':report.update(transactions=[],quarantined=[source])
+                cache.write_text(json.dumps(report),encoding='utf-8')
+                audit.update(parser_version=parser,geometry_mode=mode,filed_at=report['filed_at'],
+                    saved_ocr_input=deepcopy(report['saved_ocr_input']),document_reasons=report['document_reasons'][:],
+                    observation_receipt=deepcopy(report['observation_receipt']),promoted_count=0,
+                    source_row_count=1,quarantined_count=0,retained_count=1,retained_ids=['retained-one'],
+                    current_source_retained_bindings=deepcopy(binding),
+                    rows=[{'extraction_id':'retained-one','status':'retained_existing','reasons':[]}])
+                if change=='binding':audit['current_source_retained_bindings']['rows'][0]['raw_cells_canonical_sha256']='d'*64
+                if change=='missing_binding':audit.pop('current_source_retained_bindings')
+                if change=='ids':audit['retained_ids']=['different']
+                if change=='count':audit['retained_count']=2
+                with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                    if change is None:
+                        _apply_audit(record,audit,review=root)
+                        self.assertEqual(record['qualified_transaction_count'],1)
+                        self.assertEqual(record['qualified_retained_transaction_ids'],['retained-one'])
+                        self.assertEqual(record['qualification_state'],'partial')
                     else:
                         with self.assertRaises(ValueError):_apply_audit(record,audit,review=root)
 
