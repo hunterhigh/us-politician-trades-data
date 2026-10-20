@@ -394,9 +394,14 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
         if not any(cells):
             continue
         joined = " ".join(cells).lower()
-        if (cells[0] == "#" or
+        # A numbered disclosure must reach field qualification.  Words in an
+        # asset name are not evidence that the whole row is a table header.
+        # Even a numbered OCR rendition of a header remains a visible rejected
+        # row rather than silently disappearing from both output collections.
+        numbered = _ROW_NUMBER.fullmatch(cells[0]) is not None
+        if (cells[0] == "#" or (not numbered and (
                 ("description" in joined and "type" in joined and "date" in joined) or
-                ("amount" in joined and "received" in joined and "days ago" in joined)):
+                ("amount" in joined and "received" in joined and "days ago" in joined)))):
             continue
         if len(cells) != 6:
             quarantined.append({"page_number": page_number, "cells": cells,

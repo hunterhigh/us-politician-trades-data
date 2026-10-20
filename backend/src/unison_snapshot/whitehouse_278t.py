@@ -904,14 +904,17 @@ def _generic_table_rows(inventory: list, *, source_sha256: str,
     from .oge_reports import _compact, _owner_heading, _ACCOUNT_HEADING
     transactions, quarantined, structural = [], [], []
     owner, title, lost_scope, previous_page = "Undisclosed", None, False, None
+    owner_scope_lost = False
     seen = set()
     for index, (page, raw) in enumerate(inventory):
         if scope_barriers_before is not None and index in scope_barriers_before and (
                 title or owner != "Undisclosed" or scope_barriers_before[index]):
             lost_scope=True
+            owner_scope_lost = owner_scope_lost or owner != "Undisclosed" or bool(scope_barriers_before[index])
         cells = [_compact(cell) for cell in raw]
         if previous_page is not None and page > previous_page + 1 and (title or owner != "Undisclosed"):
             lost_scope = True
+            owner_scope_lost = owner_scope_lost or owner != "Undisclosed"
         previous_page = page
         if len(cells) == 6:
             description = cells[1]
@@ -920,6 +923,7 @@ def _generic_table_rows(inventory: list, *, source_sha256: str,
                 r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", description, re.I) else None)
             if explicit_owner:
                 owner, title, lost_scope = explicit_owner, None, False
+                owner_scope_lost = False
                 structural.append({"source_rows_index": index, "kind": "owner_heading", "text": description})
                 continue
             if label and _ACCOUNT_HEADING.fullmatch(description):
@@ -928,6 +932,7 @@ def _generic_table_rows(inventory: list, *, source_sha256: str,
                 continue
             if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
                 lost_scope = True
+                owner_scope_lost = True
                 structural.append({"source_rows_index": index, "kind": "ambiguous_owner_heading", "text": description})
             if label and re.search(r"\b(?:EXHIBIT|AMENDMENT|REPLAC(?:E|EMENT)|CONTINUED)\b", description, re.I):
                 lost_scope = True
@@ -939,7 +944,7 @@ def _generic_table_rows(inventory: list, *, source_sha256: str,
             default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)
         for row in good + bad:
             row["source_rows_index"] = index
-            row["account_context"] = {"status": "unknown" if lost_scope else "observed" if title else "not_observed", "title": title}
+            row["account_context"] = {"status": "unknown" if lost_scope or owner_scope_lost else "observed" if title else "not_observed", "title": title}
             if row["owner"] == "Undisclosed":
                 row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
             key = (page, row.get("row_number"), title)
@@ -947,8 +952,10 @@ def _generic_table_rows(inventory: list, *, source_sha256: str,
             if row.get("row_number") is not None and key in seen:
                 reasons.append("same_page_account_row_number_ambiguous")
             seen.add(key)
-            if lost_scope:
+            if lost_scope or owner_scope_lost:
                 reasons.append("account_context_unresolved")
+            if owner_scope_lost:
+                reasons.append("owner_context_unresolved")
             if reasons:
                 quarantined.append({**row, "reasons": sorted(set(reasons))})
             else:
