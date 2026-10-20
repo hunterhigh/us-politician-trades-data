@@ -57,12 +57,12 @@ def image_page(row_slope=.006,column_slope=.004,kind=None):
     return page
 
 
-def dual_saved_observation(source_sha=None):
+def dual_saved_observation(source_sha=None, *, kind=None):
     """Actual image geometry + existing raw-word entry, PDF reader mocked only."""
     from test_oge_annual import _Document
     from test_oge_278t_image_grid import header_words
     from unison_snapshot.ocr_geometry import OcrPage
-    page=image_page();geometry=_dual_axis_image_grid(page)
+    page=image_page(kind=kind);geometry=_dual_axis_image_grid(page)
     words=header_words()
     cells=['1','ALPHA','purchase','06/01/2026','No','$1,001 - $15,000']
     boxes=[(110,125),(170,220),(480,518),(530,575),(590,620),(638,680)]
@@ -142,6 +142,13 @@ class DualAxisMathTests(unittest.TestCase):
         out=_dual_axis_image_grid(image_page(kind='two_row_models'))
         self.assertEqual(out['status'],'unknown')
         self.assertTrue(any(f['reason']=='multiple_supported_row_models' for f in out['candidate_failures']))
+
+    @unittest.skipUnless(np is not None and Image is not None,'optional image dependencies unavailable')
+    def test_success_and_failure_geometry_are_json_stable_without_validator_coercion(self):
+        for kind in (None,'gap','extra_column','extra_stroke','broken_row','two_row_models'):
+            with self.subTest(kind=kind):
+                out=_dual_axis_image_grid(image_page(kind=kind))
+                self.assertEqual(out,json.loads(json.dumps(out,allow_nan=False)))
     def test_both_slope_directions_preserve_raw_coordinate_assignment(self):
         for slope in (-.01,.01):
             page,slot=dual_page(slope)

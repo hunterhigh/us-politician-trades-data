@@ -803,8 +803,8 @@ def _dual_axis_image_grid(page) -> dict:
         shape={"column_edges_pdf_points":edges,"column_line_model":column,"render_coordinate_frame":"displayed_mediabox"}
         if not _image_columns_sampleable(edges,page_width=page.width,scale_x=sx):
             failures.append({"candidate_start_index":start,"reason":"column_interior_not_sampleable"});continue
-        strips=[(a+.4*(b-a),a+.4*(b-a)+min(15,.15*(b-a))) for a,b in zip(edges,edges[1:])]
-        seeds=[strips[0],(edges[1]+.6*(edges[2]-edges[1]),edges[1]+.6*(edges[2]-edges[1])+min(15,.15*(edges[2]-edges[1]))),strips[5]]
+        strips=[[a+.4*(b-a),a+.4*(b-a)+min(15,.15*(b-a))] for a,b in zip(edges,edges[1:])]
+        seeds=[strips[0],[edges[1]+.6*(edges[2]-edges[1]),edges[1]+.6*(edges[2]-edges[1])+min(15,.15*(edges[2]-edges[1]))],strips[5]]
         inventory=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,x0=a,x1=b) for a,b in seeds]
         evidence={"seed_strip_spans_pdf_points":seeds,"seed_candidates_y_pdf_points":inventory,
                   "endpoint_pair_count":len(inventory[0])*len(inventory[2]),"maximum_endpoint_pairs":16384,

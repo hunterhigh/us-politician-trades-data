@@ -16,6 +16,25 @@ from unison_snapshot.builder import build
 
 
 class WhitehouseDualAxisTests(unittest.TestCase):
+    def test_geometry_failure_cache_on_disk_replays_without_json_type_drift(self):
+        from test_oge_dual_axis_geometry import dual_saved_observation
+        case=saved_tests.SavedWhiteHouseTests()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);inputs,_=case.fixture(root);inputs['geometry_mode']=DUAL_AXIS_MODE
+            meta=json.loads(Path(inputs['archive_metadata_path']).read_bytes())
+            data,_=dual_saved_observation(meta['sha256'],kind='two_row_models')
+            data['pages'][0]['page_number']=2;data['selected_page_numbers']=[2]
+            with case.context(data):
+                report=materialize_saved_whitehouse_278t(inputs)
+                path=root/'extraction.json';path.write_text(json.dumps(report,allow_nan=False),encoding='utf-8')
+                reread=json.loads(path.read_bytes());validate_generic_whitehouse_report(reread)
+                candidate,audit=consume(reread)
+            self.assertEqual(reread,report)
+            self.assertEqual(candidate['transactions'],[])
+            self.assertEqual(report['observation_receipt']['observed_physical_slot_count'],0)
+            self.assertEqual(report['observation_receipt']['geometry_unknown_pages'],[2])
+            self.assertTrue(report['geometry_observations']['pages'][0]['column_geometry_observation']['candidate_failures'])
+
     def test_relative_v7_inputs_replay_after_root_move(self):
         case=saved_tests.SavedWhiteHouseTests()
         with tempfile.TemporaryDirectory() as directory:
