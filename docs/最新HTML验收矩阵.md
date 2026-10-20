@@ -10,6 +10,8 @@
 | H17 | House原生电子PTR消费官方账户标题 | 13条真实来源在Chrome逐条核对资产说明含账户标题、原ID不变，0脚本错误；233交易完整候选仅13条asset_name变化，204持仓不变 | 缺原件词页旧缓存不猜账户；不是纸表新OCR能力验收 |
 | H18 | Senate双端Exchange保留两端资产 | 真实行显示BERY换出、Amcor收到；ticker为null，无误指AMCR链接，缺收益仍null，0脚本错误 | 4件固定电子PTR候选17合格／12替代；不是全电子目录或全页面验收 |
 
+H19补充（2026-10-20）：两份固定House年报原PDF取回并验SHA后，主层从原图先冻17个关键例，再新跑native parser和既有候选对照，17例一致。沿正常T19派生页面逐ID核对：13条持仓可见、3条原件明确None不显示、1条Undetermined只在缺口提示显示；XAXCX跨页拼接及同名不同账户的4条原行均分别可见，0脚本错误。有开口持仓的人物面板需按原页面操作展开有限持仓后检查，不将默认折叠当数据丢失。凭据`.local/house-annual-originals-1020/key-cases/{manual-reference-before-candidate.json,summary.json,browser.json}`；只证明17例和已批准处置，不称223全行原字段或全部格式通过。
+
 本轮完整`latest-html-production.e2e.mjs`尝试停在有行情ticker前置要求：固定解析候选未带行情，日志`.local/sa7/latest-html-matrix.log`；该项未通过，不用上述局部检查冒充T25。没有构造行情或降低完整页面验收要求。
 
 ## 2026-10-19 获批开口金额的本地检查
