@@ -395,8 +395,12 @@ def classify_table_structure(raw_cells: list) -> dict | None:
     number, description, direction, event, notice, amount = cells
     roles = [r"(?:asset\s+)?description", r"(?:transaction\s+)?type", r"(?:transaction\s+)?date",
              r"notification(?:\s+received\s+over\s+30\s+days\s+ago)?\??", r"amount"]
-    if all(re.fullmatch(role, cell, re.I) for role, cell in zip(
-            roles, [description, direction, event, notice, amount], strict=True)):
+    role_matches = [bool(re.fullmatch(role, cell, re.I)) for role, cell in zip(
+        roles, [description, direction, event, notice, amount], strict=True)]
+    # Existing native tables also save the notification/amount header band
+    # separately. Its two nonempty cells must each be their exact column role.
+    partial_header = not any((description, direction, event)) and all(role_matches[3:])
+    if all(role_matches) or partial_header:
         return {"kind": "header"}
     if any((direction, event, amount)):
         return None

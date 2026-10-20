@@ -28,12 +28,15 @@ class NumberedRowConservationTests(unittest.TestCase):
         self.assertEqual(bad[0]["cells"], raw)
         self.assertIn("transaction_date_invalid", bad[0]["reasons"])
 
-    def test_numbered_ocr_header_does_not_disappear_or_promote(self):
+    def test_numeric_marker_with_exact_column_roles_is_still_a_header(self):
+        # This is our constructed structure contract, not official-source gold.
+        # Column roles positively identify a header even with a numeric marker.
+        from unison_snapshot.oge_transaction_adapter import _structural_disposition
         raw = ["11", "Description", "Type", "Date", "Notification", "Amount"]
-        good, bad = parse_table_rows([(2, raw)], source_sha="a" * 64)
-        self.assertEqual(good, [])
-        self.assertEqual(len(bad), 1)
-        self.assertEqual(bad[0]["row_number"], 11)
+        self.assertEqual(parse_table_rows([(2, raw)], source_sha="a" * 64), ([], []))
+        good, bad, _ = _generic_table_rows([(2, raw)], source_sha256="a" * 64)
+        self.assertEqual((good, bad), ([], []))
+        self.assertEqual(_structural_disposition(raw), ("excluded", "table_header"))
 
     def test_actual_unnumbered_headers_are_still_non_data(self):
         rows = [(2, ["#", "Description", "Type", "Date", "Notification", "Amount"]),

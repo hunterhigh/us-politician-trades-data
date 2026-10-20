@@ -59,6 +59,10 @@ class StructureAccountingTests(unittest.TestCase):
         for text in ("Spouse Investment Account #1 Fund","Fund is intentionally left blank Investments"):
             self.assertIsNone(classify_table_structure(["7",text,"","","No",""]))
         self.assertIsNone(classify_table_structure(["?","DESCRIPTION TYPE DATE",*ROW[2:]]))
+        partial=["","","","","Notification received over 30 days ago","Amount"]
+        self.assertEqual(classify_table_structure(partial)["kind"],"header")
+        self.assertIsNone(classify_table_structure([*partial[:5],"$1,001 - $15,000"]))
+        self.assertIsNone(classify_table_structure(["#","Description","Type (Purchase Sale Exchange)","Date","Notification","Amount"]))
         self.assertEqual(classify_table_structure(["Transactions","","","","",""])["kind"],"footer")
 
     def test_numbered_explicit_owner_account_scope_persists_to_following_transaction(self):
