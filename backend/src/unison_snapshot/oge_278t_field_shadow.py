@@ -448,7 +448,7 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if field == "amount":
                     shape = _amount_shape(raw)
                 elif field == "description":
-                    description_reading = _description_detection_reading(detections)
+                    description_reading = _description_detection_reading(detections, page=original_page, source_slot=base)
                     shape = _description_shape(description_reading)
                     if slot.get("column_reading") != description_reading:
                         raise ValueError("description physical reading differs from detections")
@@ -626,7 +626,7 @@ def _amount_shape(raw: str) -> dict:
             "reason": None}
 
 
-def _description_reading(slot: dict) -> dict:
+def _description_reading_in_frame(slot: dict, *, center_offsets: dict | None = None) -> dict:
     """Order saved words by physical line and x, retaining the original read.
 
     Word tops vary with glyph height. Sorting by that top before x scrambles
@@ -654,7 +654,7 @@ def _description_reading(slot: dict) -> dict:
 
     def center(index: int) -> float:
         box = words[index]["bbox_pdf_points"]
-        return (box[1] + box[3]) / 2
+        return (box[1] + box[3]) / 2 - (center_offsets or {}).get(index, 0.)
 
     lines: list[list[int]] = []
     for index in sorted(indices, key=lambda i: (center(i), words[i]["bbox_pdf_points"][0], i)):
@@ -676,12 +676,45 @@ def _description_reading(slot: dict) -> dict:
             "line_word_indices": lines, "reason": None}
 
 
-def _description_detection_reading(detections: list[dict]) -> dict:
+def _description_reading(slot: dict, *, page: dict | None = None) -> dict:
+    """Compare source and row-relative ordering without changing source boxes.
+
+    Ruled-table slope is not independent proof of a handwritten text baseline.
+    Conflicting flattened word orders stay unknown, in either direction.
+    """
+    source = _description_reading_in_frame(slot)
+    if page is None or not _dual_geometry(page):
+        return source
+    indices = slot["column_observation"]["description"].get("word_indices")
+    if indices is None or slot.get("words") is None:
+        return {**source, "status": "unknown", "ordered_ocr_text": None,
+                "reason": "word_geometry_unavailable"}
+    top_reference = slot["row_boundary_refs"][0]
+    offsets = {i: _geometry.row_edges_at_x(page,
+        (slot["words"][i]["bbox_pdf_points"][0]+slot["words"][i]["bbox_pdf_points"][2])/2)[top_reference]
+        for i in indices}
+    projected = _description_reading_in_frame(slot, center_offsets=offsets)
+    flatten = lambda reading: ([i for line in reading["line_word_indices"] for i in line]
+                               if reading["line_word_indices"] is not None else None)
+    evidence = {"reading_coordinate_basis": "source_and_row_top_relative_consistency/v1",
+        "source_coordinate_grouping": source,
+        "row_relative_grouping": projected,
+        "row_top_offsets_pdf_points": {str(i): value for i,value in offsets.items()},
+        "independent_ocr_text_line_reference": None}
+    if flatten(source) is None or flatten(projected) is None or flatten(source) != flatten(projected):
+        return {"status": "unknown", "raw_ocr_text": source["raw_ocr_text"],
+                "ordered_ocr_text": None, "line_word_indices": None,
+                "reason": "source_text_line_orientation_conflict", **evidence}
+    return {**projected, **evidence}
+
+
+def _description_detection_reading(detections: list[dict], *, page: dict | None = None,
+                                   source_slot: dict | None = None) -> dict:
     """Reuse the physical reading order for every word; keep detector order raw."""
-    return _description_reading({
+    return _description_reading({**(source_slot or {}),
         "words": detections, "column_observation": {"description": {
             "raw_ocr_text": " ".join(item["text"] for item in detections),
-            "word_indices": list(range(len(detections)))}}})
+            "word_indices": list(range(len(detections)))}}}, page=page)
 
 
 def _description_shape(reading: dict) -> dict:
@@ -725,7 +758,7 @@ def observe_field_shapes(observations: list[dict], *,
                 raw = {name: columns[name]["raw_ocr_text"] for name in _COLUMNS}
                 printed_number = raw["printed_number"].strip()
                 direction = raw["type"].strip().casefold()
-                description_reading = _description_reading(slot)
+                description_reading = _description_reading(slot, page=page)
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
@@ -819,6 +852,9 @@ def _content_disposition(row: dict) -> tuple[str, str]:
     description_observed = any(_known_value(read["shape"]) is not None and
                                read.get("geometry_status") != "ambiguous"
                                for read in row["field_readings"]["description"]["observations"])
+    if (not description_observed and cues and raw["description"].strip() and
+            row["description_reading"].get("reason") == "source_text_line_orientation_conflict"):
+        return "data_candidate", "asset_text_orientation_unresolved"
     if description_observed and cues:
         return "data_candidate", "asset_text_with_transaction_field_evidence"
     if not any(value.strip() for value in raw.values()):
@@ -1080,6 +1116,11 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
         else:
             status = "missing_observation"
             reasons.append(f"{field}_observation_missing")
+            if field == "description" and (row["description_reading"].get("reason") ==
+                    "source_text_line_orientation_conflict" or any(
+                        read.get("description_reading", {}).get("reason") == "source_text_line_orientation_conflict"
+                        for read in evidence["observations"])):
+                reasons.append("source_text_line_orientation_conflict")
         field_evidence[field] = {
             "status": status,
             "supporting_observations": [{"observation_index": index, "source_ref": read["source_ref"]}

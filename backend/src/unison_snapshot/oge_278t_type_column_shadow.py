@@ -161,7 +161,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                 index = slot["slot_index"]
                 if field == "description":
                     words = by_slot[index]
-                    reading = _description_detection_reading(words)
+                    reading = _description_detection_reading(words, page=page, source_slot=slot)
                     shape = _description_shape(reading)
                     original = slot.get("column_observation", {}).get("description")
                     if not isinstance(original, dict):
