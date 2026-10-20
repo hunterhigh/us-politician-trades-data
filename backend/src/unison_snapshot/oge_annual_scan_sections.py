@@ -23,7 +23,7 @@ _SECTION = re.compile(r"\bPart\s+([2567])\s*:", re.I)
 _ROW = re.compile(r"^([1-9]\d*(?:\.\d+)*)\.?\s*(.*)$")
 _TRADE = re.compile(r"^(?P<asset>.+?)\s+(?P<kind>purchase|sale|exchange)\s+"
                     r"(?P<date>\d{1,2}/\d{1,2}/\d{4})\s+"
-                    r"(?P<amount>\$[\d,]+\s*[-鈥揮\s*\$[\d,]+)$", re.I)
+                    r"(?P<amount>\$[\d,]+\s*[-\u2013]\s*\$[\d,]+)$", re.I)
 
 
 def _native_empty_cells(page, cells: list) -> dict:
