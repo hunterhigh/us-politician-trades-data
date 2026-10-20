@@ -1216,6 +1216,118 @@ def _saved_supported_fields(row: dict, slot: dict, *, source_sha: str) -> dict:
     return result
 
 
+def _saved_directory_identity(inputs: dict, metadata: dict, cover_text: str) -> dict | None:
+    """Reprove optional v7 official attribution without editing PDF observations."""
+    names = ("official_directory_index", "oge_identity_coverage", "oge_identity_catalog_metadata")
+    allowed = {name + suffix for name in names for suffix in ("_path", "_sha256")}
+    if any(key.startswith(("official_directory_", "oge_identity_")) and key not in allowed for key in inputs):
+        raise OgeCatalogError("White House directory identity input parameter is unknown")
+    if not any(name + suffix in inputs for name in names for suffix in ("_path", "_sha256")):
+        return None
+    from .whitehouse_disclosures import parse_disclosure_index, _label_kind, PAGE_URL
+    from .oge_whitehouse import coverage_from_archive
+    from .whitehouse_directory_identity_shadow import complete_name_tokens
+    from .oge_candidate import _identity_key
+    from .whitehouse_278t_audit import _role, _words, _OFFICE_LABELS
+    roots = _SAVED_OCR_ROOTS.get()
+    if not roots or roots[0] is None:
+        raise OgeCatalogError("White House directory identity requires a controlled evidence root")
+    def read(name, evidence=False):
+        path, sha = inputs.get(name + "_path"), inputs.get(name + "_sha256")
+        if not isinstance(path, str) or not isinstance(sha, str) or not _SHA256.fullmatch(sha):
+            raise OgeCatalogError("White House directory identity input reference is incomplete")
+        raw = _saved_source_path(path, evidence=evidence).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha:
+            raise OgeCatalogError("White House directory identity file hash differs: " + name)
+        return json.loads(raw)
+    index = read(names[0]); coverage = read(names[1]); catalog = read(names[2], True)
+    result = {"schema_version":"whitehouse-saved-directory-identity/v1", "status":"unresolved",
+        "source_sha256":metadata["sha256"],"document_id":metadata["document_id"],"source_url":metadata["document_url"],
+        "archive_page_sha256":metadata.get("page_sha256"),"resolved_missing_fields":[],"reasons":[]}
+    def pending(reason):
+        result["reasons"] = [reason]
+        return result
+    old_label = metadata.get("link_label")
+    if (metadata.get("source_id") != "whitehouse_public_disclosures" or
+            not isinstance(metadata.get("page_sha256"),str) or not _SHA256.fullmatch(metadata["page_sha256"]) or
+            not isinstance(old_label,str) or not old_label.strip() or
+            metadata.get("page_url",PAGE_URL) != PAGE_URL):
+        return pending("official_directory_archive_label_chain_unresolved")
+    old_kind,_,old_name = _label_kind("Transaction Reports",old_label)
+    if (old_kind != "278t" or old_name == "label_ambiguous" or
+            complete_name_tokens(old_name) != complete_name_tokens(metadata.get("filer_name_from_label") or "")):
+        return pending("official_directory_archive_label_conflict")
+    if not isinstance(index.get("page_sha256"),str) or not _SHA256.fullmatch(index["page_sha256"]):
+        return pending("official_directory_current_page_reference_unresolved")
+    page = index.get("page_archive", {})
+    expected = f"whitehouse/disclosures/pages/{index['page_sha256']}.html"
+    if page.get("archive_path") != expected or page.get("sha256") != index["page_sha256"]:
+        return pending("official_directory_original_page_reference_unresolved")
+    page_path = _saved_source_path(expected, evidence=True)
+    if not page_path.is_file():
+        return pending("official_directory_original_page_unavailable")
+    raw = page_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != page["sha256"] or len(raw) != page.get("byte_length"):
+        raise OgeCatalogError("White House official directory original bytes differ")
+    replay = parse_disclosure_index(raw)
+    if {key:value for key,value in index.items() if key != "page_archive"} != replay:
+        raise OgeCatalogError("White House official directory index differs from original page")
+    catalog_path = _saved_source_path(inputs["oge_identity_catalog_metadata_path"], evidence=True)
+    if coverage_from_archive(roots[0], catalog_path) != coverage or coverage.get("catalog_sha256") != catalog.get("sha256"):
+        raise OgeCatalogError("White House identity coverage differs from archived catalog")
+    entries = [entry for entry in index["reports"] if entry.get("source_document_id") == metadata["document_id"]]
+    if len(entries) != 1:
+        return pending("official_directory_document_not_unique")
+    entry = entries[0]
+    if (entry.get("document_url") != metadata["document_url"] or entry.get("document_type_from_label") != "278t" or
+            entry.get("source_section") != "Transaction Reports" or not entry.get("filer_name_from_label") or
+            complete_name_tokens(entry["filer_name_from_label"]) != complete_name_tokens(inputs["filer_name"]) or
+            complete_name_tokens(metadata.get("filer_name_from_label") or "") != complete_name_tokens(entry["filer_name_from_label"])):
+        return pending("official_directory_archive_identity_conflict")
+    if len(complete_name_tokens(entry["filer_name_from_label"])) < 2:
+        return pending("official_directory_full_name_incomplete")
+    named = [row for row in coverage["reports"] if row.get("document_type") == "278t" and
+             complete_name_tokens(row.get("filer_name") or "") == complete_name_tokens(entry["filer_name_from_label"])]
+    keys = {_identity_key(row) for row in named}
+    if len(keys) != 1:
+        return pending("official_directory_catalog_identity_not_unique")
+    identity = named[0]
+    # A bounded, visibly empty identity block is missing information. An absent
+    # or unclosed block is unknown, not permission to erase a possible conflict.
+    blocks = list(re.finditer(
+        r"^Filer(?:'|’)?s[ \t]+Information[ \t]*\r?\n(.*?)"
+        r"^Filer(?:'|’)?s[ \t]+Certification[ \t]*\r?\n(?=(?:Date\s*:|I\s+certify\b))",
+        cover_text, re.I | re.S | re.M))
+    if len(blocks) != 1:
+        return pending("official_directory_pdf_identity_block_ambiguous")
+    lines = [line.strip() for line in blocks[0][1].splitlines() if line.strip()]
+    if len(lines) > 2:
+        return pending("official_directory_pdf_identity_block_ambiguous")
+    observed = {"name":lines[0] if lines else None,"position":None,"agency":None,
+                "raw_block":blocks[0][1]}
+    if len(lines) == 2:
+        position, sep, agency = lines[1].rpartition(" - ")
+        observed.update(position=position.strip() if sep else lines[1], agency=agency.strip() if sep else None)
+    result["pdf_identity_observation"] = observed
+    if (observed["name"] and complete_name_tokens(observed["name"]) != complete_name_tokens(identity["filer_name"]) or
+            observed["position"] and _role(observed["position"]) != _role(identity["position_title"]) or
+            observed["agency"] and _OFFICE_LABELS.get(_words(observed["agency"])) != identity["agency"].casefold()):
+        return pending("official_directory_pdf_identity_conflict")
+    result.update(status="resolved",reasons=[],
+        resolved_missing_fields=[field for field in ("name","position","agency") if not observed[field]],
+        directory_entry=deepcopy(entry),catalog_identity={key:identity[key] for key in ("filer_name","position_title","agency")},
+        matched_catalog_entry_ids=sorted({row["catalog_entry_id"] for row in named}),
+        directory_page_sha256=index["page_sha256"],catalog_sha256=coverage["catalog_sha256"],
+        archive_attribution={"source":"controlled_archive_metadata","page_url":PAGE_URL,
+            "page_url_basis":"official_archive_schema_source" if "page_url" not in metadata else "archive_metadata",
+            "page_sha256":metadata["page_sha256"],"link_label":old_label,
+            "filer_name_from_label":metadata["filer_name_from_label"]},
+        directory_corroboration={"source":"current_official_html_replayed","page_url":index["page_url"],
+            "page_sha256":index["page_sha256"]},
+        basis="archive_pdf_attribution_current_directory_full_name_unique_catalog_identity")
+    return result
+
+
 def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     """Consume complete selected OCR pages without making another OCR call.
 
@@ -1234,6 +1346,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
         raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
     dual=geometry_mode==DUAL_AXIS_MODE
+    if not dual and any(key.startswith(("official_directory_", "oge_identity_")) for key in inputs):
+        raise OgeCatalogError("White House directory identity inputs require explicit saved v7")
     def read(name):
         path, digest = inputs.get(name + "_path"), inputs.get(name + "_sha256")
         if not isinstance(path, str) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
@@ -1301,6 +1415,22 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         filed_at=source_cover["filed_at"]
         filing_evidence,identity_evidence=source_cover["filing_date_evidence"],source_cover["filer_identity_evidence"]
         reasons=source_cover["document_reasons"][:]
+    directory_identity = _saved_directory_identity(inputs, metadata, dates["cover_text"]) if dual else None
+    if directory_identity:
+        if directory_identity["status"] == "resolved":
+            reasons = [reason for reason in reasons if reason != "pdf_filer_information_not_verified"]
+            if source_cover is None:
+                observed = directory_identity["pdf_identity_observation"]
+                # The legacy two-line fallback can consume Certification/Date
+                # labels after an empty block. Scope those parser fields to the
+                # bounded original identity block; do not put directory values
+                # into fields claiming they were read inside the PDF.
+                directory_identity["prior_unscoped_identity_parse"] = {
+                    "name":name,"position":position,"agency":agency,"raw":role_raw}
+                name,position,agency = (observed[field] for field in ("name","position","agency"))
+                role_raw = observed["raw_block"] or None
+        else:
+            reasons.extend(directory_identity["reasons"])
     if name is not None and _first_last(name) != _first_last(filer):
         reasons.append("pdf_filer_name_mismatch")
     if not re.search(r"OGE\s+Form\s+278[- ]?T\b",dates["cover_text"],re.I):
@@ -1435,6 +1565,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         "filed_at":filed_at,"signature_method":"official_disclosure_date_source_bound" if source_cover else "source_cover_roles","cover_date_evidence":dates,
         "filing_date_evidence":filing_evidence,"filer_identity_evidence":identity_evidence,"amended_label":metadata.get("amended_label"),
         **({"source_cover_resolution":source_cover} if source_cover else {}),
+        **({"source_identity_resolution":directory_identity} if directory_identity else {}),
         "extraction_method":"saved_ocr_words_same_source_partial","ocr_engine":checkpoint["ocr_engine"],"page_count":count,
         "transactions":good,"quarantined":bad,"source_rows":physical,"structural_rows":structural,
         "document_reasons":sorted(set(reasons)),"evidence_complete":not reasons,

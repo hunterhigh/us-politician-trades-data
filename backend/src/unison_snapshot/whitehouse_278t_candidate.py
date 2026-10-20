@@ -539,6 +539,8 @@ def build_whitehouse_278t_review_candidate(
                if report.get("parser_version") == GENERIC_PARSER_VERSION else {}),
             **({"observation_receipt": deepcopy(report["observation_receipt"]),
                 **({"geometry_mode":report["geometry_mode"]} if report.get("geometry_mode") else {}),
+                **({"source_identity_resolution":deepcopy(report["source_identity_resolution"])}
+                   if report.get("source_identity_resolution") else {}),
                 "parser_version": report["parser_version"],
                 "saved_ocr_input": deepcopy(report["saved_ocr_input"]),
                 **({"partial_geometry_pages":deepcopy(report["content_observations"]["partial_geometry_pages"])}
