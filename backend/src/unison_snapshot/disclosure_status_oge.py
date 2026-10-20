@@ -352,7 +352,8 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
         raise ValueError("White House saved-word status requires a unique current cache")
     report = reports[0]
     if any(report.get(key) != audit.get(key) for key in
-           ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt")):
+           ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt",
+            "source_identity_resolution")):
         raise ValueError("White House saved-word audit differs from its source cache")
     geometry_mode = _SAVED_WHITEHOUSE_PARSERS[parser]
     saved_input = report.get("saved_ocr_input")

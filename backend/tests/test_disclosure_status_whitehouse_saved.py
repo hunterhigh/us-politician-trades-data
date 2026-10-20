@@ -45,7 +45,7 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
             self.assertEqual(record['source_observation_coverage']['geometry_unknown_pages'],[2])
 
     def test_source_receipt_refs_and_parser_cannot_diverge_from_bound_cache(self):
-        for kind in ['source','receipt','refs','parser','filed_date','missing_cache','duplicate_cache',
+        for kind in ['source','receipt','refs','parser','filed_date','identity_resolution','missing_cache','duplicate_cache',
                      'dispatch_tags','dispatch_tags_and_schema']:
             with self.subTest(kind=kind),tempfile.TemporaryDirectory() as directory:
                 root=Path(directory);record,audit,cache=self.fixture(root)
@@ -54,6 +54,7 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                 if kind=='refs':audit['saved_ocr_input']['checkpoint_sha256']='d'*64
                 if kind=='parser':audit.pop('parser_version')
                 if kind=='filed_date':audit['filed_at']='2027-01-01'
+                if kind=='identity_resolution':audit['source_identity_resolution']={'status':'resolved'}
                 if kind in {'dispatch_tags','dispatch_tags_and_schema'}:
                     audit.pop('parser_version')
                     audit['observation_receipt'].pop('mode')
@@ -69,6 +70,26 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                        side_effect=ValueError('checkpoint changed')):
                 with self.assertRaisesRegex(ValueError,'checkpoint changed'):
                     _apply_audit(record,audit,review=root)
+
+    def test_identity_resolution_must_equal_replayed_cache_even_when_counts_match(self):
+        for change in [None,'removed','person','missing_fields']:
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);record,audit,cache=self.fixture(root)
+                report=json.loads(cache.read_text(encoding='utf-8'))
+                resolution={'status':'resolved','catalog_identity':{'filer_name':'Synthetic Person'},
+                            'resolved_missing_fields':['name']}
+                report['source_identity_resolution']=deepcopy(resolution)
+                cache.write_text(json.dumps(report),encoding='utf-8')
+                audit['source_identity_resolution']=deepcopy(resolution)
+                if change=='removed':audit.pop('source_identity_resolution')
+                if change=='person':audit['source_identity_resolution']['catalog_identity']['filer_name']='Other Person'
+                if change=='missing_fields':audit['source_identity_resolution']['resolved_missing_fields']=[]
+                # This test isolates audit/cache binding. Full source reproof is
+                # exercised by the saved-input materializer tests.
+                with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                    if change is None:_apply_audit(record,audit,review=root)
+                    else:
+                        with self.assertRaisesRegex(ValueError,'source cache'):_apply_audit(record,audit,review=root)
 
     def test_receipt_cannot_authorize_fabricated_counts_or_decisions(self):
         for kind in ['promoted_count','quarantined_count','source_row_count','rows','retained_count']:
