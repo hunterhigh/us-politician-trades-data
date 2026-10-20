@@ -180,7 +180,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     has_open = any(is_open_amount(row, prefix)
                    for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
                    for row in data[kind])
-    if has_open:
+    if has_open or "holding_report_coverage" in data["meta"]:
         processor_version, processor_sha = "v3", PROCESSOR_V3_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
@@ -281,7 +281,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
             raise ValueError(f"Index size budget exceeded: {path}; no truncation performed")
         files[path] = content
     # Include business time and presentation configuration: both affect processor output.
-    settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days")
+    settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days", "holding_report_coverage")
                 if key in data["meta"]}
     coverage = {"scope": "all_input_records", "universe_complete": False,
                 "people_count": len(data["people"]), "market_enabled": allow_market,

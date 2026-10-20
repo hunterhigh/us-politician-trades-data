@@ -7,8 +7,8 @@ from .codec import digest
 
 PROCESSOR_SHA256 = "a2cd37cbf447f591bf11f7f397f0fcb817ba1032f6ca5c9ca0efb967f50c7a4b"
 PROCESSOR_V2_SHA256 = "746e60177d65dc40504cb0bbd752a28c510627be6039e724b112ed6d46495c15"
-PROCESSOR_V3_SHA256 = "7c5547dad58192637d074f93ba4003dbb207defe84b3bd07758f9252772c2d6f"
-RENDERER_V3_SHA256 = "2af56a28bb7beb9ce7496654baea3c5a8dd3dabb640854e2082eda65652e4e92"
+PROCESSOR_V3_SHA256 = "07785749982a82f7bf0ef7575d08d2d63cec73f4a00f82dd9b991fa3efaa40c1"
+RENDERER_V3_SHA256 = "ce24fb5986c5a4080814f39864bffd794c46d8fe9dd7876965e5852cea561579"
 RENDERER_SHA256 = "ae3fc8a38cdc1df7c7ddff3b9f3f834401763d09d5b9891e56022b786f3f6c0c"
 SCRIPTS = Path(__file__).resolve().parents[3] / "review-input/us-politician-trades-watch/scripts"
 V2_SCRIPTS = Path(__file__).resolve().parents[3] / "frontend-contract-v2/scripts"
@@ -17,7 +17,7 @@ V3_SCRIPTS = Path(__file__).resolve().parents[3] / "frontend-contract-v3/scripts
 
 def processor_version_for(payload: dict) -> str:
     meta = payload.get("meta", {})
-    if meta.get("amount_policy") == "bounded-and-open-separate/v1" or any(
+    if "holding_report_coverage" in meta or meta.get("amount_policy") == "bounded-and-open-separate/v1" or any(
             row.get(prefix + "_high") is None and type(row.get(prefix + "_low_exclusive")) is bool
             for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
             for row in payload.get(kind, [])):

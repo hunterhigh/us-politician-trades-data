@@ -175,6 +175,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
 
     holding_summary_path = review_root / "status" / "house_holdings.json"
     holding_summary = None
+    selected_holding_coverage = []
     if holding_summary_path.is_file():
         holding_summary = _read_json(holding_summary_path, "House holding qualification summary")
         holding_paths = sorted((review_root / "house_clerk" / "holding_qualifications").glob("*/*/*.json"))
@@ -194,6 +195,26 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             if not isinstance(identity, dict) or not isinstance(source, dict) \
                     or not isinstance(rows, list) or not isinstance(quarantined, list):
                 raise HouseIndexError("House holding qualification artifact is incomplete")
+            if artifact.get("production_eligible") is True and quarantined and "holding_coverage" not in artifact:
+                raise HouseIndexError("Eligible partial House holding report requires source-bound coverage")
+            if "holding_coverage" in artifact:
+                # Partial reports require actual saved source observations, not
+                # a free-standing eligibility/coverage label on an artifact.
+                relative = path.relative_to(review_root / "house_clerk" / "holding_qualifications")
+                extraction = _read_json(review_root / "house_clerk" / "holding_extractions" / relative,
+                                        "House partial holding extraction")
+                observation = _read_json(review_root / "house_clerk" / "holding_section_observations" / relative,
+                                         "House partial holding observations")
+                from .house_holdings import extract_schedule_a_pages, qualify_financial_report
+                from .house_annual_sections import observe_annual_sections
+                pages = observation.get("source_word_pages")
+                if not isinstance(pages, list) or not pages:
+                    raise HouseIndexError("House partial holding report has no saved source pages")
+                parsed, _ = extract_schedule_a_pages(pages, source_sha256=extraction.get("source_sha256"))
+                if (parsed != extraction.get("rows") or observe_annual_sections(pages, extraction) != observation or
+                        observation.get("source_text_coverage") != extraction.get("source_text_coverage") or
+                        qualify_financial_report(extraction, identity) != artifact):
+                    raise HouseIndexError("House partial holding qualification differs from saved source observations")
             total_qualified += len(rows)
             total_quarantined += len(quarantined)
             person_id = identity.get("person_id")
@@ -214,6 +235,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             artifact = selected["artifact"]
             # Never fall back to an older report when the latest known report is incomplete.
             if artifact.get("production_eligible") is True:
+                if artifact.get("holding_coverage"):
+                    selected_holding_coverage.append(deepcopy(artifact["holding_coverage"]))
                 for row in artifact["holdings"]:
                     if not isinstance(row, dict) or row.get("person_id") != person_id:
                         raise HouseIndexError("Qualified House holding has an invalid identity reference")
@@ -241,6 +264,9 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     if not isinstance(meta, dict) or meta.get("is_demo") is not False:
         raise HouseIndexError("House candidate base must be a production input")
     meta["data_cutoff_at"] = cutoff
+    meta.pop("holding_report_coverage", None)
+    if selected_holding_coverage:
+        meta["holding_report_coverage"] = sorted(selected_holding_coverage, key=lambda r: r["person_id"])
     meta["subtitle"] = "House真实候选数据；其余披露来源和行情仍在回填"
     candidate["people"] = sorted((_person({"person_id": person_id, **identity})
                                   for person_id, identity in identities.items()), key=lambda row: row["id"])
@@ -274,7 +300,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                       if paper_pending_count else "")
                    + f"{summary['failure_count']} parser failures; "
                    f"{state_status['counts']['pending']} filings pending archive; "
-                   f"{len(holdings)} holdings from latest complete annual reports"
+                   f"{len(holdings)} holdings from latest {'eligible' if selected_holding_coverage else 'complete'} annual reports"
                    + (f"; {holding_summary.get('quarantined_row_count', 0)} holding rows quarantined."
                       if holding_summary else ".")),
     }

@@ -7,6 +7,7 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 _PATH = Path(__file__).resolve().parents[2] / "frontend-contract-v2/scripts/process_snapshot.py"
@@ -70,6 +71,67 @@ def _amount_summary(rows, prefix="amount"):
 
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
+    coverages = result["meta"].get("holding_report_coverage")
+    if coverages is not None:
+        if not isinstance(coverages, list):
+            raise ProcessingError("Holding report coverage must be a list")
+        visible = {p["id"] for p in result["people"]}
+        checked, seen = [], set()
+        for coverage in coverages:
+            if not isinstance(coverage, dict):
+                raise ProcessingError("Holding report coverage must be an object")
+            person = coverage.get("person_id")
+            if person in seen:
+                raise ProcessingError("Duplicate holding report coverage person")
+            seen.add(person)
+            if person not in visible:
+                continue
+            # A ticker selection contains only a subset of this person's
+            # holdings. Never label its subtotal as the whole report's total.
+            filtered = result["meta"].get("selection_scope", {}).get("mode") == "ticker"
+            rows = [r for r in result["reported_holdings"] if r["person_id"] == person]
+            ids = coverage.get("published_holding_ids")
+            excluded = coverage.get("excluded_row_ids")
+            unknown = coverage.get("unresolved_rows")
+            if (coverage.get("schema_version") != "house-approved-partial-holdings/v1" or
+                    coverage.get("source_id") != "house_clerk" or
+                    not re.fullmatch(r"[0-9a-f]{64}",str(coverage.get("source_sha256", ""))) or
+                    coverage.get("selection_basis") != "complete_schedule_a_explicit_undetermined_value/v1" or
+                    coverage.get("scope") != "partial_report" or coverage.get("complete_total_assets") is not False or
+                    not isinstance(ids,list) or not isinstance(excluded,list) or not isinstance(unknown,list) or not unknown or
+                    any(not isinstance(i,str) for i in ids+excluded) or len(ids)!=len(set(ids)) or
+                    (not set(r["id"] for r in rows) <= set(ids) if filtered else
+                     sorted(ids) != sorted(r["id"] for r in rows) or not rows) or
+                    any(r["filing_id"] != coverage.get("filing_id") or
+                        r["source_id"] != coverage.get("source_id") or
+                        r["source_url"] != coverage.get("source_url") or
+                        r["report_period_end"] != coverage.get("report_period_end") for r in rows)):
+                raise ProcessingError("Partial holding coverage differs from published report")
+            unknown_ids = []
+            for row in unknown:
+                if (not isinstance(row,dict) or not isinstance(row.get("extraction_id"),str) or
+                        not isinstance(row.get("asset_name"),str) or not row["asset_name"].strip() or
+                        not isinstance(row.get("value_raw"),str) or row["value_raw"].strip().casefold() != "undetermined" or
+                        not row.get("reasons") or not set(row["reasons"]) <= {"value_not_representable","value_bounds_unresolved"}):
+                    raise ProcessingError("Partial holding unresolved value has no explicit source literal")
+                unknown_ids.append(row["extraction_id"])
+            all_ids = ids + excluded + unknown_ids
+            bounded = [r for r in rows if not _is_open(r,"value")]
+            if (len(all_ids)!=len(set(all_ids)) or type(coverage.get("observed_row_count")) is not int or
+                    coverage.get("observed_row_count")!=len(all_ids) or
+                    type(coverage.get("finite_value_low")) is not int or
+                    type(coverage.get("finite_value_high")) is not int or
+                    not 0 <= coverage["finite_value_low"] <= coverage["finite_value_high"] or
+                    (not filtered and (coverage["finite_value_low"] != sum(r["value_low"] for r in bounded) or
+                     coverage["finite_value_high"] != sum(r["value_high"] for r in bounded)))):
+                raise ProcessingError("Partial holding row partition or finite totals differ")
+            if not filtered:
+                checked.append(deepcopy(coverage))
+        result["meta"]["holding_report_coverage"] = checked
+        for person in result["priority_people"]:
+            coverage = next((c for c in checked if c["person_id"]==person["person"]["id"]),None)
+            if coverage is not None:
+                person["holding_report_coverage"] = deepcopy(coverage)
     rows = result["transactions"]
     if not (any(_is_open(r) for r in rows) or
             any(_is_open(r, "value") for r in result["reported_holdings"])):

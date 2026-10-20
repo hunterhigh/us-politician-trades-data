@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "frontend-e2e/fixtures/latest-html-template.html"
 TEMPLATE_SHA = "fdaee02db163a3f15285842e66a1047ae3fd8d62e4c110a28fa562f51b878501"
-SCRIPT_SHA = "e3d4e4c8b93a1c230c40341b774ec94f88e21794599cd51d3dcb4326b2652f31"
+SCRIPT_SHA = "099c830d99badd0b6f7d3efc76a6c7a79f15534d87926d29f64e6d5a3b1b94ae"
 BASE = ROOT / "review-input/us-politician-trades-watch/scripts/render_dashboard.py"
 if hashlib.sha256(BASE.read_bytes()).hexdigest() != "ae3fc8a38cdc1df7c7ddff3b9f3f834401763d09d5b9891e56022b786f3f6c0c":
     raise ValueError("Frozen renderer helpers changed")
