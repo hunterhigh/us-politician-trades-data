@@ -135,6 +135,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     seen_transaction_ids: set[str] = set()
     quarantined_count = 0
     paper_pending_count = 0
+    paper_unknown_reports = paper_unknown_physical = 0
+    revision_inputs = []
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -145,7 +147,15 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         if not isinstance(rows, list) or not isinstance(quarantined, list) or not isinstance(identity, dict):
             raise HouseIndexError("House qualification artifact is incomplete")
         quarantined_count += len(quarantined)
+        from .house_ptr_paper_qualification import paper_materialization_counts
+        paper_counts = paper_materialization_counts(qualification)
+        if paper_counts is not None:
+            paper_unknown_reports += paper_counts["whole_source_unique_quarantined_row_count"] is None
+            paper_unknown_physical += paper_counts["unresolved_physical_slot_count"]
         paper_pending_count += _paper_pending_count(qualification)
+        extraction_path = review_root / "house_clerk/extractions" / path.relative_to(review_root / "house_clerk/qualifications")
+        if qualification.get("revision_observations") and extraction_path.is_file():
+            revision_inputs.append((qualification, extraction_path))
         person_id = identity.get("person_id")
         if rows:
             if not isinstance(person_id, str):
@@ -235,6 +245,9 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     candidate["people"] = sorted((_person({"person_id": person_id, **identity})
                                   for person_id, identity in identities.items()), key=lambda row: row["id"])
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
+    from .house_ptr import revision_reference_dispositions
+    revision_dispositions = [item for qualification, path in revision_inputs for item in
+        revision_reference_dispositions(qualification, _read_json(path, "House revision source"), candidate["transactions"])]
     if len({row.get("id") for row in holdings}) != len(holdings):
         raise HouseIndexError("Qualified House holding IDs are missing or duplicated")
     candidate["reported_holdings"] = sorted(holdings, key=lambda row: row["id"])
@@ -254,7 +267,9 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         "detail": (f"{summary['evidence_count']} PTR PDFs archived; {summary['extracted_count']} extracted; "
                    f"{len(transactions)} transactions automatically qualified; "
                    f"{summary.get('zero_transaction_document_count', 0)} explicit zero-transaction filings; "
-                   f"{quarantined_count} rows quarantined; "
+                   + (f"{quarantined_count} qualification entries quarantined including {paper_unknown_physical} unresolved paper slots; "
+                      f"whole-source unique quarantined rows unknown for {paper_unknown_reports} paper reports; "
+                      if paper_unknown_reports else f"{quarantined_count} rows quarantined; ")
                    + (f"{paper_pending_count} paper transaction projections pending; "
                       if paper_pending_count else "")
                    + f"{summary['failure_count']} parser failures; "
@@ -263,6 +278,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                    + (f"; {holding_summary.get('quarantined_row_count', 0)} holding rows quarantined."
                       if holding_summary else ".")),
     }
+    if revision_dispositions:
+        house_health["detail"] += f"; {len(revision_dispositions)} official amendment references await source-bound predecessors"
     candidate["source_health"] = [house_health if row.get("source_id") == "house_clerk" else row
                                   for row in health]
     if not any(row.get("source_id") == "house_clerk" for row in health):
@@ -278,9 +295,18 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             observation = _read_json(path, "House annual section observation")
             extract_path = review_root / "house_clerk/holding_extractions" / relative
             identity_path = review_root / "house_clerk/holding_identities" / relative
-            inputs.append({"observation": observation,
+            payload = {"observation": observation,
                            "extraction": _read_json(extract_path, "House annual extraction") if extract_path.is_file() else {},
-                           "identity": _read_json(identity_path, "House annual identity") if identity_path.is_file() else {}})
+                           "identity": _read_json(identity_path, "House annual identity") if identity_path.is_file() else {}}
+            if "source_word_pages" in observation:
+                import hashlib
+                pages = observation["source_word_pages"]
+                digest = hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+                    sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+                if digest != observation.get("source_word_pages_sha256"):
+                    raise HouseIndexError("House annual saved word pages digest differs")
+                payload["pages"] = pages
+            inputs.append(payload)
     annual_audit = consume_schedule_b_inputs(inputs, transactions=candidate["transactions"],
                                              reported_holdings=candidate["reported_holdings"])
     if annual_transaction_audit is not None:
@@ -292,6 +318,11 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 row["detail"] += (f"; annual B: {annual_audit['observed_row_count']} observations, "
                                   f"{annual_audit['candidate_disposition_counts'].get('blocked_pending_relationship', 0)} blocked, "
                                   f"{annual_audit['candidate_disposition_counts'].get('excluded_exact_source_copy', 0)} exact-copy exclusions")
+                coverages = [report.get("source_text_coverage") for report in annual_audit["reports"]]
+                covered = [item for item in coverages if isinstance(item, dict)]
+                if covered:
+                    row["detail"] += (f"; annual native text census: {sum(item['unresolved_financial_text_line_count'] for item in covered)} "
+                                      "unresolved financial text lines (not unique disclosures)")
     return candidate
 
 

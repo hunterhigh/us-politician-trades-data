@@ -453,7 +453,7 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
     full_text = " ".join(texts)
     report_period_end, report_period_basis = annual_report_period_from_pdf(full_text, metadata)
     rows, explicit_none = extract_schedule_a_pages(page_objects, source_sha256=sha)
-    return {
+    result = {
         "schema_version": EXTRACTION_SCHEMA, "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filing_type", "report_type", "filer_name", "state_district", "filing_year",
@@ -463,6 +463,9 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
         "extraction_method": "native_pdf_geometry", "schedule_a_complete": True,
         "explicit_no_holdings": explicit_none, "rows": rows,
     }
+    from .house_annual_sections import observe_annual_sections
+    result["source_text_coverage"] = observe_annual_sections(page_objects, result)["source_text_coverage"]
+    return result
 
 
 def qualify_financial_report(extraction: dict, identity: dict) -> dict:
@@ -540,4 +543,6 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
         "identity": identity, "report_complete": True, "production_eligible": eligible,
         "holdings": holdings, "excluded": excluded, "quarantined": quarantined,
         "qualification_reasons": sorted(set(report_reasons)),
+        **({"source_text_coverage": extraction["source_text_coverage"]}
+           if "source_text_coverage" in extraction else {}),
     }

@@ -768,12 +768,21 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     transactions: list[dict] = []
     quarantined: list[dict] = []
     advisories: list[dict] = []
+    revision_observations: list[dict] = []
     for row in extraction.get("transactions", []):
         reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
             reasons.append("identity_not_deterministic")
         if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
             reasons.append("revision_relationship_unresolved")
+            target = row.get("reported_transaction_id")
+            if str(row.get("filing_status", "")).lower() == "amended":
+                revision_observations.append({"extraction_id": row.get("extraction_id"),
+                    "reported_transaction_id": target,
+                    "reference_status": "official_target_id_observed" if isinstance(target, str) and
+                        re.fullmatch(r"[0-9]{1,30}", target) else "official_target_id_unavailable",
+                    "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+                    "description": row.get("description")})
         if row.get("amount_high") is None:
             if row.get("amount_kind") != "open_ended":
                 reasons.append("amount_upper_bound_missing")
@@ -879,6 +888,7 @@ def qualify_automatic(extraction: dict, identity: dict, *,
         "transactions": transactions,
         "quarantined": quarantined,
         "advisories": advisories,
+        **({"revision_observations": revision_observations} if revision_observations else {}),
         "qualification": {
             "method": "deterministic_automatic_rules",
             "status": document_status,
@@ -890,6 +900,44 @@ def qualify_automatic(extraction: dict, identity: dict, *,
             "production_eligible": bool(transactions) or (explicit_zero and identity_valid),
         },
     }
+
+
+def revision_reference_dispositions(qualification: dict, extraction: dict,
+                                   current_transactions: list[dict]) -> list[dict]:
+    """Keep official amendment targets distinct from absent predecessor inputs.
+
+    A filing ID, a hashed local ID, or equal financial fields cannot stand in
+    for the government's transaction identifier or a source-bound predecessor.
+    """
+    # Old source-reviewed formal paper qualifications can deliberately differ
+    # from their legacy extractor's status reading. Never reopen those facts.
+    if "revision_observations" not in qualification:
+        return []
+    amended = [row for row in extraction.get("transactions", [])
+               if str(row.get("filing_status", "")).lower() == "amended"]
+    if not amended:
+        if qualification.get("revision_observations"):
+            raise ValueError("House revision observations have no amended source rows")
+        return []
+    source = extraction.get("source") or {}
+    if (qualification.get("source_sha256") != extraction.get("source_sha256") or
+            qualification.get("document_id") != source.get("document_id")):
+        raise ValueError("House amendment source binding differs from qualification")
+    observed = [{"extraction_id": row.get("extraction_id"), "reported_transaction_id": row.get("reported_transaction_id"),
+        "reference_status": "official_target_id_observed" if isinstance(row.get("reported_transaction_id"), str) and
+            re.fullmatch(r"[0-9]{1,30}", row["reported_transaction_id"]) else "official_target_id_unavailable",
+        "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+        "description": row.get("description")} for row in amended]
+    if qualification.get("revision_observations", observed) != observed:
+        raise ValueError("House amendment reference differs from its source row")
+    person = qualification.get("identity", {}).get("person_id")
+    existing = [row for row in current_transactions if row.get("source_id") == "house_clerk" and row.get("person_id") == person]
+    return [{**row, "disposition": "official_target_id_unavailable" if row["reference_status"] != "official_target_id_observed"
+                else "official_target_id_observed_predecessor_absent_from_candidate" if not existing
+                else "official_target_id_observed_predecessor_binding_unavailable",
+             "current_same_person_formal_row_count": len(existing),
+             "action": "not_applied_no_source_bound_predecessor", "formal_transaction_id": None}
+            for row in observed]
 
 
 def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:

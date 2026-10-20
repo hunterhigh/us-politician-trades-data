@@ -12,6 +12,7 @@ from tests.test_senate_candidate import BASE as SENATE_BASE, identity, extractio
 from tests.test_senate_annual_transactions import sample
 from unison_snapshot.house_annual_sections import observe_annual_sections, consume_schedule_b_inputs
 from unison_snapshot.house_candidate import build_house_candidate, load_house_candidate
+from unison_snapshot.house import HouseIndexError
 from unison_snapshot.senate_annual_transactions import observe_part4b
 from unison_snapshot.senate_candidate import build_senate_candidate
 from unison_snapshot.senate import SenateEfdError
@@ -121,7 +122,21 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
             data=build_house_candidate(root,state,deepcopy(BASE),annual_transaction_audit=audit)
             self.assertEqual(data["transactions"],[old])
             self.assertEqual(audit["observed_row_count"],1)
-            self.assertIn("annual_saved_page_reproduction_unavailable",audit["reports"][0]["rows"][0]["candidate_blocking_reasons"])
+            self.assertNotIn("annual_saved_page_reproduction_unavailable",audit["reports"][0]["rows"][0]["candidate_blocking_reasons"])
+            self.assertIsInstance(audit["reports"][0]["source_text_coverage"],dict)
+            observation_path=root/"house_clerk/holding_section_observations"/relative
+            legacy=deepcopy(item['observation'])
+            for name in ('source_word_pages','source_word_pages_sha256','source_text_coverage'):
+                legacy.pop(name,None)
+            legacy['schema_version']='house-annual-sections-observation/v3'
+            observation_path.write_text(json.dumps(legacy))
+            build_house_candidate(root,state,deepcopy(BASE),annual_transaction_audit=audit)
+            self.assertIn('annual_saved_page_reproduction_unavailable',audit['reports'][0]['report_blocking_reasons'])
+            corrupted=deepcopy(item['observation'])
+            corrupted['source_word_pages'][0]['words'][0]['text']='changed'
+            observation_path.write_text(json.dumps(corrupted))
+            with self.assertRaisesRegex(HouseIndexError,'saved word pages digest differs'):
+                build_house_candidate(root,state,deepcopy(BASE))
 
 
 class SenateAnnualCandidateRelationTests(unittest.TestCase):

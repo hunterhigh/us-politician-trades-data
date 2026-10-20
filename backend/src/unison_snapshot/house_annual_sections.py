@@ -15,12 +15,105 @@ from .house import HouseIndexError
 from .house_holdings import ASSET_RE, ASSET_TYPES, OWNER_CODES, _clean, _lines, _value
 
 
-SCHEMA = "house-annual-sections-observation/v3"
+SCHEMA = "house-annual-sections-observation/v4"
 DATE = re.compile(r"\d{2}/\d{2}/\d{4}")
+
+
+def annual_text_coverage(pages: list[dict], extraction: dict, schedule_b: list[dict]) -> dict:
+    """Census observed section text lines, never a count of physical disclosures.
+
+    A line linked as context is not declared parsed or non-data. Independent
+    financial text not represented by a parsed row stays explicitly unresolved.
+    """
+    from collections import Counter
+    result = []
+    for number, page in enumerate(pages, 1):
+        lines = _lines(page["words"])
+        headers = []
+        for top, words in lines:
+            tokens = {_clean(word.get("text")) for word in words}
+            section = "A" if {"Asset", "Owner", "Value"} <= tokens else "B" if {
+                "Asset", "Owner", "Date", "Tx.", "Amount"} <= tokens else None
+            if section:
+                headers.append((top, words, section))
+        if not headers:
+            result.append({"page_number": number, "status": "target_section_not_located",
+                           "sections": []})
+            continue
+        sections = []
+        for top, words, section in headers:
+            x = {token: min(float(word["x0"]) for word in words if _clean(word.get("text")) == token)
+                 for token in ("Asset", "Owner")}
+            limit = min((other for other, tokens in lines if other > top+10 and
+                         (re.match(r"^Schedule\s+[A-Z]\b", _clean(" ".join(str(w.get("text", "")) for w in tokens)), re.I)
+                          or any("asset-type-codes.aspx" in str(w.get("text", "")) for w in tokens))),
+                        default=float(page["height"]))
+            source_rows = extraction.get("rows", []) if section == "A" else schedule_b
+            anchors = []
+            for row in source_rows:
+                evidence = row.get("evidence") or {}
+                segments = [evidence, *evidence.get("continuation_segments", [])]
+                if isinstance(evidence.get("continuation"), dict):
+                    segments.append(evidence["continuation"])
+                for segment in segments:
+                    row_page = segment.get("page", row.get("page_number"))
+                    row_top = segment.get("top_points")
+                    if row_top is None and isinstance(segment.get("bbox_points"), list):
+                        row_top = segment["bbox_points"][1] + 1
+                    if row_top is None:
+                        row_top = row.get("top_points")
+                    if row_page == number and isinstance(row_top, (int, float)) and top+10 < row_top < limit:
+                        anchors.append((row_top, row))
+            anchors.sort(key=lambda pair: pair[0])
+            observed = []
+            for line_top, tokens in lines:
+                if not top+10 < line_top < limit:
+                    continue
+                text = _clean(" ".join(str(word.get("text", "")) for word in tokens))
+                previous = next((row for row_top, row in reversed(anchors) if row_top <= line_top+1), None)
+                exact = next((row for row_top, row in anchors if abs(row_top-line_top) <= 1), None)
+                asset_text = _clean(" ".join(str(word.get("text", "")) for word in tokens
+                    if x["Asset"]-4 <= float(word["x0"]) < x["Owner"]-2))
+                financial = any("$" in str(word.get("text", "")) or DATE.fullmatch(_clean(word.get("text")))
+                                for word in tokens if float(word["x0"]) >= x["Owner"]-4)
+                financial = financial or bool(re.search(r"\[[A-Z0-9]{2}\]", asset_text))
+                represented = previous is not None and (not asset_text or
+                    asset_text in _clean(previous.get("asset_raw", "")))
+                if (not previous and line_top < top+40 and
+                        text in ({"$1,000?"} if section == "A" else {"$200?", "Type Gains >"})):
+                    disposition = "printed_header_extension"
+                elif exact:
+                    disposition = "parsed_row_anchor"
+                elif re.match(r"^(?:D|L|Description|Location|Comments?):", text, re.I) or text == "None disclosed.":
+                    disposition = "explicit_note_or_none"
+                elif financial and not represented:
+                    disposition = "unresolved_financial_text"
+                elif previous is not None:
+                    disposition = "row_context_not_independent_disclosure"
+                else:
+                    disposition = "unassigned_context"
+                row = exact or previous
+                observed.append({"top_points": round(line_top, 2), "text": text,
+                    "disposition": disposition,
+                    "linked_row_reference": (row.get("extraction_id") or row.get("observation_id")) if row else None})
+            sections.append({"section": section, "header_top_points": top, "end_top_points": limit,
+                "observed_text_line_count": len(observed),
+                "disposition_counts": dict(sorted(Counter(row["disposition"] for row in observed).items())),
+                "lines": observed})
+        result.append({"page_number": number, "status": "target_sections_observed", "sections": sections})
+    return {"schema_version": "house-annual-native-text-coverage/v1",
+            "source_sha256": extraction["source_sha256"], "count_unit": "observed_native_text_lines",
+            "whole_source_unique_disclosure_row_count": None, "pages": result,
+            "unresolved_financial_text_line_count": sum(
+                section["disposition_counts"].get("unresolved_financial_text", 0)
+                for page in result for section in page["sections"]),
+            "unassigned_context_line_count": sum(section["disposition_counts"].get("unassigned_context", 0)
+                for page in result for section in page["sections"])}
 
 
 def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
     """Describe existing A rows and B date anchors from the same source PDF."""
+    import json
     sha = extraction.get("source_sha256")
     if (extraction.get("schema_version") != "house-holding-extraction/v1" or
             not re.fullmatch(r"[0-9a-f]{64}", str(sha))):
@@ -90,6 +183,29 @@ def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
                 raw_date = _clean(" ".join(_clean(word.get("text")) for word in tokens
                     if x["Date"] - 4 <= float(word["x0"]) < x["Tx."] - 2))
                 anchors.append((top, {"text": raw_date}))
+        # A ticker/type-only tail at the first asset position has no date or
+        # amount anchor. Only an adjacent unfinished explicit account path may
+        # consume it; all other text remains visible in the native-line census.
+        first_asset = next(((line_top, tokens) for line_top, tokens in lines
+            if header_top+10 < line_top < section_end and any(
+                x["Asset"]-4 <= float(word["x0"]) < x["Owner"]-2 for word in tokens)), None)
+        previous = schedule_b[-1] if schedule_b else None
+        if first_asset and previous and previous["page_number"] == page_number-1:
+            tail_top, tokens = first_asset
+            tail = _clean(" ".join(str(word.get("text", "")) for word in tokens))
+            combined = _clean(previous["asset_raw"] + " " + tail)
+            match = ASSET_RE.fullmatch(combined)
+            if (all(x["Asset"]-4 <= float(word["x0"]) < x["Owner"]-2 for word in tokens) and
+                    re.fullmatch(r"\([A-Z][A-Z0-9.\-^/]{0,31}\)\s*\[[A-Z0-9]{2}\]", tail) and
+                    "⇒" in previous["asset_raw"] and "asset_cell_unresolved" in previous["problems"] and
+                    previous["transaction_date"] and previous["transaction_type"] and match):
+                previous.update(asset_raw=combined, asset_name=match.group(1).strip(), ticker=match.group(2),
+                    asset_type_code=match.group(3), instrument_type=ASSET_TYPES.get(match.group(3)),
+                    account_path_raw=[part.strip() for part in match.group(1).split("⇒")[:-1]],
+                    leaf_asset_raw=match.group(1).split("⇒")[-1].strip())
+                previous["problems"] = [problem for problem in previous["problems"] if problem != "asset_cell_unresolved"]
+                previous["evidence"].setdefault("continuation_segments", []).append({"page": page_number,
+                    "section": "Schedule B", "bbox_points": [x["Asset"]-4, tail_top-1, x["Owner"]-2, tail_top+12]})
         for ordinal, (top, date_word) in enumerate(anchors, start=1):
             end = anchors[ordinal][0] - 1 if ordinal < len(anchors) else section_end
             section_words = sorted((word for word in words
@@ -170,6 +286,10 @@ def observe_annual_sections(pages: list[dict], extraction: dict) -> dict:
                                 "unresolved_row_ids": [row["extraction_id"] for row in schedule_a
                                  if row["holding_review_reasons"] or "unresolved" in row["hierarchy_status"]]},
         "schedule_b_rows": schedule_b,
+        "source_text_coverage": annual_text_coverage(pages, extraction, schedule_b),
+        "source_word_pages": pages,
+        "source_word_pages_sha256": hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
         "schedule_b_coverage_status": "row_anchors_only_not_complete_census",
         "production_eligible_transaction_count": 0,
     }
@@ -253,7 +373,8 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
         document, sha = source.get("document_id"), observation.get("source_sha256") if isinstance(observation, dict) else None
         source_url = source.get("source_url")
         reasons = []
-        if (not isinstance(observation, dict) or observation.get("schema_version") != SCHEMA or
+        if (not isinstance(observation, dict) or observation.get("schema_version") not in {
+                SCHEMA, "house-annual-sections-observation/v3"} or
                 not isinstance(extraction, dict) or not isinstance(identity, dict) or
                 extraction.get("source_sha256") != sha or extraction.get("source") != source or
                 not re.fullmatch(r"[0-9a-f]{64}", str(sha)) or
@@ -275,7 +396,16 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
             reasons.append("schedule_b_row_count_inconsistent")
         if payload.get("pages") is not None and not reasons:
             try:
-                if observe_annual_sections(payload["pages"], extraction) != observation:
+                reproduced = observe_annual_sections(payload["pages"], extraction)
+                # Existing v3 caches predate the additive text-line census.
+                comparison = dict(reproduced)
+                comparison["schema_version"] = observation.get("schema_version")
+                if "source_text_coverage" not in observation:
+                    comparison.pop("source_text_coverage", None)
+                for name in ("source_word_pages", "source_word_pages_sha256"):
+                    if name not in observation:
+                        comparison.pop(name, None)
+                if comparison != observation:
                     reasons.append("annual_observation_differs_from_saved_pages")
             except (ValueError, KeyError, TypeError):
                 reasons.append("annual_saved_page_observation_invalid")
@@ -292,7 +422,9 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
                       ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
                   "observed_row_count": len(rows) if "schedule_b_rows_unknown" not in reasons else None,
                   "coverage_status": observation.get("schedule_b_coverage_status") if isinstance(observation, dict) else "unknown",
-                  "report_blocking_reasons": sorted(set(reasons)), "rows": []}
+                  "report_blocking_reasons": sorted(set(reasons)), "rows": [],
+                  "source_text_coverage": reproduced.get("source_text_coverage")
+                     if payload.get("pages") is not None and not reasons else None}
         for row in rows:
             expected = "house-annual-b:" + hashlib.sha256(
                 f"{sha}:{row.get('page_number')}:{row.get('top_points', 0):.2f}".encode()).hexdigest()[:24]

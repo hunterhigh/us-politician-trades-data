@@ -42,7 +42,7 @@ class HouseAnnualRelationCliTests(unittest.TestCase):
             self.assertEqual(audit["observed_row_count"], 1)
             decision = audit["reports"][0]["rows"][0]
             self.assertEqual(decision["candidate_disposition"], "blocked_pending_relationship")
-            self.assertIn("annual_saved_page_reproduction_unavailable", decision["candidate_blocking_reasons"])
+            self.assertNotIn("annual_saved_page_reproduction_unavailable", decision["candidate_blocking_reasons"])
             # The separate audit must never overwrite the candidate or HTML.
             args[-1] = str(root / "candidate.json")
             with patch.object(sys, "argv", args), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
