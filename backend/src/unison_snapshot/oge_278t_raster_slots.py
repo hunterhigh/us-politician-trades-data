@@ -758,6 +758,170 @@ def _oge_2024_image_grid(page, *, allow_partial_rows=False) -> dict:
     return {**partial,"strict_geometry_observation":strict}
 
 
+def _dual_axis_image_grid(page) -> dict:
+    """Fit both source-coordinate axes; bounded candidates never imply trades."""
+    import numpy as np
+    unknown={"status":"unknown","basis":"dual_axis_image_grid","edges_pdf_points":None,
+             "geometry_mode":DUAL_MODE}
+    if tuple(page.bbox)!=(0,0,page.width,page.height):return {**unknown,"reason":"unsupported_raster_coordinate_frame"}
+    image=page.to_image(resolution=216,force_mediabox=True).original.convert("L")
+    gray=np.asarray(image);sx,sy=gray.shape[1]/page.width,gray.shape[0]/page.height
+    # The same bounded three-region vertical observations as the existing
+    # column model. Consecutive seven-line windows do not skip internal rules.
+    regions=[]
+    for low,high in ((.20,.40),(.45,.65),(.70,.90)):
+        top,bottom=page.height*low,page.height*high
+        mask=gray[int(top*sy):int(bottom*sy)]<160;expanded=mask.copy()
+        for shift in range(1,max(1,int(sx))+1):
+            expanded[:,shift:]|=mask[:,:-shift];expanded[:,:-shift]|=mask[:,shift:]
+        groups=[]
+        for pixel in np.flatnonzero(expanded.mean(axis=0)>.70):
+            x=float(pixel)/sx
+            if not 3<=x<=page.width-3:continue
+            if groups and x-groups[-1][-1]<=2.5:groups[-1].append(x)
+            else:groups.append([x])
+        positions=[float(median(g)) for g in groups]
+        regions.append({"y_span_pdf_points":[top,bottom],"edges":positions})
+        if not 7<=len(positions)<=14 or any(g[-1]-g[0]>6 for g in groups):
+            return {**unknown,"reason":"regional_columns_missing_or_ambiguous","regional_observations":regions}
+    if len({len(r["edges"]) for r in regions})!=1:
+        return {**unknown,"reason":"regional_column_counts_disagree","regional_observations":regions}
+    candidates=[];failures=[]
+    for start in range(len(regions[0]["edges"])-6):
+        sections=[{**r,"edges":r["edges"][start:start+7]} for r in regions]
+        ys=[sum(s["y_span_pdf_points"])/2 for s in sections];reference=sum(ys)/3
+        denominator=sum((y-reference)**2 for y in ys)
+        edges=[sum(s["edges"][i] for s in sections)/3 for i in range(7)]
+        slopes=[sum((y-reference)*(s["edges"][i]-edges[i]) for y,s in zip(ys,sections))/denominator for i in range(7)]
+        residual=max(abs(s["edges"][i]-edges[i]-slopes[i]*(y-reference)) for y,s in zip(ys,sections) for i in range(7))
+        if max(abs(v) for v in slopes)>.015 or max(slopes)-min(slopes)>.008 or residual>.75:
+            failures.append({"candidate_start_index":start,"reason":"regional_lines_do_not_fit_bounded_model"});continue
+        column={"schema_version":"oge-278t-column-lines/v1","reference_y_pdf_points":reference,
+                "slopes_dx_per_dy":slopes,"regional_observations":sections,
+                "maximum_fit_residual_pdf_points":residual,"coordinate_frame":"displayed_mediabox",
+                "valid_y_span_pdf_points":[0.,page.height]}
+        shape={"column_edges_pdf_points":edges,"column_line_model":column,"render_coordinate_frame":"displayed_mediabox"}
+        if not _image_columns_sampleable(edges,page_width=page.width,scale_x=sx):
+            failures.append({"candidate_start_index":start,"reason":"column_interior_not_sampleable"});continue
+        strips=[(a+.4*(b-a),a+.4*(b-a)+min(15,.15*(b-a))) for a,b in zip(edges,edges[1:])]
+        seeds=[strips[0],(edges[1]+.6*(edges[2]-edges[1]),edges[1]+.6*(edges[2]-edges[1])+min(15,.15*(edges[2]-edges[1]))),strips[5]]
+        inventory=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,x0=a,x1=b) for a,b in seeds]
+        evidence={"seed_strip_spans_pdf_points":seeds,"seed_candidates_y_pdf_points":inventory,
+                  "endpoint_pair_count":len(inventory[0])*len(inventory[2]),"maximum_endpoint_pairs":16384,
+                  "maximum_fitted_proposals":512,"failed_line_proposals":[]}
+        if any(len(row)>128 for row in inventory):
+            failures.append({"candidate_start_index":start,"reason":"horizontal_inventory_outside_bounds","evidence":evidence});continue
+        xs=[(a+b)/2 for a,b in seeds];xref=sum(xs)/3;denom=sum((x-xref)**2 for x in xs)
+        accepted=[];proposals=0
+        for li,ly in enumerate(inventory[0]):
+            for ri,ry in enumerate(inventory[2]):
+                endpoint_slope=(ry-ly)/(xs[2]-xs[0])
+                if abs(endpoint_slope)>.015:continue
+                middle=ly+endpoint_slope*(xs[1]-xs[0])
+                mids=[i for i,y in enumerate(inventory[1]) if abs(y-middle)<=2]
+                for mi in mids:
+                    proposals+=1
+                    if proposals>512:break
+                    observed=[ly,inventory[1][mi],ry];b=sum(observed)/3
+                    r=sum((x-xref)*(y-b) for x,y in zip(xs,observed))/denom
+                    error=max(abs(y-b-r*(x-xref)) for x,y in zip(xs,observed))
+                    if abs(r)>.015 or error>.75:continue
+                    # Actual row/column intersections bound the six pixel
+                    # witnesses. A constant-y rectangle is never substituted.
+                    B=b-r*xref
+                    intersections=[]
+                    for a,c in zip(edges,slopes):
+                        A=a-c*reference;det=1-c*r
+                        intersections.append((A+c*B)/det)
+                    support=[]
+                    for left,right in zip(intersections,intersections[1:]):
+                        px=np.arange(int((left+3)*sx),int((right-3)*sx))
+                        if len(px)==0 or px[0]<0 or px[-1]>=gray.shape[1]:support.append(0.);continue
+                        center=(b+r*(px/sx-xref))*sy
+                        rows=np.floor(center).astype(int)[None,:]+np.arange(-int(2*sy),int(2*sy))[:,None]
+                        if rows.min()<0 or rows.max()>=gray.shape[0]:support.append(0.);continue
+                        support.append(round(float((gray[rows,px[None,:]]<160).any(axis=0).mean()),6))
+                    item={"b":b,"r":r,"source_candidate_indices":[li,mi,ri],
+                          "samples":[{"x_span_pdf_points":list(span),"y_pdf_points":y} for span,y in zip(seeds,observed)],
+                          "maximum_fit_residual_pdf_points":error,"column_pixel_support":support}
+                    if all(isfinite(v) and v>=.95 for v in support):accepted.append(item)
+                    else:evidence["failed_line_proposals"].append(item)
+                if proposals>512:break
+            if proposals>512:break
+        evidence["fitted_proposal_count"]=proposals
+        if proposals>512:
+            failures.append({"candidate_start_index":start,"reason":"horizontal_proposal_limit","evidence":evidence});continue
+        if any(sum(other["source_candidate_indices"][c]==line["source_candidate_indices"][c] for other in accepted)>1
+               for line in accepted for c in range(3)):
+            failures.append({"candidate_start_index":start,"reason":"multiple_supported_row_models","evidence":evidence});continue
+        accepted.sort(key=lambda line:line["b"])
+        if (len(accepted)<6 or accepted[-1]["b"]-accepted[0]["b"]<200 or
+                max(line["r"] for line in accepted)-min(line["r"] for line in accepted)>.008):
+            failures.append({"candidate_start_index":start,"reason":"insufficient_supported_row_models","evidence":evidence});continue
+        # Every other observed narrow-column candidate is either uniquely
+        # explained by a supported line or a conservative slope-bounded barrier.
+        extra=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,x0=a,x1=b) for a,b in strips]
+        evidence["column_candidate_strips_pdf_points"]=strips;evidence["column_candidates_y_pdf_points"]=extra
+        barriers=[]
+        for span,values in [*zip(seeds,inventory),*zip(strips,extra)]:
+            x=sum(span)/2
+            matches_by_candidate=[[i for i,line in enumerate(accepted) if abs(y-(line["b"]+line["r"]*(x-xref)))<=2] for y in values]
+            for y,matches in zip(values,matches_by_candidate):
+                if len(matches)!=1 or sum(matches[0] in other for other in matches_by_candidate)!=1:
+                    bound=.015*abs(x-xref)+.75
+                    barriers.append({"x_span_pdf_points":list(span),"y_pdf_points":y,
+                        "reference_y_interval_pdf_points":[y-bound,y+bound],"reason":"unmatched_or_ambiguous_line_candidate"})
+        intercepts=[line["b"] for line in accepted];typical=median(b-a for a,b in zip(intercepts,intercepts[1:]))
+        if not 8<=typical<=25:
+            failures.append({"candidate_start_index":start,"reason":"image_row_profile_unknown","evidence":evidence});continue
+        outer=[]
+        for line in accepted:
+            B=line["b"]-line["r"]*xref
+            for i in (0,6):
+                A=edges[i]-slopes[i]*reference;det=1-slopes[i]*line["r"]
+                outer.append(((A+slopes[i]*B)/det,(B+line["r"]*A)/det))
+        xdomain=[min(p[0] for p in outer),max(p[0] for p in outer)]
+        ydomain=[min(p[1] for p in outer),max(p[1] for p in outer)]
+        if not (3<=xdomain[0]<xdomain[1]<=page.width-3 and 0<=ydomain[0]<ydomain[1]<=page.height):
+            failures.append({"candidate_start_index":start,"reason":"dual_axis_domain_outside_page","evidence":evidence});continue
+        column["valid_y_span_pdf_points"]=ydomain
+        row={"schema_version":"oge-278t-row-lines/v1","coordinate_frame":"displayed_mediabox",
+             "reference_x_pdf_points":xref,"valid_x_span_pdf_points":xdomain,
+             "intercepts_y_pdf_points":intercepts,"slopes_dy_per_dx":[line["r"] for line in accepted],
+             "line_observations":accepted}
+        dual={**shape,"geometry_mode":DUAL_MODE,"row_line_model":row}
+        try:
+            row_edges_at_x(dual,xref);column_edges_at_y(dual,reference)
+            if any(s["y_span_pdf_points"][0]<ydomain[0] or s["y_span_pdf_points"][1]>ydomain[1] for s in sections):
+                raise ValueError("regional columns outside witnessed row domain")
+        except ValueError as exc:
+            failures.append({"candidate_start_index":start,"reason":str(exc),"evidence":evidence});continue
+        witnesses=[_image_rule_witness(gray,x=x,top=ydomain[0],bottom=ydomain[1],scale_x=sx,scale_y=sy,
+            slope=slope,reference_y=reference) for x,slope in zip(edges,slopes)]
+        if any(w["status"]!="confirmed" for w in witnesses):
+            failures.append({"candidate_start_index":start,"reason":"image_vertical_rule_not_connected",
+                             "weak_rule_observations":witnesses,"evidence":evidence});continue
+        bands=[];refs=[];unresolved=[]
+        for i,(a,b) in enumerate(zip(intercepts,intercepts[1:])):
+            crossed=any(max(a,barrier["reference_y_interval_pdf_points"][0])<min(b,barrier["reference_y_interval_pdf_points"][1]) for barrier in barriers)
+            if not 8<=b-a<=min(25,typical*1.5) or crossed:unresolved.append([a,b])
+            else:bands.append([a,b]);refs.append([i,i+1])
+        evidence.update(boundary_barriers=barriers)
+        if not bands:
+            failures.append({"candidate_start_index":start,"reason":"no_supported_local_row_interval","evidence":evidence});continue
+        candidates.append({**dual,"status":"candidate","basis":"dual_axis_image_grid","edges_pdf_points":edges,
+            "partial_row_geometry":True,"whole_page_physical_slot_count":None,"unresolved_regions":unresolved,
+            "physical_row_bands":bands,"physical_row_boundary_refs":refs,"row_matching_evidence":evidence,
+            "weak_rule_observations":witnesses,"candidate_start_index":start,
+            "render_page_bbox":list(page.bbox),"render_rotation":page.rotation,"render_source_cropbox":list(page.cropbox),
+            "render_pixel_size":[image.width,image.height],"render_pdf_points_per_pixel":[1/sx,1/sy]})
+    if len(candidates)!=1:
+        return {**unknown,"reason":"multiple_supported_dual_axis_grids" if candidates else "no_supported_dual_axis_grid",
+                "supported_grid_count":len(candidates),"supported_grids":candidates,"candidate_failures":failures,
+                "regional_observations":regions}
+    return {**candidates[0],"candidate_window_count":len(regions[0]["edges"])-6,"candidate_failures":failures}
+
+
 def _header_role_evidence(words: list[dict], geometry: dict) -> dict:
     """Recognize fixed form labels only; fuzzy labels never correct a fact."""
     def near(a, b):
@@ -842,6 +1006,34 @@ def _partial_header_geometry(words: list[dict], geometry: dict) -> tuple[dict,di
     return result,header
 
 
+def _dual_header_geometry(words,geometry):
+    model=geometry["row_line_model"];values=row_edges_at_x(geometry,model["reference_x_pdf_points"])
+    confirmed=[]
+    for i,(a,b) in enumerate(zip(values,values[1:])):
+        slot={"row_boundary_refs":[i,i+1],"band_pdf_points":[a,b],"band_coordinate_basis":"row_lines_at_reference_x"}
+        quad=slot_quad(geometry,slot)
+        probe={**geometry,"header_band_pdf_points":[min(p[1] for p in quad),max(p[1] for p in quad)]}
+        header=_header_role_evidence(words,probe)
+        if header["status"]!="confirmed":continue
+        valid=True
+        for column,hits in enumerate(header["label_word_indices"].values(),1):
+            w=words[hits[0]];x,y=(w["x0"]+w["x1"])/2,(w["top"]+w["bottom"])/2
+            if not point_in_slot(geometry,slot,x,y,column,column+1):valid=False;break
+            vertical,horizontal=_slot_line_coefficients(geometry,slot,column,column+1,-2.,-2.)
+            for px,py in ((w["x0"],w["top"]),(w["x1"],w["top"]),(w["x1"],w["bottom"]),(w["x0"],w["bottom"])):
+                if not (vertical[0][0]+vertical[0][1]*py<=px<=vertical[1][0]+vertical[1][1]*py and
+                        horizontal[0][0]+horizontal[0][1]*px-3<=py<=horizontal[1][0]+horizontal[1][1]*px+3):valid=False
+        if valid:confirmed.append((i,slot,quad,header))
+    if len(confirmed)!=1:return geometry,{"status":"unknown","reason":"dual_axis_header_not_unique","confirmed_header_candidate_count":len(confirmed)}
+    index,slot,quad,header=confirmed[0]
+    pairs=[(b,r) for b,r in zip(geometry["physical_row_bands"],geometry["physical_row_boundary_refs"]) if r[0]>=index+1]
+    result={**geometry,"physical_row_bands":[b for b,r in pairs],"physical_row_boundary_refs":[r for b,r in pairs],
+        "header_row_boundary_refs":slot["row_boundary_refs"],"header_quad_pdf_points":quad,
+        "unresolved_regions":[r for r in geometry["unresolved_regions"] if r[0]>=values[index+1]]}
+    if not pairs:return result,{**header,"status":"unknown","reason":"no_supported_row_below_header"}
+    return result,header
+
+
 def _observe_slot_columns(words: list[dict], edges: list[float] | None, *, page: dict | None = None) -> dict:
     """Assign saved words by same-page columns, retaining out-of-column words."""
     if edges is None:
@@ -876,8 +1068,9 @@ def _observe_slot_columns(words: list[dict], edges: list[float] | None, *, page:
 
 
 def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
-                              page_numbers: list[int], allow_partial_rows=False) -> tuple[dict, dict[int, list[float] | None]]:
+                              page_numbers: list[int], allow_partial_rows=False, geometry_mode=None) -> tuple[dict, dict[int, list[float] | None]]:
     """Count raster slots, retrying only independently confirmed 2024 grids."""
+    if geometry_mode not in (None,DUAL_MODE):raise ValueError("unsupported saved geometry mode")
     try:
         import pdfplumber
     except ImportError:
@@ -886,6 +1079,11 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
     census = probe_raster_row_bands(
         source, expected_sha256=expected_sha256, page_numbers=page_numbers)
     with pdfplumber.open(source) as document:
+        if geometry_mode == DUAL_MODE:
+            geometry={n:_dual_axis_image_grid(document.pages[n-1]) for n in page_numbers}
+            for page in census["results"]:
+                page.update(status="coverage_unknown",physical_row_bands=[],column_geometry_observation=geometry[page["page_number"]])
+            return census,{n:None for n in page_numbers}
         geometry = {number: _oge_2024_column_geometry(document.pages[number - 1])
                     for number in page_numbers}
         for number, item in list(geometry.items()):
@@ -926,7 +1124,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                          resolution: int = 200,
                          saved_ocr_pages: dict | None = None,
                          saved_ocr_engine: str | None = None,
-                         allow_partial_rows: bool = False) -> dict:
+                         allow_partial_rows: bool = False, geometry_mode=None) -> dict:
     """Retain OCR words by independently located physical slot.
 
     OCR words are observations only.  A slot without recognized words may be
@@ -941,12 +1139,15 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     source = Path(pdf_path)
     if type(allow_partial_rows) is not bool or (allow_partial_rows and saved_ocr_pages is None):
         raise ValueError("partial row geometry requires explicit saved OCR pages")
+    if geometry_mode not in (None,DUAL_MODE) or geometry_mode and saved_ocr_pages is None:
+        raise ValueError("dual-axis geometry requires explicit saved words and mode")
     actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
         raise ValueError("278-T raster observation source SHA-256 differs")
     census, edges_by_page = census_with_2024_fallback(
         source, expected_sha256=expected_sha256, page_numbers=page_numbers,
-        **({"allow_partial_rows":True} if allow_partial_rows else {}))
+        **({"allow_partial_rows":True} if allow_partial_rows else {}),
+        **({"geometry_mode":DUAL_MODE} if geometry_mode else {}))
     import pdfplumber
     with pdfplumber.open(source) as document:
         known_pages = [page["page_number"] for page in census["results"]
@@ -981,8 +1182,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
             continue
         words = ocr_by_page[number].extract_words()
         geometry = page["column_geometry_observation"]
-        if geometry.get("basis") == "same_page_image_grid":
-            if geometry.get("partial_row_geometry"):
+        if geometry.get("basis") in {"same_page_image_grid","dual_axis_image_grid"}:
+            if geometry.get("basis")=="dual_axis_image_grid":
+                geometry,header=_dual_header_geometry(words,geometry)
+            elif geometry.get("partial_row_geometry"):
                 geometry,header=_partial_header_geometry(words,geometry)
             else:
                 header = _header_role_evidence(words, geometry)
@@ -1000,41 +1203,53 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
         partial=geometry.get("partial_row_geometry",False)
         column_page = {"column_edges_pdf_points": column_edges,
                        "column_line_model": geometry.get("column_line_model"),
-             "render_coordinate_frame": geometry.get("render_coordinate_frame")}
+             "render_coordinate_frame": geometry.get("render_coordinate_frame"),
+             **({"geometry_mode":DUAL_MODE,"row_line_model":geometry["row_line_model"]} if geometry_mode else {})}
         slots = []
         assigned: set[int] = set()
         for index, band in enumerate(bands, start=1):
             top, bottom = band
+            dual_slot=({"band_pdf_points":band,"row_boundary_refs":geometry["physical_row_boundary_refs"][index-1],
+                        "band_coordinate_basis":"row_lines_at_reference_x"} if geometry_mode else None)
             selected = [
                 (position, word) for position, word in enumerate(words)
-                if top <= (float(word["top"]) + float(word["bottom"])) / 2 < bottom]
+                if (point_in_slot(column_page,dual_slot,(float(word["x0"])+float(word["x1"]))/2,
+                    (float(word["top"])+float(word["bottom"]))/2) if dual_slot else
+                    top <= (float(word["top"]) + float(word["bottom"])) / 2 < bottom)]
             assigned.update(position for position, _ in selected)
             ordered = sorted((word for _, word in selected),
                              key=lambda word: (float(word["top"]), float(word["x0"])))
             observations = [{"text": str(word["text"]),
-                             "bbox_pdf_points": [round(float(word[key]), 2)
+                             "bbox_pdf_points": [float(word[key]) if dual_slot else round(float(word[key]), 2)
                                                  for key in ("x0", "top", "x1", "bottom")],
                              "confidence": round(float(word["ocr_confidence"]), 2)}
                             for word in ordered]
             slots.append({"slot_index": index,
                           "band_pdf_points": band,
+                          **({**dual_slot,"quad_pdf_points":slot_quad(column_page,dual_slot)} if dual_slot else {}),
                           "ocr_status": ("words_observed" if observations else
                                          "no_words_observed_unknown_content"),
                           "raw_ocr_text": " ".join(item["text"] for item in observations),
                           **_observe_slot_columns(observations, column_edges, page=column_page),
                           **({"unresolved_region_crossing_word_indices":[i for i,w in enumerate(words)
+                              if box_overlaps_slot(column_page,dual_slot,[w[k] for k in ("x0","top","x1","bottom")]) and
+                              not box_in_slot(column_page,dual_slot,[w[k] for k in ("x0","top","x1","bottom")])]} if dual_slot else
+                             {"unresolved_region_crossing_word_indices":[i for i,w in enumerate(words)
                               if max(float(w["top"]),top) < min(float(w["bottom"]),bottom) and any(
                                   max(float(w["top"]),r[0]) < min(float(w["bottom"]),r[1])
                                   for r in geometry["unresolved_regions"])]} if partial else {}),
                           "words": observations})
         pages.append({"page_number": number,
                       "coverage": "physical_slots_partial" if partial else "physical_slots_located",
-                      "row_detection_basis": ("same_page_image_grid_header_confirmed" if image_candidate else
+                      "row_detection_basis": ("source_pdf_dual_axis_header_confirmed" if geometry_mode else
+                          "same_page_image_grid_header_confirmed" if image_candidate else
                           page.get("row_detection_basis", "three_strip_grid")),
                       "column_geometry": ("oge_2024_six_column_grid" if column_edges
                                           else "unknown"),
                       "column_edges_pdf_points": column_edges,
                       "column_geometry_observation": geometry,
+                      **({"geometry_mode":DUAL_MODE,"row_line_model":geometry["row_line_model"],
+                          "band_coordinate_basis":"row_lines_at_reference_x"} if geometry_mode else {}),
                       **({"column_line_model": geometry["column_line_model"]}
                          if "column_line_model" in geometry else {}),
                       "render_coordinate_frame": "displayed_mediabox",
@@ -1046,7 +1261,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                       "slots": slots,
                       "ocr_word_count": len(words),
                       "words_outside_slots": len(words) - len(assigned)})
-    return {"schema_version": SCHEMA,
+    if geometry_mode:
+        for page in pages:page["geometry_mode"]=DUAL_MODE
+    return {"schema_version": DUAL_SCHEMA if geometry_mode else SCHEMA,
+            **({"geometry_mode":DUAL_MODE} if geometry_mode else {}),
             "source_sha256": actual_sha256,
             "selected_page_numbers": page_numbers,
             "ocr_engine": engine,

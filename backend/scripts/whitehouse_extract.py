@@ -109,7 +109,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
             value = materialize_saved_whitehouse_278t(json.loads(saved_ocr_input.read_bytes()))
         if value["document_id"] != document_id or value["source_sha256"] != source_sha256:
             raise ValueError("Saved White House OCR differs from selected source")
-        target = review_root / "whitehouse/extractions" / document_id.removeprefix("wh-url:") / source_sha256 / (SAVED_OCR_PARSER_VERSION.replace("/","-")+".json")
+        target = review_root / "whitehouse/extractions" / document_id.removeprefix("wh-url:") / source_sha256 / (value["parser_version"].replace("/","-")+".json")
         _write(target,value)
         return {"schema_version":STATUS_SCHEMA,"source_id":"whitehouse_public_disclosures",
                 "archived_version_count":1,"selected_version_count":1,"fixed_document_id":document_id,

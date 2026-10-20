@@ -25,7 +25,10 @@ EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
 PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
 GENERIC_PARSER_VERSION = "whitehouse-278t-native-roles/v5"
 SAVED_OCR_PARSER_VERSION = "whitehouse-278t-saved-ocr-roles/v6"
-GENERIC_PARSER_VERSIONS = {GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION}
+DUAL_AXIS_PARSER_VERSION = "whitehouse-278t-saved-ocr-dual-axis/v7"
+DUAL_AXIS_MODE = "source_pdf_dual_axis/v1"
+SAVED_OCR_PARSER_VERSIONS = {SAVED_OCR_PARSER_VERSION,DUAL_AXIS_PARSER_VERSION}
+GENERIC_PARSER_VERSIONS = {GENERIC_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS}
 _SAVED_OCR_ROOTS = ContextVar("whitehouse_saved_ocr_roots", default=None)
 
 
@@ -121,7 +124,7 @@ _TRUMP_2026_BY_SOURCE = {
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
 SUPPORTED_PARSER_VERSIONS = (
     PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
-    *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION)
+    *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION, DUAL_AXIS_PARSER_VERSION)
 MAX_INLINE_OCR_PAGES = 100
 MAX_CHECKPOINT_OCR_PAGES = 200
 OCR_CHECKPOINT_SCHEMA = "whitehouse-278t-ocr-checkpoint/v1"
@@ -1066,6 +1069,17 @@ def _validate_generic_legacy_owner(report: dict, row: dict, expected: dict, repl
 
 def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict | None:
     """Only exact-source inherited rows can reference an existing formal fact."""
+    if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION:
+        # The caller has rematerialized this saved report from its bound inputs.
+        # A current-source repeat is not a legacy owner correction or a match by
+        # similar fields: the complete publication object must be identical.
+        from .whitehouse_278t_candidate import _transaction
+        matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
+        if (len(matches) != 1 or row.get("reasons") or report.get("document_reasons") or
+                row not in report.get("transactions", [])):
+            return None
+        fact = matches[0]
+        return fact if fact == _transaction(report, row, fact.get("person_id")) else None
     inheritance = row.get("legacy_inheritance", {})
     old = inheritance.get("legacy_row", {})
     matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
@@ -1143,6 +1157,65 @@ def _saved_source_cover_resolution(document, url, sha, count, dates):
         "ocr_filed_at":dates["filed_at"],"resolution_basis":"existing_exact_sha_official_profile"}
 
 
+def _saved_supported_fields(row: dict, slot: dict, *, source_sha: str) -> dict:
+    """Interpret unique field observations with the existing table parser.
+
+    Raw cells remain the stable identity input. Interpreted strings are a
+    separate source-bound projection, never a new ID namespace or edited OCR.
+    Geometry and conflict blockers are still applied by the relation consumer.
+    """
+    from .oge_transaction_adapter import _amount_readings
+    from datetime import date
+    values, references, reasons = {}, {}, []
+    amount_reads = _amount_readings(slot["field_readings"]["amount"]["observations"])
+    keys = {(tuple(value), exclusive) for _, value, exclusive in amount_reads}
+    open_amount = len(keys) == 1 and next(iter(keys))[1] is True
+    for field in ("printed_number", "description", "type", "transaction_date", "amount"):
+        reads = slot["field_readings"][field]["observations"]
+        supported = [(read, read["shape"].get("values", read["shape"].get("value")))
+                     for read in reads if read.get("geometry_status") != "ambiguous" and
+                     read["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+        if field == "amount":
+            supported = [(read, value) for read, value, _ in amount_reads]
+        if len({json.dumps(value, sort_keys=True) for _, value in supported}) != 1:
+            reasons.append(field + "_reading_unresolved")
+        else:
+            values[field] = supported[0][1]
+            references[field] = [read["source_ref"] for read, _ in supported]
+    result = deepcopy(row)
+    if reasons:
+        result["reasons"] = sorted(set([*row.get("reasons", []), *reasons]))
+        return result
+    amount = values["amount"]
+    normalized = [str(values["printed_number"]), values["description"], values["type"],
+                  date.fromisoformat(values["transaction_date"]).strftime("%m/%d/%Y"), row["cells"][4],
+                  f"Over ${amount[0]:,}" if open_amount else f"${amount[0]:,} - ${amount[1]:,}"]
+    kwargs = dict(source_sha=source_sha, default_owner=row["owner"], account_title=row.get("account_title"),
+                  allow_open_amounts=True, allow_exchange=True)
+    good, bad = parse_table_rows([(row["page_number"], normalized)], **kwargs)
+    raw_good, raw_bad = parse_table_rows([(row["page_number"], row["cells"])], **kwargs)
+    if len(good + bad) != 1 or len(raw_good + raw_bad) != 1:
+        result["reasons"] = sorted(set([*row.get("reasons", []), "supported_field_projection_unresolved"]))
+        return result
+    interpreted, raw = (good + bad)[0], (raw_good + raw_bad)[0]
+    projection = ("row_number", "asset_name", "ticker", "transaction_type", "transaction_date",
+                  "amount_low", "amount_high", "amount_low_exclusive")
+    for field in projection:
+        if field in interpreted:
+            result[field] = interpreted[field]
+        else:
+            result.pop(field, None)
+    reasons = sorted((set(row.get("reasons", [])) - set(raw.get("reasons", []))) | set(interpreted.get("reasons", [])))
+    result.pop("reasons", None)
+    if reasons:
+        result["reasons"] = reasons
+    result["field_interpretation_evidence"] = {"schema_version": "whitehouse-saved-supported-fields/v1",
+        "identity_basis": "original_raw_cells_existing_id_algorithm", "raw_extraction_id": row["extraction_id"],
+        "raw_cells": deepcopy(row["cells"]), "interpreted_cells": normalized,
+        "field_observation_references": references}
+    return result
+
+
 def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     """Consume complete selected OCR pages without making another OCR call.
 
@@ -1157,6 +1230,10 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     allow_partial_rows=inputs.get("allow_partial_rows",False)
     if type(allow_partial_rows) is not bool:
         raise OgeCatalogError("White House partial row geometry opt-in must be boolean")
+    geometry_mode=inputs.get("geometry_mode")
+    if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
+        raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
+    dual=geometry_mode==DUAL_AXIS_MODE
     def read(name):
         path, digest = inputs.get(name + "_path"), inputs.get(name + "_sha256")
         if not isinstance(path, str) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
@@ -1229,6 +1306,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     if not re.search(r"OGE\s+Form\s+278[- ]?T\b",dates["cover_text"],re.I):
         reasons.append("278t_form_title_not_verified")
     observations, content, physical, constraints = None, None, [], {}
+    supported_slots = {}
     pdf_reference = inputs.get("archived_pdf_path")
     pdf = _saved_source_path(pdf_reference,evidence=True) if pdf_reference is not None else None
     original_verified = pdf is not None and pdf.is_file()
@@ -1247,7 +1325,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
             try:
                 observations = observe_raster_slots(Path(pdf),expected_sha256=sha,page_numbers=table_numbers,
                       saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],
-                      **({"allow_partial_rows":True} if allow_partial_rows else {}))
+                      **({"allow_partial_rows":True} if allow_partial_rows else {}),
+                      **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}))
                 content = observe_content_rows([observations],document_page_count=count)
             except ValueError as exc:
                 reasons.append("saved_ocr_geometry_unresolved")
@@ -1269,6 +1348,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                             evidence = row.get("relation_evidence",{})
                             if evidence.get("status") != "supported_observation_relation":
                                 constraints[len(physical)] = evidence.get("blocking_reasons") or ["observed_row_relation_unresolved"]
+                            if dual:
+                                supported_slots[len(physical)] = slot
                         physical.append({"page_number":page["page_number"],"cells":cells,
                               "observation_reference":{"source_sha256":sha,"page_number":page["page_number"],"slot_key":str(index),
                                   **({"unresolved_region_before":row["unresolved_region_before"],
@@ -1279,13 +1360,17 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     barriers={i:row["observation_reference"].get("unresolved_region_scope_signal",False)
               for i,row in enumerate(physical) if row["observation_reference"].get("unresolved_region_before")}
     good,bad,structural = _generic_table_rows([(row["page_number"],row["cells"]) for row in physical],source_sha256=sha,
-        **({"scope_barriers_before":barriers} if allow_partial_rows else {}))
-    original_bad, kept, rejected = bad, [], []
+        **({"scope_barriers_before":barriers} if allow_partial_rows or dual else {}))
+    kept, rejected = [], []
     for row in good+bad:
+        if dual and row["source_rows_index"] in supported_slots:
+            row = _saved_supported_fields(row, supported_slots[row["source_rows_index"]], source_sha=sha)
         extra = constraints.get(row["source_rows_index"],[])
+        if dual and row.get("amount_low_exclusive") is True:
+            extra = [reason for reason in extra if reason != "amount_observation_missing"]
         if extra:
             row["reasons"] = sorted(set([*row.get("reasons",[]),*extra]))
-        (rejected if extra or row in original_bad else kept).append(row)
+        (rejected if row.get("reasons") else kept).append(row)
     good, bad = kept, rejected
     legacy_counts = ({"parsed_reference_count":len(legacy.get("transactions",[])),
                       "quarantined_reference_count":len(legacy.get("quarantined",[]))} if legacy else None)
@@ -1312,7 +1397,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         "unique_source_row_count":None,"coverage_complete":False,
         "legacy_reference_counts":legacy_counts,
         "unobserved_pages":[n for n in range(1,count+1) if n not in numbers],"geometry_unknown_pages":unknown_pages}
-    if allow_partial_rows:
+    if allow_partial_rows or dual:
         partial_pages=(content or {}).get("partial_geometry_pages",[])
         partial_by_page={p["page_number"]:p for p in partial_pages}
         observed_by_page={p["page_number"]:p for p in (observations or {}).get("pages",[])}
@@ -1331,18 +1416,20 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                 word_count=len(raw_page["words"])
                 basis="geometry_unknown_all_saved_words"
             unbound_pages.append({"page_number":number,"word_count":word_count,"basis":basis})
-        receipt.update(local_row_geometry_mode="strict_joint_boundaries/v1",
+        receipt.update(local_row_geometry_mode=DUAL_AXIS_MODE if dual else "strict_joint_boundaries/v1",
             geometry_partial_pages=[p["page_number"] for p in partial_pages],
             unresolved_regions=[{"page_number":p["page_number"],"regions":p["unresolved_regions"]} for p in partial_pages],
             whole_selected_table_slot_count=None if partial_pages or unknown_pages else receipt["observed_physical_slot_count"],
             unbound_observed_word_count=sum(p["word_count"] for p in unbound_pages),
             unbound_observed_word_unit="selected_table_page_words_outside_known_slots",
             unbound_observed_word_pages=unbound_pages)
+        if dual:receipt["geometry_mode"]=DUAL_AXIS_MODE
     if not physical:
         reasons.append("observed_table_geometry_unknown")
     if metadata.get("amended_label") or dates["amendment_cover"]:
         reasons.append("amendment_relationship_unresolved")
-    result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":SAVED_OCR_PARSER_VERSION,"source_id":"oge",
+    result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":DUAL_AXIS_PARSER_VERSION if dual else SAVED_OCR_PARSER_VERSION,"source_id":"oge",
+        **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
         "document_id":document,"source_url":url,"source_sha256":sha,"filer_name":filer,
         "pdf_filer_name":name,"pdf_position_title":position,"pdf_agency_label":agency,"pdf_position_agency_raw":role_raw,
         "filed_at":filed_at,"signature_method":"official_disclosure_date_source_bound" if source_cover else "source_cover_roles","cover_date_evidence":dates,
@@ -1364,10 +1451,10 @@ def generic_whitehouse_filing_date(report: dict) -> str | None:
     evidence = report.get("cover_date_evidence", {})
     if (not isinstance(evidence.get("cover_text"), str) or
             _generic_cover_dates(evidence["cover_text"], report["source_sha256"],
-                                 report.get("parser_version") == SAVED_OCR_PARSER_VERSION) != evidence or
+                                   report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS) != evidence or
             type(report.get("page_count")) is not int or report["page_count"] < 1):
         raise OgeCatalogError("White House generic cover role evidence differs")
-    if report.get("parser_version") == SAVED_OCR_PARSER_VERSION:
+    if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS:
         resolved=_saved_source_cover_resolution(report.get("document_id"),report.get("source_url"),
             report.get("source_sha256"),report["page_count"],evidence)
         if resolved:
@@ -1382,7 +1469,7 @@ def generic_whitehouse_filing_date(report: dict) -> str | None:
 
 def validate_generic_whitehouse_report(report: dict) -> dict:
     """Recompute roles and exact row interpretations before qualification."""
-    if report.get("parser_version") == SAVED_OCR_PARSER_VERSION:
+    if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS:
         replay = materialize_saved_whitehouse_278t(report.get("saved_ocr_input"))
         if replay != report:
             raise OgeCatalogError("White House saved OCR report differs from source-input replay")
