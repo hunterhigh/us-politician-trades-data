@@ -759,6 +759,8 @@ def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
     fragments, previous_data = [], None
     previous_page = None
     for item in content:
+        if item.get("unresolved_region_before"):
+            previous_data = None
         number = item["page_number"]
         if previous_page is not None and number not in {previous_page, previous_page + 1}:
             previous_data = None
@@ -821,6 +823,22 @@ def _content_slot_bands(page: dict) -> list[bool]:
     """Revalidate saved grid bands even when column positions are unknown."""
     slots = page.get("slots")
     count = page.get("physical_slot_count")
+    partial=page.get("partial_row_geometry",False)
+    if partial:
+        geometry=page.get("column_geometry_observation",{})
+        if (partial is not True or count is not None or page.get("known_physical_slot_count") != len(slots or []) or
+                page.get("whole_page_physical_slot_count") is not None or not geometry.get("partial_row_geometry") or
+                page.get("unresolved_regions") != geometry.get("unresolved_regions") or
+                [s.get("band_pdf_points") for s in slots or []] != geometry.get("physical_row_bands")):
+            raise ValueError("partial grid evidence differs from observed row partition")
+        last=-1.
+        for region in page["unresolved_regions"]:
+            if (not isinstance(region,list) or len(region)!=2 or any(type(v) not in (int,float) or not isfinite(v) for v in region)
+                    or not 0 <= region[0] < region[1] or region[0] < last or
+                    any(max(region[0],s["band_pdf_points"][0]) < min(region[1],s["band_pdf_points"][1]) for s in slots)):
+                raise ValueError("unresolved region overlaps supported physical slot")
+            last=region[1]
+        count=len(slots)
     if not isinstance(slots, list) or (count != len(slots) and not (count is None and not slots)):
         raise ValueError("physical slot count differs from saved grid")
     previous_bottom, rounding_ambiguous = -1., []
@@ -1011,6 +1029,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     pages, rows, content, logical_evidence = [], [], [], []
     account = _account_context()
     previous_page = None
+    pending_region = False
+    partial_pages = []
     for page in fields["pages"]:
         number = page["page_number"]
         if previous_page is not None and number != previous_page + 1:
@@ -1033,9 +1053,25 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 coverage_reason="column_geometry_unknown", coordinate_frame="pdf_points"))
             continue
         raw_slots = original["slots"]
+        regions=original.get("unresolved_regions",[]) if original.get("partial_row_geometry") else []
+        previous_bottom=0.
+        if original.get("partial_row_geometry"):
+            partial_pages.append({"page_number":number,"known_physical_slot_count":len(raw_slots),
+                "whole_page_physical_slot_count":None,"unresolved_regions":deepcopy(regions),
+                "unbound_page_ocr_words":deepcopy(original["unbound_page_ocr_words"])})
         slots = []
         for index, (raw_slot, row) in enumerate(zip(raw_slots, page["slots"], strict=True), 1):
             band = raw_slot["band_pdf_points"]
+            local_regions=[r for r in regions if previous_bottom <= r[0] and r[1] <= band[0]]
+            region_before=pending_region or bool(local_regions)
+            region_words=[w for w in original.get("unbound_page_ocr_words",[]) if any(
+                r[0] <= (w["top"]+w["bottom"])/2 < r[1] for r in local_regions)]
+            scope_signal=bool(re.search(r"\b(?:account|spouse|dependent|continued|continuation|amendment|replacement|exhibit)\b",
+                " ".join(w["text"] for w in region_words),re.I))
+            if region_before and (account.get("title") or scope_signal):
+                account=_account_context(unknown=True)
+            pending_region=False
+            previous_bottom=band[1]
             disposition, reason = _content_disposition(row)
             structural = None
             if disposition in {"heading", "note", "blank"}:
@@ -1059,6 +1095,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
                            "field_observation_ref": observation_ref,
                            "account_context": deepcopy(account)}
+            if original.get("partial_row_geometry") or region_before:
+                content_row.update(unresolved_region_before=region_before,unresolved_region_scope_signal=scope_signal)
             if structural is not None:
                 content_row["structural_evidence"] = structural
             content.append(content_row)
@@ -1068,6 +1106,10 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 continue
             relation = _row_relation_evidence(row, rounding_ambiguous=rounding_ambiguous[index - 1],
                                                source_slot=raw_slot, source_page=original)
+            if raw_slot.get("unresolved_region_crossing_word_indices"):
+                relation["status"]="unresolved"
+                relation["blocking_reasons"]=sorted(set(relation["blocking_reasons"]+[
+                    "word_box_crosses_unresolved_region"]))
             content_row["relation_evidence"] = relation
             if relation["status"] == "supported_observation_relation":
                 local_key = f"page:{number}:slot:{key}"
@@ -1078,9 +1120,12 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                                          "field_geometry_evidence": relation["field_geometry_evidence"],
                                          "account_context": deepcopy(account),
                                          "qualification": "not_assessed"})
+        pending_region=any(r[1] > previous_bottom for r in regions)
         pages.append(page_ledger(
             source_id="oge", document_sha256=sha, page_number=number,
-            adapter_version=content_rules, coverage="located", slots=slots,
+            adapter_version=content_rules, coverage="unknown" if original.get("partial_row_geometry") else "located", slots=slots,
+            **({"unresolved_regions":regions,"coverage_reason":"supported_local_rows_only"}
+               if original.get("partial_row_geometry") else {}),
             coordinate_frame="pdf_points"))
     fragments = _fragment_constraints(content, fields)
     # Fragment checks may inhibit a previously complete-looking single slot.
@@ -1107,6 +1152,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     from .oge_278t_printed_number_shadow import observe_printed_number_sequence
     printed = observe_printed_number_sequence(observations)
     return {"field_observations": fields, "slot_content": content,
+            **({"partial_geometry_pages":partial_pages} if partial_pages else {}),
             "logical_row_field_evidence": logical_evidence,
             "fragment_relations": fragments,
             "printed_number_observation": printed,
@@ -1153,6 +1199,8 @@ def compare_field_observations(left: dict, right: dict) -> dict:
                 first.get("column_edges_pdf_points") != second.get("column_edges_pdf_points") or \
                 first.get("column_line_model") != second.get("column_line_model") or \
                 first.get("render_coordinate_frame") != second.get("render_coordinate_frame") or \
+                first.get("partial_row_geometry") != second.get("partial_row_geometry") or \
+                first.get("unresolved_regions") != second.get("unresolved_regions") or \
                 first.get("physical_slot_count") != second.get("physical_slot_count"):
             raise ValueError(f"page {number} grid geometry differs between OCR passes")
         if first.get("column_geometry") != "oge_2024_six_column_grid":

@@ -43,6 +43,22 @@ def observe_printed_number_sequence(observations: list[dict]) -> dict:
             counts["geometry_unknown_pages"] += 1
             continue
         slots = page.get("slots")
+        if page.get("partial_row_geometry"):
+            if (physical_count is not None or not isinstance(slots,list) or
+                    page.get("known_physical_slot_count") != len(slots)):
+                raise ValueError("partial printed-number input has an invalid known count")
+            rows=[]
+            for slot in slots:
+                raw=slot["column_observation"]["printed_number"]["raw_ocr_text"].strip()
+                rows.append({"slot_index":slot["slot_index"],"raw_ocr_text":raw,
+                    "strict_ocr_number":int(raw) if _NUMBER.fullmatch(raw) else None,
+                    "consensus_expected_number":None,"status":"partial_grid_no_sequence_inference",
+                    "qualification":"not_assessed"})
+            pages.append({"page_number":number,"status":"partial_grid_numbers_observed",
+                "physical_slot_count":None,"known_physical_slot_count":len(slots),"slots":rows})
+            counts["partial_grid_pages"]+=1
+            counts["physical_slots"]+=len(slots)
+            continue
         if not isinstance(slots, list) or len(slots) != physical_count or \
                 [slot.get("slot_index") for slot in slots] != list(range(1, len(slots) + 1)):
             raise ValueError(f"page {number} has invalid physical slots")

@@ -537,6 +537,8 @@ def build_whitehouse_278t_review_candidate(
             **({"observation_receipt": deepcopy(report["observation_receipt"]),
                 "parser_version": report["parser_version"],
                 "saved_ocr_input": deepcopy(report["saved_ocr_input"]),
+                **({"partial_geometry_pages":deepcopy(report["content_observations"]["partial_geometry_pages"])}
+                   if (report.get("content_observations") or {}).get("partial_geometry_pages") else {}),
                 "quarantine_count_unit": "observed_ocr_rows_not_whole_source_unique_rows"}
                if report.get("parser_version") == SAVED_OCR_PARSER_VERSION else {}),
             "document_reasons": sorted(set(doc_reasons)), "rows": row_results,

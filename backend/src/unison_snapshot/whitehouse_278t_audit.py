@@ -18,7 +18,7 @@ from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSIONS,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSION,
     validate_generic_whitehouse_report, generic_existing_fact,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
@@ -152,7 +152,9 @@ def source_bound_filing_date(report: dict) -> str | None:
         return None
     if profile is not None:
         evidence = report.get("filing_date_evidence")
-        if (report.get("parser_version") != TRUMP_2026_PARSER_VERSION or
+        if report.get("parser_version") == SAVED_OCR_PARSER_VERSION and report.get("page_count") != profile["page_count"]:
+            return None
+        if (report.get("parser_version") not in {TRUMP_2026_PARSER_VERSION,SAVED_OCR_PARSER_VERSION} or
                 report.get("signature_method") !=
                 "official_disclosure_date_source_bound" or
                 not isinstance(evidence, dict) or
@@ -201,8 +203,10 @@ def source_bound_filer_identity(report: dict) -> bool:
         return False
     if profile is not None:
         evidence = report.get("filer_identity_evidence")
+        if report.get("parser_version") == SAVED_OCR_PARSER_VERSION and report.get("page_count") != profile["page_count"]:
+            return False
         return bool(
-            report.get("parser_version") == TRUMP_2026_PARSER_VERSION and
+            report.get("parser_version") in {TRUMP_2026_PARSER_VERSION,SAVED_OCR_PARSER_VERSION} and
             report.get("pdf_filer_name") == "Donald J Trump" and
             report.get("pdf_position_title") ==
             "President of the United States of America" and
