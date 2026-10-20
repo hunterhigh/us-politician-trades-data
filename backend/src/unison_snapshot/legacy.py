@@ -7,7 +7,7 @@ from .codec import digest
 
 PROCESSOR_SHA256 = "a2cd37cbf447f591bf11f7f397f0fcb817ba1032f6ca5c9ca0efb967f50c7a4b"
 PROCESSOR_V2_SHA256 = "746e60177d65dc40504cb0bbd752a28c510627be6039e724b112ed6d46495c15"
-PROCESSOR_V3_SHA256 = "07785749982a82f7bf0ef7575d08d2d63cec73f4a00f82dd9b991fa3efaa40c1"
+PROCESSOR_V3_SHA256 = "40ea97c671eec37cbf8e06ba09ea156112ebaf4c946fd2ea93bc192bd200a1a7"
 RENDERER_V3_SHA256 = "6ebe5771d577b977cc531369f3ee6c916c6235789887b75b608f2875cf27fe2f"
 RENDERER_SHA256 = "ae3fc8a38cdc1df7c7ddff3b9f3f834401763d09d5b9891e56022b786f3f6c0c"
 SCRIPTS = Path(__file__).resolve().parents[3] / "review-input/us-politician-trades-watch/scripts"
@@ -17,7 +17,7 @@ V3_SCRIPTS = Path(__file__).resolve().parents[3] / "frontend-contract-v3/scripts
 
 def processor_version_for(payload: dict) -> str:
     meta = payload.get("meta", {})
-    if "holding_report_coverage" in meta or meta.get("amount_policy") == "bounded-and-open-separate/v1" or any(
+    if "holding_report_coverage" in meta or 'transaction_disclosure_relations' in meta or meta.get("amount_policy") == "bounded-and-open-separate/v1" or any(
             row.get(prefix + "_high") is None and type(row.get(prefix + "_low_exclusive")) is bool
             for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
             for row in payload.get(kind, [])):

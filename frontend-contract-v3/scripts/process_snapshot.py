@@ -71,6 +71,39 @@ def _amount_summary(rows, prefix="amount"):
 
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
+    relations=result['meta'].get('transaction_disclosure_relations')
+    if relations is not None:
+        if not isinstance(relations,list):raise ProcessingError('Transaction disclosure relations must be a list')
+        facts={r['id']:r for r in result['transactions']};checked=[];seen=set()
+        subset=result['meta'].get('selection_scope',{}).get('mode') in {'person','ticker','people','tickers'}
+        fields={'transaction_id','source_id','filing_id','source_url','source_sha256','section','printed_row_number','status','possible_ptr_transaction_ids'}
+        for relation in relations:
+            if not isinstance(relation,dict) or set(relation)!=fields:raise ProcessingError('Transaction disclosure relation fields differ')
+            key=relation['transaction_id'];sha=relation['source_sha256'];number=relation['printed_row_number']
+            if (not isinstance(sha,str) or not re.fullmatch(r'[0-9a-f]{64}',sha) or
+                    not isinstance(number,str) or not re.fullmatch(r'[1-9]\d*',number) or
+                    key!='senate-annual-part4b:'+hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24] or
+                    key in seen or relation['source_id']!='senate_efd' or relation['section']!='Part 4b'):
+                raise ProcessingError('Transaction disclosure relation source identity differs')
+            seen.add(key);fact=facts.get(key)
+            possible=relation['possible_ptr_transaction_ids']
+            if (not isinstance(possible,list) or any(not isinstance(i,str) for i in possible) or len(possible)!=len(set(possible)) or
+                    relation['status']!=('possible_ptr_overlap' if possible else 'cross_report_relationship_unconfirmed')):
+                raise ProcessingError('Transaction disclosure relation status differs')
+            if fact is None:
+                if subset:continue
+                raise ProcessingError('Transaction disclosure relation references missing fact')
+            if any(fact.get(k)!=relation[k] for k in ('source_id','filing_id','source_url')):
+                raise ProcessingError('Transaction disclosure relation references another source')
+            for ptr in possible:
+                other=facts.get(ptr)
+                if not ptr.startswith('senate-ptr:'):raise ProcessingError('Transaction disclosure relation possible PTR ID differs')
+                if other is None and subset:continue
+                if (other is None or not ptr.startswith('senate-ptr:') or other.get('source_id')!='senate_efd' or
+                        other.get('person_id')!=fact['person_id']):
+                    raise ProcessingError('Transaction disclosure relation possible PTR differs')
+            checked.append(deepcopy(relation))
+        result['meta']['transaction_disclosure_relations']=checked
     coverages = result["meta"].get("holding_report_coverage")
     if coverages is not None:
         if not isinstance(coverages, list):

@@ -2,6 +2,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, date
+import hashlib
 import re
 from urllib.parse import urlsplit
 
@@ -15,6 +16,7 @@ from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
 
 SCHEMA = "politician-dashboard/v1"
 LAYOUT = "hash-sharded-v2"
+TRANSACTION_RELATION_POLICY = 'source_bound_independent_disclosures/v1'
 ARRAYS = ("people", "transactions", "reported_holdings", "security_market_data")
 SOURCES = {"house_clerk", "senate_efd", "oge"}
 HEALTH_SOURCES = SOURCES | {"house_ethics_guidance", "senate_ethics_guidance",
@@ -158,7 +160,50 @@ def normalize(payload: dict, *, allow_production: bool = False,
         if not empty and (not data["people"] or not (data["transactions"] or data["reported_holdings"])):
             raise ValueError("Production publication requires people and at least one verified disclosure")
     encode(data)  # Reject non-finite numbers even in optional fields.
+    validate_transaction_disclosure_relations(data)
     return data
+
+
+def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr: bool = False) -> None:
+    """Full-input relation validation; no additional facts or source fetches."""
+    relations=data['meta'].get('transaction_disclosure_relations')
+    if relations is None:return
+    if not isinstance(relations,list):raise ValueError('Transaction disclosure relations must be a list')
+    facts={r['id']:r for r in data['transactions']};seen=set()
+    fields={'transaction_id','source_id','filing_id','source_url','source_sha256','section','printed_row_number','status','possible_ptr_transaction_ids'}
+    for relation in relations:
+        if not isinstance(relation,dict) or set(relation)!=fields:raise ValueError('Transaction disclosure relation fields differ')
+        key=relation['transaction_id'];sha=relation['source_sha256'];number=relation['printed_row_number']
+        if (not isinstance(sha,str) or not re.fullmatch(r'[0-9a-f]{64}',sha) or
+                not isinstance(number,str) or not re.fullmatch(r'[1-9]\d*',number) or
+                key!='senate-annual-part4b:'+hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24] or key in seen or
+                relation['source_id']!='senate_efd' or relation['section']!='Part 4b'):
+            raise ValueError('Transaction disclosure relation source identity differs')
+        seen.add(key);fact=facts.get(key)
+        if fact is None or any(fact.get(k)!=relation[k] for k in ('source_id','filing_id','source_url')):
+            raise ValueError('Transaction disclosure relation references another or missing fact')
+        possible=relation['possible_ptr_transaction_ids']
+        if (not isinstance(possible,list) or any(not isinstance(i,str) for i in possible) or len(possible)!=len(set(possible)) or
+                relation['status']!=('possible_ptr_overlap' if possible else 'cross_report_relationship_unconfirmed')):
+            raise ValueError('Transaction disclosure relation status differs')
+        for ptr in possible:
+            other=facts.get(ptr)
+            if other is None and allow_unloaded_ptr and ptr.startswith('senate-ptr:'):continue
+            if (other is None or not ptr.startswith('senate-ptr:') or other.get('source_id')!='senate_efd' or
+                    other.get('person_id')!=fact['person_id']):
+                raise ValueError('Transaction disclosure relation possible PTR is not a same-person fact')
+
+
+def restore_shard_disclosure_relations(meta: dict, shard: dict, *, subset: bool = False) -> None:
+    """Restore only optional metadata already present in the loaded shard."""
+    policy=meta.get('transaction_disclosure_relation_policy')
+    present='transaction_disclosure_relations' in shard
+    if policy is None and not present:return
+    if policy!=TRANSACTION_RELATION_POLICY:raise ValueError('Unsupported transaction disclosure relation policy')
+    relations=shard.pop('transaction_disclosure_relations',[])
+    validate_transaction_disclosure_relations({'meta':{'transaction_disclosure_relations':relations},
+        'transactions':shard['transactions']},allow_unloaded_ptr=subset)
+    meta['transaction_disclosure_relations']=relations
 
 
 def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
@@ -180,7 +225,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     has_open = any(is_open_amount(row, prefix)
                    for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
                    for row in data[kind])
-    if has_open or "holding_report_coverage" in data["meta"]:
+    if has_open or "holding_report_coverage" in data["meta"] or 'transaction_disclosure_relations' in data['meta']:
         processor_version, processor_sha = "v3", PROCESSOR_V3_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
@@ -256,6 +301,11 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         indexes.setdefault(f"{prefix}/index.json", {})[key] = sha
 
     board = {kind: data[kind] for kind in ARRAYS}
+    relations=data['meta'].get('transaction_disclosure_relations')
+    def relation_fields(rows):
+        ids={r['id'] for r in rows};selected=[r for r in relations or [] if r['transaction_id'] in ids]
+        return {'transaction_disclosure_relations':selected} if selected else {}
+    board.update(relation_fields(data['transactions']))
     if allow_market:
         board["security_market_data"] = []
     board_sha = blob("board", board)
@@ -266,6 +316,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         required_market = sorted({row["ticker"] for records in rows.values() for row in records
                                   if row.get("ticker") in market_tickers})
         entity("people", person["id"], {"person": person, **rows,
+                                        **relation_fields(rows['transactions']),
                                         "requires": [f"market:{ticker}" for ticker in required_market]})
     tickers = sorted({row["ticker"] for kind in ("transactions", "reported_holdings")
                       for row in data[kind] if row.get("ticker")})
@@ -274,6 +325,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 for kind in ("transactions", "reported_holdings")}
         ids = {row["person_id"] for records in rows.values() for row in records}
         entity("tickers", ticker, {**rows, "people": [p for p in data["people"] if p["id"] in ids],
+                                   **relation_fields(rows['transactions']),
                                    "requires": [f"market:{ticker}"] if ticker in market_tickers else []})
     for path, shards in sorted(indexes.items()):
         content = encode({"shards": shards})
@@ -283,6 +335,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # Include business time and presentation configuration: both affect processor output.
     settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days", "holding_report_coverage")
                 if key in data["meta"]}
+    if relations is not None:settings['transaction_disclosure_relation_policy']=TRANSACTION_RELATION_POLICY
     coverage = {"scope": "all_input_records", "universe_complete": False,
                 "people_count": len(data["people"]), "market_enabled": allow_market,
                 "publication_state": "bootstrap_empty" if not data["people"] else "active"}

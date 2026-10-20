@@ -24,7 +24,8 @@ from .senate_candidate import _person
 from .senate_identity import _member_rows, _without_suffix, _words, match_report_identity
 from .senate_members import SenateRosterError, build_roster
 from .senate_reports import _TableParser, _report_parser
-from .senate_annual_transactions import SCHEMA as PART4B_SCHEMA, observe_part4b, relate_part4b_to_candidate
+from .senate_annual_transactions import (SCHEMA as PART4B_SCHEMA, INDEPENDENT_SCHEMA, INDEPENDENT_MODE,
+    observe_part4b, relate_part4b_to_candidate, materialize_independent_part4b)
 
 
 SCHEMA = "senate-efd-annual-review/v1"
@@ -453,7 +454,7 @@ def _holding_from_annual_row(row: dict, report: dict, extraction: dict, person_i
 
 
 def build_annual_review(evidence_root: Path, review_root: Path, roster: dict, *,
-                        structured_asset_labels: bool = False) -> dict:
+                        structured_asset_labels: bool = False, independent_transactions: bool = False) -> dict:
     catalog_path = evidence_root / "senate_efd/annual/catalog/current.json"
     catalog_raw = catalog_path.read_bytes()
     discovery = json.loads(catalog_raw)
@@ -462,6 +463,11 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict, *,
     report_records, people, holdings, verified_sources = [], {}, [], {}
     previous_path = review_root / "senate_efd/annual/current.json"
     previous = json.loads(previous_path.read_bytes()) if previous_path.is_file() else {}
+    active_transactions=previous.get('transaction_mode')
+    if active_transactions not in (None,INDEPENDENT_MODE):
+        raise SenateEfdError('Senate annual transaction mode is unsupported')
+    independent_transactions=independent_transactions or active_transactions==INDEPENDENT_MODE
+    structured_asset_labels=structured_asset_labels or previous.get('asset_label_mode')=='structured_v4'
     preferred = {row["document_id"] for row in previous.get("reports", [])
                  if row.get("publication_state") == "qualified"}
     for report in selected:
@@ -489,10 +495,10 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict, *,
                 raise SenateEfdError("Senate annual source bytes do not match archive")
             verified_sources[report["document_id"]] = metadata
             try:
-                transaction_observation = observe_part4b(metadata, raw)
+                transaction_observation = observe_part4b(metadata, raw,independent_disclosures=independent_transactions)
                 transaction_relative = (Path("senate_efd/annual/part4b") /
                                         report["document_id"] / metadata["source_sha256"] /
-                                        "observation-v2.json")
+                                        ("observation-v3.json" if independent_transactions else "observation-v2.json"))
                 _write_once(review_root / transaction_relative,
                             _json(transaction_observation))
                 transaction_error = None
@@ -600,6 +606,7 @@ def build_annual_review(evidence_root: Path, review_root: Path, roster: dict, *,
         result["asset_label_differences"] = [{"holding_id": row["id"], "filing_id": row["filing_id"],
             **extraction_rows[row["id"]]["asset_label_source"]} for row in result["reported_holdings"]
             if extraction_rows[row["id"]].get("asset_label_source", {}).get("legacy_asset_name") != row["asset_name"]]
+    if independent_transactions:result['transaction_mode']=INDEPENDENT_MODE
     target = review_root / "senate_efd/annual/current.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(_json(result))
@@ -716,6 +723,48 @@ def _verify_structured_holdings(annual: dict, review_root: Path, evidence_root: 
         raise SenateEfdError("Senate structured annual label differences do not reproduce")
 
 
+def _independent_annual_contexts(annual: dict, evidence_root: Path, copies: list[dict]) -> tuple[dict,dict]:
+    """Reprove roster, selected amendment chain and report dates from originals."""
+    catalog_raw=(evidence_root/'senate_efd/annual/catalog/current.json').read_bytes()
+    if hashlib.sha256(catalog_raw).hexdigest()!=annual['catalog_sha256']:
+        raise SenateEfdError('Annual transaction catalog differs from selected review')
+    discovery=json.loads(catalog_raw)
+    roster_raw=(evidence_root/'senate_efd/members'/f"{annual['roster_sha256']}.xml").read_bytes()
+    if hashlib.sha256(roster_raw).hexdigest()!=annual['roster_sha256']:
+        raise SenateEfdError('Annual transaction roster differs from archived source')
+    selected,_=select_current_annual_versions(discovery,build_roster(roster_raw))
+    if {r['document_id'] for r in selected}!={r['document_id'] for r in annual['reports']}:
+        raise SenateEfdError('Annual transaction selected documents differ from catalog and roster')
+    aliases={alias for copy in copies for alias in copy['alias_document_ids']}
+    groups=defaultdict(list);contexts={}
+    for report in selected:
+        if report['document_id'] in aliases:continue
+        groups[report['identity']['person_id']].append(report)
+    for versions in groups.values():
+        ranks=sorted(r['amendment_number'] for r in versions)
+        if ranks!=list(range(max(ranks)+1)):continue
+        chain=[]
+        for report in sorted(versions,key=lambda r:r['amendment_number']):
+            try:
+                folder=evidence_root/'senate_efd/annual/reports'/report['document_id']
+                metadata_files=list(folder.glob('*.metadata.json'))
+                if len(metadata_files)!=1:raise SenateEfdError('Annual transaction source is not unique')
+                metadata=json.loads(metadata_files[0].read_bytes())
+                if any(metadata.get(k)!=report.get(k) for k in ('document_id','document_url','portal_listed_date','report_year','amendment_number','filer_name')):
+                    raise SenateEfdError('Annual transaction archive differs from selected catalog')
+                raw=(folder/f"{metadata['source_sha256']}.html").read_bytes()
+                extraction=extract_annual(metadata,raw,structured_asset_labels=annual.get('asset_label_mode')=='structured_v4')
+                if extraction['filed_at']!=report['portal_listed_date'] or extraction['filed_at']<extraction['report_period_end']:
+                    raise SenateEfdError('Annual transaction filing date conflicts with report period or catalog')
+                chain.append({'metadata':metadata,'raw':raw,'filed_at':extraction['filed_at'],'report':report,
+                              'person':_person(report['identity'])})
+            except (SenateEfdError,ValueError,KeyError,OSError):
+                chain=[];break
+        if chain and [r['filed_at'] for r in chain]==sorted(r['filed_at'] for r in chain):
+            contexts[chain[-1]['report']['document_id']]=chain[-1]
+    return contexts,{r['document_id']:r for r in discovery['reports']}
+
+
 def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                              expected_roster_sha256: str,
                              evidence_root: Path | None = None) -> tuple[dict, dict]:
@@ -777,6 +826,13 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
     compatibility = ("same_raw_source" if annual_roster_sha == expected_roster_sha256
                      else "same_members")
     transaction_relations = []
+    before_transaction_bytes=_json(candidate['transactions'])
+    independent=annual.get('transaction_mode')==INDEPENDENT_MODE
+    contexts,catalog_reports=({}, {})
+    public_relations=[];annual_facts=[];known_replacements=set();removed_annual_ids=[]
+    if independent:
+        if evidence_root is None:raise SenateEfdError('Independent annual transactions require original archived sources')
+        contexts,catalog_reports=_independent_annual_contexts(annual,evidence_root,exact_source_copies)
     for report in annual.get("reports", []):
         if report.get("publication_state") == "exact_source_copy":
             transaction_relations.append({"document_id": report["document_id"],
@@ -786,21 +842,22 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                                           "observed_row_count": report.get("part4b_printed_row_count"),
                                           "new_candidate_transaction_count": 0})
             continue
-        if report.get("publication_state") == "superseded":
+        if report.get("publication_state") == "superseded" and not independent:
             continue
         observation_path = report.get("part4b_observation_path")
-        if not isinstance(observation_path, str) or not observation_path.endswith("/observation-v2.json"):
+        observation_name='observation-v3.json' if independent else 'observation-v2.json'
+        if not isinstance(observation_path, str) or not observation_path.endswith('/'+observation_name):
             transaction_relations.append({"document_id": report["document_id"],
                                           "status": "part4b_observation_unavailable",
                                           "observed_row_count": None})
             continue
         source_sha = report.get("source_sha256")
         expected_path = (Path("senate_efd/annual/part4b") / report["document_id"] /
-                         str(source_sha) / "observation-v2.json")
+                         str(source_sha) / observation_name)
         if observation_path != expected_path.as_posix():
             raise SenateEfdError("Senate annual Part 4b observation path crosses source identity")
         observation = json.loads((review_root / expected_path).read_bytes())
-        if (observation.get("schema_version") != PART4B_SCHEMA or
+        if (observation.get("schema_version") != (INDEPENDENT_SCHEMA if independent else PART4B_SCHEMA) or
                 observation.get("document_id") != report["document_id"] or
                 observation.get("source_sha256") != source_sha):
             raise SenateEfdError("Senate annual Part 4b observation differs from selected report")
@@ -812,12 +869,55 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
         source_folder = evidence_root / "senate_efd/annual/reports" / report["document_id"]
         metadata = json.loads((source_folder / f"{source_sha}.metadata.json").read_bytes())
         source_raw = (source_folder / f"{source_sha}.html").read_bytes()
-        if observe_part4b(metadata, source_raw) != observation:
+        if observe_part4b(metadata, source_raw,independent_disclosures=independent) != observation:
             raise SenateEfdError("Senate annual Part 4b observation differs from archived bytes")
-        relation = relate_part4b_to_candidate(
-            observation, person_id=report["person_id"], transactions=candidate["transactions"])
+        if independent and report['document_id'] in contexts:
+            context=contexts[report['document_id']]
+            if (report['person_id']!=context['person']['id'] or any(report.get(k)!=context['metadata'].get(k)
+                    for k in ('report_year','amendment_number','source_sha256'))):
+                raise SenateEfdError('Annual transaction review identity differs from roster-bound original')
+            if observation.get('independent_disclosure_status') in {'affirmed','explicit_no'}:
+                known_replacements.add((report['person_id'],context['report']['report_year']))
+            facts,relation,public=materialize_independent_part4b(observation,person_id=report['person_id'],
+                filed_at=context['filed_at'],data_cutoff_at=candidate['meta']['data_cutoff_at'],transactions=candidate['transactions'])
+            annual_facts.extend(facts);public_relations.extend(public)
+            if facts:
+                person=context['person'];old=existing.get(person['id'])
+                if old and old!=person:
+                    if any(old.get(k)!=person.get(k) for k in ('role','office_type','chamber','state','party','disclosure_authority')):
+                        raise SenateEfdError('Annual transaction identity conflicts with existing person')
+                else:existing[person['id']]=person
+        else:
+            relation = relate_part4b_to_candidate(
+                observation, person_id=report["person_id"], transactions=candidate["transactions"])
+            if independent:relation['selection_blocking_reason']='annual_transaction_amendment_or_source_unresolved'
         relation["annual_report_publication_state"] = report.get("publication_state")
         transaction_relations.append(relation)
+    if independent:
+        # A proved amendment replaces only this person's same-year annual
+        # disclosures. Ordinary PTRs and older annual years remain untouched.
+        replace=known_replacements
+        old_ids={r['id'] for r in candidate['transactions'] if str(r['id']).startswith('senate-annual-part4b:') and
+                 (r['person_id'],catalog_reports.get(r['filing_id'],{}).get('report_year')) in replace}
+        fresh={r['id']:r for r in annual_facts}
+        # Conflicting existing objects were explicitly quarantined above.
+        blocked={r['observation_id'] for rel in transaction_relations for r in rel.get('rows',[]) if
+                 'existing_annual_formal_projection_differs' in r.get('candidate_blocking_reasons',[])}
+        old_ids-=blocked
+        removed_annual_ids=sorted(old_ids-set(fresh))
+        candidate['transactions']=[r for r in candidate['transactions'] if r['id'] not in old_ids]
+        candidate['transactions'].extend(sorted(fresh.values(),key=lambda r:r['id']))
+        prior=[r for r in candidate['meta'].get('transaction_disclosure_relations',[]) if r['transaction_id'] not in old_ids]
+        refs={r['transaction_id']:r for r in prior}
+        refs.update({r['transaction_id']:r for r in public_relations})
+        if refs:candidate['meta']['transaction_disclosure_relations']=sorted(refs.values(),key=lambda r:r['transaction_id'])
+        candidate['people']=sorted(existing.values(),key=lambda r:r['id'])
+    from .senate_annual_transactions import consume_part4b_candidate_decisions
+    decisions=consume_part4b_candidate_decisions({'annual_part4b_relationships':transaction_relations,
+        'annual_exact_source_copies':exact_source_copies},transactions=candidate['transactions'])
+    if independent:
+        decisions.update(formal_transactions_unchanged=before_transaction_bytes==_json(candidate['transactions']),
+            ordinary_ptr_transactions_unchanged=True,superseded_annual_transaction_ids=removed_annual_ids)
     return candidate, {"annual_status": "included",
                        "annual_roster_compatibility": compatibility,
                        "annual_roster_sha256": annual_roster_sha,
@@ -826,4 +926,5 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
                        "annual_qualified_report_count": annual["qualified_report_count"],
                        "annual_holding_count": annual["holding_count"],
                        "annual_exact_source_copies": exact_source_copies,
-                       "annual_part4b_relationships": transaction_relations}
+                       "annual_part4b_relationships": transaction_relations,
+                       **({'annual_transaction_candidate_decisions':decisions} if independent else {})}

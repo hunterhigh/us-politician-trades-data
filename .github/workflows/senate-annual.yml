@@ -102,6 +102,20 @@ jobs:
           if [ "$STRUCTURED_ASSET_LABELS" = "true" ] || [ "$active_mode" = "structured_v4" ]; then
             annual_args+=(--structured-asset-labels)
           fi
+          active_transactions="$(python - "$review/senate_efd/annual/current.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          mode = value.get('transaction_mode', 'legacy_observations')
+          if mode not in {'legacy_observations', 'independent_part4b/v1'}:
+              raise SystemExit('Annual transaction selection is unsupported')
+          print(mode)
+          PY
+          )"
+          if [ "$active_transactions" = "independent_part4b/v1" ]; then
+            annual_args+=(--independent-transactions)
+          fi
           python backend/scripts/senate_annual.py build \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --review-root "$review" --roster "$ROSTER" "${annual_args[@]}"

@@ -15,6 +15,8 @@ from .senate_reports import _report_parser
 
 
 SCHEMA = "senate-efd-annual-part4b-observation/v2"
+INDEPENDENT_SCHEMA = "senate-efd-annual-part4b-observation/v3"
+INDEPENDENT_MODE = "independent_part4b/v1"
 HEADERS_4A = ("", "#", "Transaction Date", "Owner", "Ticker", "Asset Name",
               "Type", "Amount", "Comment")
 HEADERS_4B = ("", "#", "Owner", "Ticker", "Asset Name", "Transaction Type",
@@ -42,7 +44,7 @@ def _source_ledger(source_sha: str, rows: list[dict]) -> dict:
                             "observation_ref": slot["observation_ref"]} for slot in slots])
 
 
-def observe_part4b(metadata: dict, raw: bytes) -> dict:
+def observe_part4b(metadata: dict, raw: bytes, *, independent_disclosures: bool = False) -> dict:
     """Conserve every printed Part 4b table row without qualifying a fact."""
     source_sha = hashlib.sha256(raw).hexdigest()
     if (metadata.get("schema_version") != "senate-efd-annual-archive/v1" or
@@ -110,8 +112,14 @@ def observe_part4b(metadata: dict, raw: bytes) -> dict:
             "problems": problems, "ptr_overlap_status": "unassessed",
             "disposition": "pending_relationship_and_qualification",
         })
+    declaration = [text for text in parsed.section_paragraphs.get(PART4B, []) if re.fullmatch(
+        r"Did you, your spouse, or dependent child buy, sell, or exchange an asset "
+        r"where the transaction exceeded \$1,000 and was not reported on Part 4a\? (?:Yes|No)",text)]
     return {
-        "schema_version": SCHEMA, "source_id": "senate_efd",
+        "schema_version": INDEPENDENT_SCHEMA if independent_disclosures else SCHEMA, "source_id": "senate_efd",
+        **({"independent_disclosure_statement":declaration[0] if len(declaration)==1 else None,
+            "independent_disclosure_status":"affirmed" if len(declaration)==1 and declaration[0].endswith(" Yes") else
+                "explicit_no" if explicit_no else "unknown"} if independent_disclosures else {}),
         "document_id": metadata["document_id"],
         "source_sha256": source_sha, "source_url": metadata["document_url"],
         "report_year": metadata["report_year"],
@@ -136,7 +144,7 @@ def relate_part4b_to_candidate(observation: dict, *, person_id: str,
     PTR or to two equal rows under different accounts. Even a sole field match
     is retained as a possible relation, never an automatic duplicate decision.
     """
-    if (observation.get("schema_version") != SCHEMA or
+    if (observation.get("schema_version") not in {SCHEMA,INDEPENDENT_SCHEMA} or
             observation.get("source_report_ledger") != _source_ledger(
                 observation["source_sha256"], observation["rows"]) or
             observation.get("part4b_printed_row_count") != len(observation["rows"])):
@@ -152,7 +160,7 @@ def relate_part4b_to_candidate(observation: dict, *, person_id: str,
         matches = []
         if not row["problems"]:
             for tx in transactions:
-                if (tx.get("source_id") == "senate_efd" and tx.get("person_id") == person_id and
+                if (tx.get("source_id") == "senate_efd" and not str(tx.get("id","")).startswith("senate-annual-part4b:") and tx.get("person_id") == person_id and
                         tx.get("owner") == owner and tx.get("ticker") == ticker and
                         tx.get("asset_name") == row["asset_name_raw"] and
                         tx.get("transaction_date") == row["transaction_date"] and
@@ -185,6 +193,58 @@ def relate_part4b_to_candidate(observation: dict, *, person_id: str,
 
 
 RELATION_RULE = "senate-annual-part4b-candidate-decisions/v1"
+
+
+def materialize_independent_part4b(observation: dict, *, person_id: str, filed_at: str,
+                                 data_cutoff_at: str, transactions: list[dict]) -> tuple[list[dict],dict,list[dict]]:
+    """Qualify byte-replayed annual disclosure rows without deduplicating PTRs."""
+    from .senate_candidate import AMOUNT_RANGES, OPEN_AMOUNTS, _TICKER
+    relation = relate_part4b_to_candidate(observation,person_id=person_id,transactions=transactions)
+    facts, public = [], []
+    existing = {row['id']:row for row in transactions}
+    for source, decision in zip(observation['rows'],relation['rows'],strict=True):
+        reasons = list(source['problems'])
+        if observation.get('schema_version') != INDEPENDENT_SCHEMA or observation.get('independent_disclosure_status') != 'affirmed':
+            reasons.append('independent_part4b_statement_unresolved')
+        owner = 'Dependent Child' if source['owner_raw']=='Child' else source['owner_raw']
+        if owner not in {'Self','Joint','Spouse','Dependent Child'}:reasons.append('owner_not_supported')
+        ticker = None if source['ticker_raw'] in {'','--'} else source['ticker_raw']
+        if ticker is not None and not _TICKER.fullmatch(ticker):reasons.append('ticker_invalid')
+        amount = AMOUNT_RANGES.get(source['amount_raw'])
+        threshold = OPEN_AMOUNTS.get(source['amount_raw'])
+        if amount is None and threshold is None:reasons.append('amount_range_not_supported')
+        if source['transaction_type'] not in {'purchase','sale','exchange'}:reasons.append('transaction_type_not_supported')
+        try:
+            filed = datetime.strptime(filed_at,'%Y-%m-%d').date()
+            day = datetime.strptime(source['transaction_date'],'%Y-%m-%d').date()
+            if day>filed:reasons.append('transaction_after_filing')
+            if filed>datetime.fromisoformat(data_cutoff_at.replace('Z','+00:00')).date():reasons.append('filing_exceeds_cutoff')
+        except (ValueError,TypeError):reasons.append('filing_or_transaction_date_invalid')
+        decision['cross_report_relationship']={'status':'possible_ptr_overlap' if decision['possible_ptr_transaction_ids'] else 'cross_report_relationship_unconfirmed',
+            'possible_ptr_transaction_ids':decision['possible_ptr_transaction_ids'],'basis':'independent_official_part4b_disclosure_not_an_actual_trade_deduplication'}
+        if reasons:
+            decision.update(candidate_disposition='quarantined',candidate_blocking_reasons=sorted(set(reasons)))
+            continue
+        fact={'id':source['observation_id'],'filing_id':observation['document_id'],'person_id':person_id,
+            'owner':owner,'asset_name':source['asset_name_raw'],'ticker':ticker,'ticker_mapping_basis':'filing_explicit' if ticker else None,
+            'instrument_type':'Unspecified','option_type':None,'strike_price':None,'expiration_date':None,
+            'transaction_type':source['transaction_type'],'transaction_date':source['transaction_date'],'filed_at':filed_at+'T00:00:00Z',
+            'amount_low':source['amount_low'],'amount_high':source['amount_high'],
+            **({'amount_low_exclusive':True} if threshold is not None else {}),
+            'position_effect':'unknown','position_effect_basis':None,'source_id':'senate_efd','source':'U.S. Senate eFD',
+            'source_url':observation['source_url'],'verification_status':'official_matched'}
+        prior=existing.get(fact['id'])
+        if prior is not None and prior!=fact:
+            decision.update(candidate_disposition='quarantined',candidate_blocking_reasons=['existing_annual_formal_projection_differs'])
+            continue
+        facts.append(prior or fact)
+        decision.update(candidate_disposition='retained_existing' if prior else 'promoted',candidate_blocking_reasons=[],formal_transaction_id=fact['id'])
+        public.append({'transaction_id':fact['id'],'source_id':'senate_efd','filing_id':fact['filing_id'],
+            'source_url':fact['source_url'],'source_sha256':observation['source_sha256'],'section':'Part 4b',
+            'printed_row_number':source['printed_row_number'],**{key:decision['cross_report_relationship'][key]
+                for key in ('status','possible_ptr_transaction_ids')}})
+    relation['new_candidate_transaction_count']=sum(r['candidate_disposition']=='promoted' for r in relation['rows'])
+    return facts,relation,public
 
 
 def consume_part4b_candidate_decisions(annual_audit: dict, *, transactions: list[dict]) -> dict:
@@ -233,7 +293,12 @@ def consume_part4b_candidate_decisions(annual_audit: dict, *, transactions: list
             for row in report["rows"]:
                 if not set(row.get("possible_ptr_transaction_ids", [])) <= formal_ids:
                     raise SenateEfdError("Annual relation references a non-current formal PTR")
-                if row.get("candidate_disposition") != "blocked_pending_relationship" or not row.get("candidate_blocking_reasons"):
+                if row.get('candidate_disposition') in {'promoted','retained_existing'}:
+                    if row.get('formal_transaction_id') not in formal_ids or row.get('candidate_blocking_reasons'):
+                        raise SenateEfdError('Annual qualified row is not present in the actual candidate')
+                elif row.get('candidate_disposition')=='quarantined':
+                    if not row.get('candidate_blocking_reasons'):raise SenateEfdError('Annual quarantine has no reason')
+                elif row.get("candidate_disposition") != "blocked_pending_relationship" or not row.get("candidate_blocking_reasons"):
                     raise SenateEfdError("Annual relation lacks a concrete candidate disposition")
         report["candidate_disposition_counts"] = dict(sorted(Counter(
             row["candidate_disposition"] for row in report.get("rows", [])).items()))
@@ -242,4 +307,5 @@ def consume_part4b_candidate_decisions(annual_audit: dict, *, transactions: list
             "candidate_disposition_counts":dict(sorted(Counter(row["candidate_disposition"]
                 for report in reports for row in report.get("rows", [])).items())),
             "reports_with_unknown_row_decisions":sum(not isinstance(r.get("rows"),list) for r in reports),
-            "new_candidate_transaction_count":0,"formal_transactions_unchanged":True}
+            "new_candidate_transaction_count":sum(r.get('candidate_disposition')=='promoted' for report in reports for r in report.get('rows',[])),
+            "formal_transactions_unchanged":not any(r.get('candidate_disposition')=='promoted' for report in reports for r in report.get('rows',[]))}
