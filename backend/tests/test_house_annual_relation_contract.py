@@ -9,7 +9,7 @@ import test_house_candidate as house_case
 from test_public_repo import FakeTransport
 from unison_snapshot.builder import build, normalize
 from unison_snapshot.house_candidate import build_house_candidate
-from unison_snapshot.legacy import load, processor_version_for
+from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V3_SHA256
 from unison_snapshot.public_repo import PublicSnapshotRepository
 
 
@@ -40,6 +40,12 @@ def fixture():
 
 
 class HouseAnnualRelationContractTests(unittest.TestCase):
+    def test_pinned_processor_uses_repository_lf_bytes(self):
+        path = Path(__file__).resolve().parents[2] / 'frontend-contract-v3/scripts/process_snapshot.py'
+        raw = path.read_bytes()
+        self.assertNotIn(b'\r\n', raw)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), PROCESSOR_V3_SHA256)
+
     def test_house_locator_is_not_a_senate_printed_row(self):
         data = fixture()
         normalized = normalize(data, allow_production=True)
