@@ -73,7 +73,8 @@ def _instrument(asset_name: str, ticker: str | None) -> str:
         return "ETF"
     if "mutual fund" in value or "fund" in value:
         return "Mutual Fund"
-    if "bond" in value or "treasury" in value or "note" in value:
+    # A disclosure's "See Endnote" callout is not a debt instrument.
+    if "bond" in value or "treasury" in value or re.search(r"\bnotes?\b", value):
         return "Bond"
     if ticker or "stock" in value or "inc." in value or "corp." in value:
         return "Stock"
