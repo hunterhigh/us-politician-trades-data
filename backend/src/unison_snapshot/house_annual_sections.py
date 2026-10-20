@@ -1,8 +1,7 @@
-"""Read-only House annual Schedule A hierarchy and Schedule B row observations.
+"""House annual hierarchy, source observations and independent B disclosures.
 
-This sidecar never changes the existing Schedule A qualification or publishes
-Schedule B transactions. The B ledger preserves date and independent financial row anchors; pages
-with other shapes remain unresolved rather than being counted as empty.
+Observing alone never qualifies a transaction. The normal candidate consumer
+reproduces saved words before qualifying independent Schedule B disclosure rows.
 """
 from __future__ import annotations
 
@@ -352,11 +351,116 @@ def observe_archived_annual_pdf(pdf_path: Path, extraction: dict) -> dict:
 RELATION_RULE = "house-annual-b-candidate-relations/v1"
 
 
+def _materialize_schedule_b_reports(reports: list[dict], payloads: dict,
+                                    existing: list[dict], relations: list[dict], ptrs: list[dict]) -> tuple[list, list, list]:
+    """Consume qualified independent annual disclosure rows, preserving old facts on uncertainty."""
+    from copy import deepcopy
+    from .disclosure_amounts import validate_amount
+    facts = {r["id"]: deepcopy(r) for r in existing}
+    public = {r["transaction_id"]: deepcopy(r) for r in relations
+              if r.get("transaction_id") in facts and r.get("source_id") == "house_clerk"}
+    for identifier, relation in public.items():
+        valid = {r["id"] for r in ptrs if r.get("source_id") == "house_clerk" and
+                 r.get("person_id") == facts[identifier].get("person_id") and str(r.get("id","")).startswith("house-ptr:")}
+        relation["possible_ptr_transaction_ids"] = sorted(set(relation["possible_ptr_transaction_ids"]) & valid)
+        relation["status"] = "possible_ptr_overlap" if relation["possible_ptr_transaction_ids"] else "cross_report_relationship_unconfirmed"
+    lifecycle = []
+    # Without verified original-byte copy proof, an ID collision is not a
+    # licence to choose a different filing context for the same physical row.
+    owners = {}
+    for report in reports:
+        for decision in report["rows"]:
+            if decision["candidate_disposition"] != "excluded_exact_source_copy":
+                owners.setdefault(decision["observation_id"], []).append(report)
+    for report in reports:
+        payload = payloads[id(report)]
+        source = report["source"]
+        old = {i:r for i,r in facts.items() if r.get("filing_id") == report["document_id"]}
+        if old and any(public.get(i,{}).get("source_sha256") != report["source_sha256"] for i in old):
+            report["report_blocking_reasons"] = sorted(set(report["report_blocking_reasons"] +
+                ["existing_annual_source_replacement_unresolved"]))
+            for decision in report["rows"]:
+                decision["candidate_blocking_reasons"] = sorted(set(decision["candidate_blocking_reasons"] +
+                    ["existing_annual_source_replacement_unresolved"]))
+        if report["report_blocking_reasons"]:
+            lifecycle.append({"document_id":report["document_id"],"action":"retain_existing_block_new",
+                              "retained_ids":sorted(old),"reasons":report["report_blocking_reasons"]})
+            continue
+        observation = payload["observation"]
+        sections = [s for p in report.get("source_text_coverage", {}).get("pages", [])
+                    for s in p["sections"] if s["section"] == "B"]
+        explicit_none = (not observation["schedule_b_rows"] and bool(sections) and
+                         any(line["text"] == "None disclosed." and line["disposition"] == "explicit_note_or_none"
+                             for s in sections for line in s["lines"]) and
+                         all(line["disposition"] in {"explicit_note_or_none","printed_header_extension"}
+                             for s in sections for line in s["lines"]))
+        if explicit_none:
+            removable = [i for i in old if public.get(i,{}).get("source_sha256") == report["source_sha256"]]
+            for identifier in removable:facts.pop(identifier);public.pop(identifier,None)
+            lifecycle.append({"document_id":report["document_id"],"action":"remove_explicit_none",
+                              "removed_ids":sorted(removable)})
+            continue
+        if not observation["schedule_b_rows"]:
+            lifecycle.append({"document_id":report["document_id"],"action":"retain_existing_coverage_unknown",
+                              "retained_ids":sorted(old)})
+            continue
+        for row, decision in zip(observation["schedule_b_rows"],report["rows"],strict=True):
+            identifier = row["observation_id"]
+            if decision["candidate_disposition"] == "excluded_exact_source_copy":
+                continue
+            reasons = list(decision["candidate_blocking_reasons"])
+            if len(owners.get(identifier, [])) > 1:
+                reasons.append("annual_id_collision_without_exact_copy_proof")
+            try:
+                event = datetime.strptime(row["transaction_date"],"%Y-%m-%d").date()
+                filed = datetime.strptime(source["filed_date"],"%Y-%m-%d").date()
+                if event > filed or event.year != int(source["filing_year"]):
+                    reasons.append("annual_transaction_outside_report_period")
+                validate_amount(row)
+            except (ValueError,TypeError,KeyError):
+                reasons.append("annual_date_or_amount_unqualified")
+            if row.get("owner") not in set(OWNER_CODES.values()):reasons.append("owner_unresolved")
+            if not isinstance(row.get("asset_name"),str) or not row["asset_name"].strip():reasons.append("asset_unresolved")
+            if row.get("transaction_type") not in {"purchase","sale","exchange"}:reasons.append("transaction_type_unresolved")
+            if row.get("asset_type_code") not in ASSET_TYPES:reasons.append("asset_type_unresolved")
+            if row.get("asset_type_code") == "OP":reasons.append("annual_option_details_unresolved")
+            ticker = row.get("ticker")
+            if ticker is not None and not re.fullmatch(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}",str(ticker)):reasons.append("ticker_unresolved")
+            fact = {"id":identifier,"filing_id":report["document_id"],"person_id":report["person_id"],
+                "owner":row.get("owner"),"asset_name":row.get("asset_name"),"ticker":ticker,
+                "ticker_mapping_basis":"filing_explicit" if ticker else None,
+                "instrument_type":row.get("instrument_type"),"transaction_type":row.get("transaction_type"),
+                "option_type":None,"strike_price":None,"expiration_date":None,
+                "transaction_date":row.get("transaction_date"),"filed_at":source["filed_date"]+"T00:00:00Z",
+                "amount_low":row.get("amount_low"),"amount_high":row.get("amount_high"),
+                **({"amount_low_exclusive":row["amount_low_exclusive"]} if "amount_low_exclusive" in row else {}),
+                "position_effect":"unknown","position_effect_basis":None,"source_id":"house_clerk",
+                "source":"U.S. House Clerk","source_url":report["source_url"],"verification_status":"official_matched"}
+            prior = facts.get(identifier)
+            if prior is not None and prior != fact:reasons.append("existing_annual_formal_projection_differs")
+            if reasons:
+                decision.update(candidate_disposition="quarantined",candidate_blocking_reasons=sorted(set(reasons)))
+                continue
+            facts[identifier] = deepcopy(prior or fact)
+            public[identifier] = {"transaction_id":identifier,"source_id":"house_clerk",
+                "filing_id":fact["filing_id"],"source_url":fact["source_url"],
+                "source_sha256":report["source_sha256"],"section":"Schedule B",
+                "page_number":row["page_number"],"top_points":row["top_points"],
+                "status":decision["relation_status"],
+                "possible_ptr_transaction_ids":decision["possible_ptr_transaction_ids"]}
+            decision.update(candidate_disposition="retained_existing" if prior else "promoted",
+                            candidate_blocking_reasons=[],formal_transaction_id=identifier)
+    return ([facts[k] for k in sorted(facts)],[public[k] for k in sorted(public)],lifecycle)
+
+
 def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
-                              reported_holdings: list[dict]) -> dict:
+                              reported_holdings: list[dict],
+                              existing_annual_transactions: list[dict] | None = None,
+                              existing_relations: list[dict] | None = None,
+                              data_cutoff_at: str | None = None) -> dict:
     """Decide existing annual observations inside the real candidate consumer.
 
-    No annual row is a new formal PTR. A verified exact report copy can be
+    Annual rows are independent disclosures, never synthetic PTRs. A verified exact report copy can be
     excluded once; equal fields merely expose possible overlaps. Optional raw
     source bytes prove copies, and cached pages reproduce parsed observations.
     Missing proof blocks the new observations, never replaces old formal rows.
@@ -364,11 +468,13 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
     from collections import Counter
     import json
     from urllib.parse import urlsplit
-    reports, verified = [], {}
+    reports, verified, source_inputs = [], {}, {}
     seen = set()
     for payload in inputs:
         observation, extraction, identity = (payload.get(name) for name in
                                              ("observation", "extraction", "identity"))
+        extraction = extraction if isinstance(extraction, dict) else {}
+        identity = identity if isinstance(identity, dict) else {}
         source = observation.get("source", {}) if isinstance(observation, dict) else {}
         document, sha = source.get("document_id"), observation.get("source_sha256") if isinstance(observation, dict) else None
         source_url = source.get("source_url")
@@ -411,12 +517,31 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
                 reasons.append("annual_saved_page_observation_invalid")
         elif payload.get("pages") is None:
             reasons.append("annual_saved_page_reproduction_unavailable")
+        from .house_ptr import DETERMINISTIC_IDENTITY_BASES
+        if (identity.get("status") not in {"matched_automatically", "suggested_requires_review"} or
+                identity.get("match_basis") not in DETERMINISTIC_IDENTITY_BASES or
+                not re.fullmatch(r"[0-9a-f]{64}", str(identity.get("roster_sha256"))) or
+                not str(identity.get("evidence_url", "")).startswith("https://bioguide.congress.gov/")):
+            reasons.append("annual_identity_not_deterministic")
+        try:
+            filed = datetime.strptime(source.get("filed_date"), "%Y-%m-%d").date()
+            period = datetime.strptime(extraction.get("report_period_end"), "%Y-%m-%d").date()
+            if (period.isoformat() != f"{source['filing_year']}-12-31" or filed < period or
+                    extraction.get("report_period_basis") != "annual_member_pdf_filing_year_end"):
+                raise ValueError("unsupported annual period")
+            if data_cutoff_at is not None and filed > datetime.fromisoformat(data_cutoff_at.replace("Z","+00:00")).date():
+                reasons.append("annual_filing_exceeds_cutoff")
+        except (TypeError, ValueError, KeyError):
+            reasons.append("annual_filing_or_period_date_invalid")
+        if source.get("filing_type") != "O" or source.get("report_type") != "Annual Report":
+            reasons.append("annual_revision_selection_unresolved")
         raw = payload.get("source_bytes")
         bytes_verified = isinstance(raw, bytes) and hashlib.sha256(raw).hexdigest() == sha
         if raw is not None and not bytes_verified:
             reasons.append("annual_source_bytes_hash_mismatch")
         report = {"document_id": document, "source_sha256": sha,
                   "person_id": identity.get("person_id") if isinstance(identity, dict) else None,
+                  "identity": identity,
                   "source_url": source_url, "source": source,
                   "input_observation_sha256": hashlib.sha256(json.dumps(observation,
                       ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
@@ -426,24 +551,24 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
                   "source_text_coverage": reproduced.get("source_text_coverage")
                      if payload.get("pages") is not None and not reasons else None}
         for row in rows:
+            from math import isfinite
+            page, top = row.get("page_number"), row.get("top_points")
+            position_valid = (type(page) is int and page>0 and type(top) in (int,float) and
+                              isfinite(top) and top>=0 and round(top,2)==top)
             expected = "house-annual-b:" + hashlib.sha256(
-                f"{sha}:{row.get('page_number')}:{row.get('top_points', 0):.2f}".encode()).hexdigest()[:24]
+                f"{sha}:{page}:{top:.2f}".encode()).hexdigest()[:24] if position_valid else None
             blockers = [*reasons, *row.get("problems", [])]
-            if row.get("observation_id") != expected:
+            if not position_valid or row.get("observation_id") != expected:
                 blockers.append("annual_row_source_position_invalid")
             matches = []
             if not blockers:
                 for tx in transactions:
-                    if (tx.get("source_id") == "house_clerk" and tx.get("person_id") == report["person_id"] and
+                    if (str(tx.get("id", "")).startswith("house-ptr:") and tx.get("source_id") == "house_clerk" and tx.get("person_id") == report["person_id"] and
                             all(tx.get(name) == row.get(name) for name in (
                                 "asset_name", "owner", "ticker", "transaction_type", "transaction_date",
                                 "amount_low", "amount_high", "amount_low_exclusive"))):
                         matches.append(tx["id"])
-            blockers.append("multiple_field_matches_no_official_row_link" if len(matches)>1 else
-                            "field_match_without_official_row_link" if matches else
-                            "official_annual_ptr_row_correspondence_unproven")
-            relation_status = ("possible_ptr_overlap" if matches else "field_or_source_problems_unresolved"
-                               if len(blockers)>1 else "ptr_relationship_unresolved")
+            relation_status = "possible_ptr_overlap" if matches else "cross_report_relationship_unconfirmed"
             report["rows"].append({"observation_id": row.get("observation_id"),
                 "source_reference": {"document_id": document, "source_sha256": sha,
                     "source_url": source_url, "section": "Schedule B", "evidence": row.get("evidence")},
@@ -452,6 +577,7 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
                 "candidate_blocking_reasons": sorted(set(blockers)),
                 "formal_transaction_id": None})
         reports.append(report)
+        source_inputs[id(report)] = payload
         if bytes_verified and not reasons:
             verified[key] = (payload, report)
     # Only exact original bytes plus the same reliable report context establish
@@ -463,10 +589,13 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
                  source.get("filed_date"),report["source_sha256"])
         groups.setdefault(context,[]).append((payload,report))
     selected = {r.get("filing_id") for r in reported_holdings}
+    existing_selected = {r.get("filing_id") for r in existing_annual_transactions or []}
     for group in groups.values():
         if len(group)<2:
             continue
-        preferred=[r for _,r in group if r["document_id"] in selected]
+        preferred=[r for _,r in group if r["document_id"] in existing_selected]
+        if not preferred:
+            preferred=[r for _,r in group if r["document_id"] in selected]
         if len(preferred)>1:
             for _,report in group:
                 report["report_blocking_reasons"].append("multiple_existing_formal_reports_share_original")
@@ -491,8 +620,17 @@ def consume_schedule_b_inputs(inputs: list[dict], *, transactions: list[dict],
             if row["candidate_disposition"] == "blocked_pending_relationship":
                 row["candidate_blocking_reasons"] = sorted(set([
                     *row["candidate_blocking_reasons"], *report["report_blocking_reasons"]]))
+    facts, public, lifecycle = _materialize_schedule_b_reports(reports, source_inputs,
+        existing_annual_transactions or [], existing_relations or [], transactions)
     return {"schema_version": "house-annual-b-candidate-audit/v1", "rule_version": RELATION_RULE,
             "reports": reports, "observed_row_count": sum(r["observed_row_count"] or 0 for r in reports),
             "candidate_disposition_counts": dict(sorted(Counter(row["candidate_disposition"]
                 for report in reports for row in report["rows"]).items())),
-            "new_candidate_transaction_count": 0, "formal_transactions_unchanged": True}
+            "new_candidate_transaction_count": sum(r["candidate_disposition"] == "promoted"
+                for report in reports for r in report["rows"]),
+            "formal_transactions_unchanged": (not any(r["candidate_disposition"] == "promoted"
+                for report in reports for r in report["rows"]) and
+                {r["id"] for r in facts} == {r["id"] for r in existing_annual_transactions or []}),
+            "prior_ptr_transactions_unchanged": True,
+            "transactions": facts, "transaction_disclosure_relations": public,
+            "existing_annual_lifecycle": lifecycle}

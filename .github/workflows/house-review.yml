@@ -470,10 +470,16 @@ jobs:
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
           mkdir -p "$REVIEW_ROOT/candidates/sources"
+          # Preserve activated annual disclosure rows if a later source
+          # observation is unavailable; the builder still requalifies PTRs.
+          candidate_base=ingest/current.json
+          if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
+            candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/house_clerk.json" \
-            --base ingest/current.json \
+            --base "$candidate_base" \
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"

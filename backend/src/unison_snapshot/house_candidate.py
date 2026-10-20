@@ -380,8 +380,34 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                     raise HouseIndexError("House annual saved word pages digest differs")
                 payload["pages"] = pages
             inputs.append(payload)
+    existing_b = [r for r in base.get("transactions", [])
+                  if r.get("source_id") == "house_clerk" and str(r.get("id", "")).startswith("house-annual-b:")]
+    base_relations = base.get("meta", {}).get("transaction_disclosure_relations", [])
     annual_audit = consume_schedule_b_inputs(inputs, transactions=candidate["transactions"],
-                                             reported_holdings=candidate["reported_holdings"])
+        reported_holdings=candidate["reported_holdings"], existing_annual_transactions=existing_b,
+        existing_relations=base_relations,data_cutoff_at=cutoff)
+    candidate["transactions"] = sorted([*candidate["transactions"],*annual_audit["transactions"]],key=lambda r:r["id"])
+    prior_people = {r["id"]:r for r in base.get("people", [])}
+    people = {r["id"]:r for r in candidate["people"]}
+    for row in annual_audit["transactions"]:
+        person = row["person_id"]
+        if person not in people:
+            report = next((r for r in annual_audit["reports"] if r["person_id"] == person and
+                           not r["report_blocking_reasons"]),None)
+            if report is not None:
+                people[person] = _person(report["identity"])
+            elif person in prior_people:
+                people[person] = deepcopy(prior_people[person])
+            else:
+                raise HouseIndexError("Retained annual House disclosure has no identity")
+    candidate["people"] = [people[k] for k in sorted(people)]
+    actual_ids = {r["id"] for r in candidate["transactions"]}
+    relations = [deepcopy(r) for r in base_relations
+                 if r.get("source_id") != "house_clerk" and r.get("transaction_id") in actual_ids]
+    relations += annual_audit["transaction_disclosure_relations"]
+    candidate["meta"].pop("transaction_disclosure_relations",None)
+    if relations:
+        candidate["meta"]["transaction_disclosure_relations"] = sorted(relations,key=lambda r:r["transaction_id"])
     if annual_transaction_audit is not None:
         annual_transaction_audit.clear()
         annual_transaction_audit.update(annual_audit)
@@ -389,13 +415,20 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         for row in candidate["source_health"]:
             if row.get("source_id") == "house_clerk":
                 row["detail"] += (f"; annual B: {annual_audit['observed_row_count']} observations, "
-                                  f"{annual_audit['candidate_disposition_counts'].get('blocked_pending_relationship', 0)} blocked, "
+                                  f"{len(annual_audit['transactions'])} independent disclosures included ({annual_audit['new_candidate_transaction_count']} new), "
+                                  f"{sum(annual_audit['candidate_disposition_counts'].get(s,0) for s in ('blocked_pending_relationship','quarantined'))} blocked, "
                                   f"{annual_audit['candidate_disposition_counts'].get('excluded_exact_source_copy', 0)} exact-copy exclusions")
+                row["detail"] += f"; {len(candidate['transactions'])} total candidate disclosure records; annual coverage remains bounded to observed rows"
                 coverages = [report.get("source_text_coverage") for report in annual_audit["reports"]]
                 covered = [item for item in coverages if isinstance(item, dict)]
                 if covered:
                     row["detail"] += (f"; annual native text census: {sum(item['unresolved_financial_text_line_count'] for item in covered)} "
                                       "unresolved financial text lines (not unique disclosures)")
+    elif annual_audit["transactions"]:
+        for row in candidate["source_health"]:
+            if row.get("source_id") == "house_clerk":
+                row["detail"] += (f"; {len(annual_audit['transactions'])} existing annual B disclosures retained; "
+                                  f"source observations unavailable; {len(candidate['transactions'])} total candidate disclosure records")
     return candidate
 
 
