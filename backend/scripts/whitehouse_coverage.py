@@ -15,7 +15,7 @@ from unison_snapshot.oge_278e_public import (
     parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION as TRADE_PARSER_VERSION, GENERIC_PARSER_VERSION,
+    PARSER_VERSION as TRADE_PARSER_VERSION, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSER_VERSIONS,
     TRUMP_081225_PARSER_VERSION,
     TRUMP_2026_PARSER_VERSION,
@@ -35,14 +35,18 @@ def _annual_versions(source_url: str, source_sha256: str) -> tuple[str, ...]:
                        if version not in {current, TRUMP_2025_PARSER_VERSION}))
 
 
-def _trade_versions(source_url: str, source_sha256: str, *, generic_trade: bool = False) -> tuple[str, ...]:
+def _trade_versions(source_url: str, source_sha256: str, *, generic_trade: bool = False, saved_ocr_trade: bool = False) -> tuple[str, ...]:
     """Select source-bound versions only for their exact immutable sources."""
 
+    if generic_trade and saved_ocr_trade:
+        raise ValueError("Select native or saved OCR White House coverage, not both")
+    if saved_ocr_trade:
+        return (SAVED_OCR_PARSER_VERSION,)
     if generic_trade:
         return (GENERIC_PARSER_VERSION,)
     current = trade_parser_version_for_source(source_url, source_sha256)
     return (current, *(version for version in TRADE_PARSER_VERSIONS
-                       if version not in {current, GENERIC_PARSER_VERSION, TRUMP_081225_PARSER_VERSION,
+                       if version not in {current, *GENERIC_PARSER_VERSIONS, TRUMP_081225_PARSER_VERSION,
                                           TRUMP_2026_PARSER_VERSION}))
 
 
@@ -53,7 +57,7 @@ def _load(path: Path) -> dict:
     return value
 
 
-def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade: bool = False) -> dict:
+def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade: bool = False, saved_ocr_trade: bool = False) -> dict:
     reports = index.get("reports")
     archive_rows = batch.get("reports")
     if (index.get("schema_version") != INDEX_SCHEMA or
@@ -97,14 +101,14 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
             folder = (review_root / "whitehouse/extractions" /
                       document_id.split(":", 1)[1] / sha)
             is_trade = report.get("document_type_from_label") == "278t"
-            versions_to_check = (_trade_versions(metadata["document_url"], sha, generic_trade=generic_trade) if is_trade else
+            versions_to_check = (_trade_versions(metadata["document_url"], sha, generic_trade=generic_trade, saved_ocr_trade=saved_ocr_trade) if is_trade else
                                  _annual_versions(metadata["document_url"], sha))
             forbidden_v3 = folder / f"{TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json"
-            if (is_trade and not generic_trade and versions_to_check[0] != TRUMP_081225_PARSER_VERSION and
+            if (is_trade and not generic_trade and not saved_ocr_trade and versions_to_check[0] != TRUMP_081225_PARSER_VERSION and
                     forbidden_v3.is_file()):
                 raise ValueError("Source-bound White House 278-T v3 extraction has the wrong source")
             forbidden_v4 = folder / f"{TRUMP_2026_PARSER_VERSION.replace('/', '-')}.json"
-            if (is_trade and not generic_trade and versions_to_check[0] != TRUMP_2026_PARSER_VERSION and
+            if (is_trade and not generic_trade and not saved_ocr_trade and versions_to_check[0] != TRUMP_2026_PARSER_VERSION and
                     forbidden_v4.is_file()):
                 raise ValueError("Source-bound White House 278-T v4 extraction has the wrong source")
             forbidden_v6 = folder / f"{TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json"
@@ -203,13 +207,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", type=Path, required=True)
     parser.add_argument("--generic-trade", action="store_true")
+    parser.add_argument("--saved-ocr-trade", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if args.generic_trade and args.output is None:
+    if (args.generic_trade or args.saved_ocr_trade) and args.output is None:
         raise ValueError("Generic White House coverage requires a separate output")
     root = args.review_root / "whitehouse/disclosures"
     result = build_coverage(_load(root / "index-current.json"),
-                            _load(root / "batch-current.json"), args.review_root, generic_trade=args.generic_trade)
+                            _load(root / "batch-current.json"), args.review_root, generic_trade=args.generic_trade,
+                            saved_ocr_trade=args.saved_ocr_trade)
     target = args.output or args.review_root / "whitehouse/coverage-current.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True,

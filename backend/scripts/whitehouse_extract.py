@@ -30,6 +30,8 @@ from unison_snapshot.whitehouse_278t import (
     parser_version_for_source as trade_parser_version_for_source,
     parse_whitehouse_278t_pdf,
     replay_trump_2026_v2_extraction,
+    materialize_saved_whitehouse_278t, SAVED_OCR_PARSER_VERSION,
+    saved_ocr_source_roots,
 )
 from unison_snapshot.whitehouse_disclosures import (
     PDF_ARCHIVE_SCHEMA, PDF_CHUNK_ARCHIVE_SCHEMA, read_archived_pdf,
@@ -98,7 +100,23 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                   start_after_id: str | None = None,
                   ocr_page_limit: int = 50,
                   document_id: str | None = None,
-                  source_sha256: str | None = None, generic_trade: bool = False) -> dict:
+                  source_sha256: str | None = None, generic_trade: bool = False,
+                  saved_ocr_input: Path | None = None) -> dict:
+    if saved_ocr_input is not None:
+        if generic_trade or not document_id or not source_sha256 or start_after_id is not None or limit != 1:
+            raise ValueError("Saved White House OCR requires one explicit source and no native mode/cursor")
+        with saved_ocr_source_roots(evidence_root,review_root):
+            value = materialize_saved_whitehouse_278t(json.loads(saved_ocr_input.read_bytes()))
+        if value["document_id"] != document_id or value["source_sha256"] != source_sha256:
+            raise ValueError("Saved White House OCR differs from selected source")
+        target = review_root / "whitehouse/extractions" / document_id.removeprefix("wh-url:") / source_sha256 / (SAVED_OCR_PARSER_VERSION.replace("/","-")+".json")
+        _write(target,value)
+        return {"schema_version":STATUS_SCHEMA,"source_id":"whitehouse_public_disclosures",
+                "archived_version_count":1,"selected_version_count":1,"fixed_document_id":document_id,
+                "fixed_source_sha256":source_sha256,"attempted_count":1,"last_attempted_id":document_id,
+                "extraction_created_count":1,"existing_extraction_count":0,"existing_failure_count":0,
+                "recorded_failure_count":0,"checkpoint_pending_count":0,"checkpoint_pending":[],
+                "pending_count":0,"failure_count":0,"failures":[],"production_qualification":"not_attempted"}
     if generic_trade and (document_id is None or source_sha256 is None):
         raise ValueError("Generic White House parsing requires a fixed document and source SHA")
     if type(limit) is not int or not 0 <= limit <= 100:
@@ -277,15 +295,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-sha256")
     parser.add_argument("--status-output", type=Path)
     parser.add_argument("--generic-trade", action="store_true", help="Fixed-source native role parsing without new OCR")
+    parser.add_argument("--saved-ocr-input", type=Path, help="Explicit source-bound complete saved OCR pages; no new OCR")
     args = parser.parse_args(argv)
     try:
-        if (args.document_id is not None or args.generic_trade) and args.status_output is None:
+        if (args.document_id is not None or args.generic_trade or args.saved_ocr_input) and args.status_output is None:
             raise ValueError("Fixed/generic White House replay requires a separate status output")
         status = extract_batch(args.evidence_root, args.review_root, limit=args.limit,
                                start_after_id=args.start_after_id,
                                ocr_page_limit=args.ocr_page_limit,
                                document_id=args.document_id,
-                               source_sha256=args.source_sha256, generic_trade=args.generic_trade)
+                               source_sha256=args.source_sha256, generic_trade=args.generic_trade,
+                               saved_ocr_input=args.saved_ocr_input)
         status_output = (args.status_output or
                          args.review_root / "whitehouse/extraction-status.json")
         if args.document_id is not None and args.status_output is None:

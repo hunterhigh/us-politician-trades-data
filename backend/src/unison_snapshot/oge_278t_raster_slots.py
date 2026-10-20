@@ -691,7 +691,9 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
 def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                          page_numbers: list[int],
                          executable: str | None = None,
-                         resolution: int = 200) -> dict:
+                         resolution: int = 200,
+                         saved_ocr_pages: dict | None = None,
+                         saved_ocr_engine: str | None = None) -> dict:
     """Retain OCR words by independently located physical slot.
 
     OCR words are observations only.  A slot without recognized words may be
@@ -714,7 +716,18 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
         known_pages = [page["page_number"] for page in census["results"]
                        if page["status"] == "physical_slots_located" or
                        page["column_geometry_observation"].get("status") == "candidate"]
-        ocr_pages, engine = (ocr_pdf_pages(
+        if saved_ocr_pages is not None:
+            if (not isinstance(saved_ocr_pages, dict) or set(saved_ocr_pages) != set(page_numbers) or
+                    not isinstance(saved_ocr_engine, str) or not saved_ocr_engine):
+                raise ValueError("saved OCR pages differ from selected geometry pages")
+            for number in page_numbers:
+                actual, saved = document.pages[number - 1], saved_ocr_pages[number]
+                if (tuple(actual.cropbox) != tuple(actual.mediabox) or
+                        float(saved.width) != float(actual.width) or float(saved.height) != float(actual.height)):
+                    raise ValueError("saved OCR coordinate frame cannot be bound to original page")
+            ocr_pages, engine = [saved_ocr_pages[number] for number in known_pages], saved_ocr_engine
+        else:
+            ocr_pages, engine = (ocr_pdf_pages(
             document, page_numbers=known_pages, max_pages=MAX_PAGES_PER_RUN,
             resolution=resolution, executable=executable, force_mediabox=True)
             if known_pages else ([], None))

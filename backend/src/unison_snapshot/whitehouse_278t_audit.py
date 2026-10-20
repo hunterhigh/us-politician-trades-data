@@ -18,7 +18,7 @@ from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSIONS,
     validate_generic_whitehouse_report, generic_existing_fact,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
@@ -508,7 +508,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
 
     generic_expected = {}
     for item in complete:
-        if item.get("parser_version") == GENERIC_PARSER_VERSION:
+        if item.get("parser_version") in GENERIC_PARSER_VERSIONS:
             generic_expected[item["document_id"]] = validate_generic_whitehouse_report(item)
     screened = quarantine_duplicate_report_groups(extractions)
     document_ids = [report.get("document_id") for report in screened]
@@ -613,7 +613,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
         for source_row in report["transactions"]:
             if not isinstance(source_row, dict):
                 raise OgeCatalogError("White House 278-T transaction row is invalid")
-            generic = report.get("parser_version") == GENERIC_PARSER_VERSION
+            generic = report.get("parser_version") in GENERIC_PARSER_VERSIONS
             field_reasons = _row_reasons(source_row, filing_day, generic=generic)
             retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"]) if generic else None
             if generic:
