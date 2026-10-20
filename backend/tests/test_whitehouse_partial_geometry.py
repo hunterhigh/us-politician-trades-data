@@ -8,8 +8,11 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-import numpy as np
-from PIL import Image
+try:
+    import numpy as np
+    from PIL import Image
+except ImportError:
+    np=Image=None
 from test_oge_278t_image_grid import grid_page, EDGES
 from test_oge_content_relations import saved
 import test_whitehouse_278t_saved_ocr as saved_ocr_tests
@@ -53,6 +56,7 @@ def partial_saved(*, heading=False):
 
 
 class PartialGeometryTests(unittest.TestCase):
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_extra_local_stroke_is_preserved_as_barrier_not_a_deleted_boundary(self):
         page=altered_page('stroke')
         self.assertEqual(_oge_2024_image_grid(page)['status'],'unknown')
@@ -64,6 +68,7 @@ class PartialGeometryTests(unittest.TestCase):
         self.assertNotIn([176.,191.],out['physical_row_bands'])
         self.assertTrue(out['joint_horizontal_evidence']['boundary_barriers'])
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_right_column_only_separator_is_not_invisible_to_three_seed_strips(self):
         out=_oge_2024_image_grid(altered_page('right_only'),allow_partial_rows=True)
         self.assertEqual(out['status'],'candidate')
@@ -75,12 +80,14 @@ class PartialGeometryTests(unittest.TestCase):
         self.assertNotIn([176.,191.],partition['bands'])
         self.assertTrue(any(b.get('column_index')==5 for b in partition['evidence']['boundary_barriers']))
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_actual_broken_divider_cannot_be_swallowed_as_a_double_height_row(self):
         out=_oge_2024_image_grid(altered_page('broken'),allow_partial_rows=True)
         self.assertEqual(out['status'],'candidate')
         self.assertNotIn([176.,206.],out['physical_row_bands'])
         self.assertTrue(any(a<=191<=b for a,b in out['unresolved_regions']))
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_conflicting_nearby_candidates_are_not_greedily_matched(self):
         gray=np.asarray(grid_page().to_image().original)
         rules=[list(map(float,range(116,582,15))) for _ in range(3)]
@@ -89,10 +96,12 @@ class PartialGeometryTests(unittest.TestCase):
         self.assertTrue(any(b['kind']=='ambiguous_strip_candidate' for b in out['evidence']['boundary_barriers']))
         self.assertFalse(any(a < 191 < b for a,b in out['bands']))
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_existing_negative_geometries_stay_unknown_with_opt_in(self):
         for kind in ('missing','extra','gap','block','left_only','header_only'):
             with self.subTest(kind=kind):self.assertEqual(_oge_2024_image_grid(grid_page(kind=kind),allow_partial_rows=True)['status'],'unknown')
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_unique_existing_header_roles_required_before_any_local_row_consumption(self):
         from test_oge_278t_image_grid import header_words
         geometry=_oge_2024_image_grid(altered_page('stroke'),allow_partial_rows=True)
@@ -128,6 +137,7 @@ class PartialGeometryTests(unittest.TestCase):
         relation=observe_content_rows([changed],document_page_count=3)['slot_content'][0]['relation_evidence']
         self.assertIn('word_box_crosses_unresolved_region',relation['blocking_reasons'])
 
+    @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')
     def test_shared_observer_conserves_every_saved_word_and_blocks_cross_region_boxes(self):
         from test_oge_278t_image_grid import header_words
         from test_oge_annual import _Document
