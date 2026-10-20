@@ -320,6 +320,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                 row_audit.append({"candidate_id": decision["candidate_id"], "section": row["section"],
                                   "disposition": decision["disposition"], "reasons": reasons,
                                   **({"saved_native_reference": row["saved_native_reference"],
+                                      "native_empty_cell_evidence": row.get("native_empty_cell_evidence"),
                                       "value_disclosure_status": row.get("value_disclosure_status")}
                                      if "saved_native_reference" in row else {}),
                                   "account_context": row.get("account_context"), "hierarchy_evidence": row.get("hierarchy_evidence")})
@@ -344,6 +345,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             row_audit.append({"candidate_id": decision["candidate_id"], "formal_id": identifier,
                               "section": row["section"], "disposition": decision["disposition"],
                               **({"saved_native_reference": row["saved_native_reference"],
+                                  "native_empty_cell_evidence": row.get("native_empty_cell_evidence"),
                                   "value_disclosure_status": row.get("value_disclosure_status")}
                                  if "saved_native_reference" in row else {}),
                               "reasons": sorted(set(reasons)), "account_context": row.get("account_context"),

@@ -205,7 +205,7 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                 number, page["tables"][0], year, preserve_valued_unreadable=True,
                 qualified=True, scope_state=scopes.setdefault(part, {}), native_table_context=True,
                 native_empty_rows={item["table_row_index"]: item for item in page.get("number_only_cell_evidence", [])
-                    if item["table_index"] == 0 and item["status"] == "source_objects_verified_empty"}
+                    if item["table_index"] == 0}
                     if holding_page_observations.get("schema_version") == "oge-278e-native-holding-pages/v2" else None)
             for row in good + bad + omitted:
                 row["saved_native_reference"] = {"page_number": number, "section": part,
@@ -374,6 +374,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         evidence = {"section": section, "page_number": page_number,
                     "row_number": number, "owner": owner,
                     "asset_name": description}
+        if qualified and isinstance(proof, dict):
+            evidence["native_empty_cell_evidence"] = proof
         if qualified:
             evidence["owner_context"] = {"basis": "explicit_owner_heading" if state.get("owner_heading_ref") else
                 "section_role" if default_owner != "Unknown" else "not_disclosed",
@@ -426,7 +428,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
             if qualified:
                 evidence["value_disclosure_status"] = (
                     "explicitly_not_readily_ascertainable" if "value not readily ascertainable" in description.casefold() and not value_raw else
-                    "source_value_cell_empty" if not value_raw else
+                    "native_cell_content_unresolved" if isinstance(proof, dict) and proof.get("status") == "unknown" else
+                    "value_cell_text_empty" if not value_raw else
                     "bounded_band_observed" if value else "open_band_observed" if interval else "value_reading_unsupported")
             if "value not readily ascertainable" in description.casefold() and (not qualified or value is not None or interval is not None):
                 reasons.append("asset_value_description_conflicts_with_band")

@@ -177,6 +177,18 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         with patch("unison_snapshot.oge_annual_scan_sections.observe_holding_pages", return_value=new):
             with self.assertRaisesRegex(OgeCatalogError, "original source replay"):
                 self.materialize(cover, sections, tampered, meta)
+        unresolved = deepcopy(new)
+        proof = unresolved["pages"][-1]["number_only_cell_evidence"][0]
+        proof.update(status="unknown", reason="native_boundary_rules_unresolved")
+        with patch("unison_snapshot.oge_annual_scan_sections.observe_holding_pages", return_value=unresolved):
+            result = self.materialize(cover, sections, unresolved, meta)
+        row = next(row for row in result["quarantined"] if row["page_number"] == 8 and row["row_number"] == "5")
+        self.assertEqual(row["value_disclosure_status"], "native_cell_content_unresolved")
+        self.assertEqual(row["native_empty_cell_evidence"], proof)
+        decisions = build_oge_annual_shadow_ledger(result, run_id="unknown-cell-test", code_commit="a"*40,
+            started_at="2026-10-20T00:00:00Z", qualified=True)
+        self.assertTrue(any(row["annual_relationships"].get("native_empty_cell_evidence") == proof
+                            for row in decisions["rows"]))
 
     def test_complete_source_bound_cover_is_consumed_and_summary_dates_are_not_required(self):
         cover, sections, obs, meta = self.setup_inputs()

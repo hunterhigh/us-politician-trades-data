@@ -336,6 +336,7 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                 "owner_context": row.get("owner_context"), "owner_basis": row.get("owner_basis"),
                 "hierarchy_evidence": row.get("hierarchy_evidence"),
                 "saved_scan_reference": row.get("saved_scan_reference"),
+                **({"native_empty_cell_evidence": row["native_empty_cell_evidence"]} if "native_empty_cell_evidence" in row else {}),
                 **({"saved_native_reference": row["saved_native_reference"]} if "saved_native_reference" in row else {})}} if qualified else {}),
         }
         validate_candidate_row(item)
