@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime
+from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
@@ -16,7 +17,7 @@ from .senate_paper import PAPER_EXTRACTION_SCHEMA
 
 
 CANDIDATE_AUDIT_SCHEMA = "senate-efd-candidate-audit/v2"
-CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-10-v5"
+CANDIDATE_BUILDER_VERSION = "senate-efd-candidate-2026-10-v6"
 AMENDMENT_COMPARE_RULE_VERSION = "senate-amendment-pair-2026-09-v2"
 AMENDMENT_SUPPLEMENT_SCHEMA = "senate-amendment-supplement/v1"
 AMENDMENT_SUPPLEMENT_POINTER_SCHEMA = "senate-amendment-supplement-pointer/v1"
@@ -387,7 +388,103 @@ def _person(identity: dict) -> dict:
     }
 
 
-def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | None, list[str]]:
+class _ExchangeCellSegments(HTMLParser):
+    """Retain official line breaks without changing the frozen v2 parser."""
+
+    def __init__(self):
+        super().__init__()
+        self.rows, self.row, self.cell = [], None, None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self.row = []
+        elif tag == "td" and self.row is not None:
+            self.cell = [[]]
+        elif tag == "br" and self.cell is not None:
+            self.cell.append([])
+
+    def handle_data(self, text):
+        if self.cell is not None:
+            self.cell[-1].append(text)
+
+    def handle_endtag(self, tag):
+        if tag == "td" and self.cell is not None:
+            self.row.append([" ".join("".join(part).split()) for part in self.cell])
+            self.cell = None
+        elif tag == "tr" and self.row is not None:
+            self.rows.append(self.row)
+            self.row = None
+
+
+def _source_exchange_ticker_interpretations(extraction: dict,
+                                            evidence_root: Path | None = None, *,
+                                            source_metadata: dict | None = None,
+                                            source_html: bytes | None = None) -> dict[str, dict]:
+    """A two-ended Exchange has no single security ticker for ranking/returns.
+
+    Only a matching original HTML and a complete v2 replay can establish this
+    interpretation. An arbitrary invalid ticker, or a caller-supplied marker
+    in an extraction, never supplies that evidence.
+    """
+    if extraction.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA:
+        return {}
+    selected = [row for row in extraction["transactions"]
+                if isinstance(row, dict) and row.get("transaction_type") == "exchange" and
+                row.get("transaction_type_raw") == "Exchange" and
+                isinstance(row.get("ticker_raw"), str) and
+                not _TICKER.fullmatch(row["ticker_raw"])]
+    if not selected:
+        return {}
+    source_sha = extraction["source_sha256"]
+    if source_metadata is None and source_html is None:
+        if evidence_root is None:
+            return {}
+        prefix = evidence_root / "senate_efd" / "reports" / extraction["document_id"] / source_sha
+        html_path = prefix.with_suffix(".html")
+        metadata_path = prefix.with_suffix(".metadata.json")
+        if not html_path.is_file() or not metadata_path.is_file():
+            return {}
+        source_html = html_path.read_bytes()
+        source_metadata = _read_json(metadata_path, "Senate Exchange archive metadata")
+    elif source_metadata is None or source_html is None:
+        raise SenateEfdError("Senate Exchange source evidence is incomplete")
+    from .senate_reports import parse_electronic_ptr
+    parsed = parse_electronic_ptr(source_metadata, source_html)
+    frozen = {key: value for key, value in extraction.items() if key != "source_report_ledger"}
+    if parsed != frozen:
+        raise SenateEfdError("Senate Exchange interpretation differs from archived v2 extraction")
+    structure = _ExchangeCellSegments()
+    structure.feed(source_html.decode("utf-8"))
+    structure.close()
+    interpretations = {}
+    for row in selected:
+        matches = [cells for cells in structure.rows if len(cells) == 9 and
+                   cells[0] == [str(row["row_number"])]]
+        if len(matches) != 1:
+            continue
+        cells = matches[0]
+        tickers, names = cells[3], cells[4]
+        if (cells[6] != ["Exchange"] or len(tickers) != 2 or len(names) != 2 or
+                tickers.count("--") != 1 or
+                sum(bool(_TICKER.fullmatch(value)) for value in tickers) != 1 or
+                not names[0].endswith(" (Exchanged)") or
+                not names[1].endswith(" (Received)") or
+                " ".join(tickers) != row["ticker_raw"] or
+                " ".join(names) != row["asset_name_raw"]):
+            continue
+        interpretations[row["extraction_id"]] = {
+            "transaction_id": row["extraction_id"],
+            "document_id": extraction["document_id"], "source_sha256": source_sha,
+            "row_number": row["row_number"], "ticker_raw": row["ticker_raw"],
+            "ticker_parts_raw": tickers, "asset_parts_raw": names,
+            "ticker": None, "ticker_mapping_basis": None,
+            "basis": "source_html_two_ended_exchange_has_no_single_ticker",
+        }
+    return interpretations
+
+
+def _transaction(row: dict, extraction: dict, identity: dict, *,
+                 exchange_ticker_interpretation: dict | None = None) -> tuple[dict | None, list[str]]:
     reasons: list[str] = []
     qualification_status = row.get("qualification_status")
     raw_reasons = row.get("quarantine_reasons")
@@ -470,6 +567,11 @@ def _transaction(row: dict, extraction: dict, identity: dict) -> tuple[dict | No
     if instrument is None and not reviewed_paper:
         reasons.append("instrument_type_not_supported")
     ticker = row.get("ticker_raw")
+    if (explicit_exchange and exchange_ticker_interpretation is not None and
+            exchange_ticker_interpretation.get("transaction_id") == extraction_id and
+            exchange_ticker_interpretation.get("ticker_raw") == ticker and
+            exchange_ticker_interpretation.get("source_sha256") == extraction["source_sha256"]):
+        ticker = None
     if ticker is not None and (not isinstance(ticker, str) or not _TICKER.fullmatch(ticker)):
         reasons.append("ticker_invalid")
     transaction_date = row.get("transaction_date")
@@ -711,6 +813,7 @@ def build_senate_candidate(
     if any(not isinstance(item.get("transactions"), list) for item in extraction_values):
         raise SenateEfdError("Senate extraction artifact has no transaction array")
     electronic_ledgers, paper_ledgers = [], []
+    exchange_ticker_interpretations = {}
     for item in extraction_values:
         if ("legacy_extraction_reference" in item and
                 (item.get("schema_version") != PAPER_EXTRACTION_SCHEMA or
@@ -749,6 +852,8 @@ def build_senate_candidate(
             paper_ledgers.append({"document_id": item["document_id"], "ledger": checked})
         if item.get("schema_version") != ELECTRONIC_EXTRACTION_SCHEMA:
             continue
+        exchange_ticker_interpretations.update(
+            _source_exchange_ticker_interpretations(item, evidence_root))
         ledger = electronic_ptr_source_ledger(item["source_sha256"], item["transactions"])
         if "source_report_ledger" in item and item["source_report_ledger"] != ledger:
             raise SenateEfdError("Senate electronic source row ledger differs from its extraction")
@@ -944,7 +1049,9 @@ def build_senate_candidate(
         for row in extraction.get("transactions", []):
             if not isinstance(row, dict):
                 raise SenateEfdError("Senate extraction contains an invalid transaction")
-            transaction, reasons = _transaction(row, extraction, identity)
+            transaction, reasons = _transaction(
+                row, extraction, identity,
+                exchange_ticker_interpretation=exchange_ticker_interpretations.get(row.get("extraction_id")))
             observed_transaction, observed_reasons = transaction, list(reasons)
             retained = protection["bound"].get(row.get("extraction_id"))
             if retained is not None:
@@ -1179,6 +1286,8 @@ def build_senate_candidate(
         "candidate_holding_count": len(candidate["reported_holdings"]),
         "paper_pending_projection": paper_pending_audit,
         "electronic_source_report_ledgers": electronic_ledgers,
+        "exchange_ticker_interpretations": [exchange_ticker_interpretations[key]
+                                             for key in sorted(exchange_ticker_interpretations)],
         "paper_source_report_ledgers": paper_ledgers,
         "legacy_paper_grid_reconciliation": legacy_grid_audit,
         "retained_unbound_legacy_formal_count": len(retained_unbound),
