@@ -233,6 +233,85 @@ def qualify_paper_observation(observation: dict, metadata: dict,
 FACT_PARSER_VERSION = "house-paper-source-bound-qualification-v2"
 
 
+def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
+                       page_number: int, rendered: dict) -> dict | None:
+    """Verify the whole owner cell, allowing only evidenced printed rules.
+
+    Zero unexplained dark pixels is this detector's conservative evidence
+    boundary, not an official requirement for how House filers write a form.
+    """
+    import hashlib
+    import io
+    import numpy as np
+    import pdfplumber
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+
+    cells = physical.get("cells") or {}
+    owner = cells.get("owner") or {}
+    if owner.get("raw_text") != "" or observation.get("render_dpi") != 200:
+        return None
+    record = next((item for item in observation.get("pages", []) if item.get("page") == page_number), {})
+    if (record.get("cell_status") != "raw_observed_unverified" or
+            record.get("coordinate_frame") != "original_page"):
+        return None
+    if page_number not in rendered:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            if len(pdf.pages) != len(observation["pages"]):
+                return None
+            image = pdf.pages[page_number - 1].to_image(resolution=200).original
+        region = locate_transaction_grid(image)
+        columns = _column_boxes(region, image)
+        rendered[page_number] = (image, region, columns)
+    image, region, columns = rendered[page_number]
+    index = physical.get("physical_band_index")
+    bands = region.get("physical_row_bands", [])
+    if (region.get("status") != "located_shadow" or columns.get("status") != "located_shadow" or
+            type(index) is not int or not 1 <= index <= len(bands) or
+            physical.get("band") != bands[index - 1]["band"]):
+        return None
+    left, right = columns["owner"]
+    top, bottom = physical["band"]
+    box = [int(left * image.width), int(top * image.height), int(right * image.width), int(bottom * image.height)]
+    if owner.get("bbox_pixels") != box or owner.get("bbox_normalized") != [left, top, right, bottom]:
+        return None
+    crop = image.crop(tuple(box))
+    encoded = io.BytesIO()
+    crop.save(encoded, format="PNG")
+    if hashlib.sha256(encoded.getvalue()).hexdigest() != owner.get("crop_sha256"):
+        raise ValueError("House blank owner crop differs from bound PDF")
+    # Inspect the whole cell. Never discard a percentage-wide edge strip:
+    # handwriting near a ruled boundary is still ownership evidence. Only
+    # actual continuous rules extending beyond the cell may be removed.
+    pad = 12
+    if (box[0] < pad or box[1] < pad or box[2] + pad > image.width or
+            box[3] + pad > image.height):
+        return None
+    expanded = np.asarray(image.crop((box[0]-pad, box[1]-pad, box[2]+pad, box[3]+pad)).convert("L")) < 100
+    height, width = expanded.shape
+    rule_mask = np.zeros_like(expanded)
+    for axis, lines in ((0, expanded), (1, expanded.T)):
+        for rule_index, line in enumerate(lines):
+            target = height if axis == 0 else width
+            if min(abs(rule_index-pad), abs(rule_index-(target-pad-1))) > 8:
+                continue
+            points = np.flatnonzero(line)
+            groups = np.split(points, np.where(np.diff(points) > 1)[0]+1)
+            for group in groups:
+                if len(group) and group[0] <= 1 and group[-1] >= len(line)-2:
+                    if axis == 0:
+                        rule_mask[rule_index, group] = True
+                    else:
+                        rule_mask[group, rule_index] = True
+    remaining = (expanded & ~rule_mask)[pad:-pad, pad:-pad]
+    if not remaining.size or remaining.any():
+        return None
+    return {"rule": "source_bound_blank_paper_owner/v1", "source_sha256": observation["source_sha256"],
+            "page": page_number, "physical_band_index": index, "crop_sha256": owner["crop_sha256"],
+            "bbox_pixels": box, "measurement": "whole_cell_minus_source_continuous_rules/v1",
+            "unexplained_dark_pixel_count": 0, "owner": "Undisclosed"}
+
+
 def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict | None:
     """Prove an explicit statement on every complete physical source page.
 
@@ -359,6 +438,8 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
                 prior_qualification.get("document_id") != document_id):
             raise ValueError("House prior qualification source mismatch")
         if prior_qualification.get("transactions"):
+            # Existing formal qualifications stay authoritative. This path does
+            # not rescan them to manufacture a batch Owner migration/diff.
             return deepcopy(prior_qualification)
     zero = _source_bound_no_transactions(pdf_bytes, observation)
     if zero is not None:
@@ -409,6 +490,7 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
     extraction_rows = []
     unresolved_physical = []
     rendered_secondary = {}
+    owner_images, owner_bindings = {}, []
 
     for pending in baseline["quarantined"]:
         fields = pending.get("raw_fields")
@@ -419,6 +501,13 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
             continue
         physical = source_slots.get((page, band))
         blockers = [reason for reason in pending["reasons"] if reason != "paper_source_fields_unverified"]
+        owner = OWNER_CODES.get(fields.get("owner_code"))
+        if fields.get("owner_code") is None and fields.get("owner_raw") == "" and physical:
+            proof = _blank_paper_owner(pdf_bytes, observation, physical, page, owner_images)
+            if proof is not None:
+                owner = "Undisclosed"
+                blockers = [reason for reason in blockers if reason != "owner_unreadable"]
+                owner_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
         if cover != "New":
             blockers.append("filing_status_unobserved" if cover is None else "revision_relationship_unresolved")
         asset = fields.get("asset_raw") or ""
@@ -431,7 +520,10 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         elif (re.sub(r"[^a-z0-9]", "", asset.casefold()) !=
               re.sub(r"[^a-z0-9]", "", str(reread.get("second_ocr_raw", "")).casefold())):
             blockers.append("asset_reading_conflict")
-        if any(flag in {"owner_ocr_confidence_below_70", "event_date_ocr_confidence_below_70"}
+        quality_blockers = {"event_date_ocr_confidence_below_70"}
+        if owner != "Undisclosed":
+            quality_blockers.add("owner_ocr_confidence_below_70")
+        if any(flag in quality_blockers
                for flag in pending.get("source_quality_flags", [])):
             blockers.append("key_source_reading_uncertain")
         context = pending.get("account_section_observation") or {}
@@ -459,7 +551,7 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         extraction_rows.append({
             "extraction_id": paper_disclosure_id(source_sha, page, band),
             "filing_status": cover, "reported_transaction_id": None,
-            "owner": OWNER_CODES.get(fields.get("owner_code")), "asset_name": asset,
+            "owner": owner, "asset_name": asset,
             "ticker": None, "instrument_type": None,
             "transaction_type": fields.get("direction_mark"),
             "transaction_date": fields.get("event_date"),
@@ -473,7 +565,10 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         "source_sha256": source_sha, "source": metadata,
         "extraction_method": "source_bound_paper_cells", "transactions": extraction_rows,
         "source_report_ledger": baseline["source_report_ledger"]}
-    result = qualify_automatic(extraction, identity)
+    result = qualify_automatic(extraction, identity,
+        verified_blank_paper_owner_ids=frozenset(item["extraction_id"] for item in owner_bindings))
+    if owner_bindings:
+        result["source_bound_owner_decisions"] = owner_bindings
     result["quarantined"].extend(unresolved_physical)
     result["qualification"]["quarantined_count"] = len(result["quarantined"])
     if result["quarantined"]:

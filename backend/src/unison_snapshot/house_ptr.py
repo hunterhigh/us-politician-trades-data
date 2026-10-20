@@ -734,10 +734,14 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) 
                          pages=observed, logical_rows=logical)
 
 
-def qualify_automatic(extraction: dict, identity: dict) -> dict:
+def qualify_automatic(extraction: dict, identity: dict, *,
+                      verified_blank_paper_owner_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    if (not isinstance(verified_blank_paper_owner_ids, frozenset) or
+            (verified_blank_paper_owner_ids and extraction.get("extraction_method") != "source_bound_paper_cells")):
+        raise HouseIndexError("House verified blank owners require source-bound paper interpretation")
     source = extraction.get("source") or {}
     document_id = source.get("document_id")
     if identity.get("document_id") != document_id:
@@ -781,7 +785,9 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             reasons.append("ocr_confidence_below_threshold")
         if not isinstance(row.get("asset_name"), str) or not row["asset_name"].strip():
             reasons.append("asset_name_invalid")
-        if row.get("owner") not in set(OWNER_CODES.values()):
+        blank_paper_owner = (row.get("owner") == "Undisclosed" and
+                             row.get("extraction_id") in verified_blank_paper_owner_ids)
+        if row.get("owner") not in set(OWNER_CODES.values()) and not blank_paper_owner:
             reasons.append("owner_not_normalized")
         if row.get("transaction_type") not in set(TYPE_CODES.values()):
             reasons.append("transaction_type_not_normalized")
