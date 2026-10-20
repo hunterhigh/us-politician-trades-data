@@ -99,6 +99,16 @@ class IndependentAnnualTests(unittest.TestCase):
             e,r,roster=setup(root,[(0,original()),(1,original(1).replace(b'Example Fund',b'Changed Fund'))])
             candidate,_=overlay(old,e,r,roster)
             self.assertNotIn(oldid,{row['id'] for row in candidate['transactions']});self.assertIn(ptr,candidate['transactions'])
+            no=original(1)
+            start=no.index(b'<h3>Part 4b.');end=no.index(b'</body>')
+            no=no[:start]+b'<h3>Part 4b. Transactions</h3><p>'+QUESTION.replace(b'? Yes',b'? No')+b'</p>'+no[end:]
+            # A proved correction declaring no 4b transactions removes only
+            # replaced annual facts and their annotations, keeping the PTR.
+            with tempfile.TemporaryDirectory() as nested:
+                e2,r2,roster2=setup(Path(nested),[(0,original()),(1,no)])
+                empty,_=overlay(old,e2,r2,roster2)
+                self.assertEqual(empty['transactions'],[ptr])
+                self.assertNotIn('transaction_disclosure_relations',empty['meta'])
         with tempfile.TemporaryDirectory() as d:
             e,r,roster=setup(Path(d),[(0,original()),(0,original())]);candidate,audit=overlay(base(),e,r,roster)
             self.assertEqual(len(candidate['transactions']),1)

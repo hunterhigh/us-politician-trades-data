@@ -911,11 +911,15 @@ def overlay_annual_candidate(candidate: dict, review_root: Path, *,
         refs={r['transaction_id']:r for r in prior}
         refs.update({r['transaction_id']:r for r in public_relations})
         if refs:candidate['meta']['transaction_disclosure_relations']=sorted(refs.values(),key=lambda r:r['transaction_id'])
+        else:candidate['meta'].pop('transaction_disclosure_relations',None)
         candidate['people']=sorted(existing.values(),key=lambda r:r['id'])
     from .senate_annual_transactions import consume_part4b_candidate_decisions
     decisions=consume_part4b_candidate_decisions({'annual_part4b_relationships':transaction_relations,
         'annual_exact_source_copies':exact_source_copies},transactions=candidate['transactions'])
     if independent:
+        old_ptr=[row for row in json.loads(before_transaction_bytes) if not str(row['id']).startswith('senate-annual-part4b:')]
+        new_ptr=[row for row in candidate['transactions'] if not str(row['id']).startswith('senate-annual-part4b:')]
+        if old_ptr!=new_ptr:raise SenateEfdError('Independent annual overlay changed an ordinary transaction')
         decisions.update(formal_transactions_unchanged=before_transaction_bytes==_json(candidate['transactions']),
             ordinary_ptr_transactions_unchanged=True,superseded_annual_transaction_ids=removed_annual_ids)
     return candidate, {"annual_status": "included",
