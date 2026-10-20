@@ -269,7 +269,7 @@ class AnnualCandidateTests(unittest.TestCase):
         extraction = source()
         changed = deepcopy(extraction)
         changed["holdings"][0]["page_number"] = 999
-        self.assertIn("source_row_page_outside_inventory", ledger(changed)["rows"][0]["reasons"])
+        self.assertEqual(ledger(changed)["unlocated_source_issues"], [changed["holdings"][0]])
         self.assertFalse(ledger(changed)["holding_coverage_complete"])
         request = inputs(extraction)
         second = deepcopy(extraction)

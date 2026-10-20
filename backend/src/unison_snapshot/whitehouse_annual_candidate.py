@@ -428,22 +428,30 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         if unbound:
             report_reasons.append("legacy_annual_row_binding_unresolved")
         added, retained_ids, field_differences = 0, {row["id"] for row in existing_report_rows}, []
+        # Decide the whole holding application before inserting any new leaf.
+        # Otherwise an earlier/later mismatched old leaf could suppress the
+        # mandatory gap notice after another leaf had already been inserted.
         for fact, _ in prepared:
             old = prior.get(fact["id"])
-            if old is not None:
-                retained_ids.add(old["id"])
-                if old != fact:
-                    report_reasons.append("existing_annual_fact_diff_requires_source_reconciliation")
-                    field_differences.append({"formal_id": fact["id"], "source_sha256": extraction["source_sha256"],
-                        "fields": {field: {"old_value": old.get(field), "new_value": fact.get(field)}
-                                   for field in sorted(set(old) | set(fact)) if old.get(field) != fact.get(field)}})
-                continue
-            if unbound:
-                report_reasons.append("legacy_annual_row_binding_unresolved")
+            if old is not None and old != fact:
+                field_differences.append({"formal_id": fact["id"], "source_sha256": extraction["source_sha256"],
+                    "fields": {field: {"old_value": old.get(field), "new_value": fact.get(field)}
+                               for field in sorted(set(old) | set(fact)) if old.get(field) != fact.get(field)}})
+        if field_differences:
+            report_reasons.append("existing_annual_fact_diff_requires_source_reconciliation")
+        for fact, _ in prepared:
+            if fact["id"] in prior or unbound or field_differences:
                 continue
             prior[fact["id"]] = fact
             people.setdefault(person_id, source)
             added += 1
+        if unbound or field_differences:
+            blocking = (["legacy_annual_row_binding_unresolved"] if unbound else []) + (
+                ["existing_annual_fact_diff_requires_source_reconciliation"] if field_differences else [])
+            for row in row_audit:
+                if row["section"] != "part7" and row.get("formal_id") in prepared_ids:
+                    row["disposition"] = "quarantined"
+                    row["reasons"] = sorted(set(row["reasons"] + blocking))
         tx_existing = [r for r in transactions.values() if r.get("filing_id") == document_id and r.get("source_id") == "oge"]
         tx_ids = {fact["id"] for fact, _ in prepared_transactions}
         tx_unbound = [r["id"] for r in tx_existing if r["id"] not in tx_ids]
@@ -525,6 +533,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         result["meta"]["transaction_disclosure_relations"] = sorted(relations.values(), key=lambda row: row["transaction_id"])
     if coverages:
         result["meta"]["holding_report_coverage"] = sorted(coverages.values(), key=lambda row: (row["source_id"], row["person_id"]))
+    else:
+        result["meta"].pop("holding_report_coverage", None)
     result["people"] = sorted(people.values(), key=lambda row: row["id"])
     return result, {"schema_version": "oge-annual-candidate-audit/v1", "reports": reports,
                     "added_holding_count": sum(row["added_holding_count"] for row in reports),

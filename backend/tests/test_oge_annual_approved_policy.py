@@ -126,6 +126,92 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
         self.assertEqual(len(candidate['reported_holdings']), 2)
         self.assertIn('owner_unverified', next(r for r in audit['reports'][0]['row_qualification'] if r['section']=='part7')['reasons'])
 
+    def test_official_unknown_value_without_valid_source_location_remains_unlocated(self):
+        for page in ['missing',None,False,True,0,-1,999,2.0,'2']:
+            with self.subTest(page=page):
+                extraction=source(official_unknown=True)
+                row=next(r for r in extraction['quarantined'] if r.get('value_disclosure_status')=='explicitly_not_readily_ascertainable')
+                if page=='missing':row.pop('page_number')
+                else:row['page_number']=page
+                original=deepcopy(extraction)
+                actual=ledger(extraction)
+                self.assertFalse(actual['holding_coverage_official_unknown_only'])
+                self.assertIn(row,actual['unlocated_source_issues'])
+                candidate,audit=overlay_oge_annual_candidate(base(),inputs(extraction))
+                self.assertFalse(candidate['reported_holdings'])
+                self.assertNotIn('holding_report_coverage',candidate['meta'])
+                self.assertEqual(len(candidate['transactions']),1)
+                self.assertIn(row,audit['reports'][0]['unlocated_source_issues'])
+                self.assertEqual(extraction,original)
+        for mismatch in ['section_page','printed_number','saved_page','saved_hash']:
+            extraction=source(official_unknown=True)
+            row=next(r for r in extraction['quarantined'] if r.get('value_disclosure_status')=='explicitly_not_readily_ascertainable')
+            if mismatch=='section_page':row['page_number']=3
+            elif mismatch=='printed_number':row['row_number']='88'
+            else:
+                row['saved_native_reference']={'page_number':2,'section':'part2','source_sha256':extraction['source_sha256'],
+                    'page_text_sha256':extraction['source_coverage_evidence']['pages'][1]['page_text_sha256']}
+                if mismatch=='saved_page':row['saved_native_reference']['page_number']=3
+                else:row['saved_native_reference']['page_text_sha256']='0'*64
+            with self.subTest(mismatch=mismatch):
+                self.assertFalse(ledger(extraction)['holding_coverage_official_unknown_only'])
+
+    def test_old_holding_difference_blocks_all_new_leaves_but_not_independent_part7(self):
+        extraction,(first,_)=complete_case()
+        alpha=next(r for r in first['reported_holdings'] if r['asset_name']=='ALPHA Fund')
+        old=deepcopy(alpha);old['value_high']=15001
+        context=base();context['people']=first['people'];context['reported_holdings']=[old]
+        candidate,audit=overlay_oge_annual_candidate(context,inputs(extraction))
+        self.assertEqual(candidate['reported_holdings'],[old])
+        self.assertNotIn('holding_report_coverage',candidate['meta'])
+        self.assertEqual(len(candidate['transactions']),1)
+        self.assertEqual(audit['added_holding_count'],0)
+        self.assertIn('existing_annual_fact_diff_requires_source_reconciliation',audit['reports'][0]['report_reasons'])
+        again,_=overlay_oge_annual_candidate(candidate,inputs(extraction))
+        self.assertEqual(again,candidate)
+        bundle=build(candidate,generated_at=candidate['meta']['data_cutoff_at'],allow_production=True)
+        selected=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('person',old['person_id']).snapshot
+        processed=load('process_snapshot',version='v3').build_snapshot(selected)
+        self.assertEqual(len(processed['reported_holdings']),1)
+        self.assertEqual({key:processed['reported_holdings'][0].get(key) for key in old},old)
+
+    def test_new_complete_report_clears_only_superseded_gap_metadata_not_history(self):
+        from test_oge_annual_candidate import COVER
+        from unison_snapshot.oge_annual import read_annual_cover_dates
+        old=source(official_unknown=True); old_input=inputs(old)
+        old_doc,old_sha='b'*32,'d'*64
+        old.update(source_document_id=old_doc,source_sha256=old_sha,annual_year=2024,report_period_end='2024-12-31',
+            source_url=old['source_url'].replace(DOC,old_doc),evidence_archive_path=f'oge/annual/reports/{old_doc}/{old_sha}.pdf')
+        old['cover_date_evidence']=read_annual_cover_dates(COVER.replace('2025','2024'),source_sha256=old_sha)
+        old['source_coverage_evidence']['source_sha256']=old_sha
+        for row in old['holdings']:row['report_period_end']='2024-12-31'
+        for row in old['transactions']:
+            row['transaction_date']=row['transaction_date'].replace('2025','2024')
+            row['raw_date']=row['raw_date'].replace('2025','2024')
+        meta=old_input['archive_metadata_by_document'].pop(DOC)
+        meta.update(document_id=old_doc,sha256=old_sha,document_url=old['source_url'],archive_path=old['evidence_archive_path'])
+        old_input['archive_metadata_by_document'][old_doc]=meta
+        previous,_=overlay_oge_annual_candidate(base(),old_input)
+        self.assertEqual(previous['meta']['holding_report_coverage'][0]['report_period_end'],'2024-12-31')
+        current,audit=overlay_oge_annual_candidate(previous,inputs(source()))
+        self.assertNotIn('holding_report_coverage',current['meta'])
+        for row in previous['reported_holdings']:
+            self.assertEqual(next(r for r in current['reported_holdings'] if r['id']==row['id']),row)
+        self.assertEqual(audit['added_holding_count'],2)
+        bundle=build(current,generated_at=current['meta']['data_cutoff_at'],allow_production=True)
+        selected=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch('person',previous['people'][0]['id']).snapshot
+        processed=load('process_snapshot',version='v3').build_snapshot(selected)
+        self.assertNotIn('holding_report_coverage',processed['meta'])
+        self.assertEqual(len(processed['reported_holdings']),4)
+        repeated,_=overlay_oge_annual_candidate(current,inputs(source()))
+        self.assertEqual(repeated,current)
+        # Opaque metadata of an unrelated source is never removed by this
+        # source-specific cleanup (not itself a publication fixture).
+        house={'source_id':'house_clerk','person_id':'unrelated-house','sentinel':'preserve'}
+        mixed=deepcopy(previous);mixed['meta']['holding_report_coverage'].append(house)
+        selected,_=overlay_oge_annual_candidate(mixed,inputs(source()))
+        self.assertEqual(selected['meta']['holding_report_coverage'],[house])
+
     def test_possible_ptr_overlap_is_annotation_only_and_ticker_subset_loads_no_other_ptr(self):
         extraction, (candidate, _) = complete_case()
         annual = candidate['transactions'][0]

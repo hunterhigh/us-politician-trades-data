@@ -142,13 +142,31 @@ def annual_holdings_coverage_complete(extraction: dict, *, allow_official_unknow
     holding_parts = {"part2", "part5", "part6"}
     if not holding_parts <= {row.get("section") for row in pages if row.get("role") == "target_section"}:
         return False
-    if any(type(row.get("page_number")) is not int or not 1 <= row["page_number"] <= count
-           for row in extraction["holdings"]):
+    holding_rows = [row for collection in ("holdings", "excluded", "quarantined") for row in extraction[collection]
+                    if row["section"] in holding_parts]
+    page_roles = {row["page_number"]: row for row in pages}
+    if any(type(row.get("page_number")) is not int or not 1 <= row["page_number"] <= count or
+           page_roles[row["page_number"]].get("role") != "target_section" or
+           page_roles[row["page_number"]].get("section") != row["section"] for row in holding_rows):
         return False
-    if any(row["section"] in holding_parts and not (allow_official_unknown and official_unknown_holding_value(row))
+    def located_exception(row: dict) -> bool:
+        # The valuation literal alone proves no location. Keep source cells and
+        # any saved reference attached to the same printed row and PDF page.
+        from .oge_annual import _number
+        cells, number = row.get("cells"), row.get("row_number")
+        reference = row.get("saved_native_reference")
+        return (official_unknown_holding_value(row) and isinstance(cells, list) and bool(cells) and
+                isinstance(cells[0], str) and isinstance(number, str) and _number(cells[0]) == number and
+                (reference is None or isinstance(reference, dict) and
+                 type(reference.get("page_number")) is int and
+                 reference.get("page_number") == row["page_number"] and
+                 reference.get("section") == row["section"] and reference.get("source_sha256") == extraction["source_sha256"] and
+                 reference.get("page_text_sha256") == page_roles[row["page_number"]].get("page_text_sha256")))
+    if any(row["section"] in holding_parts and not (allow_official_unknown and located_exception(row))
            for row in extraction["quarantined"]):
         return False
-    exception_pages = {row["page_number"] for row in extraction["quarantined"] if official_unknown_holding_value(row)}
+    exception_pages = {row.get("page_number") for row in extraction["quarantined"]
+                       if row["section"] in holding_parts and located_exception(row)}
     return all(isinstance(row.get("page_text_sha256"), str) and _SHA.fullmatch(row["page_text_sha256"]) and
                row.get("role") in {"cover", "target_section", "other_disclosure_section", "instructions"} and
                not (row.get("section") in holding_parts and row.get("status") != "rows_accounted" and
@@ -259,7 +277,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                           parser_id=parser_id, parser_version=parser_version,
                           rules_version=rules_version, layout_fingerprint=layout)
     detected = _detected_rows(extraction, qualified=qualified)
-    unlocated = [row for _, row in detected if type(row.get("page_number")) is not int or row["page_number"] < 1]
+    unlocated = [row for _, row in detected if type(row.get("page_number")) is not int or row["page_number"] < 1 or
+                 (qualified and row["page_number"] > extraction["page_count"])]
     if qualified:
         detected = [(collection, row) for collection, row in detected if row not in unlocated]
     filed = annual_filing_date_evidence(extraction, scan_date_observation) if qualified else None
