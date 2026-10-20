@@ -235,7 +235,7 @@ class SenatePaperGridTests(unittest.TestCase):
             parse_paper_grid_observations(*args)
         args = inputs()
         args[2]["legacy_extraction_failed"] = False
-        with self.assertRaisesRegex(SenateEfdError, "previously failed"):
+        with self.assertRaisesRegex(SenateEfdError, "unchanged legacy extraction"):
             parse_paper_grid_observations(*args)
 
 
