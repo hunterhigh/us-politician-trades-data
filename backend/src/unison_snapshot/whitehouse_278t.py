@@ -1314,11 +1314,30 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         "unobserved_pages":[n for n in range(1,count+1) if n not in numbers],"geometry_unknown_pages":unknown_pages}
     if allow_partial_rows:
         partial_pages=(content or {}).get("partial_geometry_pages",[])
+        partial_by_page={p["page_number"]:p for p in partial_pages}
+        observed_by_page={p["page_number"]:p for p in (observations or {}).get("pages",[])}
+        unbound_pages=[]
+        for raw_page in selected:
+            number=raw_page["page_number"]
+            if number == 1:continue  # Cover words are not transaction-table words.
+            observed=observed_by_page.get(number,{})
+            if number in partial_by_page:
+                word_count=len(partial_by_page[number]["unbound_page_ocr_words"])
+                basis="partial_grid_unbound_saved_words"
+            elif observed.get("coverage") == "physical_slots_located":
+                word_count=observed["words_outside_slots"]
+                basis="fully_located_grid_words_outside_slots"
+            else:
+                word_count=len(raw_page["words"])
+                basis="geometry_unknown_all_saved_words"
+            unbound_pages.append({"page_number":number,"word_count":word_count,"basis":basis})
         receipt.update(local_row_geometry_mode="strict_joint_boundaries/v1",
             geometry_partial_pages=[p["page_number"] for p in partial_pages],
             unresolved_regions=[{"page_number":p["page_number"],"regions":p["unresolved_regions"]} for p in partial_pages],
             whole_selected_table_slot_count=None if partial_pages or unknown_pages else receipt["observed_physical_slot_count"],
-            unbound_observed_word_count=sum(len(p["unbound_page_ocr_words"]) for p in partial_pages))
+            unbound_observed_word_count=sum(p["word_count"] for p in unbound_pages),
+            unbound_observed_word_unit="selected_table_page_words_outside_known_slots",
+            unbound_observed_word_pages=unbound_pages)
     if not physical:
         reasons.append("observed_table_geometry_unknown")
     if metadata.get("amended_label") or dates["amendment_cover"]:

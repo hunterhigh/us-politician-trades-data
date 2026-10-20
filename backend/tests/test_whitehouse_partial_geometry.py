@@ -170,6 +170,10 @@ class PartialGeometryTests(unittest.TestCase):
                 self.assertEqual(report['observation_receipt']['observed_physical_slot_count'],2)
                 self.assertIsNone(report['observation_receipt']['whole_selected_table_slot_count'])
                 self.assertEqual(report['observation_receipt']['geometry_partial_pages'],[2])
+                receipt=report['observation_receipt']
+                self.assertEqual(receipt['unbound_observed_word_count'],1)
+                self.assertEqual(receipt['unbound_observed_word_pages'],[{'page_number':2,'word_count':1,
+                    'basis':'partial_grid_unbound_saved_words'}])
                 self.assertEqual(audit['reports'][0]['partial_geometry_pages'],report['content_observations']['partial_geometry_pages'])
                 if heading:
                     self.assertEqual(candidate['transactions'],[])
@@ -177,6 +181,19 @@ class PartialGeometryTests(unittest.TestCase):
                 else:
                     self.assertEqual(len(candidate['transactions']),2)
                     self.assertTrue(build(candidate,generated_at='2026-06-20T00:00:00Z',allow_production=True).manifest['snapshot_id'])
+
+    def test_whole_unknown_table_counts_all_raw_words_excluding_cover(self):
+        case=saved_ocr_tests.SavedWhiteHouseTests()
+        with tempfile.TemporaryDirectory() as folder:
+            inputs,_=case.fixture(Path(folder),original=False);inputs['allow_partial_rows']=True
+            result=materialize_saved_whitehouse_278t(inputs)
+            table=result['raw_page_observations'][1];receipt=result['observation_receipt']
+            self.assertGreater(len(table['words']),0)
+            self.assertEqual(receipt['unbound_observed_word_count'],len(table['words']))
+            self.assertEqual(receipt['unbound_observed_word_unit'],'selected_table_page_words_outside_known_slots')
+            self.assertEqual(receipt['unbound_observed_word_pages'],[{'page_number':2,'word_count':len(table['words']),
+                'basis':'geometry_unknown_all_saved_words'}])
+            self.assertEqual(receipt['geometry_partial_pages'],[])
 
     def test_existing_profile_dates_and_identity_resolve_missing_ocr_but_not_conflicts(self):
         profile=next(p for p in TRUMP_2026_PROFILES if p['page_count']==113)
