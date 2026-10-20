@@ -70,7 +70,7 @@ const html = path.join(work, 'dashboard.html');
 // exercising the designated page code. Parsing above is only for assertions.
 const hasOpen = data.transactions.some(row => openAmount(row)) || data.reported_holdings.some(row => openAmount(row, 'value'));
 if (hasOpen) assert.equal(data.meta.amount_policy, 'bounded-and-open-separate/v1');
-const approvedAmounts = data.meta.amount_policy === 'bounded-and-open-separate/v1' || Array.isArray(data.meta.holding_report_coverage);
+const approvedAmounts = data.meta.amount_policy === 'bounded-and-open-separate/v1' || Array.isArray(data.meta.holding_report_coverage) || Array.isArray(data.meta.transaction_disclosure_relations);
 let selectedTemplate = templateText;
 if (approvedAmounts) {
   // Reconstruct the explicit approved patch from repository code; do not trust

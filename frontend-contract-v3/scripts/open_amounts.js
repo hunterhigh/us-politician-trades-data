@@ -147,3 +147,23 @@ function renderStockPage() {
   if(stockDirection!=='all')rows=rows.filter(t=>t.transaction_type===stockDirection);
   approvedOpenPanel(document.querySelector('#stockPage'),'stock',rows);
 }
+
+function openTransaction(id) {
+  openApprovedTransactionBase(id);
+  const relation=(DATA.meta.transaction_disclosure_relations||[]).find(row=>row.transaction_id===id);
+  if(!relation)return;
+  const statuses={
+    cross_report_relationship_unconfirmed:'跨报关系未确认',
+    possible_ptr_overlap:`可能关联 ${(relation.possible_ptr_transaction_ids||[]).length} 条PTR披露`
+  };
+  if(!statuses[relation.status])return;
+  const container=document.querySelector('#drawerContent');
+  if(!container)return;
+  const section=document.createElement('section');
+  section.dataset.crossReportTransactionId=id;
+  section.dataset.disclosureRelationshipStatus=relation.status;
+  const heading=document.createElement('h4');heading.textContent='独立年报披露';
+  const note=document.createElement('p');
+  note.textContent=`${statuses[relation.status]}。按披露行计数；关联提示不作自动合并。`;
+  section.append(heading,note);container.append(section);
+}
