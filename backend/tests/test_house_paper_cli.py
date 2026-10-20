@@ -59,6 +59,10 @@ class HousePaperCliTests(unittest.TestCase):
             step = text.split("- name: " + name, 1)[1].split("- name:", 1)[0]
             self.assertIn("if: inputs.materialize_saved_paper != true", step)
         self.assertIn(': > .local/parse-batch.txt', text)
+        qualification_step = text.split("- name: Build automatic qualification artifacts", 1)[1].split("- name:", 1)[0]
+        self.assertIn('[ "$method" != "source_bound_paper_cells" ] || continue', qualification_step)
+        self.assertLess(qualification_step.index('source_bound_paper_cells'),
+                        qualification_step.index('qualify-house-ptr'))
 
 
 if __name__ == "__main__":

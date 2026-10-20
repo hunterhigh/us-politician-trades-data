@@ -307,6 +307,10 @@ jobs:
         run: |
           find "$REVIEW_ROOT/house_clerk/extractions" -name '*.json' -type f -print0 | sort -z | \
           while IFS= read -r -d '' extraction; do
+            # Source-bound paper facts must be replayed with their saved proofs.
+            # The generic qualifier cannot reproduce a verified blank Owner.
+            method="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("extraction_method", ""))' "$extraction")"
+            [ "$method" != "source_bound_paper_cells" ] || continue
             relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
             identity="$REVIEW_ROOT/house_clerk/identities/$relative"
             qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
