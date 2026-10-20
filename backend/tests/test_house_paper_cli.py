@@ -22,6 +22,8 @@ class HousePaperCliTests(unittest.TestCase):
                        fixture.header)
         batch = Path(fixture.temporary.name) / "batch.txt"
         batch.write_text("", encoding="utf-8")
+        fixture.paper['materialized_extraction'] = {'source_sha256':fixture.sha,
+            'source':fixture.metadata,'extraction_method':'source_bound_paper_cells'}
         args = ["snapshot", "bridge-house-paper-batch", "--evidence-root", str(fixture.evidence),
                 "--review-root", str(fixture.review), "--parse-batch", str(batch),
                 "--tesseract", "missing-ocr-must-never-run", "--materialize-saved"]
@@ -30,13 +32,15 @@ class HousePaperCliTests(unittest.TestCase):
                 return_value=fixture.paper), patch(
                 "unison_snapshot.house_paper_pipeline.materialize_paper_observation",
                 return_value=fixture.paper) as materialize, patch(
+                "unison_snapshot.house_paper_pipeline.preserved_paper_materialization",return_value=True), patch(
                 "unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf") as observe, patch(
                 "unison_snapshot.house_paper_pipeline.observe_amount_header") as header, patch(
                 "unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells") as reread:
             main()
         self.assertEqual(json.loads(output.getvalue()), {"materialized_existing_observation": 1})
         materialize.assert_called_once()
-        self.assertEqual(json.loads(fixture.qualification_path.read_text()), fixture.paper)
+        actual=json.loads(fixture.qualification_path.read_text())
+        self.assertEqual(actual, fixture.paper)
         observe.assert_not_called()
         header.assert_not_called()
         reread.assert_not_called()

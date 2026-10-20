@@ -136,9 +136,10 @@ jobs:
           LEGACY_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import LEGACY_PARSER_VERSION; print(LEGACY_PARSER_VERSION)')"
           PARSER_RETRY_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import PARSER_RETRY_VERSION; print(PARSER_RETRY_VERSION)')"
           export LEGACY_PARSER_VERSION PARSER_RETRY_VERSION
-          python - <<'PY'
+          PYTHONPATH=backend/src python - <<'PY'
           import json, os
           from pathlib import Path
+          from unison_snapshot.house_paper_pipeline import preserved_paper_materialization
           evidence = Path(os.environ['EVIDENCE_ROOT'])
           review = Path(os.environ['REVIEW_ROOT'])
           parser_commit = os.environ['PARSER_COMMIT']
@@ -151,6 +152,21 @@ jobs:
               sha = metadata['sha256']
               extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
               failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
+              if extraction.is_file():
+                  # A retained legacy failure is evidence, not a request to
+                  # overwrite a successfully bound saved interpretation.
+                  try:
+                      value = json.loads(extraction.read_text(encoding='utf-8'))
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      value = {}
+                  if value.get('extraction_method') == 'source_bound_paper_cells':
+                      relative = Path(year) / document_id / f'{sha}.json'
+                      qualification = review / 'house_clerk/qualifications' / relative
+                      observation = review / 'house_clerk/paper_observations' / relative
+                      if preserved_paper_materialization(metadata, value,
+                              json.loads(qualification.read_text(encoding='utf-8')),
+                              json.loads(observation.read_text(encoding='utf-8'))):
+                          continue
               if extraction.is_file() and failure.is_file():
                   retries.append(metadata_path)
                   continue
