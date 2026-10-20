@@ -31,6 +31,7 @@ PAPER_OCR_RULE_VERSION = "senate-paper-form-geometry-2026-10-v2"
 _FORM_WIDTH = 3400.0
 _FORM_HEIGHT = 4400.0
 _DATE = re.compile(r"[0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}")
+_BOUND_DATE_WITH_PERIODS = re.compile(r"\.?(?P<date>[0-9]{1,2}/[0-9]{1,2}/(?:[0-9]{2}|[0-9]{4}))\.?")
 _OWNER = re.compile(r"^\s*\((S|J|DC)\)\s*(.+)$", re.IGNORECASE)
 _TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)(?:[0-9]+)?\s*$")
 _MARKS = {"X", "×"}
@@ -86,7 +87,12 @@ def _normalized_words(page: dict) -> list[dict]:
     return normalized
 
 
-def _parse_date(raw: str) -> str | None:
+def _parse_date(raw: str, *, allow_outer_periods: bool = False) -> str | None:
+    if allow_outer_periods:
+        match = _BOUND_DATE_WITH_PERIODS.fullmatch(raw)
+        if match is None:
+            return None
+        raw = match["date"]
     for pattern in ("%m/%d/%y", "%m/%d/%Y"):
         try:
             value = datetime.strptime(raw, pattern).date()
@@ -144,7 +150,7 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         date_raw = None
     else:
         date_raw = date_words[0]["text"]
-        transaction_date = _parse_date(date_raw)
+        transaction_date = _parse_date(date_raw, allow_outer_periods=grid_slot is not None)
         if transaction_date is None:
             reasons.append("paper_date_invalid")
         if date_words[0]["confidence"] < 80:
@@ -349,6 +355,16 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
             "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
         }
+        raw_date = row["field_observations"]["date_raw"]
+        interpreted = _BOUND_DATE_WITH_PERIODS.fullmatch(raw_date)
+        if (row["transaction_date"] is not None and interpreted is not None and
+                interpreted["date"] != raw_date):
+            row["field_observations"]["date_interpretation"] = {
+                "rule_version": "senate-bound-date-outer-periods/v1", "raw_text": raw_date,
+                "complete_date_text": interpreted["date"], "transaction_date": row["transaction_date"],
+                "basis": "single_word_in_hash_verified_date_cell_complete_slash_date",
+                "qualification": "not_assessed",
+            }
         reasons = row["quarantine_reasons"]
         prior_dates = {date.get("page_ocr_parsed"), date.get("cell_ocr_parsed")}
         prior_dates.discard(None)
