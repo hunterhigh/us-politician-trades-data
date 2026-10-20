@@ -137,5 +137,12 @@ class IndependentAnnualTests(unittest.TestCase):
             for field,value in [('source_sha256','e'*64),('filing_id','other'),('possible_ptr_transaction_ids',['senate-ptr:'+'d'*24])]:
                 changed=deepcopy(candidate);changed['meta']['transaction_disclosure_relations'][0][field]=value
                 with self.assertRaises(ValueError):normalize(changed,allow_production=True)
+            for missing in (None,[]):
+                changed=deepcopy(candidate)
+                if missing is None:changed['meta'].pop('transaction_disclosure_relations')
+                else:changed['meta']['transaction_disclosure_relations']=missing
+                with self.assertRaises(ValueError):normalize(changed,allow_production=True)
+                changed['meta'].update(snapshot_id='test',generated_at=changed['meta']['data_cutoff_at'])
+                with self.assertRaises(ValueError):load('process_snapshot',version='v3').build_snapshot(changed)
 
 if __name__=='__main__':unittest.main()

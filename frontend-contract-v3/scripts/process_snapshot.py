@@ -72,6 +72,8 @@ def _amount_summary(rows, prefix="amount"):
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
     relations=result['meta'].get('transaction_disclosure_relations')
+    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith('senate-annual-part4b:')}
+    if annual_ids and relations is None:raise ProcessingError('Annual disclosure facts require complete relationship metadata')
     if relations is not None:
         if not isinstance(relations,list):raise ProcessingError('Transaction disclosure relations must be a list')
         facts={r['id']:r for r in result['transactions']};checked=[];seen=set()
@@ -104,6 +106,8 @@ def build_snapshot(payload):
                     raise ProcessingError('Transaction disclosure relation possible PTR differs')
             checked.append(deepcopy(relation))
         result['meta']['transaction_disclosure_relations']=checked
+        if {r['transaction_id'] for r in checked}!=annual_ids:
+            raise ProcessingError('Annual disclosure relationship metadata does not cover loaded annual facts')
     coverages = result["meta"].get("holding_report_coverage")
     if coverages is not None:
         if not isinstance(coverages, list):

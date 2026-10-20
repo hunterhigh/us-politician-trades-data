@@ -309,7 +309,7 @@ def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict]
             relation['possible_ptr_transaction_ids']=[i for i in relation['possible_ptr_transaction_ids'] if i in transaction_ids]
             relation['status']='possible_ptr_overlap' if relation['possible_ptr_transaction_ids'] else 'cross_report_relationship_unconfirmed'
         result['meta']['transaction_disclosure_relations']=sorted(relations,key=lambda r:r['transaction_id'])
-        validate_transaction_disclosure_relations(result)
+    validate_transaction_disclosure_relations(result)
     result["source_health"] = [deepcopy(base_health_by_id[key])
                                for key in base_health_order + appended]
     if harmonization_audit is not None:

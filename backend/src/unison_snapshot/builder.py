@@ -167,7 +167,10 @@ def normalize(payload: dict, *, allow_production: bool = False,
 def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr: bool = False) -> None:
     """Full-input relation validation; no additional facts or source fetches."""
     relations=data['meta'].get('transaction_disclosure_relations')
-    if relations is None:return
+    annual_ids={r['id'] for r in data['transactions'] if str(r['id']).startswith('senate-annual-part4b:')}
+    if relations is None:
+        if annual_ids:raise ValueError('Annual disclosure facts require complete relationship metadata')
+        return
     if not isinstance(relations,list):raise ValueError('Transaction disclosure relations must be a list')
     facts={r['id']:r for r in data['transactions']};seen=set()
     fields={'transaction_id','source_id','filing_id','source_url','source_sha256','section','printed_row_number','status','possible_ptr_transaction_ids'}
@@ -192,13 +195,16 @@ def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr:
             if (other is None or not ptr.startswith('senate-ptr:') or other.get('source_id')!='senate_efd' or
                     other.get('person_id')!=fact['person_id']):
                 raise ValueError('Transaction disclosure relation possible PTR is not a same-person fact')
+    if seen!=annual_ids:raise ValueError('Annual disclosure relationship metadata does not cover every published annual fact')
 
 
 def restore_shard_disclosure_relations(meta: dict, shard: dict, *, subset: bool = False) -> None:
     """Restore only optional metadata already present in the loaded shard."""
     policy=meta.get('transaction_disclosure_relation_policy')
     present='transaction_disclosure_relations' in shard
-    if policy is None and not present:return
+    if policy is None and not present:
+        validate_transaction_disclosure_relations({'meta':{},'transactions':shard['transactions']})
+        return
     if policy!=TRANSACTION_RELATION_POLICY:raise ValueError('Unsupported transaction disclosure relation policy')
     relations=shard.pop('transaction_disclosure_relations',[])
     validate_transaction_disclosure_relations({'meta':{'transaction_disclosure_relations':relations},
