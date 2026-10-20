@@ -820,7 +820,13 @@ def qualify_automatic(extraction: dict, identity: dict, *,
         reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
             reasons.append("identity_not_deterministic")
-        if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
+        # The ID column identifies a transaction, not a filing or an
+        # amendment target by itself. Filing Status establishes revision state.
+        official_id = row.get("reported_transaction_id")
+        if official_id is not None and (not isinstance(official_id, str) or
+                not re.fullmatch(r"[0-9]{1,30}", official_id)):
+            reasons.append("reported_transaction_id_invalid")
+        if str(row.get("filing_status", "")).lower() != "new":
             reasons.append("revision_relationship_unresolved")
             target = row.get("reported_transaction_id")
             if str(row.get("filing_status", "")).lower() == "amended":
