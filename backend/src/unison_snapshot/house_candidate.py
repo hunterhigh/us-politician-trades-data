@@ -136,6 +136,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     quarantined_count = 0
     paper_pending_count = 0
     paper_unknown_reports = paper_unknown_physical = 0
+    native_account_pending = 0
+    native_account_unassessed_reports = 0
     revision_inputs = []
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
@@ -154,6 +156,47 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             paper_unknown_physical += paper_counts["unresolved_physical_slot_count"]
         paper_pending_count += _paper_pending_count(qualification)
         extraction_path = review_root / "house_clerk/extractions" / path.relative_to(review_root / "house_clerk/qualifications")
+        if (qualification.get("native_account_context", {}).get("status") == "source_words_reproduced"
+                and not extraction_path.is_file()):
+            raise HouseIndexError("House native account context requires its source extraction")
+        if (qualification.get("native_account_context", {}).get("status") == "source_pages_unavailable"
+                and not extraction_path.is_file()):
+            native_account_unassessed_reports += 1
+        if extraction_path.is_file():
+            extraction = _read_json(extraction_path, "House native account source extraction")
+            if extraction.get("extraction_method") == "native_pdf_text" and extraction.get("source_word_pages") is None:
+                if qualification.get("native_account_context", {}).get("status") == "source_words_reproduced":
+                    raise HouseIndexError("House native account receipt has no saved source words")
+                # Legacy formal facts are not requalified or rewritten merely
+                # because this additive display proof was not saved previously.
+                native_account_pending += sum(bool(r.get("subholding_of")) for r in extraction["transactions"])
+            elif extraction.get("extraction_method") == "native_pdf_text":
+                from .house_ptr import qualify_automatic
+                source = extraction.get("source", {})
+                if (qualification.get("source_sha256") != extraction.get("source_sha256") or
+                        qualification.get("document_id") != source.get("document_id") or
+                        qualification.get("parser_version") != extraction.get("parser_version") or
+                        extraction_path.stem != extraction.get("source_sha256") or
+                        extraction_path.parent.name != str(source.get("document_id"))):
+                    raise HouseIndexError("House native account document binding differs from qualification")
+                expected = qualify_automatic(extraction, identity)
+                proof = expected.get("native_account_context", {})
+                if ("native_account_context" in qualification and
+                        qualification["native_account_context"] != proof):
+                    raise HouseIndexError("House native account receipt differs from source observations")
+                expected_rows = {r["id"]: r for r in expected["transactions"]}
+                raw_names = {r["extraction_id"]: r["asset_name"] for r in extraction["transactions"]}
+                if len(expected_rows) != len(rows) or set(expected_rows) != {r.get("id") for r in rows}:
+                    raise HouseIndexError("House native account qualification rows differ from source")
+                derived = []
+                for row in rows:
+                    projected = expected_rows[row["id"]]
+                    if (row.get("asset_name") not in {raw_names[row["id"]], projected["asset_name"]} or
+                            {k:v for k,v in row.items() if k != "asset_name"} !=
+                            {k:v for k,v in projected.items() if k != "asset_name"}):
+                        raise HouseIndexError("House native account projection changed financial facts or identity")
+                    derived.append(deepcopy(projected))
+                rows = derived
         if qualification.get("revision_observations") and extraction_path.is_file():
             revision_inputs.append((qualification, extraction_path))
         person_id = identity.get("person_id")
@@ -306,6 +349,10 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     }
     if revision_dispositions:
         house_health["detail"] += f"; {len(revision_dispositions)} official amendment references await source-bound predecessors"
+    if native_account_pending:
+        house_health["detail"] += f"; {native_account_pending} native account titles await saved source-word evidence; existing facts retained"
+    if native_account_unassessed_reports:
+        house_health["detail"] += f"; {native_account_unassessed_reports} native account display reports await missing source extraction; existing facts retained"
     candidate["source_health"] = [house_health if row.get("source_id") == "house_clerk" else row
                                   for row in health]
     if not any(row.get("source_id") == "house_clerk" for row in health):

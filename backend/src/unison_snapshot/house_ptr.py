@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -709,6 +710,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         "source_pdf_copy_allowed": copy_allowed,
         "extraction_method": "tesseract_ocr" if ocr_engine else "native_pdf_text",
         "ocr_engine": ocr_engine,
+        **({"source_word_pages": deepcopy(pages),
+            "source_word_pages_sha256": hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()}
+           if ocr_engine is None else {}),
         "transactions": extracted,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
@@ -739,6 +744,39 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) 
     return report_ledger(source_id="house_clerk", document_sha256=source_sha,
                          adapter_version=PARSER_VERSION, page_count=len(pages),
                          pages=observed, logical_rows=logical)
+
+
+def _native_account_context(extraction: dict) -> dict:
+    """Reproduce native source observations before deriving display context.
+
+    The word digest establishes cache consistency, not independent PDF truth.
+    Older caches without saved words keep their existing financial facts.
+    """
+    if extraction.get("extraction_method") != "native_pdf_text":
+        return {}
+    titles = [r for r in extraction.get("transactions", []) if r.get("subholding_of")]
+    if not titles:
+        return {}
+    pages = extraction.get("source_word_pages")
+    if pages is None:
+        return {"status": "source_pages_unavailable", "rows": []}
+    try:
+        actual = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if actual != extraction.get("source_word_pages_sha256"):
+            raise HouseIndexError("House native account source words differ from digest")
+        source = extraction.get("source", {})
+        reproduced = parse_word_pages({**source, "filing_type": "P"}, extraction["source_sha256"],
+            pages, copy_allowed=extraction.get("source_pdf_copy_allowed"))
+        if any(extraction.get(key) != value for key, value in reproduced.items()):
+            raise HouseIndexError("House native account observations differ from saved source words")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HouseIndexError("House native account source observations cannot be reproduced") from exc
+    return {"status": "source_words_reproduced", "source_sha256": extraction["source_sha256"],
+        "document_id": source["document_id"], "source_word_pages_sha256": actual,
+        "rows": [{"id": r["extraction_id"], "asset_name_raw": r["asset_name"],
+                  "subholding_of_raw": r["subholding_of"],
+                  "asset_name_display": f"{r['asset_name']} — {r['subholding_of']}"} for r in titles]}
 
 
 def qualify_automatic(extraction: dict, identity: dict, *,
@@ -776,6 +814,8 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     quarantined: list[dict] = []
     advisories: list[dict] = []
     revision_observations: list[dict] = []
+    account_context = _native_account_context(extraction)
+    display_names = {r["id"]: r["asset_name_display"] for r in account_context.get("rows", [])}
     for row in extraction.get("transactions", []):
         reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
@@ -863,7 +903,7 @@ def qualify_automatic(extraction: dict, identity: dict, *,
             continue
         transactions.append({
             "id": row["extraction_id"], "filing_id": document_id, "person_id": person_id,
-            "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
+            "owner": row["owner"], "asset_name": display_names.get(row["extraction_id"], row["asset_name"]), "ticker": ticker,
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
             **({"option_type": option_type, "strike_price": strike_price,
@@ -895,6 +935,7 @@ def qualify_automatic(extraction: dict, identity: dict, *,
         "transactions": transactions,
         "quarantined": quarantined,
         "advisories": advisories,
+        **({"native_account_context": account_context} if account_context else {}),
         **({"revision_observations": revision_observations} if revision_observations else {}),
         "qualification": {
             "method": "deterministic_automatic_rules",
