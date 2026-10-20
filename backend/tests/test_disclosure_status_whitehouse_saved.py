@@ -73,6 +73,25 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'conserve'):
                         _apply_audit(record,audit,review=root)
 
+    def test_document_blocker_cannot_be_removed_or_overridden_by_promotion(self):
+        for keep_blocker in [False, True]:
+            with self.subTest(keep_blocker=keep_blocker),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);record,audit,cache=self.fixture(root)
+                report=json.loads(cache.read_text(encoding='utf-8'))
+                report.update(filed_at='2026-05-08',
+                    document_reasons=['ocr_source_filing_date_conflict'],
+                    transactions=[{'extraction_id':'observed-one','reasons':[]}])
+                report['observation_receipt']['source_original_verified']=True
+                cache.write_text(json.dumps(report),encoding='utf-8')
+                audit.update(filed_at=report['filed_at'],
+                    observation_receipt=deepcopy(report['observation_receipt']),
+                    document_reasons=report['document_reasons'][:] if keep_blocker else [],
+                    source_row_count=1,promoted_count=1,quarantined_count=0,
+                    rows=[{'extraction_id':'observed-one','status':'promoted','reasons':[]}])
+                with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                    with self.assertRaisesRegex(ValueError,'document blocker|promotion lacks'):
+                        _apply_audit(record,audit,review=root)
+
     def test_partial_regions_words_and_known_slots_are_bound_and_total_stays_unknown(self):
         for change in [None,'regions','words','known_count','unit_removed']:
             with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:

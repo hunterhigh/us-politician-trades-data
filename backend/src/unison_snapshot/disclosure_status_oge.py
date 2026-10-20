@@ -375,8 +375,14 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
                 not set(source_reasons) <= set(reasons) or
                 decision.get("status") == "promoted" and (reasons or source_reasons)):
             raise ValueError("White House saved-word decision drops a source blocker")
+    source_document_reasons = report.get("document_reasons", [])
+    audit_document_reasons = audit.get("document_reasons", [])
+    if (not isinstance(source_document_reasons, list) or
+            not isinstance(audit_document_reasons, list) or
+            not set(source_document_reasons) <= set(audit_document_reasons)):
+        raise ValueError("White House saved-word audit drops a source document blocker")
     if (audit.get("promoted_count") and (receipt.get("source_original_verified") is not True or
-            _date(report.get("filed_at")) is None or audit.get("document_reasons"))):
+            _date(report.get("filed_at")) is None or source_document_reasons or audit_document_reasons)):
         raise ValueError("White House saved-word promotion lacks verified source or filing date")
     if (receipt.get("schema_version") != "whitehouse-278t-saved-ocr-receipt/v1" or
             receipt.get("mode") != "saved_ocr_words" or receipt.get("source_sha256") != sha or
