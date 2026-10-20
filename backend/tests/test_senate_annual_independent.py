@@ -115,6 +115,34 @@ class IndependentAnnualTests(unittest.TestCase):
             self.assertEqual(audit['annual_transaction_candidate_decisions']['candidate_disposition_counts'],{'excluded_exact_source_copy':1,'promoted':1})
             again,_=overlay(candidate,e,r,roster);self.assertEqual(again,candidate)
 
+    def test_current_catalog_missing_original_keeps_old_facts_and_blocks_yes_or_no_amendment(self):
+        # A current discovery page is not a complete historic amendment chain.
+        # The archived A0 remains available, but absent chain selection must not
+        # silently append A1 or interpret No as permission to erase A0.
+        for declares_no in (False, True):
+            with self.subTest(declares_no=declares_no), tempfile.TemporaryDirectory() as d:
+                root=Path(d);e,r,roster=setup(root,[(0,original())])
+                old,_=overlay(base(),e,r,roster)
+                replacement=original(1).replace(b'Example Fund',b'Changed Fund')
+                if declares_no:
+                    start=replacement.index(b'<h3>Part 4b.');end=replacement.index(b'</body>')
+                    replacement=(replacement[:start]+b'<h3>Part 4b. Transactions</h3><p>'+
+                        QUESTION.replace(b'? Yes',b'? No')+b'</p>'+replacement[end:])
+                e,r,roster=setup(root,[(0,original()),(1,replacement)])
+                catalog=e/'senate_efd/annual/catalog/current.json'
+                data=json.loads(catalog.read_bytes());data['reports']=data['reports'][1:]
+                data['catalog_record_count']=data['annual_report_count']=1
+                catalog.write_bytes(_json(data))
+                build_annual_review(e,r,roster)
+                result,audit=overlay(old,e,r,roster)
+                self.assertEqual(result['transactions'],old['transactions'])
+                self.assertEqual(result['meta']['transaction_disclosure_relations'],
+                                 old['meta']['transaction_disclosure_relations'])
+                self.assertEqual(audit['annual_part4b_relationships'][0]['selection_blocking_reason'],
+                                 'annual_transaction_amendment_or_source_unresolved')
+                self.assertEqual(audit['annual_transaction_candidate_decisions']['superseded_annual_transaction_ids'],[])
+                self.assertTrue(list((e/'senate_efd/annual/reports'/old['transactions'][0]['filing_id']).glob('*.html')))
+
     def test_wrong_fields_declaration_or_source_cache_do_not_promote(self):
         for raw in [original().replace(QUESTION,b'Unclear declaration'),original().replace(b'Spouse',b'Unknown owner'),
                     original().replace(b'11/12/2025',b'11/12/2027'),original().replace(b'$500,001 - $1,000,000',b'Unclear')]:
