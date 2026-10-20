@@ -12,6 +12,10 @@ on:
       paper_document_id:
         description: Optional archived paper PTR document ID to observe in this run
         required: false
+      materialize_saved_paper:
+        description: Interpret saved paper evidence only; skip parser and OCR work
+        type: boolean
+        default: false
 permissions:
   contents: write
   actions: read
@@ -114,8 +118,14 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '25' }}
+          MATERIALIZE_SAVED_PAPER: ${{ inputs.materialize_saved_paper }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
+          if [ "$MATERIALIZE_SAVED_PAPER" = "true" ]; then
+            mkdir -p .local
+            : > .local/parse-batch.txt
+            exit 0
+          fi
           case "$BATCH_SIZE" in
             ''|*[!0-9]*) echo "batch_size must be an integer" >&2; exit 2 ;;
           esac
@@ -171,6 +181,7 @@ jobs:
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
           PY
       - name: Detect image-only PDFs in this batch
+        if: inputs.materialize_saved_paper != true
         id: ocr
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -212,6 +223,7 @@ jobs:
           sudo apt-get update -qq -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
       - name: Parse and prepare machine extraction artifacts
+        if: inputs.materialize_saved_paper != true
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -273,6 +285,7 @@ jobs:
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
       - name: Refresh deterministic House identities
+        if: inputs.materialize_saved_paper != true
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -288,6 +301,7 @@ jobs:
               --extraction "$extraction" --members "$roster" --output "$identity"
           done
       - name: Build automatic qualification artifacts
+        if: inputs.materialize_saved_paper != true
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
@@ -306,10 +320,14 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PAPER_DOCUMENT_ID: ${{ inputs.paper_document_id }}
+          MATERIALIZE_SAVED_PAPER: ${{ inputs.materialize_saved_paper }}
         run: |
           paper_args=()
           if [ -n "$PAPER_DOCUMENT_ID" ]; then
             paper_args+=(--document-id "$PAPER_DOCUMENT_ID")
+          fi
+          if [ "$MATERIALIZE_SAVED_PAPER" = "true" ]; then
+            paper_args+=(--materialize-saved)
           fi
           PYTHONPATH=backend/src python -m unison_snapshot bridge-house-paper-batch \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
