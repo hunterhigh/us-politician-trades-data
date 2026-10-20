@@ -402,6 +402,19 @@ class HousePtrTests(unittest.TestCase):
                            "counts": {"archived": 1, "pending": 0, "failed": 0}}, deepcopy(BASE))
             self.assertEqual(result["transactions"], qualified["transactions"])
 
+    def test_full_width_note_preserves_literal_trailing_word_without_changing_financial_cells(self):
+        pages=amended_fixture_pages()
+        before=parse_word_pages(META,'5'*64,pages,copy_allowed=True)['transactions'][0]
+        pages[0]['words'] += [dict(word('CL',539,379,8.5),x1=549.7),
+                              dict(word('A',551.85,379,8.5),x1=557.58)]
+        after=parse_word_pages(META,'5'*64,pages,copy_allowed=True)['transactions'][0]
+        self.assertEqual(after['description'],'Corrected transaction CL A')
+        self.assertGreaterEqual(after['evidence']['segments'][0]['bbox_points'][2],557.58)
+        for field in ('extraction_id','asset_name','owner','transaction_type','transaction_date',
+                      'notification_date','amount_low','amount_high','reported_transaction_id'):
+            self.assertEqual(after[field],before[field])
+        self.assertEqual(qualify_automatic(parse_word_pages(META,'5'*64,pages,copy_allowed=True),IDENTITY)['transactions'],[])
+
     def test_unchanged_native_ids_and_fields_are_preserved(self):
         extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
         self.assertEqual([row["extraction_id"] for row in extraction["transactions"]],

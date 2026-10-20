@@ -579,8 +579,15 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             amount_words, key=lambda item: (item[0], round(float(item[1]["top"]), 1), float(item[1]["x0"])))))
         note_words = [(segment_page_index, word) for segment_page_index, word in block
                       if 0.165 * page_data[segment_page_index]["width"] <= float(word["x0"]) <
-                      0.90 * page_data[segment_page_index]["width"]
+                      page_data[segment_page_index]["width"]
                       and float(word.get("size", date_size)) < date_size - 0.2]
+        # The .90 edge belongs to the amount cell, not to full-width notes.
+        # Keep literal trailing note words and include them in source evidence;
+        # no financial column boundaries or identity inputs are changed.
+        for segment in evidence_segments:
+            right = max((float(w.get("x1", w["x0"])) for page_index, w in note_words
+                         if page_index + 1 == segment["page"]), default=0.)
+            segment["bbox_points"][2] = max(segment["bbox_points"][2], round(right, 2))
         note_lines: dict[tuple[int, float], list[dict]] = {}
         for segment_page_index, word in note_words:
             note_lines.setdefault((segment_page_index, round(float(word["top"]), 1)), []).append(word)
