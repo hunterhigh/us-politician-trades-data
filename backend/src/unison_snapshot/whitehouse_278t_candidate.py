@@ -601,12 +601,17 @@ def build_whitehouse_278t_review_candidate(
     if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
         raise OgeCatalogError("White House 278-T requires one existing OGE source health record")
     prior_detail = oge_health[0]["detail"]
-    oge_health[0]["detail"] = (
-        f"Prior direct OGE status: {prior_detail}; "
+    summary = (
         f"White House public 278-T: {len(audit_reports)} PDFs audited, "
-        f"{promoted} new transactions qualified, {quarantined} rows quarantined; "
+        f"{promoted + len(retained_existing)} transactions qualified, {quarantined} rows quarantined; "
         f"{len(candidate['transactions'])} total OGE candidate transactions."
     )
+    # Health describes the resulting qualified set, not the per-run append
+    # count. Preserve all prior source text; never split/strip a similar-looking
+    # official detail to try to recover a presumed direct-source prefix.
+    if not (prior_detail.startswith("Prior direct OGE status: ") and
+            prior_detail.endswith("; " + summary)):
+        oge_health[0]["detail"] = f"Prior direct OGE status: {prior_detail}; {summary}"
     return candidate, {
         "schema_version": SCHEMA, "source_id": "oge",
         "catalog_sha256": expected_audit["catalog_sha256"],
