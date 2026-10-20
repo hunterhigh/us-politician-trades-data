@@ -808,6 +808,7 @@ def build_senate_candidate(
     partially_qualified_reports = 0
     row_only_quarantined_reports = 0
     empty_eligible_reports = 0
+    empty_eligible_report_rows = []
     superseded_report_transaction_count = 0
     for extraction in extraction_values:
         document_id = extraction.get("document_id")
@@ -923,6 +924,12 @@ def build_senate_candidate(
             row_only_quarantined_reports += 1
         else:
             empty_eligible_reports += 1
+            empty_eligible_report_rows.append({
+                "document_id": document_id, "source_sha256": extraction["source_sha256"],
+                "source_url": extraction["source_url"],
+                "filed_at_raw": extraction["filed_at_raw"],
+                "basis": "qualified_empty_transaction_table_with_complete_source_coverage",
+            })
 
     cutoff = state_status.get("run_at")
     try:
@@ -1051,6 +1058,7 @@ def build_senate_candidate(
         "partially_qualified_report_count": partially_qualified_reports,
         "row_only_quarantined_report_count": row_only_quarantined_reports,
         "empty_eligible_report_count": empty_eligible_reports,
+        "empty_eligible_reports": empty_eligible_report_rows,
         "resolved_amendment_chain_count": len(amendment_resolution["chains"]),
         "resolved_amendment_chains": amendment_resolution["chains"],
         "superseded_report_count": len(primary_superseded_documents),

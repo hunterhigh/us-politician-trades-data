@@ -99,6 +99,20 @@ def extraction(document_id: str, rows=None, **updates):
 
 
 class SenateCandidateTests(unittest.TestCase):
+    def test_empty_report_decision_identifies_only_the_evaluated_source(self):
+        doc = "11111111-1111-4111-8111-111111111111"
+        empty = extraction(doc, [])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            state = self.fixture(root, [identity(doc)], [empty])
+            candidate, audit = build_senate_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(candidate["transactions"], [])
+            self.assertEqual(audit["empty_eligible_report_count"], 1)
+            self.assertEqual(audit["empty_eligible_reports"], [{
+                "document_id": doc, "source_sha256": empty["source_sha256"],
+                "source_url": empty["source_url"], "filed_at_raw": empty["filed_at_raw"],
+                "basis": "qualified_empty_transaction_table_with_complete_source_coverage"}])
+
     def test_official_exchange_reaches_candidate_and_final_consumer_without_buy_sell_inference(self):
         from tests.test_senate_reports import html, metadata_for
         from unison_snapshot.senate_reports import parse_electronic_ptr
