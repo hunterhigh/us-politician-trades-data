@@ -9,6 +9,7 @@
 | H16 | Senate年报按独立披露行计数，跨报关系显式提示 | 真实固定候选44条（37+7），Chrome逐条打开全部44个详情，显示独立年报披露、跨报关系未确认和按披露行计数；普通PTR不残留注释，0脚本错误。凭据`.local/sa7/browser-all-relations.json` | 1236旧PTR完整对象保持；不是生产新增。可能关联1条PTR的呈现另以合成正例核对，两条披露均保留，不称真实匹配 |
 | H17 | House原生电子PTR消费官方账户标题 | 13条真实来源在Chrome逐条核对资产说明含账户标题、原ID不变，0脚本错误；233交易完整候选仅13条asset_name变化，204持仓不变 | 缺原件词页旧缓存不猜账户；不是纸表新OCR能力验收 |
 | H18 | Senate双端Exchange保留两端资产 | 真实行显示BERY换出、Amcor收到；ticker为null，无误指AMCR链接，缺收益仍null，0脚本错误 | 4件固定电子PTR候选17合格／12替代；不是全电子目录或全页面验收 |
+| H21 | 资产类型不得将“见尾注”误认作债券 | Burrows原件明确Meta Common Stock，父层正常新晋级／builder／公开reader为Stock；Endnote词界误判已修。已有83条base中另外82对象保持 | 既有该条Bond仍按保旧规则保留，待T24精确源证纠正；该新类型尚未做浏览器检查，不称页面类型已全部修好。凭据`.local/c05-burrows-parent-1020/consumer-summary.json` |
 
 H20补充（2026-10-20）：用户已批准House年度独立披露，父层正常候选／builder／reader／v3派生页实际含105条（94+11）；Chrome逐条核对全部105详情的独立年报／跨报未确认／按披露行计数提示，普通PTR不残留，0脚本错误；原233PTR／204持仓完整对象保持。4种正常client模式读取年度105／105／94／4及相应注释。仅固定两件本地联调，不是生产新增／全格式签收，事件日仍为原2025交易日期，不挪到2026披露日来增加近期榜单。凭据`.local/house-annual-parent-1020/browser-all-relations.json`与`normal-fetch-receipt.json`。
 
