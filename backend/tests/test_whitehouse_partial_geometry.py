@@ -6,15 +6,15 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import numpy as np
 from PIL import Image
 from test_oge_278t_image_grid import grid_page, EDGES
 from test_oge_content_relations import saved
-from test_whitehouse_278t_saved_ocr import SavedWhiteHouseTests
+import test_whitehouse_278t_saved_ocr as saved_ocr_tests
 from test_whitehouse_278t_generic import consume
-from unison_snapshot.oge_278t_raster_slots import _oge_2024_image_grid, _joint_horizontal_partition, _partial_header_geometry
+from unison_snapshot.oge_278t_raster_slots import _oge_2024_image_grid, _joint_horizontal_partition, _partial_header_geometry, observe_raster_slots
 from unison_snapshot.oge_278t_field_shadow import observe_content_rows
 from unison_snapshot.whitehouse_278t import (_generic_cover_dates, _saved_source_cover_resolution,
     generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSION, TRUMP_2026_PROFILES,
@@ -128,8 +128,36 @@ class PartialGeometryTests(unittest.TestCase):
         relation=observe_content_rows([changed],document_page_count=3)['slot_content'][0]['relation_evidence']
         self.assertIn('word_box_crosses_unresolved_region',relation['blocking_reasons'])
 
+    def test_shared_observer_conserves_every_saved_word_and_blocks_cross_region_boxes(self):
+        from test_oge_278t_image_grid import header_words
+        from test_oge_annual import _Document
+        from unison_snapshot.ocr_geometry import OcrPage
+        geometry=_oge_2024_image_grid(altered_page('stroke'),allow_partial_rows=True)
+        words=header_words()+[
+            {'text':'GAP RAW','x0':170,'x1':210,'top':179,'bottom':185,'ocr_confidence':90},
+            {'text':'CROSS RAW','x0':170,'x1':210,'top':179,'bottom':198,'ocr_confidence':90},
+            {'text':'KNOWN RAW','x0':170,'x1':210,'top':199,'bottom':204,'ocr_confidence':90},
+            {'text':'FOOTER RAW','x0':170,'x1':210,'top':600,'bottom':605,'ocr_confidence':90}]
+        census={'results':[{'page_number':1,'status':'coverage_unknown','column_geometry_observation':geometry}]}
+        page=SimpleNamespace(width=792,height=612,cropbox=(0,0,792,612),mediabox=(0,0,792,612))
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'source.pdf';path.write_bytes(b'synthetic original')
+            with patch('unison_snapshot.oge_278t_raster_slots.census_with_2024_fallback',return_value=(census,{})), \
+                 patch('pdfplumber.open',return_value=_Document([page])), \
+                 patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages',side_effect=AssertionError('no new OCR')):
+                out=observe_raster_slots(path,expected_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),page_numbers=[1],
+                    saved_ocr_pages={1:OcrPage(width=792,height=612,words=words)},saved_ocr_engine='saved',allow_partial_rows=True)
+        result=out['pages'][0]
+        self.assertEqual(sum(len(s['words']) for s in result['slots'])+len(result['unbound_page_ocr_words']),len(words))
+        unbound={w['text'] for w in result['unbound_page_ocr_words']}
+        self.assertTrue({'GAP RAW','CROSS RAW','FOOTER RAW'}<=unbound)
+        crossed=next(s for s in result['slots'] if s['band_pdf_points']==[191.,206.])
+        self.assertEqual(crossed['unresolved_region_crossing_word_indices'],[10])
+        content=observe_content_rows([out],document_page_count=1)
+        self.assertEqual(content['partial_geometry_pages'][0]['unbound_page_ocr_words'],result['unbound_page_ocr_words'])
+
     def test_partial_materializer_candidate_builder_and_scope_loss(self):
-        case=SavedWhiteHouseTests()
+        case=saved_ocr_tests.SavedWhiteHouseTests()
         for heading in (False,True):
             with self.subTest(heading=heading),tempfile.TemporaryDirectory() as folder:
                 inputs,_=case.fixture(Path(folder));inputs['allow_partial_rows']=True
@@ -178,7 +206,7 @@ class PartialGeometryTests(unittest.TestCase):
         from test_whitehouse_278t_candidate import _base,_catalog
         from unison_snapshot.whitehouse_278t_candidate import _person,_transaction
         from unison_snapshot.oge_reports import parse_table_rows
-        case=SavedWhiteHouseTests()
+        case=saved_ocr_tests.SavedWhiteHouseTests()
         for bind_prior in (False,True):
             with self.subTest(bind_prior=bind_prior),tempfile.TemporaryDirectory() as folder:
                 root=Path(folder);inputs,_=case.fixture(root);inputs['allow_partial_rows']=True
