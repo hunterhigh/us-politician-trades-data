@@ -254,6 +254,12 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         for slot_ordinal, slot in enumerate(page.get("slots", []), 1):
             slot_key = str(slot_ordinal)
             observation = dispositions[(page_number, slot_key)]
+            dual_axis = raw_pages[page_number].get("geometry_mode") == "source_pdf_dual_axis/v1"
+            # The content consumer has already marked a real unobserved region
+            # after an established title. Do not restore that title from cache.
+            if (dual_axis and account_established and observation.get("unresolved_region_before")
+                    and observation.get("account_context", {}).get("status") == "unknown"):
+                account_scope_lost = True
             cells = [slot["raw_columns"].get(name, "") for name in names]
             physical = {"page_number": page_number, "cells": cells}
             reference = {"source_sha256": sha, "page_number": page_number,
@@ -318,6 +324,13 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 label = ordered_description or cells[1]
                 explicit_scope = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", label, re.I)
                                       or re.match(r"\s*(?:continued|continuation|cont[.'’]?d)\b", label, re.I))
+                if dual_axis:
+                    # An uncertain non-data label can contain an explicit scope
+                    # signal without being a fully readable heading. Ordinary
+                    # unknown asset text is not evidence of a scope change.
+                    explicit_scope = explicit_scope or bool(re.search(
+                        r"\b(?:(?:investment|retirement)\s+account|(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)?\s+(?:assets|accounts?)|continued|continuation)\b",
+                        label, re.I))
                 explicit_owner = bool(re.fullmatch(
                     r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", label, re.I))
                 account_scope_lost = account_scope_lost or explicit_scope or explicit_owner
