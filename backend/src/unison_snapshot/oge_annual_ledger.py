@@ -307,7 +307,9 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                 "method": "embedded_text", "confidence": None, "selected": True,
                 "required_for_projection": field in required,
                 "locations": [location], "conditions": {"section": part,
-                    "extraction_collection": collection},
+                    "extraction_collection": collection,
+                    **({"value_disclosure_status": row["value_disclosure_status"]}
+                       if qualified and "value_disclosure_status" in row else {})},
             })
         if collection == "quarantined":
             observations.append({
@@ -333,7 +335,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
             **({"annual_relationships": {"account_context": row.get("account_context"),
                 "owner_context": row.get("owner_context"), "owner_basis": row.get("owner_basis"),
                 "hierarchy_evidence": row.get("hierarchy_evidence"),
-                "saved_scan_reference": row.get("saved_scan_reference")}} if qualified else {}),
+                "saved_scan_reference": row.get("saved_scan_reference"),
+                **({"saved_native_reference": row["saved_native_reference"]} if "saved_native_reference" in row else {})}} if qualified else {}),
         }
         validate_candidate_row(item)
         rows.append(item)

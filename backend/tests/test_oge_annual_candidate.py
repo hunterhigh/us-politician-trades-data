@@ -86,7 +86,46 @@ class AnnualCandidateTests(unittest.TestCase):
         # An OCR-damaged agency label still delimits the filer block.
         damaged = missing.replace("Agency Ethics Official's Opinion", "Agency Ethics Ut1t1al Opm10n")
         self.assertIsNone(read_annual_cover_dates(damaged, source_sha256=SHA)["filed_at"])
-        self.assertIsNone(read_annual_cover_dates("Filer's Certification\nDate: 06/01/2026", source_sha256=SHA)["filed_at"])
+        self.assertEqual(read_annual_cover_dates("Filer's Certification\nDate: 06/01/2026", source_sha256=SHA)["filed_at"], "2026-06-01")
+
+    def test_last_cover_filer_block_is_not_required_to_have_agency_review(self):
+        cover = COVER[:COVER.index("Agency Ethics Official")]
+        extracted = source()
+        extracted["cover_date_evidence"] = read_annual_cover_dates(cover, source_sha256=SHA)
+        extracted["filing_date"] = extracted["cover_date_evidence"]["filed_at"]
+        candidate, audit = overlay_oge_annual_candidate(base(), inputs(extracted))
+        self.assertEqual(len(candidate["reported_holdings"]), 2)
+        self.assertEqual(audit["reports"][0]["filing_date_evidence"]["date"], "2026-06-01")
+        self.assertTrue(build(candidate, generated_at="2026-10-19T00:00:00Z", allow_production=True).manifest["snapshot_id"])
+        for text in ["Date: 06/01/2026", "Filer's Certification\nDate: unreadable\nAgency\nDate: 06/02/2026",
+                     "Filer's Certification\nDate: unreadable\nOGE Received 06/03/2026"]:
+            self.assertIsNone(read_annual_cover_dates(text, source_sha256=SHA)["filed_at"])
+
+    def test_owner_scope_gap_is_unresolved_but_same_page_noise_does_not_reset_it(self):
+        state = {}
+        _parse_rows("part2", "Self", 2, [HEADER, ["", "Spouse assets", "", "", "", ""]],
+                    2025, qualified=True, scope_state=state)
+        row = ["1", "ALPHA", "N/A", "$1,001 - $15,000", "", ""]
+        same_page, _, _ = _parse_rows("part2", "Self", 2, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertEqual(same_page[0]["owner"], "Spouse")
+        self.assertEqual(same_page[0]["owner_context"]["basis"], "explicit_owner_heading")
+        following, _, _ = _parse_rows("part2", "Self", 3, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertNotEqual(following[0]["account_context"]["status"], "unknown")
+        after_gap, _, _ = _parse_rows("part2", "Self", 5, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertEqual(after_gap[0]["owner"], "Spouse")
+        self.assertEqual(after_gap[0]["account_context"]["status"], "unknown")
+        extraction = source()
+        extraction["holdings"][0] = after_gap[0]
+        decision = ledger(extraction)
+        self.assertIn("account_scope_unresolved", decision["rows"][0]["reasons"])
+        restored, _, _ = _parse_rows("part2", "Self", 6,
+            [HEADER, ["", "Filer assets", "", "", "", ""], row], 2025,
+            qualified=True, scope_state=state)
+        self.assertEqual(restored[0]["owner"], "Self")
+        self.assertEqual(restored[0]["account_context"]["status"], "not_observed")
 
     def test_parts_2_5_6_7_feed_existing_qualification_and_candidate(self):
         extraction = source()

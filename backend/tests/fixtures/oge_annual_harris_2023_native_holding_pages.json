@@ -1,0 +1,912 @@
+{
+  "schema_version": "oge-278e-native-holding-known-pages/v1",
+  "source_sha256": "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28",
+  "source_document_id": "1462ab8c5542e5e7852589b0007899fc",
+  "reference_method": "fixed_known_section_original_visual_crosscheck_development_not_heldout",
+  "pages": [
+    {
+      "page_number": 3,
+      "section": "part2",
+      "page_text": "OGE Form 278e (Updated Nov. 2021) (Expires 11/30/24)\nInstructions for Part 2\nNote: This is a public form. Do not include account numbers, street addresses, or family member names. See instructions for required information.\nFiler's Name Page Number\nKamala D. Harris 3\nPart 2: Filer's Employment Assets & Income and Retirement Accounts\n# Description EIF Value Income Type Income Amount\n1. State of California Savings Plan 457(b) Plan, deferred compensation No\n1.1 International Fund Yes $15,001 - $50,000 None (or less than $201)\n1.2 Large Cap Fund Yes $15,001 - $50,000 None (or less than $201)\n1.3 Mid Cap Fund Yes $15,001 - $50,000 None (or less than $201)\n1.4 SPP Target Date 2045 Yes $15,001 - $50,000 None (or less than $201)\n2 City and County of San Francisco 457(b) Deferred Compensation No\nPlan\n2.1 SFDCP Target Date 2025 Fund Yes $50,001 - $100,000 None (or less than $201)\n2.2 SFDCP Target Date 2030 Fund Yes $50,001 - $100,000 None (or less than $201)\n2.3 SFDCP Target Date 2035 Fund Yes $50,001 - $100,000 None (or less than $201)\n2.4 SFDCP Stable Value Fund Yes $15,001 - $50,000 None (or less than $201)\n2.5 SFDCP Large Cap Eq S&P 500 Ind Yes $100,001 - $250,000 None (or less than $201)\n2.6 SFDCP Large Cap Growth Equity Yes $100,001 - $250,000 None (or less than $201)\n3 San Francisco Employees Retirement System (SFERS), defined N/A $250,001 - $500,000 None (or less than $201)\nbenefit plan\n4 State of California Legislators' Retirement System Plan, defined N/A None (or less than $201)\nbenefit plan (value not readily ascertainable): eligible for $3,981/mo\nat age 60\n5 \"The Truths We Hold,\" Penguin Press (an imprint of Penguin N/A royalties $38,011\nPublishing, a division of Penguin Random House LLC) (value not\nreadily ascertainable) - See Endnote\n6 \"The Truths We Hold,\" The Bodley Head, London, United Kingdom N/A royalties $3,093\n(division of The Random House Group Ltd.) (value not readily\nascertainable) - See Endnote\n7 \"The Truths We Hold,\" Philomel Books, an abridged young reader's N/A None (or less than $201)\nedition, (an imprint of Penguin Young Readers Group, a division of\nPenguin Random House LLC) (value not readily ascertainable)\n8 \"Smart on Crime: A Prosecutor's Solution for Making the Streets N/A None (or less than $201)\nSafer,\" Chronicle Books LLC (value not readily ascertainable)\n9 \"SuperHeroes Are Everywhere,\" Philomel Books (an imprint of N/A royalties $40,209\nPenguin Young Readers Group, a division of Penguin Random\nHouse LLC) (value not readily ascertainable) - See Endnote\nEndnote for Lines 5, 6 & 9: The royalties reported on the OGE 278 are the gross income amounts pertaining to \"The Truths We Hold\" and \"SuperHeroes Are Everywhere.\"",
+      "page_text_sha256": "2622d11537d37d2a5a02303ad79506cdb4eb5f0616280f42f5d980466b4dd3a1",
+      "tables": [
+        [
+          [
+            "Filer's Name",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Page Number"
+          ],
+          [
+            "Kamala D. Harris",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "3"
+          ],
+          [
+            "Part 2: Filer's Employment Assets & Income and Retirement Accounts",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "#",
+            "Description",
+            "EIF",
+            "Value",
+            "Income Type",
+            "Income Amount",
+            null
+          ],
+          [
+            "1.",
+            "State of California Savings Plan 457(b) Plan, deferred compensation",
+            "No",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "1.1",
+            "International Fund",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "1.2",
+            "Large Cap Fund",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "1.3",
+            "Mid Cap Fund",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "1.4",
+            "SPP Target Date 2045",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2",
+            "City and County of San Francisco 457(b) Deferred Compensation\nPlan",
+            "No",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "2.1",
+            "SFDCP Target Date 2025 Fund",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.2",
+            "SFDCP Target Date 2030 Fund",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.3",
+            "SFDCP Target Date 2035 Fund",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.4",
+            "SFDCP Stable Value Fund",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.5",
+            "SFDCP Large Cap Eq S&P 500 Ind",
+            "Yes",
+            "$100,001 - $250,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.6",
+            "SFDCP Large Cap Growth Equity",
+            "Yes",
+            "$100,001 - $250,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3",
+            "San Francisco Employees Retirement System (SFERS), defined\nbenefit plan",
+            "N/A",
+            "$250,001 - $500,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "4",
+            "State of California Legislators' Retirement System Plan, defined\nbenefit plan (value not readily ascertainable): eligible for $3,981/mo\nat age 60",
+            "N/A",
+            "",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "5",
+            "\"The Truths We Hold,\" Penguin Press (an imprint of Penguin\nPublishing, a division of Penguin Random House LLC) (value not\nreadily ascertainable) - See Endnote",
+            "N/A",
+            "",
+            "royalties",
+            "$38,011",
+            null
+          ],
+          [
+            "6",
+            "\"The Truths We Hold,\" The Bodley Head, London, United Kingdom\n(division of The Random House Group Ltd.) (value not readily\nascertainable) - See Endnote",
+            "N/A",
+            "",
+            "royalties",
+            "$3,093",
+            null
+          ],
+          [
+            "7",
+            "\"The Truths We Hold,\" Philomel Books, an abridged young reader's\nedition, (an imprint of Penguin Young Readers Group, a division of\nPenguin Random House LLC) (value not readily ascertainable)",
+            "N/A",
+            "",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "8",
+            "\"Smart on Crime: A Prosecutor's Solution for Making the Streets\nSafer,\" Chronicle Books LLC (value not readily ascertainable)",
+            "N/A",
+            "",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "9",
+            "\"SuperHeroes Are Everywhere,\" Philomel Books (an imprint of\nPenguin Young Readers Group, a division of Penguin Random\nHouse LLC) (value not readily ascertainable) - See Endnote",
+            "N/A",
+            "",
+            "royalties",
+            "$40,209",
+            null
+          ],
+          [
+            "Endnote for Lines 5, 6 & 9: The royalties reported on the OGE 278 are the gross income amounts pertaining to \"The Truths We Hold\" and \"SuperHeroes Are Everywhere.\"",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        ]
+      ]
+    },
+    {
+      "page_number": 6,
+      "section": "part5",
+      "page_text": "OGE Form 278e (Updated Nov. 2021) (Expires 11/30/24)\nInstructions for Part 5\nNote: This is a public form. Do not include account numbers, street addresses, or family member names. See instructions for required information.\nFiler's Name Page Number\nKamala D. Harris 6\nPart 5: Spouse's Employment Assets & Income and Retirement Accounts\n# Description EIF Value Income Type Income Amount\n1. Georgetown University N/A salary\n2. Individual Retirement Rollover Account No\n2.1 U.S. brokerage money market account (cash) N/A $100,001 - $250,000 None (or less than $201)\n2.2 Invesco Preferred ETF (PGX) Yes $1,001 - $15,000 None (or less than $201)\n2.3 iShares iBoxx Investment Grade Corporate Bond (LQD) Yes $50,001 - $100,000 None (or less than $201)\n2.4 iShares 20+ Year Treasury Bond (TLT) Yes $15,001 - $50,000 None (or less than $201)\n2.5 iShares TIPS Bond (TIP) Yes $1,001 - $15,000 None (or less than $201)\n2.6 iShares MBS ETF (MBB) Yes $50,001 - $100,000 None (or less than $201)\n2.7 iShares Core MSCI Emerging Markets (IEMG) Yes $100,001 - $250,000 None (or less than $201)\n2.8 iShares TR Core MSCI EAFE ETF (IEFA) Yes $250,001 - $500,000 None (or less than $201)\n2.9 Schwab Short-Term U.S. Treasury ETF (SCHO) Yes $50,001 - $100,000 None (or less than $201)\n2.10 VanEck Vectors Fallen Angel High Yield Bond (ANGL) Yes $1,001 - $15,000 None (or less than $201)\n2.11 Vanguard Small Cap Value Index (VBR) Yes $15,001 - $50,000 None (or less than $201)\n2.12 Vanguard Small Cap Growth Index (VBK) Yes $15,001 - $50,000 None (or less than $201)\n2.13 Vanguard Value Index ETF (VTV) Yes $250,001 - $500,000 None (or less than $201)\n2.14 Vanguard Growth Index ETF (VUG) Yes $250,001 - $500,000 None (or less than $201)\n2.15 Vanguard Short-Term Corporate Bond Index (VCSH) Yes $50,001 - $100,000 None (or less than $201)\n2.16 Vanguard Intermediate Term Corporate Bond ETF (VCIT) Yes $1,001 - $15,000 None (or less than $201)\n2.17 Xtrackers USD High Yield Corporate Bond ETF (HYLB) Yes $1,001 - $15,000 None (or less than $201)\n2.18 Vanguard Total International Bond Index Fund (BNDX) Yes $1,001 - $15,000 None (or less than $201)",
+      "page_text_sha256": "356bdd3cde7945fadb541008062dae77e9b6476f5639703d9e7705dc42ef0ea3",
+      "tables": [
+        [
+          [
+            "Filer's Name",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Page Number"
+          ],
+          [
+            "Kamala D. Harris",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "6"
+          ],
+          [
+            "Part 5: Spouse's Employment Assets & Income and Retirement Accounts",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "#",
+            "Description",
+            "EIF",
+            "Value",
+            "Income Type",
+            "Income Amount",
+            null
+          ],
+          [
+            "1.",
+            "Georgetown University",
+            "N/A",
+            "",
+            "salary",
+            "",
+            null
+          ],
+          [
+            "2.",
+            "Individual Retirement Rollover Account",
+            "No",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "2.1",
+            "U.S. brokerage money market account (cash)",
+            "N/A",
+            "$100,001 - $250,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.2",
+            "Invesco Preferred ETF (PGX)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.3",
+            "iShares iBoxx Investment Grade Corporate Bond (LQD)",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.4",
+            "iShares 20+ Year Treasury Bond (TLT)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.5",
+            "iShares TIPS Bond (TIP)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.6",
+            "iShares MBS ETF (MBB)",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.7",
+            "iShares Core MSCI Emerging Markets (IEMG)",
+            "Yes",
+            "$100,001 - $250,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.8",
+            "iShares TR Core MSCI EAFE ETF (IEFA)",
+            "Yes",
+            "$250,001 - $500,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.9",
+            "Schwab Short-Term U.S. Treasury ETF (SCHO)",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.10",
+            "VanEck Vectors Fallen Angel High Yield Bond (ANGL)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.11",
+            "Vanguard Small Cap Value Index (VBR)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.12",
+            "Vanguard Small Cap Growth Index (VBK)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.13",
+            "Vanguard Value Index ETF (VTV)",
+            "Yes",
+            "$250,001 - $500,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.14",
+            "Vanguard Growth Index ETF (VUG)",
+            "Yes",
+            "$250,001 - $500,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.15",
+            "Vanguard Short-Term Corporate Bond Index (VCSH)",
+            "Yes",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.16",
+            "Vanguard Intermediate Term Corporate Bond ETF (VCIT)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.17",
+            "Xtrackers USD High Yield Corporate Bond ETF (HYLB)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "2.18",
+            "Vanguard Total International Bond Index Fund (BNDX)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ]
+        ]
+      ]
+    },
+    {
+      "page_number": 7,
+      "section": "part5",
+      "page_text": "OGE Form 278e (Updated Nov. 2021) (Expires 11/30/24)\nInstructions for Part 5\nNote: This is a public form. Do not include account numbers, street addresses, or family member names. See instructions for required information.\nFiler's Name Page Number\nKamala D. Harris 7\nPart 5: Spouse's Employment Assets & Income and Retirement Accounts\n# Description EIF Value Income Type Income Amount\n3 Whitwell Jacoby Emhoff LLP SEP IRA No\n3.1 Vanguard Value Index ETF (VTV) Yes $15,001 - $50,000 None (or less than $201)\n3.2 Vanguard Small Cap Growth Index (VBK) Yes $1,001 - $15,000 None (or less than $201)\n3.3 Vanguard Small Cap Value Index (VBR) Yes $1,001 - $15,000 None (or less than $201)\n3.4 Vanguard Growth Index ETF (VUG) Yes $15,001 - $50,000 None (or less than $201)\n3.5 iShares 20+ Year Treasury Bond (TLT) Yes $1,001 - $15,000 None (or less than $201)\n3.6 iShares iBoxx Investment Grade Corporate Bond ETF (LQD) Yes $1,001 - $15,000 None (or less than $201)\n3.7 Schwab Short-Term U.S. Treasury ETF (SCHO) Yes $1,001 - $15,000 None (or less than $201)\n3.8 iShares MBS ETF (MBB) Yes $1,001 - $15,000 None (or less than $201)\n3.9 iShares Core MSCI Emerging Markets ETF (IEMG) Yes $1,001 - $15,000 None (or less than $201)\n3.10 iShares TR Core MSCI EAFE ETF (IEFA) Yes $15,001 - $50,000 None (or less than $201)\n3.11 Vanguard Short-Term Corporate Bond Index Fund ETF Yes $1,001 - $15,000 None (or less than $201)\n(VCSH)\n3.12 U.S. brokerage cash sweep account (cash) N/A $1,001 - $15,000 None (or less than $201)",
+      "page_text_sha256": "22edd5f6e8228d82b15bf45931fd3671b19ae602d25ffe8ecfc26af05eede148",
+      "tables": [
+        [
+          [
+            "Filer's Name",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Page Number"
+          ],
+          [
+            "Kamala D. Harris",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "7"
+          ],
+          [
+            "Part 5: Spouse's Employment Assets & Income and Retirement Accounts",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "#",
+            "Description",
+            "EIF",
+            "Value",
+            "Income Type",
+            "Income Amount",
+            null
+          ],
+          [
+            "3",
+            "Whitwell Jacoby Emhoff LLP SEP IRA",
+            "No",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "3.1",
+            "Vanguard Value Index ETF (VTV)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.2",
+            "Vanguard Small Cap Growth Index (VBK)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.3",
+            "Vanguard Small Cap Value Index (VBR)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.4",
+            "Vanguard Growth Index ETF (VUG)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.5",
+            "iShares 20+ Year Treasury Bond (TLT)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.6",
+            "iShares iBoxx Investment Grade Corporate Bond ETF (LQD)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.7",
+            "Schwab Short-Term U.S. Treasury ETF (SCHO)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.8",
+            "iShares MBS ETF (MBB)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.9",
+            "iShares Core MSCI Emerging Markets ETF (IEMG)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.10",
+            "iShares TR Core MSCI EAFE ETF (IEFA)",
+            "Yes",
+            "$15,001 - $50,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.11",
+            "Vanguard Short-Term Corporate Bond Index Fund ETF\n(VCSH)",
+            "Yes",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "3.12",
+            "U.S. brokerage cash sweep account (cash)",
+            "N/A",
+            "$1,001 - $15,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ]
+        ]
+      ]
+    },
+    {
+      "page_number": 8,
+      "section": "part6",
+      "page_text": "OGE Form 278e (Updated Nov. 2021) (Expires 11/30/24)\nInstructions for Part 6\nNote: This is a public form. Do not include account numbers, street addresses, or family member names. See instructions for required information.\nFiler's Name Page Number\nKamala D. Harris 8\nPart 6: Other Assets and Income\n# Description EIF Value Income Type Income Amount\n1. (Self) U.S. bank #1 (cash) N/A $100,001 - $250,000 interest $201 - $1,000\n2. (Self) U.S. bank #2 (cash) N/A $500,001 - $1,000,000 interest $2,501 - $5,000\n3. (Spouse) U.S. bank #3 (cash) N/A $500,001 - $1,000,000 interest $1,001 - $2,500\n4. The KDH/DCE Family Trust No\n4.1 (Joint) U.S. bank #4 (cash) N/A $50,001 - $100,000 None (or less than $201)\n5.\n6.\n7.\n8.\n9.\n10.\n11.\n12.\n13.\n14.\n15.\n16.\n17.\n18.\n19.",
+      "page_text_sha256": "a736838302992856b5827a3a65e075dc12f59b8a3c505b32f95c50aec9426284",
+      "tables": [
+        [
+          [
+            "Filer's Name",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Page Number"
+          ],
+          [
+            "Kamala D. Harris",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "8"
+          ],
+          [
+            "Part 6: Other Assets and Income",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          [
+            "#",
+            "Description",
+            "EIF",
+            "Value",
+            "Income Type",
+            "Income Amount",
+            null
+          ],
+          [
+            "1.",
+            "(Self) U.S. bank #1 (cash)",
+            "N/A",
+            "$100,001 - $250,000",
+            "interest",
+            "$201 - $1,000",
+            null
+          ],
+          [
+            "2.",
+            "(Self) U.S. bank #2 (cash)",
+            "N/A",
+            "$500,001 - $1,000,000",
+            "interest",
+            "$2,501 - $5,000",
+            null
+          ],
+          [
+            "3.",
+            "(Spouse) U.S. bank #3 (cash)",
+            "N/A",
+            "$500,001 - $1,000,000",
+            "interest",
+            "$1,001 - $2,500",
+            null
+          ],
+          [
+            "4.",
+            "The KDH/DCE Family Trust",
+            "No",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "4.1",
+            "(Joint) U.S. bank #4 (cash)",
+            "N/A",
+            "$50,001 - $100,000",
+            "",
+            "None (or less than $201)",
+            null
+          ],
+          [
+            "5.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "6.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "7.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "8.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "9.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "10.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "11.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "12.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "13.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "14.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "15.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "16.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "17.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "18.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ],
+          [
+            "19.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            null
+          ]
+        ]
+      ]
+    }
+  ]
+}

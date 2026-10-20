@@ -25,6 +25,42 @@ _TRADE = re.compile(r"^(?P<asset>.+?)\s+(?P<kind>purchase|sale|exchange)\s+"
                     r"(?P<amount>\$[\d,]+\s*[-–]\s*\$[\d,]+)$", re.I)
 
 
+def observe_holding_pages(pdf_path: Path, *, source_sha256: str,
+                          document_id: str, page_numbers: list[int]) -> dict:
+    """Read only explicitly selected, already located native holding pages.
+
+    This is an input to the existing annual materializer, not an alternative
+    annual parser or an OCR fallback.  Full tables and source text are retained
+    so the consumer can replay the same selected pages against archived bytes.
+    """
+    if (not _SHA.fullmatch(source_sha256) or not _ID.fullmatch(document_id) or
+            not isinstance(page_numbers, list) or not page_numbers or len(page_numbers) > 16 or
+            any(type(page) is not int or page < 1 for page in page_numbers) or
+            len(set(page_numbers)) != len(page_numbers)):
+        raise OgeCatalogError("annual selected holding page inventory is invalid")
+    content = Path(pdf_path).read_bytes()
+    if hashlib.sha256(content).hexdigest() != source_sha256:
+        raise OgeCatalogError("annual holding PDF differs from archived hash")
+    import pdfplumber
+    pages = []
+    with pdfplumber.open(pdf_path) as document:
+        if not 1 <= len(document.pages) <= 1200 or max(page_numbers) > len(document.pages):
+            raise OgeCatalogError("annual selected holding page is outside original")
+        for number in sorted(page_numbers):
+            page = document.pages[number - 1]
+            text = page.extract_text() or ""
+            sections = {f"part{match[1]}" for match in _SECTION.finditer(text)}
+            if len(sections) != 1 or not sections <= {"part2", "part5", "part6"}:
+                raise OgeCatalogError("selected annual page is not a unique holding section")
+            pages.append({"page_number": number, "section": next(iter(sections)),
+                          "page_text": text, "page_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                          "tables": page.extract_tables()})
+        count = len(document.pages)
+    return {"schema_version": "oge-278e-native-holding-pages/v1", "source_document_id": document_id,
+            "source_sha256": source_sha256, "document_page_count": count,
+            "method": "selected_archived_native_tables_no_new_ocr", "pages": pages}
+
+
 def _line_text(line: dict) -> str:
     return " ".join(str(line.get("text", "")).split())
 

@@ -259,7 +259,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             if document not in metadata or any(row.get("source_document_id") == document for row in extractions):
                 raise OgeCatalogError("saved annual scan input is duplicated or lacks source metadata")
             extractions.append(materialize_saved_annual_scan(bundle["cover_observation"], bundle["section_observation"],
-                                                           archive_metadata=metadata[document]))
+                archive_metadata=metadata[document], holding_page_observations=bundle.get("holding_page_observations"),
+                archived_pdf_path=bundle.get("archived_pdf_path")))
     result = deepcopy(candidate)
     people = {row["id"]: row for row in result["people"]}
     prior = {row["id"]: row for row in result["reported_holdings"]}
@@ -317,6 +318,9 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             if row["section"] == "part7" or collection != "holdings":
                 row_audit.append({"candidate_id": decision["candidate_id"], "section": row["section"],
                                   "disposition": decision["disposition"], "reasons": reasons,
+                                  **({"saved_native_reference": row["saved_native_reference"],
+                                      "value_disclosure_status": row.get("value_disclosure_status")}
+                                     if "saved_native_reference" in row else {}),
                                   "account_context": row.get("account_context"), "hierarchy_evidence": row.get("hierarchy_evidence")})
                 continue
             index = index_by_object[id(row)]
@@ -338,6 +342,9 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                 prepared.append((fact, reasons))
             row_audit.append({"candidate_id": decision["candidate_id"], "formal_id": identifier,
                               "section": row["section"], "disposition": decision["disposition"],
+                              **({"saved_native_reference": row["saved_native_reference"],
+                                  "value_disclosure_status": row.get("value_disclosure_status")}
+                                 if "saved_native_reference" in row else {}),
                               "reasons": sorted(set(reasons)), "account_context": row.get("account_context"),
                               "hierarchy_evidence": row.get("hierarchy_evidence")})
         # If a previous version's formal IDs cannot be bound, retain them and
