@@ -900,76 +900,10 @@ def extract_whitehouse_278t_pdf_checkpointed(
 
 def _generic_table_rows(inventory: list, *, source_sha256: str,
                         scope_barriers_before: dict | None = None) -> tuple[list, list, list]:
-    """Interpret exact six-cell rows; optional labels establish source scope."""
-    from .oge_reports import _compact, _owner_heading, _ACCOUNT_HEADING
-    transactions, quarantined, structural = [], [], []
-    owner, title, lost_scope, previous_page = "Undisclosed", None, False, None
-    owner_scope_lost = False
-    seen = set()
-    for index, (page, raw) in enumerate(inventory):
-        if scope_barriers_before is not None and index in scope_barriers_before and (
-                title or owner != "Undisclosed" or scope_barriers_before[index]):
-            lost_scope=True
-            owner_scope_lost = owner_scope_lost or owner != "Undisclosed" or bool(scope_barriers_before[index])
-        cells = [_compact(cell) for cell in raw]
-        if previous_page is not None and page > previous_page + 1 and (title or owner != "Undisclosed"):
-            lost_scope = True
-            owner_scope_lost = owner_scope_lost or owner != "Undisclosed"
-        previous_page = page
-        if len(cells) == 6:
-            description = cells[1]
-            label = not any((cells[0], cells[2], cells[3], cells[5]))
-            explicit_owner = (_owner_heading(description) if label and re.fullmatch(
-                r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", description, re.I) else None)
-            if explicit_owner:
-                owner, title, lost_scope = explicit_owner, None, False
-                owner_scope_lost = False
-                structural.append({"source_rows_index": index, "kind": "owner_heading", "text": description})
-                continue
-            if label and _ACCOUNT_HEADING.fullmatch(description):
-                title, lost_scope = description, False
-                structural.append({"source_rows_index": index, "kind": "account_heading", "text": description})
-                continue
-            if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
-                lost_scope = True
-                owner_scope_lost = True
-                structural.append({"source_rows_index": index, "kind": "ambiguous_owner_heading", "text": description})
-            if label and re.search(r"\b(?:EXHIBIT|AMENDMENT|REPLAC(?:E|EMENT)|CONTINUED)\b", description, re.I):
-                lost_scope = True
-                structural.append({"source_rows_index": index, "kind": "unresolved_report_relation", "text": description})
-                continue
-        if cells and cells[0] == "#" and not any(cells[1:]):
-            structural.append({"source_rows_index": index, "kind": "unknown_table_content", "text": "#"})
-        good, bad = parse_table_rows([(page, cells)], source_sha=source_sha256,
-            default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)
-        for row in good + bad:
-            row["source_rows_index"] = index
-            row["account_context"] = {"status": "unknown" if lost_scope or owner_scope_lost else "observed" if title else "not_observed", "title": title}
-            if row["owner"] == "Undisclosed":
-                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
-            key = (page, row.get("row_number"), title)
-            reasons = list(row.get("reasons", []))
-            if row.get("row_number") is not None and key in seen:
-                reasons.append("same_page_account_row_number_ambiguous")
-            seen.add(key)
-            if lost_scope or owner_scope_lost:
-                reasons.append("account_context_unresolved")
-            if owner_scope_lost:
-                reasons.append("owner_context_unresolved")
-            if reasons:
-                quarantined.append({**row, "reasons": sorted(set(reasons))})
-            else:
-                transactions.append(row)
-    # Both occurrences remain unresolved; never pick the first duplicate.
-    duplicates = {(r["page_number"], r.get("row_number"), r.get("account_title"))
-                  for r in quarantined if "same_page_account_row_number_ambiguous" in r["reasons"]}
-    kept = []
-    for row in transactions:
-        if (row["page_number"], row.get("row_number"), row.get("account_title")) in duplicates:
-            quarantined.append({**row, "reasons": ["same_page_account_row_number_ambiguous"]})
-        else:
-            kept.append(row)
-    return kept, quarantined, structural
+    """Compatibility entry point for the shared source-row scope interpreter."""
+    from .oge_reports import parse_generic_table_rows
+    return parse_generic_table_rows(inventory, source_sha256=source_sha256,
+                                    scope_barriers_before=scope_barriers_before)
 
 
 def _inherit_whitehouse_generic_rows(result: dict, legacy: dict | None) -> dict:

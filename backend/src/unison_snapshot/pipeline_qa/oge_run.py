@@ -239,13 +239,17 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                      "sha256": _sha256(metadata_path)})
             original_extractions.append(extraction)
             try:
-                from unison_snapshot.oge_reports import GENERIC_PARSER_VERSION
+                from unison_snapshot.oge_reports import GENERIC_PARSER_VERSION, GENERIC_ROW_INTERPRETATION_MODE
+                scoped_formal = None
                 if integration and extraction.get("parser_version") == GENERIC_PARSER_VERSION:
                     from unison_snapshot.oge_candidate import _inherit_generic_legacy
                     formal = [row for row in candidate_base.get("transactions", [])
                               if row.get("source_id") == "oge" and row.get("filing_id") == document_id
                               and row.get("verification_status") == "official_matched"]
-                    extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record)
+                    if extraction.get("row_interpretation_mode") == GENERIC_ROW_INTERPRETATION_MODE:
+                        scoped_formal = formal
+                    else:
+                        extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record)
                 if document_id in saved:
                     formal_ids = [row["id"] for row in candidate_base.get("transactions", [])
                                   if row.get("source_id") == "oge" and row.get("filing_id") == document_id
@@ -256,7 +260,11 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                 if document_id in exhibits:
                     from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits
                     extraction = materialize_saved_oge_278t_exhibits(extraction,record,**exhibits[document_id])
-                adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id)
+                scope_binding = ({"legacy_extraction": legacy.get(document_id),
+                                  "formal_reference_facts": scoped_formal}
+                                 if scoped_formal is not None and extraction.get("parser_version") == GENERIC_PARSER_VERSION
+                                 else {})
+                adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id, **scope_binding)
             except Exception as exc:
                 raise OgeShadowInputError(
                     f"{document_id}: source-row ledger adaptation failed: {exc}") from exc
