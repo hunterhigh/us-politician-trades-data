@@ -471,7 +471,10 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
         raise ValueError("OGE legacy reference observation counts require their explicit unit")
     saved_whitehouse = (isinstance(audit.get("parser_version"), str) and
                        audit["parser_version"] in _SAVED_WHITEHOUSE_PARSERS or
-                       isinstance(receipt, dict) and receipt.get("mode") == "saved_ocr_words")
+                       "saved_ocr_input" in audit or
+                       isinstance(receipt, dict) and (
+                           receipt.get("mode") == "saved_ocr_words" or
+                           receipt.get("schema_version") == "whitehouse-278t-saved-ocr-receipt/v1"))
     separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
                        _native_exhibit_counts(record, audit) if native_exhibit else
                        _observed_reference_counts(record, audit, review)
