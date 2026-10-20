@@ -471,7 +471,8 @@ def build_whitehouse_278t_review_candidate(
             if (row_id != decision["extraction_id"] or
                     source_row.get("row_number") != decision["row_number"]):
                 raise OgeCatalogError("White House 278-T audit row is misaligned")
-            retained = generic_existing_fact(report, source_row, candidate["transactions"])
+            retained = generic_existing_fact(report, source_row, candidate["transactions"],
+                expected_person_id=person["id"] if person else None)
             if decision["status"] == "eligible" and not reasons:
                 if not isinstance(row_id, str) or not _ID.fullmatch(row_id):
                     reasons.append("transaction_id_invalid")

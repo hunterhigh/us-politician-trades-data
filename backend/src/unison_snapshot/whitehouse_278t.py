@@ -1067,7 +1067,7 @@ def _validate_generic_legacy_owner(report: dict, row: dict, expected: dict, repl
         raise OgeCatalogError("White House generic default-owner correction failed raw input replay")
 
 
-def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict | None:
+def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expected_person_id: str | None = None) -> dict | None:
     """Only exact-source inherited rows can reference an existing formal fact."""
     if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION:
         # The caller has rematerialized this saved report from its bound inputs.
@@ -1075,11 +1075,11 @@ def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict
         # similar fields: the complete publication object must be identical.
         from .whitehouse_278t_candidate import _transaction
         matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
-        if (len(matches) != 1 or row.get("reasons") or report.get("document_reasons") or
+        if (len(matches) != 1 or not expected_person_id or row.get("reasons") or report.get("document_reasons") or
                 row not in report.get("transactions", [])):
             return None
         fact = matches[0]
-        return fact if fact == _transaction(report, row, fact.get("person_id")) else None
+        return fact if fact == _transaction(report, row, expected_person_id) else None
     inheritance = row.get("legacy_inheritance", {})
     old = inheritance.get("legacy_row", {})
     matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]

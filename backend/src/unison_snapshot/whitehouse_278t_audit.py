@@ -619,7 +619,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                 raise OgeCatalogError("White House 278-T transaction row is invalid")
             generic = report.get("parser_version") in GENERIC_PARSER_VERSIONS
             field_reasons = _row_reasons(source_row, filing_day, generic=generic)
-            retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"]) if generic else None
+            retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"],
+                expected_person_id=person_id) if generic else None
             if generic:
                 key = (source_row.get("page_number"),tuple(source_row.get("cells",[])))
                 matches = generic_expected[report["document_id"]].get(key,[])

@@ -130,6 +130,13 @@ class WhitehouseDualAxisTests(unittest.TestCase):
                 self.assertEqual(blocked['transactions'],changed['transactions'])
                 self.assertEqual(ba['reports'][0]['retained_count'],0)
                 self.assertEqual(ba['reports'][0]['promoted_count'],0)
+            changed=deepcopy(candidate);other=deepcopy(changed['people'][0])
+            other.update(id='oge:1111111111111111')
+            changed['people'].append(other);changed['transactions'][0]['person_id']=other['id']
+            with case.context(data):blocked,ba=consume(report,changed)
+            self.assertEqual(blocked['transactions'],changed['transactions'])
+            self.assertEqual(ba['reports'][0]['retained_count'],0)
+            self.assertEqual(ba['reports'][0]['promoted_count'],0)
 
     def test_supported_description_is_consumed_without_rekeying_original_raw_cells(self):
         from test_oge_dual_axis_geometry import dual_saved_observation
