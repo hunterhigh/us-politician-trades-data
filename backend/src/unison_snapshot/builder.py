@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, date
 import hashlib
+import math
 import re
 from urllib.parse import urlsplit
 
@@ -164,23 +165,44 @@ def normalize(payload: dict, *, allow_production: bool = False,
     return data
 
 
+def _transaction_relation_identity(relation: dict) -> tuple[str, str]:
+    """Validate the original locator without inventing printed row numbers."""
+    common = {'transaction_id','source_id','filing_id','source_url','source_sha256',
+              'section','status','possible_ptr_transaction_ids'}
+    sha = relation.get('source_sha256')
+    if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
+        raise ValueError('Transaction disclosure relation source hash differs')
+    if relation.get('source_id') == 'senate_efd':
+        number = relation.get('printed_row_number')
+        if (set(relation) != common | {'printed_row_number'} or relation.get('section') != 'Part 4b' or
+                not isinstance(number, str) or not re.fullmatch(r'[1-9]\d*', number)):
+            raise ValueError('Senate annual disclosure relation locator differs')
+        return 'senate-annual-part4b:' + hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24], 'senate-ptr:'
+    if relation.get('source_id') == 'house_clerk':
+        page, top = relation.get('page_number'), relation.get('top_points')
+        if (set(relation) != common | {'page_number','top_points'} or relation.get('section') != 'Schedule B' or
+                type(page) is not int or not 1 <= page <= 1200 or
+                type(top) not in (int, float) or not math.isfinite(top) or
+                not 0 <= top <= 20000 or round(top, 2) != top):
+            raise ValueError('House annual disclosure relation locator differs')
+        return 'house-annual-b:' + hashlib.sha256(f'{sha}:{page}:{top:.2f}'.encode()).hexdigest()[:24], 'house-ptr:'
+    raise ValueError('Unsupported annual disclosure relation source')
+
+
 def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr: bool = False) -> None:
     """Full-input relation validation; no additional facts or source fetches."""
     relations=data['meta'].get('transaction_disclosure_relations')
-    annual_ids={r['id'] for r in data['transactions'] if str(r['id']).startswith('senate-annual-part4b:')}
+    annual_ids={r['id'] for r in data['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:'))}
     if relations is None:
         if annual_ids:raise ValueError('Annual disclosure facts require complete relationship metadata')
         return
     if not isinstance(relations,list):raise ValueError('Transaction disclosure relations must be a list')
     facts={r['id']:r for r in data['transactions']};seen=set()
-    fields={'transaction_id','source_id','filing_id','source_url','source_sha256','section','printed_row_number','status','possible_ptr_transaction_ids'}
     for relation in relations:
-        if not isinstance(relation,dict) or set(relation)!=fields:raise ValueError('Transaction disclosure relation fields differ')
-        key=relation['transaction_id'];sha=relation['source_sha256'];number=relation['printed_row_number']
-        if (not isinstance(sha,str) or not re.fullmatch(r'[0-9a-f]{64}',sha) or
-                not isinstance(number,str) or not re.fullmatch(r'[1-9]\d*',number) or
-                key!='senate-annual-part4b:'+hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24] or key in seen or
-                relation['source_id']!='senate_efd' or relation['section']!='Part 4b'):
+        if not isinstance(relation,dict):raise ValueError('Transaction disclosure relation must be an object')
+        expected, ptr_prefix = _transaction_relation_identity(relation)
+        key=relation['transaction_id']
+        if key != expected or key in seen:
             raise ValueError('Transaction disclosure relation source identity differs')
         seen.add(key);fact=facts.get(key)
         if fact is None or any(fact.get(k)!=relation[k] for k in ('source_id','filing_id','source_url')):
@@ -191,8 +213,8 @@ def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr:
             raise ValueError('Transaction disclosure relation status differs')
         for ptr in possible:
             other=facts.get(ptr)
-            if other is None and allow_unloaded_ptr and ptr.startswith('senate-ptr:'):continue
-            if (other is None or not ptr.startswith('senate-ptr:') or other.get('source_id')!='senate_efd' or
+            if other is None and allow_unloaded_ptr and ptr.startswith(ptr_prefix):continue
+            if (other is None or not ptr.startswith(ptr_prefix) or other.get('source_id')!=relation['source_id'] or
                     other.get('person_id')!=fact['person_id']):
                 raise ValueError('Transaction disclosure relation possible PTR is not a same-person fact')
     if seen!=annual_ids:raise ValueError('Annual disclosure relationship metadata does not cover every published annual fact')

@@ -7,6 +7,7 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import math
 import re
 from pathlib import Path
 
@@ -69,23 +70,44 @@ def _amount_summary(rows, prefix="amount"):
     return result
 
 
+def _transaction_relation_identity(relation: dict) -> tuple[str, str]:
+    """Validate the original locator without inventing printed row numbers."""
+    common = {'transaction_id','source_id','filing_id','source_url','source_sha256',
+              'section','status','possible_ptr_transaction_ids'}
+    sha = relation.get('source_sha256')
+    if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
+        raise ProcessingError('Transaction disclosure relation source hash differs')
+    if relation.get('source_id') == 'senate_efd':
+        number = relation.get('printed_row_number')
+        if (set(relation) != common | {'printed_row_number'} or relation.get('section') != 'Part 4b' or
+                not isinstance(number, str) or not re.fullmatch(r'[1-9]\d*', number)):
+            raise ProcessingError('Senate annual disclosure relation locator differs')
+        return 'senate-annual-part4b:' + hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24], 'senate-ptr:'
+    if relation.get('source_id') == 'house_clerk':
+        page, top = relation.get('page_number'), relation.get('top_points')
+        if (set(relation) != common | {'page_number','top_points'} or relation.get('section') != 'Schedule B' or
+                type(page) is not int or not 1 <= page <= 1200 or
+                type(top) not in (int, float) or not math.isfinite(top) or
+                not 0 <= top <= 20000 or round(top, 2) != top):
+            raise ProcessingError('House annual disclosure relation locator differs')
+        return 'house-annual-b:' + hashlib.sha256(f'{sha}:{page}:{top:.2f}'.encode()).hexdigest()[:24], 'house-ptr:'
+    raise ProcessingError('Unsupported annual disclosure relation source')
+
+
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
     relations=result['meta'].get('transaction_disclosure_relations')
-    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith('senate-annual-part4b:')}
+    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:'))}
     if annual_ids and relations is None:raise ProcessingError('Annual disclosure facts require complete relationship metadata')
     if relations is not None:
         if not isinstance(relations,list):raise ProcessingError('Transaction disclosure relations must be a list')
         facts={r['id']:r for r in result['transactions']};checked=[];seen=set()
         subset=result['meta'].get('selection_scope',{}).get('mode') in {'person','ticker','people','tickers'}
-        fields={'transaction_id','source_id','filing_id','source_url','source_sha256','section','printed_row_number','status','possible_ptr_transaction_ids'}
         for relation in relations:
-            if not isinstance(relation,dict) or set(relation)!=fields:raise ProcessingError('Transaction disclosure relation fields differ')
-            key=relation['transaction_id'];sha=relation['source_sha256'];number=relation['printed_row_number']
-            if (not isinstance(sha,str) or not re.fullmatch(r'[0-9a-f]{64}',sha) or
-                    not isinstance(number,str) or not re.fullmatch(r'[1-9]\d*',number) or
-                    key!='senate-annual-part4b:'+hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24] or
-                    key in seen or relation['source_id']!='senate_efd' or relation['section']!='Part 4b'):
+            if not isinstance(relation,dict):raise ProcessingError('Transaction disclosure relation must be an object')
+            expected, ptr_prefix = _transaction_relation_identity(relation)
+            key=relation['transaction_id']
+            if key != expected or key in seen:
                 raise ProcessingError('Transaction disclosure relation source identity differs')
             seen.add(key);fact=facts.get(key)
             possible=relation['possible_ptr_transaction_ids']
@@ -99,9 +121,9 @@ def build_snapshot(payload):
                 raise ProcessingError('Transaction disclosure relation references another source')
             for ptr in possible:
                 other=facts.get(ptr)
-                if not ptr.startswith('senate-ptr:'):raise ProcessingError('Transaction disclosure relation possible PTR ID differs')
+                if not ptr.startswith(ptr_prefix):raise ProcessingError('Transaction disclosure relation possible PTR ID differs')
                 if other is None and subset:continue
-                if (other is None or not ptr.startswith('senate-ptr:') or other.get('source_id')!='senate_efd' or
+                if (other is None or not ptr.startswith(ptr_prefix) or other.get('source_id')!=relation['source_id'] or
                         other.get('person_id')!=fact['person_id']):
                     raise ProcessingError('Transaction disclosure relation possible PTR differs')
             checked.append(deepcopy(relation))
