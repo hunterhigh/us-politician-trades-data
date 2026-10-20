@@ -19,6 +19,26 @@ _YEAR = re.compile(r"Year\s*\(Annual\s+Report\s+only\)\s*:\s*(20\d{2})", re.I)
 _TYPE = re.compile(r"Report\s+Type\s*:\s*Annual\b", re.I)
 
 
+def observe_native_cover_text(pdf_path: Path, *, source_sha256: str, document_id: str) -> dict:
+    """Preserve full original cover text without running cover OCR."""
+    if (not isinstance(source_sha256, str) or not _SHA.fullmatch(source_sha256) or
+            not isinstance(document_id, str) or not re.fullmatch(r"[0-9a-f]{32}", document_id)):
+        raise OgeCatalogError("annual native cover identity is invalid")
+    raw = Path(pdf_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != source_sha256:
+        raise OgeCatalogError("annual native cover differs from archived PDF")
+    import pdfplumber
+    with pdfplumber.open(pdf_path) as document:
+        if not 1 <= len(document.pages) <= 1200:
+            raise OgeCatalogError("annual native cover page count is invalid")
+        text = document.pages[0].extract_text() or ""
+        count = len(document.pages)
+    return {"schema_version": "oge-278e-native-cover-text/v1", "source_document_id": document_id,
+        "source_sha256": source_sha256, "page_number": 1, "document_page_count": count,
+        "cover_text": text, "cover_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "method": "full_original_cover_embedded_text_no_new_ocr"}
+
+
 def observe_scan_cover(pdf_path: Path, *, source_sha256: str, document_id: str,
                        catalog_filer: str, catalog_year: int,
                        tesseract: str | None = None) -> dict:

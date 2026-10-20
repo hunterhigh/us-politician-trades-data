@@ -103,6 +103,7 @@ def read_annual_cover_dates(text: str, *, source_sha256: str) -> dict:
 
 def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metadata: dict,
                                  holding_page_observations: dict | None = None,
+                                 native_cover_observation: dict | None = None,
                                  archived_pdf_path: Path | None = None) -> dict:
     """Reuse saved scan text, preserving missing sections instead of new OCR."""
     import json
@@ -162,6 +163,16 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                 "source_page_text_sha256": page["page_text_sha256"], "top": slot.get("top"), "bottom": slot.get("bottom")}
         transactions.extend(parsed)
         quarantined.extend(rejected)
+    cover_dates = None
+    if native_cover_observation is not None:
+        from .oge_annual_scan_cover import observe_native_cover_text
+        if archived_pdf_path is None or not isinstance(native_cover_observation, dict):
+            raise OgeCatalogError("annual native cover requires original source replay")
+        replay_cover = observe_native_cover_text(Path(archived_pdf_path), source_sha256=sha, document_id=document)
+        if (replay_cover != native_cover_observation or replay_cover["document_page_count"] != sections["page_count"] or
+                replay_cover["cover_text_sha256"] != cover["native_text_sha256"]):
+            raise OgeCatalogError("annual native cover differs from original or saved cover inventory")
+        cover_dates = read_annual_cover_dates(replay_cover["cover_text"], source_sha256=sha)
     holdings, excluded, observed_pages = [], [], set()
     if holding_page_observations is not None:
         from .oge_annual_scan_sections import observe_holding_pages
@@ -172,7 +183,13 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
             raise OgeCatalogError("annual holding page observations are invalid")
         replay = observe_holding_pages(Path(archived_pdf_path), source_sha256=sha, document_id=document,
                                       page_numbers=[page.get("page_number") for page in selected])
-        if replay != holding_page_observations or replay["document_page_count"] != sections["page_count"]:
+        comparison = replay
+        if (holding_page_observations.get("schema_version") == "oge-278e-native-holding-pages/v1" and
+                replay.get("schema_version") == "oge-278e-native-holding-pages/v2"):
+            comparison = {**replay, "schema_version": "oge-278e-native-holding-pages/v1",
+                "pages": [{key: value for key, value in page.items() if key != "number_only_cell_evidence"}
+                          for page in replay["pages"]]}
+        if comparison != holding_page_observations or replay["document_page_count"] != sections["page_count"]:
             raise OgeCatalogError("annual holding observations differ from original source replay")
         scopes = {}
         for page in replay["pages"]:
@@ -186,7 +203,10 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                 continue
             good, bad, omitted = _parse_rows(part, "Self" if part == "part2" else "Spouse" if part == "part5" else "Unknown",
                 number, page["tables"][0], year, preserve_valued_unreadable=True,
-                qualified=True, scope_state=scopes.setdefault(part, {}), native_table_context=True)
+                qualified=True, scope_state=scopes.setdefault(part, {}), native_table_context=True,
+                native_empty_rows={item["table_row_index"]: item for item in page.get("number_only_cell_evidence", [])
+                    if item["table_index"] == 0 and item["status"] == "source_objects_verified_empty"}
+                    if holding_page_observations.get("schema_version") == "oge-278e-native-holding-pages/v2" else None)
             for row in good + bad + omitted:
                 row["saved_native_reference"] = {"page_number": number, "section": part,
                     "page_text_sha256": page["page_text_sha256"], "source_sha256": sha,
@@ -205,7 +225,9 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
         "source_url": archive_metadata["document_url"], "filer_name": archive_metadata["filer_name"],
         "evidence_archive_path": archive_metadata["archive_path"], "form_type": "278e", "report_type": "Annual",
         "annual_year": year, "report_period_end": f"{year}-12-31", "page_count": sections["page_count"],
-        "filing_date": None, "oge_received_on": None, "holdings": holdings, "transactions": transactions,
+        "filing_date": cover_dates["filed_at"] if cover_dates else None,
+        **({"cover_date_evidence": cover_dates, "native_cover_observation": native_cover_observation} if cover_dates else {}),
+        "oge_received_on": None, "holdings": holdings, "transactions": transactions,
         "excluded": excluded, "quarantined": quarantined, "section_pages": sections["section_pages"],
         "extraction_method": "saved_scan_observations_no_new_ocr",
         "source_cover_text_sha256": cover["native_text_sha256"],
@@ -253,7 +275,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
                 rows: list[list[object]], annual_year: int, *,
                 preserve_valued_unreadable: bool = False, qualified: bool = False,
                 scope_state: dict | None = None,
-                native_table_context: bool = False) -> tuple[list[dict], list[dict], list[dict]]:
+                native_table_context: bool = False,
+                native_empty_rows: dict | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """Return strict rows, quarantines, and explicit non-holding exclusions."""
     header = _header(rows, section)
     if header is None:
@@ -284,7 +307,7 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         # across an unobserved intervening page.  In particular an explicit
         # spouse heading must not silently become the section's default Self.
     state["previous_page"] = page_number
-    for cells_raw in rows[header_index + 1:]:
+    for source_row_index, cells_raw in enumerate(rows[header_index + 1:], start=header_index + 1):
         cells = [_compact(cell) for cell in cells_raw]
         if not any(cells):
             continue
@@ -297,6 +320,13 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         first_business_column = columns["type"] if section == "part7" else columns["value"]
         has_business_values = any(cells[first_business_column:])
         raw_number = cells[columns["#"]] if len(cells) > columns["#"] else ""
+        proof = (native_empty_rows or {}).get(source_row_index)
+        if (qualified and native_table_context and number is not None and not any(cells[1:]) and
+                isinstance(proof, dict) and proof.get("status") == "source_objects_verified_empty" and
+                _compact(proof.get("printed_number")) == raw_number):
+            excluded.append({"section": section, "page_number": page_number, "row_number": number,
+                "cells": cells, "reason": "source_objects_verified_empty_template", "native_empty_cell_evidence": proof})
+            continue
         if (qualified and native_table_context and number is None and
                 re.match(r"Endnotes?\s+for\s+Lines?\b", raw_number, re.I) and not any(cells[1:])):
             excluded.append({"section": section, "page_number": page_number, "row_number": None,

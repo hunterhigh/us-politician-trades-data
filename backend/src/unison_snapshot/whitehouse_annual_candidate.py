@@ -260,6 +260,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                 raise OgeCatalogError("saved annual scan input is duplicated or lacks source metadata")
             extractions.append(materialize_saved_annual_scan(bundle["cover_observation"], bundle["section_observation"],
                 archive_metadata=metadata[document], holding_page_observations=bundle.get("holding_page_observations"),
+                native_cover_observation=bundle.get("native_cover_observation"),
                 archived_pdf_path=bundle.get("archived_pdf_path")))
     result = deepcopy(candidate)
     people = {row["id"]: row for row in result["people"]}

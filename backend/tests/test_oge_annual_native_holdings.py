@@ -6,14 +6,16 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from test_oge_annual import _Document, _Page
 from test_oge_annual_candidate import base, source, inputs
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual import materialize_saved_annual_scan, _parse_rows, _reject_nested_aggregates
-from unison_snapshot.oge_annual_scan_sections import observe_holding_pages
+from unison_snapshot.oge_annual_scan_sections import observe_holding_pages, _native_empty_cells
 from unison_snapshot.whitehouse_annual_candidate import overlay_oge_annual_candidate
 from unison_snapshot.builder import build
+from unison_snapshot.oge_annual_ledger import build_oge_annual_shadow_ledger
 
 
 FIXTURE = Path(__file__).parent / "fixtures/oge_annual_harris_2023_native_holding_pages.json"
@@ -112,6 +114,7 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         content = b"%PDF-1.7\nsynthetic selection contract\n%%EOF"
         sha = hashlib.sha256(content).hexdigest()
         page = _Page("Part 2: Filer's Employment Assets", [["#", "Description", "Value"]])
+        page.find_tables = lambda: [SimpleNamespace(extract=lambda: page.rows, rows=[SimpleNamespace(cells=[])])]
         class Unread:
             def extract_text(self): raise AssertionError("unselected page read")
         with tempfile.TemporaryDirectory() as folder:
@@ -134,6 +137,77 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         _reject_nested_aggregates(good, bad, excluded, qualified=True)
         self.assertEqual(len(bad), 1)
         self.assertEqual(excluded, [])
+
+    def test_native_blank_proof_rejects_images_handwriting_annotations_and_bad_boundaries(self):
+        def rect(x0, top, x1, bottom):
+            return {"x0": x0, "top": top, "x1": x1, "bottom": bottom, "fill": True, "stroke": False}
+        grid = [rect(-.5, -.5, .5, 20.5), rect(9.5, -.5, 10.5, 20.5),
+                rect(-.5, -.5, 10.5, .5), rect(-.5, 19.5, 10.5, 20.5)]
+        page = SimpleNamespace(objects={"rect": grid}, annots=[])
+        self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20)])["status"], "source_objects_verified_empty")
+        for kind in ("char", "image", "curve", "line", "rect"):
+            changed = SimpleNamespace(objects={"rect": grid[:]}, annots=[])
+            changed.objects.setdefault(kind, []).append(rect(3, 4, 7, 8))
+            self.assertEqual(_native_empty_cells(changed, [(0, 0, 10, 20)])["status"], "unknown")
+        page.annots = [rect(1, 2, 3, 4)]
+        self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20)])["status"], "unknown")
+        page.annots = []
+        self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20), (5, 0, 15, 20)])["reason"], "cell_geometry_overlaps")
+        page.objects["rect"] = grid[:-1]
+        self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20)])["reason"], "native_boundary_rules_unresolved")
+
+    def test_new_source_proof_is_consumed_but_legacy_v1_cannot_claim_it(self):
+        cover, sections, old, meta = self.setup_inputs()
+        new = deepcopy(old)
+        new["schema_version"] = "oge-278e-native-holding-pages/v2"
+        for page in new["pages"]:
+            page["number_only_cell_evidence"] = []
+        page = new["pages"][-1]
+        page["number_only_cell_evidence"] = [{"table_index": 0, "table_row_index": 9,
+            "printed_number": "5.", "status": "source_objects_verified_empty", "cell_boxes": []}]
+        # Synthetic source-proof connection: original geometric proof is tested
+        # separately above; this test does not supply accuracy gold.
+        with patch("unison_snapshot.oge_annual_scan_sections.observe_holding_pages", return_value=new):
+            result = self.materialize(cover, sections, new, meta)
+            legacy = self.materialize(cover, sections, old, meta)
+        self.assertEqual(sum(row.get("reason") == "source_objects_verified_empty_template" for row in result["excluded"]), 1)
+        self.assertEqual(sum(row.get("reason") == "source_objects_verified_empty_template" for row in legacy["excluded"]), 0)
+        tampered = deepcopy(new)
+        tampered["pages"][-1]["number_only_cell_evidence"][0]["table_row_index"] = 10
+        with patch("unison_snapshot.oge_annual_scan_sections.observe_holding_pages", return_value=new):
+            with self.assertRaisesRegex(OgeCatalogError, "original source replay"):
+                self.materialize(cover, sections, tampered, meta)
+
+    def test_complete_source_bound_cover_is_consumed_and_summary_dates_are_not_required(self):
+        cover, sections, obs, meta = self.setup_inputs()
+        text = "Filer's Certification\nDate: 05/08/2023\nAgency Review\nDate: 05/12/2023"
+        digest = hashlib.sha256(text.encode()).hexdigest()
+        cover["native_text_sha256"] = digest
+        sections["pages"][0]["page_text_sha256"] = digest
+        native = {"schema_version": "oge-278e-native-cover-text/v1", "source_document_id": meta["document_id"],
+                  "source_sha256": meta["sha256"], "document_page_count": 15, "page_number": 1,
+                  "cover_text": text, "cover_text_sha256": digest, "method": "full_original_cover_embedded_text_no_new_ocr"}
+        bundle = {"cover_observation": cover, "section_observation": sections, "holding_page_observations": obs,
+                  "native_cover_observation": native, "archived_pdf_path": "original.pdf"}
+        request = {"extractions": [], "archive_metadata_by_document": {meta["document_id"]: meta},
+                   "saved_scan_observations_by_document": {meta["document_id"]: bundle},
+                   "code_commit": "a"*40, "started_at": "2026-10-20T00:00:00Z"}
+        with patch("unison_snapshot.oge_annual_scan_sections.observe_holding_pages", return_value=obs), patch(
+                "unison_snapshot.oge_annual_scan_cover.observe_native_cover_text", return_value=native):
+            x = materialize_saved_annual_scan(cover, sections, archive_metadata=meta,
+                holding_page_observations=obs, native_cover_observation=native, archived_pdf_path=Path("original.pdf"))
+            decision = build_oge_annual_shadow_ledger(x, run_id="native-cover-test", code_commit="a"*40,
+                started_at="2026-10-20T00:00:00Z", qualified=True)
+            candidate, audit = overlay_oge_annual_candidate(base(), request)
+        self.assertEqual(decision["filing_date_evidence"]["date"], "2023-05-08")
+        self.assertEqual(decision["manifest"]["counts"]["qualified_rows"], 45)
+        self.assertEqual(audit["reports"][0]["filing_date_evidence"]["date"], "2023-05-08")
+        self.assertEqual(candidate["reported_holdings"], [])  # T19 remains pending.
+        changed = deepcopy(native); changed["cover_text"] = text.replace("05/08/2023", "05/01/2023")
+        with patch("unison_snapshot.oge_annual_scan_cover.observe_native_cover_text", return_value=native):
+            with self.assertRaisesRegex(OgeCatalogError, "differs from original"):
+                materialize_saved_annual_scan(cover, sections, archive_metadata=meta,
+                    native_cover_observation=changed, archived_pdf_path=Path("original.pdf"))
 
 
 if __name__ == "__main__":
