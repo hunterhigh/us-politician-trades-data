@@ -521,7 +521,8 @@ def _add_archive_state(record: dict, archives: list[dict], review: Path,
         record["reason_codes"].append("multiple_archive_versions")
 
 
-def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict]) -> None:
+def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict], *,
+                      direct_annual_ids: frozenset[str] = frozenset()) -> None:
     direct, _, whitehouse = scopes
     indexes = {scope["scope_id"]: {row["report_id"]: row for row in scope["reports"]}
                for scope in (direct, whitehouse)}
@@ -538,6 +539,14 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
             is_whitehouse = host == "www.whitehouse.gov"
             scope = whitehouse if is_whitehouse else direct
             report_id = _official_id(url, is_whitehouse)
+            if not is_whitehouse and report_id in direct_annual_ids:
+                # These controlled archives are Form 278e, not PTRs. Keep the
+                # existing scope contract and make the uncovered binding clear.
+                unmatched_key = ("unmatched_publication_transaction_ids" if key ==
+                                 "publication_transaction_ids" else "unmatched_publication_holding_ids")
+                scope.setdefault(unmatched_key, []).append(fact["id"])
+                scope["limitations"].append("oge_direct_278e_outside_current_278t_status_scope")
+                continue
             if report_id is None:
                 unmatched_key = ("unmatched_publication_transaction_ids" if key ==
                                  "publication_transaction_ids" else "unmatched_publication_holding_ids")
@@ -667,7 +676,10 @@ def build_oge_status(evidence_root: Path, review_root: Path,
                 record["quarantined_row_count"] = 0
                 record["reason_codes"].append("exact_source_copy_alias_to_whitehouse")
     result = [direct, request, public]
-    _bind_publication(result, transactions, holdings)
+    annual_archives = _archive_records(evidence, "oge/annual/reports", False)
+    if set(annual_archives) & (set(archives) | set(catalog_direct)):
+        raise ValueError("OGE annual archive is also classified as a direct 278-T report")
+    _bind_publication(result, transactions, holdings, direct_annual_ids=frozenset(annual_archives))
     return result
 
 
