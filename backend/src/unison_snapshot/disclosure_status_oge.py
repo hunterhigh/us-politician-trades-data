@@ -328,13 +328,85 @@ def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> 
     return ids
 
 
-def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> None:
+def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
+                            evidence: Path | None = None) -> dict:
+    """Replay the saved-word consumer; OCR pages are not a source-row census."""
+    from .whitehouse_278t import validate_generic_whitehouse_report
+    parser = "whitehouse-278t-saved-ocr-roles/v6"
+    sha = audit.get("source_sha256")
+    receipt = audit.get("observation_receipt")
+    if (review is None or audit.get("parser_version") != parser or
+            sha not in record["source_versions"] or not isinstance(receipt, dict) or
+            audit.get("document_id") != record["report_id"] or
+            audit.get("source_url") != record["source_url"]):
+        raise ValueError("White House saved-word status lacks its archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    reports = [_read(path) for path in sorted(folder.glob("*.json"))
+               if not path.name.endswith(".failure.json")]
+    reports = [row for row in reports if row.get("parser_version") == parser]
+    if len(reports) != 1:
+        raise ValueError("White House saved-word status requires a unique current cache")
+    report = reports[0]
+    if any(report.get(key) != audit.get(key) for key in
+           ("document_id", "source_sha256", "source_url", "saved_ocr_input", "observation_receipt")):
+        raise ValueError("White House saved-word audit differs from its source cache")
+    # This validator materializes again from the referenced checkpoint and PDF
+    # when available. A matching receipt/digest alone is not source validation.
+    if evidence is None:
+        validate_generic_whitehouse_report(report)
+    else:
+        from .whitehouse_278t import saved_ocr_source_roots
+        with saved_ocr_source_roots(evidence, review):
+            validate_generic_whitehouse_report(report)
+    source_rows = [*_rows(report, "transactions"), *_rows(report, "quarantined")]
+    decisions = _rows(audit, "rows")
+    source_ids = [row.get("extraction_id") for row in source_rows]
+    if (None in source_ids or len(set(source_ids)) != len(source_ids) or
+            [row.get("extraction_id") for row in decisions] != source_ids or
+            _count(audit.get("source_row_count")) != len(source_rows) or
+            any(row.get("status") not in {"promoted", "quarantined"} for row in decisions) or
+            _count(audit.get("promoted_count")) != sum(row["status"] == "promoted" for row in decisions) or
+            _count(audit.get("quarantined_count")) != sum(row["status"] == "quarantined" for row in decisions) or
+            _count(audit.get("retained_count", 0)) != 0 or audit.get("retained_ids", [])):
+        raise ValueError("White House saved-word decisions do not conserve their source rows")
+    for source, decision in zip(source_rows, decisions, strict=True):
+        source_reasons, reasons = source.get("reasons", []), decision.get("reasons", [])
+        if (not isinstance(reasons, list) or not isinstance(source_reasons, list) or
+                not set(source_reasons) <= set(reasons) or
+                decision.get("status") == "promoted" and (reasons or source_reasons)):
+            raise ValueError("White House saved-word decision drops a source blocker")
+    if (audit.get("promoted_count") and (receipt.get("source_original_verified") is not True or
+            _date(report.get("filed_at")) is None or audit.get("document_reasons"))):
+        raise ValueError("White House saved-word promotion lacks verified source or filing date")
+    if (receipt.get("schema_version") != "whitehouse-278t-saved-ocr-receipt/v1" or
+            receipt.get("mode") != "saved_ocr_words" or receipt.get("source_sha256") != sha or
+            receipt.get("coverage_complete") is not False or
+            receipt.get("unique_source_row_count", "missing") is not None):
+        raise ValueError("White House saved-word receipt has inconsistent count semantics")
+    words = _count(receipt.get("observed_word_page_count"))
+    slots = _count(receipt.get("observed_physical_slot_count"))
+    if words is None or slots is None:
+        raise ValueError("White House saved-word observed counts are missing")
+    return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "quarantine_count_unit": "saved_ocr_entries_not_whole_source_unique_rows",
+        "observed_quarantined_entry_count": _count(audit.get("quarantined_count")),
+        "observed_word_page_count": words, "observed_physical_slot_count": slots,
+        "source_observation_coverage": {key: receipt.get(key) for key in
+            ("coverage_complete", "unobserved_pages", "geometry_unknown_pages",
+             "page_count_basis", "source_original_verified", "selected_page_numbers")}}
+
+
+def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
+                 evidence: Path | None = None) -> None:
     receipt = audit.get("observation_receipt")
     native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
             "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
         raise ValueError("OGE legacy reference observation counts require their explicit unit")
-    separate_counts = (_native_exhibit_counts(record, audit) if native_exhibit else
+    saved_whitehouse = (audit.get("parser_version") == "whitehouse-278t-saved-ocr-roles/v6" or
+                       isinstance(receipt, dict) and receipt.get("mode") == "saved_ocr_words")
+    separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
+                       _native_exhibit_counts(record, audit) if native_exhibit else
                        _observed_reference_counts(record, audit, review)
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
@@ -646,7 +718,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             record["acquisition_state"] = "not_archived"
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
-            _apply_audit(record, audit_by_id[report_id], review=review)
+            _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence)
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
@@ -736,7 +808,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
-        _apply_audit(record, audit, review=review)
+        _apply_audit(record, audit, review=review, evidence=evidence)
         version_bound = _check_version(record, audit)
         if not version_bound:
             _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
