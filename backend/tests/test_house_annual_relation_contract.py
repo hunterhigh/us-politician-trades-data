@@ -6,9 +6,11 @@ import tempfile
 import unittest
 
 import test_house_candidate as house_case
+import test_disclosure_candidate as mixed_case
 from test_public_repo import FakeTransport
 from unison_snapshot.builder import build, normalize
 from unison_snapshot.house_candidate import build_house_candidate
+from unison_snapshot.disclosure_candidate import build_disclosure_candidate
 from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V3_SHA256
 from unison_snapshot.public_repo import PublicSnapshotRepository
 
@@ -106,6 +108,31 @@ class HouseAnnualRelationContractTests(unittest.TestCase):
                 if key == 'ABC':
                     self.assertEqual(len(selected['transactions']), 1)
                     self.assertFalse(any('people/' in call[0] for call in transport.calls))
+
+    def test_house_and_senate_relations_coexist_in_the_existing_merge(self):
+        house = fixture()
+        house['meta']['data_cutoff_at'] = mixed_case.CUTOFF
+        house['source_health'][0]['data_cutoff_at'] = mixed_case.CUTOFF
+        senate = mixed_case.candidate('senate_efd', 'senate:example', 'temporary')
+        fact = senate['transactions'][0]
+        fact['source_url'] = 'https://efdsearch.senate.gov/search/view/annual/example/'
+        sha, number = 'b'*64, '1'
+        fact['id'] = 'senate-annual-part4b:' + hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24]
+        senate['meta']['transaction_disclosure_relations'] = [{
+            'transaction_id': fact['id'], 'source_id': 'senate_efd',
+            'filing_id': fact['filing_id'], 'source_url': fact['source_url'],
+            'source_sha256': sha, 'section': 'Part 4b', 'printed_row_number': number,
+            'status': 'cross_report_relationship_unconfirmed', 'possible_ptr_transaction_ids': []}]
+        base = deepcopy(mixed_case.BASE)
+        base['security_market_data'] = []
+        merged = build_disclosure_candidate(base, {'house_clerk': house, 'senate_efd': senate})
+        self.assertEqual(len(merged['meta']['transaction_disclosure_relations']), 2)
+        bundle = build(merged, generated_at=mixed_case.CUTOFF, allow_production=True)
+        repo = PublicSnapshotRepository('example', 'data', transport=FakeTransport(bundle.files))
+        selected = repo.fetch().snapshot
+        processed = load('process_snapshot', version='v3').build_snapshot(selected)
+        self.assertEqual({r['source_id'] for r in processed['meta']['transaction_disclosure_relations']},
+                         {'house_clerk', 'senate_efd'})
 
 
 if __name__ == '__main__':
