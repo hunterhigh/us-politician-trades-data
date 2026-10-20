@@ -114,6 +114,8 @@ def project_source_candidate(source_id: str, candidate: dict) -> dict:
     relations=[r for r in candidate['meta'].get('transaction_disclosure_relations',[]) if r['source_id']==source_id]
     for report in selected_coverage:
         rows = [r for r in selected_holdings if r.get("person_id") == report.get("person_id")]
+        if report.get("schema_version") == "oge-approved-partial-holdings/v1":
+            rows = [r for r in rows if r.get("report_period_end") == report.get("report_period_end")]
         if (not rows or sorted(r["id"] for r in rows) != sorted(report.get("published_holding_ids", [])) or
                 any(r.get("filing_id") != report.get("filing_id") or
                     r.get("report_period_end") != report.get("report_period_end") for r in rows)):

@@ -20,7 +20,7 @@ from .pipeline_ledger import (CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA,
 
 
 RULES_VERSION = "oge-278e-annual-shadow/v1"
-QUALIFIED_RULES_VERSION = "oge-278e-row-qualification/v1"
+QUALIFIED_RULES_VERSION = "oge-278e-row-qualification/v2"
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _PARTS = ("part6", "part7")
 
@@ -114,7 +114,21 @@ def annual_filing_date_evidence(extraction: dict, scan_dates: dict | None = None
     return {"date": None, "method": "filer_date_unresolved_receipt_not_substituted"}
 
 
-def annual_holdings_coverage_complete(extraction: dict) -> bool:
+def official_unknown_holding_value(row: dict) -> bool:
+    """An explicit source valuation exception, never an unread/empty value guess."""
+    return (row.get("section") in {"part2", "part5", "part6"} and
+            row.get("value_disclosure_status") == "explicitly_not_readily_ascertainable" and
+            "value not readily ascertainable" in str(row.get("asset_name", "")).casefold() and
+            any(character.isalnum() for character in re.sub("value not readily ascertainable", "",
+                str(row.get("asset_name", "")), flags=re.I)) and
+            row.get("raw_value") == "" and row.get("value_low") is None and row.get("value_high") is None and
+            "value_low_exclusive" not in row and set(row.get("reasons", [])) == {"holding_value_missing"} and
+            row.get("owner") in {"Self", "Spouse", "Dependent Child", "Joint"} and
+            row.get("account_context", {}).get("status") != "unknown" and
+            isinstance(row.get("row_number"), str) and bool(row["row_number"]))
+
+
+def annual_holdings_coverage_complete(extraction: dict, *, allow_official_unknown: bool = False) -> bool:
     evidence = extraction.get("source_coverage_evidence", {})
     pages = evidence.get("pages")
     count = extraction.get("page_count")
@@ -131,11 +145,15 @@ def annual_holdings_coverage_complete(extraction: dict) -> bool:
     if any(type(row.get("page_number")) is not int or not 1 <= row["page_number"] <= count
            for row in extraction["holdings"]):
         return False
-    if any(row["section"] in holding_parts for row in extraction["quarantined"]):
+    if any(row["section"] in holding_parts and not (allow_official_unknown and official_unknown_holding_value(row))
+           for row in extraction["quarantined"]):
         return False
+    exception_pages = {row["page_number"] for row in extraction["quarantined"] if official_unknown_holding_value(row)}
     return all(isinstance(row.get("page_text_sha256"), str) and _SHA.fullmatch(row["page_text_sha256"]) and
                row.get("role") in {"cover", "target_section", "other_disclosure_section", "instructions"} and
-               not (row.get("section") in holding_parts and row.get("status") != "rows_accounted") for row in pages)
+               not (row.get("section") in holding_parts and row.get("status") != "rows_accounted" and
+                    not (allow_official_unknown and row.get("status") == "rows_with_quarantine" and
+                         row.get("page_number") in exception_pages)) for row in pages)
 
 
 def _qualified_row_reasons(collection: str, row: dict, extraction: dict, filed: dict) -> list[str]:
@@ -180,7 +198,6 @@ def _qualified_row_reasons(collection: str, row: dict, extraction: dict, filed: 
         from .oge_annual import _date
         if _date(row.get("raw_date", "")) != row.get("transaction_date"):
             reasons.append("transaction_date_raw_mismatch")
-        reasons.append("pending_278t_reconciliation")
     return sorted(set(reasons))
 
 
@@ -265,8 +282,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                     json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
         occurrence = identity_counts[identity]
         identity_counts[identity] += 1
-        candidate_id = "oge-annual-row:" + hashlib.sha256(
-            f"{document_id}|{source_sha}|{identity}|{occurrence}".encode()).hexdigest()[:24]
+        identity_sha = hashlib.sha256(f"{document_id}|{source_sha}|{identity}|{occurrence}".encode()).hexdigest()
+        candidate_id = "oge-annual-row:" + identity_sha[:24]
         location = {"kind": "pdf_row", "page": page}
         if isinstance(number, str) and number:
             location["row_locator"] = number
@@ -322,6 +339,7 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
             })
         item = {
             "schema_version": CANDIDATE_ROW_SCHEMA, "candidate_id": candidate_id,
+            **({"source_row_identity_sha256": identity_sha} if qualified else {}),
             "run_id": run_id, "idempotency_key": key,
             "source": {"source_id": "oge", "document_id": document_id,
                        "source_url": extraction["source_url"], "source_sha256": source_sha},
@@ -378,10 +396,14 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
             "aggregate_dedup": "not_verified",
         },
         "revision_reconciliation": "not_verified",
-        "part7_opt_in": "source_rows_pending_278t_relationship" if qualified else "not_enabled",
+        "part7_opt_in": "independent_disclosure_rows/v1" if qualified else "not_enabled",
         "publication_status": "row_qualification_ready_for_existing_candidate" if qualified else "shadow_only_not_promoted",
         **({"qualification_mode": "source_rows_to_existing_annual_candidate/v1",
             "filing_date_evidence": filed, "holding_coverage_complete": annual_holdings_coverage_complete(extraction),
+            "holding_coverage_official_unknown_only": (annual_holdings_coverage_complete(extraction, allow_official_unknown=True) and
+                all(item["disposition"] in {"qualified", "excluded"} or
+                    (official_unknown_holding_value(source_row) and item["reasons"] == ["holding_value_missing"])
+                    for item, (_, source_row) in zip(rows, detected, strict=True) if source_row["section"] != "part7")),
             "unlocated_source_issues": unlocated, "detected_source_rows": [row for _, row in detected]}
            if qualified else {}),
     }

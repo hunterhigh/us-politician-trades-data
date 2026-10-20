@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, date
 import hashlib
+import json
 import math
 import re
 from urllib.parse import urlsplit
@@ -186,13 +187,29 @@ def _transaction_relation_identity(relation: dict) -> tuple[str, str]:
                 not 0 <= top <= 20000 or round(top, 2) != top):
             raise ValueError('House annual disclosure relation locator differs')
         return 'house-annual-b:' + hashlib.sha256(f'{sha}:{page}:{top:.2f}'.encode()).hexdigest()[:24], 'house-ptr:'
+    if relation.get('source_id') == 'oge':
+        page, number, digest = relation.get('page_number'), relation.get('printed_row_number'), relation.get('source_row_identity_sha256')
+        if (set(relation) != common | {'page_number','printed_row_number','source_row_identity_sha256','report_period_end','source_binding_sha256'} or
+                not re.fullmatch(r'(?:19|20)\d{2}-12-31', str(relation.get('report_period_end', ''))) or
+                relation.get('section') != 'Part 7' or type(page) is not int or not 1 <= page <= 1200 or
+                not isinstance(number, str) or not number.strip() or
+                not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest) or
+                not re.fullmatch(r'[0-9a-f]{32}', str(relation.get('filing_id', '')))):
+            raise ValueError('OGE annual disclosure relation locator differs')
+        fields = ('source_id','filing_id','source_url','source_sha256','section','page_number',
+                  'printed_row_number','report_period_end','source_row_identity_sha256')
+        binding = hashlib.sha256(json.dumps({key: relation[key] for key in fields}, ensure_ascii=False,
+                                           sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        if relation.get('source_binding_sha256') != binding:
+            raise ValueError('OGE annual disclosure relation source binding differs')
+        return 'oge-annual-row:' + digest[:24], 'oge-278t:'
     raise ValueError('Unsupported annual disclosure relation source')
 
 
 def validate_transaction_disclosure_relations(data: dict, *, allow_unloaded_ptr: bool = False) -> None:
     """Full-input relation validation; no additional facts or source fetches."""
     relations=data['meta'].get('transaction_disclosure_relations')
-    annual_ids={r['id'] for r in data['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:'))}
+    annual_ids={r['id'] for r in data['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:','oge-annual-row:'))}
     if relations is None:
         if annual_ids:raise ValueError('Annual disclosure facts require complete relationship metadata')
         return

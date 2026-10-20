@@ -91,13 +91,29 @@ def _transaction_relation_identity(relation: dict) -> tuple[str, str]:
                 not 0 <= top <= 20000 or round(top, 2) != top):
             raise ProcessingError('House annual disclosure relation locator differs')
         return 'house-annual-b:' + hashlib.sha256(f'{sha}:{page}:{top:.2f}'.encode()).hexdigest()[:24], 'house-ptr:'
+    if relation.get('source_id') == 'oge':
+        page, number, digest = relation.get('page_number'), relation.get('printed_row_number'), relation.get('source_row_identity_sha256')
+        if (set(relation) != common | {'page_number','printed_row_number','source_row_identity_sha256','report_period_end','source_binding_sha256'} or
+                not re.fullmatch(r'(?:19|20)\d{2}-12-31', str(relation.get('report_period_end', ''))) or
+                relation.get('section') != 'Part 7' or type(page) is not int or not 1 <= page <= 1200 or
+                not isinstance(number, str) or not number.strip() or
+                not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest) or
+                not re.fullmatch(r'[0-9a-f]{32}', str(relation.get('filing_id', '')))):
+            raise ProcessingError('OGE annual disclosure relation locator differs')
+        fields = ('source_id','filing_id','source_url','source_sha256','section','page_number',
+                  'printed_row_number','report_period_end','source_row_identity_sha256')
+        binding = hashlib.sha256(json.dumps({key: relation[key] for key in fields}, ensure_ascii=False,
+                                           sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        if relation.get('source_binding_sha256') != binding:
+            raise ProcessingError('OGE annual disclosure relation source binding differs')
+        return 'oge-annual-row:' + digest[:24], 'oge-278t:'
     raise ProcessingError('Unsupported annual disclosure relation source')
 
 
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
     relations=result['meta'].get('transaction_disclosure_relations')
-    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:'))}
+    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:','oge-annual-row:'))}
     if annual_ids and relations is None:raise ProcessingError('Annual disclosure facts require complete relationship metadata')
     if relations is not None:
         if not isinstance(relations,list):raise ProcessingError('Transaction disclosure relations must be a list')
@@ -149,13 +165,19 @@ def build_snapshot(payload):
             # holdings. Never label its subtotal as the whole report's total.
             filtered = result["meta"].get("selection_scope", {}).get("mode") == "ticker"
             rows = [r for r in result["reported_holdings"] if r["person_id"] == person]
+            if coverage.get("schema_version") == "oge-approved-partial-holdings/v1":
+                rows = [r for r in rows if r["report_period_end"] == coverage.get("report_period_end")]
             ids = coverage.get("published_holding_ids")
             excluded = coverage.get("excluded_row_ids")
             unknown = coverage.get("unresolved_rows")
-            if (coverage.get("schema_version") != "house-approved-partial-holdings/v1" or
-                    coverage.get("source_id") != "house_clerk" or
+            oge = coverage.get("schema_version") == "oge-approved-partial-holdings/v1"
+            expected_source = "oge" if oge else "house_clerk"
+            expected_basis = ("complete_holding_sections_explicit_not_readily_ascertainable/v1" if oge else
+                              "complete_schedule_a_explicit_undetermined_value/v1")
+            if (coverage.get("schema_version") not in {"house-approved-partial-holdings/v1", "oge-approved-partial-holdings/v1"} or
+                    coverage.get("source_id") != expected_source or
                     not re.fullmatch(r"[0-9a-f]{64}",str(coverage.get("source_sha256", ""))) or
-                    coverage.get("selection_basis") != "complete_schedule_a_explicit_undetermined_value/v1" or
+                    coverage.get("selection_basis") != expected_basis or
                     coverage.get("scope") != "partial_report" or coverage.get("complete_total_assets") is not False or
                     not isinstance(ids,list) or not isinstance(excluded,list) or not isinstance(unknown,list) or not unknown or
                     any(not isinstance(i,str) for i in ids+excluded) or len(ids)!=len(set(ids)) or
@@ -170,8 +192,13 @@ def build_snapshot(payload):
             for row in unknown:
                 if (not isinstance(row,dict) or not isinstance(row.get("extraction_id"),str) or
                         not isinstance(row.get("asset_name"),str) or not row["asset_name"].strip() or
-                        not isinstance(row.get("value_raw"),str) or row["value_raw"].strip().casefold() != "undetermined" or
-                        not row.get("reasons") or not set(row["reasons"]) <= {"value_not_representable","value_bounds_unresolved"}):
+                        not isinstance(row.get("value_raw"),str) or row["value_raw"].strip().casefold() !=
+                            ("value not readily ascertainable" if oge else "undetermined") or
+                        not row.get("reasons") or not set(row["reasons"]) <=
+                            ({"holding_value_missing"} if oge else {"value_not_representable","value_bounds_unresolved"}) or
+                        (oge and ("value not readily ascertainable" not in row["asset_name"].casefold() or
+                                  type(row.get("page_number")) is not int or row["page_number"] < 1 or
+                                  not isinstance(row.get("printed_row_number"), str) or not row["printed_row_number"]))):
                     raise ProcessingError("Partial holding unresolved value has no explicit source literal")
                 unknown_ids.append(row["extraction_id"])
             all_ids = ids + excluded + unknown_ids
