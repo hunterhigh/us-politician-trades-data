@@ -128,6 +128,44 @@ class SavedWhitehouseStatusTests(unittest.TestCase):
                         self.assertEqual(coverage['unbound_observed_word_count'],2)
                         self.assertEqual(coverage['geometry_partial_pages'],[2])
 
+    def test_dual_axis_status_requires_explicit_consistent_mode_without_migrating_v6(self):
+        for change in [None,'audit','input','report','receipt','local','old_parser','missing_parser']:
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);record,audit,cache=self.fixture(root)
+                report=json.loads(cache.read_text(encoding='utf-8'))
+                mode='source_pdf_dual_axis/v1'
+                report.update(parser_version='whitehouse-278t-saved-ocr-dual-axis/v7',geometry_mode=mode,
+                    raw_page_observations=[{'page_number':2,'words':[{}, {}, {}]}])
+                report['saved_ocr_input']['geometry_mode']=mode
+                report['observation_receipt'].update(geometry_mode=mode,local_row_geometry_mode=mode,
+                    geometry_partial_pages=[],unresolved_regions=[],whole_selected_table_slot_count=None,
+                    unbound_observed_word_count=3,
+                    unbound_observed_word_unit='selected_table_page_words_outside_known_slots',
+                    unbound_observed_word_pages=[{'page_number':2,'word_count':3,
+                                                'basis':'geometry_unknown_all_saved_words'}])
+                if change=='report':report.pop('geometry_mode')
+                if change=='input':report['saved_ocr_input'].pop('geometry_mode')
+                if change=='receipt':report['observation_receipt'].pop('geometry_mode')
+                if change=='local':report['observation_receipt'].pop('local_row_geometry_mode')
+                if change=='old_parser':report['parser_version']='whitehouse-278t-saved-ocr-roles/v6'
+                cache.write_text(json.dumps(report),encoding='utf-8')
+                audit.update(parser_version=report['parser_version'],geometry_mode=mode,
+                    saved_ocr_input=deepcopy(report['saved_ocr_input']),
+                    observation_receipt=deepcopy(report['observation_receipt']))
+                if change=='audit':audit.pop('geometry_mode')
+                if change=='missing_parser':audit.pop('parser_version')
+                # An old cache can coexist; it must not be mistaken for a second v7 source.
+                if change is None:
+                    old=deepcopy(report);old['parser_version']='whitehouse-278t-saved-ocr-roles/v6'
+                    cache.with_name('old-v6.json').write_text(json.dumps(old),encoding='utf-8')
+                with patch('unison_snapshot.whitehouse_278t.validate_generic_whitehouse_report'):
+                    if change is None:
+                        _apply_audit(record,audit,review=root)
+                        self.assertIsNone(record['quarantined_row_count'])
+                        self.assertEqual(record['source_observation_coverage']['local_row_geometry_mode'],mode)
+                    else:
+                        with self.assertRaises(ValueError):_apply_audit(record,audit,review=root)
+
     def test_whole_unknown_geometry_keeps_all_saved_words_unbound(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);record,audit,cache=self.fixture(root)

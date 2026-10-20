@@ -17,6 +17,10 @@ from urllib.parse import unquote, urlsplit
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _DIRECT_ID = re.compile(r"[0-9a-f]{32}\Z")
+_SAVED_WHITEHOUSE_PARSERS = {
+    "whitehouse-278t-saved-ocr-roles/v6": None,
+    "whitehouse-278t-saved-ocr-dual-axis/v7": "source_pdf_dual_axis/v1",
+}
 
 
 def _read(path: Path) -> dict:
@@ -332,10 +336,10 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
                             evidence: Path | None = None) -> dict:
     """Replay the saved-word consumer; OCR pages are not a source-row census."""
     from .whitehouse_278t import validate_generic_whitehouse_report
-    parser = "whitehouse-278t-saved-ocr-roles/v6"
+    parser = audit.get("parser_version")
     sha = audit.get("source_sha256")
     receipt = audit.get("observation_receipt")
-    if (review is None or audit.get("parser_version") != parser or
+    if (review is None or not isinstance(parser, str) or parser not in _SAVED_WHITEHOUSE_PARSERS or
             sha not in record["source_versions"] or not isinstance(receipt, dict) or
             audit.get("document_id") != record["report_id"] or
             audit.get("source_url") != record["source_url"]):
@@ -350,6 +354,14 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
     if any(report.get(key) != audit.get(key) for key in
            ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt")):
         raise ValueError("White House saved-word audit differs from its source cache")
+    geometry_mode = _SAVED_WHITEHOUSE_PARSERS[parser]
+    saved_input = report.get("saved_ocr_input")
+    if (not isinstance(saved_input, dict) or
+            any(value != geometry_mode for value in
+                (report.get("geometry_mode"), audit.get("geometry_mode"),
+                 receipt.get("geometry_mode"), saved_input.get("geometry_mode"))) or
+            geometry_mode is not None and receipt.get("local_row_geometry_mode") != geometry_mode):
+        raise ValueError("White House saved-word geometry mode differs from its parser and source")
     # This validator materializes again from the referenced checkpoint and PDF
     # when available. A matching receipt/digest alone is not source validation.
     if evidence is None:
@@ -418,7 +430,8 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
             if count is None:
                 raise ValueError("White House observed words lack a source count")
             unbound_pages.append({"page_number": number, "word_count": count, "basis": basis})
-        if (receipt["local_row_geometry_mode"] != "strict_joint_boundaries/v1" or
+        expected_local_mode = geometry_mode or "strict_joint_boundaries/v1"
+        if (receipt["local_row_geometry_mode"] != expected_local_mode or
                 audit.get("partial_geometry_pages", []) != partial or
                 receipt.get("geometry_partial_pages") != [page["page_number"] for page in partial] or
                 receipt.get("unresolved_regions") != regions or
@@ -456,7 +469,8 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
             "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
         raise ValueError("OGE legacy reference observation counts require their explicit unit")
-    saved_whitehouse = (audit.get("parser_version") == "whitehouse-278t-saved-ocr-roles/v6" or
+    saved_whitehouse = (isinstance(audit.get("parser_version"), str) and
+                       audit["parser_version"] in _SAVED_WHITEHOUSE_PARSERS or
                        isinstance(receipt, dict) and receipt.get("mode") == "saved_ocr_words")
     separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
                        _native_exhibit_counts(record, audit) if native_exhibit else
