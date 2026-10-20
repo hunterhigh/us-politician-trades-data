@@ -717,9 +717,23 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     supported, unsupported, unresolved = _market_universe(
         symbols, contexts, client.assets())
     if distribution_authorized and unresolved:
+        # Keep the existing publication gate, but expose the classification
+        # already available here so an operator can locate the affected data.
+        # Bound examples rather than dumping every disclosure into CI logs.
+        details = [
+            {
+                **item,
+                "affected_record_count": len(contexts[item["ticker"]]),
+                "example_record_ids": sorted({
+                    str(row.get("id") or "") for row in contexts[item["ticker"]]
+                })[:3],
+            }
+            for item in unresolved
+        ]
         raise AlpacaMarketError(
             "Production market universe has unresolved disclosure tickers: "
-            + ", ".join(row["ticker"] for row in unresolved))
+            + ", ".join(row["ticker"] for row in unresolved)
+            + "; details=" + json.dumps(details, ensure_ascii=True, sort_keys=True))
     disclosure_days = []
     supported_tickers = {row["ticker"] for row in supported}
     for row in normalized_snapshot.get("transactions", []):
