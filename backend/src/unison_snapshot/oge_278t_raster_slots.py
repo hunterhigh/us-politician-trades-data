@@ -15,6 +15,8 @@ from .oge_278t_page_shadow import (probe_oge_2024_alternate_bands,
 
 
 SCHEMA = "oge-278t-raster-slot-observation/v2"
+DUAL_SCHEMA = "oge-278t-raster-slot-observation/v3"
+DUAL_MODE = "source_pdf_dual_axis/v1"
 MAX_PAGES_PER_RUN = 8
 _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
@@ -89,9 +91,128 @@ def column_crop_bounds(page: dict, start: int, end: int, top: float, bottom: flo
 
 
 def column_geometry_sha256(page: dict) -> str:
-    return hashlib.sha256(json.dumps({"edges": page.get("column_edges_pdf_points"),
-        "model": page.get("column_line_model"), "frame": page.get("render_coordinate_frame")},
+    payload={"edges":page.get("column_edges_pdf_points"),"model":page.get("column_line_model"),
+             "frame":page.get("render_coordinate_frame")}
+    if page.get("row_line_model") is not None or page.get("geometry_mode") is not None:
+        payload.update(row_model=page.get("row_line_model"),geometry_mode=page.get("geometry_mode"))
+    return hashlib.sha256(json.dumps(payload,
         sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def row_edges_at_x(page: dict, x: float) -> list[float]:
+    """Evaluate source-PDF horizontal lines from replayable local samples."""
+    model=page.get("row_line_model")
+    if model is None:raise ValueError("row line model is required")
+    reference=model.get("reference_x_pdf_points");domain=model.get("valid_x_span_pdf_points")
+    intercepts,slopes,samples=(model.get(k) for k in ("intercepts_y_pdf_points","slopes_dy_per_dx","line_observations"))
+    finite=lambda v:type(v) in (int,float) and isfinite(v)
+    if (page.get("geometry_mode") != DUAL_MODE or page.get("render_coordinate_frame") != "displayed_mediabox" or
+            model.get("schema_version") != "oge-278t-row-lines/v1" or model.get("coordinate_frame") != "displayed_mediabox" or
+            not finite(reference) or not isinstance(domain,list) or len(domain)!=2 or not all(finite(v) for v in domain) or
+            not domain[0] <= reference <= domain[1] or not domain[0]<domain[1] or not finite(x) or not domain[0]<=x<=domain[1] or
+            not isinstance(intercepts,list) or len(intercepts)<2 or not isinstance(slopes,list) or len(slopes)!=len(intercepts) or
+            not all(finite(v) for v in intercepts+slopes) or any(abs(v)>.015 for v in slopes) or
+            max(slopes)-min(slopes)>.008 or not isinstance(samples,list) or len(samples)!=len(intercepts)):
+        raise ValueError("invalid source-PDF row line model")
+    for b,r,observation in zip(intercepts,slopes,samples,strict=True):
+        values=observation.get("samples")
+        if not isinstance(values,list) or len(values)!=3:raise ValueError("row line lacks three sample regions")
+        xs,ys=[],[];last=domain[0]
+        for sample in values:
+            span,y=sample.get("x_span_pdf_points"),sample.get("y_pdf_points")
+            if (not isinstance(span,list) or len(span)!=2 or not all(finite(v) for v in span) or
+                    not last<=span[0]<span[1]<=domain[1] or not finite(y)):
+                raise ValueError("row line sample region is invalid")
+            last=span[1];xs.append(sum(span)/2);ys.append(y)
+        expected_ref=sum(xs)/3;denominator=sum((v-expected_ref)**2 for v in xs)
+        expected_b=sum(ys)/3
+        expected_r=sum((v-expected_ref)*(y-expected_b) for v,y in zip(xs,ys))/denominator
+        residual=max(abs(y-(b+r*(v-reference))) for v,y in zip(xs,ys))
+        observed_residual=observation.get("maximum_fit_residual_pdf_points")
+        if (abs(reference-expected_ref)>1e-6 or abs(expected_b-b)>1e-6 or abs(expected_r-r)>1e-6 or residual>.75 or
+                not finite(observed_residual) or abs(observed_residual-residual)>1e-6):
+            raise ValueError("row line model differs from its local fitted evidence")
+    nested=page.get("column_geometry_observation",{}).get("row_line_model")
+    if nested is not None and nested!=model:raise ValueError("row model differs from geometry observation")
+    for endpoint in domain:
+        values=[b+r*(endpoint-reference) for b,r in zip(intercepts,slopes)]
+        if any(a>=b for a,b in zip(values,values[1:])):raise ValueError("source-PDF row lines cross")
+    return [b+r*(x-reference) for b,r in zip(intercepts,slopes)]
+
+
+def _slot_line_coefficients(page,slot,start,end,left_pad=0.,right_pad=0.):
+    if not 0<=start<end<=6:raise ValueError("invalid field column range")
+    model=page.get("column_line_model")
+    if model:
+        reference=model["reference_y_pdf_points"]
+        edges=column_edges_at_y(page,reference);slopes=model["slopes_dx_per_dy"]
+    else:
+        reference=0.;edges=column_edges_at_y(page,0.);slopes=[0.]*7
+    vertical=[(edges[start]-slopes[start]*reference+left_pad,slopes[start]),
+              (edges[end]-slopes[end]*reference-right_pad,slopes[end])]
+    row=page.get("row_line_model")
+    if row:
+        if slot.get("band_coordinate_basis") != "row_lines_at_reference_x":raise ValueError("dual slot band basis is missing")
+        values=row_edges_at_x(page,row["reference_x_pdf_points"])
+        refs=slot.get("row_boundary_refs")
+        if (not isinstance(refs,list) or len(refs)!=2 or any(type(v) is not int for v in refs) or
+                not 0<=refs[0]<refs[1]<len(values) or refs[1]!=refs[0]+1 or
+                slot.get("band_pdf_points") != [values[i] for i in refs]):
+            raise ValueError("slot does not bind adjacent source row lines")
+        horizontal=[(values[i]-row["slopes_dy_per_dx"][i]*row["reference_x_pdf_points"],row["slopes_dy_per_dx"][i]) for i in refs]
+    else:horizontal=[(v,0.) for v in slot["band_pdf_points"]]
+    return vertical,horizontal
+
+
+def slot_quad(page: dict,slot: dict,start=0,end=6,*,left_pad=0.,right_pad=0.) -> list[list[float]]:
+    vertical,horizontal=_slot_line_coefficients(page,slot,start,end,left_pad,right_pad)
+    result=[]
+    for i,j in ((0,0),(1,0),(1,1),(0,1)):
+        a,c=vertical[i];b,r=horizontal[j];determinant=1-c*r
+        if determinant<=1e-6:raise ValueError("grid lines do not form a bounded quadrilateral")
+        x,y=(a+c*b)/determinant,(b+r*a)/determinant
+        if page.get("row_line_model"):row_edges_at_x(page,x)
+        if page.get("column_line_model"):column_edges_at_y(page,y)
+        result.append([x,y])
+    if result[0][0]>=result[1][0] or result[3][0]>=result[2][0] or result[0][1]>=result[3][1] or result[1][1]>=result[2][1]:
+        raise ValueError("grid quadrilateral is inverted")
+    return result
+
+
+def point_in_slot(page,slot,x,y,start=0,end=6) -> bool:
+    vertical,horizontal=_slot_line_coefficients(page,slot,start,end)
+    return (vertical[0][0]+vertical[0][1]*y <= x < vertical[1][0]+vertical[1][1]*y and
+            horizontal[0][0]+horizontal[0][1]*x <= y < horizontal[1][0]+horizontal[1][1]*x)
+
+
+def box_in_slot(page,slot,box,start=0,end=6,left_pad=0.,right_pad=0.) -> bool:
+    vertical,horizontal=_slot_line_coefficients(page,slot,start,end,left_pad,right_pad)
+    for x,y in ((box[0],box[1]),(box[2],box[1]),(box[2],box[3]),(box[0],box[3])):
+        if not (vertical[0][0]+vertical[0][1]*y<=x<=vertical[1][0]+vertical[1][1]*y and
+                horizontal[0][0]+horizontal[0][1]*x<=y<=horizontal[1][0]+horizontal[1][1]*x):return False
+    return True
+
+
+def box_overlaps_slot(page,slot,box,start=0,end=6) -> bool:
+    quad=slot_quad(page,slot,start,end)
+    rectangle=[[box[0],box[1]],[box[2],box[1]],[box[2],box[3]],[box[0],box[3]]]
+    for polygon in (quad,rectangle):
+        for a,b in zip(polygon,polygon[1:]+polygon[:1]):
+            nx,ny=-(b[1]-a[1]),b[0]-a[0]
+            u=[nx*x+ny*y for x,y in quad];v=[nx*x+ny*y for x,y in rectangle]
+            if max(u)<=min(v) or max(v)<=min(u):return False
+    return True
+
+
+def slot_crop_bounds(page,slot,start=0,end=6,left_pad=.6,right_pad=1.5):
+    quad=slot_quad(page,slot,start,end,left_pad=left_pad,right_pad=right_pad)
+    return min(p[0] for p in quad),min(p[1] for p in quad),max(p[0] for p in quad),max(p[1] for p in quad)
+
+
+def table_crop_bounds(page,slots,start,end,left_pad=.6,right_pad=1.5):
+    if not slots:raise ValueError("cannot crop an empty known table")
+    boxes=[slot_crop_bounds(page,s,start,end,left_pad,right_pad) for s in slots]
+    return min(b[0] for b in boxes),min(b[1] for b in boxes),max(b[2] for b in boxes),max(b[3] for b in boxes)
 
 
 def _column_profile_matches(edges: list[float]) -> bool:
