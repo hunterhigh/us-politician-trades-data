@@ -362,14 +362,55 @@ def _amount(value: str) -> tuple[int, int] | None:
     return pair if pair in set(_AMOUNTS.values()) else None
 
 
+_OWNER_HEADING = re.compile(
+    r"(?P<owner>spouse|filer|self|dependent child(?:ren)?|child(?:ren)?)(?:['’]s)?\s+"
+    r"(?:(?P<account>(?:investment|retirement)\s+account\s*#[0-9]+)|assets|accounts?)",
+    re.IGNORECASE)
+_BLANK_DECLARATION = re.compile(
+    r"(?:(?:this\s+)?line(?:\s+is)?\s+)?(?:intentionally\s+left\s+blank|left\s+intentionally\s+blank)\.?",
+    re.IGNORECASE)
+
+
 def _owner_heading(value: str) -> str | None:
-    lowered = value.lower()
-    if "spouse" in lowered and ("account" in lowered or "assets" in lowered):
-        return "Spouse"
-    if ("dependent" in lowered or "child" in lowered) and ("account" in lowered or "assets" in lowered):
-        return "Dependent Child"
-    if ("filer" in lowered or "self" in lowered) and ("account" in lowered or "assets" in lowered):
-        return "Self"
+    match = _OWNER_HEADING.fullmatch(_compact(value))
+    if match is None:
+        return None
+    owner = match["owner"].casefold()
+    return "Spouse" if owner == "spouse" else "Self" if owner in {"filer", "self"} else "Dependent Child"
+
+
+def classify_table_structure(raw_cells: list) -> dict | None:
+    """Recognize positive structure evidence without using row numbers as type.
+
+    Unknown marker-only cells remain physical unknowns. An unknown numbered or
+    unnumbered asset with any financial cells must reach field qualification.
+    """
+    cells = [_compact(cell) for cell in raw_cells]
+    if not any(cells):
+        return {"kind": "blank"}
+    if cells[0] == "#" and not any(cells[1:]):
+        return {"kind": "unknown_marker"}
+    if len(cells) != 6:
+        return None
+    number, description, direction, event, notice, amount = cells
+    roles = [r"(?:asset\s+)?description", r"(?:transaction\s+)?type", r"(?:transaction\s+)?date",
+             r"notification(?:\s+received\s+over\s+30\s+days\s+ago)?\??", r"amount"]
+    if all(re.fullmatch(role, cell, re.I) for role, cell in zip(
+            roles, [description, direction, event, notice, amount], strict=True)):
+        return {"kind": "header"}
+    if any((direction, event, amount)):
+        return None
+    owner = _owner_heading(description)
+    if owner:
+        match = _OWNER_HEADING.fullmatch(description)
+        return {"kind": "owner_account_heading" if match["account"] else "owner_heading",
+                "owner": owner, "account_title": description if match["account"] else None}
+    if _ACCOUNT_HEADING.fullmatch(description):
+        return {"kind": "account_heading", "account_title": description}
+    if _BLANK_DECLARATION.fullmatch(description):
+        return {"kind": "blank_notice"}
+    if re.fullmatch(r"(?:endnotes?|transactions?)(?:\s+.*)?", number, re.I):
+        return {"kind": "footer"}
     return None
 
 
@@ -394,34 +435,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
         cells = [_compact(cell) for cell in raw_cells]
         if not any(cells):
             continue
-        joined = " ".join(cells).lower()
-        # A numbered disclosure must reach field qualification.  Words in an
-        # asset name are not evidence that the whole row is a table header.
-        # Even a numbered OCR rendition of a header remains a visible rejected
-        # row rather than silently disappearing from both output collections.
-        numbered = _ROW_NUMBER.fullmatch(cells[0]) is not None
-        if (cells[0] == "#" or (not numbered and (
-                ("description" in joined and "type" in joined and "date" in joined) or
-                ("amount" in joined and "received" in joined and "days ago" in joined)))):
+        structure = classify_table_structure(cells)
+        if structure:
+            if structure["kind"] in {"owner_heading", "owner_account_heading"}:
+                owner = structure["owner"]
             continue
         if len(cells) != 6:
             quarantined.append({"page_number": page_number, "cells": cells,
                                 "reasons": ["unexpected_column_count"]})
             continue
         raw_number, description, raw_type, raw_date, late_notice, raw_amount = cells
-        if (not _ROW_NUMBER.fullmatch(raw_number) and
-                raw_number.casefold().startswith(("endnot", "transacti"))):
-            continue
-        non_transaction = not any((raw_type, raw_date, raw_amount))
-        heading = _owner_heading(description) if non_transaction else None
-        if heading:
-            owner = heading
-            continue
-        if non_transaction and _ACCOUNT_HEADING.fullmatch(description):
-            continue
-        if non_transaction and ("intentionally left blank" in description.lower() or
-                                "left intentionally blank" in description.lower()):
-            continue
         reasons = []
         if not _ROW_NUMBER.fullmatch(raw_number):
             reasons.append("row_number_invalid")
@@ -1095,20 +1118,19 @@ def parse_generic_table_rows(inventory: list, *, source_sha256: str,
             lost_scope = True
             owner_scope_lost = owner_scope_lost or owner != "Undisclosed"
         previous_page = page
+        structure = classify_table_structure(cells)
+        if structure and structure["kind"] in {"owner_heading", "owner_account_heading"}:
+            owner, title, lost_scope = structure["owner"], structure["account_title"], False
+            owner_scope_lost = False
+            structural.append({"source_rows_index": index, "kind": structure["kind"], "text": cells[1]})
+            continue
+        if structure and structure["kind"] == "account_heading":
+            title, lost_scope = structure["account_title"], False
+            structural.append({"source_rows_index": index, "kind": "account_heading", "text": cells[1]})
+            continue
         if len(cells) == 6:
             description = cells[1]
             label = not any((cells[0], cells[2], cells[3], cells[5]))
-            explicit_owner = (_owner_heading(description) if label and re.fullmatch(
-                r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", description, re.I) else None)
-            if explicit_owner:
-                owner, title, lost_scope = explicit_owner, None, False
-                owner_scope_lost = False
-                structural.append({"source_rows_index": index, "kind": "owner_heading", "text": description})
-                continue
-            if label and _ACCOUNT_HEADING.fullmatch(description):
-                title, lost_scope = description, False
-                structural.append({"source_rows_index": index, "kind": "account_heading", "text": description})
-                continue
             if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
                 lost_scope = True
                 owner_scope_lost = True
@@ -1117,7 +1139,7 @@ def parse_generic_table_rows(inventory: list, *, source_sha256: str,
                 lost_scope = True
                 structural.append({"source_rows_index": index, "kind": "unresolved_report_relation", "text": description})
                 continue
-        if cells and cells[0] == "#" and not any(cells[1:]):
+        if structure and structure["kind"] == "unknown_marker":
             structural.append({"source_rows_index": index, "kind": "unknown_table_content", "text": "#"})
         good, bad = parse_table_rows([(page, cells)], source_sha=source_sha256,
             default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)

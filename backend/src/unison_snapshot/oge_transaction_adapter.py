@@ -461,20 +461,15 @@ def _cells(value: object) -> list[str]:
 
 
 def _structural_disposition(cells: list[str]) -> tuple[str, str] | None:
-    if not any(cells):
-        return "excluded", "blank_extracted_row"
-    joined = " ".join(cells).casefold()
-    if cells[0] == "#" or all(label in joined for label in _STRUCTURAL_LABELS):
-        return "excluded", "table_header"
-    if len(cells) == 6 and not any((cells[2], cells[3], cells[5])):
-        description = cells[1].casefold()
-        if re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", description):
-            return "excluded", "account_section_heading"
-        if "intentionally left blank" in description or "left intentionally blank" in description:
-            return "excluded", "explicit_blank_notice"
-    if cells[0].casefold().startswith(("endnot", "transacti")):
-        return "excluded", "report_footer"
-    return None
+    from .oge_reports import classify_table_structure
+    structure = classify_table_structure(cells)
+    if structure is None or structure["kind"] == "unknown_marker":
+        return None
+    reasons = {"blank": "blank_extracted_row", "header": "table_header",
+               "owner_heading": "owner_heading", "owner_account_heading": "owner_account_heading",
+               "account_heading": "account_section_heading", "blank_notice": "explicit_blank_notice",
+               "footer": "report_footer"}
+    return "excluded", reasons[structure["kind"]]
 
 
 def _row_key(row: dict[str, Any]) -> str:
@@ -637,7 +632,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             if scoped:
                 evidence = next((item for item in extraction["structural_rows"]
                                  if item["source_rows_index"] == physical_index - 1), None)
-                if evidence and evidence["kind"] in {"owner_heading", "account_heading"}:
+                if evidence and evidence["kind"] in {"owner_heading", "owner_account_heading", "account_heading"}:
                     structural = ("excluded", evidence["kind"])
             if structural:
                 disposition, reason = structural
