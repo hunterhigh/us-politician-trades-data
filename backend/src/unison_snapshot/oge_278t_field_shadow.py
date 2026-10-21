@@ -162,7 +162,7 @@ def _word_evidence(slot: dict, page: dict) -> dict:
 
 
 def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
-                    original: dict, source_ref: str) -> dict:
+                    original: dict, source_ref: str, amount_reading: dict | None = None) -> dict:
     from .oge_278t_amount_categories import observe_template_amount
 
     result = {}
@@ -189,7 +189,9 @@ def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
                    "word_indices": sorted({i for values in indices for i in values})
                    if all(isinstance(value, list) for value in indices) else None}
         if field == "amount":
-            primary["template_category"] = observe_template_amount(primary["raw_ocr_text"])
+            primary["amount_reading"] = deepcopy(amount_reading)
+            primary["template_category"] = observe_template_amount(
+                amount_reading["ordered_ocr_text"] or "" if amount_reading is not None else primary["raw_ocr_text"])
         result[field] = {"observations": [primary], "geometry_warnings": warnings,
                          "geometry_evidence_status": word_evidence["status"],
                          "qualification": "not_assessed"}
@@ -618,8 +620,13 @@ def _date_shape(raw: str) -> dict:
 
 
 def _amount_shape(raw: str) -> dict:
-    values = [int(value.replace(",", "")) for value in _MONEY.findall(raw)]
-    if len(values) != 2 or values[0] >= values[1]:
+    matches = list(_MONEY.finditer(raw))
+    values = [int(match[1].replace(",", "")) for match in matches]
+    # Never silently discard split thousands digits ("$100 001") or other
+    # unexplained numeric material and publish a much smaller pair.
+    residue = _MONEY.sub("", raw)
+    if (len(values) != 2 or values[0] >= values[1] or
+            re.fullmatch(r"\s*(?:yes|no)?[\s|:;.,\-–—•·]*", residue, re.I) is None):
         return {"status": "unknown", "values": None,
                 "reason": "not_exactly_two_ordered_money_shapes"}
     return {"status": "ocr_shape_only", "values": values,
@@ -708,6 +715,26 @@ def _description_reading(slot: dict, *, page: dict | None = None) -> dict:
     return {**projected, **evidence}
 
 
+
+def _amount_reading(slot: dict, *, page: dict | None = None) -> dict:
+    """Use the same physical line proof for the two adjacent amount columns."""
+    columns=slot["column_observation"]
+    selected=[columns[name].get("word_indices") for name in ("notification","amount")]
+    indices=sorted({i for group in selected for i in group}) if all(isinstance(group,list) for group in selected) else None
+    # Notification-column alphabetic labels are metadata, not dollar words.
+    # Their literal (including OCR misspellings) stays in the raw observation;
+    # only actual financial tokens leaking into that column enter amount order.
+    notification=columns["notification"].get("word_indices") or []
+    words=slot.get("words")
+    valid_indices=indices is not None and isinstance(words,list) and all(type(i) is int and 0 <= i < len(words) for i in indices)
+    excluded=[i for i in indices if i in notification and re.fullmatch(r"[A-Za-z]+",words[i]["text"].strip())] if valid_indices else []
+    kept=[i for i in indices if i not in excluded] if indices is not None else None
+    reading=_description_reading({**slot,"column_observation":{"description":{
+        "raw_ocr_text":" ".join(columns[name]["raw_ocr_text"] for name in ("notification","amount")),
+        "word_indices":kept}}},page=page)
+    return {**reading,"excluded_notification_word_indices":excluded}
+
+
 def _description_detection_reading(detections: list[dict], *, page: dict | None = None,
                                    source_slot: dict | None = None) -> dict:
     """Reuse the physical reading order for every word; keep detector order raw."""
@@ -762,7 +789,8 @@ def observe_field_shapes(observations: list[dict], *,
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
-                money_raw = raw["notification"] + " " + raw["amount"]
+                amount_reading = _amount_reading(slot, page=page)
+                money_raw = amount_reading["ordered_ocr_text"] or ""
                 field_shapes = {
                     "printed_number": {"status": "ocr_shape_only" if
                                        re.fullmatch(r"[1-9][0-9]*", printed_number) else
@@ -791,7 +819,8 @@ def observe_field_shapes(observations: list[dict], *,
                 word_evidence = _word_evidence(slot, page)
                 readings = _field_readings(
                     slot, raw, field_shapes, word_evidence, original=item,
-                    source_ref=f"observations/{input_index}/pages/{page_index}/slots/{slot_index}")
+                    source_ref=f"observations/{input_index}/pages/{page_index}/slots/{slot_index}",
+                    amount_reading=amount_reading)
                 evidence_counts[word_evidence["status"] + "_slots"] += 1
                 evidence_counts["crossing_word_count"] += len(word_evidence["crossing_words"])
                 evidence_counts["slots_with_crossing_words"] += bool(word_evidence["crossing_words"])
@@ -801,7 +830,7 @@ def observe_field_shapes(observations: list[dict], *,
                 slots.append({"slot_index": slot["slot_index"],
                               **_secondary_slot_geometry(page,slot),
                               "raw_columns": raw, "field_shapes": field_shapes,
-                              "description_reading": description_reading,
+                              "description_reading": description_reading, "amount_reading": amount_reading,
                               "word_evidence": word_evidence, "field_readings": readings,
                               "issues": issues, "qualification": "not_assessed"})
             pages.append({"page_number": number, "status": "field_shapes_observed",
