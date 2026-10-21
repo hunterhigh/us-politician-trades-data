@@ -192,6 +192,11 @@ def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
             primary["amount_reading"] = deepcopy(amount_reading)
             primary["template_category"] = observe_template_amount(
                 amount_reading["ordered_ocr_text"] or "" if amount_reading is not None else primary["raw_ocr_text"])
+            if shapes[field].get("interpretation_basis") == "existing_statutory_range_complete_digit_groups/v1":
+                lower,upper=shapes[field]["values"]
+                # Category is derived from the proven pair, not a rewritten OCR.
+                primary["template_category"]=observe_template_amount(f"${lower:,} - ${upper:,}")
+                primary["template_category"]["interpretation_basis"]=shapes[field]["interpretation_basis"]
         result[field] = {"observations": [primary], "geometry_warnings": warnings,
                          "geometry_evidence_status": word_evidence["status"],
                          "qualification": "not_assessed"}
@@ -633,6 +638,28 @@ def _amount_shape(raw: str) -> dict:
             "reason": None}
 
 
+
+def _ordered_amount_shape(reading: dict) -> dict:
+    """Apply the existing statutory parser only to complete proven digit groups."""
+    text=reading.get("ordered_ocr_text") or ""
+    shape=_amount_shape(text)
+    if shape["values"] is not None:
+        return shape
+    if (reading.get("status") != "geometry_ordered_unverified" or
+            reading.get("reading_coordinate_basis") != "source_and_row_top_relative_consistency/v1"):
+        return shape
+    number=r"(?:\d{1,3}(?:(?:,\s*|\s+)\d{3})+|\d+)"
+    grammar=r"\s*\$\s*"+number+r"\s*[-–—•·]\s*\$\s*"+number+r"\s*\.?\s*"
+    if re.fullmatch(grammar,text) is None:
+        return shape
+    from .oge_reports import _amount
+    value=_amount(text)
+    if value is None:
+        return shape
+    return {"status":"ocr_shape_only","values":list(value),"reason":None,
+            "interpretation_basis":"existing_statutory_range_complete_digit_groups/v1"}
+
+
 def _description_reading_in_frame(slot: dict, *, center_offsets: dict | None = None) -> dict:
     """Order saved words by physical line and x, retaining the original read.
 
@@ -790,7 +817,6 @@ def observe_field_shapes(observations: list[dict], *,
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
                 amount_reading = _amount_reading(slot, page=page)
-                money_raw = amount_reading["ordered_ocr_text"] or ""
                 field_shapes = {
                     "printed_number": {"status": "ocr_shape_only" if
                                        re.fullmatch(r"[1-9][0-9]*", printed_number) else
@@ -802,7 +828,7 @@ def observe_field_shapes(observations: list[dict], *,
                              "unknown", "value": direction if direction in _TYPE
                              else None},
                     "transaction_date": _date_shape(raw["transaction_date"]),
-                    "amount": _amount_shape(money_raw),
+                    "amount": _ordered_amount_shape(amount_reading),
                 }
                 issues = [name + "_unknown" for name, value in field_shapes.items()
                           if value["status"] == "unknown"]
