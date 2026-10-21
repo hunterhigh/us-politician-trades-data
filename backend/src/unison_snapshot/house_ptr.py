@@ -843,7 +843,8 @@ def _native_account_context(extraction: dict) -> dict:
 
 
 def qualify_automatic(extraction: dict, identity: dict, *,
-                      verified_blank_paper_owner_ids: frozenset[str] = frozenset()) -> dict:
+                      verified_blank_paper_owner_ids: frozenset[str] = frozenset(),
+                      _source_bound_revision_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
@@ -890,7 +891,9 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                 not re.fullmatch(r"[0-9]{1,30}", official_id)):
             reasons.append("reported_transaction_id_invalid")
         if str(row.get("filing_status", "")).lower() != "new":
-            reasons.append("revision_relationship_unresolved")
+            if not (str(row.get("filing_status", "")).lower() == "amended" and
+                    row.get("extraction_id") in _source_bound_revision_ids):
+                reasons.append("revision_relationship_unresolved")
             target = row.get("reported_transaction_id")
             if str(row.get("filing_status", "")).lower() == "amended":
                 revision_observations.append({"extraction_id": row.get("extraction_id"),
@@ -1327,3 +1330,146 @@ def promote_review(extraction: dict, review: dict) -> dict:
              "revision_count": len(revisions)}
     return {"audit": audit, "transactions": transactions, "revisions": revisions,
             "advisories": advisories}
+
+def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transactions: list[dict],
+                                *, prior_transactions: list[dict] | None = None) -> dict:
+    """Derive a bounded official-ID revision chain from replayable source rows.
+
+    Saved qualifications stay unchanged. This is a current-source interpretation
+    shared by candidate and status, never a free-standing approval receipt.
+    """
+    from copy import deepcopy
+    if not any(q.get('revision_observations') for q, _ in inputs):
+        return {'transactions': deepcopy(current_transactions), 'qualifications': {},
+                'identities': {}, 'dispositions': {}, 'replacements': []}
+    groups = {}
+    observations = {}
+    effective = {}
+    identities = {}
+    source_facts = {}
+    wanted_ids = {row.get('reported_transaction_id') for q, _ in inputs
+                  for row in q.get('revision_observations', [])
+                  if isinstance(row.get('reported_transaction_id'), str)}
+    source_versions = {}
+    for q, x in inputs:
+        source_versions.setdefault(str(q.get('document_id')), set()).add(x.get('source_sha256'))
+    for qualification, extraction in inputs:
+        document = str(qualification.get('document_id'))
+        if qualification.get('revision_observations'):
+            observations[document] = revision_reference_dispositions(qualification, extraction, current_transactions)
+        if extraction.get('extraction_method') != 'native_pdf_text' or not extraction.get('source_word_pages'):
+            continue
+        if not any(row.get('reported_transaction_id') in wanted_ids for row in extraction.get('transactions', [])):
+            continue
+        expected = qualify_automatic(extraction, qualification.get('identity', {}))
+        if expected != qualification:
+            if qualification.get('revision_observations'):
+                raise HouseIndexError('House amendment source qualification differs from replay')
+            continue  # Legacy reviewed facts cannot become automatic predecessors.
+        effective[document] = expected
+        identities[document] = qualification['identity']
+        candidates = qualify_automatic(extraction, qualification['identity'],
+            _source_bound_revision_ids=frozenset(r['extraction_id'] for r in extraction['transactions']
+                if str(r.get('filing_status', '')).lower() == 'amended'))
+        qualified = {r['id']: r for r in candidates['transactions']}
+        source_facts[document] = qualified
+        for row in extraction['transactions']:
+            official = row.get('reported_transaction_id')
+            status = str(row.get('filing_status', '')).lower()
+            if not isinstance(official, str) or not re.fullmatch(r'[0-9]{1,30}', official) or status not in {'new', 'amended'}:
+                continue
+            key = (qualification['identity'].get('person_id'), official)
+            groups.setdefault(key, []).append({'row': row, 'fact': qualified.get(row['extraction_id']),
+                'status': status, 'extraction': extraction, 'qualification': qualification,
+                'document_id': document, 'date': extraction['source']['filed_date']})
+    facts = {r['id']: deepcopy(r) for r in current_transactions}
+    prior = {r['id']: r for r in prior_transactions or []}
+    def same_formal(left, right):
+        return (isinstance(left, dict) and isinstance(right, dict) and
+                all(left.get(key) == right.get(key) for key in set(left) | set(right)))
+    involved = [entry for entries in groups.values() if any(r['status'] == 'amended' for r in entries)
+                for entry in entries]
+    involved_documents = {r['document_id'] for r in involved}
+    blocked_documents = {str(row.get('filing_id')) for row in prior.values()
+        if str(row.get('filing_id')) in involved_documents and
+        not same_formal(source_facts.get(str(row.get('filing_id')), {}).get(row.get('id')), row)}
+    # Check IDs directly too: a changed filing/person/URL must not evade the
+    # full-field comparison by moving a colliding ID outside its source report.
+    blocked_documents.update(entry['document_id'] for entry in involved
+        if entry['row']['extraction_id'] in prior and
+        not same_formal(prior[entry['row']['extraction_id']], entry['fact']))
+    blocked_ids = {r['row']['extraction_id'] for r in involved if r['document_id'] in blocked_documents}
+    if blocked_documents:
+        facts = {key: row for key, row in facts.items()
+                 if str(row.get('filing_id')) not in blocked_documents and key not in blocked_ids}
+        facts.update({key: deepcopy(row) for key, row in prior.items()
+                      if str(row.get('filing_id')) in blocked_documents or key in blocked_ids})
+    mappings = []
+    resolved_ids = {}
+    resolved_sources = {}
+    for (person, official), entries in groups.items():
+        amended = [r for r in entries if r['status'] == 'amended']
+        if not amended:
+            continue
+        originals = [r for r in entries if r['status'] == 'new']
+        reason = None
+        if any(len(source_versions[r['document_id']]) != 1 for r in entries):
+            reason = 'revision_source_version_ambiguous'
+        elif len({tuple(r['qualification']['identity'].get(field) for field in
+                ('official_name', 'state', 'party', 'state_district')) for r in entries}) != 1:
+            reason = 'official_transaction_id_source_identity_context_conflict'
+        elif len(originals) != 1:
+            reason = 'official_transaction_id_predecessor_not_unique' if originals else 'official_transaction_id_predecessor_missing'
+        elif any(r['document_id'] in blocked_documents for r in entries):
+            reason = 'existing_revision_fact_diff_requires_source_reconciliation'
+        elif originals[0]['fact'] is None or facts.get(originals[0]['row']['extraction_id']) != originals[0]['fact']:
+            reason = 'official_transaction_id_predecessor_fact_not_source_bound'
+        elif len({r['date'] for r in entries}) != len(entries):
+            reason = 'revision_filing_chronology_ambiguous'
+        else:
+            ordered = sorted(entries, key=lambda r: r['date'])
+            if ordered[0] is not originals[0]:
+                reason = 'revision_precedes_original_filing'
+        if reason:
+            entry_ids = {r['row']['extraction_id'] for r in entries}
+            old_group = [row for row in prior.values() if row.get('id') in entry_ids]
+            if old_group:
+                for entry in entries:
+                    facts.pop(entry['row']['extraction_id'], None)
+                for row in old_group:
+                    facts[row['id']] = deepcopy(row)
+            for entry in amended:
+                for observation in observations.get(entry['document_id'], []):
+                    if observation['extraction_id'] == entry['row']['extraction_id']:
+                        observation.update(disposition=reason)
+            continue
+        predecessor = originals[0]
+        # A bad intermediate revision makes later target identity unresolved.
+        for entry in sorted(amended, key=lambda r: r['date']):
+            identifier = entry['row']['extraction_id']
+            if entry['fact'] is None:
+                break
+            before = predecessor['row']['extraction_id']
+            facts.pop(before, None)
+            facts[identifier] = deepcopy(prior.get(identifier, entry['fact']))
+            mapping = {'prior_transaction_id': before, 'transaction_id': identifier,
+                'person_id': person, 'reported_transaction_id': official,
+                'prior_document_id': predecessor['document_id'], 'document_id': entry['document_id'],
+                'prior_source_sha256': predecessor['extraction']['source_sha256'],
+                'source_sha256': entry['extraction']['source_sha256'],
+                'prior_filed_date': predecessor['date'], 'filed_date': entry['date'],
+                'basis': 'unique_official_transaction_id_same_person_replayed_full_formal_facts_and_strict_filing_chronology'}
+            mappings.append(mapping)
+            resolved_ids.setdefault(entry['document_id'], set()).add(identifier)
+            resolved_sources[entry['document_id']] = entry
+            for observation in observations.get(entry['document_id'], []):
+                if observation['extraction_id'] == identifier:
+                    observation.update(disposition='source_bound_revision_applied', action='replace_prior',
+                        formal_transaction_id=identifier, replacement=mapping)
+            predecessor = entry
+    for document, identifiers in resolved_ids.items():
+        entry = resolved_sources[document]
+        effective[document] = qualify_automatic(entry['extraction'], entry['qualification']['identity'],
+            _source_bound_revision_ids=frozenset(identifiers))
+    return {'transactions': sorted(facts.values(), key=lambda r:r['id']), 'qualifications': effective,
+            'identities': identities, 'dispositions': observations, 'replacements': mappings}
