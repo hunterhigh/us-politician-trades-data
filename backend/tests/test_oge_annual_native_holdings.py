@@ -156,6 +156,32 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         page.objects["rect"] = grid[:-1]
         self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20)])["reason"], "native_boundary_rules_unresolved")
 
+    def test_native_blank_frame_junction_uses_source_interior_and_rejects_gaps(self):
+        def rect(x0, top, x1, bottom):
+            return {"x0": x0, "top": top, "x1": x1, "bottom": bottom, "fill": True, "stroke": False}
+        # Source verticals meet the inner faces. Snapped cell edges are the
+        # middle of the surrounding thick frame, not actual missing lines.
+        grid = [rect(-.5, 1, .5, 19), rect(9.5, 1, 10.5, 19),
+                rect(-.5, -1, 10.5, 1), rect(-.5, 19, 10.5, 21)]
+        page = SimpleNamespace(objects={"rect": grid}, annots=[])
+        proof = _native_empty_cells(page, [(0, 0, 10, 20)])
+        self.assertEqual(proof["status"], "source_objects_verified_empty")
+        self.assertEqual(proof["native_interiors"], [[.5, 1, 9.5, 19]])
+        for side in (0, 1):
+            for edge, value in (("top", 1.01), ("bottom", 18.99)):
+                broken = deepcopy(grid); broken[side][edge] = value
+                self.assertEqual(_native_empty_cells(SimpleNamespace(objects={"rect": broken}, annots=[]),
+                    [(0, 0, 10, 20)])["status"], "unknown")
+        for kind in ("char", "image", "curve", "line", "rect"):
+            changed = SimpleNamespace(objects={"rect": deepcopy(grid)}, annots=[])
+            changed.objects.setdefault(kind, []).append(rect(.51, 1.01, 1, 2))
+            self.assertEqual(_native_empty_cells(changed, [(0, 0, 10, 20)])["status"], "unknown")
+        # A short second candidate or a missing horizontal boundary is not
+        # silently stitched into a closed cell.
+        for changed in (grid + [rect(-.5, 4, .5, 5)], grid[:-1]):
+            self.assertEqual(_native_empty_cells(SimpleNamespace(objects={"rect": changed}, annots=[]),
+                [(0, 0, 10, 20)])["status"], "unknown")
+
     def test_new_source_proof_is_consumed_but_legacy_v1_cannot_claim_it(self):
         cover, sections, old, meta = self.setup_inputs()
         new = deepcopy(old)
