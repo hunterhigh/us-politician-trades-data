@@ -1,7 +1,11 @@
 """Read the hash-sharded contract directly from a public GitHub repository."""
 from dataclasses import dataclass
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 import hashlib
+import gzip
+import zlib
 import http.client
 import json
 import re
@@ -32,6 +36,32 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise PublicSnapshotError("Repository transport returned a redirect")
 
 
+def _read_response(response, limit: int) -> bytes:
+    encoding = response.headers.get("Content-Encoding", "identity").strip().lower()
+    if encoding in {"", "identity"}:
+        return response.read(limit + 1)
+    if encoding != "gzip":
+        raise PublicSnapshotError("Unsupported repository content encoding")
+
+    class BoundedWire:
+        def __init__(self):
+            self.remaining = limit + 64 * 1024
+
+        def read(self, size=-1):
+            request = self.remaining + 1 if size < 0 else min(size, self.remaining + 1)
+            chunk = response.read(request)
+            self.remaining -= len(chunk)
+            if self.remaining < 0:
+                raise PublicSnapshotError("Compressed repository object exceeds the size limit")
+            return chunk
+
+    try:
+        with gzip.GzipFile(fileobj=BoundedWire(), mode="rb") as decoded:
+            return decoded.read(limit + 1)
+    except (gzip.BadGzipFile, EOFError, zlib.error) as exc:
+        raise PublicSnapshotError("Invalid gzip repository object") from exc
+
+
 class HTTPTransport:
     def __init__(self, token: str | None = None, timeout: float = 20.0,
                  retries: int = 2, backoff: float = 0.5):
@@ -43,7 +73,7 @@ class HTTPTransport:
 
     def get(self, url: str, limit: int, *, api: bool = False) -> bytes:
         headers = {"Accept": "application/vnd.github+json" if api else "application/json",
-                   "User-Agent": "unison-public-snapshot/0.2"}
+                   "User-Agent": "unison-public-snapshot/0.2", "Accept-Encoding": "gzip"}
         if self.token and api:
             headers["Authorization"] = f"Bearer {self.token}"
             headers["X-GitHub-Api-Version"] = "2022-11-28"
@@ -56,7 +86,7 @@ class HTTPTransport:
                 with self.opener.open(request, timeout=self.timeout) as response:
                     if response.status != 200:
                         raise PublicSnapshotError(f"Repository returned HTTP {response.status}")
-                    data = response.read(limit + 1)
+                    data = _read_response(response, limit)
                 break
             except urllib.error.HTTPError as exc:
                 if exc.code not in retryable_http or attempt == self.retries:
@@ -79,13 +109,17 @@ class SnapshotSelection:
 
 class PublicSnapshotRepository:
     def __init__(self, owner: str, repo: str, *, ref: str = "main", transport=None,
-                 cache_bytes: int = 32 * 1024 * 1024):
+                 cache_bytes: int = 32 * 1024 * 1024, read_workers: int = 4):
         if not NAME.fullmatch(owner) or not NAME.fullmatch(repo) or ref not in {"main", "demo"}:
             raise ValueError("Invalid fixed public repository identity or ref")
         self.owner, self.repo, self.ref = owner, repo, ref
         self.transport = transport or HTTPTransport()
         if type(cache_bytes) is not int or cache_bytes < 0:
             raise ValueError("Cache size must be a nonnegative integer")
+        if type(read_workers) is not int or not 1 <= read_workers <= 4:
+            raise ValueError("Read workers must be an integer from 1 to 4")
+        self._read_workers = read_workers
+        self._cache_lock = Lock()
         self._cache_budget = cache_bytes
         self._cache_size = 0
         self._cache = OrderedDict()
@@ -115,19 +149,21 @@ class PublicSnapshotRepository:
         url = f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/{commit}/{path}"
         # Cache immutable bytes only. Ref resolution and decoded caller objects
         # remain fresh, and every consumer still checks its size/hash contract.
-        data = self._cache.get(url)
-        if data is not None:
-            self._cache.move_to_end(url)
-        else:
+        with self._cache_lock:
+            data = self._cache.get(url)
+            if data is not None:
+                self._cache.move_to_end(url)
+        if data is None:
             data = self.transport.get(url, limit, api=False)
         if len(data) > limit:
             raise PublicSnapshotError("Repository object exceeds the contract size limit")
-        if url not in self._cache and len(data) <= self._cache_budget:
-            while self._cache and self._cache_size + len(data) > self._cache_budget:
-                _, evicted = self._cache.popitem(last=False)
-                self._cache_size -= len(evicted)
-            self._cache[url] = data
-            self._cache_size += len(data)
+        with self._cache_lock:
+            if url not in self._cache and len(data) <= self._cache_budget:
+                while self._cache and self._cache_size + len(data) > self._cache_budget:
+                    _, evicted = self._cache.popitem(last=False)
+                    self._cache_size -= len(evicted)
+                self._cache[url] = data
+                self._cache_size += len(data)
         return data
 
     def manifest(self, commit: str) -> dict:
@@ -263,8 +299,20 @@ class PublicSnapshotRepository:
             return []
         rows: list[dict] = []
         seen: set[str] = set()
-        for sha in pages:
-            value = self._content(market_commit, "market-pages", sha)
+        def read(sha):
+            return self._content(market_commit, "market-pages", sha)
+
+        def values():
+            if self._read_workers == 1 or len(pages) == 1:
+                yield from map(read, pages)
+                return
+            with ThreadPoolExecutor(max_workers=self._read_workers) as pool:
+                # Batches bound queued/decoded pages as well as active requests.
+                # map preserves publication order even when downloads finish out of order.
+                for start in range(0, len(pages), self._read_workers):
+                    yield from pool.map(read, pages[start:start + self._read_workers])
+
+        for value in values():
             page = value.get("security_market_data")
             if not isinstance(page, list) or any(not isinstance(row, dict) for row in page):
                 raise PublicSnapshotError("Market page has invalid rows")

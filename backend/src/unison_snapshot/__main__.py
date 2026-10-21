@@ -1,5 +1,4 @@
 import argparse
-from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timezone
 import json
@@ -688,9 +687,8 @@ def main() -> None:
                                   snapshot_id="prepublication-validation")
             version = ("v3" if processor_version_for(result) == "v3" else "v2" if audit["accepted_count"] else "v1")
             processor = load("process_snapshot", version=version)
-            processor.build_snapshot(result)
-            identity = deepcopy(result)
-            identity["meta"].pop("snapshot_id", None)
+            identity = dict(result, meta={key: value for key, value in result["meta"].items()
+                                          if key != "snapshot_id"})
             result["meta"]["snapshot_id"] = digest(encode(identity))
             processed = processor.build_snapshot(result)
             audit = dict(audit, candidate_snapshot_id=result["meta"]["snapshot_id"],
@@ -736,9 +734,8 @@ def main() -> None:
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"
             processor = load("process_snapshot", version="v3" if processor_version_for(result) == "v3" else "v1")
-            processor.build_snapshot(result)
-            identity = deepcopy(result)
-            identity["meta"].pop("snapshot_id", None)
+            identity = dict(result, meta={key: value for key, value in result["meta"].items()
+                                          if key != "snapshot_id"})
             result["meta"]["snapshot_id"] = digest(encode(identity))
             processed = processor.build_snapshot(result)
             audit = dict(validation.audit, candidate_snapshot_id=result["meta"]["snapshot_id"],

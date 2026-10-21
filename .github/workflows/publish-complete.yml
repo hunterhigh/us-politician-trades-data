@@ -216,8 +216,6 @@ jobs:
             --input "$RUNNER_TEMP/governed-disclosure.json" \
             --output "$RUNNER_TEMP/complete-candidate.json" \
             --audit-output "$RUNNER_TEMP/market-audit.json" \
-            --processed-output "$RUNNER_TEMP/complete-processed.json" \
-            --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --batch-size "$BATCH_SIZE" \
             --assets-url "$assets_url" \
             --previous-main-root "$CACHE_MAIN_ROOT" \
@@ -235,7 +233,6 @@ jobs:
             --input "$RUNNER_TEMP/complete-candidate.json" \
             --output "$RUNNER_TEMP/complete-candidate.json" \
             --audit-output "$RUNNER_TEMP/twelve-audit.json" \
-            --processed-output "$RUNNER_TEMP/complete-processed.json" \
             --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --limit "$TWELVE_LIMIT" \
             --previous-main-root "${{ steps.trees.outputs.cache_main_root }}" \

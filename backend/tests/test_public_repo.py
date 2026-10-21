@@ -285,6 +285,7 @@ class PublicRepositoryTests(unittest.TestCase):
     def test_http_transport_retries_transient_failure(self):
         class Response:
             status = 200
+            headers = {}
 
             def __enter__(self):
                 return self
@@ -309,6 +310,89 @@ class PublicRepositoryTests(unittest.TestCase):
         transport.opener = FlakyOpener()
         self.assertEqual(transport.get("https://example.test/data", 10), b"{}")
         self.assertEqual(transport.opener.calls, 2)
+
+
+class GzipTransportTests(unittest.TestCase):
+    def test_http_negotiation_decodes_before_enforcing_limit(self):
+        import gzip
+        import io
+
+        class Response(io.BytesIO):
+            status = 200
+            headers = {"Content-Encoding": "gzip"}
+
+        class Opener:
+            def open(self, request, timeout):
+                self.headers = dict(request.header_items())
+                return Response(gzip.compress(b'{"value":42}'))
+
+        transport = HTTPTransport(token="test-token", retries=0)
+        transport.opener = Opener()
+        self.assertEqual(transport.get("https://example.test/data", 12), b'{"value":42}')
+        self.assertEqual(transport.opener.headers["Accept-encoding"], "gzip")
+        self.assertNotIn("Authorization", transport.opener.headers)
+        with self.assertRaises(PublicSnapshotError):
+            transport.get("https://example.test/data", 5)
+        transport.get("https://example.test/data", 12, api=True)
+        self.assertEqual(transport.opener.headers["Authorization"], "Bearer test-token")
+
+    def test_decoded_limit_and_corrupt_stream(self):
+        import gzip
+        import io
+        from unison_snapshot.public_repo import _read_response
+
+        class Response(io.BytesIO):
+            headers = {"Content-Encoding": "gzip"}
+
+        payload = b'{"value":42}'
+        compressed = gzip.compress(payload)
+        self.assertEqual(_read_response(Response(compressed), len(payload)), payload)
+        # The outer HTTPTransport enforces this decoded limit, just as for identity.
+        self.assertEqual(len(_read_response(Response(gzip.compress(b'x' * 10000)), 10)), 11)
+        with self.assertRaises(PublicSnapshotError):
+            _read_response(Response(compressed[:-4]), 100)
+        with self.assertRaises(PublicSnapshotError):
+            _read_response(Response(gzip.compress(b'') * 4000), 100)
+
+
+class ParallelMarketTests(unittest.TestCase):
+    def test_bounded_parallel_pages_preserve_order_and_cache_accounting(self):
+        import hashlib
+        from threading import Barrier, Lock
+
+        bodies = [encode({"security_market_data": [{"ticker": f"T{i}"}]}) for i in range(8)]
+        files = {hashlib.sha256(body).hexdigest(): body for body in bodies}
+        barrier, lock = Barrier(4), Lock()
+
+        class Transport:
+            active = 0
+            peak = 0
+
+            def get(self, url, limit, *, api=False):
+                with lock:
+                    self.active += 1
+                    self.peak = max(self.peak, self.active)
+                try:
+                    barrier.wait(timeout=5)
+                    return files[url.rsplit("/", 1)[-1][:-5]]
+                finally:
+                    with lock:
+                        self.active -= 1
+
+        transport = Transport()
+        repo = PublicSnapshotRepository("owner", "repo", transport=transport, cache_bytes=100)
+        manifest = {"market_commit": COMMIT, "market_pages": list(files)}
+        self.assertEqual([row["ticker"] for row in repo._market_pages(manifest)],
+                         [f"T{i}" for i in range(8)])
+        self.assertEqual(transport.peak, 4)
+        self.assertEqual(repo._cache_size, sum(map(len, repo._cache.values())))
+        self.assertLessEqual(repo._cache_size, 100)
+        # Parallel errors must reach the caller rather than yielding a partial snapshot.
+        repo._cache.clear()
+        repo._cache_size = 0
+        files[next(iter(files))] = b"corrupt"
+        with self.assertRaisesRegex(PublicSnapshotError, "hash mismatch"):
+            repo._market_pages(manifest)
 
 
 class MaterializeTests(unittest.TestCase):
