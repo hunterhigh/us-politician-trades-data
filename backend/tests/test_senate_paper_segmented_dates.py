@@ -3,7 +3,10 @@ from copy import deepcopy
 import hashlib
 import unittest
 from unittest.mock import patch
-from PIL import Image,ImageDraw,ImageFont
+try:
+    from PIL import Image,ImageDraw,ImageFont
+except ImportError:
+    Image=ImageDraw=ImageFont=None
 from unison_snapshot.senate import SenateEfdError
 from unison_snapshot.senate_paper_dates import segment_geometry,saved_segmented_date,interpret_segmented_date
 from unison_snapshot.senate_paper import parse_paper_grid_observations
@@ -24,6 +27,7 @@ def fixture(text="7/9/26"):
 def read(image,record):
     return interpret_segmented_date(image,record,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90])
 
+@unittest.skipIf(Image is None,"optional Senate image dependency unavailable")
 class SenateSegmentedDatesTests(unittest.TestCase):
     def test_two_source_slashes_and_complete_numeric_components(self):
         image,record=fixture();result=read(image,record)
@@ -73,6 +77,7 @@ class SenateSegmentedDatesTests(unittest.TestCase):
         after=self._parse()["transactions"][0]
         self.assertEqual(before["extraction_id"],after["extraction_id"])
         self.assertEqual(after["field_observations"]["date_raw"],"779/26")
+        self.assertEqual(self._parse()["date_segment_rule_version"],"senate-source-segmented-date/v1")
         self.assertEqual(after["transaction_date"],"2026-07-09")
         # Saved slot had an explicit differing valid original read, retained as conflict.
         self.assertIn("paper_date_observation_conflict",after["quarantine_reasons"])
@@ -102,3 +107,37 @@ class SenateSegmentedDatesTests(unittest.TestCase):
                 build_senate_candidate(root,state,deepcopy(BASE))
             with self.assertRaisesRegex(SenateEfdError,"replay pointer"):
                 build_senate_candidate(root,state,deepcopy(BASE),evidence_root=root)
+
+    def test_disconnected_strokes_reassemble_only_existing_ink(self):
+        image,_=fixture();draw=ImageDraw.Draw(image)
+        draw.rectangle((13,27,31,54),fill="white")
+        draw.rectangle((14,28,30,31),fill="black")
+        draw.line((23,34,17,53),fill="black",width=4)
+        before=image.tobytes();plain=segment_geometry(image)
+        joined=segment_geometry(image,"disconnected_strokes")
+        self.assertEqual(plain["status"],"unknown")
+        self.assertEqual(joined["status"],"two_source_slashes")
+        self.assertEqual(image.tobytes(),before)
+        self.assertEqual(len(joined["slashes"]),2)
+        reads=[{"role":role,"box_px":box,"text":text,"confidence":.99} for role,box,text in zip(
+            ["month","day","year"],joined["numeric_component_boxes_px"],["7","9","26"])]
+        record=saved_segmented_date(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
+            reads=reads,engine={"name":"synthetic"},mode="disconnected_strokes")
+        self.assertEqual(read(image,record)["complete_date_text"],"7/9/26")
+
+    def test_prefix_requires_direct_explicit_second_slash_read_not_inferred(self):
+        image,_=fixture();draw=ImageDraw.Draw(image)
+        draw.line((65,40,85,40),fill="black",width=1)
+        geometry=segment_geometry(image,"prefix_slash")
+        self.assertEqual(geometry["status"],"source_prefix_slash")
+        reads=[{"role":role,"box_px":box,"text":text,"confidence":.99} for role,box,text in zip(
+            ["month","remainder"],geometry["numeric_component_boxes_px"],["7","9/26"])]
+        record=saved_segmented_date(image,page_sha256="a"*64,page_number=2,grid_slot=1,date_box_px=[0,0,260,90],
+            reads=reads,engine={"name":"synthetic"},mode="prefix_slash")
+        self.assertEqual(read(image,record)["complete_date_text"],"7/9/26")
+        for raw in ["926","9-26","9/2G","9/26/27"]:
+            changed=deepcopy(record);changed["numeric_reads"][1]["text"]=raw
+            self.assertIsNone(read(image,changed))
+        _,ordinary=fixture()
+        self.assertEqual(segment_geometry(image)["status"],"unknown")
+        with self.assertRaises(SenateEfdError):segment_geometry(image,"approved_answer")

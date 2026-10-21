@@ -520,6 +520,7 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "evidence_complete": True, "page_manifest_sha256": manifest["manifest_sha256"],
             "page_count": manifest["page_count"], "transactions": rows,
             "cached_word_pages_sha256": cache_sha,
+            **({"date_segment_rule_version": "senate-source-segmented-date/v1"} if date_records else {}),
             "source_report_ledger": observation["source_report_ledger"],
             "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
             "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows),
