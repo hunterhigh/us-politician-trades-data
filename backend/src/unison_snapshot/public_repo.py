@@ -1,5 +1,6 @@
 """Read the hash-sharded contract directly from a public GitHub repository."""
 from dataclasses import dataclass
+from collections import OrderedDict
 import hashlib
 import http.client
 import json
@@ -11,7 +12,7 @@ import urllib.request
 
 from .builder import LAYOUT, SCHEMA
 from .builder import timestamp, restore_shard_disclosure_relations
-from .codec import bucket
+from .codec import bucket, encode
 from .disclosure_status import (MAX_STATUS_BYTES, validate_reference, validate_summary,
                                 validate_page, validate_scope_records)
 
@@ -77,11 +78,17 @@ class SnapshotSelection:
 
 
 class PublicSnapshotRepository:
-    def __init__(self, owner: str, repo: str, *, ref: str = "main", transport=None):
+    def __init__(self, owner: str, repo: str, *, ref: str = "main", transport=None,
+                 cache_bytes: int = 32 * 1024 * 1024):
         if not NAME.fullmatch(owner) or not NAME.fullmatch(repo) or ref not in {"main", "demo"}:
             raise ValueError("Invalid fixed public repository identity or ref")
         self.owner, self.repo, self.ref = owner, repo, ref
         self.transport = transport or HTTPTransport()
+        if type(cache_bytes) is not int or cache_bytes < 0:
+            raise ValueError("Cache size must be a nonnegative integer")
+        self._cache_budget = cache_bytes
+        self._cache_size = 0
+        self._cache = OrderedDict()
 
     def _json(self, data: bytes, label: str) -> dict:
         try:
@@ -106,7 +113,22 @@ class PublicSnapshotRepository:
         if not SHA1.fullmatch(commit) or not re.fullmatch(r"[a-z0-9./^-]+", path) or ".." in path:
             raise PublicSnapshotError("Invalid frozen repository path")
         url = f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/{commit}/{path}"
-        return self.transport.get(url, limit, api=False)
+        # Cache immutable bytes only. Ref resolution and decoded caller objects
+        # remain fresh, and every consumer still checks its size/hash contract.
+        data = self._cache.get(url)
+        if data is not None:
+            self._cache.move_to_end(url)
+        else:
+            data = self.transport.get(url, limit, api=False)
+        if len(data) > limit:
+            raise PublicSnapshotError("Repository object exceeds the contract size limit")
+        if url not in self._cache and len(data) <= self._cache_budget:
+            while self._cache and self._cache_size + len(data) > self._cache_budget:
+                _, evicted = self._cache.popitem(last=False)
+                self._cache_size -= len(evicted)
+            self._cache[url] = data
+            self._cache_size += len(data)
+        return data
 
     def manifest(self, commit: str) -> dict:
         value = self._json(self._read(commit, "manifest.json", LIMITS["manifest"]), "manifest")
@@ -179,7 +201,7 @@ class PublicSnapshotRepository:
             raise PublicSnapshotError("Content hash mismatch")
         return self._json(data, "content shard")
 
-    def _entity(self, commit: str, kind: str, key: str) -> dict:
+    def _entity_address(self, commit: str, kind: str, key: str) -> tuple[str, str]:
         original = key
         if kind in {"tickers", "market"}:
             key = key.upper()
@@ -191,6 +213,10 @@ class PublicSnapshotRepository:
         selected = shards.get(key, shards.get(original))
         if selected is None:
             raise PublicSnapshotError(f"No published {kind} record for {key}")
+        return prefix, selected
+
+    def _entity(self, commit: str, kind: str, key: str) -> dict:
+        prefix, selected = self._entity_address(commit, kind, key)
         return self._content(commit, prefix, selected)
 
     def _market(self, manifest: dict, requirements: object) -> list[dict]:
@@ -199,16 +225,33 @@ class PublicSnapshotRepository:
         market_commit = manifest.get("market_commit")
         if requirements and not market_commit:
             raise PublicSnapshotError("Market dependencies are unavailable")
-        rows = []
+        tickers = []
         for requirement in requirements:
             match = re.fullmatch(r"market:([A-Z0-9][A-Z0-9.\-^/]{0,31})", str(requirement))
             if not match:
                 raise PublicSnapshotError("Invalid dependency declaration")
-            value = self._entity(market_commit, "market", match.group(1))
+            tickers.append(match.group(1))
+        pages = manifest.get("market_pages", [])
+        # Broad person views can otherwise make thousands of serial requests.
+        # Existing bulk pages are useful only when many dependencies are needed.
+        bulk = ({row["ticker"]: row for row in self._market_pages(manifest)}
+                if pages and len(tickers) > max(100, 4 * len(pages)) else {})
+        rows = []
+        for ticker in tickers:
+            value = None
+            if ticker in bulk:
+                prefix, sha = self._entity_address(market_commit, "market", ticker)
+                candidate = {"security_market_data": [bulk[ticker]]}
+                # Prove the page row matches the entity address too. A mismatch
+                # uses the original shard reader, including its hash validation.
+                if hashlib.sha256(encode(candidate)).hexdigest() == sha:
+                    value = candidate
+            if value is None:
+                value = self._entity(market_commit, "market", ticker)
             row = value.get("security_market_data", value)
             if isinstance(row, list) and len(row) == 1:
                 row = row[0]
-            if not isinstance(row, dict) or row.get("ticker") != match.group(1):
+            if not isinstance(row, dict) or row.get("ticker") != ticker:
                 raise PublicSnapshotError("Market shard does not match its dependency")
             rows.append(row)
         return rows
