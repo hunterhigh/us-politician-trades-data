@@ -155,7 +155,7 @@ class TwelveDataMarketTests(unittest.TestCase):
             }},
         })
         client = TwelveDataClient("cache-only", opener=lambda *_args, **_kwargs: self.fail(
-            "zero-limit publication must not call Twelve Data"), pace_seconds=0)
+            "zero-limit publication must not call Twelve Data"))
         data, audit = supplement(source, client=client,
                                  checked_at="2026-09-19T00:01:00Z", limit=0,
                                  previous_market=cache)

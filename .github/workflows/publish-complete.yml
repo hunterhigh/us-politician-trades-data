@@ -244,6 +244,9 @@ jobs:
           from pathlib import Path
           root = Path(os.environ['RUNNER_TEMP'])
           audit = json.loads((root / 'twelve-audit.json').read_text(encoding='utf-8'))
+          print('Twelve Data transport:', json.dumps(audit['transport'], sort_keys=True))
+          print('Twelve Data history:', json.dumps(audit['history_counts'], sort_keys=True))
+          print(f"Twelve Data scheduling: new {audit['new_selected_count']}/{audit['new_due_count']}; refresh {audit['refresh_selected_count']}/{audit['refresh_due_count']}; deferred new {audit['new_deferred_count']}, refresh {audit['refresh_deferred_count']}")
           if audit['accepted_count'] < 1:
               raise SystemExit('No qualified Twelve Data price series; preserving the last publication')
           PY
