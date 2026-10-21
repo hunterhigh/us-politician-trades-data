@@ -38,7 +38,9 @@ FULL_REFRESH_INTERVAL_DAYS = 30
 AUDIT_SCHEMA = "alpaca-market-validation/v2"
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 EXPLICIT_NAME_TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)\s*$")
-SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA"}
+# TXSE participates in CTA/UTP SIP; CECO transferred there on 2026-10-19.
+# https://www.txse.com/alerts/txse-production-launch-and-market-activation
+SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA", "TXSE"}
 # Official filings occasionally place a foreign-exchange code in the ticker field.
 # Keep this exception explicit: symbol length alone is not enough to classify a
 # security as foreign and must never turn an unresolved code into a silent skip.
