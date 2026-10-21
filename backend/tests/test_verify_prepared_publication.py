@@ -26,6 +26,42 @@ class Delegate:
 
 
 class PreparedPublicationTests(unittest.TestCase):
+    def test_published_cache_reuses_only_fixed_market_objects_and_falls_back_on_damage(self):
+        from unison_snapshot.codec import encode, digest
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            main, market = root / "main", root / "market"
+            main.mkdir(); (market / "market-pages").mkdir(parents=True)
+            raw = encode({"security_market_data": [{"ticker": "MSFT"}]})
+            sha = digest(raw)
+            path = market / "market-pages" / f"{sha}.json"
+            path.write_bytes(raw)
+            (main / "manifest.json").write_bytes(encode({
+                "is_demo": False, "market_commit": "b" * 40, "market_pages": [sha]}))
+            delegate = Delegate()
+            cache = script.PublishedMarketTransport(owner="owner", repo="repo", main_root=main,
+                market_root=market, market_commit="b" * 40, delegate=delegate)
+            prefix = "https://raw.githubusercontent.com/owner/repo/"
+            url = prefix + "b" * 40 + f"/market-pages/{sha}.json"
+            self.assertEqual(cache.get(url, 1000), raw)
+            self.assertEqual(delegate.calls, [])
+            # Unchanged content at a NEW commit must still be available remotely.
+            for address in (url.replace("b" * 40, "c" * 40),
+                            prefix + "b" * 40 + "/market/aa/index.json",
+                            prefix + "a" * 40 + f"/board/{sha}.json",
+                            url.replace("owner/repo", "other/repo")):
+                self.assertEqual(cache.get(address, 1000), b"raw")
+            path.write_bytes(raw + b" ")
+            self.assertEqual(cache.get(url, 1000), b"raw")
+            path.unlink()
+            self.assertEqual(cache.get(url, 1000), b"raw")
+            self.assertEqual(cache.metrics["reused_objects"], 1)
+            self.assertEqual(cache.metrics["cache_misses"], 2)
+            self.assertEqual(cache.metrics["remote_requests"], 6)
+            with self.assertRaisesRegex(ValueError, "published main/market pair"):
+                script.PublishedMarketTransport(owner="owner", repo="repo", main_root=main,
+                    market_root=market, market_commit="c" * 40)
+
     @staticmethod
     def _whitehouse_transaction():
         return {
@@ -119,6 +155,9 @@ class PreparedPublicationTests(unittest.TestCase):
                 expected_review_commit=expected_review,
                 transport=object())
             self.assertTrue((Path(folder) / "dashboard.html").is_file())
+            self.assertTrue((Path(folder) / "dashboard.json").is_file())
+            for unused in ("person", "search", "ticker", "twelve"):
+                self.assertFalse((Path(folder) / f"{unused}.json").exists())
             return result
 
     def test_trump_person_transactions_and_fixed_market_commit_pass_preflight(self):

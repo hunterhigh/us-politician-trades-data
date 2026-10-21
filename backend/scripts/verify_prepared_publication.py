@@ -6,9 +6,11 @@ import argparse
 import json
 from pathlib import Path
 import re
+import time
+from threading import Lock
 from urllib.parse import urlsplit
 
-from unison_snapshot.codec import encode
+from unison_snapshot.codec import encode, digest
 from unison_snapshot.legacy import load
 from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
 from unison_snapshot.oge_reports import (
@@ -60,6 +62,49 @@ class FixedCommitTransport:
         return self.delegate.get(url, limit, api=False)
 
 
+class PublishedMarketTransport:
+    """Reuse immutable bytes only at an already published market commit.
+
+    A different commit always goes through HTTP, even when page hashes match:
+    publication must still demonstrate that the new commit exposes those files.
+    Main objects and market indexes are always read remotely.
+    """
+
+    def __init__(self, *, owner: str, repo: str, main_root: Path, market_root: Path,
+                 market_commit: str, delegate=None):
+        manifest = json.loads((main_root / "manifest.json").read_bytes())
+        if not SHA1.fullmatch(market_commit) or manifest.get("market_commit") != market_commit \
+                or manifest.get("is_demo") is not False:
+            raise ValueError("Readback cache requires a published main/market pair")
+        self.prefix = f"https://raw.githubusercontent.com/{owner}/{repo}/{market_commit}/"
+        self.root = market_root.resolve()
+        self.pages = set(manifest.get("market_pages", []))
+        self.delegate = delegate or HTTPTransport(retries=4, backoff=1.0)
+        self.lock = Lock()
+        self.metrics = dict(reused_objects=0, reused_bytes=0, cache_misses=0,
+                            remote_requests=0, remote_decoded_bytes=0)
+
+    def get(self, url: str, limit: int, *, api: bool = False) -> bytes:
+        relative = url.removeprefix(self.prefix) if url.startswith(self.prefix) else ""
+        match = re.fullmatch(r"(market-pages|market/[0-9a-f]{2})/([0-9a-f]{64})\.json", relative)
+        if not api and match and (match[1] != "market-pages" or match[2] in self.pages):
+            path = (self.root / relative).resolve()
+            if path.is_relative_to(self.root) and path.is_file() and path.stat().st_size <= limit:
+                raw = path.read_bytes()
+                if len(raw) <= limit and digest(raw) == match[2]:
+                    with self.lock:
+                        self.metrics["reused_objects"] += 1
+                        self.metrics["reused_bytes"] += len(raw)
+                    return raw
+            with self.lock:
+                self.metrics["cache_misses"] += 1
+        raw = self.delegate.get(url, limit, api=api)
+        with self.lock:
+            self.metrics["remote_requests"] += 1
+            self.metrics["remote_decoded_bytes"] += len(raw)
+        return raw
+
+
 def verify_prepared_publication(
         *, owner: str, repo: str, main_commit: str, market_commit: str,
         person_id: str, ticker: str, twelve_ticker: str, output_dir: Path,
@@ -74,6 +119,7 @@ def verify_prepared_publication(
     if not SHA1.fullmatch(market_commit):
         raise ValueError("Prepared market commit is invalid")
     output_dir.mkdir(parents=True, exist_ok=True)
+    started = time.perf_counter()
     repository = PublicSnapshotRepository(
         owner, repo, ref="main",
         transport=transport or FixedCommitTransport(main_commit),
@@ -168,8 +214,12 @@ def verify_prepared_publication(
                     for row in twelve_value["security_market_data"])):
         raise ValueError("Prepared Twelve Data ticker readback is incomplete")
 
-    for mode, selection in selections.items():
-        (output_dir / f"{mode}.json").write_bytes(encode(selection.snapshot))
+    read_seconds = time.perf_counter() - started
+    # Only dashboard.json is consumed by the renderer. The other selections
+    # have already been checked above; serializing their full price histories
+    # produced large files with no downstream reader.
+    (output_dir / "dashboard.json").write_bytes(encode(dashboard))
+    written_at = time.perf_counter()
     renderer = load("render_dashboard", version="v2")
     html = renderer.render_html(renderer.load_dashboard_data(output_dir / "dashboard.json"))
     (output_dir / "dashboard.html").write_text(html, encoding="utf-8")
@@ -181,6 +231,9 @@ def verify_prepared_publication(
             "reported_holding_count": len(
                 selections["dashboard"].snapshot["reported_holdings"]),
             "person_transaction_count": len(person["transactions"]),
+            "timings": {"read_and_check_seconds": round(read_seconds, 3),
+                        "serialize_seconds": round(written_at - started - read_seconds, 3),
+                        "render_seconds": round(time.perf_counter() - written_at, 3)},
             "trump_transactions_visible_in_dashboard_search": True,
             "disclosure_status_verified": status is not None}
 
@@ -205,7 +258,18 @@ def main() -> int:
     parser.add_argument("--require-disclosure-status", action="store_true")
     parser.add_argument("--expected-review-commit")
     parser.add_argument("--expected-evidence-commit")
+    parser.add_argument("--published-main-root", type=Path)
+    parser.add_argument("--published-market-root", type=Path)
+    parser.add_argument("--published-market-commit")
     args = parser.parse_args()
+    cached = None
+    options = (args.published_main_root, args.published_market_root, args.published_market_commit)
+    if any(options):
+        if not all(options):
+            parser.error("Published main, market root and market commit must be supplied together")
+        cached = PublishedMarketTransport(owner=args.owner, repo=args.repo,
+            main_root=args.published_main_root, market_root=args.published_market_root,
+            market_commit=args.published_market_commit)
     result = verify_prepared_publication(
         owner=args.owner, repo=args.repo, main_commit=args.main_commit,
         market_commit=args.market_commit, person_id=args.person_id,
@@ -219,7 +283,10 @@ def main() -> int:
         expected_person_transactions=args.expected_person_transactions,
         require_disclosure_status=args.require_disclosure_status,
         expected_review_commit=args.expected_review_commit,
-        expected_evidence_commit=args.expected_evidence_commit)
+        expected_evidence_commit=args.expected_evidence_commit,
+        transport=FixedCommitTransport(args.main_commit, delegate=cached))
+    if cached:
+        result["transport"] = cached.metrics
     print(json.dumps(result, sort_keys=True))
     return 0
 

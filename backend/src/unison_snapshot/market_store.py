@@ -117,7 +117,10 @@ def validate_market_rows(rows: object, *, data_cutoff_at: str) -> list[dict]:
                     or not math.isfinite(close) or close <= 0:
                 raise ValueError(f"Market row {ticker} contains an invalid completed close")
             previous = day
-            normalized_history.append({"date": day.isoformat(), "close": round(float(close), 4)})
+            normalized_close = round(float(close), 4)
+            if normalized_close <= 0:
+                raise ValueError(f"Market row {ticker} close rounds to zero at publication precision")
+            normalized_history.append({"date": day.isoformat(), "close": normalized_close})
         row["ticker"] = ticker
         row["price_history"] = normalized_history
         result.append(row)

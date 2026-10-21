@@ -453,6 +453,7 @@ jobs:
             --input "$RUNNER_TEMP/complete-candidate.json" --root "$MAIN_ROOT" \
             --generated-at "$generated_at" --allow-market --market-commit "$MARKET_SHA" \
             --market-pages-file "$RUNNER_TEMP/market-publication.json" \
+            --consumer-validation-file "$RUNNER_TEMP/consumer-validation.json" \
             --disclosure-status-input "$RUNNER_TEMP/disclosure-status-input.json"
           git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers status
           if git -C "$MAIN_ROOT" diff --cached --quiet; then
@@ -517,6 +518,9 @@ jobs:
             --require-disclosure-status \
             --expected-review-commit "${{ steps.trees.outputs.review_commit }}" \
             --expected-evidence-commit "${{ steps.trees.outputs.evidence_commit }}" \
+            --published-main-root "${{ steps.trees.outputs.cache_main_root }}" \
+            --published-market-root "${{ steps.trees.outputs.cache_market_root }}" \
+            --published-market-commit "${{ steps.trees.outputs.cache_market_commit }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
       - name: Verify the prepared result in the frozen browser frontend
         if: ${{ !inputs.skip_prepared_readback }}

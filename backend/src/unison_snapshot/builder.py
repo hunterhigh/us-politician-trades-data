@@ -56,7 +56,11 @@ def normalize(payload: dict, *, allow_production: bool = False,
               allow_market: bool = False) -> dict:
     if not isinstance(payload, dict) or not isinstance(payload.get("meta"), dict):
         raise ValueError("Snapshot input must be an object with meta")
-    data = deepcopy(payload)
+    # Market normalization creates new rows and price points below. Copying the
+    # entire history here would immediately throw away millions of copied points.
+    data = deepcopy({key: value for key, value in payload.items() if key != "security_market_data"})
+    market_rows = payload.get("security_market_data")
+    data["security_market_data"] = list(market_rows) if isinstance(market_rows, list) else market_rows
     demo = data.get("meta", {}).get("is_demo")
     if type(demo) is not bool:
         raise ValueError("meta.is_demo must be an explicit boolean")
@@ -164,7 +168,8 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
           max_board_bytes: int = 24 * 1024 * 1024, allow_production: bool = False,
           allow_empty_production: bool = False, allow_market: bool = False,
           market_commit: str | None = None,
-          market_pages: tuple[str, ...] | list[str] | None = None) -> Bundle:
+          market_pages: tuple[str, ...] | list[str] | None = None,
+          validate_consumer: bool = True) -> Bundle:
     data = normalize(payload, allow_production=allow_production,
                      allow_empty_production=allow_empty_production,
                      allow_market=allow_market)
@@ -234,9 +239,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
             )
     elif market_commit is not None or market_pages is not None:
         raise ValueError("market commit and pages require licensed market publication")
-    candidate = deepcopy(data)
-    candidate["meta"].update(snapshot_id="prepublication-validation", generated_at=generated_at)
-    load("process_snapshot", version=processor_version).build_snapshot(candidate)
+    if validate_consumer:
+        candidate = dict(data, meta=dict(data["meta"], snapshot_id="prepublication-validation",
+                                         generated_at=generated_at))
+        load("process_snapshot", version=processor_version).build_snapshot(candidate)
     if timestamp(generated_at) < timestamp(data["meta"]["data_cutoff_at"]):
         raise ValueError("Generation precedes data cutoff")
     files: dict[str, bytes] = {}
@@ -262,9 +268,16 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         board["security_market_data"] = []
     board_sha = blob("board", board)
     market_tickers = {row["ticker"] for row in data["security_market_data"]}
+    by_person = {kind: {} for kind in ("transactions", "reported_holdings")}
+    by_ticker = {kind: {} for kind in by_person}
+    for kind in by_person:
+        for row in data[kind]:
+            by_person[kind].setdefault(row["person_id"], []).append(row)
+            if row.get("ticker"):
+                by_ticker[kind].setdefault(row["ticker"], []).append(row)
+    person_order = {person["id"]: i for i, person in enumerate(data["people"])}
     for person in data["people"]:
-        rows = {kind: [row for row in data[kind] if row["person_id"] == person["id"]]
-                for kind in ("transactions", "reported_holdings")}
+        rows = {kind: groups.get(person["id"], []) for kind, groups in by_person.items()}
         required_market = sorted({row["ticker"] for records in rows.values() for row in records
                                   if row.get("ticker") in market_tickers})
         entity("people", person["id"], {"person": person, **rows,
@@ -272,10 +285,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     tickers = sorted({row["ticker"] for kind in ("transactions", "reported_holdings")
                       for row in data[kind] if row.get("ticker")})
     for ticker in tickers:
-        rows = {kind: [row for row in data[kind] if row.get("ticker") == ticker]
-                for kind in ("transactions", "reported_holdings")}
+        rows = {kind: groups.get(ticker, []) for kind, groups in by_ticker.items()}
         ids = {row["person_id"] for records in rows.values() for row in records}
-        entity("tickers", ticker, {**rows, "people": [p for p in data["people"] if p["id"] in ids],
+        entity("tickers", ticker, {**rows, "people": [data["people"][i] for i in
+                                                       sorted(person_order[key] for key in ids)],
                                    "requires": [f"market:{ticker}"] if ticker in market_tickers else []})
     for path, shards in sorted(indexes.items()):
         content = encode({"shards": shards})
