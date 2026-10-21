@@ -29,6 +29,8 @@ class CachedPublicationTests(unittest.TestCase):
         cli = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli)
         _, (annual, _) = complete_case()
+        annual["transactions"].append(dict(annual["transactions"][0], id="new-cached-v3",
+                                           ticker="NEWCO", asset_name="New company"))
         for prepared, data, version in [(False, annual, "v3"), (True, annual, "v3"),
                                         (False, production_candidate(), "v2")]:
             with self.subTest(prepared=prepared, version=version), tempfile.TemporaryDirectory() as temporary:
@@ -71,9 +73,17 @@ class CachedPublicationTests(unittest.TestCase):
                 reader = PublicSnapshotRepository("example", "data", transport=FakeTransport(
                     bundle.files, extra_commits={MARKET_COMMIT: market.files}))
                 selected = reader.fetch("dashboard").snapshot
-                self.assertEqual(selected["transactions"], candidate["transactions"])
+                self.assertEqual({row["id"]: row for row in selected["transactions"]},
+                                 {row["id"]: row for row in candidate["transactions"]})
                 for key in ("holding_report_coverage", "transaction_disclosure_relations"):
                     self.assertEqual(selected["meta"].get(key), candidate["meta"].get(key))
+                if version == "v3":
+                    self.assertEqual(bundle.manifest["coverage"]["market_missing_ticker_count"], 1)
+                    self.assertFalse(bundle.manifest["coverage"]["market_supported_complete"])
+                    processed = load("process_snapshot", version="v3").build_snapshot(selected)
+                    pending = next(row for row in processed["transactions"] if row["id"] == "new-cached-v3")
+                    self.assertIsNone(pending["underlying_return_since_trade"])
+                    self.assertEqual(pending["performance_ineligible_reason"], "missing_market_series")
                 self.assertGreater((output / "complete-dashboard.html").stat().st_size, 0)
 
     def prices(self):
