@@ -6,6 +6,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublishWorkflowTests(unittest.TestCase):
+
+    def test_publication_and_preview_explicitly_keep_saved_parser_inputs(self):
+        prepare = (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text(encoding="utf-8")
+        for kind, root in (("review", "review_root"), ("evidence", "evidence_root")):
+            self.assertIn(f'publication_source_scope.py --root "${root}" --kind {kind} --keep-parser-inputs', prepare)
+        preview = (ROOT / ".github/workflows/disclosure-status-preview.yml").read_text(encoding="utf-8")
+        self.assertIn("verify_publication_source_scope.py --keep-parser-inputs", preview)
+        script = (ROOT / "backend/scripts/verify_publication_source_scope.py").read_text(encoding="utf-8")
+        self.assertEqual(script.count("keep_parser_inputs=args.keep_parser_inputs"), 2)
+
     def test_complete_publish_checks_sources_and_reads_back_every_frontend_mode(self):
         content = (ROOT / ".github/workflows/publish-complete.yml").read_text(
             encoding="utf-8")
@@ -93,7 +103,7 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("fetch-depth: 1", complete)
         self.assertNotIn("fetch-depth: 0", complete)
         complete += (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text()
-        self.assertIn("git fetch --no-tags --depth=1 origin", complete)
+        self.assertIn("git fetch --no-tags --depth=1 --filter=blob:none origin", complete)
         self.assertIn("review:refs/remotes/origin/review", complete)
         self.assertIn("main:refs/remotes/origin/main", complete)
         self.assertIn("market:refs/remotes/origin/market", complete)

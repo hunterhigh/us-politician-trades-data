@@ -1344,6 +1344,31 @@ def _exhibit_identity_tokens(value: str) -> list[str]:
     return sorted(token for token in tokens if token not in {"president", "mr", "mrs", "ms"})
 
 
+def _native_original_metadata_context(metadata: dict, context: dict) -> bool:
+    """Same official reference fields for document hints and full row binding."""
+    url = urlsplit(metadata.get("document_url") or "")
+    if url.scheme != "https" or url.hostname not in {"www.whitehouse.gov", "whitehouse.gov"}:
+        return False
+    name = metadata.get("filer_name_from_label") or metadata.get("filer_name")
+    title = metadata.get("link_label") or ""
+    component = re.search(r"\(([1-9][0-9]*)\)\s*$", title)
+    reference = re.search(r"([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})-([1-9][0-9]*)[.]pdf$",
+        unquote(url.path), re.I)
+    filer = re.match(r"(.*?)\s+Periodic\s+Transaction\s+Report\b", title, re.I)
+    dates = re.findall(r"(?<![0-9])([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})(?![0-9])", title)
+    if (not reference or not filer or not component or len(dates)!=1 or
+            metadata.get("document_id")!="wh-url:"+hashlib.sha256(metadata["document_url"].encode()).hexdigest()[:24] or
+            _exhibit_identity_tokens(filer[1])!=_exhibit_identity_tokens(name) or
+            _exhibit_identity_tokens(name)!=_exhibit_identity_tokens(context.get("filer_name_raw")) or
+            int(component[1])!=context.get("original_report_component") or
+            int(reference[4])!=int(component[1]) or
+            tuple(map(int,reference.groups()[:3]))!=tuple(map(int,dates[0]))):return False
+    month,day,year=dates[0]
+    try:report_day=datetime(int(year)+(2000 if len(year)==2 else 0),int(month),int(day)).date()
+    except ValueError:return False
+    return report_day.isoformat()==context.get("original_report_date")
+
+
 def _exhibit_original_archive(bundle: dict) -> tuple[dict, Path]:
     root = Path(bundle["evidence_root"]).resolve()
     metadata_path = Path(bundle["archive_metadata_path"]).resolve()
@@ -1417,25 +1442,7 @@ def _native_exhibit_context_target(label: dict, targets: list[dict], context: di
             continue
         name = metadata.get("filer_name_from_label") or metadata.get("filer_name")
         title = metadata.get("link_label") or ""
-        component = re.search(r"\(([1-9][0-9]*)\)\s*$", title)
-        url_reference = re.search(r"([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})-([1-9][0-9]*)[.]pdf$",
-                                  unquote(url.path), re.I)
-        label_filer = re.match(r"(.*?)\s+Periodic\s+Transaction\s+Report\b", title, re.I)
-        if (not url_reference or not label_filer or
-                metadata.get("document_id") != "wh-url:" + hashlib.sha256(metadata["document_url"].encode()).hexdigest()[:24] or
-                _exhibit_identity_tokens(label_filer[1]) != _exhibit_identity_tokens(name)):
-            continue
-        dates = re.findall(r"(?<![0-9])([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})(?![0-9])", title)
-        if (not component or int(component[1]) != context["original_report_component"] or len(dates) != 1 or
-                int(url_reference[4]) != int(component[1]) or tuple(map(int, url_reference.groups()[:3])) != tuple(map(int, dates[0])) or
-                _exhibit_identity_tokens(name) != _exhibit_identity_tokens(context["filer_name_raw"])):
-            continue
-        month, day, year = dates[0]
-        try:
-            report_date = datetime(int(year) + (2000 if len(year) == 2 else 0), int(month), int(day)).date()
-        except ValueError:
-            continue
-        if report_date.isoformat() != context["original_report_date"]:
+        if not _native_original_metadata_context(metadata,context):
             continue
         if anchors is None:
             anchors = _native_original_printed_anchors(pdf, metadata["sha256"], numbers)
@@ -1492,13 +1499,13 @@ def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str, *,
         if len(candidates)!=1:
             continue
         row=candidates[0]
-        if not isinstance(row.get("cells"),list) or len(row["cells"])!=6:
+        if type(row.get("row_number")) is not int or not isinstance(row.get("cells"),list) or len(row["cells"])!=6:
             continue
         good,bad=parse_table_rows([(row["page_number"],row["cells"])],source_sha=sha,
             default_owner=row.get("owner","Undisclosed"),allow_open_amounts=True,allow_exchange=True,
             account_title=row.get("account_title"))
         if len(good+bad)!=1 or any((good+bad)[0].get(field)!=row.get(field) for field in
-                ("extraction_id","owner","asset_name","ticker","transaction_type","transaction_date","amount_low","amount_high","amount_low_exclusive")):
+                ("extraction_id","row_number","owner","asset_name","ticker","transaction_type","transaction_date","amount_low","amount_high","amount_low_exclusive")):
             raise OgeCatalogError("replacement original source row ID differs from exact raw cells")
         import pdfplumber
         with pdfplumber.open(pdf) as target_pdf:

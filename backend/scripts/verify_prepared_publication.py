@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import time
 from threading import Lock
 from urllib.parse import urlsplit
@@ -67,7 +69,8 @@ class PublishedMarketTransport:
 
     A different commit always goes through HTTP, even when page hashes match:
     publication must still demonstrate that the new commit exposes those files.
-    Main objects and market indexes are always read remotely.
+    Index bytes are bound to the Git blob at that published commit. Main
+    objects are always read remotely.
     """
 
     def __init__(self, *, owner: str, repo: str, main_root: Path, market_root: Path,
@@ -79,22 +82,56 @@ class PublishedMarketTransport:
         self.prefix = f"https://raw.githubusercontent.com/{owner}/{repo}/{market_commit}/"
         self.root = market_root.resolve()
         self.pages = set(manifest.get("market_pages", []))
+        self.index_blobs = self._index_blobs(market_commit)
         self.delegate = delegate or HTTPTransport(retries=4, backoff=1.0)
         self.lock = Lock()
         self.metrics = dict(reused_objects=0, reused_bytes=0, cache_misses=0,
-                            remote_requests=0, remote_decoded_bytes=0)
+                            remote_requests=0, remote_decoded_bytes=0,
+                            reused_by_kind={}, remote_by_kind={})
+
+    def _index_blobs(self, commit: str) -> dict[str, str]:
+        # No extra manifest or cache format: Git already binds index paths to
+        # exact bytes. Non-Git caches can still reuse content-addressed pages.
+        try:
+            tree = subprocess.run(
+                ["git", "-C", str(self.root), "ls-tree", "-r", commit, "--", "market"],
+                check=True, capture_output=True, text=True, timeout=10).stdout
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        return {path: sha for mode, kind, sha, path in
+                (line.split(maxsplit=3) for line in tree.splitlines())
+                if mode == "100644" and kind == "blob" and SHA1.fullmatch(sha)
+                and re.fullmatch(r"market/[0-9a-f]{2}/index\.json", path)}
+
+    @staticmethod
+    def _kind(url: str) -> str:
+        path = urlsplit(url).path.split("/", 4)[-1]
+        return path.split("/", 1)[0] + ("/index" if path.endswith("/index.json") else "")
+
+    def _record(self, group: str, url: str, raw: bytes, seconds: float) -> None:
+        entries = self.metrics[group]
+        item = entries.setdefault(self._kind(url), dict(objects=0, decoded_bytes=0, seconds=0.0))
+        item["objects"] += 1
+        item["decoded_bytes"] += len(raw)
+        item["seconds"] = round(item["seconds"] + seconds, 6)
 
     def get(self, url: str, limit: int, *, api: bool = False) -> bytes:
+        started = time.perf_counter()
         relative = url.removeprefix(self.prefix) if url.startswith(self.prefix) else ""
         match = re.fullmatch(r"(market-pages|market/[0-9a-f]{2})/([0-9a-f]{64})\.json", relative)
-        if not api and match and (match[1] != "market-pages" or match[2] in self.pages):
+        index_blob = self.index_blobs.get(relative)
+        if not api and (index_blob or
+                       (match and (match[1] != "market-pages" or match[2] in self.pages))):
             path = (self.root / relative).resolve()
             if path.is_relative_to(self.root) and path.is_file() and path.stat().st_size <= limit:
                 raw = path.read_bytes()
-                if len(raw) <= limit and digest(raw) == match[2]:
+                valid = (hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+                         == index_blob) if index_blob else digest(raw) == match[2]
+                if len(raw) <= limit and valid:
                     with self.lock:
                         self.metrics["reused_objects"] += 1
                         self.metrics["reused_bytes"] += len(raw)
+                        self._record("reused_by_kind", url, raw, time.perf_counter() - started)
                     return raw
             with self.lock:
                 self.metrics["cache_misses"] += 1
@@ -102,6 +139,7 @@ class PublishedMarketTransport:
         with self.lock:
             self.metrics["remote_requests"] += 1
             self.metrics["remote_decoded_bytes"] += len(raw)
+            self._record("remote_by_kind", url, raw, time.perf_counter() - started)
         return raw
 
 

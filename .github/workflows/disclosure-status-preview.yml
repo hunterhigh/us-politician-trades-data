@@ -9,6 +9,8 @@ on:
       - 'backend/src/unison_snapshot/__main__.py'
       - '.github/workflows/disclosure-status-preview.yml'
       - '.github/workflows/publish-complete.yml'
+      - '.github/scripts/prepare-publication-trees.sh'
+      - 'backend/scripts/*publication_source_scope.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,11 +35,11 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/status-evidence" origin/evidence
           git worktree add --detach "$RUNNER_TEMP/status-review" origin/review
           git worktree add --detach "$RUNNER_TEMP/status-main" origin/main
-      - name: Generate and read back status without publishing
+      - name: Compare full and scoped publication inputs
         env:
           PYTHONPATH: backend/src
         run: |
-          python backend/scripts/preview_disclosure_status.py \
+          python backend/scripts/verify_publication_source_scope.py --keep-parser-inputs \
             --evidence-root "$RUNNER_TEMP/status-evidence" \
             --review-root "$RUNNER_TEMP/status-review" \
             --main-root "$RUNNER_TEMP/status-main" \

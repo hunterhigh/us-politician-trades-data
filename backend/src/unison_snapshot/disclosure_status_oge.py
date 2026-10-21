@@ -853,6 +853,49 @@ def build_oge_status(evidence_root: Path, review_root: Path,
 
     public = _build_whitehouse(evidence, review)
     trade = _read(review / "whitehouse/qualifications/candidate-current.json")
+    cross_application = trade.get("native_cross_source_applications")
+    if cross_application is not None:
+        from .oge_cross_source_replacements import verify_cross_source_native_applications
+        cross_candidate, verified = verify_cross_source_native_applications(cross_application,evidence,review)
+        direct_by_id = {row["report_id"]: row for row in direct["reports"]}
+        public_by_id = {row["report_id"]: row for row in public["reports"]}
+        published = {row["id"]: row for row in transactions}
+        active = {item["transaction_id"] for item in verified["applications"] if item["application_status"]=="applied"}
+        for item in verified["applications"]:
+            prior=item["prior_transaction_id"];new=item["transaction_id"]
+            if prior in published:
+                raise ValueError("superseded White House predecessor is still published")
+            if new in active:
+                expected=next(row for row in cross_candidate["transactions"] if row["id"]==new)
+                if new in published and any(expected.get(key)!=published[new].get(key) for key in set(expected)|set(published[new])):
+                    raise ValueError("cross-source published replacement differs from family-qualified facts")
+        for doc in {item["target"]["target_document_id"] for item in verified["applications"]}:
+            record=public_by_id.get(doc)
+            if record is None:raise ValueError("cross-source predecessor lacks its White House report status")
+            retired=sorted({item["prior_transaction_id"] for item in verified["applications"] if item["target"]["target_document_id"]==doc})
+            count=record.get("qualified_transaction_count",0)
+            if count<len(retired):raise ValueError("cross-source retirement exceeds qualified White House inventory")
+            record["qualified_transaction_count"]=count-len(retired)
+            record["superseded_transaction_ids"]=retired
+            record["reason_codes"]=sorted(set(record["reason_codes"]+["source_verified_amount_only_replacement"]))
+            if record["qualified_transaction_count"]==0 and record.get("quarantined_row_count")==0:
+                record["qualification_state"]="superseded"
+        for doc,view in verified["source_views"].items():
+            record=direct_by_id.get(doc)
+            if record is None:raise ValueError("cross-source replacement lacks its OGE report status")
+            applied=[item for item in verified["applications"] if item["amendment_document_id"]==doc]
+            if not applied:continue
+            record["qualified_transaction_count"]+=sum(item["transaction_id"] in active for item in applied)
+            record["observed_applied_replacement_block_count"]=sum(item["transaction_id"] in active for item in applied)
+            if "observed_quarantined_replacement_block_count" in record:
+                record["observed_quarantined_replacement_block_count"]-=len(applied)
+            record["qualification_state"]="partial" if view["observation_receipt"]["coverage_complete"] is False else "qualified"
+            if not view['quarantined']:
+                record['reason_codes']=[reason for reason in record['reason_codes'] if reason not in {
+                    'amendment_relationship_unresolved','replacement_target_document_unresolved',
+                    'replacement_original_source_or_unique_row_unverified','replacement_context_candidate_not_unique_or_unverified'}]
+            record["native_cross_source_replacement_mappings"]=[{key:item[key] for key in
+                ("prior_transaction_id","effective_prior_transaction_id","transaction_id","application_status")} for item in applied]
     if trade.get("schema_version") == "whitehouse-278t-exact-source-candidate/v1":
         direct_by_id = {row["report_id"]: row for row in direct["reports"]}
         public_by_id = {row["report_id"]: row for row in public["reports"]}

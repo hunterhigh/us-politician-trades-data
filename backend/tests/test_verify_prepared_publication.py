@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -26,6 +27,47 @@ class Delegate:
 
 
 class PreparedPublicationTests(unittest.TestCase):
+    def test_index_reuse_is_bound_to_published_git_blob_not_worktree_contents(self):
+        from unison_snapshot.codec import encode
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            main, market = root / "main", root / "market"
+            main.mkdir(); (market / "market/aa").mkdir(parents=True)
+            path = market / "market/aa/index.json"
+            raw = encode({"shards": {"MSFT": "d" * 64}})
+            path.write_bytes(raw)
+
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(market), *args], stderr=subprocess.PIPE).decode().strip()
+
+            git("init")
+            git("-c", "core.autocrlf=false", "add", ".")
+            git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "fixture")
+            commit = git("rev-parse", "HEAD")
+            (main / "manifest.json").write_bytes(encode({
+                "is_demo": False, "market_commit": commit, "market_pages": []}))
+            delegate = Delegate()
+            cache = script.PublishedMarketTransport(owner="owner", repo="repo", main_root=main,
+                market_root=market, market_commit=commit, delegate=delegate)
+            url = f"https://raw.githubusercontent.com/owner/repo/{commit}/market/aa/index.json"
+            self.assertEqual(cache.get(url, 1000), raw)
+            self.assertEqual(delegate.calls, [])
+            self.assertEqual(cache.metrics["reused_by_kind"]["market/index"]["objects"], 1)
+            # A new commit and another repository always read remotely.
+            self.assertEqual(cache.get(url.replace(commit, "f" * 40), 1000), b"raw")
+            self.assertEqual(cache.get(url.replace("owner/repo", "other/repo"), 1000), b"raw")
+            # Even valid JSON at the expected path cannot substitute different bytes.
+            path.write_bytes(encode({"shards": {"MSFT": "e" * 64}}))
+            self.assertEqual(cache.get(url, 1000), b"raw")
+            path.unlink()
+            self.assertEqual(cache.get(url, 1000), b"raw")
+            path.write_bytes(raw)
+            self.assertEqual(cache.get(url, len(raw) - 1), b"raw")
+            self.assertEqual(cache.get(url.replace("/aa/", "/bb/"), 1000), b"raw")
+            self.assertEqual(cache.metrics["cache_misses"], 3)
+            self.assertEqual(cache.metrics["remote_requests"], 6)
+            self.assertEqual(cache.metrics["remote_by_kind"]["market/index"]["objects"], 6)
+
     def test_published_cache_reuses_only_fixed_market_objects_and_falls_back_on_damage(self):
         from unison_snapshot.codec import encode, digest
         with tempfile.TemporaryDirectory() as folder:

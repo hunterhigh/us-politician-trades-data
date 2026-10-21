@@ -483,7 +483,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                               document_page_count: int | None = None,
                               secondary_field_observations: list[dict] | None = None,
                               legacy_extraction: dict | None = None,
-                              formal_reference_facts: list[dict] | None = None) -> dict:
+                              formal_reference_facts: list[dict] | None = None,
+                              cross_source_evidence_root: str | Path | None = None,
+                              cross_source_review_root: str | Path | None = None) -> dict:
     """Map a parsed, archived 278-T document to ledger rows with full accounting.
 
     This adapter is offline only. It requires the parser's extracted table rows,
@@ -497,7 +499,15 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     collapse_direct_catalog_records([catalog_record])
     context = extraction.get("native_exhibit_application_context")
     replay = extraction.get("native_exhibit_application_replay")
-    if context is not None:
+    cross = extraction.get("cross_source_native_application_context")
+    if cross is not None:
+        if cross_source_evidence_root is None or cross_source_review_root is None:
+            raise OgeCatalogError("cross-source native qualification requires controlled source roots")
+        from .oge_cross_source_replacements import replay_cross_source_context
+        _, audit = replay_cross_source_context(cross,cross_source_evidence_root,cross_source_review_root)
+        if audit["source_views"].get(extraction["document_id"]) != extraction:
+            raise OgeCatalogError("cross-source native qualification differs from family source replay")
+    elif context is not None:
         from .oge_native_replacements import prepare_native_exhibit_applications
         expected = prepare_native_exhibit_applications(context["extractions"], context["records"],
             context["saved_inputs"], context["prior_formal_transactions"],
@@ -627,7 +637,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             reasons.extend(parser_reasons)
             normalized = parser_row
             if normalized.get("native_replacement_disposition") == "superseded":
-                if context is None:
+                if context is None and cross is None:
                     raise OgeCatalogError("native superseded source row lacks its source graph")
                 disposition = "excluded"
                 reasons.append("superseded_by_verified_native_amount_only_replacement")
