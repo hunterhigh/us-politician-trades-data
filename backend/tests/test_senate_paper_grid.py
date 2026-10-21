@@ -66,6 +66,40 @@ def inputs(*, date="09/01/26", missing_asset_type=True):
 
 @unittest.skipIf(Image is None, "optional Senate image dependency unavailable")
 class SenatePaperGridTests(unittest.TestCase):
+    def test_bound_date_allows_only_complete_date_with_explicit_outer_periods(self):
+        from unison_snapshot.senate_paper import _parse_date
+        original = parse_paper_grid_observations(*inputs())["transactions"][0]
+        for raw in ("09/01/26.", ".09/01/26", ".09/01/26."):
+            with self.subTest(raw=raw):
+                row = parse_paper_grid_observations(*inputs(date=raw))["transactions"][0]
+                self.assertEqual(row["transaction_date"], "2026-09-01")
+                self.assertEqual(row["qualification_status"], "eligible")
+                self.assertEqual(row["extraction_id"], original["extraction_id"])
+                interpretation = row["field_observations"]["date_interpretation"]
+                self.assertEqual(interpretation["raw_text"], raw)
+                self.assertEqual(interpretation["complete_date_text"], "09/01/26")
+                self.assertEqual(interpretation["qualification"], "not_assessed")
+                self.assertIsNone(_parse_date(raw))  # Existing non-grid interpretation is unchanged.
+        for raw in ("779/26-", "718/26", "7114/26", "7.8/26", "7/8/26..", "7/8/26 extra",
+                    "02/29/25.", "09/31/26."):
+            with self.subTest(raw=raw):
+                row = parse_paper_grid_observations(*inputs(date=raw))["transactions"][0]
+                self.assertIsNone(row["transaction_date"])
+                self.assertIn("paper_date_invalid", row["quarantine_reasons"])
+                self.assertNotIn("date_interpretation", row["field_observations"])
+
+    def test_outer_period_interpretation_does_not_override_conflicting_date_or_report_order(self):
+        from unison_snapshot.senate_candidate import _transaction
+        args = inputs(date="09/02/26.")
+        row = parse_paper_grid_observations(*args)["transactions"][0]
+        self.assertIn("paper_date_observation_conflict", row["quarantine_reasons"])
+        args = inputs(date="09/01/27.")
+        args[2]["slots"][0]["key_cells"]["date"]["page_ocr_parsed"] = None
+        extraction = parse_paper_grid_observations(*args)
+        tx, reasons = _transaction(extraction["transactions"][0], extraction, identity(REPORT["document_id"]))
+        self.assertIsNone(tx)
+        self.assertIn("date_sequence_invalid", reasons)
+
     def test_noisy_slot_is_not_a_required_account_but_explicit_unreadable_heading_is(self):
         for heading, confidence, blocked in [(None, 98, False),
                                                ("(S) Account", 98, False),
@@ -201,7 +235,7 @@ class SenatePaperGridTests(unittest.TestCase):
             parse_paper_grid_observations(*args)
         args = inputs()
         args[2]["legacy_extraction_failed"] = False
-        with self.assertRaisesRegex(SenateEfdError, "previously failed"):
+        with self.assertRaisesRegex(SenateEfdError, "unchanged legacy extraction"):
             parse_paper_grid_observations(*args)
 
 

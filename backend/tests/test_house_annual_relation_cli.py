@@ -38,11 +38,12 @@ class HouseAnnualRelationCliTests(unittest.TestCase):
                 main()
             candidate = json.loads((root / "candidate.json").read_bytes())
             audit = json.loads((root / "audit.json").read_bytes())
-            self.assertEqual(candidate["transactions"], [old])
+            self.assertEqual(next(r for r in candidate['transactions'] if r['id']==old['id']),old)
+            self.assertEqual(len(candidate['transactions']),2)
             self.assertEqual(audit["observed_row_count"], 1)
             decision = audit["reports"][0]["rows"][0]
-            self.assertEqual(decision["candidate_disposition"], "blocked_pending_relationship")
-            self.assertIn("annual_saved_page_reproduction_unavailable", decision["candidate_blocking_reasons"])
+            self.assertEqual(decision["candidate_disposition"], "promoted")
+            self.assertNotIn("annual_saved_page_reproduction_unavailable", decision["candidate_blocking_reasons"])
             # The separate audit must never overwrite the candidate or HTML.
             args[-1] = str(root / "candidate.json")
             with patch.object(sys, "argv", args), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):

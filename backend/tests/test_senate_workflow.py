@@ -6,6 +6,35 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SenateWorkflowTests(unittest.TestCase):
+    def test_every_candidate_rebuild_has_the_archived_evidence_root(self):
+        calls = 0
+        for name in ['senate-efd.yml', 'senate-paper-pages.yml', 'senate-amendment-history-resolve.yml']:
+            content = (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
+            for step in content.split('\n      - '):
+                if 'python -m unison_snapshot build-senate-candidate' not in step:
+                    continue
+                expected_binding = ('EVIDENCE_ROOT: ${{ runner.temp }}/senate-candidate-evidence'
+                                    if name == 'senate-efd.yml' else
+                                    'EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}')
+                self.assertIn(expected_binding, step)
+                lines = step.splitlines()
+                for i, line in enumerate(lines):
+                    if 'python -m unison_snapshot build-senate-candidate' not in line:
+                        continue
+                    command = line
+                    while lines[i].rstrip().endswith('\\'):
+                        i += 1
+                        command += '\n' + lines[i]
+                    self.assertIn('--evidence-root "$EVIDENCE_ROOT"', command)
+                    calls += 1
+        self.assertEqual(calls, 4)
+        activation = (ROOT / '.github/workflows/senate-amendment-history-resolve.yml').read_text(encoding='utf-8').split('  activate:', 1)[1]
+        self.assertIn('git worktree add --detach "$evidence_root" origin/evidence', activation)
+        self.assertIn('echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"', activation)
+        primary = (ROOT / '.github/workflows/senate-efd.yml').read_text(encoding='utf-8')
+        self.assertIn('git worktree add --detach "$EVIDENCE_ROOT" origin/evidence', primary)
+        self.assertNotIn('senate-roster-evidence', primary)
+
     def test_electronic_shadow_is_manual_read_only_and_fixed_to_archive_commits(self):
         content = (ROOT / ".github/workflows/senate-efd-shadow.yml").read_text(
             encoding="utf-8")

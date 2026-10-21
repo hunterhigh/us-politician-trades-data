@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime, time, timedelta, timezone
 
-from .builder import timestamp
+from .builder import timestamp, validate_transaction_disclosure_relations
 from .codec import digest, encode
 
 
@@ -106,6 +106,20 @@ def project_source_candidate(source_id: str, candidate: dict) -> dict:
     if health.get("data_cutoff_at") != cutoff:
         raise DisclosureCandidateError(f"{source_id} source health cutoff does not match its candidate")
 
+    coverage = _objects(candidate["meta"].get("holding_report_coverage", []),
+                        f"{source_id} holding report coverage")
+    selected_coverage = [r for r in coverage if r.get("source_id") == source_id]
+    try:validate_transaction_disclosure_relations(candidate)
+    except ValueError as exc:raise DisclosureCandidateError(str(exc)) from exc
+    relations=[r for r in candidate['meta'].get('transaction_disclosure_relations',[]) if r['source_id']==source_id]
+    for report in selected_coverage:
+        rows = [r for r in selected_holdings if r.get("person_id") == report.get("person_id")]
+        if report.get("schema_version") == "oge-approved-partial-holdings/v1":
+            rows = [r for r in rows if r.get("report_period_end") == report.get("report_period_end")]
+        if (not rows or sorted(r["id"] for r in rows) != sorted(report.get("published_holding_ids", [])) or
+                any(r.get("filing_id") != report.get("filing_id") or
+                    r.get("report_period_end") != report.get("report_period_end") for r in rows)):
+            raise DisclosureCandidateError("Holding coverage differs from source projection")
     return {
         "source_id": source_id,
         "data_cutoff_at": cutoff,
@@ -113,6 +127,8 @@ def project_source_candidate(source_id: str, candidate: dict) -> dict:
         "transactions": deepcopy(selected_transactions),
         "reported_holdings": deepcopy(selected_holdings),
         "source_health": deepcopy(health),
+        **({"holding_report_coverage": deepcopy(selected_coverage)} if selected_coverage else {}),
+        **({'transaction_disclosure_relations':deepcopy(relations)} if relations else {}),
     }
 
 
@@ -271,6 +287,31 @@ def build_disclosure_candidate(base: dict, source_candidates: Mapping[str, dict]
     result["people"] = [deepcopy(people_by_id[key]) for key in sorted(people_by_id)]
     result["transactions"] = sorted(deepcopy(merged_transactions), key=lambda row: row["id"])
     result["reported_holdings"] = sorted(deepcopy(merged_holdings), key=lambda row: row["id"])
+    result["meta"].pop("holding_report_coverage", None)
+    coverage = []
+    merged_ids = {r["id"] for r in merged_holdings}
+    for projection in projections:
+        for report in projection.get("holding_report_coverage", []):
+            ids = set(report["published_holding_ids"])
+            if not ids & merged_ids:
+                # Cutoff harmonization removed this whole filing.
+                continue
+            if not ids <= merged_ids:
+                raise DisclosureCandidateError("Partial report selection lost some published holdings")
+            coverage.append(deepcopy(report))
+    if coverage:
+        result["meta"]["holding_report_coverage"] = sorted(coverage,key=lambda r:(r["source_id"],r["person_id"]))
+    result['meta'].pop('transaction_disclosure_relations',None)
+    transaction_ids={r['id'] for r in merged_transactions}
+    relations=[deepcopy(r) for projection in projections for r in projection.get('transaction_disclosure_relations',[]) if r['transaction_id'] in transaction_ids]
+    if relations:
+        # Cutoff harmonization may legitimately omit an older possible PTR;
+        # do not leave a full-input dangling reference in the merged artifact.
+        for relation in relations:
+            relation['possible_ptr_transaction_ids']=[i for i in relation['possible_ptr_transaction_ids'] if i in transaction_ids]
+            relation['status']='possible_ptr_overlap' if relation['possible_ptr_transaction_ids'] else 'cross_report_relationship_unconfirmed'
+        result['meta']['transaction_disclosure_relations']=sorted(relations,key=lambda r:r['transaction_id'])
+    validate_transaction_disclosure_relations(result)
     result["source_health"] = [deepcopy(base_health_by_id[key])
                                for key in base_health_order + appended]
     if harmonization_audit is not None:

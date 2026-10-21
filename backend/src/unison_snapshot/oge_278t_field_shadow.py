@@ -17,11 +17,14 @@ from math import isfinite
 import re
 from statistics import median
 from .oge_278t_raster_slots import column_edges_at_y, column_crop_bounds, column_geometry_sha256
+from . import oge_278t_raster_slots as _geometry
 
 
 SCHEMA = "oge-278t-field-shadow/v1"
 COMPARISON_SCHEMA = "oge-278t-field-comparison/v1"
 _INPUT_SCHEMA = "oge-278t-raster-slot-observation/v2"
+_DUAL_INPUT_SCHEMA = "oge-278t-raster-slot-observation/v3"
+_DUAL_GEOMETRY = "source_pdf_dual_axis/v1"
 _COLUMNS = ("printed_number", "description", "type", "transaction_date",
             "notification", "amount")
 _DATE = re.compile(r"(\d{1,2})/(\d{1,2})/(20\d{2})")
@@ -38,6 +41,69 @@ _SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_obser
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
               "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
 _CONTENT_RULES = "oge-278t-content-rows/v4"
+
+
+def _dual_geometry(page: dict) -> bool:
+    return page.get("geometry_mode") == _DUAL_GEOMETRY
+
+
+def _known_page_geometry(page: dict) -> bool:
+    return (page.get("column_geometry") == "oge_2024_six_column_grid" and
+            (not _dual_geometry(page) or page.get("row_line_model") is not None))
+
+
+def _validate_geometry_input(observation: dict) -> None:
+    """A dual-axis band is never silently interpreted as a rectangle."""
+    schema = observation.get("schema_version")
+    if schema not in {_INPUT_SCHEMA, _DUAL_INPUT_SCHEMA}:
+        raise ValueError("expected saved 278-T raster slot observations v2/v3")
+    if schema == _DUAL_INPUT_SCHEMA and observation.get("geometry_mode") != _DUAL_GEOMETRY:
+        raise ValueError("raster v3 lacks explicit observation geometry mode")
+    for page in observation.get("pages", []):
+        has_rows = page.get("row_line_model") is not None or page.get("geometry_mode") is not None
+        if schema == _INPUT_SCHEMA and has_rows:
+            raise ValueError("dual-axis geometry requires raster schema v3")
+        if schema == _DUAL_INPUT_SCHEMA and not _dual_geometry(page):
+            raise ValueError("raster v3 lacks explicit page geometry mode")
+        if schema == _DUAL_INPUT_SCHEMA and page.get("slots") and not _known_page_geometry(page):
+            raise ValueError("raster v3 cannot assign slots without witnessed source row lines and columns")
+        if schema == _DUAL_INPUT_SCHEMA and page.get("column_geometry") == "oge_2024_six_column_grid":
+            if not _dual_geometry(page):
+                raise ValueError("raster v3 requires explicit dual-axis source geometry")
+            if page.get("row_line_model") is None:
+                if page.get("slots"):
+                    raise ValueError("raster v3 cannot assign slots without witnessed source row lines")
+                continue
+            if page.get("column_line_model") is None:
+                raise ValueError("raster v3 lacks witnessed source column lines")
+            if page.get("slots") and (page.get("partial_row_geometry") is not True or
+                    page.get("physical_slot_count") is not None or
+                    page.get("known_physical_slot_count") != len(page["slots"])):
+                raise ValueError("raster v3 requires explicit known-local rather than whole-page slot counts")
+            for slot in page.get("slots", []):
+                quad = _geometry.slot_quad(page, slot)
+                if (slot.get("quad_pdf_points") != quad or
+                        slot.get("band_coordinate_basis") != "row_lines_at_reference_x" or
+                        not isinstance(slot.get("row_boundary_refs"), list)):
+                    raise ValueError("dual-axis slot differs from its source row boundaries")
+
+
+def _slot_owns_center(page: dict, slot: dict, box: list, start: int = 0, end: int = 6) -> bool:
+    if _dual_geometry(page):
+        return _geometry.point_in_slot(page, slot, (box[0]+box[2])/2, (box[1]+box[3])/2, start, end)
+    return slot["band_pdf_points"][0] <= (box[1]+box[3])/2 < slot["band_pdf_points"][1]
+
+
+def _slot_overlap(page: dict, slot: dict, box: list, start: int = 0, end: int = 6) -> bool:
+    if _dual_geometry(page):
+        return _geometry.box_overlaps_slot(page, slot, box, start, end)
+    return box[1] < slot["band_pdf_points"][1] and box[3] > slot["band_pdf_points"][0]
+
+
+def _secondary_slot_geometry(page: dict, slot: dict) -> dict:
+    return ({"row_boundary_refs": deepcopy(slot["row_boundary_refs"]),
+             "quad_pdf_points": deepcopy(slot["quad_pdf_points"]),
+             "band_coordinate_basis": slot["band_coordinate_basis"]} if _dual_geometry(page) else {})
 
 
 def _word_evidence(slot: dict, page: dict) -> dict:
@@ -58,6 +124,8 @@ def _word_evidence(slot: dict, page: dict) -> dict:
                 any(type(v) not in (int, float) or not isfinite(v) for v in box) or
                 box[0] >= box[2] or box[1] >= box[3]):
             raise ValueError("field word geometry is invalid")
+        if _dual_geometry(page) and not _slot_owns_center(page,slot,box):
+            raise ValueError("saved primary word is outside its source dual-axis slot")
     derived = _observe_slot_columns(words, edges, page=page)
     if slot.get("column_model_outside_word_indices", []) != derived.get("column_model_outside_word_indices", []):
         raise ValueError("saved word model-domain references differ from geometry")
@@ -84,8 +152,13 @@ def _word_evidence(slot: dict, page: dict) -> dict:
             crossings.append({"word_index": index, "text": word["text"],
                               "bbox_pdf_points": list(word["bbox_pdf_points"]),
                               "assigned_column": owner.get(index), "boundaries": boundaries})
-    return {"status": "source_words_linked", "reason": None, "crossing_words": crossings,
-            "unassigned_word_indices": [i for i in range(len(words)) if i not in owner]}
+    result = {"status": "source_words_linked", "reason": None, "crossing_words": crossings,
+              "unassigned_word_indices": [i for i in range(len(words)) if i not in owner]}
+    if _dual_geometry(page):
+        result["row_boundary_crossing_words"] = [
+            {"word_index": i, "assigned_column": owner.get(i), "bbox_pdf_points": word["bbox_pdf_points"]}
+            for i, word in enumerate(words) if not _geometry.box_in_slot(page, slot, word["bbox_pdf_points"])]
+    return result
 
 
 def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
@@ -104,6 +177,9 @@ def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
                     warnings.append({"crossing_word_ref": index,
                                      "scope": "within_combined_columns" if affected <= set(names)
                                      else "field_boundary"})
+        for index, crossing in enumerate(word_evidence.get("row_boundary_crossing_words", [])):
+            if crossing["assigned_column"] in names or crossing["assigned_column"] is None:
+                warnings.append({"row_crossing_word_ref": index, "scope": "row_boundary"})
         primary = {"method": "page_ocr", "raw_columns": names,
                    "engine": original.get("ocr_engine"),
                    "resolution_dpi": original.get("ocr_resolution_dpi"),
@@ -147,6 +223,20 @@ def _description_text_difference(left: str, right: str) -> dict:
     return {"difference_kind": kind, "changed_spans": spans,
             "detail_status": "available" if spans is not None else "omitted_for_long_text",
             "fact_resolution": "not_assessed"}
+
+
+def _type_cell_pdf_bounds(page: dict, slot: dict) -> tuple:
+    """Keep existing crop padding; v3 obtains its envelope from source lines."""
+    if _dual_geometry(page):
+        left, top, right, bottom = _geometry.slot_crop_bounds(page, slot, 2, 3)
+        return left, top+.6, right, bottom-.6
+    band = slot["band_pdf_points"]
+    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
+    if domain and not domain[0] <= band[0] < band[1] <= domain[1]:
+        raise ValueError("Type cell lies outside witnessed model domain")
+    top, bottom = band[0]+.6, band[1]-.6
+    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
+    return max(a[2],b[2])+.6, top, min(a[3],b[3])-1.5, bottom
 
 
 def _validate_type_cell_crop(reading: dict, slot: dict, original: dict, page: dict) -> None:
@@ -202,14 +292,12 @@ def _validate_type_cell_crop(reading: dict, slot: dict, original: dict, page: di
         raise ValueError("Type cell page dimensions differ from bound source frame")
     sx, sy = pixels[0]/size[0], pixels[1]/size[1]
     from math import ceil, floor
-    band = slot["band_pdf_points"]
-    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
-    if domain and not domain[0] <= band[0] < band[1] <= domain[1]:
-        raise ValueError("Type cell lies outside witnessed model domain")
-    top, bottom = band[0]+.6, band[1]-.6
-    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
-    bounds = [ceil((max(a[2],b[2])+.6)*sx), ceil(top*sy),
-              floor((min(a[3],b[3])-1.5)*sx), floor(bottom*sy)]
+    base = page["slots"][index-1]
+    left,top,right,bottom = _type_cell_pdf_bounds(page, base)
+    bounds = [ceil(left*sx), ceil(top*sy), floor(right*sx), floor(bottom*sy)]
+    if _dual_geometry(page) and (receipt.get("crop_geometry_mode") != _DUAL_GEOMETRY or
+            receipt.get("source_quad_pdf_points") != _geometry.slot_quad(page, base, 2, 3)):
+        raise ValueError("Type cell crop lacks its dual-axis source quadrilateral")
     x0,y0,x1,y1 = bounds
     if (not 0 <= x0 < x1 <= pixels[0] or not 0 <= y0 < y1 <= pixels[1] or
             receipt.get("crop_pixel_bounds") != bounds or
@@ -256,7 +344,7 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
             if number not in source_pages:
                 raise ValueError("secondary field read references a page outside selected observations")
             original, original_page = source_pages[number]
-            if (original_page.get("column_line_model") is not None or
+            if (_dual_geometry(original_page) or original_page.get("column_line_model") is not None or
                     "input_column_geometry_sha256" in reading) and (
                     reading.get("input_column_geometry_sha256", {}).get(str(number)) !=
                     column_geometry_sha256(original_page)):
@@ -298,6 +386,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     _validate_type_cell_crop(reading, slot, original, original_page)
                 elif "cell_crop" in slot:
                     raise ValueError("Type cell receipt lacks bound read mode")
+                if _dual_geometry(original_page) and (page.get("geometry_mode") != _DUAL_GEOMETRY or
+                        any(slot.get(key) != value for key,value in _secondary_slot_geometry(original_page,base).items())):
+                    raise ValueError("secondary field slot differs from source dual-axis geometry")
                 if slot.get("band_pdf_points") != base.get("band_pdf_points"):
                     raise ValueError("secondary field slot band differs from source slot")
                 identity = (field, number, slot_index, reading["ocr_engine"], reading["ocr_resolution_dpi"])
@@ -319,8 +410,7 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 geometry_issues = []
                 if field == "description":
                     overlaps = [i for i, item in enumerate(unassigned)
-                                if item["bbox_pdf_points"][1] < base["band_pdf_points"][1] and
-                                item["bbox_pdf_points"][3] > base["band_pdf_points"][0]]
+                                if _slot_overlap(original_page,base,item["bbox_pdf_points"],left,right)]
                     if slot.get("unassigned_detection_indices") != overlaps:
                         raise ValueError("description unassigned references differ from geometry")
                     if overlaps:
@@ -331,9 +421,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                             not isinstance(box, list) or len(box) != 4 or
                             any(type(v) not in (int, float) or not isfinite(v) for v in box) or
                             box[0] >= box[2] or box[1] >= box[3] or
-                            not base["band_pdf_points"][0] <= (box[1] + box[3]) / 2 <
-                            base["band_pdf_points"][1]):
+                            not _slot_owns_center(original_page,base,box)):
                         raise ValueError("secondary detection is outside its source field or slot")
+                    if _dual_geometry(original_page):
+                        if not _geometry.box_in_slot(original_page,base,box,left,right,left_pad=.6,right_pad=1.5):
+                            geometry_issues.append("detection_extends_beyond_source_quad_or_field")
+                        continue
                     local = column_edges_at_y(original_page, (box[1]+box[3])/2)
                     domain = (original_page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
                     y0,y1 = box[1],box[3]
@@ -355,7 +448,7 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if field == "amount":
                     shape = _amount_shape(raw)
                 elif field == "description":
-                    description_reading = _description_detection_reading(detections)
+                    description_reading = _description_detection_reading(detections, page=original_page, source_slot=base)
                     shape = _description_shape(description_reading)
                     if slot.get("column_reading") != description_reading:
                         raise ValueError("description physical reading differs from detections")
@@ -453,7 +546,9 @@ def _validate_description_unassigned(page: dict, original_page: dict) -> None:
     if not isinstance(detections, list) or page.get("words_outside_slots") != len(detections):
         raise ValueError("description unassigned detections are missing or miscounted")
     edges = original_page["column_edges_pdf_points"]
-    if original_page.get("column_line_model") is not None:
+    if _dual_geometry(original_page):
+        left,_,right,_ = _geometry.table_crop_bounds(original_page,original_page["slots"],1,2)
+    elif original_page.get("column_line_model") is not None:
         slots = original_page["slots"]
         left,right = column_crop_bounds(original_page,1,2,slots[0]["band_pdf_points"][0],
                                         slots[-1]["band_pdf_points"][1]+2)
@@ -466,8 +561,27 @@ def _validate_description_unassigned(page: dict, original_page: dict) -> None:
                 not box[0] < box[2] or not box[1] < box[3] or
                 not left <= (box[0] + box[2]) / 2 < right):
             raise ValueError("description unassigned detection geometry is invalid")
-        owners = [slot for slot in original_page["slots"] if
-                  slot["band_pdf_points"][0] <= (box[1] + box[3]) / 2 < slot["band_pdf_points"][1]]
+        owners = [slot for slot in original_page["slots"] if _slot_owns_center(original_page,slot,box,1,2)]
+        if _dual_geometry(original_page):
+            reason=item.get("reason")
+            if reason == "center_rounding_ambiguous":
+                center=item.get("unrounded_center_pdf_points")
+                if (not isinstance(center,list) or len(center)!=2 or
+                        any(type(v) not in (int,float) or not isfinite(v) for v in center) or
+                        any(abs(a-b)>.0051 for a,b in zip(center,[(box[0]+box[2])/2,(box[1]+box[3])/2]))):
+                    raise ValueError("description dual-axis rounding lacks source center")
+                raw_owners=[slot for slot in original_page["slots"] if
+                            _geometry.point_in_slot(original_page,slot,*center,1,2)]
+                if raw_owners == owners:
+                    raise ValueError("description dual-axis rounding did not change source ownership")
+            elif reason == "outside_source_slot":
+                if len(owners)==1: raise ValueError("description source ownership is not unassigned")
+            elif reason == "crosses_source_slot_or_field":
+                if len(owners)!=1 or _geometry.box_in_slot(original_page,owners[0],box,1,2):
+                    raise ValueError("description box has no source-quad crossing")
+            else:
+                raise ValueError("description unassigned detection lacks dual-axis geometry basis")
+            continue
         if item.get("reason") == "center_rounding_ambiguous":
             center = item.get("unrounded_center_pdf_points")
             original_owners = [slot for slot in original_page["slots"] if
@@ -512,7 +626,7 @@ def _amount_shape(raw: str) -> dict:
             "reason": None}
 
 
-def _description_reading(slot: dict) -> dict:
+def _description_reading_in_frame(slot: dict, *, center_offsets: dict | None = None) -> dict:
     """Order saved words by physical line and x, retaining the original read.
 
     Word tops vary with glyph height. Sorting by that top before x scrambles
@@ -540,7 +654,7 @@ def _description_reading(slot: dict) -> dict:
 
     def center(index: int) -> float:
         box = words[index]["bbox_pdf_points"]
-        return (box[1] + box[3]) / 2
+        return (box[1] + box[3]) / 2 - (center_offsets or {}).get(index, 0.)
 
     lines: list[list[int]] = []
     for index in sorted(indices, key=lambda i: (center(i), words[i]["bbox_pdf_points"][0], i)):
@@ -562,12 +676,45 @@ def _description_reading(slot: dict) -> dict:
             "line_word_indices": lines, "reason": None}
 
 
-def _description_detection_reading(detections: list[dict]) -> dict:
+def _description_reading(slot: dict, *, page: dict | None = None) -> dict:
+    """Compare source and row-relative ordering without changing source boxes.
+
+    Ruled-table slope is not independent proof of a handwritten text baseline.
+    Conflicting flattened word orders stay unknown, in either direction.
+    """
+    source = _description_reading_in_frame(slot)
+    if page is None or not _dual_geometry(page):
+        return source
+    indices = slot["column_observation"]["description"].get("word_indices")
+    if indices is None or slot.get("words") is None:
+        return {**source, "status": "unknown", "ordered_ocr_text": None,
+                "reason": "word_geometry_unavailable"}
+    top_reference = slot["row_boundary_refs"][0]
+    offsets = {i: _geometry.row_edges_at_x(page,
+        (slot["words"][i]["bbox_pdf_points"][0]+slot["words"][i]["bbox_pdf_points"][2])/2)[top_reference]
+        for i in indices}
+    projected = _description_reading_in_frame(slot, center_offsets=offsets)
+    flatten = lambda reading: ([i for line in reading["line_word_indices"] for i in line]
+                               if reading["line_word_indices"] is not None else None)
+    evidence = {"reading_coordinate_basis": "source_and_row_top_relative_consistency/v1",
+        "source_coordinate_grouping": source,
+        "row_relative_grouping": projected,
+        "row_top_offsets_pdf_points": {str(i): value for i,value in offsets.items()},
+        "independent_ocr_text_line_reference": None}
+    if flatten(source) is None or flatten(projected) is None or flatten(source) != flatten(projected):
+        return {"status": "unknown", "raw_ocr_text": source["raw_ocr_text"],
+                "ordered_ocr_text": None, "line_word_indices": None,
+                "reason": "source_text_line_orientation_conflict", **evidence}
+    return {**projected, **evidence}
+
+
+def _description_detection_reading(detections: list[dict], *, page: dict | None = None,
+                                   source_slot: dict | None = None) -> dict:
     """Reuse the physical reading order for every word; keep detector order raw."""
-    return _description_reading({
+    return _description_reading({**(source_slot or {}),
         "words": detections, "column_observation": {"description": {
             "raw_ocr_text": " ".join(item["text"] for item in detections),
-            "word_indices": list(range(len(detections)))}}})
+            "word_indices": list(range(len(detections)))}}}, page=page)
 
 
 def _description_shape(reading: dict) -> dict:
@@ -579,9 +726,10 @@ def _description_shape(reading: dict) -> dict:
 def observe_field_shapes(observations: list[dict], *,
                          secondary_observations: list[dict] | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
-    if not observations or any(item.get("schema_version") != _INPUT_SCHEMA
-                               for item in observations):
-        raise ValueError("expected saved 278-T raster slot observations v2")
+    if not observations:
+        raise ValueError("expected saved 278-T raster slot observations v2/v3")
+    for item in observations:
+        _validate_geometry_input(item)
     sources = {item.get("source_sha256") for item in observations}
     if len(sources) != 1 or None in sources:
         raise ValueError("278-T field observations must share one PDF SHA-256")
@@ -595,7 +743,7 @@ def observe_field_shapes(observations: list[dict], *,
             if number in seen_pages:
                 raise ValueError("duplicate page in 278-T field observations")
             seen_pages.add(number)
-            if page.get("column_geometry") != "oge_2024_six_column_grid":
+            if not _known_page_geometry(page):
                 pages.append({"page_number": number, "status": "geometry_unknown",
                               "slot_count": page.get("physical_slot_count"),
                               "slots": []})
@@ -610,7 +758,7 @@ def observe_field_shapes(observations: list[dict], *,
                 raw = {name: columns[name]["raw_ocr_text"] for name in _COLUMNS}
                 printed_number = raw["printed_number"].strip()
                 direction = raw["type"].strip().casefold()
-                description_reading = _description_reading(slot)
+                description_reading = _description_reading(slot, page=page)
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
@@ -651,6 +799,7 @@ def observe_field_shapes(observations: list[dict], *,
                     for scope in {warning["scope"] for warning in reading["geometry_warnings"]}:
                         evidence_counts[f"{field}_{scope}_slots"] += 1
                 slots.append({"slot_index": slot["slot_index"],
+                              **_secondary_slot_geometry(page,slot),
                               "raw_columns": raw, "field_shapes": field_shapes,
                               "description_reading": description_reading,
                               "word_evidence": word_evidence, "field_readings": readings,
@@ -703,6 +852,9 @@ def _content_disposition(row: dict) -> tuple[str, str]:
     description_observed = any(_known_value(read["shape"]) is not None and
                                read.get("geometry_status") != "ambiguous"
                                for read in row["field_readings"]["description"]["observations"])
+    if (not description_observed and cues and raw["description"].strip() and
+            row["description_reading"].get("reason") == "source_text_line_orientation_conflict"):
+        return "data_candidate", "asset_text_orientation_unresolved"
     if description_observed and cues:
         return "data_candidate", "asset_text_with_transaction_field_evidence"
     if not any(value.strip() for value in raw.values()):
@@ -716,7 +868,7 @@ def _structural_evidence(row: dict, source_slot: dict, *, rounding: bool) -> dic
     words = row["word_evidence"]
     if words["status"] != "source_words_linked":
         reasons.append("structural_word_geometry_unavailable")
-    if words["crossing_words"] or words["unassigned_word_indices"]:
+    if words["crossing_words"] or words["unassigned_word_indices"] or words.get("row_boundary_crossing_words"):
         reasons.append("structural_word_geometry_ambiguous")
     if rounding or source_slot.get("column_model_outside_word_indices"):
         reasons.append("structural_word_position_ambiguous")
@@ -759,6 +911,8 @@ def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
     fragments, previous_data = [], None
     previous_page = None
     for item in content:
+        if item.get("unresolved_region_before"):
+            previous_data = None
         number = item["page_number"]
         if previous_page is not None and number not in {previous_page, previous_page + 1}:
             previous_data = None
@@ -821,6 +975,22 @@ def _content_slot_bands(page: dict) -> list[bool]:
     """Revalidate saved grid bands even when column positions are unknown."""
     slots = page.get("slots")
     count = page.get("physical_slot_count")
+    partial=page.get("partial_row_geometry",False)
+    if partial:
+        geometry=page.get("column_geometry_observation",{})
+        if (partial is not True or count is not None or page.get("known_physical_slot_count") != len(slots or []) or
+                page.get("whole_page_physical_slot_count") is not None or not geometry.get("partial_row_geometry") or
+                page.get("unresolved_regions") != geometry.get("unresolved_regions") or
+                [s.get("band_pdf_points") for s in slots or []] != geometry.get("physical_row_bands")):
+            raise ValueError("partial grid evidence differs from observed row partition")
+        last=-1.
+        for region in page["unresolved_regions"]:
+            if (not isinstance(region,list) or len(region)!=2 or any(type(v) not in (int,float) or not isfinite(v) for v in region)
+                    or not 0 <= region[0] < region[1] or region[0] < last or
+                    any(max(region[0],s["band_pdf_points"][0]) < min(region[1],s["band_pdf_points"][1]) for s in slots)):
+                raise ValueError("unresolved region overlaps supported physical slot")
+            last=region[1]
+        count=len(slots)
     if not isinstance(slots, list) or (count != len(slots) and not (count is None and not slots)):
         raise ValueError("physical slot count differs from saved grid")
     previous_bottom, rounding_ambiguous = -1., []
@@ -840,6 +1010,10 @@ def _content_slot_bands(page: dict) -> list[bool]:
                     not box[0] < box[2] or not box[1] < box[3]):
                 raise ValueError("saved word geometry is invalid")
             center = (box[1] + box[3]) / 2
+            if _dual_geometry(page):
+                if not _slot_owns_center(page,slot,box):
+                    raise ValueError("saved word position differs from source dual-axis slot")
+                continue
             if not band[0] <= center < band[1]:
                 # v2 stores word coordinates rounded to 0.01 point after assigning
                 # by the unrounded center. Keep that rounding ambiguity explicit.
@@ -866,6 +1040,10 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     top, bottom = slot["band_pdf_points"]
     for detection in read["detections"]:
         box = detection["bbox_pdf_points"]
+        if _dual_geometry(page):
+            if not _geometry.box_in_slot(page,slot,box,start,end,left_pad=.6,right_pad=1.5):
+                return False
+            continue
         domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
         if domain and not domain[0] <= box[1] < box[3] <= domain[1]:
             return False
@@ -896,6 +1074,10 @@ def _description_unaffected_by_local_type(row: dict, warnings: list[dict], *,
             return []
     for i in indices:
         box = source_slot["words"][i]["bbox_pdf_points"]
+        if _dual_geometry(source_page):
+            if not _geometry.box_in_slot(source_page,source_slot,box,1,2,left_pad=.6,right_pad=1.5):
+                return []
+            continue
         domain = (source_page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
         if domain and not domain[0] <= box[1] < box[3] <= domain[1]:
             return []
@@ -934,6 +1116,11 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
         else:
             status = "missing_observation"
             reasons.append(f"{field}_observation_missing")
+            if field == "description" and (row["description_reading"].get("reason") ==
+                    "source_text_line_orientation_conflict" or any(
+                        read.get("description_reading", {}).get("reason") == "source_text_line_orientation_conflict"
+                        for read in evidence["observations"])):
+                reasons.append("source_text_line_orientation_conflict")
         field_evidence[field] = {
             "status": status,
             "supporting_observations": [{"observation_index": index, "source_ref": read["source_ref"]}
@@ -949,16 +1136,16 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
     crossing_refs, geometry_evidence, unresolved_geometry_fields = set(), {}, []
     for field, reading in row["field_readings"].items():
         warnings = [warning for warning in reading["geometry_warnings"]
-                    if warning["scope"] == "field_boundary"]
+                    if warning["scope"] in {"field_boundary","row_boundary"}]
         if not warnings:
             continue
-        crossing_refs.update(warning["crossing_word_ref"] for warning in warnings)
+        crossing_refs.update(warning["crossing_word_ref"] for warning in warnings if "crossing_word_ref" in warning)
         supports = [{"observation_index": index, "source_ref": read["source_ref"]}
                     for index, read in enumerate(reading["observations"]) if index > 0 and
                     _complete_secondary_geometry(read, field=field, slot=source_slot, page=source_page)]
         neighbour_support = (_description_unaffected_by_local_type(
             row, warnings, source_slot=source_slot, source_page=source_page)
-            if field == "description" and not supports else [])
+            if field == "description" and not supports and all(w["scope"] == "field_boundary" for w in warnings) else [])
         if neighbour_support:
             supports = neighbour_support
         geometry_evidence[field] = {
@@ -967,7 +1154,10 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
             "basis": ("bound_type_cell_and_unaffected_description_boxes" if neighbour_support else
                       "full_secondary_boxes_inside_horizontal_source_field_crop"),
             "vertical_assignment_basis": "existing_bound_read_center_and_overhang_validation",
-            "primary_crossing_word_refs": sorted({warning["crossing_word_ref"] for warning in warnings})}
+            "primary_crossing_word_refs": sorted({warning["crossing_word_ref"] for warning in warnings if "crossing_word_ref" in warning}),
+            **({"primary_row_crossing_word_refs":sorted({w["row_crossing_word_ref"] for w in warnings if "row_crossing_word_ref" in w}),
+                "vertical_assignment_basis":"actual_source_row_and_column_lines",
+                "basis":"full_secondary_boxes_inside_source_quad"} if _dual_geometry(source_page) else {})}
         if not supports:
             unresolved_geometry_fields.append(field)
     if unresolved_geometry_fields:
@@ -1011,6 +1201,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     pages, rows, content, logical_evidence = [], [], [], []
     account = _account_context()
     previous_page = None
+    pending_region = False
+    partial_pages = []
     for page in fields["pages"]:
         number = page["page_number"]
         if previous_page is not None and number != previous_page + 1:
@@ -1033,9 +1225,25 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 coverage_reason="column_geometry_unknown", coordinate_frame="pdf_points"))
             continue
         raw_slots = original["slots"]
+        regions=original.get("unresolved_regions",[]) if original.get("partial_row_geometry") else []
+        previous_bottom=0.
+        if original.get("partial_row_geometry"):
+            partial_pages.append({"page_number":number,"known_physical_slot_count":len(raw_slots),
+                "whole_page_physical_slot_count":None,"unresolved_regions":deepcopy(regions),
+                "unbound_page_ocr_words":deepcopy(original["unbound_page_ocr_words"])})
         slots = []
         for index, (raw_slot, row) in enumerate(zip(raw_slots, page["slots"], strict=True), 1):
             band = raw_slot["band_pdf_points"]
+            local_regions=[r for r in regions if previous_bottom <= r[0] and r[1] <= band[0]]
+            region_before=pending_region or bool(local_regions)
+            region_words=[w for w in original.get("unbound_page_ocr_words",[]) if any(
+                r[0] <= (w["top"]+w["bottom"])/2 < r[1] for r in local_regions)]
+            scope_signal=bool(re.search(r"\b(?:account|spouse|dependent|continued|continuation|amendment|replacement|exhibit)\b",
+                " ".join(w["text"] for w in region_words),re.I))
+            if region_before and (account.get("title") or scope_signal):
+                account=_account_context(unknown=True)
+            pending_region=False
+            previous_bottom=band[1]
             disposition, reason = _content_disposition(row)
             structural = None
             if disposition in {"heading", "note", "blank"}:
@@ -1056,9 +1264,12 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             slots.append({"local_key": key, "bounds": band,
                           "disposition": disposition, "observation_ref": observation_ref})
             content_row = {**reference, "disposition": disposition, "reason": reason,
+                           **_secondary_slot_geometry(original,raw_slot),
                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
                            "field_observation_ref": observation_ref,
                            "account_context": deepcopy(account)}
+            if original.get("partial_row_geometry") or region_before:
+                content_row.update(unresolved_region_before=region_before,unresolved_region_scope_signal=scope_signal)
             if structural is not None:
                 content_row["structural_evidence"] = structural
             content.append(content_row)
@@ -1068,6 +1279,10 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 continue
             relation = _row_relation_evidence(row, rounding_ambiguous=rounding_ambiguous[index - 1],
                                                source_slot=raw_slot, source_page=original)
+            if raw_slot.get("unresolved_region_crossing_word_indices"):
+                relation["status"]="unresolved"
+                relation["blocking_reasons"]=sorted(set(relation["blocking_reasons"]+[
+                    "word_box_crosses_unresolved_region"]))
             content_row["relation_evidence"] = relation
             if relation["status"] == "supported_observation_relation":
                 local_key = f"page:{number}:slot:{key}"
@@ -1078,10 +1293,13 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                                          "field_geometry_evidence": relation["field_geometry_evidence"],
                                          "account_context": deepcopy(account),
                                          "qualification": "not_assessed"})
+        pending_region=any(r[1] > previous_bottom for r in regions)
         pages.append(page_ledger(
             source_id="oge", document_sha256=sha, page_number=number,
-            adapter_version=content_rules, coverage="located", slots=slots,
-            coordinate_frame="pdf_points"))
+            adapter_version=content_rules, coverage="unknown" if original.get("partial_row_geometry") else "located", slots=slots,
+            **({"unresolved_regions":regions,"coverage_reason":"supported_local_rows_only"}
+               if original.get("partial_row_geometry") else {}),
+            coordinate_frame="pdf_points_row_lines_at_reference_x" if _dual_geometry(original) else "pdf_points"))
     fragments = _fragment_constraints(content, fields)
     # Fragment checks may inhibit a previously complete-looking single slot.
     # Rebuild local links and counts from final relations, retaining all reads.
@@ -1107,6 +1325,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     from .oge_278t_printed_number_shadow import observe_printed_number_sequence
     printed = observe_printed_number_sequence(observations)
     return {"field_observations": fields, "slot_content": content,
+            **({"partial_geometry_pages":partial_pages} if partial_pages else {}),
             "logical_row_field_evidence": logical_evidence,
             "fragment_relations": fragments,
             "printed_number_observation": printed,
@@ -1122,8 +1341,8 @@ def compare_field_observations(left: dict, right: dict) -> dict:
     Agreement is still an OCR observation, never a verified source fact.
     Pages present in only one pass remain explicit rather than disappearing.
     """
-    if any(item.get("schema_version") != _INPUT_SCHEMA for item in (left, right)):
-        raise ValueError("expected two saved 278-T raster slot observations v2")
+    for item in (left,right):
+        _validate_geometry_input(item)
     source = left.get("source_sha256")
     if not source or source != right.get("source_sha256"):
         raise ValueError("OCR passes must refer to the same PDF SHA-256")
@@ -1149,10 +1368,14 @@ def compare_field_observations(left: dict, right: dict) -> dict:
     pages = []
     for number in common:
         first, second = left_pages[number], right_pages[number]
+        if (_dual_geometry(first) or _dual_geometry(second)) and column_geometry_sha256(first) != column_geometry_sha256(second):
+            raise ValueError(f"page {number} dual-axis source geometry differs between OCR passes")
         if first.get("column_geometry") != second.get("column_geometry") or \
                 first.get("column_edges_pdf_points") != second.get("column_edges_pdf_points") or \
                 first.get("column_line_model") != second.get("column_line_model") or \
                 first.get("render_coordinate_frame") != second.get("render_coordinate_frame") or \
+                first.get("partial_row_geometry") != second.get("partial_row_geometry") or \
+                first.get("unresolved_regions") != second.get("unresolved_regions") or \
                 first.get("physical_slot_count") != second.get("physical_slot_count"):
             raise ValueError(f"page {number} grid geometry differs between OCR passes")
         if first.get("column_geometry") != "oge_2024_six_column_grid":

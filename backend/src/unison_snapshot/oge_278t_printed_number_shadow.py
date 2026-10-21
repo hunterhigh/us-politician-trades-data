@@ -13,15 +13,24 @@ import re
 
 SCHEMA = "oge-278t-printed-number-shadow/v1"
 _INPUT_SCHEMA = "oge-278t-raster-slot-observation/v2"
+_DUAL_SCHEMA = "oge-278t-raster-slot-observation/v3"
+_DUAL_MODE = "source_pdf_dual_axis/v1"
 _GRID = "oge_2024_six_column_grid"
 _NUMBER = re.compile(r"[1-9][0-9]*")
 
 
 def observe_printed_number_sequence(observations: list[dict]) -> dict:
     """Keep page-local row-number consensus, OCR errors and unknown gaps."""
-    if not observations or any(item.get("schema_version") != _INPUT_SCHEMA
+    if not observations or any(item.get("schema_version") not in {_INPUT_SCHEMA,_DUAL_SCHEMA}
                                for item in observations):
         raise ValueError("expected saved 278-T raster slot observations v2")
+    for item in observations:
+        if item.get("schema_version") == _DUAL_SCHEMA:
+            if item.get("geometry_mode") != _DUAL_MODE or any(page.get("geometry_mode") != _DUAL_MODE for page in item["pages"]):
+                raise ValueError("dual-axis printed number input lacks its explicit mode")
+            if any(page.get("slots") and (not page.get("row_line_model") or not page.get("column_line_model") or
+                    not page.get("partial_row_geometry")) for page in item["pages"]):
+                raise ValueError("dual-axis printed numbers require known local source geometry")
     sources = {item.get("source_sha256") for item in observations}
     if len(sources) != 1 or None in sources:
         raise ValueError("printed-number observations must share one PDF SHA-256")
@@ -43,6 +52,22 @@ def observe_printed_number_sequence(observations: list[dict]) -> dict:
             counts["geometry_unknown_pages"] += 1
             continue
         slots = page.get("slots")
+        if page.get("partial_row_geometry"):
+            if (physical_count is not None or not isinstance(slots,list) or
+                    page.get("known_physical_slot_count") != len(slots)):
+                raise ValueError("partial printed-number input has an invalid known count")
+            rows=[]
+            for slot in slots:
+                raw=slot["column_observation"]["printed_number"]["raw_ocr_text"].strip()
+                rows.append({"slot_index":slot["slot_index"],"raw_ocr_text":raw,
+                    "strict_ocr_number":int(raw) if _NUMBER.fullmatch(raw) else None,
+                    "consensus_expected_number":None,"status":"partial_grid_no_sequence_inference",
+                    "qualification":"not_assessed"})
+            pages.append({"page_number":number,"status":"partial_grid_numbers_observed",
+                "physical_slot_count":None,"known_physical_slot_count":len(slots),"slots":rows})
+            counts["partial_grid_pages"]+=1
+            counts["physical_slots"]+=len(slots)
+            continue
         if not isinstance(slots, list) or len(slots) != physical_count or \
                 [slot.get("slot_index") for slot in slots] != list(range(1, len(slots) + 1)):
             raise ValueError(f"page {number} has invalid physical slots")

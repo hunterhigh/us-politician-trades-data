@@ -85,7 +85,9 @@ def read_annual_cover_dates(text: str, *, source_sha256: str) -> dict:
     start = re.search(r"Filer(?:['’]s)?\s+Certification|Electronic\s+Signature|Signature\s+of\s+(?:Filer|Reporting\s+Individual)", text, re.I)
     boundary = (re.search(r"(?im)^\s*(?:Agency\b|Other\s+Review\b|U\.?S\.?\s+Office\b|OGE\s+(?:Certification|Received)\b)",
                           text[start.end():]) if start else None)
-    stop = start.end() + boundary.start() if start and boundary else None
+    # A reviewing block is optional.  End of the same cover text is also a
+    # boundary; requiring an agency block discarded explicit filer dates.
+    stop = start.end() + boundary.start() if start and boundary else len(text) if start else None
     for observed in evidence["observations"]:
         if observed["role"] == "filer_signature" and (stop is None or observed["text_span"][0] >= stop):
             observed["role"] = "unresolved_cover_role"
@@ -99,7 +101,10 @@ def read_annual_cover_dates(text: str, *, source_sha256: str) -> dict:
     return evidence
 
 
-def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metadata: dict) -> dict:
+def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metadata: dict,
+                                 holding_page_observations: dict | None = None,
+                                 native_cover_observation: dict | None = None,
+                                 archived_pdf_path: Path | None = None) -> dict:
     """Reuse saved scan text, preserving missing sections instead of new OCR."""
     import json
     from types import SimpleNamespace
@@ -158,8 +163,61 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                 "source_page_text_sha256": page["page_text_sha256"], "top": slot.get("top"), "bottom": slot.get("bottom")}
         transactions.extend(parsed)
         quarantined.extend(rejected)
+    cover_dates = None
+    if native_cover_observation is not None:
+        from .oge_annual_scan_cover import observe_native_cover_text
+        if archived_pdf_path is None or not isinstance(native_cover_observation, dict):
+            raise OgeCatalogError("annual native cover requires original source replay")
+        replay_cover = observe_native_cover_text(Path(archived_pdf_path), source_sha256=sha, document_id=document)
+        if (replay_cover != native_cover_observation or replay_cover["document_page_count"] != sections["page_count"] or
+                replay_cover["cover_text_sha256"] != cover["native_text_sha256"]):
+            raise OgeCatalogError("annual native cover differs from original or saved cover inventory")
+        cover_dates = read_annual_cover_dates(replay_cover["cover_text"], source_sha256=sha)
+    holdings, excluded, observed_pages = [], [], set()
+    if holding_page_observations is not None:
+        from .oge_annual_scan_sections import observe_holding_pages
+        if archived_pdf_path is None or not isinstance(holding_page_observations, dict):
+            raise OgeCatalogError("annual holding observations require original source replay")
+        selected = holding_page_observations.get("pages")
+        if not isinstance(selected, list) or any(not isinstance(page, dict) for page in selected):
+            raise OgeCatalogError("annual holding page observations are invalid")
+        replay = observe_holding_pages(Path(archived_pdf_path), source_sha256=sha, document_id=document,
+                                      page_numbers=[page.get("page_number") for page in selected])
+        comparison = replay
+        if (holding_page_observations.get("schema_version") == "oge-278e-native-holding-pages/v1" and
+                replay.get("schema_version") == "oge-278e-native-holding-pages/v2"):
+            comparison = {**replay, "schema_version": "oge-278e-native-holding-pages/v1",
+                "pages": [{key: value for key, value in page.items() if key != "number_only_cell_evidence"}
+                          for page in replay["pages"]]}
+        if comparison != holding_page_observations or replay["document_page_count"] != sections["page_count"]:
+            raise OgeCatalogError("annual holding observations differ from original source replay")
+        scopes = {}
+        for page in replay["pages"]:
+            number, part = page["page_number"], page["section"]
+            if (pages.get(number, {}).get("section") != part or
+                    pages[number].get("page_text_sha256") != page["page_text_sha256"]):
+                raise OgeCatalogError("annual holding observations differ from existing section inventory")
+            observed_pages.add(number)
+            if len(page["tables"]) != 1:
+                quarantined.append(_quarantine(part, number, [], ["table_count_unrecognized"]))
+                continue
+            good, bad, omitted = _parse_rows(part, "Self" if part == "part2" else "Spouse" if part == "part5" else "Unknown",
+                number, page["tables"][0], year, preserve_valued_unreadable=True,
+                qualified=True, scope_state=scopes.setdefault(part, {}), native_table_context=True,
+                native_empty_rows={item["table_row_index"]: item for item in page.get("number_only_cell_evidence", [])
+                    if item["table_index"] == 0}
+                    if holding_page_observations.get("schema_version") == "oge-278e-native-holding-pages/v2" else None)
+            for row in good + bad + omitted:
+                row["saved_native_reference"] = {"page_number": number, "section": part,
+                    "page_text_sha256": page["page_text_sha256"], "source_sha256": sha,
+                    "method": replay["method"]}
+            holdings.extend(good)
+            quarantined.extend(bad)
+            excluded.extend(omitted)
+        holdings = _reject_nested_aggregates(holdings, quarantined, excluded, qualified=True)
+        holdings = _reject_duplicate_page_rows(holdings, quarantined, qualified=True)
     for page in pages.values():
-        if page.get("section") in {"part2", "part5", "part6"}:
+        if page.get("section") in {"part2", "part5", "part6"} and page["page_number"] not in observed_pages:
             quarantined.append(_quarantine(page["section"], page["page_number"], [],
                                            ["saved_section_summary_has_no_field_rows"]))
     return {"schema_version": SCHEMA, "parser_version": QUALIFIED_PARSER_VERSION,
@@ -167,12 +225,15 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
         "source_url": archive_metadata["document_url"], "filer_name": archive_metadata["filer_name"],
         "evidence_archive_path": archive_metadata["archive_path"], "form_type": "278e", "report_type": "Annual",
         "annual_year": year, "report_period_end": f"{year}-12-31", "page_count": sections["page_count"],
-        "filing_date": None, "oge_received_on": None, "holdings": [], "transactions": transactions,
-        "excluded": [], "quarantined": quarantined, "section_pages": sections["section_pages"],
+        "filing_date": cover_dates["filed_at"] if cover_dates else None,
+        **({"cover_date_evidence": cover_dates, "native_cover_observation": native_cover_observation} if cover_dates else {}),
+        "oge_received_on": None, "holdings": holdings, "transactions": transactions,
+        "excluded": excluded, "quarantined": quarantined, "section_pages": sections["section_pages"],
         "extraction_method": "saved_scan_observations_no_new_ocr",
         "source_cover_text_sha256": cover["native_text_sha256"],
         "saved_observation_hashes": {"cover": hashlib.sha256(json.dumps(cover, sort_keys=True).encode()).hexdigest(),
                                     "sections": hashlib.sha256(json.dumps(sections, sort_keys=True).encode()).hexdigest()},
+        **({"saved_native_holding_observations": holding_page_observations} if holding_page_observations is not None else {}),
         "requires_cross_report_dedup": True, "holding_coverage_status": "partial_unverified"}
 
 
@@ -213,7 +274,9 @@ def _quarantine(section: str, page: int, cells: list[str], reasons: list[str],
 def _parse_rows(section: str, default_owner: str, page_number: int,
                 rows: list[list[object]], annual_year: int, *,
                 preserve_valued_unreadable: bool = False, qualified: bool = False,
-                scope_state: dict | None = None) -> tuple[list[dict], list[dict], list[dict]]:
+                scope_state: dict | None = None,
+                native_table_context: bool = False,
+                native_empty_rows: dict | None = None) -> tuple[list[dict], list[dict], list[dict]]:
     """Return strict rows, quarantines, and explicit non-holding exclusions."""
     header = _header(rows, section)
     if header is None:
@@ -237,13 +300,14 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
     excluded: list[dict] = []
     state = scope_state if scope_state is not None else {}
     owner = state.get("owner", default_owner) if qualified else default_owner
-    if qualified and state.get("previous_page") not in {None, page_number - 1}:
-        if state.get("account_title"):
+    if qualified and state.get("previous_page") not in {None, page_number, page_number - 1}:
+        if state.get("account_title") or state.get("owner_heading_ref"):
             state["account_scope_lost"] = True
-        owner = default_owner
-        state.update(owner=default_owner, owner_heading_ref=None)
+        # Keep the last observed scope as evidence, but do not qualify it
+        # across an unobserved intervening page.  In particular an explicit
+        # spouse heading must not silently become the section's default Self.
     state["previous_page"] = page_number
-    for cells_raw in rows[header_index + 1:]:
+    for source_row_index, cells_raw in enumerate(rows[header_index + 1:], start=header_index + 1):
         cells = [_compact(cell) for cell in cells_raw]
         if not any(cells):
             continue
@@ -256,6 +320,18 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         first_business_column = columns["type"] if section == "part7" else columns["value"]
         has_business_values = any(cells[first_business_column:])
         raw_number = cells[columns["#"]] if len(cells) > columns["#"] else ""
+        proof = (native_empty_rows or {}).get(source_row_index)
+        if (qualified and native_table_context and number is not None and not any(cells[1:]) and
+                isinstance(proof, dict) and proof.get("status") == "source_objects_verified_empty" and
+                _compact(proof.get("printed_number")) == raw_number):
+            excluded.append({"section": section, "page_number": page_number, "row_number": number,
+                "cells": cells, "reason": "source_objects_verified_empty_template", "native_empty_cell_evidence": proof})
+            continue
+        if (qualified and native_table_context and number is None and
+                re.match(r"Endnotes?\s+for\s+Lines?\b", raw_number, re.I) and not any(cells[1:])):
+            excluded.append({"section": section, "page_number": page_number, "row_number": None,
+                             "cells": cells, "reason": "source_endnote_not_holding"})
+            continue
         if (number is None and description and
                 (not preserve_valued_unreadable or
                  not has_business_values and not re.search(r"\d", raw_number))):
@@ -298,6 +374,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         evidence = {"section": section, "page_number": page_number,
                     "row_number": number, "owner": owner,
                     "asset_name": description}
+        if qualified and isinstance(proof, dict):
+            evidence["native_empty_cell_evidence"] = proof
         if qualified:
             evidence["owner_context"] = {"basis": "explicit_owner_heading" if state.get("owner_heading_ref") else
                 "section_role" if default_owner != "Unknown" else "not_disclosed",
@@ -347,7 +425,13 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
             value_raw = cells[columns["value"]] if len(cells) > columns["value"] else ""
             value = _range(value_raw)
             interval = read_annual_band(value_raw) if qualified else None
-            if "value not readily ascertainable" in description.casefold():
+            if qualified:
+                evidence["value_disclosure_status"] = (
+                    "explicitly_not_readily_ascertainable" if "value not readily ascertainable" in description.casefold() and not value_raw else
+                    "native_cell_content_unresolved" if isinstance(proof, dict) and proof.get("status") == "unknown" else
+                    "value_cell_text_empty" if not value_raw else
+                    "bounded_band_observed" if value else "open_band_observed" if interval else "value_reading_unsupported")
+            if "value not readily ascertainable" in description.casefold() and (not qualified or value is not None or interval is not None):
                 reasons.append("asset_value_description_conflicts_with_band")
             if re.search(r"\bsee\s+lines?\b", description, re.I):
                 reasons.append("asset_references_other_line")
@@ -430,12 +514,29 @@ def _reject_nested_aggregates(holdings: list[dict], quarantined: list[dict],
     """A valued parent and its valued children must not both enter an aggregate."""
     if qualified:
         all_rows = holdings + quarantined + excluded
+        def source_scope(row):
+            # A leaf's explicit owner prefix does not change its printed
+            # parent account.  Separate owner headings and account titles do.
+            return (row["section"], row.get("account_context", {}).get("title"),
+                    row.get("owner_context", {}).get("heading_ref"))
+
+        def related_rows(row):
+            return [other for other in all_rows if source_scope(other) == source_scope(row)
+                    and isinstance(other.get("row_number"), str)]
+
+        for row in list(quarantined):
+            if row.get("reasons") != ["holding_value_missing"] or not isinstance(row.get("row_number"), str):
+                continue
+            children = [other for other in related_rows(row)
+                        if other["row_number"].startswith(row["row_number"] + ".")]
+            if children:
+                excluded.append({**row, "reason": "parent_account_without_additive_value",
+                    "hierarchy_evidence": {"status": "parent_account", "basis": "explicit_hierarchical_printed_number_same_source_scope",
+                        "child_refs": [{"page_number": child["page_number"], "row_number": child["row_number"]} for child in children]}})
+                quarantined.remove(row)
         retained = []
         for row in holdings:
-            scope = (row["section"], row.get("owner"), row.get("account_context", {}).get("title"))
-            related = [other for other in all_rows if
-                       (other["section"], other.get("owner"), other.get("account_context", {}).get("title")) == scope
-                       and isinstance(other.get("row_number"), str)]
+            related = related_rows(row)
             children = [other for other in related if other["row_number"].startswith(row["row_number"] + ".")]
             parents = [other for other in related if row["row_number"].startswith(other["row_number"] + ".")]
             row["hierarchy_evidence"] = {

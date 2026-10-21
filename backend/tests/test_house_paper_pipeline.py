@@ -85,8 +85,11 @@ class HousePaperPipelineTests(unittest.TestCase):
         self._write(self.review / "house_clerk/paper_observations" / self.relative, self.observation)
         self._write(self.review / "house_clerk/paper_amount_headers" / self.relative, self.header)
         paper = dict(self.paper, quarantined=[{"source_quality_flags": ["asset_ocr_confidence_below_70"]}])
-        materialized = dict(self.paper, parser_version="house-paper-source-bound-qualification-v2")
+        materialized = dict(self.paper, parser_version="house-paper-source-bound-qualification-v2",
+            materialized_extraction={"source_sha256": self.sha, "source": self.metadata,
+                                    "extraction_method": "source_bound_paper_cells"})
         with (patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation", return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.preserved_paper_materialization", return_value=True),
               patch("unison_snapshot.house_paper_pipeline.materialize_paper_observation", return_value=materialized) as materialize,
               patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf") as observe,
               patch("unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells") as reread):
@@ -97,7 +100,8 @@ class HousePaperPipelineTests(unittest.TestCase):
         observe.assert_not_called()
         reread.assert_not_called()
         self.assertIsNone(materialize.call_args.kwargs["field_reread"])
-        self.assertEqual(json.loads(self.qualification_path.read_text()), materialized)
+        actual = json.loads(self.qualification_path.read_text())
+        self.assertEqual(actual, materialized)
 
     def test_saved_failed_parser_input_needs_no_fabricated_legacy_extraction(self):
         (self.review / "house_clerk/extractions" / self.relative).unlink()
@@ -108,6 +112,7 @@ class HousePaperPipelineTests(unittest.TestCase):
         self._write(self.review / "house_clerk/paper_observations" / self.relative, self.observation)
         self._write(self.review / "house_clerk/paper_amount_headers" / self.relative, self.header)
         with (patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation", return_value=self.paper),
+              patch("unison_snapshot.house_paper_pipeline.preserved_paper_materialization", return_value=True),
               patch("unison_snapshot.house_paper_pipeline.materialize_paper_observation", return_value={
                   **self.paper, "materialized_extraction": {"source_sha256": self.sha,
                     "source": self.metadata, "extraction_method": "source_bound_paper_cells"}}) as materialize):

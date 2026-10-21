@@ -17,6 +17,10 @@ from urllib.parse import unquote, urlsplit
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _DIRECT_ID = re.compile(r"[0-9a-f]{32}\Z")
+_SAVED_WHITEHOUSE_PARSERS = {
+    "whitehouse-278t-saved-ocr-roles/v6": None,
+    "whitehouse-278t-saved-ocr-dual-axis/v7": "source_pdf_dual_axis/v1",
+}
 
 
 def _read(path: Path) -> dict:
@@ -328,18 +332,178 @@ def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> 
     return ids
 
 
-def _apply_audit(record: dict, audit: dict, *, review: Path | None = None) -> None:
+def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
+                            evidence: Path | None = None) -> dict:
+    """Replay the saved-word consumer; OCR pages are not a source-row census."""
+    from .whitehouse_278t import validate_generic_whitehouse_report
+    parser = audit.get("parser_version")
+    sha = audit.get("source_sha256")
+    receipt = audit.get("observation_receipt")
+    if (review is None or not isinstance(parser, str) or parser not in _SAVED_WHITEHOUSE_PARSERS or
+            sha not in record["source_versions"] or not isinstance(receipt, dict) or
+            audit.get("document_id") != record["report_id"] or
+            audit.get("source_url") != record["source_url"]):
+        raise ValueError("White House saved-word status lacks its archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    reports = [_read(path) for path in sorted(folder.glob("*.json"))
+               if not path.name.endswith(".failure.json")]
+    reports = [row for row in reports if row.get("parser_version") == parser]
+    if len(reports) != 1:
+        raise ValueError("White House saved-word status requires a unique current cache")
+    report = reports[0]
+    if any(report.get(key) != audit.get(key) for key in
+           ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt",
+            "source_identity_resolution")):
+        raise ValueError("White House saved-word audit differs from its source cache")
+    geometry_mode = _SAVED_WHITEHOUSE_PARSERS[parser]
+    saved_input = report.get("saved_ocr_input")
+    if (not isinstance(saved_input, dict) or
+            any(value != geometry_mode for value in
+                (report.get("geometry_mode"), audit.get("geometry_mode"),
+                 receipt.get("geometry_mode"), saved_input.get("geometry_mode"))) or
+            geometry_mode is not None and receipt.get("local_row_geometry_mode") != geometry_mode):
+        raise ValueError("White House saved-word geometry mode differs from its parser and source")
+    # This validator materializes again from the referenced checkpoint and PDF
+    # when available. A matching receipt/digest alone is not source validation.
+    if evidence is None:
+        validate_generic_whitehouse_report(report)
+    else:
+        from .whitehouse_278t import saved_ocr_source_roots
+        with saved_ocr_source_roots(evidence, review):
+            validate_generic_whitehouse_report(report)
+    source_rows = [*_rows(report, "transactions"), *_rows(report, "quarantined")]
+    decisions = _rows(audit, "rows")
+    source_ids = [row.get("extraction_id") for row in source_rows]
+    retained_ids = audit.get("retained_ids", [])
+    retained_count = _count(audit.get("retained_count", 0))
+    allowed_statuses = {"promoted", "quarantined"} | ({"retained_existing"} if geometry_mode else set())
+    if (None in source_ids or len(set(source_ids)) != len(source_ids) or
+            [row.get("extraction_id") for row in decisions] != source_ids or
+            _count(audit.get("source_row_count")) != len(source_rows) or
+            any(row.get("status") not in allowed_statuses for row in decisions) or
+            _count(audit.get("promoted_count")) != sum(row["status"] == "promoted" for row in decisions) or
+            _count(audit.get("quarantined_count")) != sum(row["status"] == "quarantined" for row in decisions) or
+            retained_count != sum(row["status"] == "retained_existing" for row in decisions) or
+            retained_ids != [row["extraction_id"] for row in decisions if row["status"] == "retained_existing"]):
+        raise ValueError("White House saved-word decisions do not conserve their source rows")
+    if retained_ids or audit.get("current_source_retained_bindings") is not None:
+        def canonical(value):
+            return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        expected_binding = {"schema_version": "whitehouse-saved-current-retained/v1",
+            "source_sha256": sha, "document_id": report["document_id"], "parser_version": parser,
+            "geometry_mode": geometry_mode, "rows": [
+                {"formal_id": row["extraction_id"], "source_rows_index": row.get("source_rows_index"),
+                 "page_number": row.get("page_number"), "raw_cells_canonical_sha256": canonical(row.get("cells")),
+                 "basis": "current_source_replayed_exact_formal_projection"}
+                for row in source_rows if row["extraction_id"] in retained_ids]}
+        if geometry_mode is None or audit.get("current_source_retained_bindings") != expected_binding:
+            raise ValueError("White House saved-word retained facts lack current source bindings")
+    qualified_source_ids = {row["extraction_id"] for row in _rows(report, "transactions")}
+    for source, decision in zip(source_rows, decisions, strict=True):
+        source_reasons, reasons = source.get("reasons", []), decision.get("reasons", [])
+        if (not isinstance(reasons, list) or not isinstance(source_reasons, list) or
+                not set(source_reasons) <= set(reasons) or
+                decision.get("status") in {"promoted", "retained_existing"} and
+                (reasons or source_reasons or source["extraction_id"] not in qualified_source_ids)):
+            raise ValueError("White House saved-word decision drops a source blocker")
+    source_document_reasons = report.get("document_reasons", [])
+    audit_document_reasons = audit.get("document_reasons", [])
+    if (not isinstance(source_document_reasons, list) or
+            not isinstance(audit_document_reasons, list) or
+            not set(source_document_reasons) <= set(audit_document_reasons)):
+        raise ValueError("White House saved-word audit drops a source document blocker")
+    if ((audit.get("promoted_count") or retained_count) and (receipt.get("source_original_verified") is not True or
+            _date(report.get("filed_at")) is None or source_document_reasons or audit_document_reasons)):
+        raise ValueError("White House saved-word promotion lacks verified source or filing date")
+    if (receipt.get("schema_version") != "whitehouse-278t-saved-ocr-receipt/v1" or
+            receipt.get("mode") != "saved_ocr_words" or receipt.get("source_sha256") != sha or
+            receipt.get("coverage_complete") is not False or
+            receipt.get("unique_source_row_count", "missing") is not None):
+        raise ValueError("White House saved-word receipt has inconsistent count semantics")
+    words = _count(receipt.get("observed_word_page_count"))
+    slots = _count(receipt.get("observed_physical_slot_count"))
+    if words is None or slots is None:
+        raise ValueError("White House saved-word observed counts are missing")
+    partial = (report.get("content_observations") or {}).get("partial_geometry_pages", [])
+    partial_counts = {}
+    if receipt.get("local_row_geometry_mode") is not None:
+        regions = [{"page_number": page["page_number"], "regions": page["unresolved_regions"]}
+                   for page in partial]
+        partial_by_page = {page["page_number"]: page for page in partial}
+        geometry_by_page = {page["page_number"]: page for page in
+                            _rows(report.get("geometry_observations") or {}, "pages")}
+        unbound_pages = []
+        for raw_page in _rows(report, "raw_page_observations"):
+            number = raw_page["page_number"]
+            if number == 1:
+                continue
+            if number in partial_by_page:
+                count = len(partial_by_page[number]["unbound_page_ocr_words"])
+                basis = "partial_grid_unbound_saved_words"
+            elif geometry_by_page.get(number, {}).get("coverage") == "physical_slots_located":
+                count = _count(geometry_by_page[number].get("words_outside_slots"))
+                basis = "fully_located_grid_words_outside_slots"
+            else:
+                count = len(_rows(raw_page, "words"))
+                basis = "geometry_unknown_all_saved_words"
+            if count is None:
+                raise ValueError("White House observed words lack a source count")
+            unbound_pages.append({"page_number": number, "word_count": count, "basis": basis})
+        expected_local_mode = geometry_mode or "strict_joint_boundaries/v1"
+        if (receipt["local_row_geometry_mode"] != expected_local_mode or
+                audit.get("partial_geometry_pages", []) != partial or
+                receipt.get("geometry_partial_pages") != [page["page_number"] for page in partial] or
+                receipt.get("unresolved_regions") != regions or
+                receipt.get("unbound_observed_word_unit") != "selected_table_page_words_outside_known_slots" or
+                receipt.get("unbound_observed_word_pages") != unbound_pages or
+                _count(receipt.get("unbound_observed_word_count")) != sum(page["word_count"] for page in unbound_pages) or
+                receipt.get("whole_selected_table_slot_count", "missing") !=
+                (None if partial or receipt.get("geometry_unknown_pages") else slots)):
+            raise ValueError("White House local geometry status differs from source coverage")
+        if any(_count(page.get("known_physical_slot_count")) is None or
+               page.get("whole_page_physical_slot_count", "missing") is not None for page in partial):
+            raise ValueError("White House local slot counts cannot claim a complete page census")
+        partial_counts = {"local_row_geometry_mode": receipt["local_row_geometry_mode"],
+            "geometry_partial_pages": receipt["geometry_partial_pages"],
+            "unresolved_regions": regions,
+            "whole_selected_table_slot_count": receipt["whole_selected_table_slot_count"],
+            "unbound_observed_word_count": receipt["unbound_observed_word_count"],
+            "unbound_observed_word_unit": receipt["unbound_observed_word_unit"],
+            "unbound_observed_word_pages": unbound_pages}
+    elif partial or audit.get("partial_geometry_pages"):
+        raise ValueError("White House partial source coverage requires its explicit local mode")
+    return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "qualified_retained_transaction_ids": retained_ids,
+        "quarantine_count_unit": "saved_ocr_entries_not_whole_source_unique_rows",
+        "observed_quarantined_entry_count": _count(audit.get("quarantined_count")),
+        "observed_word_page_count": words, "observed_physical_slot_count": slots,
+        "source_observation_coverage": {**partial_counts, **{key: receipt.get(key) for key in
+            ("coverage_complete", "unobserved_pages", "geometry_unknown_pages",
+             "page_count_basis", "source_original_verified", "selected_page_numbers")}}}
+
+
+def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
+                 evidence: Path | None = None) -> None:
     receipt = audit.get("observation_receipt")
     native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
             "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
         raise ValueError("OGE legacy reference observation counts require their explicit unit")
-    separate_counts = (_native_exhibit_counts(record, audit) if native_exhibit else
+    saved_whitehouse = (isinstance(audit.get("parser_version"), str) and
+                       audit["parser_version"] in _SAVED_WHITEHOUSE_PARSERS or
+                       "saved_ocr_input" in audit or
+                       isinstance(receipt, dict) and (
+                           receipt.get("mode") == "saved_ocr_words" or
+                           receipt.get("schema_version") == "whitehouse-278t-saved-ocr-receipt/v1"))
+    separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
+                       _native_exhibit_counts(record, audit) if native_exhibit else
                        _observed_reference_counts(record, audit, review)
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
-    retained = _whitehouse_retained_ids(record, audit, review)
+    retained = (separate_counts.pop("qualified_retained_transaction_ids", []) if saved_whitehouse else
+                _whitehouse_retained_ids(record, audit, review))
     if retained:
         if promoted is None:
             raise ValueError("White House retained qualification lacks a promoted count")
@@ -521,7 +685,8 @@ def _add_archive_state(record: dict, archives: list[dict], review: Path,
         record["reason_codes"].append("multiple_archive_versions")
 
 
-def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict]) -> None:
+def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict], *,
+                      direct_annual_ids: frozenset[str] = frozenset()) -> None:
     direct, _, whitehouse = scopes
     indexes = {scope["scope_id"]: {row["report_id"]: row for row in scope["reports"]}
                for scope in (direct, whitehouse)}
@@ -538,6 +703,14 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
             is_whitehouse = host == "www.whitehouse.gov"
             scope = whitehouse if is_whitehouse else direct
             report_id = _official_id(url, is_whitehouse)
+            if not is_whitehouse and report_id in direct_annual_ids:
+                # These controlled archives are Form 278e, not PTRs. Keep the
+                # existing scope contract and make the uncovered binding clear.
+                unmatched_key = ("unmatched_publication_transaction_ids" if key ==
+                                 "publication_transaction_ids" else "unmatched_publication_holding_ids")
+                scope.setdefault(unmatched_key, []).append(fact["id"])
+                scope["limitations"].append("oge_direct_278e_outside_current_278t_status_scope")
+                continue
             if report_id is None:
                 unmatched_key = ("unmatched_publication_transaction_ids" if key ==
                                  "publication_transaction_ids" else "unmatched_publication_holding_ids")
@@ -637,7 +810,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             record["acquisition_state"] = "not_archived"
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
-            _apply_audit(record, audit_by_id[report_id], review=review)
+            _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence)
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
@@ -667,7 +840,10 @@ def build_oge_status(evidence_root: Path, review_root: Path,
                 record["quarantined_row_count"] = 0
                 record["reason_codes"].append("exact_source_copy_alias_to_whitehouse")
     result = [direct, request, public]
-    _bind_publication(result, transactions, holdings)
+    annual_archives = _archive_records(evidence, "oge/annual/reports", False)
+    if set(annual_archives) & (set(archives) | set(catalog_direct)):
+        raise ValueError("OGE annual archive is also classified as a direct 278-T report")
+    _bind_publication(result, transactions, holdings, direct_annual_ids=frozenset(annual_archives))
     return result
 
 
@@ -724,7 +900,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
-        _apply_audit(record, audit, review=review)
+        _apply_audit(record, audit, review=review, evidence=evidence)
         version_bound = _check_version(record, audit)
         if not version_bound:
             _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")

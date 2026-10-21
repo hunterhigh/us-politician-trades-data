@@ -239,8 +239,9 @@ def _overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path) -> 
 def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, dict]:
     """Consume qualified OGE annual rows in the existing annual overlay.
 
-    Partial-report display remains a pending product choice. Part 7 relations
-    are retained for reconciliation; similarity never adds or removes facts.
+    Part 7 rows count as independent disclosures. A partial holding selection
+    requires complete sections whose only gaps are explicit official unknown
+    values. Similarity never adds or removes facts.
     """
     from .oge_annual_ledger import build_oge_annual_shadow_ledger
     from .builder import timestamp
@@ -259,17 +260,39 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             if document not in metadata or any(row.get("source_document_id") == document for row in extractions):
                 raise OgeCatalogError("saved annual scan input is duplicated or lacks source metadata")
             extractions.append(materialize_saved_annual_scan(bundle["cover_observation"], bundle["section_observation"],
-                                                           archive_metadata=metadata[document]))
+                archive_metadata=metadata[document], holding_page_observations=bundle.get("holding_page_observations"),
+                native_cover_observation=bundle.get("native_cover_observation"),
+                archived_pdf_path=bundle.get("archived_pdf_path")))
     result = deepcopy(candidate)
     people = {row["id"]: row for row in result["people"]}
     prior = {row["id"]: row for row in result["reported_holdings"]}
+    transactions = {row["id"]: row for row in result["transactions"]}
+    relations = {row["transaction_id"]: row for row in result["meta"].get("transaction_disclosure_relations", [])}
+    coverages = {(row["source_id"], row["person_id"]): row for row in result["meta"].get("holding_report_coverage", [])}
     reports, seen = [], set()
     versions = {}
+    copy_groups = {}
+    copy_interpretations = {}
+    for item in extractions:
+        archive = metadata.get(item.get("source_document_id"), {})
+        if isinstance(archive, dict) and all(isinstance(archive.get(key), str) and archive[key].strip()
+                                           for key in ("filer_name", "agency", "position_title")):
+            copy_key = (item.get("source_sha256"), _identity_key(archive), item.get("report_period_end"))
+            copy_groups.setdefault(copy_key, []).append(item["source_document_id"])
+            copy_interpretations.setdefault(copy_key, set()).add(json.dumps({key: item.get(key) for key in
+                ("annual_year", "filing_date", "cover_date_evidence", "holdings", "transactions", "excluded", "quarantined")},
+                ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    canonical_documents = {document: min(documents) for documents in copy_groups.values() for document in documents}
+    copy_conflicts = {document for key, documents in copy_groups.items() if len(copy_interpretations[key]) > 1 for document in documents}
+    sha_attributions = {}
+    for sha, identity, period in copy_groups:
+        sha_attributions.setdefault(sha, set()).add((identity, period))
     for item in extractions:
         archive = metadata.get(item.get("source_document_id"), {})
         if isinstance(archive, dict) and all(isinstance(archive.get(key), str) and archive[key].strip()
                                               for key in ("filer_name", "agency", "position_title")):
-            versions.setdefault((_identity_key(archive), item.get("report_period_end")), []).append(item["source_document_id"])
+            if canonical_documents.get(item["source_document_id"]) == item["source_document_id"]:
+                versions.setdefault((_identity_key(archive), item.get("report_period_end")), []).append(item["source_document_id"])
     for extraction in extractions:
         document_id = extraction.get("source_document_id") if isinstance(extraction, dict) else None
         if not isinstance(document_id, str) or document_id in seen:
@@ -285,15 +308,28 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         ledger = build_oge_annual_shadow_ledger(extraction, run_id="oge-annual-candidate",
             code_commit=inputs["code_commit"], started_at=inputs["started_at"], qualified=True,
             scan_date_observation=dates.get(document_id))
+        if canonical_documents.get(document_id, document_id) != document_id and document_id not in copy_conflicts:
+            reports.append({"document_id": document_id, "source_sha256": extraction["source_sha256"],
+                "added_holding_count": 0, "added_transaction_count": 0,
+                "canonical_document_id": canonical_documents[document_id],
+                "disposition": "excluded_exact_source_copy", "report_reasons": ["exact_source_copy"],
+                "row_qualification": [{"candidate_id": row["candidate_id"], "disposition": "excluded",
+                    "reasons": ["exact_source_copy"]} for row in ledger["rows"]]})
+            continue
         report_reasons = []
+        if document_id in copy_conflicts:
+            report_reasons.append("exact_source_interpretation_conflict")
+        if len(sha_attributions.get(extraction["source_sha256"], set())) > 1:
+            report_reasons.append("exact_source_identity_or_period_conflict")
         version_refs = versions.get((_identity_key(archive), extraction.get("report_period_end")), [])
         if len(version_refs) > 1:
             report_reasons.append("annual_report_version_relationship_unresolved")
         filing_day = ledger["filing_date_evidence"]["date"]
         if filing_day and timestamp(filing_day + "T00:00:00Z") > timestamp(candidate["meta"]["data_cutoff_at"]):
             report_reasons.append("filing_exceeds_cutoff")
-        if not ledger["holding_coverage_complete"]:
-            report_reasons.append("partial_report_policy_pending")
+        holding_reasons = []
+        if not ledger["holding_coverage_official_unknown_only"]:
+            holding_reasons.append("partial_report_policy_pending")
         if archive.get("amended_label"):
             report_reasons.append("annual_amendment_relationship_unresolved")
         if archive.get("pending_final_oge_disposition") is True:
@@ -310,18 +346,58 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             "priority_reason": None, "portrait_url": None}
         index_by_object = {id(row): index for index, row in enumerate(extraction["holdings"])}
         prepared = []
+        prepared_transactions = []
         row_audit = []
         for decision, row in zip(ledger["rows"], ledger["detected_source_rows"], strict=True):
             reasons = decision["reasons"][:]
             collection = decision["observations"][0]["conditions"]["extraction_collection"]
-            if row["section"] == "part7" or collection != "holdings":
+            if row["section"] == "part7":
+                reasons.extend(report_reasons)
+                identifier = decision["candidate_id"]
+                if decision["disposition"] == "qualified" and not reasons:
+                    title = row.get("account_context", {}).get("title")
+                    fact = {"id": identifier, "filing_id": document_id, "person_id": person_id,
+                        "owner": row["owner"], "asset_name": f"{row['asset_name']} — {title}" if title else row["asset_name"],
+                        "ticker": None, "ticker_mapping_basis": None, "instrument_type": _instrument(row["asset_name"], None),
+                        "transaction_type": row["transaction_type"], "transaction_date": row["transaction_date"],
+                        "filed_at": filing_day + "T00:00:00Z", "amount_low": row["amount_low"], "amount_high": row["amount_high"],
+                        **({"amount_low_exclusive": row["amount_low_exclusive"]} if "amount_low_exclusive" in row else {}),
+                        "source_id": "oge", "source": "U.S. Office of Government Ethics", "source_url": extraction["source_url"],
+                        "verification_status": "official_matched"}
+                    # Public readers materialize optional nulls. New facts use
+                    # that same projection so repeat qualification is stable.
+                    for field in FIELDS["transactions"]:
+                        fact.setdefault(field, None)
+                    possible = sorted(r["id"] for r in transactions.values() if r["id"].startswith("oge-278t:") and
+                        r["source_id"] == "oge" and r["person_id"] == person_id and all(r.get(k) == fact[k]
+                        for k in ("asset_name", "owner", "transaction_type", "transaction_date", "amount_low", "amount_high")))
+                    relation = {"transaction_id": identifier, "source_id": "oge", "filing_id": document_id,
+                        "source_url": extraction["source_url"], "source_sha256": extraction["source_sha256"],
+                        "section": "Part 7", "page_number": row["page_number"], "printed_row_number": row["row_number"],
+                        "report_period_end": extraction["report_period_end"],
+                        "source_row_identity_sha256": decision["source_row_identity_sha256"],
+                        "possible_ptr_transaction_ids": possible,
+                        "status": "possible_ptr_overlap" if possible else "cross_report_relationship_unconfirmed"}
+                    fields = ('source_id','filing_id','source_url','source_sha256','section','page_number',
+                              'printed_row_number','report_period_end','source_row_identity_sha256')
+                    relation["source_binding_sha256"] = hashlib.sha256(json.dumps({key: relation[key] for key in fields},
+                        ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+                    prepared_transactions.append((fact, relation))
+                row_audit.append({"candidate_id": identifier, "section": "part7", "disposition": decision["disposition"],
+                    "reasons": sorted(set(reasons)), "source_row_identity_sha256": decision["source_row_identity_sha256"]})
+                continue
+            if collection != "holdings":
                 row_audit.append({"candidate_id": decision["candidate_id"], "section": row["section"],
                                   "disposition": decision["disposition"], "reasons": reasons,
+                                  **({"saved_native_reference": row["saved_native_reference"],
+                                      "native_empty_cell_evidence": row.get("native_empty_cell_evidence"),
+                                      "value_disclosure_status": row.get("value_disclosure_status")}
+                                     if "saved_native_reference" in row else {}),
                                   "account_context": row.get("account_context"), "hierarchy_evidence": row.get("hierarchy_evidence")})
                 continue
             index = index_by_object[id(row)]
             identifier = _holding_row_id(extraction["source_sha256"], row, index)
-            reasons.extend(report_reasons)
+            reasons.extend(report_reasons + holding_reasons)
             if decision["disposition"] == "qualified" and not reasons:
                 title = row.get("account_context", {}).get("title")
                 fact = {"id": identifier, "filing_id": document_id, "person_id": person_id,
@@ -337,9 +413,14 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
                     raise OgeCatalogError("OGE annual holding projection fields changed")
                 prepared.append((fact, reasons))
             row_audit.append({"candidate_id": decision["candidate_id"], "formal_id": identifier,
-                              "section": row["section"], "disposition": decision["disposition"],
+                              "section": row["section"], "disposition": "quarantined" if reasons else decision["disposition"],
+                              **({"saved_native_reference": row["saved_native_reference"],
+                                  "native_empty_cell_evidence": row.get("native_empty_cell_evidence"),
+                                  "value_disclosure_status": row.get("value_disclosure_status")}
+                                 if "saved_native_reference" in row else {}),
                               "reasons": sorted(set(reasons)), "account_context": row.get("account_context"),
                               "hierarchy_evidence": row.get("hierarchy_evidence")})
+        transaction_report_reasons = report_reasons[:]
         # If a previous version's formal IDs cannot be bound, retain them and
         # block additions rather than minting replacements from shifted indices.
         prepared_ids = {fact["id"] for fact, _ in prepared}
@@ -347,35 +428,117 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         if unbound:
             report_reasons.append("legacy_annual_row_binding_unresolved")
         added, retained_ids, field_differences = 0, {row["id"] for row in existing_report_rows}, []
+        # Decide the whole holding application before inserting any new leaf.
+        # Otherwise an earlier/later mismatched old leaf could suppress the
+        # mandatory gap notice after another leaf had already been inserted.
         for fact, _ in prepared:
             old = prior.get(fact["id"])
-            if old is not None:
-                retained_ids.add(old["id"])
-                if old != fact:
-                    report_reasons.append("existing_annual_fact_diff_requires_source_reconciliation")
-                    field_differences.append({"formal_id": fact["id"], "source_sha256": extraction["source_sha256"],
-                        "fields": {field: {"old_value": old.get(field), "new_value": fact.get(field)}
-                                   for field in sorted(set(old) | set(fact)) if old.get(field) != fact.get(field)}})
-                continue
-            if unbound:
-                report_reasons.append("legacy_annual_row_binding_unresolved")
+            if old is not None and old != fact:
+                field_differences.append({"formal_id": fact["id"], "source_sha256": extraction["source_sha256"],
+                    "fields": {field: {"old_value": old.get(field), "new_value": fact.get(field)}
+                               for field in sorted(set(old) | set(fact)) if old.get(field) != fact.get(field)}})
+        if field_differences:
+            report_reasons.append("existing_annual_fact_diff_requires_source_reconciliation")
+        for fact, _ in prepared:
+            if fact["id"] in prior or unbound or field_differences:
                 continue
             prior[fact["id"]] = fact
             people.setdefault(person_id, source)
             added += 1
+        if unbound or field_differences:
+            blocking = (["legacy_annual_row_binding_unresolved"] if unbound else []) + (
+                ["existing_annual_fact_diff_requires_source_reconciliation"] if field_differences else [])
+            for row in row_audit:
+                if row["section"] != "part7" and row.get("formal_id") in prepared_ids:
+                    row["disposition"] = "quarantined"
+                    row["reasons"] = sorted(set(row["reasons"] + blocking))
+        tx_existing = [r for r in transactions.values() if r.get("filing_id") == document_id and r.get("source_id") == "oge"]
+        tx_ids = {fact["id"] for fact, _ in prepared_transactions}
+        tx_unbound = [r["id"] for r in tx_existing if r["id"] not in tx_ids]
+        if tx_unbound:
+            transaction_report_reasons.append("legacy_annual_transaction_binding_unresolved")
+        copy_documents = {r["filing_id"] for r in relations.values()
+            if r["source_id"] == "oge" and r["source_sha256"] == extraction["source_sha256"] and r["filing_id"] != document_id}
+        if copy_documents:
+            transaction_report_reasons.append("exact_source_copy_already_published")
+        if any(r["source_id"] == "oge" and r.get("report_period_end") == extraction["report_period_end"] and
+               r["filing_id"] != document_id and transactions.get(r["transaction_id"], {}).get("person_id") == person_id
+               for r in relations.values()):
+            transaction_report_reasons.append("existing_annual_report_version_relationship_unresolved")
+        tx_added, tx_retained, tx_differences = 0, [], []
+        if not transaction_report_reasons:
+            for fact, relation in prepared_transactions:
+                old = transactions.get(fact["id"])
+                if old is not None:
+                    if old == fact and relations.get(fact["id"], {}).get("source_binding_sha256") == relation["source_binding_sha256"]:
+                        tx_retained.append(fact["id"])
+                        relations[fact["id"]] = relation
+                    else:
+                        tx_differences.append({"formal_id": fact["id"], "old_value": old, "new_value": fact,
+                            "rule": "source_bound_difference_requires_reconciliation"})
+                    continue
+                transactions[fact["id"]] = fact
+                relations[fact["id"]] = relation
+                people.setdefault(person_id, source)
+                tx_added += 1
+        for row in row_audit:
+            if row["section"] == "part7" and (transaction_report_reasons or any(d["formal_id"] == row["candidate_id"] for d in tx_differences)):
+                row["disposition"] = "quarantined"
+                row["reasons"] = sorted(set(row["reasons"] + transaction_report_reasons +
+                    (["existing_annual_fact_diff_requires_source_reconciliation"] if any(d["formal_id"] == row["candidate_id"] for d in tx_differences) else [])))
+        from .oge_annual_ledger import official_unknown_holding_value
+        unknown_values = [(decision, row) for decision, row in zip(ledger["rows"], ledger["detected_source_rows"], strict=True)
+                          if official_unknown_holding_value(row)]
+        published = [r for r in prior.values() if r["filing_id"] == document_id and r["person_id"] == person_id]
+        old_coverage = coverages.get(("oge", person_id))
+        if (old_coverage and published and ledger["holding_coverage_complete"] and filing_day and
+                not report_reasons and not holding_reasons and not field_differences and not unbound and
+                old_coverage["report_period_end"] < extraction["report_period_end"]):
+            coverages.pop(("oge", person_id))
+        if (unknown_values and published and ledger["holding_coverage_official_unknown_only"] and
+                not report_reasons and not holding_reasons and filing_day and not field_differences and not unbound and
+                (not old_coverage or old_coverage["report_period_end"] <= extraction["report_period_end"])):
+            excluded_ids = [d["candidate_id"] for d, r in zip(ledger["rows"], ledger["detected_source_rows"], strict=True)
+                            if r["section"] != "part7" and d["disposition"] == "excluded"]
+            unresolved = [{"extraction_id": d["candidate_id"], "asset_name": r["asset_name"],
+                "value_raw": re.search("value not readily ascertainable", r["asset_name"], re.I).group(0),
+                "reasons": ["holding_value_missing"],
+                "page_number": r["page_number"], "printed_row_number": r["row_number"]} for d, r in unknown_values]
+            coverages[("oge", person_id)] = {"schema_version": "oge-approved-partial-holdings/v1",
+                "selection_basis": "complete_holding_sections_explicit_not_readily_ascertainable/v1",
+                "source_id": "oge", "source_sha256": extraction["source_sha256"], "source_url": extraction["source_url"],
+                "filing_id": document_id, "person_id": person_id, "report_period_end": extraction["report_period_end"],
+                "scope": "partial_report", "complete_total_assets": False,
+                "published_holding_ids": sorted(r["id"] for r in published), "excluded_row_ids": sorted(excluded_ids),
+                "unresolved_rows": unresolved, "observed_row_count": len(published) + len(excluded_ids) + len(unresolved),
+                "finite_value_low": sum(r["value_low"] for r in published if r["value_high"] is not None),
+                "finite_value_high": sum(r["value_high"] for r in published if r["value_high"] is not None)}
         reports.append({"document_id": document_id, "source_sha256": extraction["source_sha256"],
+            "added_transaction_count": tx_added, "retained_transaction_ids": tx_retained,
+            "transaction_report_reasons": sorted(set(transaction_report_reasons)),
+            "transaction_field_differences": tx_differences, "unbound_existing_transaction_ids": tx_unbound,
             "added_holding_count": added, "retained_holding_count": len(retained_ids),
             "existing_field_differences": field_differences, "version_document_references": version_refs,
-            "unbound_existing_ids": unbound, "report_reasons": sorted(set(report_reasons)),
+            "unbound_existing_ids": unbound, "report_reasons": sorted(set(report_reasons + holding_reasons)),
             "filing_date_evidence": ledger["filing_date_evidence"], "row_qualification": row_audit,
             "ledger_counts": ledger["manifest"]["counts"],
             "unlocated_source_issues": ledger["unlocated_source_issues"],
-            "annual_278t_relationship_status": "unresolved_no_similarity_dedup"})
+            "annual_278t_relationship_status": "independent_disclosure_rows_with_unresolved_cross_report_relationship",
+            "formal_field_corrections_applied": [],
+            "approved_policy": {"part7": "independent_disclosure_rows/v1",
+                "holdings": "complete_sections_official_unknown_value_gap/v1"}})
     result["reported_holdings"] = sorted(prior.values(), key=lambda row: row["id"])
+    result["transactions"] = sorted(transactions.values(), key=lambda row: row["id"])
+    if relations:
+        result["meta"]["transaction_disclosure_relations"] = sorted(relations.values(), key=lambda row: row["transaction_id"])
+    if coverages:
+        result["meta"]["holding_report_coverage"] = sorted(coverages.values(), key=lambda row: (row["source_id"], row["person_id"]))
+    else:
+        result["meta"].pop("holding_report_coverage", None)
     result["people"] = sorted(people.values(), key=lambda row: row["id"])
     return result, {"schema_version": "oge-annual-candidate-audit/v1", "reports": reports,
                     "added_holding_count": sum(row["added_holding_count"] for row in reports),
-                    "added_transaction_count": 0}
+                    "added_transaction_count": sum(row["added_transaction_count"] for row in reports)}
 
 
 def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path, *,

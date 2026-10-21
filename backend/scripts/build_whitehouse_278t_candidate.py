@@ -33,8 +33,9 @@ from unison_snapshot.whitehouse_278t_candidate import (
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSION,
+    PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSIONS,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
+    saved_ocr_source_roots,
 )
 from unison_snapshot.oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
                                              SCHEMA as ANNUAL_SCHEMA,
@@ -125,7 +126,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None,
         folder = Path("whitehouse/extractions") / match[1] / versions[0]
         parser_version = row.get("extraction_parser_version")
         if parser_version is None:
-            available = [version for version in TRADE_PARSERS if version != GENERIC_PARSER_VERSION
+            available = [version for version in TRADE_PARSERS if version not in GENERIC_PARSER_VERSIONS
                          if (review_root / folder /
                              f"{version.replace('/', '-')}.json").is_file()]
             parser_version = available[0] if available else TRADE_PARSER
@@ -311,6 +312,18 @@ def _strip_prior_whitehouse(candidate: dict, audit: dict,
 def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         audit_out: Path, expected_report_count: int | None = None,
         exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
+        coverage_input: Path | None = None, extraction_status_input: Path | None = None,
+        saved_ocr_evidence_root: Path | None = None) -> dict:
+    with saved_ocr_source_roots(saved_ocr_evidence_root,review_root):
+        return _run(oge_candidate=oge_candidate,review_root=review_root,candidate_out=candidate_out,
+            audit_out=audit_out,expected_report_count=expected_report_count,exact_source_copies=exact_source_copies,
+            exact_source_bindings=exact_source_bindings,coverage_input=coverage_input,
+            extraction_status_input=extraction_status_input)
+
+
+def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
+        audit_out: Path, expected_report_count: int | None = None,
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
         coverage_input: Path | None = None, extraction_status_input: Path | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
     if expected_report_count is not None and (type(expected_report_count) is not int or
@@ -326,7 +339,7 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             raise ValueError("Exact source bindings require --exact-source-copies")
         bindings, binding_sha = _read_object(exact_source_bindings)
         provenance["exact_source_binding_file_sha256"] = binding_sha
-    generic_mode = any(row.get("parser_version") == GENERIC_PARSER_VERSION for row in extractions)
+    generic_mode = any(row.get("parser_version") in GENERIC_PARSER_VERSIONS for row in extractions)
     base, base_sha = _read_object(oge_candidate)
     if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
@@ -427,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Optional archived OGE/White House metadata and old row receipts for cross-source aliases")
     parser.add_argument("--coverage-input", type=Path)
     parser.add_argument("--extraction-status-input", type=Path)
+    parser.add_argument("--saved-ocr-evidence-root", type=Path,
+                        help="Explicit root for relative saved-OCR archive metadata and original PDF refs")
     args = parser.parse_args(argv)
     try:
         result = run(oge_candidate=args.oge_candidate, review_root=args.review_root,
@@ -434,7 +449,8 @@ def main(argv: list[str] | None = None) -> int:
                      expected_report_count=args.expected_report_count,
                      exact_source_copies=args.exact_source_copies,
                      exact_source_bindings=args.exact_source_bindings, coverage_input=args.coverage_input,
-                     extraction_status_input=args.extraction_status_input)
+                     extraction_status_input=args.extraction_status_input,
+                     saved_ocr_evidence_root=args.saved_ocr_evidence_root)
     except (OgeCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"White House 278-T candidate failed: {exc}", file=sys.stderr)
         return 1

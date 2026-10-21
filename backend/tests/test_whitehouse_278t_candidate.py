@@ -322,7 +322,7 @@ class WhiteHouse278TCandidateTests(unittest.TestCase):
         for name in ("reported_holdings", "security_market_data"):
             self.assertEqual(candidate[name], base[name])
         self.assertEqual(len(candidate["source_health"]), 1)
-        self.assertIn("3 new transactions qualified", candidate["source_health"][0]["detail"])
+        self.assertIn("3 transactions qualified", candidate["source_health"][0]["detail"])
         self.assertIn("3 total OGE candidate transactions", candidate["source_health"][0]["detail"])
         self.assertIs(candidate["meta"]["is_demo"], False)
 

@@ -7,6 +7,8 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import math
+import re
 from pathlib import Path
 
 _PATH = Path(__file__).resolve().parents[2] / "frontend-contract-v2/scripts/process_snapshot.py"
@@ -68,8 +70,154 @@ def _amount_summary(rows, prefix="amount"):
     return result
 
 
+def _transaction_relation_identity(relation: dict) -> tuple[str, str]:
+    """Validate the original locator without inventing printed row numbers."""
+    common = {'transaction_id','source_id','filing_id','source_url','source_sha256',
+              'section','status','possible_ptr_transaction_ids'}
+    sha = relation.get('source_sha256')
+    if not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
+        raise ProcessingError('Transaction disclosure relation source hash differs')
+    if relation.get('source_id') == 'senate_efd':
+        number = relation.get('printed_row_number')
+        if (set(relation) != common | {'printed_row_number'} or relation.get('section') != 'Part 4b' or
+                not isinstance(number, str) or not re.fullmatch(r'[1-9]\d*', number)):
+            raise ProcessingError('Senate annual disclosure relation locator differs')
+        return 'senate-annual-part4b:' + hashlib.sha256(f'{sha}:part4b:{number}'.encode()).hexdigest()[:24], 'senate-ptr:'
+    if relation.get('source_id') == 'house_clerk':
+        page, top = relation.get('page_number'), relation.get('top_points')
+        if (set(relation) != common | {'page_number','top_points'} or relation.get('section') != 'Schedule B' or
+                type(page) is not int or not 1 <= page <= 1200 or
+                type(top) not in (int, float) or not math.isfinite(top) or
+                not 0 <= top <= 20000 or round(top, 2) != top):
+            raise ProcessingError('House annual disclosure relation locator differs')
+        return 'house-annual-b:' + hashlib.sha256(f'{sha}:{page}:{top:.2f}'.encode()).hexdigest()[:24], 'house-ptr:'
+    if relation.get('source_id') == 'oge':
+        page, number, digest = relation.get('page_number'), relation.get('printed_row_number'), relation.get('source_row_identity_sha256')
+        if (set(relation) != common | {'page_number','printed_row_number','source_row_identity_sha256','report_period_end','source_binding_sha256'} or
+                not re.fullmatch(r'(?:19|20)\d{2}-12-31', str(relation.get('report_period_end', ''))) or
+                relation.get('section') != 'Part 7' or type(page) is not int or not 1 <= page <= 1200 or
+                not isinstance(number, str) or not number.strip() or
+                not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest) or
+                not re.fullmatch(r'[0-9a-f]{32}', str(relation.get('filing_id', '')))):
+            raise ProcessingError('OGE annual disclosure relation locator differs')
+        fields = ('source_id','filing_id','source_url','source_sha256','section','page_number',
+                  'printed_row_number','report_period_end','source_row_identity_sha256')
+        binding = hashlib.sha256(json.dumps({key: relation[key] for key in fields}, ensure_ascii=False,
+                                           sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        if relation.get('source_binding_sha256') != binding:
+            raise ProcessingError('OGE annual disclosure relation source binding differs')
+        return 'oge-annual-row:' + digest[:24], 'oge-278t:'
+    raise ProcessingError('Unsupported annual disclosure relation source')
+
+
 def build_snapshot(payload):
     result = _BASE.build_snapshot(payload)
+    relations=result['meta'].get('transaction_disclosure_relations')
+    annual_ids={r['id'] for r in result['transactions'] if str(r['id']).startswith(('senate-annual-part4b:','house-annual-b:','oge-annual-row:'))}
+    if annual_ids and relations is None:raise ProcessingError('Annual disclosure facts require complete relationship metadata')
+    if relations is not None:
+        if not isinstance(relations,list):raise ProcessingError('Transaction disclosure relations must be a list')
+        facts={r['id']:r for r in result['transactions']};checked=[];seen=set()
+        subset=result['meta'].get('selection_scope',{}).get('mode') in {'person','ticker','people','tickers'}
+        for relation in relations:
+            if not isinstance(relation,dict):raise ProcessingError('Transaction disclosure relation must be an object')
+            expected, ptr_prefix = _transaction_relation_identity(relation)
+            key=relation['transaction_id']
+            if key != expected or key in seen:
+                raise ProcessingError('Transaction disclosure relation source identity differs')
+            seen.add(key);fact=facts.get(key)
+            possible=relation['possible_ptr_transaction_ids']
+            if (not isinstance(possible,list) or any(not isinstance(i,str) for i in possible) or len(possible)!=len(set(possible)) or
+                    relation['status']!=('possible_ptr_overlap' if possible else 'cross_report_relationship_unconfirmed')):
+                raise ProcessingError('Transaction disclosure relation status differs')
+            if fact is None:
+                if subset:continue
+                raise ProcessingError('Transaction disclosure relation references missing fact')
+            if any(fact.get(k)!=relation[k] for k in ('source_id','filing_id','source_url')):
+                raise ProcessingError('Transaction disclosure relation references another source')
+            for ptr in possible:
+                other=facts.get(ptr)
+                if not ptr.startswith(ptr_prefix):raise ProcessingError('Transaction disclosure relation possible PTR ID differs')
+                if other is None and subset:continue
+                if (other is None or not ptr.startswith(ptr_prefix) or other.get('source_id')!=relation['source_id'] or
+                        other.get('person_id')!=fact['person_id']):
+                    raise ProcessingError('Transaction disclosure relation possible PTR differs')
+            checked.append(deepcopy(relation))
+        result['meta']['transaction_disclosure_relations']=checked
+        if {r['transaction_id'] for r in checked}!=annual_ids:
+            raise ProcessingError('Annual disclosure relationship metadata does not cover loaded annual facts')
+    coverages = result["meta"].get("holding_report_coverage")
+    if coverages is not None:
+        if not isinstance(coverages, list):
+            raise ProcessingError("Holding report coverage must be a list")
+        visible = {p["id"] for p in result["people"]}
+        checked, seen = [], set()
+        for coverage in coverages:
+            if not isinstance(coverage, dict):
+                raise ProcessingError("Holding report coverage must be an object")
+            person = coverage.get("person_id")
+            if person in seen:
+                raise ProcessingError("Duplicate holding report coverage person")
+            seen.add(person)
+            if person not in visible:
+                continue
+            # A ticker selection contains only a subset of this person's
+            # holdings. Never label its subtotal as the whole report's total.
+            filtered = result["meta"].get("selection_scope", {}).get("mode") == "ticker"
+            rows = [r for r in result["reported_holdings"] if r["person_id"] == person]
+            if coverage.get("schema_version") == "oge-approved-partial-holdings/v1":
+                rows = [r for r in rows if r["report_period_end"] == coverage.get("report_period_end")]
+            ids = coverage.get("published_holding_ids")
+            excluded = coverage.get("excluded_row_ids")
+            unknown = coverage.get("unresolved_rows")
+            oge = coverage.get("schema_version") == "oge-approved-partial-holdings/v1"
+            expected_source = "oge" if oge else "house_clerk"
+            expected_basis = ("complete_holding_sections_explicit_not_readily_ascertainable/v1" if oge else
+                              "complete_schedule_a_explicit_undetermined_value/v1")
+            if (coverage.get("schema_version") not in {"house-approved-partial-holdings/v1", "oge-approved-partial-holdings/v1"} or
+                    coverage.get("source_id") != expected_source or
+                    not re.fullmatch(r"[0-9a-f]{64}",str(coverage.get("source_sha256", ""))) or
+                    coverage.get("selection_basis") != expected_basis or
+                    coverage.get("scope") != "partial_report" or coverage.get("complete_total_assets") is not False or
+                    not isinstance(ids,list) or not isinstance(excluded,list) or not isinstance(unknown,list) or not unknown or
+                    any(not isinstance(i,str) for i in ids+excluded) or len(ids)!=len(set(ids)) or
+                    (not set(r["id"] for r in rows) <= set(ids) if filtered else
+                     sorted(ids) != sorted(r["id"] for r in rows) or not rows) or
+                    any(r["filing_id"] != coverage.get("filing_id") or
+                        r["source_id"] != coverage.get("source_id") or
+                        r["source_url"] != coverage.get("source_url") or
+                        r["report_period_end"] != coverage.get("report_period_end") for r in rows)):
+                raise ProcessingError("Partial holding coverage differs from published report")
+            unknown_ids = []
+            for row in unknown:
+                if (not isinstance(row,dict) or not isinstance(row.get("extraction_id"),str) or
+                        not isinstance(row.get("asset_name"),str) or not row["asset_name"].strip() or
+                        not isinstance(row.get("value_raw"),str) or row["value_raw"].strip().casefold() !=
+                            ("value not readily ascertainable" if oge else "undetermined") or
+                        not row.get("reasons") or not set(row["reasons"]) <=
+                            ({"holding_value_missing"} if oge else {"value_not_representable","value_bounds_unresolved"}) or
+                        (oge and ("value not readily ascertainable" not in row["asset_name"].casefold() or
+                                  type(row.get("page_number")) is not int or row["page_number"] < 1 or
+                                  not isinstance(row.get("printed_row_number"), str) or not row["printed_row_number"]))):
+                    raise ProcessingError("Partial holding unresolved value has no explicit source literal")
+                unknown_ids.append(row["extraction_id"])
+            all_ids = ids + excluded + unknown_ids
+            bounded = [r for r in rows if not _is_open(r,"value")]
+            if (len(all_ids)!=len(set(all_ids)) or type(coverage.get("observed_row_count")) is not int or
+                    coverage.get("observed_row_count")!=len(all_ids) or
+                    type(coverage.get("finite_value_low")) is not int or
+                    type(coverage.get("finite_value_high")) is not int or
+                    not 0 <= coverage["finite_value_low"] <= coverage["finite_value_high"] or
+                    (not filtered and (coverage["finite_value_low"] != sum(r["value_low"] for r in bounded) or
+                     coverage["finite_value_high"] != sum(r["value_high"] for r in bounded)))):
+                raise ProcessingError("Partial holding row partition or finite totals differ")
+            if not filtered:
+                checked.append(deepcopy(coverage))
+        result["meta"]["holding_report_coverage"] = checked
+        for person in result["priority_people"]:
+            coverage = next((c for c in checked if c["person_id"]==person["person"]["id"]),None)
+            if coverage is not None:
+                person["holding_report_coverage"] = deepcopy(coverage)
     rows = result["transactions"]
     if not (any(_is_open(r) for r in rows) or
             any(_is_open(r, "value") for r in result["reported_holdings"])):

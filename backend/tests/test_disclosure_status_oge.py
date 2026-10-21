@@ -366,6 +366,21 @@ class OgeDisclosureStatusTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash differs"):
             self.build()
 
+    def test_known_direct_annual_facts_do_not_create_a_false_278t_report(self):
+        self.catalog([])
+        self.write(self.evidence, f"oge/annual/reports/{self.doc}/{self.sha}.json", {
+            "document_id": self.doc, "document_url": self.url, "sha256": self.sha})
+        transaction = {"id": "annual-tx", "source_id": "oge", "source_url": self.url}
+        holding = {"id": "annual-holding", "source_id": "oge", "source_url": self.url}
+        direct, _, _ = self.build([transaction], [holding])
+        self.assertEqual(direct["reports"], [])
+        self.assertEqual(direct["unmatched_publication_transaction_ids"], ["annual-tx"])
+        self.assertEqual(direct["unmatched_publication_holding_ids"], ["annual-holding"])
+        self.assertIn("oge_direct_278e_outside_current_278t_status_scope", direct["limitations"])
+        self.archive()
+        with self.assertRaisesRegex(ValueError, "also classified"):
+            self.build([transaction], [holding])
+
 
 if __name__ == "__main__":
     unittest.main()

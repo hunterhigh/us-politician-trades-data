@@ -12,6 +12,10 @@ on:
       paper_document_id:
         description: Optional archived paper PTR document ID to observe in this run
         required: false
+      materialize_saved_paper:
+        description: Interpret saved paper evidence only; skip parser and OCR work
+        type: boolean
+        default: false
 permissions:
   contents: write
   actions: read
@@ -114,8 +118,14 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '25' }}
+          MATERIALIZE_SAVED_PAPER: ${{ inputs.materialize_saved_paper }}
           PARSER_COMMIT: ${{ github.sha }}
         run: |
+          if [ "$MATERIALIZE_SAVED_PAPER" = "true" ]; then
+            mkdir -p .local
+            : > .local/parse-batch.txt
+            exit 0
+          fi
           case "$BATCH_SIZE" in
             ''|*[!0-9]*) echo "batch_size must be an integer" >&2; exit 2 ;;
           esac
@@ -126,9 +136,10 @@ jobs:
           LEGACY_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import LEGACY_PARSER_VERSION; print(LEGACY_PARSER_VERSION)')"
           PARSER_RETRY_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_ptr import PARSER_RETRY_VERSION; print(PARSER_RETRY_VERSION)')"
           export LEGACY_PARSER_VERSION PARSER_RETRY_VERSION
-          python - <<'PY'
+          PYTHONPATH=backend/src python - <<'PY'
           import json, os
           from pathlib import Path
+          from unison_snapshot.house_paper_pipeline import preserved_paper_materialization
           evidence = Path(os.environ['EVIDENCE_ROOT'])
           review = Path(os.environ['REVIEW_ROOT'])
           parser_commit = os.environ['PARSER_COMMIT']
@@ -141,6 +152,21 @@ jobs:
               sha = metadata['sha256']
               extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
               failure = review / 'house_clerk' / 'failures' / year / document_id / f'{sha}.json'
+              if extraction.is_file():
+                  # A retained legacy failure is evidence, not a request to
+                  # overwrite a successfully bound saved interpretation.
+                  try:
+                      value = json.loads(extraction.read_text(encoding='utf-8'))
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      value = {}
+                  if value.get('extraction_method') == 'source_bound_paper_cells':
+                      relative = Path(year) / document_id / f'{sha}.json'
+                      qualification = review / 'house_clerk/qualifications' / relative
+                      observation = review / 'house_clerk/paper_observations' / relative
+                      if preserved_paper_materialization(metadata, value,
+                              json.loads(qualification.read_text(encoding='utf-8')),
+                              json.loads(observation.read_text(encoding='utf-8'))):
+                          continue
               if extraction.is_file() and failure.is_file():
                   retries.append(metadata_path)
                   continue
@@ -171,6 +197,7 @@ jobs:
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
           PY
       - name: Detect image-only PDFs in this batch
+        if: inputs.materialize_saved_paper != true
         id: ocr
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -212,6 +239,7 @@ jobs:
           sudo apt-get update -qq -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
       - name: Parse and prepare machine extraction artifacts
+        if: inputs.materialize_saved_paper != true
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -273,6 +301,7 @@ jobs:
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
       - name: Refresh deterministic House identities
+        if: inputs.materialize_saved_paper != true
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -288,11 +317,16 @@ jobs:
               --extraction "$extraction" --members "$roster" --output "$identity"
           done
       - name: Build automatic qualification artifacts
+        if: inputs.materialize_saved_paper != true
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
           find "$REVIEW_ROOT/house_clerk/extractions" -name '*.json' -type f -print0 | sort -z | \
           while IFS= read -r -d '' extraction; do
+            # Source-bound paper facts must be replayed with their saved proofs.
+            # The generic qualifier cannot reproduce a verified blank Owner.
+            method="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("extraction_method", ""))' "$extraction")"
+            [ "$method" != "source_bound_paper_cells" ] || continue
             relative="${extraction#"$REVIEW_ROOT/house_clerk/extractions/"}"
             identity="$REVIEW_ROOT/house_clerk/identities/$relative"
             qualification="$REVIEW_ROOT/house_clerk/qualifications/$relative"
@@ -306,10 +340,14 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PAPER_DOCUMENT_ID: ${{ inputs.paper_document_id }}
+          MATERIALIZE_SAVED_PAPER: ${{ inputs.materialize_saved_paper }}
         run: |
           paper_args=()
           if [ -n "$PAPER_DOCUMENT_ID" ]; then
             paper_args+=(--document-id "$PAPER_DOCUMENT_ID")
+          fi
+          if [ "$MATERIALIZE_SAVED_PAPER" = "true" ]; then
+            paper_args+=(--materialize-saved)
           fi
           PYTHONPATH=backend/src python -m unison_snapshot bridge-house-paper-batch \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
@@ -432,10 +470,16 @@ jobs:
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
           mkdir -p "$REVIEW_ROOT/candidates/sources"
+          # Preserve activated annual disclosure rows if a later source
+          # observation is unavailable; the builder still requalifies PTRs.
+          candidate_base=ingest/current.json
+          if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
+            candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          fi
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/house_clerk.json" \
-            --base ingest/current.json \
+            --base "$candidate_base" \
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"

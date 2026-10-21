@@ -40,11 +40,12 @@ def observe_description_column(pdf_path: Path, *, slots_observation: dict,
 def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                          executable: str | None, resolution: int, field: str,
                          page_numbers: list[int] | None = None) -> dict:
-    from .oge_278t_field_shadow import _description_detection_reading, _description_shape
+    from .oge_278t_field_shadow import (_description_detection_reading, _description_shape,
+        _validate_geometry_input, _dual_geometry, _known_page_geometry, _slot_owns_center, _slot_overlap, _secondary_slot_geometry)
+    from . import oge_278t_raster_slots as _geometry
     from .oge_278t_raster_slots import column_crop_bounds, column_geometry_sha256
 
-    if slots_observation.get("schema_version") != _INPUT_SCHEMA:
-        raise ValueError("expected saved 278-T raster slot observations v2")
+    _validate_geometry_input(slots_observation)
     if type(resolution) is not int or not (150 if field == "type" else 200) <= resolution <= 400:
         raise ValueError("278-T type-column OCR resolution is outside bounds")
     pages = slots_observation.get("pages")
@@ -75,7 +76,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
             raise ValueError("278-T page selection is outside PDF bounds")
         for page in pages:
             number = page["page_number"]
-            if page.get("column_geometry") != "oge_2024_six_column_grid":
+            if not _known_page_geometry(page):
                 results.append({"page_number": number, "status": "geometry_unknown",
                                 "slots": []})
                 counts["geometry_unknown_pages"] += 1
@@ -85,7 +86,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
             if not isinstance(edges, list) or len(edges) != 7 or \
                     not all(a < b for a, b in zip(edges, edges[1:])) or \
                     not isinstance(slots, list) or not slots or \
-                    len(slots) != page.get("physical_slot_count"):
+                    len(slots) != (page.get("known_physical_slot_count") if _dual_geometry(page) and page.get("partial_row_geometry") else page.get("physical_slot_count")):
                 raise ValueError(f"page {number} has invalid confirmed grid geometry")
             if [slot["slot_index"] for slot in slots] != list(range(1, len(slots) + 1)):
                 raise ValueError(f"page {number} has nonsequential slot indices")
@@ -95,7 +96,10 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                 raise ValueError(f"page {number} has overlapping slot bands")
             column_index = 2 if field == "type" else 1
             top, bottom = bands[0][0], bands[-1][1] + 2
-            left, right = column_crop_bounds(page, column_index, column_index+1, top, bottom)
+            if _dual_geometry(page):
+                left,top,right,bottom = _geometry.table_crop_bounds(page,slots,column_index,column_index+1)
+            else:
+                left, right = column_crop_bounds(page, column_index, column_index+1, top, bottom)
             if right <= left or bottom > document.pages[number - 1].height:
                 raise ValueError(f"page {number} has invalid type-column crop")
             crop = document.pages[number - 1].crop((left, top, right, bottom))
@@ -107,30 +111,38 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
             unassigned = 0
             unassigned_detections = []
             for word in observed.extract_words():
-                if field == "description":
+                if field == "description" or _dual_geometry(page):
                     box = [round(left + word["x0"], 2), round(top + word["top"], 2),
                            round(left + word["x1"], 2), round(top + word["bottom"], 2)]
                     detection = {"text": word["text"], "bbox_pdf_points": box,
                                  "confidence": round(word["ocr_confidence"], 2)}
                 center = top + (word["top"] + word["bottom"]) / 2
-                owners = [slot["slot_index"] for slot in slots
-                          if slot["band_pdf_points"][0] <= center <
-                          slot["band_pdf_points"][1]]
-                if field == "description":
-                    rounded_owners = [slot["slot_index"] for slot in slots if
-                                      slot["band_pdf_points"][0] <= (box[1] + box[3]) / 2 <
-                                      slot["band_pdf_points"][1]]
+                raw_box=([left+word["x0"],top+word["top"],left+word["x1"],top+word["bottom"]]
+                         if _dual_geometry(page) else None)
+                owners = ([slot["slot_index"] for slot in slots if
+                           _slot_owns_center(page,slot,raw_box,column_index,column_index+1)] if _dual_geometry(page) else
+                          [slot["slot_index"] for slot in slots
+                           if slot["band_pdf_points"][0] <= center < slot["band_pdf_points"][1]])
+                if field == "description" or _dual_geometry(page):
+                    rounded_owners = ([slot["slot_index"] for slot in slots if
+                                       _slot_owns_center(page,slot,box,column_index,column_index+1)] if _dual_geometry(page) else
+                                      [slot["slot_index"] for slot in slots if
+                                       slot["band_pdf_points"][0] <= (box[1]+box[3])/2 < slot["band_pdf_points"][1]])
                     if owners != rounded_owners:
                         unassigned += 1
                         unassigned_detections.append({**detection, "reason": "center_rounding_ambiguous",
-                                                       "unrounded_center_pdf_points": center})
+                                                       "unrounded_center_pdf_points": [(raw_box[0]+raw_box[2])/2,center] if _dual_geometry(page) else center})
                         continue
                 if len(owners) != 1:
                     unassigned += 1
-                    if field == "description":
-                        unassigned_detections.append({**detection, "reason": "outside_slot_bands"})
+                    if field == "description" or _dual_geometry(page):
+                        unassigned_detections.append({**detection, "reason": "outside_source_slot" if _dual_geometry(page) else "outside_slot_bands"})
                     continue
-                if field == "description":
+                if _dual_geometry(page) and not _geometry.box_in_slot(page,slots[owners[0]-1],box,column_index,column_index+1):
+                    unassigned += 1
+                    unassigned_detections.append({**detection,"reason":"crosses_source_slot_or_field"})
+                    continue
+                if field == "description" and not _dual_geometry(page):
                     band = slots[owners[0] - 1]["band_pdf_points"]
                     if max(band[0] - box[1], box[3] - band[1], 0) > 3.0:
                         unassigned += 1
@@ -149,15 +161,15 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                 index = slot["slot_index"]
                 if field == "description":
                     words = by_slot[index]
-                    reading = _description_detection_reading(words)
+                    reading = _description_detection_reading(words, page=page, source_slot=slot)
                     shape = _description_shape(reading)
                     original = slot.get("column_observation", {}).get("description")
                     if not isinstance(original, dict):
                         raise ValueError(f"page {number} lacks original description observation")
                     overlaps = [i for i, item in enumerate(unassigned_detections)
-                                if item["bbox_pdf_points"][1] < slot["band_pdf_points"][1] and
-                                item["bbox_pdf_points"][3] > slot["band_pdf_points"][0]]
+                                if _slot_overlap(page,slot,item["bbox_pdf_points"],column_index,column_index+1)]
                     row_results.append({"slot_index": index, "band_pdf_points": slot["band_pdf_points"],
+                        **_secondary_slot_geometry(page,slot),
                         "column_raw_ocr_text": " ".join(word["text"] for word in words),
                         "column_detections": words, "column_reading": reading, "column_shape": shape,
                         "page_raw_ocr_text": original["raw_ocr_text"],
@@ -189,6 +201,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                 counts[comparison] += 1
                 counts["observed_slots"] += 1
                 row_results.append({"slot_index": index,
+                                    **_secondary_slot_geometry(page,slot),
                                     "band_pdf_points": slot["band_pdf_points"],
                                     "column_raw_ocr_text": raw,
                                     "column_words": words,
@@ -198,6 +211,8 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
                                     "comparison": comparison,
                                     "qualification": "not_assessed"})
             results.append({"page_number": number, "status": f"{field}_column_observed",
+                            **({"geometry_mode":page["geometry_mode"],"crop_pdf_points":[left,top,right,bottom],
+                                "unassigned_detections":unassigned_detections} if _dual_geometry(page) else {}),
                             "slot_count": len(row_results),
                             "words_outside_slots": unassigned,
                             "slots": row_results})
@@ -216,7 +231,7 @@ def _observe_word_column(pdf_path: Path, *, slots_observation: dict,
         result["input_page_canonical_sha256"] = {str(page["page_number"]): hashlib.sha256(json.dumps(
             page, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
             for page in pages}
-    if any(page.get("column_line_model") is not None for page in pages):
+    if any(page.get("column_line_model") is not None or _dual_geometry(page) for page in pages):
         result["input_column_geometry_sha256"] = {str(page["page_number"]): column_geometry_sha256(page)
                                                    for page in pages}
     return result
@@ -237,8 +252,12 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
     import numpy as np
     import pdfplumber
     from .oge_278t_raster_slots import column_edges_at_y, column_geometry_sha256
+    from .oge_278t_field_shadow import (_validate_geometry_input, _dual_geometry, _known_page_geometry,
+        _type_cell_pdf_bounds, _secondary_slot_geometry)
+    from . import oge_278t_raster_slots as _geometry
+    _validate_geometry_input(slots_observation)
 
-    if (slots_observation.get("schema_version") != _INPUT_SCHEMA or
+    if (
             type(resolution) is not int or not 200 <= resolution <= 400 or
             not isinstance(selected_slots, dict) or not selected_slots or
             any(type(number) is not int or not isinstance(indices, list) or not indices or
@@ -261,10 +280,10 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
             if number not in selected_slots:
                 continue
             slots = page.get("slots", [])
-            if (page.get("column_geometry") != "oge_2024_six_column_grid" or
+            if (not _known_page_geometry(page) or
                     page.get("render_coordinate_frame") != "displayed_mediabox" or
                     not 1 <= number <= len(document.pages) or
-                    len(slots) != page.get("physical_slot_count") or
+                    len(slots) != (page.get("known_physical_slot_count") if _dual_geometry(page) and page.get("partial_row_geometry") else page.get("physical_slot_count")) or
                     [s.get("slot_index") for s in slots] != list(range(1, len(slots)+1)) or
                     not set(selected_slots[number]) <= set(range(1, len(slots)+1))):
                 raise ValueError("Type cell read lacks confirmed source roles/slots")
@@ -281,12 +300,7 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
                 if index in selected_slots[number]:
                     if slot.get("column_model_outside_word_indices"):
                         raise ValueError("Type cell primary words exceed witnessed model domain")
-                    top, bottom = band[0]+.6, band[1]-.6
-                    domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
-                    if domain and not domain[0] <= band[0] < band[1] <= domain[1]:
-                        raise ValueError("Type cell is outside witnessed source domain")
-                    a, b = column_edges_at_y(page, top), column_edges_at_y(page, bottom)
-                    left, right = max(a[2], b[2])+.6, min(a[3], b[3])-1.5
+                    left,top,right,bottom = _type_cell_pdf_bounds(page,slot)
                     pixels = [ceil(left*sx), ceil(top*sy), floor(right*sx), floor(bottom*sy)]
                     x0,y0,x1,y1 = pixels
                     if not (0 <= x0 < x1 <= image.width and 0 <= y0 < y1 <= image.height):
@@ -298,6 +312,8 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
                         directory.mkdir(parents=True, exist_ok=True)
                         crop.save(directory/f"{sha}-p{number}-s{index}-{pixel_sha}.png")
                     receipt = {"schema_version": "oge-278t-type-cell-crop/v1", "source_sha256": sha,
+                               **({"crop_geometry_mode":page["geometry_mode"],
+                                   "source_quad_pdf_points":_geometry.slot_quad(page,slot,2,3)} if _dual_geometry(page) else {}),
                                "page_number": number, "slot_index": index, "field_role": "type",
                                "render_coordinate_frame": "displayed_mediabox",
                                "source_page_size_pdf_points": [pdf_page.width, pdf_page.height],
@@ -326,11 +342,13 @@ def observe_type_cells(pdf_path: Path, *, slots_observation: dict,
                     raw = " ".join(w["text"] for w in words)
                 normalized = raw.strip().casefold()
                 output.append({"slot_index": index, "band_pdf_points": band,
+                    **_secondary_slot_geometry(page,slot),
                     "column_raw_ocr_text": raw, "column_words": words,
                     "column_shape": normalized if len(words) == 1 and normalized in _TYPE else None,
                     "page_raw_ocr_text": slot["column_observation"]["type"]["raw_ocr_text"],
                     **({"cell_crop": receipt} if receipt else {}), "qualification": "not_assessed"})
             result_pages.append({"page_number": number, "status": "type_column_observed",
+                                 **({"geometry_mode":page["geometry_mode"]} if _dual_geometry(page) else {}),
                                  "slot_count": len(output), "slots": output})
     return {"schema_version": SCHEMA, "source_sha256": sha,
         "read_mode": "bound_single_type_cells/v1",

@@ -109,7 +109,8 @@ function approvedHoldingsPanel() {
   const latest=all.filter(h=>h.report_period_end===period);
   const isOpen=h=>h.value_high===null&&typeof h.value_low_exclusive==='boolean';
   const opened=latest.filter(isOpen), bounded=latest.filter(h=>!isOpen(h));
-  if(!opened.length)return;
+  if(!latest.length)return;
+  const coverage=(DATA.meta.holding_report_coverage||[]).find(c=>c.person_id===activePersonId&&c.report_period_end===period);
   const panel=document.createElement('section');panel.className='person-card';
   panel.dataset.openHoldingsPanel='true';panel.style.cssText='padding:16px;margin:16px 0';
   const heading=document.createElement('h3');heading.textContent='Reported holdings';panel.append(heading);
@@ -117,6 +118,16 @@ function approvedHoldingsPanel() {
   const boundedText=bounded.length?`${bounded.length} bounded values total ${money(bounded.reduce((s,h)=>s+h.value_low,0))}–${money(bounded.reduce((s,h)=>s+h.value_high,0))}`:'No bounded holding values disclosed';
   note.textContent=`${latest.length} holdings · report period ${period}. ${boundedText}. ${opened.length} open-ended holding values listed separately; no upper limits are assumed.`;
   panel.append(note);
+  if(coverage){
+    const warning=document.createElement('p');warning.dataset.partialHoldingsCoverage='true';
+    warning.textContent=`部分报告，另 ${coverage.unresolved_rows.length} 项价值未定。以上仅为已披露有限区间合计，不是完整总资产；不与旧报告混算。`;
+    panel.append(warning);
+    coverage.unresolved_rows.forEach(row=>{
+      const unknown=document.createElement('p');unknown.dataset.unresolvedHoldingId=row.extraction_id;
+      unknown.textContent=`${row.asset_name} · ${row.value_raw}（价值未定，未计入持仓金额）`;
+      panel.append(unknown);
+    });
+  }
   const addRows=(parent,rows)=>rows.forEach(h=>{
     const item=document.createElement('p');item.dataset.holdingId=h.id;
     const value=isOpen(h)?`${h.value_low_exclusive?'Over':'At least'} ${money(h.value_low)} · upper limit not disclosed`:`${money(h.value_low)}–${money(h.value_high)}`;
@@ -125,6 +136,7 @@ function approvedHoldingsPanel() {
   });
   addRows(panel,opened);
   const details=document.createElement('details'),summary=document.createElement('summary');
+  details.open=!opened.length;
   summary.textContent=`${bounded.length} holdings with bounded disclosed values`;details.append(summary);
   addRows(details,bounded);panel.append(details);container.append(panel);
 }
@@ -134,4 +146,24 @@ function renderStockPage() {
   let rows=windowTransactions(activeWindow).filter(t=>t.ticker===activeStockTicker);
   if(stockDirection!=='all')rows=rows.filter(t=>t.transaction_type===stockDirection);
   approvedOpenPanel(document.querySelector('#stockPage'),'stock',rows);
+}
+
+function openTransaction(id) {
+  openApprovedTransactionBase(id);
+  const relation=(DATA.meta.transaction_disclosure_relations||[]).find(row=>row.transaction_id===id);
+  if(!relation)return;
+  const statuses={
+    cross_report_relationship_unconfirmed:'跨报关系未确认',
+    possible_ptr_overlap:`可能关联 ${(relation.possible_ptr_transaction_ids||[]).length} 条PTR披露`
+  };
+  if(!statuses[relation.status])return;
+  const container=document.querySelector('#drawerContent');
+  if(!container)return;
+  const section=document.createElement('section');
+  section.dataset.crossReportTransactionId=id;
+  section.dataset.disclosureRelationshipStatus=relation.status;
+  const heading=document.createElement('h4');heading.textContent='独立年报披露';
+  const note=document.createElement('p');
+  note.textContent=`${statuses[relation.status]}。按披露行计数；关联提示不作自动合并。`;
+  section.append(heading,note);container.append(section);
 }

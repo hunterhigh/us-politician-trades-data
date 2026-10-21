@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -500,7 +501,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
     declaration = _explicit_zero_transaction_declaration(pages)
-    if declaration is not None:
+    if declaration is not None and not any(_unanchored_native_slots(page) for page in pages):
         return _zero_transaction_extraction(
             metadata, source_sha256, declaration, copy_allowed=copy_allowed,
             ocr_engine=ocr_engine, legacy_form=False)
@@ -579,8 +580,15 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             amount_words, key=lambda item: (item[0], round(float(item[1]["top"]), 1), float(item[1]["x0"])))))
         note_words = [(segment_page_index, word) for segment_page_index, word in block
                       if 0.165 * page_data[segment_page_index]["width"] <= float(word["x0"]) <
-                      0.90 * page_data[segment_page_index]["width"]
+                      page_data[segment_page_index]["width"]
                       and float(word.get("size", date_size)) < date_size - 0.2]
+        # The .90 edge belongs to the amount cell, not to full-width notes.
+        # Keep literal trailing note words and include them in source evidence;
+        # no financial column boundaries or identity inputs are changed.
+        for segment in evidence_segments:
+            right = max((float(w.get("x1", w["x0"])) for page_index, w in note_words
+                         if page_index + 1 == segment["page"]), default=0.)
+            segment["bbox_points"][2] = max(segment["bbox_points"][2], round(right, 2))
         note_lines: dict[tuple[int, float], list[dict]] = {}
         for segment_page_index, word in note_words:
             note_lines.setdefault((segment_page_index, round(float(word["top"]), 1)), []).append(word)
@@ -685,7 +693,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "verification_status": "awaiting_automatic_qualification",
             "review_reasons": reasons,
         })
-    if not extracted:
+    ledger = _modern_report_ledger(source_sha256, page_data, extracted)
+    if not extracted and not ledger["disposition_counts"].get("unknown"):
         raise HouseIndexError("House PTR contains no recognized transaction rows")
     if len({row["extraction_id"] for row in extracted}) != len(extracted):
         raise HouseIndexError("House PTR produced duplicate extraction IDs")
@@ -693,7 +702,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
     return {
-        "source_report_ledger": _modern_report_ledger(source_sha256, page_data, extracted),
+        "source_report_ledger": ledger,
         "schema_version": SCHEMA,
         "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
@@ -702,13 +711,63 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         "source_pdf_copy_allowed": copy_allowed,
         "extraction_method": "tesseract_ocr" if ocr_engine else "native_pdf_text",
         "ocr_engine": ocr_engine,
+        **({"source_word_pages": deepcopy(pages),
+            "source_word_pages_sha256": hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()}
+           if ocr_engine is None else {}),
         "transactions": extracted,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
     }
 
 
-def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) -> dict:
+def _unanchored_native_slots(page: dict) -> list[dict]:
+    """Retain strong financial-line observations, never infer missing facts.
+
+    This is not a page census. A source asset-type cell, amount cell and
+    financial-column text must be followed by a local official status detail.
+    Ordinary notes, wrapped amounts and status mentions alone are insufficient.
+    """
+    words, width = page["words"], float(page["width"])
+    anchors = _modern_date_anchors(words, width)
+    lines: list[list[dict]] = []
+    for item in sorted(words, key=lambda w: (float(w["top"]), float(w["x0"]))):
+        if not lines or abs(float(item["top"]) - float(lines[-1][0]["top"])) > 2:
+            lines.append([])
+        lines[-1].append(item)
+    statuses = []
+    for line in lines:
+        detail = _clean(" ".join(str(w["text"]) for w in sorted(line, key=lambda w: float(w["x0"]))
+                         if .165 * width <= float(w["x0"]) < .42 * width))
+        if re.fullmatch(r"(?:F|Filing)\s+(?:S|Status):\s*(?:New|Amended)", detail, re.I):
+            statuses.append(float(line[0]["top"]))
+    slots = []
+    for line in lines:
+        top = float(line[0]["top"])
+        if any(abs(top - anchor) <= 2 for anchor in anchors):
+            continue
+        asset = [w for w in line if .165 * width <= float(w["x0"]) < .42 * width]
+        amount = [w for w in line if .725 * width <= float(w["x0"]) < .90 * width]
+        financial = [w for w in line if .42 * width <= float(w["x0"]) < .725 * width]
+        nearby_status = [status for status in statuses if 2 < status - top <= 40]
+        asset_cell = [w for w in words if nearby_status and top <= float(w["top"]) < min(nearby_status)
+                      and .165 * width <= float(w["x0"]) < .42 * width]
+        if not (asset and any(re.fullmatch(r"\[[A-Z]{2}[\]}]", _clean(str(w["text"]))) for w in asset_cell)
+                and any("$" in str(w["text"]) for w in amount)
+                and any(_clean(str(w["text"])) for w in financial)
+                and nearby_status):
+            continue
+        digest = hashlib.sha256(json.dumps(line, sort_keys=True, ensure_ascii=False,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        slots.append({"local_key": f"unanchored-financial-line-{len(slots) + 1}",
+            "bounds": [top, max(float(w.get("bottom", float(w["top"]) + float(w.get("size", 9))))
+                                for w in line)], "disposition": "unknown",
+            "observation_ref": f"native_financial_line_without_row_anchor:{digest}"})
+    return slots
+
+
+def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], *,
+                          include_unanchored: bool = True) -> dict:
     from .source_row_ledger import page_ledger, report_ledger
     page_slots = {number: [] for number in range(1, len(pages) + 1)}
     logical = []
@@ -724,6 +783,9 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) 
             refs.append({"page_number": number, "slot_key": key})
         logical.append({"local_key": f"row-{index}", "slot_refs": refs,
                         "observation_ref": row["extraction_id"]})
+    if include_unanchored:
+        for number, page in enumerate(pages, start=1):
+            page_slots[number].extend(_unanchored_native_slots(page))
     observed = [page_ledger(source_id="house_clerk", document_sha256=source_sha,
                   page_number=number, adapter_version=PARSER_VERSION,
                   coverage="unknown", coverage_reason="native_row_anchors_not_complete_page_census",
@@ -732,6 +794,45 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) 
     return report_ledger(source_id="house_clerk", document_sha256=source_sha,
                          adapter_version=PARSER_VERSION, page_count=len(pages),
                          pages=observed, logical_rows=logical)
+
+
+def _native_account_context(extraction: dict) -> dict:
+    """Reproduce native source observations before deriving display context.
+
+    The word digest establishes cache consistency, not independent PDF truth.
+    Older caches without saved words keep their existing financial facts.
+    """
+    if extraction.get("extraction_method") != "native_pdf_text":
+        return {}
+    titles = [r for r in extraction.get("transactions", []) if r.get("subholding_of")]
+    pages = extraction.get("source_word_pages")
+    if pages is None:
+        return {"status": "source_pages_unavailable", "rows": []} if titles else {}
+    try:
+        actual = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if actual != extraction.get("source_word_pages_sha256"):
+            raise HouseIndexError("House native account source words differ from digest")
+        source = extraction.get("source", {})
+        reproduced = parse_word_pages({**source, "filing_type": "P"}, extraction["source_sha256"],
+            pages, copy_allowed=extraction.get("source_pdf_copy_allowed"))
+        # Exact legacy anchor-only ledgers remain valid; no financial/source
+        # observation may differ. This accepts a recomputed old form, not a label.
+        legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
+            reproduced["transactions"], include_unanchored=False)
+        if extraction.get("source_report_ledger") == legacy_ledger:
+            reproduced["source_report_ledger"] = legacy_ledger
+        if any(extraction.get(key) != value for key, value in reproduced.items()):
+            raise HouseIndexError("House native account observations differ from saved source words")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HouseIndexError("House native account source observations cannot be reproduced") from exc
+    if not titles:
+        return {}
+    return {"status": "source_words_reproduced", "source_sha256": extraction["source_sha256"],
+        "document_id": source["document_id"], "source_word_pages_sha256": actual,
+        "rows": [{"id": r["extraction_id"], "asset_name_raw": r["asset_name"],
+                  "subholding_of_raw": r["subholding_of"],
+                  "asset_name_display": f"{r['asset_name']} — {r['subholding_of']}"} for r in titles]}
 
 
 def qualify_automatic(extraction: dict, identity: dict, *,
@@ -768,12 +869,29 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     transactions: list[dict] = []
     quarantined: list[dict] = []
     advisories: list[dict] = []
+    revision_observations: list[dict] = []
+    account_context = _native_account_context(extraction)
+    display_names = {r["id"]: r["asset_name_display"] for r in account_context.get("rows", [])}
     for row in extraction.get("transactions", []):
         reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
             reasons.append("identity_not_deterministic")
-        if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
+        # The ID column identifies a transaction, not a filing or an
+        # amendment target by itself. Filing Status establishes revision state.
+        official_id = row.get("reported_transaction_id")
+        if official_id is not None and (not isinstance(official_id, str) or
+                not re.fullmatch(r"[0-9]{1,30}", official_id)):
+            reasons.append("reported_transaction_id_invalid")
+        if str(row.get("filing_status", "")).lower() != "new":
             reasons.append("revision_relationship_unresolved")
+            target = row.get("reported_transaction_id")
+            if str(row.get("filing_status", "")).lower() == "amended":
+                revision_observations.append({"extraction_id": row.get("extraction_id"),
+                    "reported_transaction_id": target,
+                    "reference_status": "official_target_id_observed" if isinstance(target, str) and
+                        re.fullmatch(r"[0-9]{1,30}", target) else "official_target_id_unavailable",
+                    "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+                    "description": row.get("description")})
         if row.get("amount_high") is None:
             if row.get("amount_kind") != "open_ended":
                 reasons.append("amount_upper_bound_missing")
@@ -847,7 +965,7 @@ def qualify_automatic(extraction: dict, identity: dict, *,
             continue
         transactions.append({
             "id": row["extraction_id"], "filing_id": document_id, "person_id": person_id,
-            "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
+            "owner": row["owner"], "asset_name": display_names.get(row["extraction_id"], row["asset_name"]), "ticker": ticker,
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
             **({"option_type": option_type, "strike_price": strike_price,
@@ -879,6 +997,8 @@ def qualify_automatic(extraction: dict, identity: dict, *,
         "transactions": transactions,
         "quarantined": quarantined,
         "advisories": advisories,
+        **({"native_account_context": account_context} if account_context else {}),
+        **({"revision_observations": revision_observations} if revision_observations else {}),
         "qualification": {
             "method": "deterministic_automatic_rules",
             "status": document_status,
@@ -890,6 +1010,44 @@ def qualify_automatic(extraction: dict, identity: dict, *,
             "production_eligible": bool(transactions) or (explicit_zero and identity_valid),
         },
     }
+
+
+def revision_reference_dispositions(qualification: dict, extraction: dict,
+                                   current_transactions: list[dict]) -> list[dict]:
+    """Keep official amendment targets distinct from absent predecessor inputs.
+
+    A filing ID, a hashed local ID, or equal financial fields cannot stand in
+    for the government's transaction identifier or a source-bound predecessor.
+    """
+    # Old source-reviewed formal paper qualifications can deliberately differ
+    # from their legacy extractor's status reading. Never reopen those facts.
+    if "revision_observations" not in qualification:
+        return []
+    amended = [row for row in extraction.get("transactions", [])
+               if str(row.get("filing_status", "")).lower() == "amended"]
+    if not amended:
+        if qualification.get("revision_observations"):
+            raise ValueError("House revision observations have no amended source rows")
+        return []
+    source = extraction.get("source") or {}
+    if (qualification.get("source_sha256") != extraction.get("source_sha256") or
+            qualification.get("document_id") != source.get("document_id")):
+        raise ValueError("House amendment source binding differs from qualification")
+    observed = [{"extraction_id": row.get("extraction_id"), "reported_transaction_id": row.get("reported_transaction_id"),
+        "reference_status": "official_target_id_observed" if isinstance(row.get("reported_transaction_id"), str) and
+            re.fullmatch(r"[0-9]{1,30}", row["reported_transaction_id"]) else "official_target_id_unavailable",
+        "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+        "description": row.get("description")} for row in amended]
+    if qualification.get("revision_observations", observed) != observed:
+        raise ValueError("House amendment reference differs from its source row")
+    person = qualification.get("identity", {}).get("person_id")
+    existing = [row for row in current_transactions if row.get("source_id") == "house_clerk" and row.get("person_id") == person]
+    return [{**row, "disposition": "official_target_id_unavailable" if row["reference_status"] != "official_target_id_observed"
+                else "official_target_id_observed_predecessor_absent_from_candidate" if not existing
+                else "official_target_id_observed_predecessor_binding_unavailable",
+             "current_same_person_formal_row_count": len(existing),
+             "action": "not_applied_no_source_bound_predecessor", "formal_transaction_id": None}
+            for row in observed]
 
 
 def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:

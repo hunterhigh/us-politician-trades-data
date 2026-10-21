@@ -35,6 +35,9 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--evidence-root", type=Path, required=True)
     build.add_argument("--review-root", type=Path, required=True)
     build.add_argument("--roster", type=Path, required=True)
+    build.add_argument("--structured-asset-labels", action="store_true",
+                       help="Use source-bound structured asset names while preserving existing IDs")
+    build.add_argument('--independent-transactions',action='store_true')
     overlay = commands.add_parser("overlay")
     overlay.add_argument("--review-root", type=Path, required=True)
     overlay.add_argument("--evidence-root", type=Path)
@@ -64,7 +67,9 @@ def main(argv: list[str] | None = None) -> int:
                              sort_keys=True))
         elif args.command == "build":
             roster = _read(args.roster)
-            result = build_annual_review(args.evidence_root, args.review_root, roster)
+            result = build_annual_review(args.evidence_root, args.review_root, roster,
+                **({"structured_asset_labels": True} if args.structured_asset_labels else {}),
+                **({'independent_transactions':True} if args.independent_transactions else {}))
             print(json.dumps({"selected_report_count": result["selected_report_count"],
                               "qualified_report_count": result["qualified_report_count"],
                               "holding_count": result["holding_count"]}, sort_keys=True))

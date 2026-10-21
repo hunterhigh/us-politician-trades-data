@@ -233,6 +233,64 @@ def qualify_paper_observation(observation: dict, metadata: dict,
 FACT_PARSER_VERSION = "house-paper-source-bound-qualification-v2"
 
 
+def paper_materialization_counts(qualification: dict, extraction: dict | None = None) -> dict | None:
+    """Account for saved paper slots without inventing a source-row denominator."""
+    receipt = qualification.get("observation_materialization")
+    if receipt is None:
+        return None
+    source = qualification.get("source_sha256")
+    materialized = qualification.get("materialized_extraction")
+    if (not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{64}", source) or
+            not isinstance(receipt, dict) or receipt.get("source_sha256") != source or
+            not re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("observation_sha256"))) or
+            not isinstance(materialized, dict) or materialized.get("source_sha256") != source or
+            materialized.get("extraction_method") != "source_bound_paper_cells" or
+            materialized.get("source", {}).get("document_id") != qualification.get("document_id") or
+            materialized.get("parser_version") != qualification.get("parser_version") or
+            any(type(receipt.get(key)) is not int for key in ("observed_data_row_count", "unresolved_physical_row_count")) or
+            extraction is not None and extraction != materialized):
+        raise ValueError("House paper materialization count binding is invalid")
+    rows = materialized.get("transactions")
+    published = qualification.get("transactions")
+    pending = qualification.get("quarantined")
+    ledger = qualification.get("source_report_ledger")
+    if (not all(isinstance(value, list) for value in (rows, published, pending)) or
+            not isinstance(ledger, dict) or ledger != materialized.get("source_report_ledger") or
+            ledger.get("document_sha256") != source or ledger.get("source_id") != "house_clerk"):
+        raise ValueError("House paper materialization ledger binding is invalid")
+    ids = {row.get("extraction_id") for row in rows}
+    published_ids = {row.get("id") for row in published}
+    unknown_slots = {(page["page_number"], slot["local_key"]) for page in ledger.get("pages", [])
+                     for slot in page.get("slots", []) if slot.get("disposition") == "unknown"}
+    pending_ids, unresolved = set(), set()
+    for row in pending:
+        key = row.get("extraction_id")
+        if key in ids:
+            pending_ids.add(key)
+        else:
+            evidence = row.get("evidence") or {}
+            slot = (evidence.get("page"), str(evidence.get("physical_band_index")))
+            expected = f"paper-slot:{source}:{slot[0]}:{slot[1]}"
+            if key != expected or row.get("observation_key") != expected or slot not in unknown_slots:
+                raise ValueError("House paper unresolved slot has no ledger binding")
+            unresolved.add(slot)
+    if (None in ids or len(ids) != len(rows) or len(published_ids) != len(published) or
+            ledger.get("logical_row_count") != len(rows) or
+            published_ids & pending_ids or published_ids | pending_ids != ids or
+            len(pending_ids) + len(unresolved) != len(pending) or
+            unresolved != unknown_slots or receipt.get("observed_data_row_count") != len(rows) or
+            receipt.get("unresolved_physical_row_count") != len(unresolved) or
+            qualification.get("qualification", {}).get("quarantined_count") != len(pending)):
+        raise ValueError("House paper materialization counts do not conserve observed slots")
+    complete = not unknown_slots and ledger.get("relation_coverage") == "accounted" and not ledger.get("coverage_unknown_pages")
+    return {"quarantine_count_unit": "observed_paper_entries_not_whole_source_unique_rows",
+            "observed_transaction_row_count": len(rows),
+            "observed_transaction_quarantined_count": len(pending_ids),
+            "unresolved_physical_slot_count": len(unresolved),
+            "observed_quarantined_entry_count": len(pending),
+            "whole_source_unique_quarantined_row_count": len(pending_ids) if complete else None}
+
+
 def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
                        page_number: int, rendered: dict) -> dict | None:
     """Verify the whole owner cell, allowing only evidenced printed rules.

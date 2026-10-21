@@ -12,6 +12,7 @@ from tests.test_senate_candidate import BASE as SENATE_BASE, identity, extractio
 from tests.test_senate_annual_transactions import sample
 from unison_snapshot.house_annual_sections import observe_annual_sections, consume_schedule_b_inputs
 from unison_snapshot.house_candidate import build_house_candidate, load_house_candidate
+from unison_snapshot.house import HouseIndexError
 from unison_snapshot.senate_annual_transactions import observe_part4b
 from unison_snapshot.senate_candidate import build_senate_candidate
 from unison_snapshot.senate import SenateEfdError
@@ -23,13 +24,15 @@ def house_input(document="10000001", raw=b"synthetic annual PDF bytes"):
     source={"document_id":document,"source_id":"house_clerk","filing_year":2025,
             "filing_type":"O","filed_date":"2026-05-01","report_type":"Annual Report",
             "source_url":f"https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025/{document}.pdf"}
-    extract={"schema_version":"house-holding-extraction/v1","source_sha256":sha,"source":source,"rows":[]}
+    extract={"schema_version":"house-holding-extraction/v1","source_sha256":sha,"source":source,"rows":[],
+             "report_period_end":"2025-12-31","report_period_basis":"annual_member_pdf_filing_year_end"}
     page={"width":612,"height":792,"words":[word(t,x,y) for t,x,y in [
         ("Asset",25,100),("Owner",280,100),("Date",319,100),("Tx.",401,100),
         ("Amount",440,100),("Cap.",523,100),("Example",25,130),("[ST]",100,130),
         ("SP",280,130),("02/18/2025",319,130),("S",401,130),
         ("$1,001",440,130),("-",475,130),("$15,000",481,130)]]}
-    person=dict(IDENTITY,document_id=document)
+    person=dict(IDENTITY,document_id=document,status="matched_automatically",roster_sha256="b"*64,
+                match_basis="official_roster_exact_district_first_last_name")
     return {"observation":observe_annual_sections([page],extract),"extraction":extract,
             "identity":person,"pages":[page],"source_bytes":raw}
 
@@ -52,11 +55,13 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
             root=Path(folder);old,state=house_fixture(root);audit={}
             data=build_house_candidate(root,state,deepcopy(BASE),
                 annual_transaction_inputs=[house_input()],annual_transaction_audit=audit)
-            self.assertEqual(data["transactions"],[old])
+            self.assertEqual(next(r for r in data["transactions"] if r['id']==old['id']),old)
+            self.assertEqual(len(data["transactions"]),2)
             row=audit["reports"][0]["rows"][0]
             self.assertEqual(row["relation_status"],"possible_ptr_overlap")
             self.assertEqual(row["possible_ptr_transaction_ids"],[old["id"]])
-            self.assertIn("field_match_without_official_row_link",row["candidate_blocking_reasons"])
+            self.assertEqual(row["candidate_blocking_reasons"],[])
+            self.assertEqual(row['candidate_disposition'],'promoted')
             self.assertTrue(build(data,generated_at="2026-09-18T12:00:00Z",allow_production=True).manifest["snapshot_id"])
 
     def test_equal_formal_rows_keep_both_ids_and_only_possible_correspondence(self):
@@ -69,7 +74,7 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
         audit=consume_schedule_b_inputs([item],transactions=old,reported_holdings=[])
         result=audit["reports"][0]["rows"][0]
         self.assertEqual(result["possible_ptr_transaction_ids"],[tx["id"],other["id"]])
-        self.assertIn("multiple_field_matches_no_official_row_link",result["candidate_blocking_reasons"])
+        self.assertEqual(result["candidate_blocking_reasons"],[])
         self.assertEqual(old,[tx,other])
 
     def test_actual_candidate_excludes_only_verified_exact_report_alias(self):
@@ -77,9 +82,9 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
             root=Path(folder);old,state=house_fixture(root);audit={}
             data=build_house_candidate(root,state,deepcopy(BASE),
                 annual_transaction_inputs=[house_input(),house_input("10000002")],annual_transaction_audit=audit)
-            self.assertEqual(data["transactions"],[old])
+            self.assertEqual(next(r for r in data["transactions"] if r['id']==old['id']),old)
             self.assertEqual(audit["candidate_disposition_counts"],
-                             {"blocked_pending_relationship":1,"excluded_exact_source_copy":1})
+                             {"promoted":1,"excluded_exact_source_copy":1})
             alias=audit["reports"][1]["rows"][0]
             self.assertEqual(alias["canonical_document_id"],"10000001")
             self.assertIsNone(alias["formal_transaction_id"])
@@ -95,7 +100,8 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 out=consume_schedule_b_inputs([a,b],transactions=[],reported_holdings=[])
                 self.assertNotIn("excluded_exact_source_copy",out["candidate_disposition_counts"])
-                self.assertTrue(all(r["candidate_blocking_reasons"] for p in out["reports"] for r in p["rows"]))
+                if mode in {'mismatched','mutated'}:
+                    self.assertTrue(out['reports'][1]['report_blocking_reasons'])
 
     def test_existing_loader_passes_optional_audit_and_preserves_default_output(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -119,9 +125,23 @@ class HouseAnnualCandidateRelationTests(unittest.TestCase):
                 path=root/"house_clerk"/directory/relative;path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_text(json.dumps(value))
             data=build_house_candidate(root,state,deepcopy(BASE),annual_transaction_audit=audit)
-            self.assertEqual(data["transactions"],[old])
+            self.assertEqual(next(r for r in data["transactions"] if r['id']==old['id']),old)
             self.assertEqual(audit["observed_row_count"],1)
-            self.assertIn("annual_saved_page_reproduction_unavailable",audit["reports"][0]["rows"][0]["candidate_blocking_reasons"])
+            self.assertNotIn("annual_saved_page_reproduction_unavailable",audit["reports"][0]["rows"][0]["candidate_blocking_reasons"])
+            self.assertIsInstance(audit["reports"][0]["source_text_coverage"],dict)
+            observation_path=root/"house_clerk/holding_section_observations"/relative
+            legacy=deepcopy(item['observation'])
+            for name in ('source_word_pages','source_word_pages_sha256','source_text_coverage'):
+                legacy.pop(name,None)
+            legacy['schema_version']='house-annual-sections-observation/v3'
+            observation_path.write_text(json.dumps(legacy))
+            build_house_candidate(root,state,deepcopy(BASE),annual_transaction_audit=audit)
+            self.assertIn('annual_saved_page_reproduction_unavailable',audit['reports'][0]['report_blocking_reasons'])
+            corrupted=deepcopy(item['observation'])
+            corrupted['source_word_pages'][0]['words'][0]['text']='changed'
+            observation_path.write_text(json.dumps(corrupted))
+            with self.assertRaisesRegex(HouseIndexError,'saved word pages digest differs'):
+                build_house_candidate(root,state,deepcopy(BASE))
 
 
 class SenateAnnualCandidateRelationTests(unittest.TestCase):

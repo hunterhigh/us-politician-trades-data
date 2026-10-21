@@ -217,6 +217,11 @@ def build_house_status(evidence_root: Path, review_root: Path,
                 else:
                     record["qualified_transaction_count"] = len(rows)
                     record["quarantined_row_count"] = len(quarantined)
+                    from .house_ptr_paper_qualification import paper_materialization_counts
+                    paper_counts = paper_materialization_counts(qualification, extraction)
+                    if paper_counts is not None:
+                        record.update(paper_counts)
+                        record["quarantined_row_count"] = paper_counts["whole_source_unique_quarantined_row_count"]
                     reasons.update(_reasons(summary))
                     for row in quarantined:
                         if isinstance(row, dict):
@@ -234,6 +239,11 @@ def build_house_status(evidence_root: Path, review_root: Path,
                             reasons.add("source_row_coverage_incomplete")
                             state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
+                    from .house_ptr import revision_reference_dispositions
+                    revisions = revision_reference_dispositions(qualification, extraction, transactions)
+                    if revisions:
+                        record["revision_reference_dispositions"] = revisions
+                        reasons.update(item["disposition"] for item in revisions)
                     if state == "unknown":
                         reasons.add("empty_qualification_without_zero_declaration")
             elif extraction is not None:

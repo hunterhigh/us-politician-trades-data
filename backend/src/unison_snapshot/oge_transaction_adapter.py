@@ -254,6 +254,12 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         for slot_ordinal, slot in enumerate(page.get("slots", []), 1):
             slot_key = str(slot_ordinal)
             observation = dispositions[(page_number, slot_key)]
+            dual_axis = raw_pages[page_number].get("geometry_mode") == "source_pdf_dual_axis/v1"
+            # The content consumer has already marked a real unobserved region
+            # after an established title. Do not restore that title from cache.
+            if (dual_axis and account_established and observation.get("unresolved_region_before")
+                    and observation.get("account_context", {}).get("status") == "unknown"):
+                account_scope_lost = True
             cells = [slot["raw_columns"].get(name, "") for name in names]
             physical = {"page_number": page_number, "cells": cells}
             reference = {"source_sha256": sha, "page_number": page_number,
@@ -318,6 +324,13 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 label = ordered_description or cells[1]
                 explicit_scope = bool(re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", label, re.I)
                                       or re.match(r"\s*(?:continued|continuation|cont[.'’]?d)\b", label, re.I))
+                if dual_axis:
+                    # An uncertain non-data label can contain an explicit scope
+                    # signal without being a fully readable heading. Ordinary
+                    # unknown asset text is not evidence of a scope change.
+                    explicit_scope = explicit_scope or bool(re.search(
+                        r"\b(?:(?:investment|retirement)\s+account|(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)?\s+(?:assets|accounts?)|continued|continuation)\b",
+                        label, re.I))
                 explicit_owner = bool(re.fullmatch(
                     r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", label, re.I))
                 account_scope_lost = account_scope_lost or explicit_scope or explicit_owner
@@ -448,20 +461,15 @@ def _cells(value: object) -> list[str]:
 
 
 def _structural_disposition(cells: list[str]) -> tuple[str, str] | None:
-    if not any(cells):
-        return "excluded", "blank_extracted_row"
-    joined = " ".join(cells).casefold()
-    if cells[0] == "#" or all(label in joined for label in _STRUCTURAL_LABELS):
-        return "excluded", "table_header"
-    if len(cells) == 6 and not any((cells[2], cells[3], cells[5])):
-        description = cells[1].casefold()
-        if re.fullmatch(r"(?:investment|retirement) account\s*#[0-9]+", description):
-            return "excluded", "account_section_heading"
-        if "intentionally left blank" in description or "left intentionally blank" in description:
-            return "excluded", "explicit_blank_notice"
-    if cells[0].casefold().startswith(("endnot", "transacti")):
-        return "excluded", "report_footer"
-    return None
+    from .oge_reports import classify_table_structure
+    structure = classify_table_structure(cells)
+    if structure is None or structure["kind"] == "unknown_marker":
+        return None
+    reasons = {"blank": "blank_extracted_row", "header": "table_header",
+               "owner_heading": "owner_heading", "owner_account_heading": "owner_account_heading",
+               "account_heading": "account_section_heading", "blank_notice": "explicit_blank_notice",
+               "footer": "report_footer"}
+    return "excluded", reasons[structure["kind"]]
 
 
 def _row_key(row: dict[str, Any]) -> str:
@@ -473,7 +481,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                               run_id: str = "offline-replay",
                               raster_observations: list[dict] | None = None,
                               document_page_count: int | None = None,
-                              secondary_field_observations: list[dict] | None = None) -> dict:
+                              secondary_field_observations: list[dict] | None = None,
+                              legacy_extraction: dict | None = None,
+                              formal_reference_facts: list[dict] | None = None) -> dict:
     """Map a parsed, archived 278-T document to ledger rows with full accounting.
 
     This adapter is offline only. It requires the parser's extracted table rows,
@@ -488,6 +498,23 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     source_sha = extraction.get("source_sha256")
     if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T adapter requires the archived source hash")
+    from .oge_reports import validate_generic_table_interpretation
+    scoped = extraction.get("parser_version") == GENERIC_PARSER_VERSION and "row_interpretation_mode" in extraction
+    if legacy_extraction is not None and formal_reference_facts is None:
+        raise OgeCatalogError("legacy scope binding requires the formal reference facts")
+    if formal_reference_facts is not None and (not isinstance(formal_reference_facts, list) or
+            any(not isinstance(row, dict) for row in formal_reference_facts)):
+        raise OgeCatalogError("formal scope binding facts must be an array of objects")
+    if scoped:
+        validate_generic_table_interpretation(extraction)
+        if formal_reference_facts is not None:
+            from .oge_candidate import _inherit_generic_legacy
+            # Source interpretation is verified before applying the separate
+            # formal-ID/field-correction view; no inherited view is cached.
+            extraction, _ = _inherit_generic_legacy(extraction, legacy_extraction,
+                                                     formal_reference_facts, catalog_record)
+    elif formal_reference_facts is not None or legacy_extraction is not None:
+        raise OgeCatalogError("formal scope binding requires the explicit generic row interpretation")
     source_rows = extraction.get("source_rows")
     transactions = extraction.get("transactions")
     quarantined = extraction.get("quarantined")
@@ -558,10 +585,17 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         raw_cells = _cells(raw.get("cells"))
         key = _row_key({"page_number": raw["page_number"], "cells": raw_cells})
         parsed = dispositions.get(key, [])
+        if scoped:
+            matching=[item for item in parsed if item[1].get("source_rows_index") == physical_index - 1]
+            if len(matching) > 1:
+                raise OgeCatalogError("OGE scoped source row locator is duplicated")
+            parsed = matching
         reasons: list[str] = []
         normalized: dict[str, object] = {}
         if parsed:
             disposition, parser_row, parser_reasons = parsed.pop(0)
+            if scoped:
+                dispositions[key].remove((disposition, parser_row, parser_reasons))
             if recovery is not None and (disposition != "qualified" or
                     parser_row.get("source_bound_row_recovery") != recovery or
                     parser_row.get("cells") != raw.get("cells") or
@@ -595,6 +629,11 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             if recovery is not None:
                 raise OgeCatalogError("OGE visual source row recovery has no parser disposition")
             structural = _structural_disposition(raw_cells)
+            if scoped:
+                evidence = next((item for item in extraction["structural_rows"]
+                                 if item["source_rows_index"] == physical_index - 1), None)
+                if evidence and evidence["kind"] in {"owner_heading", "owner_account_heading", "account_heading"}:
+                    structural = ("excluded", evidence["kind"])
             if structural:
                 disposition, reason = structural
                 reasons.append(reason)

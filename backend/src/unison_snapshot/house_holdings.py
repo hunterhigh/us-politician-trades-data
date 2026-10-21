@@ -453,7 +453,7 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
     full_text = " ".join(texts)
     report_period_end, report_period_basis = annual_report_period_from_pdf(full_text, metadata)
     rows, explicit_none = extract_schedule_a_pages(page_objects, source_sha256=sha)
-    return {
+    result = {
         "schema_version": EXTRACTION_SCHEMA, "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filing_type", "report_type", "filer_name", "state_district", "filing_year",
@@ -463,6 +463,9 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
         "extraction_method": "native_pdf_geometry", "schedule_a_complete": True,
         "explicit_no_holdings": explicit_none, "rows": rows,
     }
+    from .house_annual_sections import observe_annual_sections
+    result["source_text_coverage"] = observe_annual_sections(page_objects, result)["source_text_coverage"]
+    return result
 
 
 def qualify_financial_report(extraction: dict, identity: dict) -> dict:
@@ -492,23 +495,44 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
     if filed < period:
         raise HouseIndexError("House annual report filing predates its report period end")
     report_reasons = [] if identity_valid else ["identity_not_deterministic"]
+    row_problems = []
     for row in extraction.get("rows", []):
         if not isinstance(row, dict):
             raise HouseIndexError("House holding extraction row is invalid")
-        if row.get("review_reasons"):
-            report_reasons.extend(str(reason) for reason in row["review_reasons"])
+        problems = [str(reason) for reason in row.get("review_reasons", [])]
         if not row.get("excluded_no_reportable_value"):
             low, high = row.get("value_low"), row.get("value_high")
             if (type(low) is not int or low < 0 or
                     (high is None and type(row.get("value_low_exclusive")) is not bool) or
                     (high is not None and (type(high) is not int or low > high))):
-                report_reasons.append("value_bounds_unresolved")
-    eligible = not report_reasons
+                problems.append("value_bounds_unresolved")
+        row_problems.append(sorted(set(problems)))
+        report_reasons.extend(problems)
+    coverage = extraction.get("source_text_coverage", {})
+    partial_allowed = bool(identity_valid and report_reasons and not extraction.get("document_reasons") and
+        any(not problems and not row.get("excluded_no_reportable_value")
+            for row, problems in zip(extraction["rows"], row_problems, strict=True)) and
+        coverage.get("schema_version") == "house-annual-native-text-coverage/v1" and
+        coverage.get("source_sha256") == extraction.get("source_sha256") and
+        coverage.get("unresolved_financial_text_line_count") == 0 and
+        any(s.get("section") == "A" for p in coverage.get("pages", []) for s in p.get("sections", [])) and
+        all(not problems or (set(problems) <= {"value_not_representable", "value_bounds_unresolved"}
+            and isinstance(row.get("value_raw"), str) and row["value_raw"].strip().casefold() == "undetermined"
+            and row.get("value_low") is None and row.get("value_high") is None
+            and "value_low_exclusive" not in row)
+            for row, problems in zip(extraction["rows"], row_problems, strict=True)))
+    eligible = not report_reasons or partial_allowed
     holdings: list[dict] = []
     excluded: list[dict] = []
     quarantined: list[dict] = []
     if eligible:
-        for row in extraction["rows"]:
+        for row, problems in zip(extraction["rows"], row_problems, strict=True):
+            if partial_allowed and problems:
+                quarantined.append({"extraction_id": row.get("extraction_id"),
+                    "reasons": problems,
+                    "asset_name": row.get("asset_name"), "value_raw": row.get("value_raw"),
+                    "evidence": row.get("evidence")})
+                continue
             if row.get("excluded_no_reportable_value"):
                 excluded.append({"extraction_id": row["extraction_id"],
                                  "reason": "no_reportable_asset_value", "evidence": row.get("evidence")})
@@ -532,7 +556,7 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
             quarantined.append({"extraction_id": row.get("extraction_id"),
                                 "reasons": sorted(set(report_reasons + row.get("review_reasons", []))),
                                 "evidence": row.get("evidence")})
-    return {
+    result = {
         "schema_version": QUALIFICATION_SCHEMA,
         "source": source, "source_sha256": extraction.get("source_sha256"),
         "report_period_end": extraction["report_period_end"],
@@ -540,4 +564,22 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
         "identity": identity, "report_complete": True, "production_eligible": eligible,
         "holdings": holdings, "excluded": excluded, "quarantined": quarantined,
         "qualification_reasons": sorted(set(report_reasons)),
+        **({"source_text_coverage": extraction["source_text_coverage"]}
+           if "source_text_coverage" in extraction else {}),
     }
+    if partial_allowed and quarantined:
+        result["holding_coverage"] = {
+            "schema_version": "house-approved-partial-holdings/v1",
+            "selection_basis": "complete_schedule_a_explicit_undetermined_value/v1",
+            "source_id": "house_clerk", "source_sha256": extraction["source_sha256"],
+            "source_url": source["source_url"], "filing_id": document_id,
+            "person_id": person_id, "report_period_end": extraction["report_period_end"],
+            "scope": "partial_report", "complete_total_assets": False,
+            "observed_row_count": len(extraction["rows"]),
+            "published_holding_ids": sorted(r["id"] for r in holdings),
+            "excluded_row_ids": sorted(r["extraction_id"] for r in excluded),
+            "unresolved_rows": quarantined,
+            "finite_value_low": sum(r["value_low"] for r in holdings if r["value_high"] is not None),
+            "finite_value_high": sum(r["value_high"] for r in holdings if r["value_high"] is not None),
+        }
+    return result

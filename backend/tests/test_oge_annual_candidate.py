@@ -21,7 +21,7 @@ from unison_snapshot.oge import OgeCatalogError
 
 
 DOC = "a" * 32
-URL = "https://extapps2.oge.gov/example-annual.pdf"
+URL = f"https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/{DOC}/$FILE/example-annual.pdf"
 CONTENT = b"%PDF-1.7\nsynthetic annual contract\n%%EOF"
 SHA = hashlib.sha256(CONTENT).hexdigest()
 HEADER = ["#", "Description", "EIF", "Value", "Income Type", "Income Amount"]
@@ -37,9 +37,10 @@ def base():
     return result
 
 
-def source(value="$1,001 - $15,000", bad=False):
+def source(value="$1,001 - $15,000", bad=False, official_unknown=False):
     pages = [_Page(COVER, []),
-             _Page("Part 2: Filer's Employment Assets", [HEADER, ["1", "ALPHA Fund", "Yes", value, "", ""]]),
+             _Page("Part 2: Filer's Employment Assets", [HEADER, ["1", "ALPHA Fund", "Yes", value, "", ""],
+                 *([["2", "Book rights (value not readily ascertainable)", "No", "", "royalties", "$1,001 - $2,500"]] if official_unknown else [])]),
              _Page("Part 5: Spouse's Employment Assets", [HEADER, ["", "None", "", "", "", ""]]),
              _Page("Part 6: Other Assets and Income", [HEADER,
                    ["", "Filer assets", "", "", "", ""],
@@ -86,7 +87,46 @@ class AnnualCandidateTests(unittest.TestCase):
         # An OCR-damaged agency label still delimits the filer block.
         damaged = missing.replace("Agency Ethics Official's Opinion", "Agency Ethics Ut1t1al Opm10n")
         self.assertIsNone(read_annual_cover_dates(damaged, source_sha256=SHA)["filed_at"])
-        self.assertIsNone(read_annual_cover_dates("Filer's Certification\nDate: 06/01/2026", source_sha256=SHA)["filed_at"])
+        self.assertEqual(read_annual_cover_dates("Filer's Certification\nDate: 06/01/2026", source_sha256=SHA)["filed_at"], "2026-06-01")
+
+    def test_last_cover_filer_block_is_not_required_to_have_agency_review(self):
+        cover = COVER[:COVER.index("Agency Ethics Official")]
+        extracted = source()
+        extracted["cover_date_evidence"] = read_annual_cover_dates(cover, source_sha256=SHA)
+        extracted["filing_date"] = extracted["cover_date_evidence"]["filed_at"]
+        candidate, audit = overlay_oge_annual_candidate(base(), inputs(extracted))
+        self.assertEqual(len(candidate["reported_holdings"]), 2)
+        self.assertEqual(audit["reports"][0]["filing_date_evidence"]["date"], "2026-06-01")
+        self.assertTrue(build(candidate, generated_at="2026-10-19T00:00:00Z", allow_production=True).manifest["snapshot_id"])
+        for text in ["Date: 06/01/2026", "Filer's Certification\nDate: unreadable\nAgency\nDate: 06/02/2026",
+                     "Filer's Certification\nDate: unreadable\nOGE Received 06/03/2026"]:
+            self.assertIsNone(read_annual_cover_dates(text, source_sha256=SHA)["filed_at"])
+
+    def test_owner_scope_gap_is_unresolved_but_same_page_noise_does_not_reset_it(self):
+        state = {}
+        _parse_rows("part2", "Self", 2, [HEADER, ["", "Spouse assets", "", "", "", ""]],
+                    2025, qualified=True, scope_state=state)
+        row = ["1", "ALPHA", "N/A", "$1,001 - $15,000", "", ""]
+        same_page, _, _ = _parse_rows("part2", "Self", 2, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertEqual(same_page[0]["owner"], "Spouse")
+        self.assertEqual(same_page[0]["owner_context"]["basis"], "explicit_owner_heading")
+        following, _, _ = _parse_rows("part2", "Self", 3, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertNotEqual(following[0]["account_context"]["status"], "unknown")
+        after_gap, _, _ = _parse_rows("part2", "Self", 5, [HEADER, row], 2025,
+                                     qualified=True, scope_state=state)
+        self.assertEqual(after_gap[0]["owner"], "Spouse")
+        self.assertEqual(after_gap[0]["account_context"]["status"], "unknown")
+        extraction = source()
+        extraction["holdings"][0] = after_gap[0]
+        decision = ledger(extraction)
+        self.assertIn("account_scope_unresolved", decision["rows"][0]["reasons"])
+        restored, _, _ = _parse_rows("part2", "Self", 6,
+            [HEADER, ["", "Filer assets", "", "", "", ""], row], 2025,
+            qualified=True, scope_state=state)
+        self.assertEqual(restored[0]["owner"], "Self")
+        self.assertEqual(restored[0]["account_context"]["status"], "not_observed")
 
     def test_parts_2_5_6_7_feed_existing_qualification_and_candidate(self):
         extraction = source()
@@ -97,10 +137,11 @@ class AnnualCandidateTests(unittest.TestCase):
         self.assertEqual(actual["part_counts"]["part5"]["excluded"], 1)
         self.assertEqual(actual["part_counts"]["part6"]["qualified"], 1)
         tx = next(row for row in actual["rows"] if row["observations"][0]["conditions"]["section"] == "part7")
-        self.assertEqual(tx["reasons"], ["pending_278t_reconciliation"])
+        self.assertEqual(tx["reasons"], [])
         result, audit = overlay_oge_annual_candidate(base(), inputs(extraction))
         self.assertEqual(len(result["reported_holdings"]), 2)
-        self.assertEqual(result["transactions"], [])
+        self.assertEqual(len(result["transactions"]), 1)
+        self.assertEqual(audit["added_transaction_count"], 1)
         self.assertEqual(audit["added_holding_count"], 2)
         self.assertTrue(build(result, generated_at="2026-10-19T00:00:00Z", allow_production=True).manifest["snapshot_id"])
 
@@ -189,7 +230,7 @@ class AnnualCandidateTests(unittest.TestCase):
         self.assertIsNone(result["filing_date"])
         decision = ledger(result)
         self.assertFalse(decision["holding_coverage_complete"])
-        self.assertIn("pending_278t_reconciliation", decision["rows"][0]["reasons"])
+        self.assertEqual(decision["rows"][0]["reasons"], ["filing_date_unverified"])
         self.assertTrue(any("saved_section_summary_has_no_field_rows" in row["reasons"] for row in decision["rows"]))
         bad = deepcopy(sections)
         bad["part7_slots"][0]["printed_number"] = "2"
@@ -228,14 +269,17 @@ class AnnualCandidateTests(unittest.TestCase):
         extraction = source()
         changed = deepcopy(extraction)
         changed["holdings"][0]["page_number"] = 999
-        self.assertIn("source_row_page_outside_inventory", ledger(changed)["rows"][0]["reasons"])
+        self.assertEqual(ledger(changed)["unlocated_source_issues"], [changed["holdings"][0]])
         self.assertFalse(ledger(changed)["holding_coverage_complete"])
         request = inputs(extraction)
         second = deepcopy(extraction)
-        second.update(source_document_id="b"*32, evidence_archive_path=f"oge/annual/reports/{'b'*32}/{SHA}.pdf")
+        second.update(source_document_id="b"*32, source_sha256="c"*64,
+                      evidence_archive_path=f"oge/annual/reports/{'b'*32}/{'c'*64}.pdf")
+        second["cover_date_evidence"] = read_annual_cover_dates(COVER, source_sha256="c"*64)
+        second["source_coverage_evidence"]["source_sha256"] = "c"*64
         request["extractions"].append(second)
         other_meta = deepcopy(request["archive_metadata_by_document"][DOC])
-        other_meta.update(document_id="b"*32, archive_path=second["evidence_archive_path"])
+        other_meta.update(document_id="b"*32, sha256="c"*64, archive_path=second["evidence_archive_path"])
         request["archive_metadata_by_document"]["b"*32] = other_meta
         candidate, audit = overlay_oge_annual_candidate(base(), request)
         self.assertEqual(candidate["reported_holdings"], [])

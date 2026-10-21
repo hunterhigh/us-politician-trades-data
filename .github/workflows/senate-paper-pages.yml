@@ -157,6 +157,7 @@ jobs:
           fi
       - name: Publish paper extraction dispositions
         env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
@@ -241,6 +242,7 @@ jobs:
             git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
           fi
           PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
             --base ingest/current.json \
@@ -270,11 +272,13 @@ jobs:
           echo "$failures Senate paper reports remain in explicit failure isolation."
       - name: Rebuild Senate and unified disclosure candidates
         env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
             --base ingest/current.json \

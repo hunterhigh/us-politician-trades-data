@@ -402,6 +402,19 @@ class HousePtrTests(unittest.TestCase):
                            "counts": {"archived": 1, "pending": 0, "failed": 0}}, deepcopy(BASE))
             self.assertEqual(result["transactions"], qualified["transactions"])
 
+    def test_full_width_note_preserves_literal_trailing_word_without_changing_financial_cells(self):
+        pages=amended_fixture_pages()
+        before=parse_word_pages(META,'5'*64,pages,copy_allowed=True)['transactions'][0]
+        pages[0]['words'] += [dict(word('CL',539,379,8.5),x1=549.7),
+                              dict(word('A',551.85,379,8.5),x1=557.58)]
+        after=parse_word_pages(META,'5'*64,pages,copy_allowed=True)['transactions'][0]
+        self.assertEqual(after['description'],'Corrected transaction CL A')
+        self.assertGreaterEqual(after['evidence']['segments'][0]['bbox_points'][2],557.58)
+        for field in ('extraction_id','asset_name','owner','transaction_type','transaction_date',
+                      'notification_date','amount_low','amount_high','reported_transaction_id'):
+            self.assertEqual(after[field],before[field])
+        self.assertEqual(qualify_automatic(parse_word_pages(META,'5'*64,pages,copy_allowed=True),IDENTITY)['transactions'],[])
+
     def test_unchanged_native_ids_and_fields_are_preserved(self):
         extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
         self.assertEqual([row["extraction_id"] for row in extraction["transactions"]],
@@ -459,6 +472,12 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual((opened["amount_low"], opened["amount_high"], opened["amount_low_exclusive"]),
                          (1000000, None, True))
         del open_extraction["transactions"][0]["amount_low_exclusive"]
+        with self.assertRaises(HouseIndexError):
+            qualify_automatic(open_extraction, IDENTITY)
+        # A real legacy cache has no replayable words; preserve its existing
+        # row-level qualification rather than accepting edited replay evidence.
+        open_extraction.pop("source_word_pages")
+        open_extraction.pop("source_word_pages_sha256")
         unknown = qualify_automatic(open_extraction, IDENTITY)
         self.assertTrue(any("open_ended_amount_not_representable" in row["reasons"]
                             for row in unknown["quarantined"]))
@@ -488,6 +507,9 @@ class HousePtrTests(unittest.TestCase):
                             for row in guarded["advisories"]))
 
         notice_only = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        # Exercise the legacy no-word field interpreter independently.
+        notice_only.pop("source_word_pages")
+        notice_only.pop("source_word_pages_sha256")
         notice_only["transactions"][0]["notification_date"] = None
         notice_result = qualify_automatic(notice_only, IDENTITY)
         self.assertIn(notice_only["transactions"][0]["extraction_id"],
@@ -503,6 +525,8 @@ class HousePtrTests(unittest.TestCase):
                          ["notification_date_sequence_invalid"])
 
         impossible = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        impossible.pop("source_word_pages")
+        impossible.pop("source_word_pages_sha256")
         impossible["transactions"][0]["transaction_date"] = "2026-12-26"
         impossible["transactions"][0]["notification_date"] = "2026-01-21"
         impossible_result = qualify_automatic(impossible, IDENTITY)
@@ -517,6 +541,8 @@ class HousePtrTests(unittest.TestCase):
         self.assertIn("date_sequence_invalid", impossible_row["reasons"])
 
         option = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=True)
+        option.pop("source_word_pages")
+        option.pop("source_word_pages_sha256")
         option_row = option["transactions"][0]
         option_row["instrument_type"] = "Option"
         option_row["description"] = (

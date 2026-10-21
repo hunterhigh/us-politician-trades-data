@@ -18,8 +18,8 @@ from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION,
-    validate_generic_whitehouse_report, generic_existing_fact,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
+    validate_generic_whitehouse_report, generic_existing_fact, DUAL_AXIS_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
     TRUMP_081225_SOURCE_URL, TRUMP_2026_PARSER_VERSION, _first_last,
@@ -152,7 +152,9 @@ def source_bound_filing_date(report: dict) -> str | None:
         return None
     if profile is not None:
         evidence = report.get("filing_date_evidence")
-        if (report.get("parser_version") != TRUMP_2026_PARSER_VERSION or
+        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
+            return None
+        if (report.get("parser_version") not in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} or
                 report.get("signature_method") !=
                 "official_disclosure_date_source_bound" or
                 not isinstance(evidence, dict) or
@@ -201,8 +203,10 @@ def source_bound_filer_identity(report: dict) -> bool:
         return False
     if profile is not None:
         evidence = report.get("filer_identity_evidence")
+        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
+            return False
         return bool(
-            report.get("parser_version") == TRUMP_2026_PARSER_VERSION and
+            report.get("parser_version") in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} and
             report.get("pdf_filer_name") == "Donald J Trump" and
             report.get("pdf_position_title") ==
             "President of the United States of America" and
@@ -263,6 +267,20 @@ def _row_reasons(row: dict, filing_day: date | None, *, generic: bool = False) -
 
 
 def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | None, list[str]]:
+    resolution = report.get("source_identity_resolution")
+    if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION and resolution:
+        from .whitehouse_directory_identity_shadow import complete_name_tokens
+        if resolution.get("status") != "resolved":
+            return None, list(resolution.get("reasons") or ["source_directory_identity_unresolved"])
+        expected = resolution["catalog_identity"]
+        named = [row for row in catalog_rows if complete_name_tokens(row["filer_name"]) ==
+                 complete_name_tokens(expected["filer_name"])]
+        if ({_identity_key(row) for row in named} != {_identity_key(expected)} or
+                not set(resolution["matched_catalog_entry_ids"]) <= {row.get("catalog_entry_id") for row in named}):
+            return None, ["source_directory_current_catalog_identity_differs"]
+        return {**expected,"matched_catalog_entry_ids":resolution["matched_catalog_entry_ids"],
+                "identity_basis":"whitehouse_source_directory_catalog",
+                "directory_document_id":report["document_id"]}, []
     name = report.get("pdf_filer_name")
     role = report.get("pdf_position_title")
     office = report.get("pdf_agency_label")
@@ -508,7 +526,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
 
     generic_expected = {}
     for item in complete:
-        if item.get("parser_version") == GENERIC_PARSER_VERSION:
+        if item.get("parser_version") in GENERIC_PARSER_VERSIONS:
             generic_expected[item["document_id"]] = validate_generic_whitehouse_report(item)
     screened = quarantine_duplicate_report_groups(extractions)
     document_ids = [report.get("document_id") for report in screened]
@@ -562,6 +580,18 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
     annual_overlap_count = 0
     for report in screened:
         identity, identity_reasons = _catalog_identity(report, catalog_rows)
+        if identity and identity.get("identity_basis") == "whitehouse_source_directory_catalog":
+            from .whitehouse_directory_identity_shadow import complete_name_tokens
+            close = [person for person in existing_oge_candidate.get("people", []) if
+                     _first_last(person.get("display_name") or "") == _first_last(identity["filer_name"])]
+            matches = [person for person in close if person.get("disclosure_authority") == "oge" and
+                       complete_name_tokens(person.get("display_name") or "") == complete_name_tokens(identity["filer_name"]) and
+                       _words(person.get("office_type") or "") == _words(identity["agency"]) and
+                       _role(person.get("role") or "") == _role(identity["position_title"])]
+            if close and (len(close) != 1 or len(matches) != 1):
+                identity, identity_reasons = None, ["source_directory_existing_person_conflict"]
+            elif matches:
+                identity.update(person_id=matches[0]["id"],identity_basis="whitehouse_directory_existing_oge_person")
         if identity_reasons == ["catalog_filer_identity_missing"] and directory_index is not None:
             identity = _source_bound_person_from_directory(
                 report, directory_index, existing_oge_candidate,
@@ -613,9 +643,10 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
         for source_row in report["transactions"]:
             if not isinstance(source_row, dict):
                 raise OgeCatalogError("White House 278-T transaction row is invalid")
-            generic = report.get("parser_version") == GENERIC_PARSER_VERSION
+            generic = report.get("parser_version") in GENERIC_PARSER_VERSIONS
             field_reasons = _row_reasons(source_row, filing_day, generic=generic)
-            retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"]) if generic else None
+            retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"],
+                expected_person_id=person_id) if generic else None
             if generic:
                 key = (source_row.get("page_number"),tuple(source_row.get("cells",[])))
                 matches = generic_expected[report["document_id"]].get(key,[])

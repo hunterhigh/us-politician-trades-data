@@ -18,8 +18,8 @@ from .builder import ARRAYS, FIELDS, normalize, timestamp
 from .oge import OgeCatalogError
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
-from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION,
-    generic_existing_fact, generic_whitehouse_filing_date)
+from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS,
+    generic_existing_fact, generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSIONS, DUAL_AXIS_PARSER_VERSION)
 from .whitehouse_278t_audit import (
     AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
     resolve_exact_source_reports,
@@ -260,7 +260,7 @@ def _official_pdf_url(value: object) -> bool:
 
 def _signature_date(report: dict) -> str | None:
     """Use validated exact-source filing or official disclosure-date evidence."""
-    if report.get("parser_version") == GENERIC_PARSER_VERSION:
+    if report.get("parser_version") in GENERIC_PARSER_VERSIONS:
         return generic_whitehouse_filing_date(report)
     source_bound = source_bound_filing_date(report)
     if source_bound is not None:
@@ -325,7 +325,7 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
         "source_url": report["source_url"],
         "verification_status": "official_matched",
     }
-    if report.get("parser_version") == GENERIC_PARSER_VERSION:
+    if report.get("parser_version") in GENERIC_PARSER_VERSIONS:
         title = row.get("account_title")
         if title:
             fact["asset_name"] = f"{row['asset_name']} — {title}"
@@ -471,7 +471,8 @@ def build_whitehouse_278t_review_candidate(
             if (row_id != decision["extraction_id"] or
                     source_row.get("row_number") != decision["row_number"]):
                 raise OgeCatalogError("White House 278-T audit row is misaligned")
-            retained = generic_existing_fact(report, source_row, candidate["transactions"])
+            retained = generic_existing_fact(report, source_row, candidate["transactions"],
+                expected_person_id=person["id"] if person else None)
             if decision["status"] == "eligible" and not reasons:
                 if not isinstance(row_id, str) or not _ID.fullmatch(row_id):
                     reasons.append("transaction_id_invalid")
@@ -509,6 +510,8 @@ def build_whitehouse_278t_review_candidate(
                           if decision["status"] == "eligible" and not reasons else "quarantined",
                 "annual_part7_overlap": decision.get("annual_part7_overlap") is True,
                 "reasons": sorted(set(reasons)),
+                **({"field_interpretation_evidence":deepcopy(source_row["field_interpretation_evidence"])}
+                   if "field_interpretation_evidence" in source_row else {}),
             })
         promoted_count = sum(row["status"] == "promoted" for row in row_results)
         retained_count = sum(row["status"] == "retained_existing" for row in row_results)
@@ -521,7 +524,7 @@ def build_whitehouse_278t_review_candidate(
             "identity_basis": identity.get("identity_basis") if identity else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
-            **({"parser_version": GENERIC_PARSER_VERSION, "retained_count": retained_count,
+            **({"parser_version": report["parser_version"], "retained_count": retained_count,
                 "retained_ids": [row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
                 "retained_source_bindings": {"schema_version": "whitehouse-generic-retained-source/v1",
                     "source_sha256": report["source_sha256"],
@@ -534,6 +537,27 @@ def build_whitehouse_278t_review_candidate(
                         "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"}
                         for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
                if report.get("parser_version") == GENERIC_PARSER_VERSION else {}),
+            **({"observation_receipt": deepcopy(report["observation_receipt"]),
+                **({"geometry_mode":report["geometry_mode"]} if report.get("geometry_mode") else {}),
+                **({"source_identity_resolution":deepcopy(report["source_identity_resolution"])}
+                   if report.get("source_identity_resolution") else {}),
+                "parser_version": report["parser_version"],
+                "saved_ocr_input": deepcopy(report["saved_ocr_input"]),
+                **({"partial_geometry_pages":deepcopy(report["content_observations"]["partial_geometry_pages"])}
+                   if (report.get("content_observations") or {}).get("partial_geometry_pages") else {}),
+                "quarantine_count_unit": "observed_ocr_rows_not_whole_source_unique_rows"}
+               if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS else {}),
+            **({"retained_count":retained_count,
+                "retained_ids":[row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
+                "current_source_retained_bindings":{
+                    "schema_version":"whitehouse-saved-current-retained/v1", "source_sha256":report["source_sha256"],
+                    "document_id":document_id,"parser_version":report["parser_version"],"geometry_mode":report["geometry_mode"],
+                    "rows":[{"formal_id":row["extraction_id"],"source_rows_index":source.get("source_rows_index"),
+                        "page_number":source["page_number"],"raw_cells_canonical_sha256":hashlib.sha256(json.dumps(
+                            source["cells"],ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "basis":"current_source_replayed_exact_formal_projection"}
+                        for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
+               if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION else {}),
             "document_reasons": sorted(set(doc_reasons)), "rows": row_results,
         })
     if len(added_transactions) != sum(row["promoted_count"] for row in audit_reports):
@@ -577,12 +601,17 @@ def build_whitehouse_278t_review_candidate(
     if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
         raise OgeCatalogError("White House 278-T requires one existing OGE source health record")
     prior_detail = oge_health[0]["detail"]
-    oge_health[0]["detail"] = (
-        f"Prior direct OGE status: {prior_detail}; "
+    summary = (
         f"White House public 278-T: {len(audit_reports)} PDFs audited, "
-        f"{promoted} new transactions qualified, {quarantined} rows quarantined; "
+        f"{promoted + len(retained_existing)} transactions qualified, {quarantined} rows quarantined; "
         f"{len(candidate['transactions'])} total OGE candidate transactions."
     )
+    # Health describes the resulting qualified set, not the per-run append
+    # count. Preserve all prior source text; never split/strip a similar-looking
+    # official detail to try to recover a presumed direct-source prefix.
+    if not (prior_detail.startswith("Prior direct OGE status: ") and
+            prior_detail.endswith("; " + summary)):
+        oge_health[0]["detail"] = f"Prior direct OGE status: {prior_detail}; {summary}"
     return candidate, {
         "schema_version": SCHEMA, "source_id": "oge",
         "catalog_sha256": expected_audit["catalog_sha256"],

@@ -6,6 +6,8 @@ label, upload date, OGE receipt date, or reviewer signature as a filing date.
 from __future__ import annotations
 
 from copy import deepcopy
+from contextlib import contextmanager
+from contextvars import ContextVar
 import hashlib
 from itertools import combinations
 import json
@@ -22,6 +24,39 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
 PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
 GENERIC_PARSER_VERSION = "whitehouse-278t-native-roles/v5"
+SAVED_OCR_PARSER_VERSION = "whitehouse-278t-saved-ocr-roles/v6"
+DUAL_AXIS_PARSER_VERSION = "whitehouse-278t-saved-ocr-dual-axis/v7"
+DUAL_AXIS_MODE = "source_pdf_dual_axis/v1"
+SAVED_OCR_PARSER_VERSIONS = {SAVED_OCR_PARSER_VERSION,DUAL_AXIS_PARSER_VERSION}
+GENERIC_PARSER_VERSIONS = {GENERIC_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS}
+_SAVED_OCR_ROOTS = ContextVar("whitehouse_saved_ocr_roots", default=None)
+
+
+@contextmanager
+def saved_ocr_source_roots(evidence_root: Path | None, review_root: Path | None):
+    """Bind controlled roots for one run; roots are never serialized receipts."""
+    token = _SAVED_OCR_ROOTS.set((Path(evidence_root).resolve() if evidence_root else None,
+                                Path(review_root).resolve() if review_root else None))
+    try:
+        yield
+    finally:
+        _SAVED_OCR_ROOTS.reset(token)
+
+
+def _saved_source_path(value: str, *, evidence: bool = False) -> Path:
+    if not isinstance(value, str) or not value:
+        raise OgeCatalogError("White House saved source path is invalid")
+    path = Path(value)
+    if path.is_absolute():
+        return path  # Local development compatibility, explicitly marked in receipt.
+    roots = _SAVED_OCR_ROOTS.get()
+    root = roots[0 if evidence else 1] if roots else None
+    if root is None:
+        raise OgeCatalogError("White House relative saved source requires explicit evidence/review roots")
+    target = (root / path).resolve()
+    if not target.is_relative_to(root):
+        raise OgeCatalogError("White House saved source escapes controlled root")
+    return target
 TRUMP_081225_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v3"
 TRUMP_081225_DOCUMENT_ID = "wh-url:1a6bbff2a684fedd76ac9f59"
 TRUMP_081225_SOURCE_URL = (
@@ -89,7 +124,7 @@ _TRUMP_2026_BY_SOURCE = {
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
 SUPPORTED_PARSER_VERSIONS = (
     PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
-    *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION)
+    *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION, DUAL_AXIS_PARSER_VERSION)
 MAX_INLINE_OCR_PAGES = 100
 MAX_CHECKPOINT_OCR_PAGES = 200
 OCR_CHECKPOINT_SCHEMA = "whitehouse-278t-ocr-checkpoint/v1"
@@ -639,6 +674,13 @@ def _trump_2026_filing_evidence(profile: dict) -> dict:
     }
 
 
+def _trump_2026_identity_evidence(profile: dict) -> dict:
+    return {"page_number":1,"pdf_filer_name":"Donald J Trump",
+        "pdf_position_title":"President of the United States of America",
+        "agency_basis":"exact_sha_official_disclosure_catalog_alias",
+        "source_url":profile["source_url"],"source_sha256":profile["source_sha256"]}
+
+
 def _build_trump_2026_extraction(
         profile: dict, records: list[dict], *, filer_name: str,
         amended_label: str | None, ocr_engine: str, extraction_method: str,
@@ -676,14 +718,7 @@ def _build_trump_2026_extraction(
         "filer_signature_evidence": None,
         "filer_signature_name": "Donald J Trump",
         "filing_date_evidence": _trump_2026_filing_evidence(profile),
-        "filer_identity_evidence": {
-            "page_number": 1,
-            "pdf_filer_name": "Donald J Trump",
-            "pdf_position_title": "President of the United States of America",
-            "agency_basis": "exact_sha_official_disclosure_catalog_alias",
-            "source_url": profile["source_url"],
-            "source_sha256": profile["source_sha256"],
-        },
+        "filer_identity_evidence": _trump_2026_identity_evidence(profile),
         "extraction_method": extraction_method,
         "ocr_engine": ocr_engine,
         "page_count": profile["page_count"],
@@ -863,67 +898,12 @@ def extract_whitehouse_278t_pdf_checkpointed(
 
 
 
-def _generic_table_rows(inventory: list, *, source_sha256: str) -> tuple[list, list, list]:
-    """Interpret exact six-cell rows; optional labels establish source scope."""
-    from .oge_reports import _compact, _owner_heading, _ACCOUNT_HEADING
-    transactions, quarantined, structural = [], [], []
-    owner, title, lost_scope, previous_page = "Undisclosed", None, False, None
-    seen = set()
-    for index, (page, raw) in enumerate(inventory):
-        cells = [_compact(cell) for cell in raw]
-        if previous_page is not None and page > previous_page + 1 and (title or owner != "Undisclosed"):
-            lost_scope = True
-        previous_page = page
-        if len(cells) == 6:
-            description = cells[1]
-            label = not any((cells[0], cells[2], cells[3], cells[5]))
-            explicit_owner = (_owner_heading(description) if label and re.fullmatch(
-                r"(?:filer|self|spouse|dependent child(?:ren)?)(?:'s)? (?:assets|accounts?)", description, re.I) else None)
-            if explicit_owner:
-                owner, title, lost_scope = explicit_owner, None, False
-                structural.append({"source_rows_index": index, "kind": "owner_heading", "text": description})
-                continue
-            if label and _ACCOUNT_HEADING.fullmatch(description):
-                title, lost_scope = description, False
-                structural.append({"source_rows_index": index, "kind": "account_heading", "text": description})
-                continue
-            if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
-                lost_scope = True
-                structural.append({"source_rows_index": index, "kind": "ambiguous_owner_heading", "text": description})
-            if label and re.search(r"\b(?:EXHIBIT|AMENDMENT|REPLAC(?:E|EMENT)|CONTINUED)\b", description, re.I):
-                lost_scope = True
-                structural.append({"source_rows_index": index, "kind": "unresolved_report_relation", "text": description})
-                continue
-        if cells and cells[0] == "#" and not any(cells[1:]):
-            structural.append({"source_rows_index": index, "kind": "unknown_table_content", "text": "#"})
-        good, bad = parse_table_rows([(page, cells)], source_sha=source_sha256,
-            default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)
-        for row in good + bad:
-            row["source_rows_index"] = index
-            row["account_context"] = {"status": "unknown" if lost_scope else "observed" if title else "not_observed", "title": title}
-            if row["owner"] == "Undisclosed":
-                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
-            key = (page, row.get("row_number"), title)
-            reasons = list(row.get("reasons", []))
-            if row.get("row_number") is not None and key in seen:
-                reasons.append("same_page_account_row_number_ambiguous")
-            seen.add(key)
-            if lost_scope:
-                reasons.append("account_context_unresolved")
-            if reasons:
-                quarantined.append({**row, "reasons": sorted(set(reasons))})
-            else:
-                transactions.append(row)
-    # Both occurrences remain unresolved; never pick the first duplicate.
-    duplicates = {(r["page_number"], r.get("row_number"), r.get("account_title"))
-                  for r in quarantined if "same_page_account_row_number_ambiguous" in r["reasons"]}
-    kept = []
-    for row in transactions:
-        if (row["page_number"], row.get("row_number"), row.get("account_title")) in duplicates:
-            quarantined.append({**row, "reasons": ["same_page_account_row_number_ambiguous"]})
-        else:
-            kept.append(row)
-    return kept, quarantined, structural
+def _generic_table_rows(inventory: list, *, source_sha256: str,
+                        scope_barriers_before: dict | None = None) -> tuple[list, list, list]:
+    """Compatibility entry point for the shared source-row scope interpreter."""
+    from .oge_reports import parse_generic_table_rows
+    return parse_generic_table_rows(inventory, source_sha256=source_sha256,
+                                    scope_barriers_before=scope_barriers_before)
 
 
 def _inherit_whitehouse_generic_rows(result: dict, legacy: dict | None) -> dict:
@@ -1028,8 +1008,19 @@ def _validate_generic_legacy_owner(report: dict, row: dict, expected: dict, repl
         raise OgeCatalogError("White House generic default-owner correction failed raw input replay")
 
 
-def generic_existing_fact(report: dict, row: dict, existing: list[dict]) -> dict | None:
+def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expected_person_id: str | None = None) -> dict | None:
     """Only exact-source inherited rows can reference an existing formal fact."""
+    if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION:
+        # The caller has rematerialized this saved report from its bound inputs.
+        # A current-source repeat is not a legacy owner correction or a match by
+        # similar fields: the complete publication object must be identical.
+        from .whitehouse_278t_candidate import _transaction
+        matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
+        if (len(matches) != 1 or not expected_person_id or row.get("reasons") or report.get("document_reasons") or
+                row not in report.get("transactions", [])):
+            return None
+        fact = matches[0]
+        return fact if fact == _transaction(report, row, expected_person_id) else None
     inheritance = row.get("legacy_inheritance", {})
     old = inheritance.get("legacy_row", {})
     matches = [fact for fact in existing if fact.get("id") == row.get("extraction_id")]
@@ -1073,19 +1064,491 @@ def _generic_cover_identity(text: str) -> tuple:
     return name, position, agency, role_raw, reasons
 
 
+def _generic_cover_dates(text: str, sha: str, ocr: bool = False) -> dict:
+    from .oge_reports import read_278t_cover_dates
+    evidence = read_278t_cover_dates(text, source_sha256=sha)
+    if ocr:
+        evidence["schema_version"] = "whitehouse-278t-saved-ocr-cover-roles/v1"
+        for item in evidence["observations"]:
+            item["method"] = "saved_ocr_cover_words"
+    return evidence
+
+
+def _saved_source_cover_resolution(document, url, sha, count, dates):
+    """Reuse already-verified immutable source profiles, retaining OCR conflicts."""
+    profile=trump_2026_profile(document,url,sha)
+    if profile is None:return None
+    if count != profile["page_count"]:
+        raise OgeCatalogError("White House saved original page count differs from verified profile")
+    name,position,agency,raw,identity_reasons=_generic_cover_identity(dates["cover_text"])
+    reasons=[r for r in dates["document_reasons"] if r != "filer_signature_date_missing"]
+    if dates["filed_at"] is not None and dates["filed_at"] != profile["report_date"]:
+        reasons.append("ocr_source_filing_date_conflict")
+    if name is not None and _first_last(name) != _first_last("Donald J Trump"):
+        reasons.append("ocr_source_filer_identity_conflict")
+    if position is not None and re.sub(r"[^a-z]","",position.casefold()) not in {
+            "president","presidentoftheunitedstates","presidentoftheunitedstatesofamerica"}:
+        reasons.append("ocr_source_filer_role_conflict")
+    if agency is not None and re.sub(r"[^a-z]","",agency.casefold()) not in {
+            "whitehouse","whitehouseoffice","executiveofficeofthepresident"}:
+        reasons.append("ocr_source_filer_agency_conflict")
+    return {"filed_at":profile["report_date"],"filing_date_evidence":_trump_2026_filing_evidence(profile),
+        "filer_identity_evidence":_trump_2026_identity_evidence(profile),"document_reasons":sorted(set(reasons)),
+        "ocr_cover_identity_observation":{"name":name,"position":position,"agency":agency,"raw":raw,"reasons":identity_reasons},
+        "ocr_filed_at":dates["filed_at"],"resolution_basis":"existing_exact_sha_official_profile"}
+
+
+def _saved_supported_fields(row: dict, slot: dict, *, source_sha: str) -> dict:
+    """Interpret unique field observations with the existing table parser.
+
+    Raw cells remain the stable identity input. Interpreted strings are a
+    separate source-bound projection, never a new ID namespace or edited OCR.
+    Geometry and conflict blockers are still applied by the relation consumer.
+    """
+    from .oge_transaction_adapter import _amount_readings
+    from datetime import date
+    values, references, reasons = {}, {}, []
+    amount_reads = _amount_readings(slot["field_readings"]["amount"]["observations"])
+    keys = {(tuple(value), exclusive) for _, value, exclusive in amount_reads}
+    open_amount = len(keys) == 1 and next(iter(keys))[1] is True
+    for field in ("printed_number", "description", "type", "transaction_date", "amount"):
+        reads = slot["field_readings"][field]["observations"]
+        supported = [(read, read["shape"].get("values", read["shape"].get("value")))
+                     for read in reads if read.get("geometry_status") != "ambiguous" and
+                     read["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+        if field == "amount":
+            supported = [(read, value) for read, value, _ in amount_reads]
+        if len({json.dumps(value, sort_keys=True) for _, value in supported}) != 1:
+            reasons.append(field + "_reading_unresolved")
+        else:
+            values[field] = supported[0][1]
+            references[field] = [read["source_ref"] for read, _ in supported]
+    result = deepcopy(row)
+    if reasons:
+        result["reasons"] = sorted(set([*row.get("reasons", []), *reasons]))
+        return result
+    amount = values["amount"]
+    normalized = [str(values["printed_number"]), values["description"], values["type"],
+                  date.fromisoformat(values["transaction_date"]).strftime("%m/%d/%Y"), row["cells"][4],
+                  f"Over ${amount[0]:,}" if open_amount else f"${amount[0]:,} - ${amount[1]:,}"]
+    kwargs = dict(source_sha=source_sha, default_owner=row["owner"], account_title=row.get("account_title"),
+                  allow_open_amounts=True, allow_exchange=True)
+    good, bad = parse_table_rows([(row["page_number"], normalized)], **kwargs)
+    raw_good, raw_bad = parse_table_rows([(row["page_number"], row["cells"])], **kwargs)
+    if len(good + bad) != 1 or len(raw_good + raw_bad) != 1:
+        result["reasons"] = sorted(set([*row.get("reasons", []), "supported_field_projection_unresolved"]))
+        return result
+    interpreted, raw = (good + bad)[0], (raw_good + raw_bad)[0]
+    projection = ("row_number", "asset_name", "ticker", "transaction_type", "transaction_date",
+                  "amount_low", "amount_high", "amount_low_exclusive")
+    for field in projection:
+        if field in interpreted:
+            result[field] = interpreted[field]
+        else:
+            result.pop(field, None)
+    reasons = sorted((set(row.get("reasons", [])) - set(raw.get("reasons", []))) | set(interpreted.get("reasons", [])))
+    result.pop("reasons", None)
+    if reasons:
+        result["reasons"] = reasons
+    result["field_interpretation_evidence"] = {"schema_version": "whitehouse-saved-supported-fields/v1",
+        "identity_basis": "original_raw_cells_existing_id_algorithm", "raw_extraction_id": row["extraction_id"],
+        "raw_cells": deepcopy(row["cells"]), "interpreted_cells": normalized,
+        "field_observation_references": references}
+    return result
+
+
+def _saved_directory_identity(inputs: dict, metadata: dict, cover_text: str) -> dict | None:
+    """Reprove optional v7 official attribution without editing PDF observations."""
+    names = ("official_directory_index", "oge_identity_coverage", "oge_identity_catalog_metadata")
+    allowed = {name + suffix for name in names for suffix in ("_path", "_sha256")}
+    if any(key.startswith(("official_directory_", "oge_identity_")) and key not in allowed for key in inputs):
+        raise OgeCatalogError("White House directory identity input parameter is unknown")
+    if not any(name + suffix in inputs for name in names for suffix in ("_path", "_sha256")):
+        return None
+    from .whitehouse_disclosures import parse_disclosure_index, _label_kind, PAGE_URL
+    from .oge_whitehouse import coverage_from_archive
+    from .whitehouse_directory_identity_shadow import complete_name_tokens
+    from .oge_candidate import _identity_key
+    from .whitehouse_278t_audit import _role, _words, _OFFICE_LABELS
+    roots = _SAVED_OCR_ROOTS.get()
+    if not roots or roots[0] is None:
+        raise OgeCatalogError("White House directory identity requires a controlled evidence root")
+    def read(name, evidence=False):
+        path, sha = inputs.get(name + "_path"), inputs.get(name + "_sha256")
+        if not isinstance(path, str) or not isinstance(sha, str) or not _SHA256.fullmatch(sha):
+            raise OgeCatalogError("White House directory identity input reference is incomplete")
+        raw = _saved_source_path(path, evidence=evidence).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha:
+            raise OgeCatalogError("White House directory identity file hash differs: " + name)
+        return json.loads(raw)
+    index = read(names[0]); coverage = read(names[1]); catalog = read(names[2], True)
+    result = {"schema_version":"whitehouse-saved-directory-identity/v1", "status":"unresolved",
+        "source_sha256":metadata["sha256"],"document_id":metadata["document_id"],"source_url":metadata["document_url"],
+        "archive_page_sha256":metadata.get("page_sha256"),"resolved_missing_fields":[],"reasons":[]}
+    def pending(reason):
+        result["reasons"] = [reason]
+        return result
+    old_label = metadata.get("link_label")
+    if (metadata.get("source_id") != "whitehouse_public_disclosures" or
+            not isinstance(metadata.get("page_sha256"),str) or not _SHA256.fullmatch(metadata["page_sha256"]) or
+            not isinstance(old_label,str) or not old_label.strip() or
+            metadata.get("page_url",PAGE_URL) != PAGE_URL):
+        return pending("official_directory_archive_label_chain_unresolved")
+    old_kind,_,old_name = _label_kind("Transaction Reports",old_label)
+    if (old_kind != "278t" or old_name == "label_ambiguous" or
+            complete_name_tokens(old_name) != complete_name_tokens(metadata.get("filer_name_from_label") or "")):
+        return pending("official_directory_archive_label_conflict")
+    if not isinstance(index.get("page_sha256"),str) or not _SHA256.fullmatch(index["page_sha256"]):
+        return pending("official_directory_current_page_reference_unresolved")
+    page = index.get("page_archive", {})
+    expected = f"whitehouse/disclosures/pages/{index['page_sha256']}.html"
+    if page.get("archive_path") != expected or page.get("sha256") != index["page_sha256"]:
+        return pending("official_directory_original_page_reference_unresolved")
+    page_path = _saved_source_path(expected, evidence=True)
+    if not page_path.is_file():
+        return pending("official_directory_original_page_unavailable")
+    raw = page_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != page["sha256"] or len(raw) != page.get("byte_length"):
+        raise OgeCatalogError("White House official directory original bytes differ")
+    replay = parse_disclosure_index(raw)
+    if {key:value for key,value in index.items() if key != "page_archive"} != replay:
+        raise OgeCatalogError("White House official directory index differs from original page")
+    catalog_path = _saved_source_path(inputs["oge_identity_catalog_metadata_path"], evidence=True)
+    if coverage_from_archive(roots[0], catalog_path) != coverage or coverage.get("catalog_sha256") != catalog.get("sha256"):
+        raise OgeCatalogError("White House identity coverage differs from archived catalog")
+    entries = [entry for entry in index["reports"] if entry.get("source_document_id") == metadata["document_id"]]
+    if len(entries) != 1:
+        return pending("official_directory_document_not_unique")
+    entry = entries[0]
+    if (entry.get("document_url") != metadata["document_url"] or entry.get("document_type_from_label") != "278t" or
+            entry.get("source_section") != "Transaction Reports" or not entry.get("filer_name_from_label") or
+            complete_name_tokens(entry["filer_name_from_label"]) != complete_name_tokens(inputs["filer_name"]) or
+            complete_name_tokens(metadata.get("filer_name_from_label") or "") != complete_name_tokens(entry["filer_name_from_label"])):
+        return pending("official_directory_archive_identity_conflict")
+    if len(complete_name_tokens(entry["filer_name_from_label"])) < 2:
+        return pending("official_directory_full_name_incomplete")
+    named = [row for row in coverage["reports"] if row.get("document_type") == "278t" and
+             complete_name_tokens(row.get("filer_name") or "") == complete_name_tokens(entry["filer_name_from_label"])]
+    keys = {_identity_key(row) for row in named}
+    if len(keys) != 1:
+        return pending("official_directory_catalog_identity_not_unique")
+    identity = named[0]
+    # A bounded, visibly empty identity block is missing information. An absent
+    # or unclosed block is unknown, not permission to erase a possible conflict.
+    blocks = list(re.finditer(
+        r"^Filer(?:'|’)?s[ \t]+Information[ \t]*\r?\n(.*?)"
+        r"^Filer(?:'|’)?s[ \t]+Certification[ \t]*\r?\n(?=(?:Date\s*:|I\s+certify\b))",
+        cover_text, re.I | re.S | re.M))
+    if len(blocks) != 1:
+        return pending("official_directory_pdf_identity_block_ambiguous")
+    lines = [line.strip() for line in blocks[0][1].splitlines() if line.strip()]
+    if len(lines) > 2:
+        return pending("official_directory_pdf_identity_block_ambiguous")
+    observed = {"name":lines[0] if lines else None,"position":None,"agency":None,
+                "raw_block":blocks[0][1]}
+    if len(lines) == 2:
+        position, sep, agency = lines[1].rpartition(" - ")
+        observed.update(position=position.strip() if sep else lines[1], agency=agency.strip() if sep else None)
+    result["pdf_identity_observation"] = observed
+    if (observed["name"] and complete_name_tokens(observed["name"]) != complete_name_tokens(identity["filer_name"]) or
+            observed["position"] and _role(observed["position"]) != _role(identity["position_title"]) or
+            observed["agency"] and _OFFICE_LABELS.get(_words(observed["agency"])) != identity["agency"].casefold()):
+        return pending("official_directory_pdf_identity_conflict")
+    result.update(status="resolved",reasons=[],
+        resolved_missing_fields=[field for field in ("name","position","agency") if not observed[field]],
+        directory_entry=deepcopy(entry),catalog_identity={key:identity[key] for key in ("filer_name","position_title","agency")},
+        matched_catalog_entry_ids=sorted({row["catalog_entry_id"] for row in named}),
+        directory_page_sha256=index["page_sha256"],catalog_sha256=coverage["catalog_sha256"],
+        archive_attribution={"source":"controlled_archive_metadata","page_url":PAGE_URL,
+            "page_url_basis":"official_archive_schema_source" if "page_url" not in metadata else "archive_metadata",
+            "page_sha256":metadata["page_sha256"],"link_label":old_label,
+            "filer_name_from_label":metadata["filer_name_from_label"]},
+        directory_corroboration={"source":"current_official_html_replayed","page_url":index["page_url"],
+            "page_sha256":index["page_sha256"]},
+        basis="archive_pdf_attribution_current_directory_full_name_unique_catalog_identity")
+    return result
+
+
+def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
+    """Consume complete selected OCR pages without making another OCR call.
+
+    Cache bytes, source identity, frames and original page geometry are separate
+    proofs.  Missing original bytes retain complete raw pages but never create
+    physical slots or claim a source transaction count of zero.
+    """
+    import math
+    if not isinstance(inputs, dict):
+        raise OgeCatalogError("White House saved OCR input is invalid")
+    inputs = deepcopy(inputs)
+    allow_partial_rows=inputs.get("allow_partial_rows",False)
+    if type(allow_partial_rows) is not bool:
+        raise OgeCatalogError("White House partial row geometry opt-in must be boolean")
+    geometry_mode=inputs.get("geometry_mode")
+    if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
+        raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
+    dual=geometry_mode==DUAL_AXIS_MODE
+    if not dual and any(key.startswith(("official_directory_", "oge_identity_")) for key in inputs):
+        raise OgeCatalogError("White House directory identity inputs require explicit saved v7")
+    def read(name):
+        path, digest = inputs.get(name + "_path"), inputs.get(name + "_sha256")
+        if not isinstance(path, str) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise OgeCatalogError("White House saved input requires a fixed file hash: " + name)
+        raw = _saved_source_path(path,evidence=name == "archive_metadata").read_bytes()
+        if hashlib.sha256(raw).hexdigest() != digest:
+            raise OgeCatalogError("White House saved file bytes differ: " + name)
+        return json.loads(raw), raw
+    metadata, _ = read("archive_metadata")
+    checkpoint, checkpoint_bytes = read("checkpoint")
+    document, sha, url = metadata.get("document_id"), metadata.get("sha256"), metadata.get("document_url")
+    filer = inputs.get("filer_name")
+    _validate_source(url, sha, document, filer)
+    if (metadata.get("schema_version") != "whitehouse-public-disclosures-pdf/v1" or
+            document != "wh-url:" + hashlib.sha256(url.encode()).hexdigest()[:24] or
+            metadata.get("document_type_from_label") != "278t" or
+            metadata.get("archive_path") != f"whitehouse/disclosures/reports/{document.removeprefix('wh-url:')}/{sha}.pdf" or
+            checkpoint.get("schema_version") != OCR_SHARD_SCHEMA or checkpoint.get("source_sha256") != sha or
+            checkpoint.get("source_url") != url or checkpoint.get("parser_version") not in GENERIC_PARSER_VERSIONS | {TRUMP_2026_PARSER_VERSION} or
+            not isinstance(checkpoint.get("ocr_engine"), str) or not checkpoint["ocr_engine"]):
+        raise OgeCatalogError("White House OCR checkpoint differs from official archive identity")
+    blob = inputs.get("checkpoint_git_blob")
+    if blob is not None and hashlib.sha1(b"blob " + str(len(checkpoint_bytes)).encode() + b"\0" + checkpoint_bytes).hexdigest() != blob:
+        raise OgeCatalogError("White House OCR checkpoint Git object differs")
+    pages = checkpoint.get("pages")
+    first, last = checkpoint.get("page_start"), checkpoint.get("page_end")
+    if (type(first) is not int or type(last) is not int or first < 1 or last < first or last-first > 49 or
+            not isinstance(pages, list) or [page.get("page_number") for page in pages] != list(range(first, last+1))):
+        raise OgeCatalogError("White House checkpoint page inventory differs")
+    numbers = inputs.get("selected_page_numbers")
+    if (not isinstance(numbers, list) or not numbers or len(numbers) > 8 or
+            any(type(n) is not int or not first <= n <= last for n in numbers) or len(set(numbers)) != len(numbers) or 1 not in numbers):
+        raise OgeCatalogError("White House observed input needs an explicit cover and selected page range")
+    selected = [deepcopy(page) for page in pages if page["page_number"] in numbers]
+    ocr = {}
+    for page in selected:
+        width, height, words = page.get("width"), page.get("height"), page.get("words")
+        if (any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in (width,height)) or not isinstance(words,list)):
+            raise OgeCatalogError("White House saved page dimensions or words are invalid")
+        for word in words:
+            if (not isinstance(word,dict) or not isinstance(word.get("text"),str) or
+                    any(type(word.get(k)) not in (int,float) or not math.isfinite(word[k]) for k in ("x0","x1","top","bottom","ocr_confidence")) or
+                    not 0 <= word["x0"] < word["x1"] <= width or not 0 <= word["top"] < word["bottom"] <= height or
+                    any(type(word.get(k)) is not int for k in ("block_num","par_num","line_num"))):
+                raise OgeCatalogError("White House saved word geometry or line reference is invalid")
+        ocr[page["page_number"]] = OcrPage(width=width,height=height,words=words)
+    legacy = None
+    if inputs.get("legacy_extraction_path") is not None:
+        legacy, _ = read("legacy_extraction")
+        if (legacy.get("schema_version") != EXTRACTION_SCHEMA or legacy.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+                any(legacy.get(k) != value for k,value in (("document_id",document),("source_sha256",sha),("source_url",url)))):
+            raise OgeCatalogError("White House saved OCR legacy source differs")
+    count = legacy.get("page_count") if legacy else inputs.get("document_page_count")
+    if type(count) is not int or not max(numbers) <= count <= 1200:
+        raise OgeCatalogError("White House observed document page count is missing")
+    dates = _generic_cover_dates(ocr[1].extract_text(),sha,True)
+    name,position,agency,role_raw,identity_reasons = _generic_cover_identity(dates["cover_text"])
+    reasons = [*dates["document_reasons"],*identity_reasons]
+    source_cover=_saved_source_cover_resolution(document,url,sha,count,dates)
+    filed_at,filing_evidence,identity_evidence=dates["filed_at"],None,None
+    if source_cover:
+        name=source_cover["filer_identity_evidence"]["pdf_filer_name"]
+        position=source_cover["filer_identity_evidence"]["pdf_position_title"]
+        agency,role_raw=None,position
+        filed_at=source_cover["filed_at"]
+        filing_evidence,identity_evidence=source_cover["filing_date_evidence"],source_cover["filer_identity_evidence"]
+        reasons=source_cover["document_reasons"][:]
+    directory_identity = _saved_directory_identity(inputs, metadata, dates["cover_text"]) if dual else None
+    if directory_identity:
+        if directory_identity["status"] == "resolved":
+            reasons = [reason for reason in reasons if reason != "pdf_filer_information_not_verified"]
+            if source_cover is None:
+                observed = directory_identity["pdf_identity_observation"]
+                # The legacy two-line fallback can consume Certification/Date
+                # labels after an empty block. Scope those parser fields to the
+                # bounded original identity block; do not put directory values
+                # into fields claiming they were read inside the PDF.
+                directory_identity["prior_unscoped_identity_parse"] = {
+                    "name":name,"position":position,"agency":agency,"raw":role_raw}
+                name,position,agency = (observed[field] for field in ("name","position","agency"))
+                role_raw = observed["raw_block"] or None
+        else:
+            reasons.extend(directory_identity["reasons"])
+    if name is not None and _first_last(name) != _first_last(filer):
+        reasons.append("pdf_filer_name_mismatch")
+    if not re.search(r"OGE\s+Form\s+278[- ]?T\b",dates["cover_text"],re.I):
+        reasons.append("278t_form_title_not_verified")
+    observations, content, physical, constraints = None, None, [], {}
+    supported_slots = {}
+    pdf_reference = inputs.get("archived_pdf_path")
+    pdf = _saved_source_path(pdf_reference,evidence=True) if pdf_reference is not None else None
+    original_verified = pdf is not None and pdf.is_file()
+    if original_verified:
+        raw = Path(pdf).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha or len(raw) != metadata.get("byte_length"):
+            raise OgeCatalogError("White House observed original differs from archive")
+        import pdfplumber
+        with pdfplumber.open(pdf) as original:
+            if len(original.pages) != count:
+                raise OgeCatalogError("White House observed original page count differs")
+        table_numbers = [n for n in numbers if n != 1]
+        if table_numbers:
+            from .oge_278t_raster_slots import observe_raster_slots
+            from .oge_278t_field_shadow import observe_content_rows
+            try:
+                observations = observe_raster_slots(Path(pdf),expected_sha256=sha,page_numbers=table_numbers,
+                      saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],
+                      **({"allow_partial_rows":True} if allow_partial_rows else {}),
+                      **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}))
+                content = observe_content_rows([observations],document_page_count=count)
+            except ValueError as exc:
+                reasons.append("saved_ocr_geometry_unresolved")
+                observations = {"geometry_failure":str(exc)}
+            if content:
+                relation = {(item["page_number"],item["slot_key"]):item for item in content["slot_content"]}
+                fields = ("printed_number","description","type","transaction_date","notification","amount")
+                for page in content["field_observations"]["pages"]:
+                    for index, slot in enumerate(page.get("slots",[]),1):
+                        row = relation[(page["page_number"],str(index))]
+                        cells = [slot["raw_columns"].get(field,"") for field in fields]
+                        description = row.get("structural_evidence",{}).get("description_text")
+                        if description is not None:
+                            cells[1] = description
+                        if row["disposition"] in {"heading","note"}:
+                            if row["disposition"] == "note":
+                                continue
+                        else:
+                            evidence = row.get("relation_evidence",{})
+                            if evidence.get("status") != "supported_observation_relation":
+                                constraints[len(physical)] = evidence.get("blocking_reasons") or ["observed_row_relation_unresolved"]
+                            if dual:
+                                supported_slots[len(physical)] = slot
+                        physical.append({"page_number":page["page_number"],"cells":cells,
+                              "observation_reference":{"source_sha256":sha,"page_number":page["page_number"],"slot_key":str(index),
+                                  **({"unresolved_region_before":row["unresolved_region_before"],
+                                      "unresolved_region_scope_signal":row["unresolved_region_scope_signal"]}
+                                     if "unresolved_region_before" in row else {})}})
+    else:
+        reasons.append("observed_original_pdf_unavailable_geometry_unknown")
+    barriers={i:row["observation_reference"].get("unresolved_region_scope_signal",False)
+              for i,row in enumerate(physical) if row["observation_reference"].get("unresolved_region_before")}
+    good,bad,structural = _generic_table_rows([(row["page_number"],row["cells"]) for row in physical],source_sha256=sha,
+        **({"scope_barriers_before":barriers} if allow_partial_rows or dual else {}))
+    kept, rejected = [], []
+    for row in good+bad:
+        if dual and row["source_rows_index"] in supported_slots:
+            row = _saved_supported_fields(row, supported_slots[row["source_rows_index"]], source_sha=sha)
+        extra = constraints.get(row["source_rows_index"],[])
+        if dual and row.get("amount_low_exclusive") is True:
+            extra = [reason for reason in extra if reason != "amount_observation_missing"]
+        if extra:
+            row["reasons"] = sorted(set([*row.get("reasons",[]),*extra]))
+        (rejected if row.get("reasons") else kept).append(row)
+    good, bad = kept, rejected
+    legacy_counts = ({"parsed_reference_count":len(legacy.get("transactions",[])),
+                      "quarantined_reference_count":len(legacy.get("quarantined",[]))} if legacy else None)
+    if legacy is not None:
+        # Nonobserved old parser rows are references, not thousands of newly
+        # quarantined physical slots. Existing formal base facts stay protected.
+        legacy = deepcopy(legacy)
+        keys = {(row["page_number"],tuple(row["cells"])) for row in physical}
+        old_good,old_bad = parse_table_rows([(row["page_number"],row["cells"]) for row in physical],source_sha=sha,default_owner="Self")
+        source_ids = {row["extraction_id"] for row in old_good+old_bad}
+        legacy["transactions"] = [row for row in legacy.get("transactions",[]) if
+            (isinstance(row.get("cells"),list) and (row.get("page_number"),tuple(row["cells"])) in keys) or
+            row.get("extraction_id") in source_ids]
+    unknown_pages = [n for n in numbers if n != 1 and (not content or
+        any(p["page_number"] == n and p.get("status") != "field_shapes_observed"
+            for p in content["field_observations"]["pages"]))]
+    receipt = {"schema_version":"whitehouse-278t-saved-ocr-receipt/v1","mode":"saved_ocr_words",
+        "source_sha256":sha,"selected_page_numbers":sorted(numbers),"document_page_count":count,
+        "page_count_basis":"source_sha256_verified_pdf" if original_verified else "declared_prior_input_not_verified_original",
+        "source_original_verified":original_verified,"checkpoint_sha256":inputs["checkpoint_sha256"],
+        "input_reference_mode":"developer_absolute_paths" if any(isinstance(value,str) and Path(value).is_absolute()
+            for key,value in inputs.items() if key.endswith("_path")) else "controlled_relative_roots",
+        "observed_word_page_count":len(selected),"observed_physical_slot_count":sum(p.get("known_physical_slot_count",p.get("physical_slot_count")) or 0 for p in (observations or {}).get("pages",[])),
+        "unique_source_row_count":None,"coverage_complete":False,
+        "legacy_reference_counts":legacy_counts,
+        "unobserved_pages":[n for n in range(1,count+1) if n not in numbers],"geometry_unknown_pages":unknown_pages}
+    if allow_partial_rows or dual:
+        partial_pages=(content or {}).get("partial_geometry_pages",[])
+        partial_by_page={p["page_number"]:p for p in partial_pages}
+        observed_by_page={p["page_number"]:p for p in (observations or {}).get("pages",[])}
+        unbound_pages=[]
+        for raw_page in selected:
+            number=raw_page["page_number"]
+            if number == 1:continue  # Cover words are not transaction-table words.
+            observed=observed_by_page.get(number,{})
+            if number in partial_by_page:
+                word_count=len(partial_by_page[number]["unbound_page_ocr_words"])
+                basis="partial_grid_unbound_saved_words"
+            elif observed.get("coverage") == "physical_slots_located":
+                word_count=observed["words_outside_slots"]
+                basis="fully_located_grid_words_outside_slots"
+            else:
+                word_count=len(raw_page["words"])
+                basis="geometry_unknown_all_saved_words"
+            unbound_pages.append({"page_number":number,"word_count":word_count,"basis":basis})
+        receipt.update(local_row_geometry_mode=DUAL_AXIS_MODE if dual else "strict_joint_boundaries/v1",
+            geometry_partial_pages=[p["page_number"] for p in partial_pages],
+            unresolved_regions=[{"page_number":p["page_number"],"regions":p["unresolved_regions"]} for p in partial_pages],
+            whole_selected_table_slot_count=None if partial_pages or unknown_pages else receipt["observed_physical_slot_count"],
+            unbound_observed_word_count=sum(p["word_count"] for p in unbound_pages),
+            unbound_observed_word_unit="selected_table_page_words_outside_known_slots",
+            unbound_observed_word_pages=unbound_pages)
+        if dual:receipt["geometry_mode"]=DUAL_AXIS_MODE
+    if not physical:
+        reasons.append("observed_table_geometry_unknown")
+    if metadata.get("amended_label") or dates["amendment_cover"]:
+        reasons.append("amendment_relationship_unresolved")
+    result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":DUAL_AXIS_PARSER_VERSION if dual else SAVED_OCR_PARSER_VERSION,"source_id":"oge",
+        **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
+        "document_id":document,"source_url":url,"source_sha256":sha,"filer_name":filer,
+        "pdf_filer_name":name,"pdf_position_title":position,"pdf_agency_label":agency,"pdf_position_agency_raw":role_raw,
+        "filed_at":filed_at,"signature_method":"official_disclosure_date_source_bound" if source_cover else "source_cover_roles","cover_date_evidence":dates,
+        "filing_date_evidence":filing_evidence,"filer_identity_evidence":identity_evidence,"amended_label":metadata.get("amended_label"),
+        **({"source_cover_resolution":source_cover} if source_cover else {}),
+        **({"source_identity_resolution":directory_identity} if directory_identity else {}),
+        "extraction_method":"saved_ocr_words_same_source_partial","ocr_engine":checkpoint["ocr_engine"],"page_count":count,
+        "transactions":good,"quarantined":bad,"source_rows":physical,"structural_rows":structural,
+        "document_reasons":sorted(set(reasons)),"evidence_complete":not reasons,
+        "raw_page_observations":selected,"geometry_observations":observations,"content_observations":content,
+        "observation_receipt":receipt,"saved_ocr_input":inputs}
+    result = _inherit_whitehouse_generic_rows(result,legacy)
+    result["source_row_count"] = len(result["transactions"])+len(result["quarantined"])
+    return result
+
+
 def generic_whitehouse_filing_date(report: dict) -> str | None:
     """Validate same-source first-page role evidence without borrowing another date."""
     from .oge_reports import read_278t_cover_dates
     evidence = report.get("cover_date_evidence", {})
     if (not isinstance(evidence.get("cover_text"), str) or
-            read_278t_cover_dates(evidence["cover_text"], source_sha256=report["source_sha256"]) != evidence or
-            evidence.get("filed_at") != report.get("filed_at") or type(report.get("page_count")) is not int or report["page_count"] < 1):
+            _generic_cover_dates(evidence["cover_text"], report["source_sha256"],
+                                   report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS) != evidence or
+            type(report.get("page_count")) is not int or report["page_count"] < 1):
+        raise OgeCatalogError("White House generic cover role evidence differs")
+    if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS:
+        resolved=_saved_source_cover_resolution(report.get("document_id"),report.get("source_url"),
+            report.get("source_sha256"),report["page_count"],evidence)
+        if resolved:
+            if (resolved != report.get("source_cover_resolution") or any(report.get(k) != resolved[k]
+                    for k in ("filed_at","filing_date_evidence","filer_identity_evidence"))):
+                raise OgeCatalogError("White House saved official date resolution differs from source")
+            return resolved["filed_at"]
+    if evidence.get("filed_at") != report.get("filed_at"):
         raise OgeCatalogError("White House generic cover role evidence differs")
     return evidence["filed_at"]
 
 
 def validate_generic_whitehouse_report(report: dict) -> dict:
     """Recompute roles and exact row interpretations before qualification."""
+    if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS:
+        replay = materialize_saved_whitehouse_278t(report.get("saved_ocr_input"))
+        if replay != report:
+            raise OgeCatalogError("White House saved OCR report differs from source-input replay")
+        by_key = {}
+        for row in replay["transactions"] + replay["quarantined"]:
+            by_key.setdefault((row["page_number"], tuple(row["cells"])), []).append(row)
+        return by_key
     generic_whitehouse_filing_date(report)
     name, position, agency, role_raw, identity_reasons = _generic_cover_identity(report["cover_date_evidence"]["cover_text"])
     if any(report.get(field) != value for field,value in (("pdf_filer_name",name),("pdf_position_title",position),

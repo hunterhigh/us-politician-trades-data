@@ -18,6 +18,7 @@ REPORT_ARCHIVE_SCHEMA = "oge-278t-archive/v1"
 EXTRACTION_SCHEMA = "oge-278t-extraction/v1"
 PARSER_VERSION = "oge-278t-pdf/v2"
 GENERIC_PARSER_VERSION = "oge-278t-pdf/v7"
+GENERIC_ROW_INTERPRETATION_MODE = "source_ordered_owner_account_scope/v1"
 TRUMP_SEPT_2026_PARSER_VERSION = "oge-278t-pdf/v3"
 TRUMP_SEPT_2026_SECOND_PASS_VERSION = "oge-278t-pdf/v4"
 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION = "oge-278t-pdf/v5"
@@ -361,14 +362,59 @@ def _amount(value: str) -> tuple[int, int] | None:
     return pair if pair in set(_AMOUNTS.values()) else None
 
 
+_OWNER_HEADING = re.compile(
+    r"(?P<owner>spouse|filer|self|dependent child(?:ren)?|child(?:ren)?)(?:['’]s)?\s+"
+    r"(?:(?P<account>(?:investment|retirement)\s+account\s*#[0-9]+)|assets|accounts?)",
+    re.IGNORECASE)
+_BLANK_DECLARATION = re.compile(
+    r"(?:(?:this\s+)?line(?:\s+is)?\s+)?(?:intentionally\s+left\s+blank|left\s+intentionally\s+blank)\.?",
+    re.IGNORECASE)
+
+
 def _owner_heading(value: str) -> str | None:
-    lowered = value.lower()
-    if "spouse" in lowered and ("account" in lowered or "assets" in lowered):
-        return "Spouse"
-    if ("dependent" in lowered or "child" in lowered) and ("account" in lowered or "assets" in lowered):
-        return "Dependent Child"
-    if ("filer" in lowered or "self" in lowered) and ("account" in lowered or "assets" in lowered):
-        return "Self"
+    match = _OWNER_HEADING.fullmatch(_compact(value))
+    if match is None:
+        return None
+    owner = match["owner"].casefold()
+    return "Spouse" if owner == "spouse" else "Self" if owner in {"filer", "self"} else "Dependent Child"
+
+
+def classify_table_structure(raw_cells: list) -> dict | None:
+    """Recognize positive structure evidence without using row numbers as type.
+
+    Unknown marker-only cells remain physical unknowns. An unknown numbered or
+    unnumbered asset with any financial cells must reach field qualification.
+    """
+    cells = [_compact(cell) for cell in raw_cells]
+    if not any(cells):
+        return {"kind": "blank"}
+    if cells[0] == "#" and not any(cells[1:]):
+        return {"kind": "unknown_marker"}
+    if len(cells) != 6:
+        return None
+    number, description, direction, event, notice, amount = cells
+    roles = [r"(?:asset\s+)?description", r"(?:transaction\s+)?type", r"(?:transaction\s+)?date",
+             r"notification(?:\s+received\s+over\s+30\s+days\s+ago)?\??", r"amount"]
+    role_matches = [bool(re.fullmatch(role, cell, re.I)) for role, cell in zip(
+        roles, [description, direction, event, notice, amount], strict=True)]
+    # Existing native tables also save the notification/amount header band
+    # separately. Its two nonempty cells must each be their exact column role.
+    partial_header = not any((description, direction, event)) and all(role_matches[3:])
+    if all(role_matches) or partial_header:
+        return {"kind": "header"}
+    if any((direction, event, amount)):
+        return None
+    owner = _owner_heading(description)
+    if owner:
+        match = _OWNER_HEADING.fullmatch(description)
+        return {"kind": "owner_account_heading" if match["account"] else "owner_heading",
+                "owner": owner, "account_title": description if match["account"] else None}
+    if _ACCOUNT_HEADING.fullmatch(description):
+        return {"kind": "account_heading", "account_title": description}
+    if _BLANK_DECLARATION.fullmatch(description):
+        return {"kind": "blank_notice"}
+    if re.fullmatch(r"(?:endnotes?|transactions?)(?:\s+.*)?", number, re.I):
+        return {"kind": "footer"}
     return None
 
 
@@ -393,29 +439,16 @@ def parse_table_rows(rows: list[tuple[int, list[object]]], *, source_sha: str,
         cells = [_compact(cell) for cell in raw_cells]
         if not any(cells):
             continue
-        joined = " ".join(cells).lower()
-        if (cells[0] == "#" or
-                ("description" in joined and "type" in joined and "date" in joined) or
-                ("amount" in joined and "received" in joined and "days ago" in joined)):
+        structure = classify_table_structure(cells)
+        if structure:
+            if structure["kind"] in {"owner_heading", "owner_account_heading"}:
+                owner = structure["owner"]
             continue
         if len(cells) != 6:
             quarantined.append({"page_number": page_number, "cells": cells,
                                 "reasons": ["unexpected_column_count"]})
             continue
         raw_number, description, raw_type, raw_date, late_notice, raw_amount = cells
-        if (not _ROW_NUMBER.fullmatch(raw_number) and
-                raw_number.casefold().startswith(("endnot", "transacti"))):
-            continue
-        non_transaction = not any((raw_type, raw_date, raw_amount))
-        heading = _owner_heading(description) if non_transaction else None
-        if heading:
-            owner = heading
-            continue
-        if non_transaction and _ACCOUNT_HEADING.fullmatch(description):
-            continue
-        if non_transaction and ("intentionally left blank" in description.lower() or
-                                "left intentionally blank" in description.lower()):
-            continue
         reasons = []
         if not _ROW_NUMBER.fullmatch(raw_number):
             reasons.append("row_number_invalid")
@@ -1046,6 +1079,10 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
             type(value.get("evidence_complete")) is not bool):
         return None
     if generic:
+        try:
+            validate_generic_table_interpretation(value, require_mode=True)
+        except (OgeCatalogError, KeyError, TypeError, ValueError):
+            return None
         # Integrity is independent of eligibility: a correctly bound negative
         # result remains reusable when a filing date is genuinely absent.
         evidence = value.get("cover_date_evidence")
@@ -1066,6 +1103,109 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
             TRUMP_SEPT_2026_FILING_DATE_EVIDENCE:
         return None
     return value
+
+
+def parse_generic_table_rows(inventory: list, *, source_sha256: str,
+                        scope_barriers_before: dict | None = None) -> tuple[list, list, list]:
+    """Interpret exact six-cell rows; optional labels establish source scope."""
+    transactions, quarantined, structural = [], [], []
+    owner, title, lost_scope, previous_page = "Undisclosed", None, False, None
+    owner_scope_lost = False
+    seen = set()
+    for index, (page, raw) in enumerate(inventory):
+        if scope_barriers_before is not None and index in scope_barriers_before and (
+                title or owner != "Undisclosed" or scope_barriers_before[index]):
+            lost_scope=True
+            owner_scope_lost = owner_scope_lost or owner != "Undisclosed"
+        cells = [_compact(cell) for cell in raw]
+        if previous_page is not None and page > previous_page + 1 and (title or owner != "Undisclosed"):
+            lost_scope = True
+            owner_scope_lost = owner_scope_lost or owner != "Undisclosed"
+        previous_page = page
+        structure = classify_table_structure(cells)
+        if structure and structure["kind"] in {"owner_heading", "owner_account_heading"}:
+            owner, title, lost_scope = structure["owner"], structure["account_title"], False
+            owner_scope_lost = False
+            structural.append({"source_rows_index": index, "kind": structure["kind"], "text": cells[1]})
+            continue
+        if structure and structure["kind"] == "account_heading":
+            title, lost_scope = structure["account_title"], False
+            structural.append({"source_rows_index": index, "kind": "account_heading", "text": cells[1]})
+            continue
+        if len(cells) == 6:
+            description = cells[1]
+            label = not any((cells[0], cells[2], cells[3], cells[5]))
+            if label and re.search(r"\b(?:spouse|dependent|filer|self)\b.*\b(?:assets?|accounts?)\b", description, re.I):
+                lost_scope = True
+                owner_scope_lost = True
+                structural.append({"source_rows_index": index, "kind": "ambiguous_owner_heading", "text": description})
+            if label and re.search(r"\b(?:EXHIBIT|AMENDMENT|REPLAC(?:E|EMENT)|CONTINUED)\b", description, re.I):
+                lost_scope = True
+                structural.append({"source_rows_index": index, "kind": "unresolved_report_relation", "text": description})
+                continue
+        if structure and structure["kind"] == "unknown_marker":
+            structural.append({"source_rows_index": index, "kind": "unknown_table_content", "text": "#"})
+        good, bad = parse_table_rows([(page, cells)], source_sha=source_sha256,
+            default_owner=owner, account_title=title, allow_open_amounts=True, allow_exchange=True)
+        for row in good + bad:
+            row["source_rows_index"] = index
+            row["account_context"] = {"status": "unknown" if lost_scope or owner_scope_lost else "observed" if title else "not_observed", "title": title}
+            if row["owner"] == "Undisclosed":
+                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
+            key = (page, row.get("row_number"), title, owner)
+            reasons = list(row.get("reasons", []))
+            if row.get("row_number") is not None and key in seen:
+                reasons.append("same_page_account_row_number_ambiguous")
+            seen.add(key)
+            if lost_scope or owner_scope_lost:
+                reasons.append("account_context_unresolved")
+            if owner_scope_lost:
+                reasons.append("owner_context_unresolved")
+            if reasons:
+                quarantined.append({**row, "reasons": sorted(set(reasons))})
+            else:
+                transactions.append(row)
+    # Both occurrences remain unresolved; never pick the first duplicate.
+    duplicates = {(r["page_number"], r.get("row_number"), r.get("account_title"), r.get("owner"))
+                  for r in quarantined if "same_page_account_row_number_ambiguous" in r["reasons"]}
+    kept = []
+    for row in transactions:
+        if (row["page_number"], row.get("row_number"), row.get("account_title"), row.get("owner")) in duplicates:
+            quarantined.append({**row, "reasons": ["same_page_account_row_number_ambiguous"]})
+        else:
+            kept.append(row)
+    return kept, quarantined, structural
+
+
+def validate_generic_table_interpretation(extraction: dict, *, require_mode: bool = False) -> None:
+    """Rebuild new scope-bearing facts from the entire saved physical inventory.
+
+    Older generic extracts remain readable, but cannot masquerade as the new
+    interpretation merely by editing their normalized account/owner fields.
+    """
+    mode = extraction.get("row_interpretation_mode")
+    if mode is None and not require_mode:
+        if "structural_rows" in extraction or any(
+                any(field in row for field in ("account_title", "account_context", "source_rows_index"))
+                for row in extraction.get("transactions", []) + extraction.get("quarantined", [])):
+            raise OgeCatalogError("OGE scoped fields require source-row interpretation mode")
+        return
+    if extraction.get("parser_version") != GENERIC_PARSER_VERSION or mode != GENERIC_ROW_INTERPRETATION_MODE:
+        raise OgeCatalogError("OGE generic row interpretation mode is invalid")
+    inventory=extraction.get("source_rows")
+    count=extraction.get("document_page_count")
+    if (not isinstance(inventory,list) or type(count) is not int or count < 1 or any(
+            not isinstance(row,dict) or type(row.get("page_number")) is not int or
+            not 1 <= row["page_number"] <= count or not isinstance(row.get("cells"),list)
+            for row in inventory)):
+        raise OgeCatalogError("OGE generic scope inventory is invalid")
+    physical=[(r["page_number"],r["cells"]) for r in inventory]
+    if any(b[0] < a[0] for a,b in zip(physical,physical[1:])):
+        raise OgeCatalogError("OGE generic scope inventory page order is invalid")
+    good,bad,structural=parse_generic_table_rows(physical,source_sha256=extraction["source_sha256"])
+    if (extraction.get("transactions") != good or extraction.get("quarantined") != bad or
+            extraction.get("structural_rows") != structural):
+        raise OgeCatalogError("OGE generic scope interpretation differs from saved source rows")
 
 
 def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False) -> dict:
@@ -1098,13 +1238,10 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
     else:
         filed_at = _iso_date(signatures[0])
         filing_reasons = []
-    transactions, quarantined = (parse_table_rows(inventory, source_sha=source_sha,
-                                default_owner="Undisclosed", allow_open_amounts=True, allow_exchange=True) if generic else
-                                parse_table_rows(rows, source_sha=source_sha))
     if generic:
-        for row in [*transactions, *quarantined]:
-            if row.get("owner") == "Undisclosed":
-                row["owner_disclosure_basis"] = "not_disclosed_in_bound_six_column_table"
+        transactions, quarantined, structural = parse_generic_table_rows(inventory, source_sha256=source_sha)
+    else:
+        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha)
     if fixed_source:
         transactions, quarantined = _recover_fixed_trump_september_salo(
             transactions, quarantined)
@@ -1138,6 +1275,8 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
         "catalog_added_date": metadata["catalog_added_date"],
         "filed_at": filed_at,
         **({"cover_date_evidence": date_evidence,
+            "row_interpretation_mode": GENERIC_ROW_INTERPRETATION_MODE,
+            "structural_rows": structural,
             "document_page_count": cover["document_page_count"] if cover else None}
            if generic else {}),
         **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}

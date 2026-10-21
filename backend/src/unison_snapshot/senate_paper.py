@@ -31,6 +31,7 @@ PAPER_OCR_RULE_VERSION = "senate-paper-form-geometry-2026-10-v2"
 _FORM_WIDTH = 3400.0
 _FORM_HEIGHT = 4400.0
 _DATE = re.compile(r"[0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}")
+_BOUND_DATE_WITH_PERIODS = re.compile(r"\.?(?P<date>[0-9]{1,2}/[0-9]{1,2}/(?:[0-9]{2}|[0-9]{4}))\.?")
 _OWNER = re.compile(r"^\s*\((S|J|DC)\)\s*(.+)$", re.IGNORECASE)
 _TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)(?:[0-9]+)?\s*$")
 _MARKS = {"X", "×"}
@@ -86,7 +87,12 @@ def _normalized_words(page: dict) -> list[dict]:
     return normalized
 
 
-def _parse_date(raw: str) -> str | None:
+def _parse_date(raw: str, *, allow_outer_periods: bool = False) -> str | None:
+    if allow_outer_periods:
+        match = _BOUND_DATE_WITH_PERIODS.fullmatch(raw)
+        if match is None:
+            return None
+        raw = match["date"]
     for pattern in ("%m/%d/%y", "%m/%d/%Y"):
         try:
             value = datetime.strptime(raw, pattern).date()
@@ -144,7 +150,7 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         date_raw = None
     else:
         date_raw = date_words[0]["text"]
-        transaction_date = _parse_date(date_raw)
+        transaction_date = _parse_date(date_raw, allow_outer_periods=grid_slot is not None)
         if transaction_date is None:
             reasons.append("paper_date_invalid")
         if date_words[0]["confidence"] < 80:
@@ -228,9 +234,84 @@ def _grid_asset_cell(words: list[dict], slot: dict) -> tuple[str, float | None]:
             min((word["confidence"] for word in selected), default=None))
 
 
+def _legacy_grid_reference(prior: dict, report: dict, manifest: dict, observation: dict) -> dict:
+    if (not isinstance(prior, dict) or prior.get("schema_version") != PAPER_EXTRACTION_SCHEMA or
+            prior.get("parser_version") != PARSER_VERSION or prior.get("source_id") != "senate_efd" or
+            prior.get("document_id") != report["document_id"] or
+            prior.get("source_url") != report["document_url"] or
+            prior.get("evidence_complete") is not True or
+            prior.get("source_sha256") != manifest["entrypoint_source_sha256"] or
+            prior.get("page_manifest_sha256") != manifest["manifest_sha256"] or
+            not isinstance(prior.get("transactions"), list) or not prior["transactions"] or
+            observation.get("legacy_extraction_failed") is not False or
+            observation.get("legacy_extraction_count") != len(prior["transactions"])):
+        raise SenateEfdError("Senate nonempty legacy grid input does not match its saved source extraction")
+    ids = set()
+    for row in prior["transactions"]:
+        if (not isinstance(row, dict) or not isinstance(row.get("extraction_id"), str) or
+                not re.fullmatch(r"senate-ptr:[0-9a-f]{24}", row["extraction_id"]) or
+                row["extraction_id"] in ids or type(row.get("page_number")) is not int or
+                not 1 <= row["page_number"] <= manifest["page_count"] or
+                type(row.get("row_number")) is not int or row["row_number"] < 1):
+            raise SenateEfdError("Senate legacy reference repeats or loses source row identity")
+        ids.add(row["extraction_id"])
+    canonical = json.dumps(prior, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return {"schema_version": "senate-paper-legacy-extraction-reference/v1",
+            "source_extraction_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+            "source_extraction": prior, "normalized_reference_count": len(ids),
+            "not_a_physical_row_inventory": True}
+
+
+def _legacy_grid_slot_bindings(prior: dict, by_page: dict, observation: dict,
+                                rows: list[dict], cache_sha: str) -> dict:
+    """Reproduce the old word fingerprint; never match asset/date similarity."""
+    from collections import Counter
+    by_slot = {(row["source_slot"]["page_number"], row["source_slot"]["grid_slot"]): row for row in rows}
+    proposals, unbound = [], []
+    for old in prior["transactions"]:
+        number = old["page_number"]
+        words, matches = by_page.get(number, []), []
+        for index, word in enumerate(words):
+            x, y = _center(word)
+            if not 1650 <= x < 1940 or not _DATE.fullmatch(word["text"]):
+                continue
+            replayed = _paper_row(prior["source_sha256"], number, old["row_number"], words, y)
+            if replayed["extraction_id"] != old["extraction_id"]:
+                continue
+            slots = [slot for slot in observation["slots"] if slot["page_number"] == number and
+                     slot["row_bounds_px"][0] <= y < slot["row_bounds_px"][1] and
+                     (number, slot["grid_slot"]) in by_slot]
+            if len(slots) == 1:
+                matches.append((index, y, slots[0], word["text"]))
+        if len(matches) != 1:
+            unbound.append({"legacy_extraction_id": old["extraction_id"], "page_number": number,
+                            "reason": "legacy_source_anchor_not_reproduced" if not matches else
+                                      "legacy_source_anchor_not_unique", "matching_anchor_count": len(matches)})
+            continue
+        index, y, slot, raw_date = matches[0]
+        row = by_slot[(number, slot["grid_slot"])]
+        proposals.append({"legacy_extraction_id": old["extraction_id"],
+                          "grid_extraction_id": row["extraction_id"], "source_slot": row["source_slot"],
+                          "cached_word_pages_sha256": cache_sha,
+                          "old_word_anchor": {"word_index": index, "center_y_px": y,
+                              "raw_date": raw_date, "legacy_row_number": old["row_number"]},
+                          "basis": "exact_legacy_word_fingerprint_unique_source_grid_slot"})
+    counts = Counter(row["grid_extraction_id"] for row in proposals)
+    bindings = []
+    for row in proposals:
+        if counts[row["grid_extraction_id"]] == 1:
+            bindings.append(row)
+        else:
+            unbound.append({"legacy_extraction_id": row["legacy_extraction_id"],
+                            "page_number": row["source_slot"]["page_number"],
+                            "reason": "legacy_references_compete_for_one_source_slot"})
+    return {"bindings": bindings, "unbound_references": unbound}
+
+
 def parse_paper_grid_observations(report: dict, manifest: dict, observation: dict,
-                                  pages: list[dict], page_images: dict[int, bytes]) -> dict:
-    """Interpret fixed source-bound slots for a previously failed report.
+                                  pages: list[dict], page_images: dict[int, bytes], *,
+                                  prior_extraction: dict | None = None) -> dict:
+    """Interpret fixed source-bound slots, retaining prior nonempty references.
 
     The saved grid defines row positions; OCR no longer decides whether an
     unreadable date or missing X makes a physical row disappear. Existing
@@ -250,10 +331,14 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             observation.get("entrypoint_source_sha256") != source_sha or
             observation.get("manifest_sha256") != manifest.get("manifest_sha256") or
             observation.get("coverage_status") != "fixed_slots_observed" or
-            observation.get("legacy_extraction_failed") is not True or
-            observation.get("legacy_extraction_count") != 0 or
             observation.get("source_report_ledger") != _source_report_relations(observation)):
-        raise SenateEfdError("Senate grid facts require a bound previously failed source")
+        raise SenateEfdError("Senate grid facts require bound saved source slots")
+    legacy = None
+    if prior_extraction is not None:
+        legacy = _legacy_grid_reference(prior_extraction, report, manifest, observation)
+    elif (observation.get("legacy_extraction_failed") is not True or
+          observation.get("legacy_extraction_count") != 0):
+        raise SenateEfdError("Senate grid nonempty source requires its unchanged legacy extraction")
     listed = {page["page_number"]: page["sha256"] for page in manifest["pages"]}
     observed = {page["page_number"]: page["page_sha256"] for page in observation["pages"]}
     by_page = {page["page_number"]: _normalized_words(page) for page in pages}
@@ -349,6 +434,16 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
             "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
         }
+        raw_date = row["field_observations"]["date_raw"]
+        interpreted = _BOUND_DATE_WITH_PERIODS.fullmatch(raw_date)
+        if (row["transaction_date"] is not None and interpreted is not None and
+                interpreted["date"] != raw_date):
+            row["field_observations"]["date_interpretation"] = {
+                "rule_version": "senate-bound-date-outer-periods/v1", "raw_text": raw_date,
+                "complete_date_text": interpreted["date"], "transaction_date": row["transaction_date"],
+                "basis": "single_word_in_hash_verified_date_cell_complete_slash_date",
+                "qualification": "not_assessed",
+            }
         reasons = row["quarantine_reasons"]
         prior_dates = {date.get("page_ocr_parsed"), date.get("cell_ocr_parsed")}
         prior_dates.discard(None)
@@ -391,7 +486,71 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "cached_word_pages_sha256": cache_sha,
             "source_report_ledger": observation["source_report_ledger"],
             "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
-            "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows)}
+            "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows),
+            **({"legacy_extraction_reference": legacy,
+                "legacy_source_slot_correspondence": _legacy_grid_slot_bindings(
+                    prior_extraction, by_page, observation, rows, cache_sha)} if legacy is not None else {})}
+
+
+def _grid_json_bytes(value: dict) -> bytes:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def _save_legacy_grid_input(review_root: Path, report: dict, observation: dict,
+                            pages: list[dict], prior: dict) -> dict:
+    from .senate_reports import _write_once
+    payload = _grid_json_bytes({"schema_version": "senate-paper-grid-replay/v1",
+        "report": report, "observation": observation, "cached_word_pages": pages,
+        "prior_extraction": prior})
+    sha = hashlib.sha256(payload).hexdigest()
+    relative = Path("senate_efd/paper_grid_inputs") / f"{sha}.json"
+    _write_once(review_root / relative, payload)
+    return {"path": relative.as_posix(), "sha256": sha}
+
+
+def replay_legacy_grid_extraction(extraction: dict, evidence_root: Path,
+                                  review_root: Path) -> None:
+    """Recompute correspondence from archived pixels and saved words, without OCR."""
+    pointer = extraction.get("grid_replay_input", {})
+    sha = pointer.get("sha256")
+    relative = Path("senate_efd/paper_grid_inputs") / f"{sha}.json"
+    if (not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha) or
+            pointer.get("path") != relative.as_posix()):
+        raise SenateEfdError("Senate legacy grid replay pointer is invalid")
+    payload = (review_root / relative).read_bytes()
+    if hashlib.sha256(payload).hexdigest() != sha:
+        raise SenateEfdError("Senate legacy grid replay input hash differs")
+    saved = json.loads(payload)
+    if (not isinstance(saved, dict) or
+            saved.get("schema_version") != "senate-paper-grid-replay/v1" or
+            not isinstance(saved.get("report"), dict) or
+            not isinstance(saved.get("observation"), dict) or
+            not isinstance(saved.get("cached_word_pages"), list) or
+            not isinstance(saved.get("prior_extraction"), dict)):
+        raise SenateEfdError("Senate legacy grid replay schema differs")
+    manifest = json.loads((evidence_root / "senate_efd/paper_pages" /
+                          extraction["document_id"] / "manifest.json").read_text(encoding="utf-8"))
+    catalog = json.loads((review_root / "status/senate_efd.json").read_text(encoding="utf-8"))
+    discovery = json.loads((review_root / "senate_efd/discoveries" /
+                           f"{catalog['catalog_sha256']}.json").read_text(encoding="utf-8"))
+    reports = [row for row in discovery["reports"] if row.get("document_id") == extraction["document_id"]]
+    if reports != [saved["report"]]:
+        raise SenateEfdError("Senate legacy grid replay report differs from current catalog")
+    archived = {page["page_number"]: page for page in manifest["pages"]}
+    images = {}
+    for page in saved["observation"]["pages"]:
+        number = page["page_number"]
+        path = (evidence_root / archived[number]["archive_path"]).resolve()
+        if not path.is_relative_to(evidence_root.resolve()):
+            raise SenateEfdError("Senate legacy grid replay image escaped evidence root")
+        images[number] = path.read_bytes()
+    expected = parse_paper_grid_observations(saved["report"], manifest,
+        saved["observation"], saved["cached_word_pages"], images,
+        prior_extraction=saved["prior_extraction"])
+    actual = {key: value for key, value in extraction.items() if key != "grid_replay_input"}
+    if expected != actual:
+        raise SenateEfdError("Senate legacy grid facts or correspondence differ from source replay")
 
 
 def parse_paper_word_pages(report: dict, manifest: dict, pages: list[dict]) -> dict:
@@ -578,8 +737,21 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                     if not path.is_relative_to(evidence_root.resolve()):
                         raise SenateEfdError("Senate saved grid image escaped evidence root")
                     images[number] = path.read_bytes()
-                extractions.append(parse_paper_grid_observations(
-                    reports[document_id], manifest, observation, cached_pages[document_id], images))
+                prior = None
+                if observation.get("legacy_extraction_count", 0):
+                    prior_path = (review_root / "senate_efd/extractions" / document_id /
+                                  inspection["source_sha256"] / f"{PARSER_VERSION}.json")
+                    prior = json.loads(prior_path.read_text(encoding="utf-8"))
+                    if "legacy_extraction_reference" in prior:
+                        replay_legacy_grid_extraction(prior, evidence_root, review_root)
+                        prior = prior["legacy_extraction_reference"]["source_extraction"]
+                extracted = parse_paper_grid_observations(
+                    reports[document_id], manifest, observation, cached_pages[document_id], images,
+                    prior_extraction=prior)
+                if prior is not None:
+                    extracted["grid_replay_input"] = _save_legacy_grid_input(
+                        review_root, reports[document_id], observation, cached_pages[document_id], prior)
+                extractions.append(extracted)
             else:
                 pages = [_load_page(evidence_root, manifest, number, executable=executable)
                          for number in range(1, manifest.get("page_count", 0) + 1)]

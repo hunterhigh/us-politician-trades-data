@@ -188,6 +188,8 @@ def main() -> None:
     bridge_paper.add_argument("--parse-batch", type=Path, required=True)
     bridge_paper.add_argument("--tesseract", required=True)
     bridge_paper.add_argument("--document-id")
+    bridge_paper.add_argument("--materialize-saved", action="store_true",
+                              help="Interpret saved paper evidence without starting OCR")
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
     candidate.add_argument("--state-status", type=Path, required=True)
@@ -572,7 +574,8 @@ def main() -> None:
             result = bridge_paper_batch(
                 evidence_root=args.evidence_root, review_root=args.review_root,
                 parse_batch=args.parse_batch, tesseract=args.tesseract,
-                document_id=args.document_id)
+                document_id=args.document_id,
+                **({"materialize_saved": True} if args.materialize_saved else {}))
             print(json.dumps(result, sort_keys=True))
         elif args.command == "build-house-candidate":
             annual_audit = None
