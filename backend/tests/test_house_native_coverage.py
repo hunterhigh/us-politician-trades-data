@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house_ptr import parse_word_pages, qualify_automatic
-from unison_snapshot.house_native_coverage import GEOMETRY_SCHEMA
+from unison_snapshot.house_native_coverage import GEOMETRY_SCHEMA, observe_native_geometry
 from unison_snapshot.house import HouseIndexError
 from test_house_ptr import fixture_pages, word, META, IDENTITY
 
@@ -16,7 +16,7 @@ SHA = "a" * 64
 def geometry(number):
     return {"schema_version": GEOMETRY_SCHEMA, "source_sha256": SHA,
         "page_number": number,"width": 612,"height": 792,
-        "rects": [],"curves": [],"images": []}
+        "lines": [],"rects": [],"curves": [],"images": []}
 
 
 def template():
@@ -96,6 +96,34 @@ class NativeCoverageTests(unittest.TestCase):
                 x=self.parse(pages)
                 self.assertEqual(x["source_report_ledger"]["relation_coverage"],"partial_unknown")
                 self.assertIn("unknown",[p["coverage"] for p in x["source_report_ledger"]["pages"]])
+
+    def test_line_producer_and_unclassified_line_frames_fail_closed(self):
+        class FakePage:
+            width=612; height=792
+            rects=[];curves=[];images=[]
+            lines=[{"x0":20,"top":410,"x1":500,"bottom":410},
+                   {"x0":500,"top":410,"x1":500,"bottom":500},
+                   {"x0":20,"top":500,"x1":500,"bottom":500},
+                   {"x0":20,"top":410,"x1":20,"bottom":500}]
+        observed=observe_native_geometry(FakePage(),SHA,2)
+        self.assertEqual(observed["lines"],[[20.,410.,500.,410.],
+            [500.,410.,500.,500.],[20.,500.,500.,500.],[20.,410.,20.,500.]])
+        for page_number in (1,2):
+            for mutation in ("line_frame","missing_lines","bad_line"):
+                with self.subTest(page=page_number,mutation=mutation):
+                    source=template();g=source[page_number-1]["native_page_geometry"]
+                    if mutation=="line_frame":g["lines"]=deepcopy(observed["lines"])
+                    if mutation=="missing_lines":g.pop("lines")
+                    if mutation=="bad_line":g["lines"]=[[20,410,500,float("nan")]]
+                    if mutation=="bad_line":
+                        # Saved words reject nonfinite cache values before any
+                        # complete-page assertion can escape the parser.
+                        with self.assertRaises(ValueError):self.parse(source)
+                        continue
+                    x=self.parse(source)
+                    self.assertEqual(x["source_report_ledger"]["pages"][page_number-1]["coverage"],"unknown")
+                    self.assertEqual(x["source_report_ledger"]["relation_coverage"],"partial_unknown")
+                    self.assertEqual(len(qualify_automatic(x,IDENTITY)["transactions"]),1)
 
     def test_geometry_is_part_of_cache_replay_and_old_word_cache_unchanged(self):
         x=self.parse(template())

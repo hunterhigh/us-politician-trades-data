@@ -33,6 +33,7 @@ def observe_native_geometry(page, source_sha: str, page_number: int) -> dict:
         return [float(item[key]) for key in ("x0", "top", "x1", "bottom")]
     return {"schema_version": GEOMETRY_SCHEMA, "source_sha256": source_sha,
         "page_number": page_number, "width": float(page.width), "height": float(page.height),
+        "lines": [box(line) for line in page.lines],
         "rects": [box(r) for r in page.rects],
         "curves": [box(c) for c in page.curves],
         "images": [box(i) for i in page.images]}
@@ -46,7 +47,7 @@ def _geometry(page, source_sha, number):
             or g.get("page_number") != number or
             g.get("width") != page["width"] or g.get("height") != page["height"]):
         return None
-    for kind in ("rects", "curves", "images"):
+    for kind in ("lines", "rects", "curves", "images"):
         if not isinstance(g.get(kind), list):
             return None
         for b in g[kind]:
@@ -55,6 +56,11 @@ def _geometry(page, source_sha, number):
                     not 0 <= b[0] <= b[2] <= page["width"] or
                     not 0 <= b[1] <= b[3] <= page["height"]):
                 return None
+    # This bounded template has no independent line primitives. An unhandled
+    # line (including a four-line empty table) is an unresolved source region,
+    # never evidence of an empty page. Missing old arrays also failed above.
+    if g["lines"]:
+        return None
     return g
 
 
