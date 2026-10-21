@@ -103,6 +103,90 @@ class NativeUnknownSlotsTests(unittest.TestCase):
             self.assertEqual(len(c["transactions"]), 1)
             self.assertTrue(build(c, generated_at="2026-09-18T12:00:00Z", allow_production=True))
 
+    def test_only_unknown_source_is_not_zero_and_flows_to_status_candidate(self):
+        import tempfile
+        from test_house_native_account_context import fixture
+        from test_house_candidate import BASE
+        from test_disclosure_status_house import HouseDisclosureStatusTests
+        from unison_snapshot.house_candidate import build_house_candidate
+        from unison_snapshot.disclosure_status_house import build_house_status
+        from unison_snapshot.builder import build
+        pages = self.broken()
+        pages[0]["words"] = [w for w in pages[0]["words"] if w["top"] < 393]
+        x = self.parse(pages);q = qualify_automatic(x, IDENTITY)
+        self.assertEqual(x["transactions"], [])
+        self.assertNotIn("document_disposition", x)
+        self.assertEqual(x["source_report_ledger"]["disposition_counts"], {"unknown": 1})
+        self.assertEqual(q["qualification"]["qualified_count"], 0)
+        self.assertEqual(q["transactions"], [])
+        self.assertEqual(q["quarantined"], [])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory);state = fixture(root, x, q)
+            c = build_house_candidate(root, state, deepcopy(BASE))
+            self.assertEqual(c["transactions"], [])
+            helper = HouseDisclosureStatusTests();helper.evidence = root / "evidence"
+            helper.archive("20000001")
+            status = build_house_status(helper.evidence, root, [], [])
+            report = status[0]["reports"][0]
+            self.assertNotEqual(report["qualification_state"], "zero_transactions")
+            self.assertIn("source_row_coverage_incomplete", report["reason_codes"])
+            self.assertEqual(report["qualified_transaction_count"], 0)
+            self.assertEqual(report["quarantined_row_count"], 0)
+            with self.assertRaisesRegex(ValueError, "Empty production publication"):
+                build(c, generated_at="2026-09-18T12:00:00Z", allow_production=True)
+        # A contradictory zero declaration cannot override a strong unknown
+        # slot, even with a wrapped asset code and no readable dates.
+        conflict = deepcopy(pages)
+        for w in conflict[0]["words"]:
+            if w["text"] == "[ST]":
+                w["top"] = 337
+            if w["text"] == "09/01/2026":
+                w["text"] = "unreadable"
+        conflict[0]["words"].append(word("Nothing to report", 105, 550))
+        observed = self.parse(conflict)
+        self.assertNotIn("document_disposition", observed)
+        self.assertEqual(observed["source_report_ledger"]["disposition_counts"], {"unknown": 1})
+        no_signal = deepcopy(pages)
+        no_signal[0]["words"] = [w for w in no_signal[0]["words"] if w["top"] < 326]
+        with self.assertRaisesRegex(HouseIndexError, "no recognized"):
+            self.parse(no_signal)
+
+    def test_two_rows_all_anchors_damaged_keep_two_unknown_slots(self):
+        pages = fixture_pages()
+        for w in pages[0]["words"]:
+            if w["text"] in {"P", "S", "08/12/2026", "08/13/2026"}:
+                w["text"] = "unreadable"
+        x = self.parse(pages)
+        self.assertEqual(x["transactions"], [])
+        self.assertNotIn("document_disposition", x)
+        ledger = x["source_report_ledger"]
+        self.assertEqual(ledger["disposition_counts"], {"unknown": 2})
+        self.assertEqual(ledger["logical_row_count"], 0)
+        self.assertEqual(ledger["relation_coverage"], "partial_unknown")
+        q = qualify_automatic(x, IDENTITY)
+        self.assertEqual(q["transactions"], [])
+        self.assertEqual(q["quarantined"], [])
+        self.assertEqual(q["qualification"]["zero_transaction_document_count"], 0)
+
+    def test_no_account_still_validates_word_digest_and_exact_ledger(self):
+        source = self.parse(self.broken())
+        self.assertFalse(any(r.get("subholding_of") for r in source["transactions"]))
+        for change in ("digest", "ledger", "both", "finance"):
+            with self.subTest(change=change):
+                x = deepcopy(source)
+                if change in {"digest", "both"}:
+                    x["source_word_pages_sha256"] = "0" * 64
+                if change in {"ledger", "both"}:
+                    x["source_report_ledger"]["logical_row_count"] = 9
+                if change == "finance":
+                    x["transactions"][0]["amount_high"] = 999
+                with self.assertRaises(HouseIndexError):
+                    qualify_automatic(x, IDENTITY)
+        legacy = deepcopy(source)
+        legacy.pop("source_word_pages");legacy.pop("source_word_pages_sha256")
+        self.assertEqual(qualify_automatic(legacy, IDENTITY)["transactions"],
+                         qualify_automatic(source, IDENTITY)["transactions"])
+
     def test_legacy_ledger_only_accepted_when_exactly_recomputed(self):
         pages = self.broken()
         # Add an official account to exercise the source replay consumer.

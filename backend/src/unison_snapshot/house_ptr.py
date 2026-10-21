@@ -501,7 +501,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
     declaration = _explicit_zero_transaction_declaration(pages)
-    if declaration is not None:
+    if declaration is not None and not any(_unanchored_native_slots(page) for page in pages):
         return _zero_transaction_extraction(
             metadata, source_sha256, declaration, copy_allowed=copy_allowed,
             ocr_engine=ocr_engine, legacy_form=False)
@@ -693,7 +693,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "verification_status": "awaiting_automatic_qualification",
             "review_reasons": reasons,
         })
-    if not extracted:
+    ledger = _modern_report_ledger(source_sha256, page_data, extracted)
+    if not extracted and not ledger["disposition_counts"].get("unknown"):
         raise HouseIndexError("House PTR contains no recognized transaction rows")
     if len({row["extraction_id"] for row in extracted}) != len(extracted):
         raise HouseIndexError("House PTR produced duplicate extraction IDs")
@@ -701,7 +702,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
     return {
-        "source_report_ledger": _modern_report_ledger(source_sha256, page_data, extracted),
+        "source_report_ledger": ledger,
         "schema_version": SCHEMA,
         "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
@@ -804,11 +805,9 @@ def _native_account_context(extraction: dict) -> dict:
     if extraction.get("extraction_method") != "native_pdf_text":
         return {}
     titles = [r for r in extraction.get("transactions", []) if r.get("subholding_of")]
-    if not titles:
-        return {}
     pages = extraction.get("source_word_pages")
     if pages is None:
-        return {"status": "source_pages_unavailable", "rows": []}
+        return {"status": "source_pages_unavailable", "rows": []} if titles else {}
     try:
         actual = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
             separators=(",", ":"), allow_nan=False).encode()).hexdigest()
@@ -827,6 +826,8 @@ def _native_account_context(extraction: dict) -> dict:
             raise HouseIndexError("House native account observations differ from saved source words")
     except (KeyError, TypeError, ValueError) as exc:
         raise HouseIndexError("House native account source observations cannot be reproduced") from exc
+    if not titles:
+        return {}
     return {"status": "source_words_reproduced", "source_sha256": extraction["source_sha256"],
         "document_id": source["document_id"], "source_word_pages_sha256": actual,
         "rows": [{"id": r["extraction_id"], "asset_name_raw": r["asset_name"],
