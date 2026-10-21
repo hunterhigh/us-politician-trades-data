@@ -56,6 +56,16 @@ class NativeReportCompletionTests(unittest.TestCase):
         self.assertIn('legacy_report_new_row_binding_pending',audit['reports'][0]['rows'][1]['reasons'])
         self.assertEqual(next(r for r in candidate['transactions'] if r['id']==extra['id']),extra)
 
+    def test_same_filing_changed_source_url_blocks_all_new_rows(self):
+        item,base,_=fixed();base['transactions'][0]['source_url']+='?changed'
+        candidate,audit=consume(item,base)
+        self.assertEqual(candidate['transactions'],base['transactions'])
+        self.assertEqual(audit['promoted_transaction_count'],0)
+        self.assertEqual(audit['quarantined_row_count'],2)
+        for row in audit['reports'][0]['rows']:
+            self.assertIn('legacy_report_new_row_binding_pending',row['reasons'])
+            self.assertIn('legacy_report_source_url_mismatch',row['reasons'])
+
     def test_old_financial_difference_blocks_new_rows_without_overwriting(self):
         item,base,_=fixed();base['transactions'][0]['amount_high']=14999
         candidate,audit=consume(item,base)

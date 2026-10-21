@@ -695,10 +695,16 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                     field_reasons.append("legacy_person_binding_differs")
                 bound_addition = (legacy_report_bound and retained is None and
                                   bool(source_row.get("legacy_inheritance")) and not field_reasons)
+                same_filing = [fact for fact in existing_oge_candidate["transactions"]
+                               if fact.get("filing_id") == report["document_id"]]
+                native_legacy = report.get("parser_version") == GENERIC_PARSER_VERSION
                 if retained is None and not bound_addition and any(
-                        f.get("filing_id") == report["document_id"] and
-                        f.get("source_url") == report["source_url"] for f in existing_oge_candidate["transactions"]):
+                        native_legacy or fact.get("source_url") == report["source_url"]
+                        for fact in same_filing):
                     field_reasons.append("legacy_report_new_row_binding_pending")
+                    if native_legacy and any(fact.get("source_url") != report["source_url"]
+                                             for fact in same_filing):
+                        field_reasons.append("legacy_report_source_url_mismatch")
             row_reasons = list(reasons) + field_reasons
             if person_id and not field_reasons:
                 keys = _trade_keys(source_row, person_id)
