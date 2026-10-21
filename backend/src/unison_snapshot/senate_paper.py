@@ -371,9 +371,60 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
                   if slot["label"] == "data_observed"}
     if not set(date_records) <= data_slots:
         raise SenateEfdError("Senate date segment observations are outside source data slots")
+    from .senate_paper_accounts import RULE as ACCOUNT_RULE, interpret_account_spacing, unpunctuated_heading
+    from copy import deepcopy
+    from collections import Counter
+    interpreted_words = deepcopy(by_page)
+    account_reads = {}
+    title_keys = {(s["page_number"], s["grid_slot"]): s for s in observation["slots"]
+                  if s["label"] in {"heading_candidate", "unknown"}}
+    for page in pages:
+        records = page.get("account_spacing_observations", [])
+        if not isinstance(records, list):
+            raise SenateEfdError("Senate account spacing observations must be an array")
+        for record in records:
+            if not isinstance(record, dict):
+                raise SenateEfdError("Senate account spacing observation is not an object")
+            key = (page["page_number"], record.get("grid_slot"))
+            if key not in title_keys or key in account_reads or record.get("page_number") != page["page_number"]:
+                raise SenateEfdError("Senate account spacing slot is not a unique title candidate")
+            slot = title_keys[key]
+            target = record.get("original_word", {})
+            top, bottom = slot["row_bounds_px"]
+            if not (650 <= target.get("left", -1) + target.get("width", 0) / 2 < 1385 and
+                    top + 6 <= target.get("top", -1) + target.get("height", 0) / 2 < bottom - 6):
+                raise SenateEfdError("Senate account spacing token escaped its title cell")
+            read = interpret_account_spacing(Image.open(BytesIO(page_images[key[0]])).convert("RGB"), record,
+                page_sha256=observed[key[0]], page_number=key[0], grid_slot=key[1], words=by_page[key[0]])
+            if read is None:
+                raise SenateEfdError("Senate account spacing reading lacks source whitespace support")
+            account_reads[key] = read
+            index = by_page[key[0]].index(target)
+            interpreted_words[key[0]][index]["text"] = read["text"]
+    effective_observation = deepcopy(observation)
+    heading_roles = []
+    ordered = sorted(effective_observation["slots"], key=lambda s: (s["page_number"], s["grid_slot"]))
+    for index, slot in enumerate(ordered):
+        text, confidence = _grid_asset_cell(interpreted_words[slot["page_number"]], slot)
+        role = unpunctuated_heading(images[slot["page_number"]], slot,
+            ordered[index + 1] if index + 1 < len(ordered) else None,
+            by_page[slot["page_number"]], text=text, confidence=confidence)
+        if role is not None:
+            slot["label"] = "heading_candidate"
+            heading_roles.append({"page_number": slot["page_number"], "grid_slot": slot["grid_slot"],
+                                  "page_sha256": observed[slot["page_number"]], **role})
+    if heading_roles:
+        effective_observation["label_counts"] = dict(Counter(s["label"] for s in ordered))
+        for page in effective_observation["pages"]:
+            page["label_counts"] = dict(Counter(s["label"] for s in ordered if s["page_number"] == page["page_number"]))
+        effective_observation["source_report_ledger"] = _source_report_relations(effective_observation)
+    role_keys = {(r["page_number"], r["grid_slot"]) for r in heading_roles}
+    resolved_title_keys = {(s["page_number"], s["grid_slot"]) for s in ordered if s["label"] == "heading_candidate"}
+    if not set(account_reads) <= resolved_title_keys:
+        raise SenateEfdError("Senate account spacing requires a source-resolved heading role")
     date_images = {}
     rows, account, account_ref, scope_unknown, previous_page = [], None, None, False, None
-    slots = sorted(observation["slots"], key=lambda slot: (slot["page_number"], slot["grid_slot"]))
+    slots = ordered
     for slot in slots:
         number, label = slot["page_number"], slot["label"]
         if previous_page is not None and number > previous_page + 1:
@@ -402,11 +453,13 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
                     account_ref = None
             continue
         if label == "heading_candidate":
-            text, confidence = _grid_asset_cell(by_page[number], slot)
-            if text.endswith(":") and _OWNER.fullmatch(text) and confidence is not None and confidence >= 85:
+            text, confidence = _grid_asset_cell(interpreted_words[number], slot)
+            if (text.endswith(":") or (number, slot["grid_slot"]) in role_keys) and _OWNER.fullmatch(text) and confidence is not None and confidence >= 85:
                 account, scope_unknown = text, False
                 account_ref = {"page_number": number, "grid_slot": slot["grid_slot"],
                                "page_sha256": observed[number], "row_crop_sha256": slot["row_crop_sha256"]}
+                if (number, slot["grid_slot"]) in account_reads:
+                    account_ref["spacing_interpretation"] = account_reads[(number, slot["grid_slot"])]
             else:
                 account, scope_unknown = None, True
                 account_ref = None
@@ -521,7 +574,9 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "page_count": manifest["page_count"], "transactions": rows,
             "cached_word_pages_sha256": cache_sha,
             **({"date_segment_rule_version": "senate-source-segmented-date/v1"} if date_records else {}),
-            "source_report_ledger": observation["source_report_ledger"],
+            **({"account_layout_rule_version": ACCOUNT_RULE,
+                "account_heading_role_interpretations": heading_roles} if heading_roles or account_reads else {}),
+            "source_report_ledger": effective_observation["source_report_ledger"],
             "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
             "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows),
             **({"legacy_extraction_reference": legacy,
@@ -785,7 +840,7 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                 extracted = parse_paper_grid_observations(
                     reports[document_id], manifest, observation, cached_pages[document_id], images,
                     prior_extraction=prior)
-                if prior is not None or any(page.get("date_segment_observations") for page in cached_pages[document_id]):
+                if prior is not None or extracted.get("account_layout_rule_version") or any(page.get("date_segment_observations") for page in cached_pages[document_id]):
                     extracted["grid_replay_input"] = _save_legacy_grid_input(
                         review_root, reports[document_id], observation, cached_pages[document_id], prior)
                 extractions.append(extracted)

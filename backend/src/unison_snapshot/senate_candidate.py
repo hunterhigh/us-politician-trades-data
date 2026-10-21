@@ -633,6 +633,36 @@ def _transaction(row: dict, extraction: dict, identity: dict, *,
     }, []
 
 
+def _source_account_whitespace_correction(current: dict, fact: dict, formal: dict) -> dict | None:
+    """Only undo the one source-verified token spacing to reproduce old fact.
+
+    The caller has already replayed the complete extraction against controlled
+    source pixels. A similar name, arbitrary new whitespace, or other changed
+    fact is not a correction proof.
+    """
+    from .senate_paper_accounts import RULE
+    source = current.get("account_heading_source_slot") or {}
+    proof = source.get("spacing_interpretation") or {}
+    account, spaced = current.get("account_heading_raw"), proof.get("text")
+    original = proof.get("original_word", {}).get("text")
+    if (proof.get("rule_version") != RULE or not isinstance(account, str) or
+            not isinstance(spaced, str) or not isinstance(original, str) or
+            account.count(spaced) != 1 or spaced == original or
+            "".join(spaced.split()) != "".join(original.split())):
+        return None
+    old_account = account.replace(spaced, original, 1)
+    suffix = f" (Account: {account})"
+    name = fact.get("asset_name")
+    if not isinstance(name, str) or not name.endswith(suffix):
+        return None
+    previous = {**fact, "asset_name": name[:-len(suffix)] + f" (Account: {old_account})"}
+    if previous != formal:
+        return None
+    return {"transaction_id": fact["id"], "field": "asset_name", "before": formal["asset_name"],
+            "after": fact["asset_name"], "rule_version": RULE,
+            "account_heading_source_slot": source, "other_formal_fields_equal": True}
+
+
 def _legacy_grid_protection(extraction: dict, identity: dict, base: dict) -> dict:
     """Preserve actual published facts; old extraction references grant no status."""
     prior = extraction["legacy_extraction_reference"]["source_extraction"]
@@ -645,7 +675,7 @@ def _legacy_grid_protection(extraction: dict, identity: dict, base: dict) -> dic
     correspondence = {row["legacy_extraction_id"]: row for row in
                       extraction["legacy_source_slot_correspondence"]["bindings"]}
     grid_rows = {row["extraction_id"]: row for row in extraction["transactions"]}
-    bound, bases, unbound = {}, {}, []
+    bound, bases, unbound, corrections = {}, {}, [], []
     for formal in published:
         old = refs.get(formal["id"])
         link = correspondence.get(formal["id"])
@@ -655,6 +685,11 @@ def _legacy_grid_protection(extraction: dict, identity: dict, base: dict) -> dic
         if current is not None and not current_reasons and current_fact == formal:
             bound[formal["id"]] = formal
             bases[formal["id"]] = "retained_actual_base_exact_source_grid_slot"
+        elif current is not None and not current_reasons and (
+                correction := _source_account_whitespace_correction(current, current_fact, formal)) is not None:
+            bound[formal["id"]] = current_fact
+            bases[formal["id"]] = "source_verified_account_whitespace_correction"
+            corrections.append(correction)
         elif link is not None and not reasons and recovered == formal:
             bound[link["grid_extraction_id"]] = formal
             bases[link["grid_extraction_id"]] = "retained_actual_base_exact_legacy_source_slot"
@@ -665,7 +700,8 @@ def _legacy_grid_protection(extraction: dict, identity: dict, base: dict) -> dic
                            "legacy_formal_fields_differ_from_source_reference" if link else
                            "legacy_formal_source_slot_not_uniquely_bound")})
     return {"bound": bound, "retention_basis": bases, "unbound": unbound,
-            "reference_count": len(refs), "base_formal_count": len(published)}
+            "reference_count": len(refs), "base_formal_count": len(published),
+            "source_field_corrections": corrections}
 
 
 def build_senate_candidate(
@@ -820,8 +856,10 @@ def build_senate_candidate(
                  "source_report_ledger" not in item)):
             raise SenateEfdError("Senate legacy grid reference requires a paper source ledger")
         if item.get("schema_version") == PAPER_EXTRACTION_SCHEMA and "source_report_ledger" in item:
-            if ("legacy_extraction_reference" in item or "date_segment_rule_version" in item or any(
-                    row.get("field_observations", {}).get("segmented_date_read")
+            if ("legacy_extraction_reference" in item or "date_segment_rule_version" in item or
+                    "account_layout_rule_version" in item or "account_heading_role_interpretations" in item or any(
+                    row.get("field_observations", {}).get("segmented_date_read") or
+                    (row.get("account_heading_source_slot") or {}).get("spacing_interpretation")
                     for row in item["transactions"])):
                 from .senate_paper import replay_legacy_grid_extraction
                 if evidence_root is None:
@@ -1032,6 +1070,7 @@ def build_senate_candidate(
                     "page_number": row["page_number"], "reason": row["reason"]}
                     for row in protection["unbound"]],
                 "legacy_references_are_not_formal_qualification": True,
+                "source_field_corrections": protection["source_field_corrections"],
                 "source_slot_bindings": extraction["legacy_source_slot_correspondence"]})
         if person_id in people and people[person_id] != person:
             changed = sorted(key for key in person if people[person_id].get(key) != person.get(key))
@@ -1057,8 +1096,8 @@ def build_senate_candidate(
             observed_transaction, observed_reasons = transaction, list(reasons)
             retained = protection["bound"].get(row.get("extraction_id"))
             if retained is not None:
-                # A unique original word fingerprint binds a previously published
-                # full object. New OCR interpretation must not silently rewrite it.
+                # Preserve bound facts or the explicitly audited, source-replayed
+                # whitespace-only account correction. Other OCR changes stay held.
                 transaction, reasons = deepcopy(retained), []
             elif any(old["page_number"] is None or old["page_number"] == row.get("page_number")
                      for old in protection["unbound"]):
