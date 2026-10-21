@@ -720,7 +720,53 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     }
 
 
-def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) -> dict:
+def _unanchored_native_slots(page: dict) -> list[dict]:
+    """Retain strong financial-line observations, never infer missing facts.
+
+    This is not a page census. A source asset-type cell, amount cell and
+    financial-column text must be followed by a local official status detail.
+    Ordinary notes, wrapped amounts and status mentions alone are insufficient.
+    """
+    words, width = page["words"], float(page["width"])
+    anchors = _modern_date_anchors(words, width)
+    lines: list[list[dict]] = []
+    for item in sorted(words, key=lambda w: (float(w["top"]), float(w["x0"]))):
+        if not lines or abs(float(item["top"]) - float(lines[-1][0]["top"])) > 2:
+            lines.append([])
+        lines[-1].append(item)
+    statuses = []
+    for line in lines:
+        detail = _clean(" ".join(str(w["text"]) for w in sorted(line, key=lambda w: float(w["x0"]))
+                         if .165 * width <= float(w["x0"]) < .42 * width))
+        if re.fullmatch(r"(?:F|Filing)\s+(?:S|Status):\s*(?:New|Amended)", detail, re.I):
+            statuses.append(float(line[0]["top"]))
+    slots = []
+    for line in lines:
+        top = float(line[0]["top"])
+        if any(abs(top - anchor) <= 2 for anchor in anchors):
+            continue
+        asset = [w for w in line if .165 * width <= float(w["x0"]) < .42 * width]
+        amount = [w for w in line if .725 * width <= float(w["x0"]) < .90 * width]
+        financial = [w for w in line if .42 * width <= float(w["x0"]) < .725 * width]
+        nearby_status = [status for status in statuses if 2 < status - top <= 40]
+        asset_cell = [w for w in words if nearby_status and top <= float(w["top"]) < min(nearby_status)
+                      and .165 * width <= float(w["x0"]) < .42 * width]
+        if not (asset and any(re.fullmatch(r"\[[A-Z]{2}[\]}]", _clean(str(w["text"]))) for w in asset_cell)
+                and any("$" in str(w["text"]) for w in amount)
+                and any(_clean(str(w["text"])) for w in financial)
+                and nearby_status):
+            continue
+        digest = hashlib.sha256(json.dumps(line, sort_keys=True, ensure_ascii=False,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        slots.append({"local_key": f"unanchored-financial-line-{len(slots) + 1}",
+            "bounds": [top, max(float(w.get("bottom", float(w["top"]) + float(w.get("size", 9))))
+                                for w in line)], "disposition": "unknown",
+            "observation_ref": f"native_financial_line_without_row_anchor:{digest}"})
+    return slots
+
+
+def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], *,
+                          include_unanchored: bool = True) -> dict:
     from .source_row_ledger import page_ledger, report_ledger
     page_slots = {number: [] for number in range(1, len(pages) + 1)}
     logical = []
@@ -736,6 +782,9 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict]) 
             refs.append({"page_number": number, "slot_key": key})
         logical.append({"local_key": f"row-{index}", "slot_refs": refs,
                         "observation_ref": row["extraction_id"]})
+    if include_unanchored:
+        for number, page in enumerate(pages, start=1):
+            page_slots[number].extend(_unanchored_native_slots(page))
     observed = [page_ledger(source_id="house_clerk", document_sha256=source_sha,
                   page_number=number, adapter_version=PARSER_VERSION,
                   coverage="unknown", coverage_reason="native_row_anchors_not_complete_page_census",
@@ -768,6 +817,12 @@ def _native_account_context(extraction: dict) -> dict:
         source = extraction.get("source", {})
         reproduced = parse_word_pages({**source, "filing_type": "P"}, extraction["source_sha256"],
             pages, copy_allowed=extraction.get("source_pdf_copy_allowed"))
+        # Exact legacy anchor-only ledgers remain valid; no financial/source
+        # observation may differ. This accepts a recomputed old form, not a label.
+        legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
+            reproduced["transactions"], include_unanchored=False)
+        if extraction.get("source_report_ledger") == legacy_ledger:
+            reproduced["source_report_ledger"] = legacy_ledger
         if any(extraction.get(key) != value for key, value in reproduced.items()):
             raise HouseIndexError("House native account observations differ from saved source words")
     except (KeyError, TypeError, ValueError) as exc:
