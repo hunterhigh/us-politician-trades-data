@@ -2,9 +2,15 @@ name: Publish complete production snapshot
 
 on:
   schedule:
+    # Price preparation and disclosure publication run independently.
     - cron: '30 22 * * 1-5'
+    - cron: '31 22 * * 1-5'
   workflow_dispatch:
     inputs:
+      refresh_market:
+        description: Prepare new prices outside the publication lock, then join the latest disclosures
+        type: boolean
+        default: false
       batch_size:
         description: Alpaca symbols per request
         required: true
@@ -40,16 +46,15 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: publish-snapshot
-  cancel-in-progress: false
-
 jobs:
-  publish:
-    if: github.ref == 'refs/heads/code'
+  refresh:
+    if: github.ref == 'refs/heads/code' && (inputs.refresh_market || github.event.schedule == '30 22 * * 1-5')
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    concurrency:
+      group: prepare-market-refresh
+      cancel-in-progress: false
     steps:
       - name: Enforce scheduled publication switch
         if: github.event_name == 'schedule'
@@ -58,18 +63,13 @@ jobs:
         run: test "$ENABLED" = "true"
       - uses: actions/checkout@v7
         with:
-          ref: code
+          ref: ${{ github.sha }}
           fetch-depth: 1
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: backend/pyproject.toml
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: frontend-e2e/package-lock.json
       - name: Install producer
         run: python -m pip install -e backend
       - name: Enforce licensed production gate
@@ -118,74 +118,7 @@ jobs:
         env:
           CACHE_MAIN_OVERRIDE: ${{ inputs.cache_main_ref }}
           CACHE_MARKET_OVERRIDE: ${{ inputs.cache_market_ref }}
-        run: |
-          git fetch --no-tags --depth=1 origin \
-            review:refs/remotes/origin/review \
-            main:refs/remotes/origin/main \
-            market:refs/remotes/origin/market \
-            evidence:refs/remotes/origin/evidence
-          review_root="$RUNNER_TEMP/complete-review"
-          evidence_root="$RUNNER_TEMP/complete-evidence"
-          market_root="$RUNNER_TEMP/complete-market"
-          main_root="$RUNNER_TEMP/complete-main"
-          cache_main_root="$RUNNER_TEMP/cache-main"
-          cache_market_root="$RUNNER_TEMP/cache-market"
-          git worktree add --detach "$review_root" origin/review
-          git worktree add --detach "$evidence_root" origin/evidence
-          git worktree add --detach "$market_root" origin/market
-          git worktree add --detach "$main_root" origin/main
-          if [ -n "$CACHE_MAIN_OVERRIDE" ]; then
-            # Historical cache recovery is intentionally allowed to pay for
-            # full main/market history. Routine publication keeps every
-            # checkout shallow because it only needs the current tips.
-            git fetch --no-tags --unshallow origin \
-              main:refs/remotes/origin/main \
-              market:refs/remotes/origin/market
-            cache_main_ref="$CACHE_MAIN_OVERRIDE"
-            cache_market_ref="$CACHE_MARKET_OVERRIDE"
-          else
-            cache_main_ref="$(git rev-parse origin/main)"
-            cache_market_ref="$(git show "$cache_main_ref:manifest.json" | python -c \
-              'import json,sys; print(json.load(sys.stdin)["market_commit"])')"
-            if [ "$cache_market_ref" != "$(git rev-parse origin/market)" ]; then
-              git fetch --no-tags --unshallow origin \
-                main:refs/remotes/origin/main \
-                market:refs/remotes/origin/market
-            fi
-          fi
-          git cat-file -e "$cache_main_ref^{commit}"
-          git cat-file -e "$cache_market_ref^{commit}"
-          git merge-base --is-ancestor "$cache_main_ref" origin/main
-          git merge-base --is-ancestor "$cache_market_ref" origin/market
-          git worktree add --detach "$cache_main_root" "$cache_main_ref"
-          git worktree add --detach "$cache_market_root" "$cache_market_ref"
-          referenced_market="$(python -c \
-            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["market_commit"])' \
-            "$cache_main_root/manifest.json")"
-          test "$referenced_market" = "$(git -C "$cache_market_root" rev-parse HEAD)" || {
-            echo "Cache main and market commits are not a published pair." >&2
-            exit 2
-          }
-          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
-          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
-          echo "review_commit=$(git -C "$review_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "evidence_commit=$(git -C "$evidence_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "market_root=$market_root" >> "$GITHUB_OUTPUT"
-          echo "main_root=$main_root" >> "$GITHUB_OUTPUT"
-          echo "cache_main_root=$cache_main_root" >> "$GITHUB_OUTPUT"
-          echo "cache_market_root=$cache_market_root" >> "$GITHUB_OUTPUT"
-          echo "cache_market_commit=$cache_market_ref" >> "$GITHUB_OUTPUT"
-          echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Freeze prior board for both HTML browser checks
-        env:
-          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
-        run: |
-          previous="$RUNNER_TEMP/previous-main"
-          mkdir -p "$previous/board"
-          cp "$MAIN_ROOT/manifest.json" "$previous/manifest.json"
-          board_sha="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["board"])' "$previous/manifest.json")"
-          cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"
+        run: bash .github/scripts/prepare-publication-trees.sh
       - name: Build canonical disclosure projection from qualified sources
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -233,7 +166,6 @@ jobs:
             --input "$RUNNER_TEMP/complete-candidate.json" \
             --output "$RUNNER_TEMP/complete-candidate.json" \
             --audit-output "$RUNNER_TEMP/twelve-audit.json" \
-            --html-output "$RUNNER_TEMP/complete-dashboard.html" \
             --checked-at "$checked_at" --limit "$TWELVE_LIMIT" \
             --previous-main-root "${{ steps.trees.outputs.cache_main_root }}" \
             --previous-market-root "${{ steps.trees.outputs.cache_market_root }}" \
@@ -250,6 +182,131 @@ jobs:
           if audit['accepted_count'] < 1:
               raise SystemExit('No qualified Twelve Data price series; preserving the last publication')
           PY
+      - name: Save price-only handoff
+        env:
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+        run: |
+          python - <<'PY'
+          import gzip, json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          value = json.loads((root / 'complete-candidate.json').read_text())
+          prices = {key: value[key] for key in ('meta', 'security_market_data', 'source_health')}
+          (root / 'prices.json.gz').write_bytes(gzip.compress(json.dumps(prices, separators=(',', ':')).encode(), compresslevel=1))
+          (root / 'market-base.txt').write_text(os.environ['MARKET_BASE'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prepared-prices-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/prices.json.gz
+            ${{ runner.temp }}/market-base.txt
+            ${{ runner.temp }}/market-audit.json
+            ${{ runner.temp }}/twelve-audit.json
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+  publish:
+    needs: refresh
+    if: always() && github.ref == 'refs/heads/code' && (needs.refresh.result == 'success' || needs.refresh.result == 'skipped')
+    concurrency:
+      group: publish-snapshot
+      queue: max
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Enforce scheduled publication switch
+        if: github.event_name == 'schedule'
+        env:
+          ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
+        run: test "$ENABLED" = "true"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend-e2e/package-lock.json
+      - name: Install producer
+        run: python -m pip install -e backend
+      - name: Enforce licensed cache publication
+        env:
+          AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
+          TWELVE_AUTHORIZED: ${{ vars.TWELVE_DATA_DISTRIBUTION_AUTHORIZED }}
+          CACHE_MAIN_REF: ${{ inputs.cache_main_ref }}
+          CACHE_MARKET_REF: ${{ inputs.cache_market_ref }}
+          REFRESHED: ${{ needs.refresh.result }}
+        run: |
+          test "$AUTHORIZED" = true && test "$TWELVE_AUTHORIZED" = true
+          if [ "$REFRESHED" != success ]; then
+            test -z "$CACHE_MAIN_REF" && test -z "$CACHE_MARKET_REF" || {
+              echo 'Cache recovery overrides require refresh_market=true.' >&2
+              exit 2
+            }
+          fi
+      - name: Prepare fixed source and publication trees
+        id: trees
+        env:
+          CACHE_MAIN_OVERRIDE: ${{ inputs.cache_main_ref }}
+          CACHE_MARKET_OVERRIDE: ${{ inputs.cache_market_ref }}
+        run: bash .github/scripts/prepare-publication-trees.sh
+      - name: Freeze prior board for both HTML browser checks
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+        run: |
+          previous="$RUNNER_TEMP/previous-main"
+          mkdir -p "$previous/board"
+          cp "$MAIN_ROOT/manifest.json" "$previous/manifest.json"
+          board_sha="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["board"])' "$previous/manifest.json")"
+          cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"
+      - name: Build canonical disclosure projection from qualified sources
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs \
+            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --output "$RUNNER_TEMP/governed-disclosure.json" \
+            --audit-output "$RUNNER_TEMP/governed-cutoff.json"
+      - name: Receive independently prepared prices
+        if: needs.refresh.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: prepared-prices-${{ github.run_id }}
+          path: ${{ runner.temp }}/prepared-prices
+      - name: Join current disclosures with fixed prices without vendor requests
+        env:
+          PYTHONPATH: backend/src
+          REFRESHED: ${{ needs.refresh.result }}
+          CACHE_MAIN_ROOT: ${{ steps.trees.outputs.cache_main_root }}
+          CACHE_MARKET_ROOT: ${{ steps.trees.outputs.cache_market_root }}
+          CACHE_MARKET_COMMIT: ${{ steps.trees.outputs.cache_market_commit }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+        run: |
+          prepared_args=()
+          if [ "$REFRESHED" = success ]; then
+            prepared_args=(--prepared "$RUNNER_TEMP/prepared-prices")
+            CACHE_MARKET_COMMIT="$MARKET_BASE"
+            cp "$RUNNER_TEMP/prepared-prices/market-audit.json" "$RUNNER_TEMP/market-audit.json"
+            cp "$RUNNER_TEMP/prepared-prices/twelve-audit.json" "$RUNNER_TEMP/twelve-audit.json"
+          fi
+          python backend/scripts/build_cached_candidate.py \
+            --input "$RUNNER_TEMP/governed-disclosure.json" \
+            --main-root "$CACHE_MAIN_ROOT" --market-root "$CACHE_MARKET_ROOT" \
+            --market-commit "$CACHE_MARKET_COMMIT" \
+            "${prepared_args[@]}" --output-dir "$RUNNER_TEMP"
       - name: Select fixed published readback probes
         id: probes
         run: |
@@ -356,8 +413,14 @@ jobs:
         id: market
         env:
           MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          REFRESHED: ${{ needs.refresh.result }}
+          CACHE_MARKET_COMMIT: ${{ steps.trees.outputs.cache_market_commit }}
           PYTHONPATH: backend/src
         run: |
+          if [ "$REFRESHED" != success ]; then
+            echo "market_sha=$CACHE_MARKET_COMMIT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           python -m unison_snapshot prepare-market-publication \
             --input "$RUNNER_TEMP/complete-candidate.json" --root "$MARKET_ROOT" \
             --audit "$RUNNER_TEMP/market-audit.json" \
@@ -464,50 +527,29 @@ jobs:
           npm run test:production
           npm run test:latest-html
         working-directory: frontend-e2e
-      - name: Record auditable coverage
+      - name: Record publication coverage and price age
         env:
           MARKET_SHA: ${{ steps.market.outputs.market_sha }}
           MAIN_SHA: ${{ steps.main.outputs.main_sha }}
         run: |
-          python - <<'PY'
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
           import json, os
-          audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
-          readiness=json.load(open(os.environ['RUNNER_TEMP']+'/release-readiness.json'))
-          print(f"Market commit: `{os.environ['MARKET_SHA']}`")
-          print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          audit = json.loads((root / 'publication-market-audit.json').read_text())
+          readiness = json.loads((root / 'release-readiness.json').read_text())
+          print(f"Main: `{os.environ['MAIN_SHA']}`; market: `{os.environ['MARKET_SHA']}`")
+          print(f"Price mode: {audit['mode']}; publication vendor requests: 0")
           print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
-          print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
-          print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
-          print(f"Historical symbols rejected by API: {len(audit['historical_rejected_symbols'])}")
-          print(f"Price points: {audit['price_point_count']}")
-          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']}")
-          print(f"Alpaca request attempts: {audit.get('request_attempt_count')}; bar response pages: {audit.get('response_page_count')}")
-          print(f"Missing tickers: {audit['missing_ticker_count']}")
-          print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
-          print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
-          print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
-          twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
-          print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
-          PY
-          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import json, os
-          audit=json.load(open(os.environ['RUNNER_TEMP']+'/market-audit.json'))
-          readiness=json.load(open(os.environ['RUNNER_TEMP']+'/release-readiness.json'))
-          print(f"Market commit: `{os.environ['MARKET_SHA']}`")
-          print(f"Main commit: `{os.environ.get('MAIN_SHA') or 'unchanged'}`")
-          print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
-          print(f"Market coverage: {audit['market_row_count']}/{audit['symbol_count']} tickers")
-          print(f"Historical symbols recovered: {audit['historical_recovered_count']}")
-          print(f"Historical symbols rejected by API: {len(audit['historical_rejected_symbols'])}")
-          print(f"Price points: {audit['price_point_count']}")
-          print(f"Market cache: {audit['cache_status']}; reused {audit['incremental_ticker_count']} tickers; full refresh {audit['full_refresh_ticker_count']}; split refresh {audit['split_refresh_ticker_count']} tickers")
-          print(f"Alpaca request attempts: {audit.get('request_attempt_count')}; bar response pages: {audit.get('response_page_count')}")
-          print(f"Missing tickers: {audit['missing_ticker_count']}")
-          print(f"Outside SIP scope: {audit['unsupported_ticker_count']}")
-          print(f"Unresolved tickers: {audit['unresolved_ticker_count']}")
-          print(f"Recovered explicit tickers: {audit['recovered_ticker_count']}")
-          twelve=json.load(open(os.environ['RUNNER_TEMP']+'/twelve-audit.json'))
-          print(f"Twelve Data batch: {twelve['attempted_count']} attempted; {twelve['new_accepted_count']} new accepted; {twelve['cached_accepted_count']} cached; {twelve['accepted_count']} cumulative; {twelve['backlog_count']} deferred; {twelve['request_count']} requests; {twelve['deduplicated_row_count']} exact duplicate rows removed")
+          print(f"Prices: {audit['market_row_count']} tickers, {audit['price_point_count']} points; pending {len(audit['pending_tickers'])}")
+          for row in audit['market_source_health']:
+              print(f"- {row['source_id']}: last successful sync {row.get('last_successful_sync_at')}; cutoff {row.get('data_cutoff_at')}")
+          print('Pending price tickers:', ', '.join(audit['pending_tickers']) or 'none')
+          path = root / 'twelve-audit.json'
+          if path.exists():
+              twelve = json.loads(path.read_text())
+              print(f"Twelve Data: new {twelve['new_accepted_count']}, cached {twelve['cached_accepted_count']}, deferred {twelve['backlog_count']}, deduplicated {twelve['deduplicated_row_count']}")
+              print('Refresh transport:', json.dumps(twelve['transport'], sort_keys=True))
           PY
       - name: Exercise late failure before publication
         if: inputs.recovery_stop_before_publish
@@ -529,6 +571,7 @@ jobs:
           exit 86
       - name: Atomically publish the verified main, market, and tags
         env:
+          REFRESHED: ${{ needs.refresh.result }}
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
           MAIN_SHA: ${{ steps.main.outputs.main_sha }}
           MAIN_BASE: ${{ steps.trees.outputs.main_base }}
@@ -543,8 +586,12 @@ jobs:
           test "$(git ls-remote origin "$PREFLIGHT_MARKET_REF" | cut -f1)" = "$MARKET_SHA"
           git -C "$MAIN_ROOT" tag "published/$MAIN_SHA" "$MAIN_SHA"
           git -C "$MAIN_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
+          market_ref=()
+          if [ "$REFRESHED" = success ]; then
+            market_ref=("$MARKET_SHA:refs/heads/market")
+          fi
           git -C "$MAIN_ROOT" push --atomic origin \
-            "$MAIN_SHA:refs/heads/main" "$MARKET_SHA:refs/heads/market" \
+            "$MAIN_SHA:refs/heads/main" "${market_ref[@]}" \
             "refs/tags/published/$MAIN_SHA" \
             "refs/tags/published-market/$MARKET_SHA" \
             ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"
