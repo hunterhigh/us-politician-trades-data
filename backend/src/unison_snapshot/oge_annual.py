@@ -425,6 +425,28 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
             value_raw = cells[columns["value"]] if len(cells) > columns["value"] else ""
             value = _range(value_raw)
             interval = read_annual_band(value_raw) if qualified else None
+            # Part 5 also contains employment income sources, not just assets.
+            # OGE's Salary example explicitly has EIF=N/A, no Value and no
+            # Income Amount. Preserve that source row without inventing an
+            # employer holding or treating its lawful blanks as unread value.
+            # Require the complete, unambiguous native column roles; OCR-only
+            # or incomplete tables cannot claim this classification.
+            names = [_compact(cell).casefold() for cell in rows[header_index]]
+            roles = ("#", "description", "eif", "value", "income type", "income amount")
+            if (qualified and native_table_context and section == "part5" and not reasons
+                    and evidence["owner"] == "Spouse" and evidence["account_context"]["status"] == "not_observed"
+                    and all(names.count(role) == 1 for role in roles)):
+                indices = {role: names.index(role) for role in roles}
+                if (max(indices.values()) < len(cells) and not value_raw
+                        and cells[indices["eif"]].casefold() == "n/a"
+                        and cells[indices["income type"]].casefold() == "salary"
+                        and not cells[indices["income amount"]]
+                        and not any(cell for i, cell in enumerate(cells) if i not in indices.values())):
+                    excluded.append({**evidence, "reason": "spouse_salary_income_source_not_holding",
+                        "source_row_role": "spouse_salary_income_source", "raw_value": value_raw,
+                        "classification_basis": "oge_part5_salary_example_explicit_native_columns",
+                        "format_guidance_url": "https://www.oge.gov/web/278eGuide.nsf/Part_5"})
+                    continue
             if qualified:
                 evidence["value_disclosure_status"] = (
                     "explicitly_not_readily_ascertainable" if "value not readily ascertainable" in description.casefold() and not value_raw else

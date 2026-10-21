@@ -49,8 +49,12 @@ def _native_empty_cells(page, cells: list) -> dict:
              if obj.get("fill") is True and obj.get("stroke") is False and bounds(obj) is not None]
     interiors = []
     for box in boxes:
+        # Internal rules can terminate on the inside face of the outer frame.
+        # A table extractor's snapped boundary lies inside that frame, beyond
+        # the vertical rule's endpoint. Require a complete interior enclosure
+        # below, rather than extending source lines to snapped centre points.
         vertical = [rule for rule in rules if 0 < rule[2]-rule[0] <= 2 and
-                    rule[1] <= box[1] and rule[3] >= box[3]]
+                    rule[1] < box[3] and rule[3] > box[1]]
         left = [rule for rule in vertical if rule[0] <= box[0] <= rule[2]]
         right = [rule for rule in vertical if rule[0] <= box[2] <= rule[2]]
         if len(left) != 1 or len(right) != 1:
@@ -61,6 +65,8 @@ def _native_empty_cells(page, cells: list) -> dict:
         top = [rule for rule in horizontal if rule[1] <= box[1] <= rule[3]]
         bottom = [rule for rule in horizontal if rule[1] <= box[3] <= rule[3]]
         if len(top) != 1 or len(bottom) != 1:
+            return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
+        if any(rule[1] > top[0][3] or rule[3] < bottom[0][1] for rule in (left[0], right[0])):
             return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
         interior = [x0, top[0][3], x1, bottom[0][1]]
         if not valid(interior):

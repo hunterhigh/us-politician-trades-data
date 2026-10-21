@@ -7,11 +7,88 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from copy import deepcopy
+from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 BACKEND = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
+    def test_market_commands_keep_v3_relations_and_renderer_with_one_processing_pass(self):
+        import unison_snapshot.__main__ as cli
+        from test_oge_annual_approved_policy import complete_case
+        from unison_snapshot.codec import digest, encode
+        _, (candidate, _) = complete_case()  # Synthetic approved-policy contract.
+        actual_load = cli.load
+        for command in ("build-alpaca-market-validation", "build-twelve-data-supplement"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as temp:
+                folder=Path(temp); result=deepcopy(candidate); calls=[]
+                source=folder/"input.json"; source.write_text(json.dumps(candidate), encoding="utf8")
+                output, audit, processed, html = [folder/name for name in
+                    ("candidate.json", "audit.json", "processed.json", "dashboard.html")]
+                processor=actual_load("process_snapshot", version="v3")
+                process=Mock(wraps=processor.build_snapshot)
+                def load(name, version="v1"):
+                    calls.append((name,version))
+                    return SimpleNamespace(build_snapshot=process) if name=="process_snapshot" else actual_load(name,version=version)
+                counts={name:0 for name in ("symbol_count","market_row_count","incremental_ticker_count",
+                    "full_refresh_ticker_count","split_refresh_ticker_count","historical_recovered_count",
+                    "missing_ticker_count","unsupported_ticker_count","unresolved_ticker_count",
+                    "recovered_ticker_count","accepted_count","attempted_count","remaining_count","request_count")}
+                counts.update(cache_status="not_requested",historical_rejected_symbols=[])
+                args=["unison_snapshot",command,"--input",str(source),"--output",str(output),
+                    "--audit-output",str(audit),"--processed-output",str(processed),"--html-output",str(html),
+                    "--distribution-authorized","--checked-at","2026-06-02T00:00:00Z"]
+                with patch.object(sys,"argv",args), patch.object(cli,"AlpacaMarketClient"), \
+                        patch.object(cli,"TwelveDataClient"), patch.object(cli,"load",side_effect=load), \
+                        patch.object(cli,"build_market_validation",return_value=SimpleNamespace(snapshot=result,audit=counts)), \
+                        patch.object(cli,"supplement_twelve_data",return_value=(result,counts)), redirect_stdout(StringIO()):
+                    cli.main()
+                self.assertEqual(calls,[("process_snapshot","v3"),("render_dashboard","v3")])
+                self.assertEqual(process.call_count,1)
+                saved=json.loads(output.read_bytes())
+                # Compare against the previous two-pass CLI algorithm with the
+                # real v3 processor, not only a dispatch/version assertion.
+                previous=deepcopy(candidate)
+                previous["meta"].update(generated_at="2026-06-02T00:00:00Z",snapshot_id="prepublication-validation")
+                processor.build_snapshot(previous)
+                identity=deepcopy(previous);identity["meta"].pop("snapshot_id",None)
+                previous["meta"]["snapshot_id"]=digest(encode(identity))
+                self.assertEqual(saved,previous)
+                self.assertEqual(json.loads(processed.read_bytes()),processor.build_snapshot(previous))
+                for key in ("transactions","reported_holdings"):
+                    self.assertEqual(saved[key],candidate[key])
+                for key in ("holding_report_coverage","transaction_disclosure_relations"):
+                    self.assertEqual(saved["meta"][key],candidate["meta"][key])
+                    self.assertEqual(json.loads(processed.read_bytes())["meta"][key],candidate["meta"][key])
+                self.assertIn("transaction_disclosure_relations",html.read_text(encoding="utf8"))
+
+    def test_market_commands_validate_before_writing_any_outputs(self):
+        import unison_snapshot.__main__ as cli
+
+        for command in ("build-alpaca-market-validation", "build-twelve-data-supplement"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as temp:
+                folder = Path(temp)
+                invalid = json.loads((BACKEND / "examples/synthetic.json").read_text(encoding="utf-8"))
+                invalid["transactions"][0]["person_id"] = "missing-person"
+                output, audit = folder / "candidate.json", folder / "audit.json"
+                args = ["unison_snapshot", command, "--input", str(BACKEND / "examples/synthetic.json"),
+                        "--output", str(output), "--audit-output", str(audit),
+                        "--distribution-authorized", "--checked-at", "2026-09-19T00:00:00Z"]
+                with patch.object(sys, "argv", args), patch.object(cli, "AlpacaMarketClient"), \
+                        patch.object(cli, "TwelveDataClient"), \
+                        patch.object(cli, "build_market_validation", return_value=SimpleNamespace(snapshot=invalid, audit={})), \
+                        patch.object(cli, "supplement_twelve_data", return_value=(invalid, {"accepted_count": 0})), \
+                        redirect_stderr(StringIO()) as error, self.assertRaises(SystemExit) as stopped:
+                    cli.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn("person", error.getvalue().lower())
+                self.assertFalse(output.exists())
+                self.assertFalse(audit.exists())
+
     def invoke(self, *args, environment=None):
         process_environment = dict(os.environ, PYTHONPATH=str(BACKEND / "src"))
         if environment:

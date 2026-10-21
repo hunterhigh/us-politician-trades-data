@@ -138,6 +138,35 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         self.assertEqual(len(bad), 1)
         self.assertEqual(excluded, [])
 
+    def test_native_part5_salary_is_income_source_not_a_missing_holding_value(self):
+        header = ["#", "Description", "EIF", "Value", "Income Type", "Income Amount"]
+        row = ["1.", "Georgetown University", "N/A", "", "salary", ""]
+        def parse(candidate, **options):
+            return _parse_rows(options.pop("section", "part5"), options.pop("owner", "Spouse"),
+                6, [options.pop("header", header), candidate], 2022,
+                qualified=True, native_table_context=options.pop("native", True), **options)
+        good, bad, excluded = parse(row)
+        self.assertEqual((good, bad), ([], []))
+        self.assertEqual(len(excluded), 1)
+        self.assertEqual(excluded[0]["reason"], "spouse_salary_income_source_not_holding")
+        self.assertEqual(excluded[0]["cells"], row)
+        self.assertEqual(excluded[0]["asset_name"], "Georgetown University")
+        for options in ({"section":"part2"}, {"owner":"Self"}, {"native":False},
+                {"scope_state":{"account_title":"Investment account","owner":"Spouse"}},
+                {"header":["#","Description","EIF","Value","Income Type","Unknown"]},
+                {"header":[*header,"Income Type"]}):
+            with self.subTest(options=options):
+                self.assertFalse(parse(row, **options)[2])
+        for column, text in ((1,""), (2,"Yes"), (4,"salary and stock"),
+                              (4,"royalties"), (5,"$25,000")):
+            with self.subTest(column=column,text=text):
+                changed=row[:];changed[column]=text
+                self.assertFalse(parse(changed)[2])
+        self.assertFalse(parse([*row,"Unassigned source content"])[2])
+        valued=row[:];valued[3]="$1,001 - $15,000"
+        self.assertEqual(len(parse(valued)[0]),1)
+        self.assertFalse(parse(valued)[2])
+
     def test_native_blank_proof_rejects_images_handwriting_annotations_and_bad_boundaries(self):
         def rect(x0, top, x1, bottom):
             return {"x0": x0, "top": top, "x1": x1, "bottom": bottom, "fill": True, "stroke": False}
@@ -155,6 +184,32 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20), (5, 0, 15, 20)])["reason"], "cell_geometry_overlaps")
         page.objects["rect"] = grid[:-1]
         self.assertEqual(_native_empty_cells(page, [(0, 0, 10, 20)])["reason"], "native_boundary_rules_unresolved")
+
+    def test_native_blank_frame_junction_uses_source_interior_and_rejects_gaps(self):
+        def rect(x0, top, x1, bottom):
+            return {"x0": x0, "top": top, "x1": x1, "bottom": bottom, "fill": True, "stroke": False}
+        # Source verticals meet the inner faces. Snapped cell edges are the
+        # middle of the surrounding thick frame, not actual missing lines.
+        grid = [rect(-.5, 1, .5, 19), rect(9.5, 1, 10.5, 19),
+                rect(-.5, -1, 10.5, 1), rect(-.5, 19, 10.5, 21)]
+        page = SimpleNamespace(objects={"rect": grid}, annots=[])
+        proof = _native_empty_cells(page, [(0, 0, 10, 20)])
+        self.assertEqual(proof["status"], "source_objects_verified_empty")
+        self.assertEqual(proof["native_interiors"], [[.5, 1, 9.5, 19]])
+        for side in (0, 1):
+            for edge, value in (("top", 1.01), ("bottom", 18.99)):
+                broken = deepcopy(grid); broken[side][edge] = value
+                self.assertEqual(_native_empty_cells(SimpleNamespace(objects={"rect": broken}, annots=[]),
+                    [(0, 0, 10, 20)])["status"], "unknown")
+        for kind in ("char", "image", "curve", "line", "rect"):
+            changed = SimpleNamespace(objects={"rect": deepcopy(grid)}, annots=[])
+            changed.objects.setdefault(kind, []).append(rect(.51, 1.01, 1, 2))
+            self.assertEqual(_native_empty_cells(changed, [(0, 0, 10, 20)])["status"], "unknown")
+        # A short second candidate or a missing horizontal boundary is not
+        # silently stitched into a closed cell.
+        for changed in (grid + [rect(-.5, 4, .5, 5)], grid[:-1]):
+            self.assertEqual(_native_empty_cells(SimpleNamespace(objects={"rect": changed}, annots=[]),
+                [(0, 0, 10, 20)])["status"], "unknown")
 
     def test_new_source_proof_is_consumed_but_legacy_v1_cannot_claim_it(self):
         cover, sections, old, meta = self.setup_inputs()
