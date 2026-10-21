@@ -28,7 +28,7 @@ from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
     discover_congress_senate_members,
 )
-from .legacy import load
+from .legacy import load, PROCESSOR_V2_SHA256
 from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
@@ -103,6 +103,8 @@ def main() -> None:
     prepare.add_argument("--market-commit")
     prepare.add_argument("--market-pages-file", type=Path)
     prepare.add_argument("--disclosure-status-input", type=Path)
+    prepare.add_argument("--consumer-validation-file", type=Path,
+                         help="Reuse successful rendering of these exact bytes by the pinned processor")
     prepare_market = sub.add_parser("prepare-market-publication")
     prepare_market.add_argument("--input", type=Path, required=True)
     prepare_market.add_argument("--root", type=Path, required=True)
@@ -396,10 +398,17 @@ def main() -> None:
             store.rollback(args.target, expected_head=args.expected_head)
             print(json.dumps({"ref": "demo", "commit": args.target}))
         elif args.command == "prepare-publication":
-            payload = json.loads(args.input.read_text(encoding="utf-8"))
+            input_bytes = args.input.read_bytes()
+            payload = json.loads(input_bytes)
+            if args.consumer_validation_file:
+                receipt = json.loads(args.consumer_validation_file.read_bytes())
+                if receipt != {"input_sha256": digest(input_bytes),
+                               "processor_sha256": PROCESSOR_V2_SHA256}:
+                    raise ValueError("Consumer validation receipt does not match the input and processor")
             if payload.get("meta", {}).get("is_demo") is not False:
                 raise ValueError("Public production publication requires is_demo=false")
             bundle = build(payload, generated_at=args.generated_at, allow_production=True,
+                           validate_consumer=not args.consumer_validation_file,
                            allow_empty_production=args.allow_empty_production,
                            allow_market=args.allow_market, market_commit=args.market_commit,
                            market_pages=(json.loads(args.market_pages_file.read_text(encoding="utf-8"))
