@@ -1,4 +1,8 @@
 from pathlib import Path
+import os
+import shutil
+import subprocess
+import textwrap
 import unittest
 
 
@@ -21,8 +25,8 @@ class PublishWorkflowTests(unittest.TestCase):
             encoding="utf-8")
         content = content.split("  publish:\n", 1)[1]
         projection = content.index("Build canonical disclosure projection from qualified sources")
-        frozen_board = content.index("Freeze prior board for both HTML browser checks")
-        browser = content.index("Verify complete candidate in the frozen browser frontend")
+        frozen_board = content.index("Freeze prior board for HTML browser checks")
+        browser = content.index("Verify publication in both browser frontends")
         readiness = content.index("verify-first-launch")
         market = content.index("build_cached_candidate.py")
         preflight = content.index("Publish immutable preflight commits")
@@ -31,12 +35,13 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertLess(frozen_board, projection)
         self.assertLess(projection, market)
         self.assertLess(market, browser)
-        self.assertLess(browser, readiness)
+        self.assertLess(market, readiness)
         self.assertLess(readiness, preflight)
         self.assertLess(preflight, readback)
+        self.assertLess(readback, browser)
         self.assertLess(readback, publish)
         stop = content.index("Exercise late failure before publication")
-        self.assertLess(readback, stop)
+        self.assertLess(browser, stop)
         self.assertLess(stop, publish)
         self.assertIn("if: inputs.recovery_stop_before_publish", content)
         self.assertIn('git push --atomic origin ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"',
@@ -52,13 +57,44 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn('"refs/tags/published/$MAIN_SHA"', content)
         self.assertIn('"refs/tags/published-market/$MARKET_SHA"', content)
         self.assertNotIn("Publish market before disclosure pointer", content)
-        self.assertIn("npm run test:production", content)
-        self.assertEqual(content.count("npm run test:latest-html"), 2)
-        self.assertEqual(content.count("PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main"), 2)
+        self.assertEqual(content.count("npm ci"), 1)
+        self.assertEqual(content.count("npm run test:production"), 1)
+        self.assertEqual(content.count("npm run test:latest-html"), 1)
+        self.assertEqual(content.count("PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main"), 1)
         self.assertIn('cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"', content)
-        self.assertLess(content.index("npm run test:latest-html"), preflight)
         self.assertLess(readback, content.rindex("npm run test:latest-html"))
         self.assertLess(content.rindex("npm run test:latest-html"), publish)
+
+    def test_browser_gate_selects_input_for_every_mode_and_propagates_failure(self):
+        content = (ROOT / ".github/workflows/publish-complete.yml").read_text(encoding="utf-8")
+        step = content.split("      - name: Verify publication in both browser frontends\n", 1)[1].split("      - name:", 1)[0]
+        self.assertNotIn("\n        if:", step)
+        self.assertIn("REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}", step)
+        script = textwrap.dedent(step.split("        run: |\n", 1)[1].split("        working-directory:", 1)[0])
+        git_bash = Path(shutil.which("git") or "git").resolve().parent.parent / "bin/bash.exe"
+        bash = str(git_bash) if os.name == "nt" and git_bash.exists() else shutil.which("bash")
+        if not bash:
+            self.skipTest("Bash is required to execute the Actions browser step")
+        stub = '''
+set -e
+npm() {
+  echo "npm $*|$PRODUCTION_DASHBOARD_HTML"
+  if [ "$*" = "$FAIL_COMMAND" ]; then return 23; fi
+}
+'''
+        for mode in ("", "false", "true"):
+            for failure in ("", "run test:production", "run test:latest-html"):
+                with self.subTest(mode=mode, failure=failure):
+                    result = subprocess.run([bash, "-c", stub + script], text=True,
+                        capture_output=True, env={**os.environ, "RUNNER_TEMP": "/runner temp",
+                            "SKIP_PREPARED_READBACK": mode, "FAIL_COMMAND": failure})
+                    self.assertEqual(result.returncode, 23 if failure else 0, result.stderr)
+                    target = "complete-dashboard.html" if mode == "true" else "prepared-readback/dashboard.html"
+                    commands = [line for line in result.stdout.splitlines() if line.startswith("npm ")]
+                    expected = ["ci", "run test:production"]
+                    if failure != "run test:production":
+                        expected.append("run test:latest-html")
+                    self.assertEqual(commands, [f"npm {command}|/runner temp/{target}" for command in expected])
 
     def test_scheduler_is_opt_in_and_bootstrap_cannot_downgrade_main(self):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(
