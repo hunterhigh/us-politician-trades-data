@@ -13,10 +13,15 @@ from unison_snapshot.whitehouse_annual_candidate import overlay_oge_annual_candi
 PURPOSE = ("The purpose of this letter is to correct the amount of the advance I reported on Part 2, line 5 of "
            "my financial disclosure report that I signed on May 17, 2021. The correct amount is noted below. Correction to Part 2")
 
-def observation(text=PURPOSE):
+CLOSING = ("I understand that this amendment will be attached to and become part of my financial disclosure "
+           "report and released upon request with that report. I certify that the statements made in this letter "
+           "are true, complete and correct to the best of my knowledge.")
+
+def observation(text=PURPOSE,closing=CLOSING):
     rows = ["level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"]
-    for i,word in enumerate(text.split()):
-        rows.append(f"5\t1\t1\t1\t1\t{i+1}\t10\t10\t10\t10\t99\t{word}")
+    for top,paragraph in [(10,"Dear Director: "+text),(1200,closing),(1400,"Filer Signature:")]:
+        for i,word in enumerate(paragraph.split()):
+            rows.append(f"5\t1\t1\t1\t1\t{i+1}\t10\t{top}\t10\t10\t99\t{word}")
     raw = "\n".join(rows)+"\n"
     image = Image.new("RGB", (1700,2200), (254,254,254))
     return {"schema_version":SCHEMA,"source_document_id":DOC,"source_sha256":SHA,
@@ -33,16 +38,23 @@ class LocalAmendmentTests(unittest.TestCase):
     def test_raw_scope_recomputed_and_value_remains_unknown(self):
         o,image=observation();a=inputs(source())["archive_metadata_by_document"][DOC]
         a.update(amended_label="yes",document_url=a["document_url"].replace("example-annual","AMENDED-annual"))
-        columns={"tracks":[[x,x] for x in (0,40,100,120,150,180,220)],
+        columns={"table_box":[0,340,220,422], "tracks":[[x,x] for x in (0,40,100,120,150,180,220)],
                  "body_words":[{"text":"5","box":[1,1,2,2]}, {"text":"advance","box":[151,1,170,2]}],"value_status":"unknown"}
         with patch("unison_snapshot.oge_annual_amendment_letter._source_image",return_value=(image,[],612.,792.)), patch("unison_snapshot.oge_annual_amendment_letter._columns",return_value=columns):
             result=interpret_amendment_letter(o,archive_metadata=a,archived_pdf_path="source.pdf")
             self.assertEqual(result["printed_row_number"],"5")
             self.assertEqual(result["holding_value_status"],"unknown")
             self.assertEqual(result["formal_corrections"],[])
-            for text in [PURPOSE.replace("advance","value"),PURPOSE+" Also change Part 7 line 2."]:
+            for text in [PURPOSE.replace("advance","value"),PURPOSE+" Also change Part 7 line 2.",
+                         PURPOSE+" I also omitted shares of ACME."]:
                 bad,_=observation(text)
                 self.assertIsNone(interpret_amendment_letter(bad,archive_metadata=a,archived_pdf_path="source.pdf"))
+            accurate,_=observation(closing=CLOSING)
+            self.assertIsNotNone(interpret_amendment_letter(accurate,archive_metadata=a,archived_pdf_path="source.pdf"))
+            saved_typo,_=observation(closing=CLOSING.replace("correct to the best","correc best"))
+            self.assertIsNotNone(interpret_amendment_letter(saved_typo,archive_metadata=a,archived_pdf_path="source.pdf"))
+            added,_=observation(closing=CLOSING+" I also omitted shares of ACME.")
+            self.assertIsNone(interpret_amendment_letter(added,archive_metadata=a,archived_pdf_path="source.pdf"))
             bad=deepcopy(o);bad["raw_tsv"]+="tamper"
             with self.assertRaises(OgeCatalogError):
                 interpret_amendment_letter(bad,archive_metadata=a,archived_pdf_path="source.pdf")
@@ -100,7 +112,9 @@ class LocalAmendmentTests(unittest.TestCase):
             ("Value",[340,341,369,350]),("Income",[402,341,439,350]),("Type",[442,341,469,350]),
             ("Income",[484,341,520,350]),("Amount",[484,355,526,364]),("5",[80,373,86,381]),
             ("advance",[402,373,441,381])]]
-        lines=[{"x0":70,"x1":550,"top":422,"bottom":422}]
+        lines=[{"x0":70,"x1":550,"top":422,"bottom":422},
+               {"x0":70,"x1":70,"top":337,"bottom":422},
+               {"x0":550,"x1":550,"top":337,"bottom":422}]
         self.assertIsNotNone(_columns(image,words,lines))
         missing=image.copy();ImageDraw.Draw(missing).rectangle((round(334/.36),round(337/.36),round(336/.36),round(422/.36)),fill=(254,254,254))
         self.assertIsNone(_columns(missing,words,lines))

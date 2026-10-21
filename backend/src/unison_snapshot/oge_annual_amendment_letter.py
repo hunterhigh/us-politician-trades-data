@@ -117,7 +117,13 @@ def _columns(image, words, lines):
         return None
     if not all(tracks[i][1] < (b[0]+b[2])/2 < tracks[i+1][0] for i,b in enumerate(roles)):
         return None
+    outer = [l for l in lines if abs(l["x0"]-l["x1"]) < .01 and
+             (tracks[0][0] <= l["x0"] <= tracks[0][1] or tracks[-1][0] <= l["x0"] <= tracks[-1][1]) and
+             abs(l["bottom"]-bottom["top"]) <= 4 and l["top"] < top]
+    if len(outer) != 2:
+        return None
     return {"tracks": tracks, "header_boxes": roles, "body_words": body,
+            "table_box": [left, min(l["top"] for l in outer), right, bottom["top"]],
             "value_status": "unknown_boundary_fringe_not_proven_blank"}
 
 def interpret_amendment_letter(observation, *, archive_metadata, archived_pdf_path):
@@ -150,15 +156,29 @@ def interpret_amendment_letter(observation, *, archive_metadata, archived_pdf_pa
         signed = datetime.strptime(purpose[2], "%B %d, %Y").date().isoformat()
     except ValueError:
         return None
-    # No additional correction scope may hide elsewhere in the observed letter.
-    remaining = text[:purpose.start()] + text[purpose.end():]
-    remaining = re.sub(r"Re: Amendment to Financial Disclosure Report of .*? Dear Mr\. Rounds:", "", remaining)
-    remaining = remaining.replace("I understand that this amendment will be attached to and become part of my financial disclosure report", "")
-    if re.search(r"\b(correct(?:ion)?|change|replace|revise|Part\s+\d|line\s+\d)\b", remaining, re.I):
-        return None
     columns = _columns(image, words, lines)
     if columns is None:
         return None
+    # Account for the complete financial narrative zones, rather than a list
+    # of suspicious keywords. Recipient and signature glyphs are not identity
+    # requirements. Any additional sentence in the narrative stays unresolved.
+    table_top, table_bottom = columns["table_box"][1], columns["table_box"][3]
+    before = " ".join(w["text"] for w in words if w["box"][1] < table_top)
+    greetings = list(re.finditer(r"\bDear [^:]{1,100}:\s*", before))
+    if len(greetings) != 1 or before[greetings[0].end():].strip() != purpose[0]:
+        return None
+    after = " ".join(w["text"] for w in words if w["box"][1] >= table_bottom)
+    closing, separator, signature = after.partition("Filer Signature:")
+    closing_pattern = (r"I understand that this amendment will be attached to and become part of my financial disclosure "
+        r"report and released upon request with that report\. I certify that the statements made in this letter "
+        r"are true, complete and (?:correct to the best|correc best) of my knowledge\.")
+    if not separator or re.fullmatch(closing_pattern, closing.strip()) is None:
+        return None
+    # A populated official comments area can itself change the interpretation.
+    if "Comments of Reviewing Official:" in signature:
+        comments = signature.split("Comments of Reviewing Official:", 1)[1].strip()
+        if re.fullmatch(r"Page \d+ of \d+", comments) is None:
+            return None
     body, tracks = columns["body_words"], columns["tracks"]
     def in_column(w,index):
         return tracks[index][1] < w["box"][0] and w["box"][2] < tracks[index+1][0]
