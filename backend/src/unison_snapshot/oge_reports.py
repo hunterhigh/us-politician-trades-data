@@ -1299,6 +1299,170 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
 
 
 
+def _native_amendment_context(observation: dict, source_url: str) -> dict:
+    """Interpret a report reference, never a filer signature or an effective date."""
+    from .oge_278t_page_shadow import interpret_native_exhibit_page
+    interpret_native_exhibit_page(observation)  # Same source-word/page validation.
+    text = observation["page_text"]
+    month_date = r"[A-Za-z]+\s+[0-9]{1,2},\s+[0-9]{4}"
+    filer = re.search(r"(?m)\bFiler:\s*([^\n]+)", text)
+    period = re.search(r"(?:Reporting|Repotting)\s+Period:\s*(" + month_date +
+                       r")\s*[-–]\s*(" + month_date + r")", text)
+    original = re.search(r"Date\s+of\s*(?:Report|Repmt):\s*(" + month_date + r")", text)
+    signed = re.search(r"originally\s+signed\s+on\s+(" + month_date + r")", text, re.I)
+    component = re.search(r"278t\(([1-9][0-9]*)\)", unquote(source_url), re.I)
+    result = {"schema_version": "oge-278t-amendment-reference-context/v1",
+              "source_sha256": observation["source_sha256"], "page_number": observation["page_number"],
+              "page_text": text, "page_text_sha256": observation["page_text_sha256"],
+              "source_observation_canonical_sha256": hashlib.sha256(json.dumps(observation,
+                  ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+              "context_role": "original_report_reference_not_filer_signature_or_amendment_effective_date"}
+    amount_only = all(re.search(pattern, text, re.I) for pattern in (
+        r"AMENDMENT\s+TO", r"PERIODIC\s+TRANSACTION\s+REPORT",
+        r"modify[^.]*transaction\s+amounts", r"Exhibit\s+A",
+        r"attached\s+to\s+and\s+become\s+a\s+(?:part|patt)\s+of"))
+    if not (filer and period and original and signed and component and amount_only):
+        return {**result, "status": "unresolved", "reasons": ["amendment_report_reference_context_incomplete"]}
+    try:
+        dates = [datetime.strptime(value, "%B %d, %Y").date() for value in
+                 (period[1], period[2], original[1], signed[1])]
+    except ValueError:
+        return {**result, "status": "unresolved", "reasons": ["amendment_report_reference_date_unreadable"]}
+    if dates[0] > dates[1] or dates[1] > dates[2] or dates[2] != dates[3]:
+        return {**result, "status": "unresolved", "reasons": ["amendment_report_reference_dates_conflict"]}
+    return {**result, "status": "source_context_available", "filer_name_raw": filer[1].strip(),
+            "original_report_date": dates[2].isoformat(),
+            "original_reporting_period": [dates[0].isoformat(), dates[1].isoformat()],
+            "original_report_component": int(component[1]), "amount_only_statement": True,
+            "source_text_spans": {"filer": list(filer.span()), "period": list(period.span()),
+                                  "report_date": list(original.span()), "original_signed": list(signed.span())},
+            "reasons": []}
+
+
+def _exhibit_identity_tokens(value: str) -> list[str]:
+    tokens = re.findall(r"[a-z]+", (value or "").casefold())
+    return sorted(token for token in tokens if token not in {"president", "mr", "mrs", "ms"})
+
+
+def _exhibit_original_archive(bundle: dict) -> tuple[dict, Path]:
+    root = Path(bundle["evidence_root"]).resolve()
+    metadata_path = Path(bundle["archive_metadata_path"]).resolve()
+    if not metadata_path.is_relative_to(root):
+        raise OgeCatalogError("replacement archive metadata escapes the pinned evidence root")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    if metadata.get("schema_version") == REPORT_ARCHIVE_SCHEMA:
+        metadata, pdf, _ = _read_archived_source(root, metadata_path)
+        return metadata, pdf
+    if (metadata.get("schema_version") != "whitehouse-public-disclosures-pdf/v1" or
+            metadata.get("source_id") != "whitehouse_public_disclosures" or
+            not re.fullmatch(r"wh-url:[0-9a-f]{24}", metadata.get("document_id") or "") or
+            not isinstance(metadata.get("archive_path"), str)):
+        raise OgeCatalogError("replacement original archive metadata is unsupported")
+    pdf = (root / metadata["archive_path"]).resolve()
+    if not pdf.is_relative_to(root):
+        raise OgeCatalogError("replacement original archive escapes evidence root")
+    raw = pdf.read_bytes()
+    _validate_pdf(raw)
+    if hashlib.sha256(raw).hexdigest() != metadata.get("sha256") or len(raw) != metadata.get("byte_length"):
+        raise OgeCatalogError("replacement original archive bytes differ from metadata")
+    return metadata, pdf
+
+
+def _native_original_printed_anchors(pdf: Path, sha: str, numbers: list[int]) -> dict:
+    """Read only requested literal markers under a native # header; not row ordinals."""
+    import pdfplumber
+    found = {number: [] for number in numbers}
+    with pdfplumber.open(pdf) as document:
+        for page_index, page in enumerate(document.pages):
+            words = page.extract_words()
+            headers = [(index, word) for index, word in enumerate(words) if word["text"] == "#"]
+            for header_index, header in headers:
+                right = [word for word in words if word["x0"] > header["x1"] and
+                         word["top"] < header["bottom"] and word["bottom"] > header["top"]]
+                if not right:
+                    continue
+                edge = min(word["x0"] for word in right)
+                for index, word in enumerate(words):
+                    if (word["text"] not in {str(n) for n in numbers} or word["top"] <= header["bottom"] or
+                            word["x0"] < header["x0"] or word["x1"] >= edge):
+                        continue
+                    number = int(word["text"])
+                    found[number].append({"source_sha256": sha, "page_number": page_index + 1,
+                        "printed_number_raw": word["text"], "word_index": index,
+                        "word_box": [word[k] for k in ("x0", "top", "x1", "bottom")],
+                        "number_header_word_index": header_index,
+                        "number_header_box": [header[k] for k in ("x0", "top", "x1", "bottom")],
+                        "source_words_canonical_sha256": hashlib.sha256(json.dumps(words, ensure_ascii=False,
+                            sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                        "basis": "literal_native_printed_marker_under_same_page_number_header_not_ordinal"})
+    return found
+
+
+def _native_exhibit_context_target(label: dict, targets: list[dict], context: dict, numbers: list[int],
+                                  verified_sources: dict | None = None) -> dict:
+    if context.get("status") != "source_context_available":
+        return {"status": "pending", "target_printed_number": label["target_printed_number"],
+                "reasons": ["amendment_report_reference_context_incomplete"]}
+    matches = []
+    verified_sources = {} if verified_sources is None else verified_sources
+    for bundle in targets:
+        source_key = (str(Path(bundle["evidence_root"]).resolve()),
+                      str(Path(bundle["archive_metadata_path"]).resolve()), tuple(numbers))
+        if source_key not in verified_sources:
+            metadata, pdf = _exhibit_original_archive(bundle)
+            verified_sources[source_key] = (metadata, pdf, None)
+        metadata, pdf, anchors = verified_sources[source_key]
+        url = urlsplit(metadata.get("document_url") or "")
+        if url.scheme != "https" or url.hostname not in {"www.whitehouse.gov", "whitehouse.gov"}:
+            continue
+        name = metadata.get("filer_name_from_label") or metadata.get("filer_name")
+        title = metadata.get("link_label") or ""
+        component = re.search(r"\(([1-9][0-9]*)\)\s*$", title)
+        url_reference = re.search(r"([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})-([1-9][0-9]*)[.]pdf$",
+                                  unquote(url.path), re.I)
+        label_filer = re.match(r"(.*?)\s+Periodic\s+Transaction\s+Report\b", title, re.I)
+        if (not url_reference or not label_filer or
+                metadata.get("document_id") != "wh-url:" + hashlib.sha256(metadata["document_url"].encode()).hexdigest()[:24] or
+                _exhibit_identity_tokens(label_filer[1]) != _exhibit_identity_tokens(name)):
+            continue
+        dates = re.findall(r"(?<![0-9])([0-9]{1,2})[.]([0-9]{1,2})[.]([0-9]{2}|[0-9]{4})(?![0-9])", title)
+        if (not component or int(component[1]) != context["original_report_component"] or len(dates) != 1 or
+                int(url_reference[4]) != int(component[1]) or tuple(map(int, url_reference.groups()[:3])) != tuple(map(int, dates[0])) or
+                _exhibit_identity_tokens(name) != _exhibit_identity_tokens(context["filer_name_raw"])):
+            continue
+        month, day, year = dates[0]
+        try:
+            report_date = datetime(int(year) + (2000 if len(year) == 2 else 0), int(month), int(day)).date()
+        except ValueError:
+            continue
+        if report_date.isoformat() != context["original_report_date"]:
+            continue
+        if anchors is None:
+            anchors = _native_original_printed_anchors(pdf, metadata["sha256"], numbers)
+            verified_sources[source_key] = (metadata, pdf, anchors)
+        if any(len(anchors[number]) != 1 for number in numbers):
+            continue
+        matches.append({"target_document_id": metadata["document_id"], "target_source_sha256": metadata["sha256"],
+            "target_source_url": metadata["document_url"], "archive_metadata_sha256": hashlib.sha256(
+                Path(bundle["archive_metadata_path"]).read_bytes()).hexdigest(),
+            "official_filer_label": name, "official_report_label": title,
+            "original_report_date": context["original_report_date"],
+            "original_reporting_period_reference": context["original_reporting_period"],
+            "original_reporting_period_basis": "amendment_cover_reference_not_independently_reconstructed_original_period",
+            "original_report_component": context["original_report_component"],
+            "source_context_sha256": context["source_observation_canonical_sha256"],
+            "target_printed_anchor": anchors[label["target_printed_number"]][0],
+            "all_referenced_printed_numbers": numbers,
+            "basis": "official_archive_identity_date_component_and_source_printed_anchors",
+            "row_binding_status": "unverified_not_derived_from_cache_ordinal"})
+    if len(matches) != 1:
+        return {"status": "pending", "target_printed_number": label["target_printed_number"],
+                "candidate_count": len(matches), "reasons": ["replacement_context_candidate_not_unique_or_unverified"]}
+    return {"status": "candidate_context_match", "candidate": matches[0],
+            "reasons": ["replacement_target_extraction_row_unverified"],
+            "application_status": "not_applied_context_is_not_row_or_field_qualification"}
+
+
 def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) -> dict:
     """Bind a printed target only through an explicit original-source URL."""
     urls = label.get("predecessor_urls", [])
@@ -1362,7 +1526,8 @@ def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) ->
 
 def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, *, observations: list[dict],
         archived_pdf_path: str, replacement_targets: list[dict] | None = None,
-        formal_reference_ids: list[str] | None = None) -> dict:
+        formal_reference_ids: list[str] | None = None,
+        amendment_context_page_number: int | None = None) -> dict:
     """Consume fixed native observations in the existing observed-extraction lane.
 
     No cover is manufactured. Original unknown pages and unresolved amendment
@@ -1399,6 +1564,18 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
             raise OgeCatalogError("native exhibit document page inventories differ")
         page_count=actual["document_page_count"]
         rebuilt.append(interpret_native_exhibit_page(actual))
+    context = None
+    if amendment_context_page_number is not None:
+        if type(amendment_context_page_number) is not int or amendment_context_page_number in seen_pages:
+            raise OgeCatalogError("amendment context page must be a distinct explicit source page")
+        cover = observe_native_exhibit_page(Path(archived_pdf_path), source_sha256=extraction["source_sha256"],
+                                           page_number=amendment_context_page_number)
+        context = _native_amendment_context(cover, extraction["source_url"])
+        if (context.get("status") == "source_context_available" and
+                _exhibit_identity_tokens(context["filer_name_raw"]) != _exhibit_identity_tokens(extraction["catalog_filer_name"])):
+            raise OgeCatalogError("amendment cover filer differs from its official source identity")
+    numbers = sorted({block["label"]["target_printed_number"] for page in rebuilt for block in page["blocks"]
+                      if block.get("label")})
     result=deepcopy(prepared)
     result.update(parser_version=OBSERVED_PARSER_VERSION,source_parser_version=extraction["parser_version"],
         document_page_count=page_count,native_exhibit_observations=deepcopy(observations))
@@ -1417,6 +1594,7 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
         result["document_reasons"]=sorted(set(result.get("document_reasons",[])+["native_exhibit_prior_inventory_relation_unresolved"]))
         result["evidence_complete"]=False
     names=("printed_number","description","type","transaction_date","notification","amount")
+    context_sources = {}  # Verified only for this materialization; never a persistent cache.
     prior_keys={(row["page_number"],tuple(row["cells"])) for row in result["source_rows"]}
     for page in rebuilt:
         for block in page["blocks"]:
@@ -1431,7 +1609,9 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
                 receipts.append({**ref,"disposition":"unresolved","reasons":["native_exhibit_prior_inventory_relation_unresolved"]});continue
             if block["status"]!="replacement_row_candidate":
                 receipts.append({**ref,"disposition":"unresolved","reasons":block["reasons"]});continue
-            relation=_native_exhibit_target(block["label"],targets,extraction["catalog_filer_name"])
+            relation = (_native_exhibit_context_target(block["label"], targets, context, numbers, context_sources)
+                        if context is not None and not block["label"].get("predecessor_urls") else
+                        _native_exhibit_target(block["label"], targets, extraction["catalog_filer_name"]))
             ref["replacement_relation"]=relation
             cells=[block["raw_columns"][name] for name in names]
             good,bad=parse_table_rows([(page["page_number"],cells)],source_sha=extraction["source_sha256"],
@@ -1469,6 +1649,8 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
         "legacy_inventory_basis":prepared.get("legacy_inventory_basis","saved_physical_inventory"),
         "legacy_document_reasons":result.get("legacy_document_reasons",[]),
         "unique_source_row_count":None,"protected_formal_reference_ids":sorted(protected),
+        **({"amendment_context": context, "context_observation_scope": "report_reference_only_transaction_inventory_still_unknown"}
+           if context is not None else {}),
         **({"legacy_reference_sha256":reference["source_extraction_sha256"],
             "legacy_normalized_transaction_count":reference["normalized_transaction_count"],
             "legacy_quarantined_reference_count":reference["quarantined_reference_count"],
