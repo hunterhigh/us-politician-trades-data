@@ -25,6 +25,8 @@ def main() -> int:
     for name in ("evidence-root", "review-root", "main-root", "output-dir"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--code-commit", required=True)
+    parser.add_argument("--keep-parser-inputs", action="store_true",
+                        help="Compare using the parser-safe input profile for saved-observation replay")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="source-scope-", dir=args.output_dir.parent) as folder:
@@ -47,7 +49,8 @@ def main() -> int:
             return {**outputs(target), **{"status/" + k: v for k, v in outputs(status_dir).items()}}
 
         full = run("full")
-        scopes = [apply_scope(args.review_root, "review"), apply_scope(args.evidence_root, "evidence")]
+        scopes = [apply_scope(args.review_root, "review", keep_parser_inputs=args.keep_parser_inputs),
+                  apply_scope(args.evidence_root, "evidence", keep_parser_inputs=args.keep_parser_inputs)]
         scoped = run("scoped")
         if full != scoped:
             differences = sorted(k for k in full.keys() | scoped.keys() if full.get(k) != scoped.get(k))
