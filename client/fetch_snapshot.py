@@ -13,7 +13,7 @@ BACKEND_SRC = PROJECT_ROOT / "backend" / "src"
 if str(BACKEND_SRC) not in sys.path:
     sys.path.insert(0, str(BACKEND_SRC))
 
-from unison_snapshot.legacy import load
+from unison_snapshot.legacy import PROCESSOR_V2_SHA256, load
 from snapshot_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
 
 
@@ -46,7 +46,9 @@ def main() -> int:
         repository = PublicSnapshotRepository(args.owner, args.repo, ref=args.ref,
             transport=HTTPTransport(os.environ.get("GITHUB_TOKEN"), timeout=args.timeout))
         selected = repository.fetch(args.mode, args.value)
-        processed = load("process_snapshot").build_snapshot(selected.snapshot)
+        version = ("v2" if selected.snapshot["meta"].get("processor_sha256")
+                   == PROCESSOR_V2_SHA256 else "v1")
+        processed = load("process_snapshot", version=version).build_snapshot(selected.snapshot)
         processed["meta"]["snapshot_commit"] = selected.commit
         write_atomic(args.output, processed)
     except (PublicSnapshotError, ValueError, OSError) as exc:
