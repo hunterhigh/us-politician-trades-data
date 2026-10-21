@@ -229,7 +229,8 @@ def _native_exhibit_counts(record: dict, audit: dict) -> dict:
                 (page, table) in slots or row.get("source_sha256") != sha or
                 row.get("method") != "embedded_native_pdf_words" or
                 not _SHA.fullmatch(row.get("input_observation_canonical_sha256") or "") or
-                row.get("disposition") not in {"quarantined", "unresolved"}):
+                row.get("disposition") not in ({"quarantined", "unresolved", "qualified", "superseded"}
+                    if audit.get("native_exhibit_application_context") else {"quarantined", "unresolved"})):
             raise ValueError("OGE native replacement receipt repeats or changes a source block")
         slots[page, table] = row
         if row["disposition"] == "quarantined":
@@ -271,6 +272,9 @@ def _native_exhibit_counts(record: dict, audit: dict) -> dict:
         "quarantine_count_unit": "native_replacement_blocks_not_whole_source_unique_rows",
         "observed_replacement_block_count": len(rows),
         "observed_quarantined_replacement_block_count": len(quarantined),
+        **({"observed_applied_replacement_block_count":sum(r.get("disposition")=="qualified" for r in rows),
+            "observed_superseded_replacement_block_count":sum(r.get("disposition")=="superseded" for r in rows)}
+           if audit.get("native_exhibit_application_context") else {}),
         "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
             "unknown_regions": receipt.get("unknown_regions", []),
             "page_count_basis": receipt.get("page_count_basis")}}
@@ -485,6 +489,30 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
 
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                  evidence: Path | None = None) -> None:
+    application_view = None
+    if audit.get("native_exhibit_application_context") is not None:
+        if review is None or evidence is None:
+            raise ValueError("native replacement application requires controlled archive and review roots")
+        from .oge_native_replacements import verify_native_exhibit_context
+        application_view = verify_native_exhibit_context(audit["native_exhibit_application_context"], evidence, review).get(audit["document_id"])
+        if application_view is None or application_view["source_sha256"] not in record["source_versions"]:
+            raise ValueError("native replacement application lacks its source-bound view")
+        for field in ("observation_receipt", "native_exhibit_replacement_applications", "native_exhibit_superseded_transaction_ids"):
+            if audit.get(field) != application_view.get(field):
+                raise ValueError("native replacement qualification differs from current source replay")
+        expected_count = sum(r.get("native_replacement_disposition") != "superseded" for r in application_view["transactions"])
+        expected_count += len(application_view.get("native_exhibit_preserved_target_ids", []))
+        if audit.get("promoted_count") != expected_count or audit.get("quarantined_count") != len(application_view["quarantined"]):
+            raise ValueError("native replacement qualification counts differ from source replay")
+        from .oge_candidate import _identity_key, _person_id, _transaction_projection
+        key = _identity_key(audit["native_exhibit_application_context"]["records"][audit["document_id"]])
+        record["_native_replacement_expected_facts"] = [_transaction_projection(application_view,row,_person_id(key))
+            for row in application_view["transactions"] if row.get("native_replacement_disposition") != "superseded"]
+        record["superseded_transaction_ids"] = sorted(application_view.get("native_exhibit_superseded_transaction_ids", []))
+        record["native_replacement_mappings"] = [{field:item[field] for field in
+            ("effective_prior_transaction_id", "transaction_id", "prior_transaction_id", "amendment_document_id",
+             "amendment_source_sha256", "amendment_filed_at", "application_status")}
+            for item in application_view.get("native_exhibit_replacement_applications", [])]
     receipt = audit.get("observation_receipt")
     native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
@@ -527,6 +555,10 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
     else:
         record["qualification_state"] = "zero_transactions"
     record.update(separate_counts)
+    if application_view is not None and not promoted and not quarantined and (
+            record.get("superseded_transaction_ids") or any(
+                row.get("native_replacement_disposition") == "superseded" for row in application_view["transactions"])):
+        record["qualification_state"] = "superseded"
 
 
 def _unbound_qualification(record: dict, reason: str) -> None:
@@ -844,6 +876,15 @@ def build_oge_status(evidence_root: Path, review_root: Path,
     if set(annual_archives) & (set(archives) | set(catalog_direct)):
         raise ValueError("OGE annual archive is also classified as a direct 278-T report")
     _bind_publication(result, transactions, holdings, direct_annual_ids=frozenset(annual_archives))
+    actual = {row["id"]: row for row in transactions}
+    for scope in result:
+        for record in scope["reports"]:
+            for expected in record.pop("_native_replacement_expected_facts", []):
+                fact = actual.get(expected["id"])
+                if fact is not None and any(fact.get(field) != expected.get(field) for field in set(fact) | set(expected)):
+                    raise ValueError("published native replacement differs from source-qualified formal facts")
+            if set(record.get("superseded_transaction_ids", [])) & set(actual):
+                raise ValueError("superseded native replacement predecessor is still published")
     return result
 
 

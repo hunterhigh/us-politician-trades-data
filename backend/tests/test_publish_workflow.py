@@ -9,11 +9,12 @@ class PublishWorkflowTests(unittest.TestCase):
     def test_complete_publish_checks_sources_and_reads_back_every_frontend_mode(self):
         content = (ROOT / ".github/workflows/publish-complete.yml").read_text(
             encoding="utf-8")
+        content = content.split("  publish:\n", 1)[1]
         projection = content.index("Build canonical disclosure projection from qualified sources")
         frozen_board = content.index("Freeze prior board for both HTML browser checks")
         browser = content.index("Verify complete candidate in the frozen browser frontend")
         readiness = content.index("verify-first-launch")
-        market = content.index("build-alpaca-market-validation")
+        market = content.index("build_cached_candidate.py")
         preflight = content.index("Publish immutable preflight commits")
         readback = content.index("Read back immutable prepared main and market commits")
         publish = content.index("Atomically publish the verified main, market, and tags")
@@ -36,7 +37,7 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("prepared-readback/dashboard.html", content)
         self.assertIn("person_id = 'oge:076544f8ba0638cf'", content)
         self.assertIn("ticker = 'MSFT'", content)
-        self.assertIn('"$MAIN_SHA:refs/heads/main" "$MARKET_SHA:refs/heads/market"',
+        self.assertIn('"$MAIN_SHA:refs/heads/main" "${market_ref[@]}"',
                       content)
         self.assertIn('"refs/tags/published/$MAIN_SHA"', content)
         self.assertIn('"refs/tags/published-market/$MARKET_SHA"', content)
@@ -59,7 +60,7 @@ class PublishWorkflowTests(unittest.TestCase):
         # Environment-level vars are unavailable while a job-level if is evaluated.
         job_header = complete.split("jobs:", 1)[1].split("environment: production", 1)[0]
         self.assertNotIn("COMPLETE_PUBLICATION_ENABLED", job_header)
-        self.assertIn("if: github.ref == 'refs/heads/code'", job_header)
+        self.assertIn("github.ref == 'refs/heads/code'", job_header)
         self.assertIn("--previous-main-root", complete)
         self.assertIn("--previous-market-root", complete)
         self.assertIn('--audit "$RUNNER_TEMP/market-audit.json"', complete)
@@ -75,6 +76,7 @@ class PublishWorkflowTests(unittest.TestCase):
             encoding="utf-8")
         self.assertIn("cache_main_ref", complete)
         self.assertIn("cache_market_ref", complete)
+        complete += (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text()
         self.assertIn("cache_main_root=$cache_main_root", complete)
         self.assertIn("cache_market_root=$cache_market_root", complete)
         self.assertIn("cache_market_commit=$cache_market_ref", complete)
@@ -90,6 +92,7 @@ class PublishWorkflowTests(unittest.TestCase):
             encoding="utf-8")
         self.assertIn("fetch-depth: 1", complete)
         self.assertNotIn("fetch-depth: 0", complete)
+        complete += (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text()
         self.assertIn("git fetch --no-tags --depth=1 origin", complete)
         self.assertIn("review:refs/remotes/origin/review", complete)
         self.assertIn("main:refs/remotes/origin/main", complete)
@@ -107,6 +110,24 @@ class PublishWorkflowTests(unittest.TestCase):
             self.assertIn("cached_accepted_count", content)
             self.assertIn("backlog_count", content)
             self.assertIn("deduplicated_row_count", content)
+
+    def test_market_requests_do_not_hold_publication_lock_and_publish_reloads_sources(self):
+        content = (ROOT / ".github/workflows/publish-complete.yml").read_text(encoding="utf-8")
+        header, jobs = content.split("jobs:", 1)
+        refresh, publish = jobs.split("  publish:\n", 1)
+        self.assertNotIn("concurrency:", header)
+        self.assertNotIn("group: publish-snapshot", refresh)
+        self.assertIn("group: publish-snapshot", publish)
+        self.assertIn("build-alpaca-market-validation", refresh)
+        self.assertIn("build-twelve-data-supplement", refresh)
+        self.assertNotIn("build-alpaca-market-validation", publish)
+        self.assertNotIn("build-twelve-data-supplement", publish)
+        self.assertIn("needs.refresh.result == 'skipped'", publish)
+        self.assertLess(publish.index("Prepare fixed source"), publish.index("build-disclosure-candidate"))
+        self.assertLess(publish.index("build-disclosure-candidate"), publish.index("build_cached_candidate.py"))
+        self.assertIn("market_ref=()", publish)
+        self.assertIn('market_ref=("$MARKET_SHA:refs/heads/market")', publish)
+        self.assertIn("vendor requests: 0", publish)
 
     def test_rollback_dry_run_verifies_prepared_tree_without_moving_refs(self):
         content = (ROOT / ".github/workflows/rollback.yml").read_text(encoding="utf-8")

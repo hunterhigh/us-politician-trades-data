@@ -495,6 +495,22 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if not isinstance(run_id, str) or not run_id.strip():
         raise OgeCatalogError("OGE 278-T adapter requires a run ID")
     collapse_direct_catalog_records([catalog_record])
+    context = extraction.get("native_exhibit_application_context")
+    replay = extraction.get("native_exhibit_application_replay")
+    if context is not None:
+        from .oge_native_replacements import prepare_native_exhibit_applications
+        expected = prepare_native_exhibit_applications(context["extractions"], context["records"],
+            context["saved_inputs"], context["prior_formal_transactions"],
+            context.get("data_cutoff_at")).get(extraction["document_id"])
+        if expected != extraction:
+            raise OgeCatalogError("native replacement graph differs from source replay")
+    elif replay is not None:
+        from .oge_reports import materialize_saved_oge_278t_exhibits
+        if not isinstance(replay, dict) or replay.get("schema_version") != "oge-native-exhibit-application-replay/v1":
+            raise OgeCatalogError("native replacement application replay is invalid")
+        expected = materialize_saved_oge_278t_exhibits(replay["original_extraction"], catalog_record, **replay["inputs"])
+        if expected != extraction:
+            raise OgeCatalogError("native replacement application differs from source replay")
     source_sha = extraction.get("source_sha256")
     if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T adapter requires the archived source hash")
@@ -506,7 +522,12 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             any(not isinstance(row, dict) for row in formal_reference_facts)):
         raise OgeCatalogError("formal scope binding facts must be an array of objects")
     if scoped:
-        validate_generic_table_interpretation(extraction)
+        if context is not None:
+            source_view = next(row for row in context["extractions"]
+                               if row["document_id"] == extraction["document_id"])
+            validate_generic_table_interpretation(source_view)
+        else:
+            validate_generic_table_interpretation(extraction)
         if formal_reference_facts is not None:
             from .oge_candidate import _inherit_generic_legacy
             # Source interpretation is verified before applying the separate
@@ -541,7 +562,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         report_reasons.append("cover_date_evidence_invalid")
     if catalog_record.get("pending_final_oge_disposition") is True:
         report_reasons.append("pending_final_oge_disposition")
-    if catalog_record.get("amended_label"):
+    if catalog_record.get("amended_label") and extraction.get("replacement_application_mode") != "verified_amount_only/v1":
         report_reasons.append("amendment_relationship_unresolved")
     filed_at = extraction.get("filed_at")
     try:
@@ -564,9 +585,11 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if not isinstance(parser_version, str) or not parser_version:
         raise OgeCatalogError("OGE 278-T adapter requires a parser version")
     layout = hashlib.sha256(b"oge-278t-six-column-table/v1").hexdigest()
+    rules_version = "oge-278t-row-qualification/v2-native-amount-only" if (
+        context is not None or extraction.get("replacement_application_mode") is not None) else RULES_VERSION
     idempotency = idempotency_key(
         source_id="oge", source_sha256=source_sha, parser_id=PARSER_ID,
-        parser_version=parser_version, rules_version=RULES_VERSION,
+        parser_version=parser_version, rules_version=rules_version,
         layout_fingerprint=layout)
     output_rows = []
     accounted = {"qualified": 0, "quarantined": 0, "excluded": 0, "unrecognized": 0}
@@ -603,6 +626,21 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 raise OgeCatalogError("OGE visual source row recovery differs from parser disposition")
             reasons.extend(parser_reasons)
             normalized = parser_row
+            if normalized.get("native_replacement_disposition") == "superseded":
+                if context is None:
+                    raise OgeCatalogError("native superseded source row lacks its source graph")
+                disposition = "excluded"
+                reasons.append("superseded_by_verified_native_amount_only_replacement")
+            native_ref = normalized.get("native_exhibit_reference", {})
+            if "transaction_date_interpretation" in native_ref:
+                from .oge_reports import _native_exhibit_period_date
+                expected_date = _native_exhibit_period_date(raw_cells[3],
+                    extraction.get("observation_receipt", {}).get("amendment_context"),
+                    native_ref.get("replacement_relation", {}))
+                if (expected_date is None or native_ref["transaction_date_interpretation"] != expected_date or
+                        normalized.get("transaction_date") != expected_date["normalized_value"] or
+                        raw.get("native_exhibit_reference") != native_ref):
+                    raise OgeCatalogError("native exhibit transaction date differs from source period interpretation")
             if disposition == "qualified":
                 transaction_day = normalized.get("transaction_date")
                 try:
@@ -692,7 +730,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "source": {"source_id": "oge", "document_id": extraction["document_id"],
                        "source_url": extraction["source_url"], "source_sha256": source_sha},
             "parser": {"parser_id": PARSER_ID, "parser_version": parser_version,
-                       "rules_version": RULES_VERSION, "layout_fingerprint": layout},
+                       "rules_version": rules_version, "layout_fingerprint": layout},
             "idempotency_key": idempotency,
             "disposition": disposition,
             "reasons": reasons,
@@ -719,7 +757,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             "source_sha256": source_sha,
             "parser_id": PARSER_ID,
             "parser_version": parser_version,
-            "rules_version": RULES_VERSION,
+            "rules_version": rules_version,
             "layout_fingerprint": layout,
             "idempotency_key": idempotency,
             "row_count": len(source_rows),

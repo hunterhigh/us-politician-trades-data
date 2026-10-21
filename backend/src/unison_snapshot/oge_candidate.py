@@ -343,6 +343,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     seen_extractions: set[str] = set()
     seen_document_ids: set[str] = set()
     promoted_ids: set[str] = set()
+    from .oge_native_replacements import prepare_native_exhibit_applications
+    native_views = prepare_native_exhibit_applications(extractions, direct_by_id, exhibits,
+        base.get("transactions", []), data_cutoff_at)
     for extraction in sorted(extractions, key=lambda row: str(row.get("document_id"))):
         document_id = extraction.get("document_id")
         if not isinstance(document_id, str) or document_id in seen_document_ids:
@@ -354,7 +357,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             from .oge_reports import validate_generic_table_interpretation
             validate_generic_table_interpretation(extraction)
         observed = document_id in saved or document_id in exhibits
-        retained = [row for row in base.get("transactions", []) if (generic or document_id in exhibits or observed and "source_rows" not in extraction) and
+        retained = [row for row in base.get("transactions", []) if (generic or document_id in exhibits or
+                    document_id in native_views and native_views[document_id].get("native_exhibit_preserved_target_ids") or
+                    observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
                     and row.get("verification_status") == "official_matched"]
         if any(row.get("source_url") != extraction.get("source_url") for row in retained):
@@ -362,6 +367,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         inheritance = None
         if generic and record is not None:
             extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record)
+        if document_id in native_views:
+            extraction = native_views[document_id]
         legacy_reference_rows = {}
         if observed:
             from .oge_transaction_adapter import materialize_oge_278t_observations, _validated_legacy_reference
@@ -370,8 +377,15 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     formal_reference_ids=[row["id"] for row in retained], **saved[document_id])
             else:
                 from .oge_reports import materialize_saved_oge_278t_exhibits
-                extraction = materialize_saved_oge_278t_exhibits(extraction,record,
-                    formal_reference_ids=[row["id"] for row in retained],**exhibits[document_id])
+                if "prior_formal_transactions" in exhibits[document_id]:
+                    raise OgeCatalogError("native replacement formal facts must come from the current base")
+                if document_id not in native_views:
+                    extraction = materialize_saved_oge_278t_exhibits(extraction,record,
+                        formal_reference_ids=[row["id"] for row in retained],
+                        prior_formal_transactions=base.get("transactions", []), **exhibits[document_id])
+                if extraction.get("replacement_application_mode") is not None:
+                    from .oge_transaction_adapter import adapt_oge_278t_extraction
+                    adapt_oge_278t_extraction(extraction, record)
             reference = _validated_legacy_reference(extraction, record)
             if reference is not None:
                 original = reference["source_extraction"]
@@ -416,7 +430,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             reasons.append("cover_date_evidence_invalid")
         if record is not None and record.get("pending_final_oge_disposition") is True:
             reasons.append("pending_final_oge_disposition")
-        if record is not None and record.get("amended_label"):
+        if record is not None and record.get("amended_label") and extraction.get("replacement_application_mode") != "verified_amount_only/v1":
             reasons.append("amendment_relationship_unresolved")
         key = _identity_key(record) if record is not None else None
         if key is not None and len(identity_variants.get(key[0], set())) != 1:
@@ -444,6 +458,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if row.get("native_replacement_disposition") == "superseded":
+                retained_by_id.pop(extraction_id, None)
+                continue
             if legacy_reference_rows.get(extraction_id) == row:
                 if extraction_id in retained_by_id:
                     transactions.append(deepcopy(retained_by_id.pop(extraction_id)))
@@ -523,7 +540,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             if fact_id in promoted_ids:
                 raise OgeCatalogError("OGE candidate duplicates a promoted transaction ID")
             promoted_ids.add(fact_id)
-            transactions.append(_transaction_projection(extraction, row, person_id))
+            fact = _transaction_projection(extraction, row, person_id)
+            if row.get("native_exhibit_reference", {}).get("replacement_application") and fact_id in retained_by_id:
+                prior_fact = retained_by_id.pop(fact_id)
+                if any(prior_fact.get(key) != fact.get(key) for key in set(prior_fact) | set(fact)):
+                    raise OgeCatalogError("existing native replacement differs from current source facts")
+                fact = deepcopy(prior_fact)
+            transactions.append(fact)
             report_promoted += 1
         for fact in retained_by_id.values():
             if fact["id"] in promoted_ids:
@@ -546,6 +569,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             **({"source_sha256": extraction["source_sha256"],
                 "observation_receipt": extraction["observation_receipt"]}
                if observed else {}),
+            **({"native_exhibit_application_replay": extraction["native_exhibit_application_replay"]}
+               if "native_exhibit_application_replay" in extraction else {}),
+            **({field: extraction[field] for field in ("native_exhibit_application_context",
+                 "native_exhibit_replacement_applications", "native_exhibit_superseded_transaction_ids") if field in extraction}
+               if "native_exhibit_application_context" in extraction else {}),
+            **({"source_sha256": extraction["source_sha256"]} if "native_exhibit_application_context" in extraction else {}),
             **({"legacy_normalized_reference_count": extraction["legacy_disposition_reference"]["normalized_transaction_count"],
                 "legacy_quarantined_reference_count": extraction["legacy_disposition_reference"]["quarantined_reference_count"],
                 "quarantine_count_unit": "observed_slots_not_whole_source_unique_rows",
@@ -565,13 +594,32 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
 
     if seen_document_ids != set(direct_by_id):
         raise OgeCatalogError("OGE candidate extractions do not close over direct report history")
+    replacement_redirects = _apply_native_exhibit_replacements(transactions, audit_reports, base)
 
     candidate = deepcopy(base)
     candidate["meta"]["data_cutoff_at"] = data_cutoff_at
     candidate["meta"]["subtitle"] = "OGE 真实 278-T 候选数据；申请型文件和异常记录保持隔离"
     candidate["people"] = [people[key] for key in sorted(people)]
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
+    for relation in candidate["meta"].get("transaction_disclosure_relations", []):
+        replaced = []
+        for identifier in relation.get("possible_ptr_transaction_ids", []):
+            seen = set()
+            while identifier in replacement_redirects:
+                if identifier in seen:
+                    raise OgeCatalogError("native replacement reference cycle")
+                seen.add(identifier)
+                identifier = replacement_redirects[identifier]
+            replaced.append(identifier)
+        relation["possible_ptr_transaction_ids"] = sorted(set(replaced))
     candidate["reported_holdings"] = []
+    candidate["meta"].pop("holding_report_coverage", None)
+    output_ids = {row["id"] for row in candidate["transactions"]}
+    relations = [row for row in candidate["meta"].get("transaction_disclosure_relations", [])
+                 if row.get("transaction_id") in output_ids]
+    candidate["meta"].pop("transaction_disclosure_relations", None)
+    if relations:
+        candidate["meta"]["transaction_disclosure_relations"] = relations
     candidate["security_market_data"] = []
     health = {
         "source_id": "oge",
@@ -612,3 +660,26 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "reports": audit_reports,
     }
     return candidate, audit
+
+def _apply_native_exhibit_replacements(transactions: list[dict], reports: list[dict], base: dict) -> dict:
+    """Retire only proven formal predecessors; mappings never become extra facts."""
+    facts={row['id']:row for row in transactions};redirects={}
+    for report in reports:
+        for application in report.get('native_exhibit_replacement_applications',[]):
+            old=application['effective_prior_transaction_id'];new=application['transaction_id']
+            if old in redirects and redirects[old]!=new:
+                raise OgeCatalogError('native replacement predecessor has conflicting successors')
+            redirects[old]=new
+            prior=facts.get(old)
+            if old==application['prior_transaction_id'] and prior is not None and any(
+                    prior.get(key)!=application['prior_fact'].get(key) for key in set(prior)|set(application['prior_fact'])):
+                raise OgeCatalogError('native replacement current predecessor differs from exact source facts')
+    for old in redirects:
+        node=old;seen=set()
+        while node in redirects:
+            if node in seen:raise OgeCatalogError('native replacement cycle')
+            seen.add(node);node=redirects[node]
+        if node not in facts:raise OgeCatalogError('native replacement successor did not pass current candidate qualification')
+        facts.pop(old,None)
+    transactions[:]=list(facts.values())
+    return redirects

@@ -422,6 +422,7 @@ jobs:
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
           PYTHONPATH=backend/src python backend/scripts/overlay_whitehouse_annual_candidate.py \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true

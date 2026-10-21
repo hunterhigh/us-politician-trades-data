@@ -139,6 +139,7 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     native_account_pending = 0
     native_account_unassessed_reports = 0
     revision_inputs = []
+    revision_sources = []
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -199,6 +200,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 rows = derived
         if qualification.get("revision_observations") and extraction_path.is_file():
             revision_inputs.append((qualification, extraction_path))
+        if extraction_path.is_file():
+            revision_sources.append((qualification, extraction))
         person_id = identity.get("person_id")
         if rows:
             if not isinstance(person_id, str):
@@ -294,6 +297,18 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     if len(transactions) != summary.get("qualified_transaction_count") or \
             quarantined_count != summary.get("quarantined_row_count"):
         raise HouseIndexError("House qualification row counts do not match their summary")
+    from .house_ptr import resolve_automatic_revisions
+    revision_resolution = resolve_automatic_revisions(revision_sources, transactions,
+                                                     prior_transactions=base.get("transactions", []))
+    transactions = revision_resolution["transactions"]
+    quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(
+        str(q.get("document_id")), q)["quarantined"]) for q, _ in revision_sources)
+    for row in transactions:
+        if row["person_id"] not in identities:
+            identity = next((identity for identity in revision_resolution["identities"].values()
+                             if identity.get("person_id") == row["person_id"]), None)
+            if identity:
+                identities[row["person_id"]] = {field: identity.get(field) for field in PERSON_FIELDS}
     if len(state_status.get("counts", {})) == 0 or state_status.get("status") != "ok":
         raise HouseIndexError("House source state is not healthy enough to build a candidate")
     if state_status.get("counts", {}).get("archived") != summary.get("evidence_count"):
@@ -316,7 +331,8 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
     from .house_ptr import revision_reference_dispositions
     revision_dispositions = [item for qualification, path in revision_inputs for item in
-        revision_reference_dispositions(qualification, _read_json(path, "House revision source"), candidate["transactions"])]
+        revision_resolution["dispositions"].get(str(qualification["document_id"]),
+            revision_reference_dispositions(qualification, _read_json(path, "House revision source"), candidate["transactions"]))]
     if len({row.get("id") for row in holdings}) != len(holdings):
         raise HouseIndexError("Qualified House holding IDs are missing or duplicated")
     candidate["reported_holdings"] = sorted(holdings, key=lambda row: row["id"])
@@ -348,7 +364,9 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                       if holding_summary else ".")),
     }
     if revision_dispositions:
-        house_health["detail"] += f"; {len(revision_dispositions)} official amendment references await source-bound predecessors"
+        applied = sum(r.get("action") == "replace_prior" for r in revision_dispositions)
+        house_health["detail"] += (f"; {applied} source-bound amendments applied; "
+                                   f"{len(revision_dispositions)-applied} official amendment references await source-bound predecessors")
     if native_account_pending:
         house_health["detail"] += f"; {native_account_pending} native account titles await saved source-word evidence; existing facts retained"
     if native_account_unassessed_reports:
@@ -382,7 +400,16 @@ def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             inputs.append(payload)
     existing_b = [r for r in base.get("transactions", [])
                   if r.get("source_id") == "house_clerk" and str(r.get("id", "")).startswith("house-annual-b:")]
-    base_relations = base.get("meta", {}).get("transaction_disclosure_relations", [])
+    base_relations = deepcopy(base.get("meta", {}).get("transaction_disclosure_relations", []))
+    redirects = {r["prior_transaction_id"]: r["transaction_id"] for r in revision_resolution["replacements"]}
+    for relation in base_relations:
+        values = relation.get("possible_ptr_transaction_ids", [])
+        replaced = []
+        for value in values:
+            while value in redirects:
+                value = redirects[value]
+            replaced.append(value)
+        relation["possible_ptr_transaction_ids"] = sorted(set(replaced))
     annual_audit = consume_schedule_b_inputs(inputs, transactions=candidate["transactions"],
         reported_holdings=candidate["reported_holdings"], existing_annual_transactions=existing_b,
         existing_relations=base_relations,data_cutoff_at=cutoff)

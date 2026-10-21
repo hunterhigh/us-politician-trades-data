@@ -39,8 +39,13 @@ class MarketStoreTests(unittest.TestCase):
         twelve_audit = {"state": {
             "schema_version": "twelve-data-market-state/v1",
             "updated_at": "2026-09-20T00:00:00Z",
+            "next_work_kind": "new",
             "entries": {"FUNDX": {"status": "accepted",
                                     "checked_at": "2026-09-20T00:00:00Z",
+                                    "last_attempt_at": "2026-09-20T00:00:00Z",
+                                    "history_start_date": "2026-09-01",
+                                    "history_end_date": "2026-09-19",
+                                    "full_refreshed_at": "2026-09-20T00:00:00Z",
                                     "fingerprint": "a" * 64}},
         }}
         with tempfile.TemporaryDirectory() as temporary:
@@ -60,6 +65,7 @@ class MarketStoreTests(unittest.TestCase):
             self.assertEqual(cache.rows["FUNDX"]["source_id"],
                              "twelve_data_split_adjusted_eod")
             self.assertEqual(cache.state["entries"]["FUNDX"]["status"], "accepted")
+            self.assertEqual(cache.state, twelve_audit["state"])
 
     def test_published_cache_requires_matching_pointer_and_valid_shard_hash(self):
         audit = {

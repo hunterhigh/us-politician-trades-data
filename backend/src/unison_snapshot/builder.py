@@ -9,7 +9,7 @@ import re
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
-from .legacy import PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256, load
+from .legacy import PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256, load, processor_version_for
 from .disclosure_amounts import POLICY as AMOUNT_POLICY, is_open_amount, validate_amount
 from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
                            SOURCE_ID as MARKET_SOURCE_ID, TWELVE_DATA_SOURCE_ID,
@@ -63,7 +63,11 @@ def normalize(payload: dict, *, allow_production: bool = False,
               allow_market: bool = False) -> dict:
     if not isinstance(payload, dict) or not isinstance(payload.get("meta"), dict):
         raise ValueError("Snapshot input must be an object with meta")
-    data = deepcopy(payload)
+    # Market normalization creates new rows and price points below. Copying the
+    # entire history here would immediately throw away millions of copied points.
+    data = deepcopy({key: value for key, value in payload.items() if key != "security_market_data"})
+    market_rows = payload.get("security_market_data")
+    data["security_market_data"] = list(market_rows) if isinstance(market_rows, list) else market_rows
     demo = data.get("meta", {}).get("is_demo")
     if type(demo) is not bool:
         raise ValueError("meta.is_demo must be an explicit boolean")
@@ -256,7 +260,8 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
           max_board_bytes: int = 24 * 1024 * 1024, allow_production: bool = False,
           allow_empty_production: bool = False, allow_market: bool = False,
           market_commit: str | None = None,
-          market_pages: tuple[str, ...] | list[str] | None = None) -> Bundle:
+          market_pages: tuple[str, ...] | list[str] | None = None,
+          validate_consumer: bool = True) -> Bundle:
     data = normalize(payload, allow_production=allow_production,
                      allow_empty_production=allow_empty_production,
                      allow_market=allow_market)
@@ -265,13 +270,11 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     # The v2 consumer carries current price-history semantics for every
     # snapshot, including Alpaca-only production data. Keep processor routing
     # independent from coverage validation, which still reflects market rows.
-    processor_version = "v2"
-    processor_sha = PROCESSOR_V2_SHA256
+    processor_version = processor_version_for(data)
+    processor_sha = PROCESSOR_V3_SHA256 if processor_version == "v3" else PROCESSOR_V2_SHA256
     has_open = any(is_open_amount(row, prefix)
                    for kind, prefix in (("transactions", "amount"), ("reported_holdings", "value"))
                    for row in data[kind])
-    if has_open or "holding_report_coverage" in data["meta"] or 'transaction_disclosure_relations' in data['meta']:
-        processor_version, processor_sha = "v3", PROCESSOR_V3_SHA256
     if allow_market:
         if not re.fullmatch(r"[0-9a-f]{40}", str(market_commit or "")):
             raise ValueError("Licensed market publication requires a frozen market commit")
@@ -312,8 +315,17 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 or item["ticker"] in unsupported:
                 raise ValueError("Market coverage contains an invalid unsupported ticker")
             unsupported.add(item["ticker"])
-        if unsupported & market_tickers or disclosed_tickers != market_tickers | unsupported:
-            classified = market_tickers | unsupported
+        pending = market_coverage.get("pending_tickers", [])
+        cached = market_coverage.get("price_scope") == "published_cache"
+        if not isinstance(pending, list) or any(not isinstance(item, str) for item in pending) \
+                or pending != sorted(set(pending)) or (pending and not cached):
+            raise ValueError("Pending market tickers require an explicit cached publication")
+        pending = set(pending)
+        classified = market_tickers | unsupported | pending
+        if unsupported & market_tickers or pending & (market_tickers | unsupported) \
+                or (unsupported | pending) - disclosed_tickers \
+                or disclosed_tickers - classified \
+                or (not cached and classified != disclosed_tickers):
             raise ValueError(
                 "Market coverage must classify every disclosed ticker exactly once: "
                 f"missing={sorted(disclosed_tickers - classified)[:10]}, "
@@ -322,9 +334,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
             )
     elif market_commit is not None or market_pages is not None:
         raise ValueError("market commit and pages require licensed market publication")
-    candidate = deepcopy(data)
-    candidate["meta"].update(snapshot_id="prepublication-validation", generated_at=generated_at)
-    load("process_snapshot", version=processor_version).build_snapshot(candidate)
+    if validate_consumer:
+        candidate = dict(data, meta=dict(data["meta"], snapshot_id="prepublication-validation",
+                                         generated_at=generated_at))
+        load("process_snapshot", version=processor_version).build_snapshot(candidate)
     if timestamp(generated_at) < timestamp(data["meta"]["data_cutoff_at"]):
         raise ValueError("Generation precedes data cutoff")
     files: dict[str, bytes] = {}
@@ -355,9 +368,16 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         board["security_market_data"] = []
     board_sha = blob("board", board)
     market_tickers = {row["ticker"] for row in data["security_market_data"]}
+    by_person = {kind: {} for kind in ("transactions", "reported_holdings")}
+    by_ticker = {kind: {} for kind in by_person}
+    for kind in by_person:
+        for row in data[kind]:
+            by_person[kind].setdefault(row["person_id"], []).append(row)
+            if row.get("ticker"):
+                by_ticker[kind].setdefault(row["ticker"], []).append(row)
+    person_order = {person["id"]: i for i, person in enumerate(data["people"])}
     for person in data["people"]:
-        rows = {kind: [row for row in data[kind] if row["person_id"] == person["id"]]
-                for kind in ("transactions", "reported_holdings")}
+        rows = {kind: groups.get(person["id"], []) for kind, groups in by_person.items()}
         required_market = sorted({row["ticker"] for records in rows.values() for row in records
                                   if row.get("ticker") in market_tickers})
         entity("people", person["id"], {"person": person, **rows,
@@ -366,10 +386,10 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
     tickers = sorted({row["ticker"] for kind in ("transactions", "reported_holdings")
                       for row in data[kind] if row.get("ticker")})
     for ticker in tickers:
-        rows = {kind: [row for row in data[kind] if row.get("ticker") == ticker]
-                for kind in ("transactions", "reported_holdings")}
+        rows = {kind: groups.get(ticker, []) for kind, groups in by_ticker.items()}
         ids = {row["person_id"] for records in rows.values() for row in records}
-        entity("tickers", ticker, {**rows, "people": [p for p in data["people"] if p["id"] in ids],
+        entity("tickers", ticker, {**rows, "people": [data["people"][i] for i in
+                                                       sorted(person_order[key] for key in ids)],
                                    **relation_fields(rows['transactions']),
                                    "requires": [f"market:{ticker}"] if ticker in market_tickers else []})
     for path, shards in sorted(indexes.items()):
@@ -386,9 +406,9 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 "publication_state": "bootstrap_empty" if not data["people"] else "active"}
     if allow_market:
         coverage.update(market_ticker_count=len(market_tickers),
-                        market_missing_ticker_count=0,
+                        market_missing_ticker_count=len(pending),
                         market_unsupported_ticker_count=len(unsupported),
-                        market_supported_complete=True,
+                        market_supported_complete=not pending,
                         market_coverage_sha256=digest(encode(market_coverage)))
     identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": processor_sha, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
