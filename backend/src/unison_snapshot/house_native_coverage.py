@@ -188,6 +188,11 @@ def _table_page(page, geometry, rows, *, number, all_pages):
             elif any(not (_in(w,[cells[2][0],header_bottom,cells[2][2],bands[-1][1]]) or
                           _in(w,[cells[6][0],header_bottom,cells[6][2],bands[-1][1]])) for w in line):
                 return None
+    # Padding is an acceptance tolerance, never permission to count one
+    # source word in two adjacent physical bands. Coverage needs a partition.
+    memberships={id(w):sum(_in(w,[left,t,right,z]) for t,z in bands) for w in body}
+    if any(count!=1 for count in memberships.values()):
+        return None
     slots=[];mapping={};assigned=set();band_owners=[]
     for band_index,(top,bottom) in enumerate(bands,1):
         band_words=[w for w in body if _in(w,[left,top,right,bottom])]

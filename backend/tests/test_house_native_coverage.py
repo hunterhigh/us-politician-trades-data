@@ -197,6 +197,17 @@ class NativeCoverageTests(unittest.TestCase):
         g["curves"] += [[100,419.8,110,420.2],[100,410,110,430]]
         self.assertIsNone(_split_closing_region(page,g))
 
+    def test_padding_cannot_assign_one_word_to_adjacent_bands_twice(self):
+        from unison_snapshot.house_native_coverage import _in
+        source=template()
+        crossing={**word("Continuation",110,351.6),"x1":160,"bottom":352.4}
+        self.assertTrue(_in(crossing,[22,318,576,352]))
+        self.assertTrue(_in(crossing,[22,352,576,386]))
+        source[0]["words"].append(crossing)
+        x=self.parse(source)
+        self.assertEqual(x["source_report_ledger"]["pages"][0]["coverage"],"unknown")
+        self.assertEqual(x["source_report_ledger"]["relation_coverage"],"partial_unknown")
+
     def test_line_producer_and_unclassified_line_frames_fail_closed(self):
         class FakePage:
             width=612; height=792
