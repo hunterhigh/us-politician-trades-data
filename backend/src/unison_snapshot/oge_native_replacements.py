@@ -213,13 +213,25 @@ def reconcile_annual_ptr_references(candidate,review_root,evidence_root=None):
     """Redirect only verified replacement references in already retained annual metadata."""
     review=Path(review_root)
     audit_path=review/'oge/qualifications/current.json'
-    if not audit_path.is_file():return candidate,{'replacements':[]}
-    audit=json.loads(audit_path.read_text(encoding='utf-8'))
+    audit=json.loads(audit_path.read_text(encoding='utf-8')) if audit_path.is_file() else {}
+    wh_path=review/'whitehouse/qualifications/candidate-current.json'
+    wh_audit=json.loads(wh_path.read_text(encoding='utf-8')) if wh_path.is_file() else {}
+    cross_proof=wh_audit.get('native_cross_source_applications')
     reports=audit.get('reports',[]);contexts=[r.get('native_exhibit_application_context') for r in reports
                                             if r.get('native_exhibit_application_context')]
-    if not contexts:return candidate,{'replacements':[]}
+    if not contexts and not cross_proof:return candidate,{'replacements':[]}
     if evidence_root is None:raise ValueError('native annual reference reconciliation requires controlled evidence root')
-    redirects={};proof=[];seen_contexts=set()
+    redirects={};proof=[];seen_contexts=set();seen_proof=set()
+    def add_application(item):
+        old=item['effective_prior_transaction_id'];new=item['transaction_id']
+        if old in redirects and redirects[old]!=new:
+            raise ValueError('native replacement reference has conflicting successors')
+        redirects[old]=new
+        entry={key:item[key] for key in ('effective_prior_transaction_id','transaction_id',
+            'amendment_document_id','amendment_source_sha256','application_status')}
+        fingerprint=json.dumps(entry,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+        if fingerprint not in seen_proof:
+            seen_proof.add(fingerprint);proof.append(entry)
     for context in contexts:
         fingerprint=json.dumps(context,ensure_ascii=False,sort_keys=True,separators=(',',':'))
         if fingerprint in seen_contexts:continue
@@ -240,13 +252,27 @@ def reconcile_annual_ptr_references(candidate,review_root,evidence_root=None):
             if report.get('promoted_count')!=expected or report.get('quarantined_count')!=len(view['quarantined']):
                 raise ValueError('native replacement audit counts differ from its source replay')
             for item in view.get('native_exhibit_replacement_applications',[]):
-                old=item['effective_prior_transaction_id'];new=item['transaction_id']
-                if old in redirects and redirects[old]!=new:
-                    raise ValueError('native replacement reference has conflicting successors')
-                redirects[old]=new
-                proof.append({key:item[key] for key in ('effective_prior_transaction_id','transaction_id',
-                    'amendment_document_id','amendment_source_sha256','application_status')})
+                add_application(item)
+    cross_applications=[]
+    if cross_proof:
+        from .oge_cross_source_replacements import verify_cross_source_native_applications
+        _,verified=verify_cross_source_native_applications(cross_proof,evidence_root,review)
+        cross_applications=verified['applications']
+        for item in cross_applications:add_application(item)
+    def final_identifier(identifier):
+        seen=set()
+        while identifier in redirects:
+            if identifier in seen:raise ValueError('native replacement reference cycle')
+            seen.add(identifier);identifier=redirects[identifier]
+        return identifier
+    # Validate the whole combined graph, including currently unreferenced edges.
+    for identifier in redirects:final_identifier(identifier)
     result=deepcopy(candidate);facts={r['id']:r for r in result['transactions']}
+    for item in cross_applications:
+        target=facts.get(final_identifier(item['transaction_id']))
+        prior=item.get('prior_fact',{})
+        if target is None or target.get('person_id')!=prior.get('person_id') or not target.get('person_id'):
+            raise ValueError('verified cross-source replacement has no current same-person fact')
     for relation in result['meta'].get('transaction_disclosure_relations',[]):
         values=[];annual=facts.get(relation['transaction_id'])
         for identifier in relation.get('possible_ptr_transaction_ids',[]):
