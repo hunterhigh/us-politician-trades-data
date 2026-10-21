@@ -1287,6 +1287,12 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
         raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
     dual=geometry_mode==DUAL_AXIS_MODE
+    word_mode=inputs.get("word_observation_mode")
+    if word_mode not in (None,"source_objects_with_ocr_header/v1") or word_mode and not dual:
+        raise OgeCatalogError("source word observations require explicit dual-axis mode")
+    observation_dpi=inputs.get("observation_resolution_dpi",200)
+    if type(observation_dpi) is not int or not 150 <= observation_dpi <= 400:
+        raise OgeCatalogError("saved observation resolution is invalid")
     from .oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
     source_glyph_mode = inputs.get("source_glyph_mode")
     if source_glyph_mode not in (None, SOURCE_GLYPH_MODE) or source_glyph_mode and not dual:
@@ -1328,6 +1334,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         raise OgeCatalogError("White House observed input needs an explicit cover and selected page range")
     selected = [deepcopy(page) for page in pages if page["page_number"] in numbers]
     ocr = {}
+    source_word_provenance=[]
     for page in selected:
         width, height, words = page.get("width"), page.get("height"), page.get("words")
         if (any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in (width,height)) or not isinstance(words,list)):
@@ -1336,8 +1343,21 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
             if (not isinstance(word,dict) or not isinstance(word.get("text"),str) or
                     any(type(word.get(k)) not in (int,float) or not math.isfinite(word[k]) for k in ("x0","x1","top","bottom","ocr_confidence")) or
                     not 0 <= word["x0"] < word["x1"] <= width or not 0 <= word["top"] < word["bottom"] <= height or
-                    any(type(word.get(k)) is not int for k in ("block_num","par_num","line_num"))):
+                    (not (word_mode and page["page_number"] != 1 and "source_object_index" in word) and
+                     any(type(word.get(k)) is not int for k in ("block_num","par_num","line_num")))):
                 raise OgeCatalogError("White House saved word geometry or line reference is invalid")
+        if word_mode and any("source_object_index" in word for word in words):
+            if page["page_number"] == 1 or not inputs.get("archived_pdf_path"):
+                raise OgeCatalogError("native saved words require an original table page")
+            from .pdf_text_object_words import validate_saved_native_words
+            try:
+                source_word_provenance.append(validate_saved_native_words(
+                    _saved_source_path(inputs["archived_pdf_path"],evidence=True),
+                    expected_sha256=sha,page_number=page["page_number"],words=words))
+            except ValueError as exc:
+                raise OgeCatalogError(str(exc)) from exc
+            if page.get("render_frame",{}).get("resolution") != observation_dpi:
+                raise OgeCatalogError("native saved word render resolution differs")
         ocr[page["page_number"]] = OcrPage(width=width,height=height,words=words,render_frame=page.get("render_frame"))
     secondary_observations = None
     if any(key in inputs for key in ("secondary_observations_path","secondary_observations_sha256")):
@@ -1407,6 +1427,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
             try:
                 observations = observe_raster_slots(Path(pdf),expected_sha256=sha,page_numbers=table_numbers,
                       saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],
+                      resolution=observation_dpi,
                       **({"allow_partial_rows":True} if allow_partial_rows else {}),
                       **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
                       **({"native_baseline_mode":inputs["native_baseline_mode"]} if "native_baseline_mode" in inputs else {}))
@@ -1513,6 +1534,9 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         reasons.append("observed_table_geometry_unknown")
     if source_glyph_mode:
         receipt["source_glyph_mode"] = source_glyph_mode
+    if word_mode:
+        receipt.update(word_observation_mode=word_mode,source_word_page_provenance=source_word_provenance,
+                       observation_resolution_dpi=observation_dpi)
     if metadata.get("amended_label") or dates["amendment_cover"]:
         reasons.append("amendment_relationship_unresolved")
     result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":DUAL_AXIS_PARSER_VERSION if dual else SAVED_OCR_PARSER_VERSION,"source_id":"oge",

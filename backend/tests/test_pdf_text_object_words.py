@@ -6,11 +6,29 @@ from contextlib import closing
 
 import pypdfium2 as pdfium
 
-from unison_snapshot.pdf_text_object_words import observe_pdf_text_objects, TextObjectWordPage
+from unison_snapshot.pdf_text_object_words import observe_pdf_text_objects, TextObjectWordPage, validate_saved_native_words
+from unison_snapshot.ocr_geometry import OcrPage, OcrGeometryError
+from copy import deepcopy
 from test_pdf_text_objects import source_pdf
 
 
 class SourceTextObjectWordsTests(unittest.TestCase):
+    def test_saved_native_records_require_exact_original_without_invented_lines(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.pdf"; sha = source_pdf(path)
+            words = observe_pdf_text_objects(path, expected_sha256=sha, page_number=1)["words"]
+            receipt = validate_saved_native_words(path, expected_sha256=sha, page_number=1, words=words)
+            self.assertEqual(receipt["native_word_count"], 1)
+            for key, value in (("text", "OTHER"), ("x0", 0), ("source_object_index", 999),
+                               ("line_num", 1), ("ocr_confidence", 99)):
+                changed = deepcopy(words); changed[0][key] = value
+                with self.subTest(key=key), self.assertRaisesRegex(ValueError, "original text object"):
+                    validate_saved_native_words(path, expected_sha256=sha, page_number=1, words=changed)
+            page = OcrPage(width=200, height=120, words=words)
+            self.assertEqual(page.extract_words(), words)
+            with self.assertRaisesRegex(OcrGeometryError, "logical OCR lines"):
+                page.extract_text_lines()
+
     def test_raw_text_and_tight_bounds_match_direct_source_objects(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "source.pdf"; sha = source_pdf(path)

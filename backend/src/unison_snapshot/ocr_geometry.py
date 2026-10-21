@@ -32,6 +32,8 @@ class OcrPage:
         return [dict(word) for word in self._words]
 
     def extract_text_lines(self) -> list[dict]:
+        if any("source_object_index" in word for word in self._words):
+            raise OcrGeometryError("native text objects do not establish logical OCR lines")
         grouped: dict[tuple[int, int, int], list[dict]] = {}
         for word in self._words:
             key = (word["block_num"], word["par_num"], word["line_num"])

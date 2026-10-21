@@ -135,3 +135,27 @@ class TextObjectWordPage:
 
     def extract_text(self):
         raise ValueError("source text objects do not establish logical line order")
+
+
+def validate_saved_native_words(source: Path, *, expected_sha256: str,
+                                page_number: int, words: list[dict]) -> dict:
+    """Validate exact native records in a mixed saved page, without line IDs.
+
+    OCR header words retain their own OCR records. Native body records must be
+    byte-for-byte-equivalent JSON values from the source producer, rather than
+    self-reported text/object labels or fabricated OCR line references.
+    """
+    observed = observe_pdf_text_objects(source, expected_sha256=expected_sha256,
+                                        page_number=page_number)
+    expected = {w["source_object_index"]: w for w in observed["words"]}
+    count = 0
+    for word in words:
+        if "source_object_index" not in word:
+            continue
+        if (type(word["source_object_index"]) is not int or
+                word != expected.get(word["source_object_index"])):
+            raise ValueError("saved native word differs from the original text object")
+        count += 1
+    return {"source_sha256":expected_sha256,"page_number":page_number,
+            "native_word_count":count,"source_text_manifest_sha256":observed["text_object_manifest_sha256"],
+            "line_order":"not_inferred","ocr_confidence":"not_applicable_not_ocr"}
