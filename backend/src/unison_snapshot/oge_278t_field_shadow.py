@@ -215,7 +215,7 @@ def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
             primary["amount_reading"] = deepcopy(amount_reading)
             primary["template_category"] = observe_template_amount(
                 amount_reading["ordered_ocr_text"] or "" if amount_reading is not None else primary["raw_ocr_text"])
-            if shapes[field].get("interpretation_basis") == "existing_statutory_range_complete_digit_groups/v1":
+            if shapes[field].get("interpretation_basis") in {"existing_statutory_range_complete_digit_groups/v1", "complete_oge_statutory_interval_grouping_semantics/v1"}:
                 lower,upper=shapes[field]["values"]
                 # Category is derived from the proven pair, not a rewritten OCR.
                 primary["template_category"]=observe_template_amount(f"${lower:,} - ${upper:,}")
@@ -719,6 +719,11 @@ def _ordered_amount_shape(reading: dict) -> dict:
     if (reading.get("status") != "geometry_ordered_unverified" or
             reading.get("reading_coordinate_basis") != "source_and_row_top_relative_consistency/v1"):
         return shape
+    from .oge_amount_literal import interpret_grouped_statutory_amount
+    literal = interpret_grouped_statutory_amount(text, field_role="amount")
+    if literal is not None:
+        return {"status":"ocr_shape_only", "values":literal["values"], "reason":None,
+                "interpretation_basis":literal["interpretation_basis"], "literal_interpretation":literal}
     number=r"(?:\d{1,3}(?:(?:,\s*|\s+)\d{3})+|\d+)"
     grammar=r"\s*\$\s*"+number+r"\s*[-–—•·]\s*\$\s*"+number+r"\s*\.?\s*"
     if re.fullmatch(grammar,text) is None:
