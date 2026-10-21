@@ -49,6 +49,47 @@ def template():
     return [page,second]
 
 
+def mixed_template():
+    source=template();first,closing=source
+    g=first["native_page_geometry"]
+    for b in g["rects"]:
+        if b[1]==352:b[3]=410
+    first["words"] += [word("Description: Explicit official note with $50,000 mentioned.",105,370,8.5),
+                       word("Second official description line.",105,385,8.5)]
+    for w in closing["words"]:
+        w=deepcopy(w);w["top"]+=344;first["words"].append(w)
+    for kind in ("lines","rects","curves","images"):
+        for b in closing["native_page_geometry"][kind]:
+            first["native_page_geometry"][kind].append([b[0],b[1]+344,b[2],b[3]+344])
+    return [first]
+
+
+def crosspage_template():
+    first,closing=template();original=deepcopy(first)
+    first["words"]=[w for w in first["words"] if w["top"]!=354 and not (w["top"]==326 and w["text"]=="[ST]")]
+    g=first["native_page_geometry"]
+    g["rects"]=[b for b in g["rects"] if b[1]!=352]
+    second={"width":612,"height":792,"words":[],"native_page_geometry":geometry(2)}
+    for w in original["words"]:
+        if w["top"]==282:
+            w=deepcopy(w);w["top"]=79;second["words"].append(w)
+    for w in original["words"]:
+        if 318<=w["top"]<386:
+            w=deepcopy(w);w["top"]-=153;second["words"].append(w)
+    second["words"] += [word("[ST]",105,116.7),word("Filing Status: New",105,134.3,8.5)]
+    edges=[22,62,101,258,323,379,443,522,576]
+    sg=second["native_page_geometry"]
+    sg["rects"]=[[a,72,b,115.5] for a,b in zip(edges,edges[1:])]
+    spans=[(99,132),(115.5,149.25),(132,165.75),(165.75,198.75),(198.75,233.25)]
+    sg["rects"] += [[x,t,x+.75,z] for x in (22,576) for t,z in spans]
+    sg["curves"]=[[544.6,107.4,554.1,116.85],[544.6,174.15,554.1,183.6]]
+    for w in closing["words"]:
+        w=deepcopy(w);w["top"]+=162;second["words"].append(w)
+    for kind in ("lines","rects","curves","images"):
+        for b in closing["native_page_geometry"][kind]:sg[kind].append([b[0],b[1]+162,b[2],b[3]+162])
+    return [first,second]
+
+
 class NativeCoverageTests(unittest.TestCase):
     def parse(self,pages):
         return parse_word_pages(META,SHA,pages,copy_allowed=True)
@@ -96,6 +137,65 @@ class NativeCoverageTests(unittest.TestCase):
                 x=self.parse(pages)
                 self.assertEqual(x["source_report_ledger"]["relation_coverage"],"partial_unknown")
                 self.assertIn("unknown",[p["coverage"] for p in x["source_report_ledger"]["pages"]])
+
+    def test_official_closing_omits_empty_comments_but_no_other_sections(self):
+        for comments in ("absent","empty"):
+            with self.subTest(comments=comments):
+                source=template()
+                source[1]["words"]=[w for w in source[1]["words"] if w["top"]!=220
+                    and not (comments=="absent" and w["top"]==200)]
+                x=self.parse(source)
+                self.assertEqual(x["source_report_ledger"]["relation_coverage"],"accounted")
+                for mutation in ("missing_ipo","unknown_heading","financial_body","extra_lines","extra_image"):
+                    with self.subTest(mutation=mutation):
+                        bad=deepcopy(source);p=bad[1]
+                        if mutation=="missing_ipo":p["words"]=[w for w in p["words"] if w["top"]!=249]
+                        if mutation=="unknown_heading":p["words"].append(word("Unclassified Section",22,200,12))
+                        if mutation=="financial_body":p["words"].append(word("$1,001",446,220))
+                        if mutation=="extra_lines":p["native_page_geometry"]["lines"].append([20,210,500,210])
+                        if mutation=="extra_image":p["native_page_geometry"]["images"].append([100,210,300,230])
+                        self.assertEqual(self.parse(bad)["source_report_ledger"]["pages"][1]["coverage"],"unknown")
+
+    def test_same_page_table_description_and_closing_are_composed(self):
+        source=mixed_template();x=self.parse(source)
+        self.assertEqual(x["source_report_ledger"]["relation_coverage"],"accounted")
+        self.assertEqual(x["source_report_ledger"]["pages"][0]["coverage"],"located")
+        self.assertIn("Second official description line.",x["transactions"][0]["description"])
+        self.assertEqual(x["source_report_ledger"]["disposition_counts"],{"data_candidate":2,"heading":1,"note":1})
+        bad=deepcopy(source)
+        bad[0]["words"] += [word("Another [ST]",105,397,8.5),word("P",262,397,8.5),
+            word("08/12/2026",327,397,8.5),word("$1,001",446,397,8.5)]
+        self.assertEqual(self.parse(bad)["source_report_ledger"]["relation_coverage"],"partial_unknown")
+        bad=deepcopy(source);bad[0]["words"].append(word("Unassigned gap",105,415))
+        self.assertEqual(self.parse(bad)["source_report_ledger"]["relation_coverage"],"partial_unknown")
+
+    def test_crosspage_repeated_header_collects_all_source_refs(self):
+        source=crosspage_template();x=self.parse(source)
+        self.assertEqual(len(x["transactions"]),2)
+        self.assertEqual(x["source_report_ledger"]["relation_coverage"],"accounted")
+        self.assertEqual([p["coverage"] for p in x["source_report_ledger"]["pages"]],["located","located"])
+        refs=x["source_report_ledger"]["logical_rows"][0]["slot_refs"]
+        self.assertEqual({r["page_number"] for r in refs},{1,2})
+        self.assertEqual(len(refs),2)
+        self.assertEqual(self.parse(source),x)
+        for mutation in ("no_continuation","no_header","no_status","extra_control","unbound_curve"):
+            with self.subTest(mutation=mutation):
+                bad=deepcopy(source);page=bad[1]
+                if mutation=="no_continuation":page["words"]=[w for w in page["words"] if w["top"]!=116.7]
+                if mutation=="no_header":page["words"]=[w for w in page["words"] if w["top"]!=79]
+                if mutation=="no_status":page["words"]=[w for w in page["words"] if w["top"]!=134.3]
+                if mutation=="extra_control":page["native_page_geometry"]["curves"].append([544.6,150,554.1,159.45])
+                if mutation=="unbound_curve":page["native_page_geometry"]["curves"].append([300,120,310,130])
+                self.assertEqual(self.parse(bad)["source_report_ledger"]["relation_coverage"],"partial_unknown")
+
+    def test_region_primitive_identity_must_have_exactly_one_role(self):
+        from unison_snapshot.house_native_coverage import _split_closing_region
+        page=mixed_template()[0];g=page["native_page_geometry"]
+        self.assertIsNotNone(_split_closing_region(page,g))
+        # Old aggregate counts could cancel: first primitive belongs to both
+        # groups, second to neither. Per-primitive conservation must reject.
+        g["curves"] += [[100,419.8,110,420.2],[100,410,110,430]]
+        self.assertIsNone(_split_closing_region(page,g))
 
     def test_line_producer_and_unclassified_line_frames_fail_closed(self):
         class FakePage:
