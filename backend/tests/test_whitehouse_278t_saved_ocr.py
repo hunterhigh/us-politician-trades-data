@@ -19,6 +19,37 @@ from unison_snapshot.builder import build
 
 
 class SavedWhiteHouseTests(unittest.TestCase):
+    def test_explicit_native_body_interface_validates_source_and_preserves_consumer(self):
+        with tempfile.TemporaryDirectory() as folder:
+            inputs, geometry = self.fixture(Path(folder))
+            inputs.update(geometry_mode="source_pdf_dual_axis/v1",
+                          word_observation_mode="source_objects_with_ocr_header/v1",
+                          observation_resolution_dpi=300)
+            path = Path(inputs["checkpoint_path"])
+            checkpoint = json.loads(path.read_bytes())
+            body = checkpoint["pages"][1]
+            body["render_frame"] = {"resolution":300}
+            body["words"][0]["source_object_index"] = 12
+            for key in ("block_num", "par_num", "line_num"):
+                body["words"][0].pop(key)
+            path.write_text(json.dumps(checkpoint))
+            inputs["checkpoint_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            with self.context(geometry), patch("unison_snapshot.pdf_text_object_words.validate_saved_native_words",
+                    return_value={"native_word_count":1}) as validator:
+                result = materialize_saved_whitehouse_278t(inputs)
+                candidate, _ = consume(result)
+            self.assertEqual(len(candidate["transactions"]),1)
+            self.assertEqual(validator.call_args.kwargs["page_number"],2)
+            self.assertEqual(validator.call_args.kwargs["words"],body["words"])
+            self.assertEqual(result["observation_receipt"]["observation_resolution_dpi"],300)
+            with self.context(geometry), patch("unison_snapshot.pdf_text_object_words.validate_saved_native_words",
+                    side_effect=ValueError("original text object")):
+                with self.assertRaises(OgeCatalogError):
+                    materialize_saved_whitehouse_278t(inputs)
+            inputs.pop("word_observation_mode")
+            with self.context(geometry), self.assertRaises(OgeCatalogError):
+                materialize_saved_whitehouse_278t(inputs)
+
     def fixture(self, root, *, original=True):
         pdf = b"%PDF-1.7\nsynthetic saved-word contract\n%%EOF"
         sha = hashlib.sha256(pdf).hexdigest()
