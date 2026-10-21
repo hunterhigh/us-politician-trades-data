@@ -313,18 +313,21 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         audit_out: Path, expected_report_count: int | None = None,
         exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
         coverage_input: Path | None = None, extraction_status_input: Path | None = None,
-        saved_ocr_evidence_root: Path | None = None) -> dict:
-    with saved_ocr_source_roots(saved_ocr_evidence_root,review_root):
+        saved_ocr_evidence_root: Path | None = None,
+        evidence_root: Path | None = None, saved_exhibit_observations: Path | None = None) -> dict:
+    with saved_ocr_source_roots(saved_ocr_evidence_root or evidence_root,review_root):
         return _run(oge_candidate=oge_candidate,review_root=review_root,candidate_out=candidate_out,
             audit_out=audit_out,expected_report_count=expected_report_count,exact_source_copies=exact_source_copies,
             exact_source_bindings=exact_source_bindings,coverage_input=coverage_input,
-            extraction_status_input=extraction_status_input)
+            extraction_status_input=extraction_status_input,evidence_root=evidence_root,
+            saved_exhibit_observations=saved_exhibit_observations)
 
 
 def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         audit_out: Path, expected_report_count: int | None = None,
         exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
-        coverage_input: Path | None = None, extraction_status_input: Path | None = None) -> dict:
+        coverage_input: Path | None = None, extraction_status_input: Path | None = None,
+        evidence_root: Path | None = None, saved_exhibit_observations: Path | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
@@ -334,6 +337,14 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         review_root, expected_report_count=expected_report_count,
         coverage_input=coverage_input, extraction_status_input=extraction_status_input)
     bindings = None
+    native_inputs = None
+    if saved_exhibit_observations is not None:
+        if evidence_root is None:raise ValueError("EXHIBIT application requires --evidence-root")
+        native_inputs,native_sha=_read_object(saved_exhibit_observations)
+        provenance["native_exhibit_application_input_sha256"]=native_sha
+        from unison_snapshot.oge_cross_source_replacements import cross_source_dependency_sha256
+        provenance["native_exhibit_application_dependency_sha256"]=cross_source_dependency_sha256(
+            native_inputs,extractions,evidence_root,review_root)
     if exact_source_bindings is not None:
         if not exact_source_copies:
             raise ValueError("Exact source bindings require --exact-source-copies")
@@ -341,6 +352,24 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         provenance["exact_source_binding_file_sha256"] = binding_sha
     generic_mode = any(row.get("parser_version") in GENERIC_PARSER_VERSIONS for row in extractions)
     base, base_sha = _read_object(oge_candidate)
+    if native_inputs is not None and audit_out.is_file() and candidate_out.resolve()==oge_candidate.resolve():
+        prior,_=_read_object(audit_out)
+        if prior.get("candidate_sha256")==base_sha and prior.get("native_cross_source_applications"):
+            from unison_snapshot.oge_cross_source_replacements import verify_cross_source_native_applications
+            replayed,_=verify_cross_source_native_applications(prior.get("native_cross_source_applications"),evidence_root,review_root)
+            if failure_count:
+                health=next(row for row in replayed['source_health'] if row.get('source_id')=='oge')
+                health['detail']+=f" {failure_count} White House 278-T reports retained as extraction failures."
+            if replayed!=base:raise ValueError("Existing cross-source candidate differs from current source replay")
+            if prior.get("review_input_sha256")==provenance:
+                return {"idempotent":True,"report_count":prior["report_count"],
+                    "promoted_transaction_count":prior["promoted_transaction_count"],
+                    "quarantined_row_count":prior["quarantined_row_count"],
+                    "extraction_failure_count":prior.get("extraction_failure_count",0)}
+            if prior.get("review_input_sha256",{}).get("native_exhibit_application_input_sha256")!=native_sha:
+                raise ValueError("Changed EXHIBIT inputs require the preceding direct-source candidate stage")
+            base=deepcopy(prior['native_cross_source_applications']['context']['wh_inputs']['base'])
+            base_sha=hashlib.sha256(_json_bytes(base)).hexdigest()
     if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
         if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
@@ -396,6 +425,14 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         annual_extractions=annual_extractions, directory_index=directory,
         annual_identity_people=annual_people,
         **({"source_bindings": bindings} if exact_source_copies else {}))
+    if native_inputs is not None:
+        from unison_snapshot.oge_cross_source_replacements import apply_cross_source_native_replacements
+        wh_inputs={"base":base,"extractions":extractions,"oge_whitehouse_coverage":oge_coverage,
+            "annual_extractions":annual_extractions,"directory_index":directory,
+            "annual_identity_people":annual_people,"exact_source_copies":exact_source_copies,
+            "source_bindings":bindings}
+        candidate,application=apply_cross_source_native_replacements(candidate,native_inputs,wh_inputs,evidence_root,review_root)
+        conservation["native_cross_source_applications"]=application
     conservation["catalog_report_count"] = len(extractions) + failure_count
     conservation["extraction_failure_count"] = failure_count
     if failure_count:
@@ -442,6 +479,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--extraction-status-input", type=Path)
     parser.add_argument("--saved-ocr-evidence-root", type=Path,
                         help="Explicit root for relative saved-OCR archive metadata and original PDF refs")
+    parser.add_argument("--evidence-root", type=Path, help="Controlled evidence root; does not enable new parsing")
+    parser.add_argument("--saved-exhibit-observations", type=Path,
+                        help="Explicit offline OGE EXHIBIT input applied after normal White House qualification")
     args = parser.parse_args(argv)
     try:
         result = run(oge_candidate=args.oge_candidate, review_root=args.review_root,
@@ -450,7 +490,8 @@ def main(argv: list[str] | None = None) -> int:
                      exact_source_copies=args.exact_source_copies,
                      exact_source_bindings=args.exact_source_bindings, coverage_input=args.coverage_input,
                      extraction_status_input=args.extraction_status_input,
-                     saved_ocr_evidence_root=args.saved_ocr_evidence_root)
+                     saved_ocr_evidence_root=args.saved_ocr_evidence_root,
+                     evidence_root=args.evidence_root,saved_exhibit_observations=args.saved_exhibit_observations)
     except (OgeCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"White House 278-T candidate failed: {exc}", file=sys.stderr)
         return 1

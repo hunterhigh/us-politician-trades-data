@@ -38,7 +38,8 @@ def _ambiguous_native_application_nodes(groups):
 def prepare_native_exhibit_applications(extractions, records, saved, formal, data_cutoff_at=None):
     from .oge_reports import materialize_saved_oge_278t_exhibits
     selected={doc:deepcopy(value) for doc,value in saved.items()
-              if value.get('replacement_application_mode')=='verified_amount_only/v1'}
+              if value.get('replacement_application_mode')=='verified_amount_only/v1'
+              and value.get('application_stage')!='post_whitehouse/v1'}
     if not selected:return {}
     originals={x['document_id']:deepcopy(x) for x in extractions}
     views={};relevant=set(selected)

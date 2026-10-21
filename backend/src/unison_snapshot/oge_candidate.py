@@ -343,6 +343,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     seen_extractions: set[str] = set()
     seen_document_ids: set[str] = set()
     promoted_ids: set[str] = set()
+    deferred_formal_ids: set[str] = set()
     from .oge_native_replacements import prepare_native_exhibit_applications
     native_views = prepare_native_exhibit_applications(extractions, direct_by_id, exhibits,
         base.get("transactions", []), data_cutoff_at)
@@ -380,9 +381,18 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 if "prior_formal_transactions" in exhibits[document_id]:
                     raise OgeCatalogError("native replacement formal facts must come from the current base")
                 if document_id not in native_views:
+                    exhibit_inputs = deepcopy(exhibits[document_id])
+                    if exhibit_inputs.get("application_stage") == "post_whitehouse/v1":
+                        # WH schema/identity belongs to its later consumer. Keep
+                        # actual base facts while this stage records unresolved
+                        # blocks; it cannot qualify or retire their WH targets.
+                        exhibit_inputs.pop("application_stage")
+                        exhibit_inputs.pop("source_extraction_canonical_sha256", None)
+                        exhibit_inputs.pop("replacement_application_mode", None)
+                        exhibit_inputs["replacement_targets"] = []
                     extraction = materialize_saved_oge_278t_exhibits(extraction,record,
                         formal_reference_ids=[row["id"] for row in retained],
-                        prior_formal_transactions=base.get("transactions", []), **exhibits[document_id])
+                        prior_formal_transactions=base.get("transactions", []), **exhibit_inputs)
                 if extraction.get("replacement_application_mode") is not None:
                     from .oge_transaction_adapter import adapt_oge_278t_extraction
                     adapt_oge_278t_extraction(extraction, record)
@@ -561,6 +571,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     people[person["id"]] = deepcopy(person)
             if needed_people - set(people):
                 raise OgeCatalogError("retained formal people are absent from base")
+        deferred = (sorted(row["id"] for row in retained) if observed and
+            exhibits.get(document_id,{}).get("application_stage")=="post_whitehouse/v1" else [])
+        deferred_formal_ids.update(deferred)
         audit_reports.append({
             "document_id": document_id,
             **({"legacy_inheritance": inheritance} if inheritance is not None else {}),
@@ -586,7 +599,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                if "manual_filing_date_evidence" in extraction else {}),
             **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
                if fixed_trump else {}),
-            "promoted_count": report_promoted,
+            **({"deferred_cross_source_formal_ids":deferred} if deferred else {}),
+            "promoted_count": report_promoted-len(deferred),
             "quarantined_count": len(row_quarantines),
             "document_reasons": sorted(set(reasons)),
             "quarantined": row_quarantines,
@@ -631,7 +645,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "last_successful_sync_at": data_cutoff_at,
         "data_cutoff_at": data_cutoff_at,
         "detail": (f"{len(direct_by_id)} direct 278-T documents; {len(extractions)} PDFs extracted; "
-                   f"{len(transactions)} transactions qualified; {request_required} request-required "
+                   f"{len(transactions)-len(deferred_formal_ids)} transactions qualified; {request_required} request-required "
                    f"catalog entries were not automated; {retained_from_history} direct documents "
                    "were retained from archived catalog history."),
     }
@@ -655,7 +669,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "catalog_history_count": history_count,
         "request_required_count": request_required,
         "extraction_count": len(extractions),
-        "promoted_transaction_count": len(transactions),
+        "promoted_transaction_count": len(transactions)-len(deferred_formal_ids),
         "quarantined_row_count": sum(row["quarantined_count"] for row in audit_reports),
         "reports": audit_reports,
     }

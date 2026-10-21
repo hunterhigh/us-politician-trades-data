@@ -259,7 +259,13 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                         formal_reference_ids=formal_ids, **saved[document_id])
                 if document_id in exhibits:
                     from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits
-                    extraction = materialize_saved_oge_278t_exhibits(extraction,record,**exhibits[document_id])
+                    exhibit_inputs = dict(exhibits[document_id])
+                    if exhibit_inputs.get('application_stage')=='post_whitehouse/v1':
+                        exhibit_inputs.pop('application_stage')
+                        exhibit_inputs.pop('source_extraction_canonical_sha256',None)
+                        exhibit_inputs.pop('replacement_application_mode',None)
+                        exhibit_inputs['replacement_targets']=[]
+                    extraction = materialize_saved_oge_278t_exhibits(extraction,record,**exhibit_inputs)
                 scope_binding = ({"legacy_extraction": legacy.get(document_id),
                                   "formal_reference_facts": scoped_formal}
                                  if scoped_formal is not None and extraction.get("parser_version") == GENERIC_PARSER_VERSION
