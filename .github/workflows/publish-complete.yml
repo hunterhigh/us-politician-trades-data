@@ -20,7 +20,7 @@ on:
         required: true
         default: '100'
       skip_prepared_readback:
-        description: Skip remote prepared-commit readback and its second browser check
+        description: Skip remote prepared-commit readback; browser checks use the local candidate
         required: false
         type: boolean
         default: false
@@ -259,7 +259,7 @@ jobs:
           CACHE_MAIN_OVERRIDE: ${{ inputs.cache_main_ref }}
           CACHE_MARKET_OVERRIDE: ${{ inputs.cache_market_ref }}
         run: bash .github/scripts/prepare-publication-trees.sh
-      - name: Freeze prior board for both HTML browser checks
+      - name: Freeze prior board for HTML browser checks
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
         run: |
@@ -343,16 +343,6 @@ jobs:
               output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
               output.write(f"source_health_count={len(candidate['source_health'])}\n")
           PY
-      - name: Verify complete candidate in the frozen browser frontend
-        env:
-          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/complete-dashboard.html
-          REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}
-          PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main
-        run: |
-          npm ci
-          npm run test:production
-          npm run test:latest-html
-        working-directory: frontend-e2e
       - name: Record projection issues for final targeted review
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -522,12 +512,19 @@ jobs:
             --published-market-root "${{ steps.trees.outputs.cache_market_root }}" \
             --published-market-commit "${{ steps.trees.outputs.cache_market_commit }}" \
             --output-dir "$RUNNER_TEMP/prepared-readback"
-      - name: Verify the prepared result in the frozen browser frontend
-        if: ${{ !inputs.skip_prepared_readback }}
+      - name: Verify publication in both browser frontends
         env:
-          PRODUCTION_DASHBOARD_HTML: ${{ runner.temp }}/prepared-readback/dashboard.html
+          SKIP_PREPARED_READBACK: ${{ inputs.skip_prepared_readback }}
+          REQUIRE_TRUMP_SEPT_OGE: ${{ inputs.require_trump_sept_oge }}
           PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main
         run: |
+          if [ "$SKIP_PREPARED_READBACK" = true ]; then
+            export PRODUCTION_DASHBOARD_HTML="$RUNNER_TEMP/complete-dashboard.html"
+          else
+            export PRODUCTION_DASHBOARD_HTML="$RUNNER_TEMP/prepared-readback/dashboard.html"
+          fi
+          echo "Browser input: $PRODUCTION_DASHBOARD_HTML"
+          npm ci
           npm run test:production
           npm run test:latest-html
         working-directory: frontend-e2e
