@@ -103,6 +103,21 @@ def runner_arguments(d,root,prior,output):
 
 
 class NativeAmountOnlyApplicationTests(unittest.TestCase):
+    def test_default_direct_projection_cleans_only_metadata_for_facts_it_does_not_output(self):
+        with tempfile.TemporaryDirectory() as folder:
+            d=fixture(Path(folder));previous=base()
+            previous['meta']['holding_report_coverage']=[{'report_id':'annual-other'}]
+            previous['meta']['transaction_disclosure_relations']=[{'transaction_id':'annual-other',
+                'possible_ptr_transaction_ids':[],'status':'cross_report_relationship_unconfirmed'}]
+            previous['reported_holdings']=[{'id':'annual-holding-other'}]
+            with mocks(d):
+                result,_=build_oge_candidate(catalog(d['prior']),[d['old']],previous,data_cutoff_at=CUTOFF)
+            self.assertEqual(len(result['transactions']),1)
+            self.assertEqual(result['reported_holdings'],[])
+            self.assertNotIn('holding_report_coverage',result['meta'])
+            self.assertNotIn('transaction_disclosure_relations',result['meta'])
+            self.assertIn('holding_report_coverage',previous['meta'])
+
     def candidate(self,d,prior=None):
         return build_oge_candidate(d['catalog'],[d['new'],d['old']],prior or base(),data_cutoff_at=CUTOFF,
             saved_exhibit_observations_by_document={DOCUMENT_ID:d['inputs']})
