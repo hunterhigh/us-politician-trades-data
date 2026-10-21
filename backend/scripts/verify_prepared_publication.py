@@ -76,7 +76,8 @@ def verify_prepared_publication(
     output_dir.mkdir(parents=True, exist_ok=True)
     repository = PublicSnapshotRepository(
         owner, repo, ref="main",
-        transport=transport or FixedCommitTransport(main_commit))
+        transport=transport or FixedCommitTransport(main_commit),
+        cache_bytes=256 * 1024 * 1024)
     status = repository.disclosure_status(main_commit, include_records=True)
     if require_disclosure_status and status is None:
         raise ValueError("Prepared publication is missing disclosure processing status")
