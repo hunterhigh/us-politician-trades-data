@@ -286,12 +286,12 @@ def _apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_r
                 if health['detail'].endswith('; '+old_summary):
                     health['detail']=health['detail'][:-len(old_summary)]+new_summary
                 if not health['detail'].endswith(detail):health['detail']+=detail
-        # The direct CLI's identity describes its earlier source stage. Use
-        # the existing producer identity for these final facts, so a repeated
-        # complete run cannot inherit a different intermediate snapshot ID.
-        from .builder import build
-        result['meta']['snapshot_id']=build(result,
-            generated_at=result['meta']['data_cutoff_at'],allow_production=True).manifest['snapshot_id']
+        # Do not inherit the direct CLI's intermediate identity. Follow the
+        # cached-candidate content identity pattern without running publication
+        # validation before the later annual and market stages have completed.
+        from .codec import digest, encode
+        identity=dict(result,meta={key:value for key,value in result['meta'].items() if key!='snapshot_id'})
+        result['meta']['snapshot_id']=digest(encode(identity))
     for view in views.values():
         view['replacement_application_mode']='verified_amount_only/v1'
         view['cross_source_native_application_context']=deepcopy(context)
