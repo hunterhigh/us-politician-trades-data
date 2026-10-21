@@ -1546,13 +1546,12 @@ def _native_exhibit_period_date(raw: str, context: dict | None, relation: dict) 
     for year in range(start.year, end.year + 1):
         if year % 100 != suffix:
             continue
-        for month, day in ((first, second), (second, first)):
-            try:
-                value = datetime(year, month, day).date()
-            except ValueError:
-                continue
-            if start <= value <= end:
-                candidates.add(value.isoformat())
+        try:
+            value = datetime(year, first, second).date()
+        except ValueError:
+            continue
+        if start <= value <= end:
+            candidates.add(value.isoformat())
     if len(candidates) != 1:
         return None
     return {"schema_version": "oge-278t-source-period-date/v1", "raw_value": raw,

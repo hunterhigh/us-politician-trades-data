@@ -47,9 +47,9 @@ class NativeAmendmentContextTests(unittest.TestCase):
             'source_context_sha256':context['source_observation_canonical_sha256']}}
         for raw,expected in [('7/17/25','2025-07-17'),('7/ 11/25','2025-07-11'),('7/ 7 /25','2025-07-07')]:
             self.assertEqual(_native_exhibit_period_date(raw,context,relation)['normalized_value'],expected)
-        for raw in ['7/24/25','7/17/24','7/l7/25','7/32/25']:
+        for raw in ['11/7/25','7/24/25','7/17/24','7/l7/25','7/32/25']:
             self.assertIsNone(_native_exhibit_period_date(raw,context,relation))
-        wide=deepcopy(context);wide['original_reporting_period']=['2025-01-01','2025-12-31']
+        wide=deepcopy(context);wide['original_reporting_period']=['1925-01-01','2025-12-31']
         self.assertIsNone(_native_exhibit_period_date('7/11/25',wide,relation))
         relation['candidate']['source_context_sha256']='forged'
         self.assertIsNone(_native_exhibit_period_date('7/17/25',context,relation))
