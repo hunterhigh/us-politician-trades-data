@@ -404,6 +404,30 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
     effective_observation = deepcopy(observation)
     heading_roles = []
     ordered = sorted(effective_observation["slots"], key=lambda s: (s["page_number"], s["grid_slot"]))
+    from .senate_paper_marks import RULE as MARK_RULE, interpret_complete_mark_row
+    mark_requests = set()
+    unknown_keys = {(s["page_number"], s["grid_slot"]) for s in ordered if s["label"] == "unknown"}
+    for page in pages:
+        requests = page.get("full_cell_mark_observations", [])
+        if not isinstance(requests, list):
+            raise SenateEfdError("Senate complete mark requests must be an array")
+        for request in requests:
+            if not isinstance(request, dict):
+                raise SenateEfdError("Senate complete mark request must be an object")
+            key = (page["page_number"], request.get("grid_slot"))
+            if (request.get("rule_version") != MARK_RULE or request.get("page_number") != key[0] or
+                    request.get("page_sha256") != observed[key[0]] or key not in unknown_keys or key in mark_requests):
+                raise SenateEfdError("Senate complete mark request differs from a unique unknown source slot")
+            mark_requests.add(key)
+    mark_roles = {}
+    for slot in ordered:
+        if (slot["page_number"], slot["grid_slot"]) not in mark_requests:
+            continue
+        read = interpret_complete_mark_row(images[slot["page_number"]], slot)
+        if read is not None:
+            key = (slot["page_number"], slot["grid_slot"])
+            mark_roles[key] = read
+            slot.update(label="data_observed", type_marks=read["direction_labels"], amount_marks=read["amount_labels"])
     for index, slot in enumerate(ordered):
         text, confidence = _grid_asset_cell(interpreted_words[slot["page_number"]], slot)
         role = unpunctuated_heading(images[slot["page_number"]], slot,
@@ -413,7 +437,7 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             slot["label"] = "heading_candidate"
             heading_roles.append({"page_number": slot["page_number"], "grid_slot": slot["grid_slot"],
                                   "page_sha256": observed[slot["page_number"]], **role})
-    if heading_roles:
+    if heading_roles or mark_roles:
         effective_observation["label_counts"] = dict(Counter(s["label"] for s in ordered))
         for page in effective_observation["pages"]:
             page["label_counts"] = dict(Counter(s["label"] for s in ordered if s["page_number"] == page["page_number"]))
@@ -484,7 +508,10 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
                 if count >= 25:
                     signals.append(read["label"])
             if signals != slot["type_marks" if field == "direction" else "amount_marks"]:
-                raise SenateEfdError("Senate grid mark interpretation differs from source")
+                read = mark_roles.get((number, slot["grid_slot"]))
+                original = read.get("original_type_marks" if field == "direction" else "original_amount_marks") if read else None
+                if signals != original:
+                    raise SenateEfdError("Senate grid mark interpretation differs from source")
         date = slot["key_cells"]["date"]
         if hashlib.sha256(image.crop(tuple(date["box_px"])).tobytes()).hexdigest() != date["grayscale_sha256"]:
             raise SenateEfdError("Senate grid date crop differs from source")
@@ -502,6 +529,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
             "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
         }
+        if (number, slot["grid_slot"]) in mark_roles:
+            row["field_observations"]["whole_cell_mark_read"] = mark_roles[(number, slot["grid_slot"])]
         date_record = date_records.get((number, slot["grid_slot"]))
         if date_record is not None:
             from .senate_paper_dates import interpret_segmented_date
@@ -576,6 +605,10 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             **({"date_segment_rule_version": "senate-source-segmented-date/v1"} if date_records else {}),
             **({"account_layout_rule_version": ACCOUNT_RULE,
                 "account_heading_role_interpretations": heading_roles} if heading_roles or account_reads else {}),
+            **({"whole_cell_mark_rule_version": MARK_RULE,
+                "whole_cell_mark_attempts": [{"page_number": n, "grid_slot": s,
+                    "status": "data_observed" if (n, s) in mark_roles else "unknown"}
+                    for n, s in sorted(mark_requests)]} if mark_requests else {}),
             "source_report_ledger": effective_observation["source_report_ledger"],
             "eligible_transaction_count": sum(row["qualification_status"] == "eligible" for row in rows),
             "quarantined_transaction_count": sum(row["qualification_status"] == "quarantined" for row in rows),
@@ -840,7 +873,9 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                 extracted = parse_paper_grid_observations(
                     reports[document_id], manifest, observation, cached_pages[document_id], images,
                     prior_extraction=prior)
-                if prior is not None or extracted.get("account_layout_rule_version") or any(page.get("date_segment_observations") for page in cached_pages[document_id]):
+                if (prior is not None or extracted.get("account_layout_rule_version") or
+                        extracted.get("whole_cell_mark_rule_version") or
+                        any(page.get("date_segment_observations") for page in cached_pages[document_id])):
                     extracted["grid_replay_input"] = _save_legacy_grid_input(
                         review_root, reports[document_id], observation, cached_pages[document_id], prior)
                 extractions.append(extracted)
