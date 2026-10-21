@@ -453,6 +453,10 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 left, right = min(_FIELD_COLUMNS[field]), max(_FIELD_COLUMNS[field]) + 1
                 rounding = 72.0 / dpi + .02
                 geometry_issues = []
+                notification_geometry_issues = []
+                amount_reading = (_amount_detection_reading(detections,page=original_page,source_slot=base)
+                                  if field == "amount" and quad_mode else None)
+                excluded_metadata = _nonfinancial_notification_indices(amount_reading,detections) if amount_reading else set()
                 if field == "description":
                     overlaps = [i for i, item in enumerate(unassigned)
                                 if _slot_overlap(original_page,base,item["bbox_pdf_points"],left,right)]
@@ -460,7 +464,7 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                         raise ValueError("description unassigned references differ from geometry")
                     if overlaps:
                         geometry_issues.append("unassigned_description_detections_overlap_slot")
-                for detection in detections:
+                for detection_index,detection in enumerate(detections):
                     box = detection.get("bbox_pdf_points")
                     if (not isinstance(detection.get("text"), str) or
                             not isinstance(box, list) or len(box) != 4 or
@@ -471,7 +475,11 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     if _dual_geometry(original_page):
                         if not _geometry.box_in_slot(original_page,base,box,left,right,
                                 **({} if quad_mode else {"left_pad":.6,"right_pad":1.5})):
-                            geometry_issues.append("detection_extends_beyond_source_quad_or_field")
+                            if detection_index in excluded_metadata:
+                                notification_geometry_issues.append({"detection_index":detection_index,
+                                    "reason":"nonfinancial_notification_box_extends_beyond_source_quad_or_field"})
+                            else:
+                                geometry_issues.append("detection_extends_beyond_source_quad_or_field")
                         continue
                     local = column_edges_at_y(original_page, (box[1]+box[3])/2)
                     domain = (original_page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
@@ -492,7 +500,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if raw != " ".join(detection["text"] for detection in detections):
                     raise ValueError("secondary text differs from saved detections")
                 if field == "amount":
-                    shape = _amount_shape(raw)
+                    if quad_mode:
+                        shape = _ordered_amount_shape(amount_reading)
+                        if slot.get("column_reading") != amount_reading:
+                            raise ValueError("amount physical reading differs from detections")
+                    else:
+                        shape = _amount_shape(raw)
                 elif field == "description":
                     description_reading = _description_detection_reading(detections, page=original_page, source_slot=base)
                     shape = _description_shape(description_reading)
@@ -532,6 +545,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if field == "amount":
                     from .oge_278t_amount_categories import observe_template_amount
                     observation["template_category"] = observe_template_amount(raw)
+                    if quad_mode:
+                        observation["amount_reading"] = amount_reading
+                        observation["nonfinancial_notification_geometry_issues"] = notification_geometry_issues
                 elif field == "description":
                     observation["description_reading"] = description_reading
                     observation["page_unassigned_detection_indices"] = overlaps
@@ -836,6 +852,20 @@ def _amount_reading(slot: dict, *, page: dict | None = None) -> dict:
         "raw_ocr_text":" ".join(columns[name]["raw_ocr_text"] for name in ("notification","amount")),
         "word_indices":kept}}},page=page)
     return {**reading,"excluded_notification_word_indices":excluded}
+
+
+def _nonfinancial_notification_indices(reading: dict, detections: list[dict]) -> set[int]:
+    # An alphabetic financial qualifier such as Over is not boolean metadata.
+    return {i for i in reading["excluded_notification_word_indices"]
+            if re.fullmatch(r"yes|no",detections[i]["text"].strip(),re.I)}
+
+
+def _amount_detection_reading(detections: list[dict], *, page: dict, source_slot: dict) -> dict:
+    """Reuse source-column and physical-line interpretation for saved amount TSV."""
+    from .oge_278t_raster_slots import _observe_slot_columns
+    slot = {**source_slot, "words": deepcopy(detections)}
+    slot.update(_observe_slot_columns(slot["words"],page["column_edges_pdf_points"],page=page))
+    return _amount_reading(slot,page=page)
 
 
 def _description_detection_reading(detections: list[dict], *, page: dict | None = None,
@@ -1183,7 +1213,15 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     positions = _FIELD_COLUMNS[field]
     start,end = min(positions),max(positions)+1
     top, bottom = slot["band_pdf_points"]
-    for detection in read["detections"]:
+    excluded_metadata = set()
+    if field == "amount" and read.get("read_mode") == "source_quad_cells/v1":
+        # Recompute the role exclusion from actual source geometry, not a caller's
+        # index list. Alphabetic notification metadata cannot prove an amount.
+        excluded_metadata = _nonfinancial_notification_indices(
+            _amount_detection_reading(read["detections"],page=page,source_slot=slot),read["detections"])
+    for index,detection in enumerate(read["detections"]):
+        if index in excluded_metadata:
+            continue
         box = detection["bbox_pdf_points"]
         if _dual_geometry(page):
             quad_mode=read.get("read_mode")=="source_quad_cells/v1" and isinstance(read.get("source_quad_cell"),dict)

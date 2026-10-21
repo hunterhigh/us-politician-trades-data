@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 MODE = "source_quad_cells/v1"
-_FIELDS = {"printed_number":0,"type":2,"transaction_date":3}
+_FIELDS = {"printed_number":0,"type":2,"transaction_date":3,"amount":4}
 _LAYERS = {"full_source":"all_image","source_text_objects_auxiliary":"text_image"}
 
 
@@ -42,7 +42,7 @@ def source_quad_cell(rendered, page, slot, field, *, layer, padding=20):
         raise ValueError("source quad display frame differs from original MediaBox")
     affine=np.array([[a[0],a[2],a[4]],[a[1],a[3],a[5]],[0.,0.,1.]])
     inverse=np.linalg.inv(affine);column=_FIELDS[field]
-    quad=slot_quad(page,slot,column,column+1)
+    quad=slot_quad(page,slot,column,6 if field=="amount" else column+1)
     points=[]
     for x,y in quad:
         p=inverse@np.array([x+media[0],media[3]-y,1.])
@@ -69,7 +69,7 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
     unselected slots are placeholders, never additional reads or OCR votes.
     """
     import numpy as np
-    from .oge_278t_field_shadow import _validate_geometry_input,_secondary_slot_geometry,_date_shape
+    from .oge_278t_field_shadow import _validate_geometry_input,_secondary_slot_geometry,_date_shape,_amount_detection_reading,_ordered_amount_shape
     from .oge_278t_raster_slots import column_geometry_sha256,DUAL_MODE
     from .ocr_geometry import words_from_tesseract_tsv
     _validate_geometry_input(slots_observation)
@@ -110,7 +110,7 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
             if index not in selected:
                 result.append({"slot_index":index,**_secondary_slot_geometry(page,slot),
                     "band_pdf_points":slot["band_pdf_points"],
-                    "page_raw_ocr_text":slot["column_observation"][field]["raw_ocr_text"],
+                    "page_raw_ocr_text":" ".join(slot["column_observation"][name]["raw_ocr_text"] for name in (("notification","amount") if field=="amount" else (field,))),
                     "column_raw_ocr_text":"", "column_shape":None if field=="type" else
                         {"status":"unknown","value":None,"reason":"slot_not_selected"},
                     "column_words" if field=="type" else "column_detections":[],
@@ -143,6 +143,9 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
                     "bbox_pdf_points":[min(p[0] for p in corners),min(p[1] for p in corners),max(p[0] for p in corners),max(p[1] for p in corners)]})
             text=" ".join(d["text"] for d in detections)
             if field=="type":shape=text.casefold() if len(detections)==1 and text.casefold() in {"purchase","sale","exchange"} else None
+            elif field=="amount":
+                amount_reading=_amount_detection_reading(detections,page=page,source_slot=slot)
+                shape=_ordered_amount_shape(amount_reading)
             elif field=="printed_number":
                 value=int(text) if len(detections)==1 and re.fullmatch(r"[1-9][0-9]*",text) else None
                 shape={"status":"ocr_shape_only" if value is not None else "unknown","value":value}
@@ -151,12 +154,13 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
                 "slot_index":index,"field_role":field,"render_layer":layer,"render_receipt_sha256":canonical_sha(rendered["receipt"]),
                 **expected,"tsv_sha256":tsv_sha,"coverage":"auxiliary_only_not_full_source_coverage" if layer!="full_source" else "field_only_not_page_coverage"}
             result.append({"slot_index":index,**_secondary_slot_geometry(page,slot),"band_pdf_points":slot["band_pdf_points"],
-                "page_raw_ocr_text":slot["column_observation"][field]["raw_ocr_text"],"column_raw_ocr_text":text,
-                "column_shape":shape,"column_words" if field=="type" else "column_detections":detections,"source_quad_cell":proof})
+                "page_raw_ocr_text":" ".join(slot["column_observation"][name]["raw_ocr_text"] for name in (("notification","amount") if field=="amount" else (field,))),"column_raw_ocr_text":text,
+                "column_shape":shape,"column_words" if field=="type" else "column_detections":detections,"source_quad_cell":proof,
+                **({"column_reading":amount_reading} if field=="amount" else {})})
             count+=1
         output.append({"page_number":number,"status":f"{'date' if field=='transaction_date' else field}_column_observed",
             "geometry_mode":DUAL_MODE,"slot_count":len(result),"slots":result})
-    return {"schema_version":f"oge-278t-{'date' if field=='transaction_date' else field.replace('_','-')}-column-observation/v1",
+    return {"schema_version":f"oge-278t-{'date' if field=='transaction_date' else field.replace('_','-')}-column-observation/v{'2' if field=='amount' else '1'}",
         "read_mode":MODE,"source_sha256":sha,"input_observation_canonical_sha256":canonical_sha(slots_observation),
         "input_page_canonical_sha256":{str(p["page_number"]):canonical_sha(pages[p["page_number"]]) for p in saved_pages},
         "input_column_geometry_sha256":{str(p["page_number"]):column_geometry_sha256(pages[p["page_number"]]) for p in saved_pages},
