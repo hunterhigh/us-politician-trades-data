@@ -32,6 +32,10 @@ jobs:
           test "$OGE_TERMS_ACKNOWLEDGED" = true
       - name: Install producer
         run: python -m pip install -e backend
+      - name: Prepare controlled evidence tree
+        run: |
+          git fetch --no-tags origin evidence
+          git worktree add --detach "$RUNNER_TEMP/whitehouse-candidate-evidence" FETCH_HEAD
       - name: Prepare fixed review tree
         run: |
           git fetch --no-tags origin review
@@ -39,6 +43,7 @@ jobs:
       - name: Rebuild complete OGE and unified review candidates
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
+          EVIDENCE_ROOT: ${{ runner.temp }}/whitehouse-candidate-evidence
           PYTHONPATH: backend/src
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
@@ -56,6 +61,7 @@ jobs:
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
           python backend/scripts/overlay_whitehouse_annual_candidate.py \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
@@ -127,6 +133,7 @@ jobs:
       - name: Publish verified review candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
+          EVIDENCE_ROOT: ${{ runner.temp }}/whitehouse-candidate-evidence
         run: |
           git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications \
             whitehouse/annual/candidate-current.json \

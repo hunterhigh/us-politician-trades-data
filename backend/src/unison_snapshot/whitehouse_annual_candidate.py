@@ -570,7 +570,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
 
 
 def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path, *,
-                                        oge_annual_input: dict | None = None) -> tuple[dict, dict]:
+                                        oge_annual_input: dict | None = None,
+                                        evidence_root: Path | None = None) -> tuple[dict, dict]:
     protected = [row for row in candidate.get("reported_holdings", []) if row.get("source_id") == "oge" and
                  isinstance(row.get("filing_id"), str) and re.fullmatch(r"[0-9a-f]{32}", row["filing_id"]) and
                  row.get("verification_status") == "official_matched"]
@@ -592,4 +593,8 @@ def overlay_whitehouse_annual_candidate(candidate: dict, review_root: Path, *,
     if oge_annual_input is not None:
         result, oge_audit = overlay_oge_annual_candidate(result, oge_annual_input)
         audit["oge_annual"] = oge_audit
+    from .oge_native_replacements import reconcile_annual_ptr_references
+    result, reference_audit = reconcile_annual_ptr_references(result, review_root, evidence_root)
+    if reference_audit["replacements"]:
+        audit["native_ptr_reference_reconciliation"] = reference_audit
     return result, audit
