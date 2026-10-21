@@ -514,7 +514,9 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         words = page.get("words")
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House PTR page geometry is invalid")
-        page_data.append({"width": width, "height": height, "words": words})
+        page_data.append({"width": width, "height": height, "words": words,
+            **({"native_page_geometry": page["native_page_geometry"]}
+               if "native_page_geometry" in page else {})})
         for top in _modern_date_anchors(words, width):
             anchors.append({"page_index": page_index, "top": top})
 
@@ -791,9 +793,13 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], 
                   coverage="unknown", coverage_reason="native_row_anchors_not_complete_page_census",
                   coordinate_frame="source_page_pdf_points", slots=page_slots[number])
                 for number in page_slots]
-    return report_ledger(source_id="house_clerk", document_sha256=source_sha,
+    ledger = report_ledger(source_id="house_clerk", document_sha256=source_sha,
                          adapter_version=PARSER_VERSION, page_count=len(pages),
                          pages=observed, logical_rows=logical)
+    if include_unanchored:
+        from .house_native_coverage import apply_native_coverage
+        return apply_native_coverage(source_sha, pages, rows, ledger)
+    return ledger
 
 
 def _native_account_context(extraction: dict) -> dict:
@@ -820,7 +826,8 @@ def _native_account_context(extraction: dict) -> dict:
         # observation may differ. This accepts a recomputed old form, not a label.
         legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
             reproduced["transactions"], include_unanchored=False)
-        if extraction.get("source_report_ledger") == legacy_ledger:
+        if (not any("native_page_geometry" in page for page in pages)
+                and extraction.get("source_report_ledger") == legacy_ledger):
             reproduced["source_report_ledger"] = legacy_ledger
         if any(extraction.get(key) != value for key, value in reproduced.items()):
             raise HouseIndexError("House native account observations differ from saved source words")
@@ -1135,9 +1142,11 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
     try:
         with pdfplumber.open(pdf_path) as document:
             copy_allowed = getattr(document.doc, "is_extractable", None)
+            from .house_native_coverage import observe_native_geometry
             pages = [{"width": page.width, "height": page.height,
-                      "words": page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=["size"])}
-                     for page in document.pages]
+                      "words": page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=["size"]),
+                      "native_page_geometry": observe_native_geometry(page, source_sha, number)}
+                     for number, page in enumerate(document.pages, start=1)]
             ocr_engine = None
             if not any(page["words"] for page in pages):
                 pages, ocr_engine = _ocr_pdf_pages(document)
