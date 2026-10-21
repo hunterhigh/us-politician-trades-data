@@ -17,9 +17,18 @@ CLOSING = ("I understand that this amendment will be attached to and become part
            "report and released upon request with that report. I certify that the statements made in this letter "
            "are true, complete and correct to the best of my knowledge.")
 
-def observation(text=PURPOSE,closing=CLOSING):
+PREAMBLE = ("May 18, 2021 The Honorable Example Director Director Office of Government Ethics "
+            "1201 New York Avenue, NW Suite 500 Washington, DC 20005 "
+            "Re: Amendment to Financial Disclosure Report of Ada Example Dear Director:")
+TAIL = ("Filer Signature: Date: U.S. Office of Government Ethics Certification "
+        "After reviewing this letter, I continue to conclude that Ada Example is in compliance with "
+        "applicable laws and regulations (subject to any comments below). "
+        "USS. Office of Government Ethics Certification: Date: May 18 , 2021 "
+        "Comments of Reviewing Official: Page 1 of 1")
+
+def observation(text=PURPOSE,closing=CLOSING,preamble=PREAMBLE,tail=TAIL):
     rows = ["level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext"]
-    for top,paragraph in [(10,"Dear Director: "+text),(1200,closing),(1400,"Filer Signature:")]:
+    for top,paragraph in [(10,preamble+" "+text),(1200,closing),(1400,tail)]:
         for i,word in enumerate(paragraph.split()):
             rows.append(f"5\t1\t1\t1\t1\t{i+1}\t10\t{top}\t10\t10\t99\t{word}")
     raw = "\n".join(rows)+"\n"
@@ -38,9 +47,9 @@ class LocalAmendmentTests(unittest.TestCase):
     def test_raw_scope_recomputed_and_value_remains_unknown(self):
         o,image=observation();a=inputs(source())["archive_metadata_by_document"][DOC]
         a.update(amended_label="yes",document_url=a["document_url"].replace("example-annual","AMENDED-annual"))
-        columns={"table_box":[0,340,220,422], "tracks":[[x,x] for x in (0,40,100,120,150,180,220)],
+        columns={"table_box":[0,340,220,422], "header_words":[], "tracks":[[x,x] for x in (0,40,100,120,150,180,220)],
                  "body_words":[{"text":"5","box":[1,1,2,2]}, {"text":"advance","box":[151,1,170,2]}],"value_status":"unknown"}
-        with patch("unison_snapshot.oge_annual_amendment_letter._source_image",return_value=(image,[],612.,792.)), patch("unison_snapshot.oge_annual_amendment_letter._columns",return_value=columns):
+        with patch("unison_snapshot.oge_annual_amendment_letter._source_image",return_value=(image,[],612.,792.)), patch("unison_snapshot.oge_annual_amendment_letter._columns",return_value=columns), patch("unison_snapshot.oge_annual_amendment_letter._signature_regions",return_value=[]):
             result=interpret_amendment_letter(o,archive_metadata=a,archived_pdf_path="source.pdf")
             self.assertEqual(result["printed_row_number"],"5")
             self.assertEqual(result["holding_value_status"],"unknown")
@@ -55,6 +64,15 @@ class LocalAmendmentTests(unittest.TestCase):
             self.assertIsNotNone(interpret_amendment_letter(saved_typo,archive_metadata=a,archived_pdf_path="source.pdf"))
             added,_=observation(closing=CLOSING+" I also omitted shares of ACME.")
             self.assertIsNone(interpret_amendment_letter(added,archive_metadata=a,archived_pdf_path="source.pdf"))
+            for preamble,tail in [("Also change Part 7 line 2. "+PREAMBLE,TAIL),
+                                  (PREAMBLE,TAIL.replace("Filer Signature:","Filer Signature: Also change Part 7 line 2.")),
+                                  (PREAMBLE,TAIL.replace("Comments of Reviewing Official:","Comments of Reviewing Official: Also change Part 7 line 2."))]:
+                extra,_=observation(preamble=preamble,tail=tail)
+                self.assertIsNone(interpret_amendment_letter(extra,archive_metadata=a,archived_pdf_path="source.pdf"))
+            crossing=deepcopy(columns)
+            crossing["body_words"].append({"text":"unexpected","box":[97.2,378,104.4,381.6]})
+            with patch("unison_snapshot.oge_annual_amendment_letter._columns",return_value=crossing):
+                self.assertIsNone(interpret_amendment_letter(o,archive_metadata=a,archived_pdf_path="source.pdf"))
             bad=deepcopy(o);bad["raw_tsv"]+="tamper"
             with self.assertRaises(OgeCatalogError):
                 interpret_amendment_letter(bad,archive_metadata=a,archived_pdf_path="source.pdf")
@@ -122,6 +140,10 @@ class LocalAmendmentTests(unittest.TestCase):
         self.assertIsNone(_columns(image,wrong,lines))
         extra=image.copy();ImageDraw.Draw(extra).line((round(355/.36),round(337/.36),round(355/.36),round(422/.36)),fill=(200,200,200),width=2)
         self.assertIsNone(_columns(extra,words,lines))
+        cross=deepcopy(words)+[{"text":"unexpected","box":[97.2,378,104.4,381.6]}]
+        self.assertIsNone(_columns(image,cross,lines))
+        extra_header=deepcopy(words)+[{"text":"unexpected","box":[200,341,220,350]}]
+        self.assertIsNone(_columns(image,extra_header,lines))
 
     def test_original_report_date_conflict_is_not_a_new_filing_date(self):
         bad=relation();bad["original_report_signed_date"]="2026-06-02"

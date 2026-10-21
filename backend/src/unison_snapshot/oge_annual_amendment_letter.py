@@ -32,6 +32,35 @@ def _source_image(path, expected_sha):
         image = page.to_image(resolution=200).original.convert("RGB")
         return image, list(page.lines), float(page.width), float(page.height)
 
+def _signature_regions(path, expected_sha, words):
+    """Use source image/native digital-signature objects, never OCR signer names."""
+    import pdfplumber
+    from io import BytesIO
+    raw = Path(path).read_bytes()
+    if _sha(raw) != expected_sha:
+        raise OgeCatalogError("annual letter PDF differs from source")
+    with pdfplumber.open(BytesIO(raw)) as pdf:
+        page = pdf.pages[0]
+        filer = [w for w in words if w["text"] == "Filer"]
+        labels = [w for w in words if w["text"] == "Signature:"]
+        regions = []
+        if len(filer) == len(labels) == 1:
+            f, label = filer[0]["box"], labels[0]["box"]
+            for image in page.images:
+                if (image["x0"] > label[2] and image["top"] < f[3] and
+                        image["bottom"] >= label[1] and image["bottom"]-image["top"] < page.height/4):
+                    regions.append([image[k] for k in ("x0", "top", "x1", "bottom")])
+        fonts = {}
+        for char in page.chars:
+            fonts.setdefault(char["fontname"], []).append(char)
+        for chars in fonts.values():
+            text = "".join(c["text"] for c in chars)
+            # Native signature appearance is a role, not identity evidence.
+            if re.fullmatch(r"(.{1,80})Digitally signed by \1 Date: \d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2} [-+]\d{2}'\d{2}'", text):
+                regions.append([min(c["x0"] for c in chars),min(c["top"] for c in chars),
+                                max(c["x1"] for c in chars),max(c["bottom"] for c in chars)])
+        return regions
+
 def observe_amendment_letter(pdf_path, tsv_path, *, archive_metadata):
     """Package existing single-page typed OCR; no recognition is run here."""
     image, _, width, height = _source_image(pdf_path, archive_metadata["sha256"])
@@ -79,6 +108,16 @@ def _columns(image, words, lines):
     typ, amount = one("Type"), one("Amount")
     if any(r is None for r in roles) or len(inc) != 2 or typ is None or amount is None:
         return None
+    from collections import Counter
+    expected=Counter(["#","Description","EIF","Value","Income","Type","Income","Amount"])
+    observed=Counter(w["text"] for w in header)
+    if observed != expected and observed != expected+Counter(["|"]):
+        return None
+    for word in header:
+        if word["text"] == "|" and not any(abs(l["x0"]-l["x1"])<.01 and
+                word["box"][0]<=l["x0"]<=word["box"][2] and l["top"]<=word["box"][1] and
+                l["bottom"]>=word["box"][3] for l in lines):
+            return None
     roles += [[inc[0][0], inc[0][1], typ[2], typ[3]],
               [inc[1][0], inc[1][1], max(inc[1][2], amount[2]), amount[3]]]
     hb = max(b[3] for b in roles)
@@ -117,12 +156,15 @@ def _columns(image, words, lines):
         return None
     if not all(tracks[i][1] < (b[0]+b[2])/2 < tracks[i+1][0] for i,b in enumerate(roles)):
         return None
+    if any(sum(tracks[i][1] < w["box"][0] and w["box"][2] < tracks[i+1][0]
+               for i in range(6)) != 1 for w in body):
+        return None
     outer = [l for l in lines if abs(l["x0"]-l["x1"]) < .01 and
              (tracks[0][0] <= l["x0"] <= tracks[0][1] or tracks[-1][0] <= l["x0"] <= tracks[-1][1]) and
              abs(l["bottom"]-bottom["top"]) <= 4 and l["top"] < top]
     if len(outer) != 2:
         return None
-    return {"tracks": tracks, "header_boxes": roles, "body_words": body,
+    return {"tracks": tracks, "header_boxes": roles, "header_words": header, "body_words": body,
             "table_box": [left, min(l["top"] for l in outer), right, bottom["top"]],
             "value_status": "unknown_boundary_fringe_not_proven_blank"}
 
@@ -165,23 +207,48 @@ def interpret_amendment_letter(observation, *, archive_metadata, archived_pdf_pa
     table_top, table_bottom = columns["table_box"][1], columns["table_box"][3]
     before = " ".join(w["text"] for w in words if w["box"][1] < table_top)
     greetings = list(re.finditer(r"\bDear [^:]{1,100}:\s*", before))
-    if len(greetings) != 1 or before[greetings[0].end():].strip() != purpose[0]:
+    name = r"[A-Z][A-Za-z.'-]*,?(?: [A-Z][A-Za-z.'-]*,?){0,5}"
+    preamble = (r"[A-Za-z]+ \d{1,2}, \d{4} The Honorable " + name +
+        r" Director Office of Government Ethics \d{1,6} (?:[A-Z][A-Za-z.,'-]* ){1,8}"
+        r"Suite \d+ Washington, DC \d{5} Re: Amendment to Financial Disclosure Report of " + name +
+        r" Dear " + name + r":")
+    if (len(greetings) != 1 or before[greetings[0].end():].strip() != purpose[0] or
+            re.fullmatch(preamble,before[:greetings[0].end()].strip()) is None):
         return None
-    after = " ".join(w["text"] for w in words if w["box"][1] >= table_bottom)
+    regions = _signature_regions(archived_pdf_path, archive["sha256"], words)
+    def signature_word(word):
+        a,b,c,d=word["box"]
+        return any(x<=a and y<=b and c<=z and d<=v for x,y,z,v in regions)
+    after_words = [w for w in words if w["box"][1] >= table_bottom and not signature_word(w)]
+    after = " ".join(w["text"] for w in after_words)
     closing, separator, signature = after.partition("Filer Signature:")
     closing_pattern = (r"I understand that this amendment will be attached to and become part of my financial disclosure "
         r"report and released upon request with that report\. I certify that the statements made in this letter "
         r"are true, complete and (?:correct to the best|correc best) of my knowledge\.")
     if not separator or re.fullmatch(closing_pattern, closing.strip()) is None:
         return None
-    # A populated official comments area can itself change the interpretation.
-    if "Comments of Reviewing Official:" in signature:
-        comments = signature.split("Comments of Reviewing Official:", 1)[1].strip()
-        if re.fullmatch(r"Page \d+ of \d+", comments) is None:
-            return None
+    # Dates/standard certification text must be fully accounted for. Only
+    # source-proven signature appearance regions may contain unread glyphs.
+    tail_pattern = (r"Date: U\.S\. Office of Government Ethics Certification "
+        r"After reviewing this letter, I continue to conclude that " + name +
+        r" is in compliance with applicable laws and regulations \(subject to any comments below\)\. "
+        r"U(?:\.S|SS)\. Office of Government Ethics Certification: "
+        r"Date: [A-Za-z]+ \d{1,2} ?[,] ?\d{4} Comments of Reviewing Official: Page \d+ of \d+")
+    if re.fullmatch(tail_pattern,signature.strip()) is None:
+        return None
+    # Do not silently discard words in the table band outside the table.
+    table_words=[w for w in words if table_top <= w["box"][1] < table_bottom]
+    if any(w["box"][0] < columns["table_box"][0] or w["box"][2] > columns["table_box"][2]
+           for w in table_words):
+        return None
     body, tracks = columns["body_words"], columns["tracks"]
+    accounted=columns["header_words"]+body
+    if any(w not in accounted for w in table_words):
+        return None
     def in_column(w,index):
         return tracks[index][1] < w["box"][0] and w["box"][2] < tracks[index+1][0]
+    if any(sum(in_column(w,i) for i in range(6)) != 1 for w in body):
+        return None
     printed = [w["text"] for w in body if in_column(w,0)]
     types = [w["text"] for w in body if in_column(w,4)]
     if printed != [purpose[1]] or types != ["advance"]:
@@ -196,4 +263,5 @@ def interpret_amendment_letter(observation, *, archive_metadata, archived_pdf_pa
             "source_sha256": archive["sha256"], "page_number": 1,
             "raw_tsv_sha256": observation["raw_tsv_sha256"], "image_pixels_sha256": observation["image_pixels_sha256"],
             "purpose_raw": purpose[0], "column_evidence": columns,
+            "signature_role_regions": regions,
             "field_application": "none_income_not_a_frontend_value", "formal_corrections": []}
