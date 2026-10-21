@@ -134,6 +134,12 @@ def _sources(saved,evidence,review):
 def apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_root,review_root):
     """Apply only after the normal WH family candidate has independently passed."""
     if not saved:return candidate,None
+    from .whitehouse_278t import saved_ocr_source_roots
+    with saved_ocr_source_roots(evidence_root,review_root):
+        return _apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_root,review_root)
+
+
+def _apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_root,review_root):
     evidence=Path(evidence_root);review=Path(review_root)
     expected,wh_audit,eligibility=_whitehouse_candidate(wh_inputs)
     if candidate!=expected:raise OgeCatalogError('cross-source input is not the current normal White House candidate')
@@ -280,6 +286,12 @@ def apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_ro
                 if health['detail'].endswith('; '+old_summary):
                     health['detail']=health['detail'][:-len(old_summary)]+new_summary
                 if not health['detail'].endswith(detail):health['detail']+=detail
+        # The direct CLI's identity describes its earlier source stage. Use
+        # the existing producer identity for these final facts, so a repeated
+        # complete run cannot inherit a different intermediate snapshot ID.
+        from .builder import build
+        result['meta']['snapshot_id']=build(result,
+            generated_at=result['meta']['data_cutoff_at'],allow_production=True).manifest['snapshot_id']
     for view in views.values():
         view['replacement_application_mode']='verified_amount_only/v1'
         view['cross_source_native_application_context']=deepcopy(context)
@@ -295,16 +307,20 @@ def verify_cross_source_native_applications(audit,evidence_root,review_root):
     context=audit.get('context',{})
     if context.get('schema_version')!=SCHEMA:raise OgeCatalogError('cross-source replacement context is missing')
     wh_inputs=context['wh_inputs']
-    candidate,_,_=_whitehouse_candidate(wh_inputs)
-    actual,proof=apply_cross_source_native_replacements(candidate,context['saved_inputs'],wh_inputs,evidence_root,review_root)
+    from .whitehouse_278t import saved_ocr_source_roots
+    with saved_ocr_source_roots(evidence_root,review_root):
+        candidate,_,_=_whitehouse_candidate(wh_inputs)
+        actual,proof=apply_cross_source_native_replacements(candidate,context['saved_inputs'],wh_inputs,evidence_root,review_root)
     if proof!=audit:raise OgeCatalogError('cross-source replacement audit differs from current family source replay')
     return actual,proof
 
 
 def replay_cross_source_context(context,evidence_root,review_root):
     if context.get('schema_version')!=SCHEMA:raise OgeCatalogError('cross-source replacement context is invalid')
-    candidate,_,_=_whitehouse_candidate(context['wh_inputs'])
-    return apply_cross_source_native_replacements(candidate,context['saved_inputs'],context['wh_inputs'],evidence_root,review_root)
+    from .whitehouse_278t import saved_ocr_source_roots
+    with saved_ocr_source_roots(evidence_root,review_root):
+        candidate,_,_=_whitehouse_candidate(context['wh_inputs'])
+        return apply_cross_source_native_replacements(candidate,context['saved_inputs'],context['wh_inputs'],evidence_root,review_root)
 
 
 def cross_source_dependency_sha256(saved,wh_reports,evidence_root,review_root):

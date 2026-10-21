@@ -1,6 +1,6 @@
 """Constructed OGE->WH source-family contracts, not real four-block recovery."""
 from copy import deepcopy
-import hashlib,json,tempfile,unittest
+import hashlib,json,tempfile,unittest,sys
 from pathlib import Path
 from unittest.mock import patch
 from test_oge_native_amount_only_application import fixture,mocks,CUTOFF,DOCUMENT_ID,runner_arguments
@@ -227,14 +227,20 @@ class CrossSourceReplacementTests(unittest.TestCase):
                 self.assertEqual([row['disposition'] for row in ledger],['quarantined'])
 
     def test_normal_wh_cli_status_builder_and_complete_chain_repeat(self):
+        from unison_snapshot.__main__ import main as direct_cli
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);d=cross_fixture(root);d['root']=root;complete_review(d)
+            write(root/'catalog.json',catalog(d['src']))
+            write(root/'direct-extractions'/(DOCUMENT_ID+'.json'),d['new'])
             with mocks(d):
                 original,_,_=_whitehouse_candidate(d['wh_inputs'])
                 def run(prior):
-                    direct,qa=build_oge_candidate(catalog(d['src']),[d['new']],prior,data_cutoff_at=CUTOFF,
-                        saved_exhibit_observations_by_document={DOCUMENT_ID:d['inputs']})
-                    write(root/'candidate.json',direct);write(d['review']/'oge/qualifications/current.json',qa)
+                    write(root/'base.json',prior)
+                    direct_args=['unison_snapshot','build-oge-candidate','--catalog',str(root/'catalog.json'),
+                        '--extractions-dir',str(root/'direct-extractions'),'--base',str(root/'base.json'),
+                        '--data-cutoff-at',CUTOFF,'--saved-exhibit-observations',str(root/'saved.json'),
+                        '--output',str(root/'candidate.json'),'--audit-output',str(d['review']/'oge/qualifications/current.json')]
+                    with patch.object(sys,'argv',direct_args):direct_cli()
                     args=['--oge-candidate',str(root/'candidate.json'),'--candidate-out',str(root/'candidate.json'),
                         '--review-root',str(d['review']),'--audit-out',str(d['review']/'whitehouse/qualifications/candidate-current.json'),
                         '--evidence-root',str(d['evidence']),'--saved-exhibit-observations',str(root/'saved.json')]
