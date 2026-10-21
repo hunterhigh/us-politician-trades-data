@@ -1136,7 +1136,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                          resolution: int = 200,
                          saved_ocr_pages: dict | None = None,
                          saved_ocr_engine: str | None = None,
-                         allow_partial_rows: bool = False, geometry_mode=None) -> dict:
+                         allow_partial_rows: bool = False, geometry_mode=None, native_baseline_mode=None) -> dict:
     """Retain OCR words by independently located physical slot.
 
     OCR words are observations only.  A slot without recognized words may be
@@ -1153,6 +1153,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
         raise ValueError("partial row geometry requires explicit saved OCR pages")
     if geometry_mode not in (None,DUAL_MODE) or geometry_mode and saved_ocr_pages is None:
         raise ValueError("dual-axis geometry requires explicit saved words and mode")
+    if native_baseline_mode is not None:
+        from .pdf_text_baselines import MODE
+        if native_baseline_mode != MODE or geometry_mode != DUAL_MODE or saved_ocr_pages is None:
+            raise ValueError("native baseline row ownership requires explicit saved dual-axis mode")
     actual_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
         raise ValueError("278-T raster observation source SHA-256 differs")
@@ -1232,13 +1236,13 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                     (float(word["top"])+float(word["bottom"]))/2) if dual_slot else
                     top <= (float(word["top"]) + float(word["bottom"])) / 2 < bottom)]
             assigned.update(position for position, _ in selected)
-            ordered = sorted((word for _, word in selected),
-                             key=lambda word: (float(word["top"]), float(word["x0"])))
+            ordered = sorted(selected,key=lambda item:(float(item[1]["top"]),float(item[1]["x0"])))
             observations = [{"text": str(word["text"]),
                              "bbox_pdf_points": [float(word[key]) if dual_slot else round(float(word[key]), 2)
                                                  for key in ("x0", "top", "x1", "bottom")],
-                             "confidence": round(float(word["ocr_confidence"]), 2)}
-                            for word in ordered]
+                             "confidence": round(float(word["ocr_confidence"]), 2),
+                             **({"source_page_word_index":position} if native_baseline_mode else {})}
+                            for position,word in ordered]
             slots.append({"slot_index": index,
                           "band_pdf_points": band,
                           **({**dual_slot,"quad_pdf_points":slot_quad(column_page,dual_slot)} if dual_slot else {}),
@@ -1276,6 +1280,21 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                       "slots": slots,
                       "ocr_word_count": len(words),
                       "words_outside_slots": len(words) - len(assigned)})
+    if native_baseline_mode:
+        from .pdf_text_baselines import source_text_baseline_bindings
+        for page in pages:
+            page["native_baseline_mode"]=native_baseline_mode
+            if not page.get("slots"):continue
+            page["source_page_input_words"]=deepcopy(ocr_by_page[page["page_number"]].extract_words())
+            proof=source_text_baseline_bindings(source,expected_sha256=actual_sha256,
+                page_number=page["page_number"],page=page,words=page["source_page_input_words"])
+            page["native_baseline_bindings"]=proof
+            for slot in page["slots"]:
+                slot["source_baseline_row_word_indices"]=[i for i,w in enumerate(slot["words"]) if
+                    proof["bindings"].get(str(w["source_page_word_index"]),{}).get("slot_index")==slot["slot_index"]]
+                raw_cross=slot["unresolved_region_crossing_word_indices"]
+                slot["raw_row_crossing_word_indices"]=list(raw_cross)
+                slot["unresolved_region_crossing_word_indices"]=[i for i in raw_cross if str(i) not in proof["bindings"]]
     if saved_ocr_pages is not None:
         for page in pages:
             frame=getattr(saved_ocr_pages[page["page_number"]],"render_frame",None)
@@ -1284,6 +1303,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
         for page in pages:page["geometry_mode"]=DUAL_MODE
     return {"schema_version": DUAL_SCHEMA if geometry_mode else SCHEMA,
             **({"geometry_mode":DUAL_MODE} if geometry_mode else {}),
+            **({"native_baseline_mode":native_baseline_mode} if native_baseline_mode else {}),
             "source_sha256": actual_sha256,
             "selected_page_numbers": page_numbers,
             "ocr_engine": engine,

@@ -4,6 +4,10 @@ from __future__ import annotations
 from collections import defaultdict
 from math import isfinite
 from pathlib import Path
+import hashlib
+import json
+
+MODE = "source_text_baseline_unique_row/v1"
 
 from .pdf_text_object_words import observe_pdf_text_objects
 
@@ -49,6 +53,10 @@ def _assignment(record: dict, page: dict) -> dict | None:
     if (not 1 <= len(overlaps) <= 2 or owner not in overlaps or
             any(abs(i-owner)>1 for i in overlaps)):
         return None
+    if len(overlaps)==2:
+        first,last=min(overlaps),max(overlaps)
+        if page["slots"][first]["row_boundary_refs"][1] != page["slots"][last]["row_boundary_refs"][0]:
+            return None
     envelope_top = horizontal[min(overlaps)][0]
     envelope_bottom = horizontal[max(overlaps)][1]
     if (top < max(envelope_top[0]+envelope_top[1]*x for x in (x0,x1)) or
@@ -132,4 +140,54 @@ def source_text_baseline_bindings(source: Path, *, expected_sha256: str,
         matches = lookup.get(_key(word["text"],box),[])
         if len(matches)==1:
             result["bindings"][str(index)] = matches[0]
+    if hashlib.sha256(Path(source).read_bytes()).hexdigest() != expected_sha256:
+        raise ValueError("source changed during baseline proof")
     return result
+
+
+def validate_native_baseline_observation(observation: dict, source_pdf_path) -> None:
+    """Recompute source ownership before any field/ledger consumes row relief."""
+    from .oge_278t_raster_slots import point_in_slot,box_in_slot,box_overlaps_slot
+    mode=observation.get("native_baseline_mode")
+    pages=observation.get("pages",[])
+    has_proof=any(p.get("native_baseline_mode") is not None or "native_baseline_bindings" in p or "source_page_input_words" in p or
+        any("source_baseline_row_word_indices" in s or "raw_row_crossing_word_indices" in s for s in p.get("slots",[])) for p in pages)
+    if mode is None:
+        if has_proof:raise ValueError("native baseline proof lacks explicit mode")
+        return
+    if mode!=MODE or source_pdf_path is None:
+        raise ValueError("native baseline mode requires its controlled original PDF")
+    sha=hashlib.sha256(Path(source_pdf_path).read_bytes()).hexdigest()
+    if sha!=observation.get("source_sha256"):raise ValueError("native baseline original source SHA differs")
+    canonical=lambda obj:json.dumps(obj,sort_keys=True,separators=(",",":"),ensure_ascii=False,allow_nan=False)
+    for page in pages:
+        if page.get("native_baseline_mode")!=MODE:raise ValueError("native baseline page mode differs")
+        if not page.get("slots"):
+            if any(k in page for k in ("native_baseline_bindings","source_page_input_words")):
+                raise ValueError("unknown native geometry cannot claim baseline ownership")
+            continue
+        words=page.get("source_page_input_words")
+        if not isinstance(words,list):raise ValueError("native baseline proof lacks original input words")
+        expected=source_text_baseline_bindings(Path(source_pdf_path),expected_sha256=sha,
+            page_number=page["page_number"],page=page,words=words)
+        if canonical(expected)!=canonical(page.get("native_baseline_bindings")):
+            raise ValueError("native baseline bindings differ from original TextObj")
+        bindings=expected["bindings"]
+        for slot in page["slots"]:
+            selected=[(i,w) for i,w in enumerate(words) if point_in_slot(page,slot,
+                (float(w["x0"])+float(w["x1"]))/2,(float(w["top"])+float(w["bottom"]))/2)]
+            selected.sort(key=lambda item:(float(item[1]["top"]),float(item[1]["x0"])))
+            if len(selected)!=len(slot["words"]):raise ValueError("native baseline local words differ from source page")
+            for (index,raw),word in zip(selected,slot["words"]):
+                if (type(word.get("source_page_word_index")) is not int or word["source_page_word_index"]!=index or word.get("text")!=raw["text"] or
+                        word.get("bbox_pdf_points")!=[float(raw[k]) for k in ("x0","top","x1","bottom")]):
+                    raise ValueError("native baseline word binding differs from raw source coordinates")
+            resolved=[i for i,w in enumerate(slot["words"]) if
+                bindings.get(str(w["source_page_word_index"]),{}).get("slot_index")==slot["slot_index"]]
+            raw_cross=[i for i,w in enumerate(words) if box_overlaps_slot(page,slot,[w[k] for k in ("x0","top","x1","bottom")])
+                and not box_in_slot(page,slot,[w[k] for k in ("x0","top","x1","bottom")])]
+            unresolved=[i for i in raw_cross if str(i) not in bindings]
+            if (slot.get("source_baseline_row_word_indices")!=resolved or
+                    slot.get("raw_row_crossing_word_indices")!=raw_cross or
+                    slot.get("unresolved_region_crossing_word_indices")!=unresolved):
+                raise ValueError("native baseline raw/remaining crossing evidence differs")

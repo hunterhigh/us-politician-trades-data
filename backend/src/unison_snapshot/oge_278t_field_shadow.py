@@ -171,9 +171,15 @@ def _word_evidence(slot: dict, page: dict) -> dict:
     result = {"status": "source_words_linked", "reason": None, "crossing_words": crossings,
               "unassigned_word_indices": [i for i in range(len(words)) if i not in owner]}
     if _dual_geometry(page):
-        result["row_boundary_crossing_words"] = [
+        raw_crossings = [
             {"word_index": i, "assigned_column": owner.get(i), "bbox_pdf_points": word["bbox_pdf_points"]}
             for i, word in enumerate(words) if not _geometry.box_in_slot(page, slot, word["bbox_pdf_points"])]
+        if page.get("native_baseline_mode") is not None:
+            result["raw_row_boundary_crossing_words"]=deepcopy(raw_crossings)
+            resolved=slot["source_baseline_row_word_indices"]
+            result["row_boundary_crossing_words"]=[w for w in raw_crossings if w["word_index"] not in resolved]
+        else:
+            result["row_boundary_crossing_words"]=raw_crossings
     return result
 
 
@@ -837,6 +843,8 @@ def observe_field_shapes(observations: list[dict], *,
         raise ValueError("expected saved 278-T raster slot observations v2/v3")
     for item in observations:
         _validate_geometry_input(item)
+        from .pdf_text_baselines import validate_native_baseline_observation
+        validate_native_baseline_observation(item,source_pdf_path)
     sources = {item.get("source_sha256") for item in observations}
     if len(sources) != 1 or None in sources:
         raise ValueError("278-T field observations must share one PDF SHA-256")

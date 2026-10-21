@@ -1402,10 +1402,10 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                 observations = observe_raster_slots(Path(pdf),expected_sha256=sha,page_numbers=table_numbers,
                       saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],
                       **({"allow_partial_rows":True} if allow_partial_rows else {}),
-                      **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}))
-                content = observe_content_rows([observations],document_page_count=count,
-                    **({"secondary_observations":secondary_observations,"source_pdf_path":Path(pdf)}
-                       if secondary_observations is not None else {}))
+                      **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
+                      **({"native_baseline_mode":inputs["native_baseline_mode"]} if "native_baseline_mode" in inputs else {}))
+                content = observe_content_rows([observations],document_page_count=count,source_pdf_path=Path(pdf),
+                    **({"secondary_observations":secondary_observations} if secondary_observations is not None else {}))
             except ValueError as exc:
                 reasons.append("saved_ocr_geometry_unresolved")
                 observations = {"geometry_failure":str(exc)}
