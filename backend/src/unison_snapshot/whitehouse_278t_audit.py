@@ -18,7 +18,7 @@ from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
     validate_generic_whitehouse_report, generic_existing_fact, DUAL_AXIS_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
@@ -131,6 +131,26 @@ def _trade_keys(row: dict, person_id: str) -> set[tuple]:
     if isinstance(ticker, str) and ticker:
         keys.add((common, "ticker", ticker.upper()))
     return keys
+
+
+def _legacy_report_facts_bound(report: dict, existing: list[dict], person_id: str | None) -> bool:
+    """Allow a proven unpublished source row only after conserving this report's base facts.
+
+    Validation has already replayed the v5 source and legacy inheritance. This
+    additional check proves that none of this report's published facts is left
+    outside that source inventory; financial similarity is never a row binding.
+    """
+    if (report.get("parser_version") != GENERIC_PARSER_VERSION or not person_id or
+            not report.get("legacy_source_binding")):
+        return False
+    facts = [fact for fact in existing if fact.get("filing_id") == report["document_id"]]
+    if not facts or any(fact.get("source_id") != "oge" or
+                        fact.get("source_url") != report["source_url"] or
+                        fact.get("person_id") != person_id for fact in facts):
+        return False
+    bound = [generic_existing_fact(report, row, existing, expected_person_id=person_id)
+             for row in report["transactions"]]
+    return all(sum(item is fact for item in bound) == 1 for fact in facts)
 
 
 def _day(value: object) -> date | None:
@@ -640,6 +660,14 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                        if identity.get("identity_basis") else {})}
                    if identity else None)
         rows = []
+        legacy_report_bound = _legacy_report_facts_bound(
+            report, existing_oge_candidate["transactions"], person_id)
+        other_report_keys = set()
+        if legacy_report_bound:
+            for fact in existing_oge_candidate["transactions"]:
+                if (fact.get("filing_id") != report["document_id"] and
+                        fact.get("source_id") == "oge" and isinstance(fact.get("person_id"), str)):
+                    other_report_keys.update(_trade_keys(fact, fact["person_id"]))
         for source_row in report["transactions"]:
             if not isinstance(source_row, dict):
                 raise OgeCatalogError("White House 278-T transaction row is invalid")
@@ -647,6 +675,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
             field_reasons = _row_reasons(source_row, filing_day, generic=generic)
             retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"],
                 expected_person_id=person_id) if generic else None
+            bound_addition = False
             if generic:
                 key = (source_row.get("page_number"),tuple(source_row.get("cells",[])))
                 matches = generic_expected[report["document_id"]].get(key,[])
@@ -664,14 +693,18 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                     field_reasons.append("legacy_source_row_correspondence_unresolved")
                 if retained is not None and retained.get("person_id") != person_id:
                     field_reasons.append("legacy_person_binding_differs")
-                if retained is None and any(f.get("filing_id") == report["document_id"] and
+                bound_addition = (legacy_report_bound and retained is None and
+                                  bool(source_row.get("legacy_inheritance")) and not field_reasons)
+                if retained is None and not bound_addition and any(
+                        f.get("filing_id") == report["document_id"] and
                         f.get("source_url") == report["source_url"] for f in existing_oge_candidate["transactions"]):
                     field_reasons.append("legacy_report_new_row_binding_pending")
             row_reasons = list(reasons) + field_reasons
             if person_id and not field_reasons:
                 keys = _trade_keys(source_row, person_id)
                 ignore_dedup = report.get("parser_version") == TRUMP_2026_PARSER_VERSION
-                if not ignore_dedup and keys & existing_keys and retained is None:
+                comparison_keys = other_report_keys if bound_addition else existing_keys
+                if not ignore_dedup and keys & comparison_keys and retained is None:
                     row_reasons.append("possible_existing_oge_transaction_duplicate")
                 filer = _first_last(report.get("pdf_filer_name") or "")
                 annual_common = (filer, source_row.get("transaction_type"),
