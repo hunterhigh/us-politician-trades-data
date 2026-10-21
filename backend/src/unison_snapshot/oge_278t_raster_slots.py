@@ -897,8 +897,19 @@ def _dual_axis_image_grid(page) -> dict:
                 raise ValueError("regional columns outside witnessed row domain")
         except ValueError as exc:
             failures.append({"candidate_start_index":start,"reason":str(exc),"evidence":evidence});continue
-        witnesses=[_image_rule_witness(gray,x=x,top=ydomain[0],bottom=ydomain[1],scale_x=sx,scale_y=sy,
-            slope=slope,reference_y=reference) for x,slope in zip(edges,slopes)]
+        # Each vertical rule starts/ends at its own intersection with the
+        # sloping outer row rules. The rectangular y-domain includes pixels
+        # outside the table for inner columns and can falsely report a gap.
+        column_spans=[]
+        for x,slope in zip(edges,slopes):
+            A=x-slope*reference
+            endpoints=[]
+            for line in (accepted[0],accepted[-1]):
+                B=line["b"]-line["r"]*xref
+                endpoints.append((B+line["r"]*A)/(1-slope*line["r"]))
+            column_spans.append(endpoints)
+        witnesses=[_image_rule_witness(gray,x=x,top=span[0],bottom=span[1],scale_x=sx,scale_y=sy,
+            slope=slope,reference_y=reference) for x,slope,span in zip(edges,slopes,column_spans)]
         if any(w["status"]!="confirmed" for w in witnesses):
             failures.append({"candidate_start_index":start,"reason":"image_vertical_rule_not_connected",
                              "weak_rule_observations":witnesses,"evidence":evidence});continue
