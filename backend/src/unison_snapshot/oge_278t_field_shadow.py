@@ -672,6 +672,26 @@ def _amount_shape(raw: str) -> dict:
 
 
 
+def _ordered_date_shape(reading: dict) -> dict:
+    text = reading.get("ordered_ocr_text") or ""
+    shape = _date_shape(text)
+    if shape["value"] is not None:
+        return shape
+    if (reading.get("status") != "geometry_ordered_unverified" or
+            reading.get("reading_coordinate_basis") != "source_and_row_top_relative_consistency/v1" or
+            len(reading.get("line_word_indices") or []) != 1):
+        return shape
+    compact = re.sub(r"\s", "", text)
+    # Both slashes and every digit must already be in the same proven line.
+    # Never insert a slash, infer a year, or swap month and day.
+    if _DATE.fullmatch(compact) is None:
+        return shape
+    result = _date_shape(compact)
+    if result["value"] is not None:
+        result["interpretation_basis"] = "source_line_order_explicit_two_slashes_whitespace_only/v1"
+    return result
+
+
 def _ordered_amount_shape(reading: dict) -> dict:
     """Apply the existing statutory parser only to complete proven digit groups."""
     text=reading.get("ordered_ocr_text") or ""
@@ -844,8 +864,9 @@ def observe_field_shapes(observations: list[dict], *,
                     raise ValueError("confirmed column page lacks column observations")
                 raw = {name: columns[name]["raw_ocr_text"] for name in _COLUMNS}
                 printed_number = raw["printed_number"].strip()
-                direction = raw["type"].strip().casefold()
                 description_reading = _description_reading(slot, page=page)
+                date_reading = _description_reading({**slot, "column_observation": {
+                    "description": columns["transaction_date"]}}, page=page)
                 # OCR may join a notification word to the first dollar value.
                 # Searching both adjacent columns is an observation, not a
                 # positional correction or a claim about notification status.
@@ -861,7 +882,7 @@ def observe_field_shapes(observations: list[dict], *,
                         bound_role=isinstance(columns["type"].get("word_indices"), list)
                                    and bool(columns["type"]["word_indices"]),
                         source_ref=f"observations/{input_index}/pages/{page_index}/slots/{slot_index}/type"),
-                    "transaction_date": _date_shape(raw["transaction_date"]),
+                    "transaction_date": _ordered_date_shape(date_reading),
                     "amount": _ordered_amount_shape(amount_reading),
                 }
                 issues = [name + "_unknown" for name, value in field_shapes.items()
@@ -891,6 +912,7 @@ def observe_field_shapes(observations: list[dict], *,
                               **_secondary_slot_geometry(page,slot),
                               "raw_columns": raw, "field_shapes": field_shapes,
                               "description_reading": description_reading, "amount_reading": amount_reading,
+                              "transaction_date_reading": date_reading,
                               "word_evidence": word_evidence, "field_readings": readings,
                               "issues": issues, "qualification": "not_assessed"})
             pages.append({"page_number": number, "status": "field_shapes_observed",
