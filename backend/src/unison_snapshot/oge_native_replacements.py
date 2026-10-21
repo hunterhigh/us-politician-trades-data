@@ -98,12 +98,24 @@ def prepare_native_exhibit_applications(extractions, records, saved, formal, dat
         if key is None or len(identities.get(key[0],set()))!=1:reason='identity_ambiguous'
         elif records[doc].get('pending_final_oge_disposition') is True:reason='pending_final_oge_disposition'
         elif data_cutoff_at is not None and str(views[doc].get('filed_at',''))>data_cutoff_at[:10]:reason='filing_exceeds_cutoff'
-        if reason:
-            for row in list(views[doc]['transactions']):
-                if not row.get('native_exhibit_reference',{}).get('replacement_application'):continue
-                views[doc]['transactions'].remove(row);row['reasons']=[reason];views[doc]['quarantined'].append(row)
+        for row in list(views[doc]['transactions']):
+            application=row.get('native_exhibit_reference',{}).get('replacement_application')
+            if not application:continue
+            target_doc=application['target']['target_document_id']
+            target_record=records.get(target_doc);target_source=originals.get(target_doc)
+            row_reason=reason
+            if row_reason is None and (not target_record or not target_source or
+                    _identity_key(target_record)!=key or any(target_source.get(field)!=target_record.get(meta)
+                        for field,meta in (('source_url','document_url'),('catalog_filer_name','filer_name'),
+                                           ('agency','agency'),('position_title','position_title')))):
+                row_reason='replacement_target_catalog_identity_unqualified'
+            if row_reason is None and target_record.get('pending_final_oge_disposition') is True:
+                row_reason='replacement_target_pending_final_oge_disposition'
+            if row_reason:
+                views[doc]['transactions'].remove(row);views[doc]['quarantined'].append(row)
+                row['reasons']=[row_reason]
                 next(r for r in views[doc]['observation_receipt']['rows'] if r.get('extraction_id')==row['extraction_id']).update(
-                    disposition='quarantined',reasons=[reason])
+                    disposition='quarantined',reasons=[row_reason])
     groups={}
     for doc in selected:
         for row in views[doc]['transactions']:

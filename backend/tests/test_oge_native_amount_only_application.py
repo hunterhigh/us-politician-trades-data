@@ -193,6 +193,16 @@ class NativeAmountOnlyApplicationTests(unittest.TestCase):
             self.assertEqual(result['transactions'],old['transactions'])
             self.assertEqual(next(r for r in audit['reports'] if r['document_id']==DOCUMENT_ID)['promoted_count'],0)
 
+    def test_target_catalog_pending_final_is_not_bypassed_by_qualified_amendment(self):
+        with tempfile.TemporaryDirectory() as folder:
+            d=fixture(Path(folder));d['prior']['pending_final_oge_disposition']=True
+            d['catalog']['transactions'][1]['pending_final_oge_disposition']=True
+            with mocks(d):result,audit=self.candidate(d)
+            self.assertEqual(result['transactions'],[])
+            report=next(r for r in audit['reports'] if r['document_id']==DOCUMENT_ID)
+            self.assertEqual(report['promoted_count'],0)
+            self.assertEqual(report['quarantined'][0]['reasons'],['replacement_target_pending_final_oge_disposition'])
+
     def test_normal_runner_first_repeat_and_annual_references_use_verified_source_mapping(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);d=fixture(root)
