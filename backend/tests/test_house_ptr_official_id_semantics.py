@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from test_house_ptr import amended_fixture_pages,META,IDENTITY
+from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr import parse_word_pages,qualify_automatic
 from unison_snapshot.house_candidate import build_house_candidate
 from test_house_native_account_context import fixture
@@ -38,6 +39,12 @@ class HouseOfficialTransactionIdSemanticsTests(unittest.TestCase):
 
     def test_invalid_identifier_is_not_accepted_even_without_parser_problem_label(self):
         x=self.source();x["transactions"][0]["reported_transaction_id"]="unknown"
+        # Saved native observations now reject altered fields before row rules.
+        with self.assertRaises(HouseIndexError):
+            qualify_automatic(x,IDENTITY)
+        # Truly older caches have no saved words; independent row checks must
+        # still reject the malformed ID without relying on parser labels.
+        x.pop("source_word_pages");x.pop("source_word_pages_sha256")
         q=qualify_automatic(x,IDENTITY)
         self.assertEqual(q["transactions"],[])
         self.assertIn("reported_transaction_id_invalid",q["quarantined"][0]["reasons"])
