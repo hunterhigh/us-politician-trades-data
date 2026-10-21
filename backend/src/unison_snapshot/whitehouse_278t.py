@@ -1115,7 +1115,7 @@ def _saved_supported_fields(row: dict, slot: dict, *, source_sha: str) -> dict:
         reads = slot["field_readings"][field]["observations"]
         supported = [(read, read["shape"].get("values", read["shape"].get("value")))
                      for read in reads if read.get("geometry_status") != "ambiguous" and
-                     read["shape"].get("status") in {"ocr_shape_only", "ocr_text_only"}]
+                     read["shape"].get("status") in {"ocr_shape_only", "ocr_text_only", "source_glyph_shape_only"}]
         if field == "amount":
             supported = [(read, value) for read, value, _ in amount_reads]
         if len({json.dumps(value, sort_keys=True) for _, value in supported}) != 1:
@@ -1287,6 +1287,10 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
         raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
     dual=geometry_mode==DUAL_AXIS_MODE
+    from .oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
+    source_glyph_mode = inputs.get("source_glyph_mode")
+    if source_glyph_mode not in (None, SOURCE_GLYPH_MODE) or source_glyph_mode and not dual:
+        raise OgeCatalogError("White House source glyph mode requires explicit saved dual-axis input")
     if not dual and any(key.startswith(("official_directory_", "oge_identity_")) for key in inputs):
         raise OgeCatalogError("White House directory identity inputs require explicit saved v7")
     def read(name):
@@ -1386,6 +1390,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     pdf_reference = inputs.get("archived_pdf_path")
     pdf = _saved_source_path(pdf_reference,evidence=True) if pdf_reference is not None else None
     original_verified = pdf is not None and pdf.is_file()
+    if source_glyph_mode and not original_verified:
+        raise OgeCatalogError("White House source glyph mode requires the controlled original PDF")
     if original_verified:
         raw = Path(pdf).read_bytes()
         if hashlib.sha256(raw).hexdigest() != sha or len(raw) != metadata.get("byte_length"):
@@ -1405,7 +1411,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                       **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
                       **({"native_baseline_mode":inputs["native_baseline_mode"]} if "native_baseline_mode" in inputs else {}))
                 content = observe_content_rows([observations],document_page_count=count,source_pdf_path=Path(pdf),
-                    **({"secondary_observations":secondary_observations} if secondary_observations is not None else {}))
+                    **({"secondary_observations":secondary_observations} if secondary_observations is not None else {}),
+                    **({"source_glyph_mode":source_glyph_mode} if source_glyph_mode else {}))
             except ValueError as exc:
                 reasons.append("saved_ocr_geometry_unresolved")
                 observations = {"geometry_failure":str(exc)}
@@ -1504,6 +1511,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         if dual:receipt["geometry_mode"]=DUAL_AXIS_MODE
     if not physical:
         reasons.append("observed_table_geometry_unknown")
+    if source_glyph_mode:
+        receipt["source_glyph_mode"] = source_glyph_mode
     if metadata.get("amended_label") or dates["amendment_cover"]:
         reasons.append("amendment_relationship_unresolved")
     result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":DUAL_AXIS_PARSER_VERSION if dual else SAVED_OCR_PARSER_VERSION,"source_id":"oge",

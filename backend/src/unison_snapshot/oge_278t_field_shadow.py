@@ -226,7 +226,7 @@ def _field_readings(slot: dict, raw: dict, shapes: dict, word_evidence: dict, *,
 
 
 def _known_value(shape: dict):
-    if shape["status"] not in {"ocr_shape_only", "ocr_text_only"}:
+    if shape["status"] not in {"ocr_shape_only", "ocr_text_only", "source_glyph_shape_only"}:
         return None
     return shape.get("values", shape.get("value"))
 
@@ -837,10 +837,16 @@ def _description_shape(reading: dict) -> dict:
 
 
 def observe_field_shapes(observations: list[dict], *,
-                         secondary_observations: list[dict] | None = None, source_pdf_path=None) -> dict:
+                         secondary_observations: list[dict] | None = None, source_pdf_path=None,
+                         source_glyph_mode: str | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations:
         raise ValueError("expected saved 278-T raster slot observations v2/v3")
+    from .oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
+    if source_glyph_mode not in (None, SOURCE_GLYPH_MODE):
+        raise ValueError("unsupported source glyph field mode")
+    if source_glyph_mode and source_pdf_path is None:
+        raise ValueError("source glyph mode requires the original PDF")
     for item in observations:
         _validate_geometry_input(item)
         from .pdf_text_baselines import validate_native_baseline_observation
@@ -938,6 +944,9 @@ def observe_field_shapes(observations: list[dict], *,
         if not isinstance(secondary_observations, list):
             raise ValueError("secondary field observations must be an array")
         _attach_secondary_reads(result, observations, secondary_observations, source_pdf_path=source_pdf_path)
+    if source_glyph_mode:
+        from .oge_278t_source_glyph_fields import attach_source_glyph_dates
+        attach_source_glyph_dates(result, observations, source_pdf_path=source_pdf_path)
     return result
 
 
@@ -1294,7 +1303,8 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
 
 
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
-                         secondary_observations: list[dict] | None = None, source_pdf_path=None) -> dict:
+                         secondary_observations: list[dict] | None = None, source_pdf_path=None,
+                         source_glyph_mode: str | None = None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
 
     The whole-document page count must come from the bound source metadata,
@@ -1305,10 +1315,13 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
 
     if type(document_page_count) is not int or document_page_count < 1:
         raise ValueError("bound document page count is required")
-    fields = observe_field_shapes(observations, secondary_observations=secondary_observations, source_pdf_path=source_pdf_path)
+    fields = observe_field_shapes(observations, secondary_observations=secondary_observations,
+                                  source_pdf_path=source_pdf_path, source_glyph_mode=source_glyph_mode)
     content_rules = ("oge-278t-content-rows/v5-type-cells" if any(
         reading.get("read_mode") == "bound_single_type_cells/v1"
         for reading in secondary_observations or []) else _CONTENT_RULES)
+    if source_glyph_mode:
+        content_rules = "oge-278t-content-rows/v6-source-glyph-dates"
     sha = fields["source_sha256"]
     originals = {}
     for item in observations:
