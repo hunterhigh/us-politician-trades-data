@@ -1334,7 +1334,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                     not 0 <= word["x0"] < word["x1"] <= width or not 0 <= word["top"] < word["bottom"] <= height or
                     any(type(word.get(k)) is not int for k in ("block_num","par_num","line_num"))):
                 raise OgeCatalogError("White House saved word geometry or line reference is invalid")
-        ocr[page["page_number"]] = OcrPage(width=width,height=height,words=words)
+        ocr[page["page_number"]] = OcrPage(width=width,height=height,words=words,render_frame=page.get("render_frame"))
     legacy = None
     if inputs.get("legacy_extraction_path") is not None:
         legacy, _ = read("legacy_extraction")

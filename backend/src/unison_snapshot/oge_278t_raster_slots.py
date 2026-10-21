@@ -1,6 +1,7 @@
 """Bounded, read-only OCR observations inside confirmed raster 278-T slots."""
 
 from __future__ import annotations
+from copy import deepcopy
 
 import hashlib
 import json
@@ -9,7 +10,7 @@ import re
 from pathlib import Path
 from statistics import median
 
-from .ocr_geometry import ocr_pdf_pages
+from .ocr_geometry import ocr_pdf_pages, validate_mediabox_render_receipt
 from .oge_278t_page_shadow import (probe_oge_2024_alternate_bands,
                                    probe_raster_row_bands, _raster_rule_centers)
 
@@ -1159,8 +1160,11 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                 raise ValueError("saved OCR pages differ from selected geometry pages")
             for number in page_numbers:
                 actual, saved = document.pages[number - 1], saved_ocr_pages[number]
-                if (tuple(actual.cropbox) != tuple(actual.mediabox) or
-                        float(saved.width) != float(actual.width) or float(saved.height) != float(actual.height)):
+                if (float(saved.width) != float(actual.width) or float(saved.height) != float(actual.height)):
+                    raise ValueError("saved OCR coordinate frame cannot be bound to original page")
+                if getattr(saved,"render_frame",None) is not None:
+                    validate_mediabox_render_receipt(actual,saved,source_sha256=actual_sha256,page_number=number)
+                elif tuple(actual.cropbox) != tuple(actual.mediabox):
                     raise ValueError("saved OCR coordinate frame cannot be bound to original page")
             ocr_pages, engine = [saved_ocr_pages[number] for number in known_pages], saved_ocr_engine
         else:
@@ -1261,6 +1265,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                       "slots": slots,
                       "ocr_word_count": len(words),
                       "words_outside_slots": len(words) - len(assigned)})
+    if saved_ocr_pages is not None:
+        for page in pages:
+            frame=getattr(saved_ocr_pages[page["page_number"]],"render_frame",None)
+            if frame is not None:page["render_frame"]=deepcopy(frame)
     if geometry_mode:
         for page in pages:page["geometry_mode"]=DUAL_MODE
     return {"schema_version": DUAL_SCHEMA if geometry_mode else SCHEMA,
