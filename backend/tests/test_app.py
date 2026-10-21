@@ -20,6 +20,7 @@ class CliTests(unittest.TestCase):
     def test_market_commands_keep_v3_relations_and_renderer_with_one_processing_pass(self):
         import unison_snapshot.__main__ as cli
         from test_oge_annual_approved_policy import complete_case
+        from unison_snapshot.codec import digest, encode
         _, (candidate, _) = complete_case()  # Synthetic approved-policy contract.
         actual_load = cli.load
         for command in ("build-alpaca-market-validation", "build-twelve-data-supplement"):
@@ -49,6 +50,15 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(calls,[("process_snapshot","v3"),("render_dashboard","v3")])
                 self.assertEqual(process.call_count,1)
                 saved=json.loads(output.read_bytes())
+                # Compare against the previous two-pass CLI algorithm with the
+                # real v3 processor, not only a dispatch/version assertion.
+                previous=deepcopy(candidate)
+                previous["meta"].update(generated_at="2026-06-02T00:00:00Z",snapshot_id="prepublication-validation")
+                processor.build_snapshot(previous)
+                identity=deepcopy(previous);identity["meta"].pop("snapshot_id",None)
+                previous["meta"]["snapshot_id"]=digest(encode(identity))
+                self.assertEqual(saved,previous)
+                self.assertEqual(json.loads(processed.read_bytes()),processor.build_snapshot(previous))
                 for key in ("transactions","reported_holdings"):
                     self.assertEqual(saved[key],candidate[key])
                 for key in ("holding_report_coverage","transaction_disclosure_relations"):
