@@ -67,9 +67,27 @@ class CachedPublicationTests(unittest.TestCase):
                 self.assertEqual(source.read_bytes(), encode(data))
                 market = build_market_bundle(candidate["security_market_data"],
                                              data_cutoff_at=candidate["meta"]["data_cutoff_at"])
+                original_candidate = deepcopy(candidate)
                 bundle = build(candidate, generated_at=candidate["meta"]["generated_at"],
                                allow_production=True, allow_market=True,
                                market_commit=MARKET_COMMIT, market_pages=market.page_shas)
+                self.assertEqual(candidate, original_candidate)
+                # The actual cached renderer's receipt is consumed by the
+                # normal publisher, with identical output and no second pass.
+                from unison_snapshot import __main__ as publisher, builder
+                validation = json.loads((output / "consumer-validation.json").read_bytes())
+                self.assertEqual(validation["input_sha256"], digest((output / "complete-candidate.json").read_bytes()))
+                self.assertEqual(validation["processor_sha256"], bundle.manifest["processor_sha256"])
+                pages = root / "pages.json"
+                pages.write_bytes(encode({"market_pages": list(market.page_shas)}))
+                publish_args = ["unison_snapshot", "prepare-publication", "--input", str(output / "complete-candidate.json"),
+                                "--root", str(root / "published"), "--generated-at", candidate["meta"]["generated_at"],
+                                "--allow-market", "--market-commit", MARKET_COMMIT, "--market-pages-file", str(pages),
+                                "--consumer-validation-file", str(output / "consumer-validation.json")]
+                with patch.object(sys, "argv", publish_args), patch.object(builder, "load", side_effect=AssertionError("No duplicate consumer processing")):
+                    publisher.main()
+                self.assertEqual({path.relative_to(root / "published").as_posix(): path.read_bytes()
+                                  for path in (root / "published").rglob("*") if path.is_file()}, bundle.files)
                 reader = PublicSnapshotRepository("example", "data", transport=FakeTransport(
                     bundle.files, extra_commits={MARKET_COMMIT: market.files}))
                 selected = reader.fetch("dashboard").snapshot

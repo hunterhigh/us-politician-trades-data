@@ -6,7 +6,7 @@ from pathlib import Path
 
 from unison_snapshot.cached_publication import join_disclosures, published_prices, prepared_prices
 from unison_snapshot.codec import digest, encode
-from unison_snapshot.legacy import load, processor_version_for
+from unison_snapshot.legacy import load, processor_version_for, PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256
 
 
 def main():
@@ -30,10 +30,17 @@ def main():
     candidate["meta"]["snapshot_id"] = digest(encode(identity))
     root.mkdir(parents=True, exist_ok=True)
     target = root / "complete-candidate.json"
-    target.write_bytes(encode(candidate))
+    candidate_bytes = encode(candidate)
+    target.write_bytes(candidate_bytes)
+    candidate_sha = digest(candidate_bytes)
+    del candidate_bytes
     renderer = load("render_dashboard", version=processor_version_for(candidate))
     (root / "complete-dashboard.html").write_text(
         renderer.render_html(renderer.load_dashboard_data(target)), encoding="utf-8")
+    # Only a successful rendering produces this receipt. The final producer
+    # checks the exact input bytes and pinned processor before reusing it.
+    (root / "consumer-validation.json").write_bytes(encode({
+        "input_sha256": candidate_sha, "processor_sha256": PROCESSOR_V3_SHA256 if processor_version_for(candidate) == "v3" else PROCESSOR_V2_SHA256}))
     audit.update(mode="refreshed" if args.prepared else "cached", base_market_commit=args.market_commit,
                  vendor_requests_in_publish_job=0)
     (root / "publication-market-audit.json").write_bytes(encode(audit))
