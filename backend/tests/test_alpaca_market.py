@@ -82,6 +82,50 @@ class Response:
 
 
 class AlpacaMarketTests(unittest.TestCase):
+    def test_txse_listing_transfer_preserves_disclosures_and_requires_prices(self):
+        snapshot = production_candidate()
+        assets = [asset("ZZDEMO", exchange="NASDAQ", status="inactive"),
+                  asset("ZZDEMO", exchange="TXSE", status="active")]
+        validation = build_market_validation(
+            snapshot, client=FakeMarketClient({
+                "ZZDEMO": [{"t": "2026-09-18T04:00:00Z", "c": 110}],
+            }, assets=assets), checked_at="2026-09-20T21:00:00Z",
+            distribution_authorized=True)
+        self.assertEqual(validation.audit["market_row_count"], 1)
+        self.assertEqual(validation.audit["unresolved_ticker_count"], 0)
+        for key in ("transactions", "reported_holdings"):
+            self.assertEqual(validation.snapshot[key], snapshot[key])
+        with self.assertRaisesRegex(AlpacaMarketError, "coverage is incomplete.*ZZDEMO"):
+            build_market_validation(
+                snapshot, client=FakeMarketClient({}, assets=assets),
+                checked_at="2026-09-20T21:00:00Z", distribution_authorized=True)
+        with self.assertRaisesRegex(AlpacaMarketError, "conflicting market scope.*ZZDEMO"):
+            build_market_validation(
+                snapshot, client=FakeMarketClient({}, assets=[
+                    asset("ZZDEMO", exchange="TXSE"), asset("ZZDEMO", exchange="OTC")]),
+                checked_at="2026-09-20T21:00:00Z", distribution_authorized=True)
+
+    def test_unknown_exchange_failure_identifies_records_without_fetching_prices(self):
+        snapshot = production_candidate()
+        original = deepcopy(snapshot)
+        client = FakeMarketClient({}, assets=[asset("ZZDEMO", exchange="UNRECOGNIZED")])
+        with self.assertRaises(AlpacaMarketError) as caught:
+            build_market_validation(
+                snapshot, client=client, checked_at="2026-09-20T21:00:00Z",
+                distribution_authorized=True)
+        details = json.loads(str(caught.exception).split("; details=", 1)[1])
+        affected = [row for key in ("transactions", "reported_holdings")
+                    for row in snapshot[key] if row.get("ticker") == "ZZDEMO"]
+        self.assertEqual(details, [{
+            "ticker": "ZZDEMO", "reason": "unknown_asset_exchange",
+            "provider_symbol": "ZZDEMO", "asset_status": "active",
+            "exchange": "UNRECOGNIZED",
+            "affected_record_count": len(affected),
+            "example_record_ids": sorted({row["id"] for row in affected})[:3],
+        }])
+        self.assertEqual(client.calls, [])
+        self.assertEqual(snapshot, original)
+
     def test_incremental_history_reuses_verified_older_closes(self):
         snapshot = production_candidate()
         snapshot["meta"]["data_cutoff_at"] = "2026-09-22T23:59:59Z"

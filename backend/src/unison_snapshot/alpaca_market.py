@@ -38,7 +38,9 @@ FULL_REFRESH_INTERVAL_DAYS = 30
 AUDIT_SCHEMA = "alpaca-market-validation/v2"
 TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 EXPLICIT_NAME_TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)\s*$")
-SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA"}
+# TXSE participates in CTA/UTP SIP; CECO transferred there on 2026-10-19.
+# https://www.txse.com/alerts/txse-production-launch-and-market-activation
+SIP_EXCHANGES = {"AMEX", "ARCA", "BATS", "NASDAQ", "NYSE", "NYSEARCA", "TXSE"}
 # Official filings occasionally place a foreign-exchange code in the ticker field.
 # Keep this exception explicit: symbol length alone is not enough to classify a
 # security as foreign and must never turn an unresolved code into a silent skip.
@@ -717,9 +719,23 @@ def build_market_validation(snapshot: dict, *, client: AlpacaMarketClient,
     supported, unsupported, unresolved = _market_universe(
         symbols, contexts, client.assets())
     if distribution_authorized and unresolved:
+        # Keep the existing publication gate, but expose the classification
+        # already available here so an operator can locate the affected data.
+        # Bound examples rather than dumping every disclosure into CI logs.
+        details = [
+            {
+                **item,
+                "affected_record_count": len(contexts[item["ticker"]]),
+                "example_record_ids": sorted({
+                    str(row.get("id") or "") for row in contexts[item["ticker"]]
+                })[:3],
+            }
+            for item in unresolved
+        ]
         raise AlpacaMarketError(
             "Production market universe has unresolved disclosure tickers: "
-            + ", ".join(row["ticker"] for row in unresolved))
+            + ", ".join(row["ticker"] for row in unresolved)
+            + "; details=" + json.dumps(details, ensure_ascii=True, sort_keys=True))
     disclosure_days = []
     supported_tickers = {row["ticker"] for row in supported}
     for row in normalized_snapshot.get("transactions", []):
