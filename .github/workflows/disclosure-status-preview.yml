@@ -39,7 +39,7 @@ jobs:
         env:
           PYTHONPATH: backend/src
         run: |
-          python backend/scripts/verify_publication_source_scope.py \
+          python backend/scripts/verify_publication_source_scope.py --keep-parser-inputs \
             --evidence-root "$RUNNER_TEMP/status-evidence" \
             --review-root "$RUNNER_TEMP/status-review" \
             --main-root "$RUNNER_TEMP/status-main" \

@@ -13,7 +13,7 @@ from threading import Lock
 from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode, digest
-from unison_snapshot.legacy import load
+from unison_snapshot.legacy import load, processor_version_for
 from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
 from unison_snapshot.oge_reports import (
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_URL,
@@ -258,7 +258,7 @@ def verify_prepared_publication(
     # produced large files with no downstream reader.
     (output_dir / "dashboard.json").write_bytes(encode(dashboard))
     written_at = time.perf_counter()
-    renderer = load("render_dashboard", version="v2")
+    renderer = load("render_dashboard", version=processor_version_for(dashboard))
     html = renderer.render_html(renderer.load_dashboard_data(output_dir / "dashboard.json"))
     (output_dir / "dashboard.html").write_text(html, encoding="utf-8")
     return {"main_commit": main_commit, "market_commit": market_commit,

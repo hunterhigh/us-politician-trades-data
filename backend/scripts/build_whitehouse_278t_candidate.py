@@ -26,12 +26,16 @@ from urllib.parse import urlsplit
 from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
-from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
+from unison_snapshot.whitehouse_278t_candidate import (
+    build_whitehouse_278t_review_candidate, audit_whitehouse_278t_exact_source_candidate,
+    build_whitehouse_278t_exact_source_candidate, EXACT_COPY_SCHEMA,
+)
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
 from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION as TRADE_PARSER,
+    PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSIONS,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,
+    saved_ocr_source_roots,
 )
 from unison_snapshot.oge_278e_public import (PARSER_VERSION as ANNUAL_PARSER,
                                              SCHEMA as ANNUAL_SCHEMA,
@@ -58,12 +62,13 @@ def _json_bytes(value: dict) -> bytes:
                        allow_nan=False) + "\n").encode("utf-8")
 
 
-def _verify_review(review_root: Path, *, expected_report_count: int | None) -> tuple[
+def _verify_review(review_root: Path, *, expected_report_count: int | None,
+                   coverage_input: Path | None = None, extraction_status_input: Path | None = None) -> tuple[
         list[dict], list[dict], dict, dict, list[dict], dict, int]:
-    coverage, coverage_sha = _read_object(review_root / "whitehouse/coverage-current.json")
+    coverage, coverage_sha = _read_object(coverage_input or review_root / "whitehouse/coverage-current.json")
     directory, directory_sha = _read_object(
         review_root / "whitehouse/disclosures/index-current.json")
-    status, status_sha = _read_object(review_root / "whitehouse/extraction-status.json")
+    status, status_sha = _read_object(extraction_status_input or review_root / "whitehouse/extraction-status.json")
     oge_coverage, oge_coverage_sha = _read_object(
         review_root / "oge/whitehouse/coverage-current.json")
     annual_identity_path = review_root / "whitehouse/annual/filer-reported-current.json"
@@ -121,7 +126,7 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None) -> t
         folder = Path("whitehouse/extractions") / match[1] / versions[0]
         parser_version = row.get("extraction_parser_version")
         if parser_version is None:
-            available = [version for version in TRADE_PARSERS
+            available = [version for version in TRADE_PARSERS if version not in GENERIC_PARSER_VERSIONS
                          if (review_root / folder /
                              f"{version.replace('/', '-')}.json").is_file()]
             parser_version = available[0] if available else TRADE_PARSER
@@ -305,16 +310,89 @@ def _strip_prior_whitehouse(candidate: dict, audit: dict,
 
 
 def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
-        audit_out: Path, expected_report_count: int | None = None) -> dict:
+        audit_out: Path, expected_report_count: int | None = None,
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
+        coverage_input: Path | None = None, extraction_status_input: Path | None = None,
+        saved_ocr_evidence_root: Path | None = None,
+        evidence_root: Path | None = None, saved_exhibit_observations: Path | None = None) -> dict:
+    with saved_ocr_source_roots(saved_ocr_evidence_root or evidence_root,review_root):
+        return _run(oge_candidate=oge_candidate,review_root=review_root,candidate_out=candidate_out,
+            audit_out=audit_out,expected_report_count=expected_report_count,exact_source_copies=exact_source_copies,
+            exact_source_bindings=exact_source_bindings,coverage_input=coverage_input,
+            extraction_status_input=extraction_status_input,evidence_root=evidence_root,
+            saved_exhibit_observations=saved_exhibit_observations)
+
+
+def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
+        audit_out: Path, expected_report_count: int | None = None,
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None,
+        coverage_input: Path | None = None, extraction_status_input: Path | None = None,
+        evidence_root: Path | None = None, saved_exhibit_observations: Path | None = None) -> dict:
     """Validate local evidence, then atomically replace each output file."""
     if expected_report_count is not None and (type(expected_report_count) is not int or
                                               expected_report_count <= 0):
         raise ValueError("Expected White House report count must be positive")
     (extractions, annual_extractions, oge_coverage, directory, annual_people,
      provenance, failure_count) = _verify_review(
-        review_root, expected_report_count=expected_report_count)
+        review_root, expected_report_count=expected_report_count,
+        coverage_input=coverage_input, extraction_status_input=extraction_status_input)
+    bindings = None
+    native_inputs = None
+    if saved_exhibit_observations is not None:
+        if evidence_root is None:raise ValueError("EXHIBIT application requires --evidence-root")
+        native_inputs,native_sha=_read_object(saved_exhibit_observations)
+        provenance["native_exhibit_application_input_sha256"]=native_sha
+        from unison_snapshot.oge_cross_source_replacements import cross_source_dependency_sha256
+        provenance["native_exhibit_application_dependency_sha256"]=cross_source_dependency_sha256(
+            native_inputs,extractions,evidence_root,review_root)
+    if exact_source_bindings is not None:
+        if not exact_source_copies:
+            raise ValueError("Exact source bindings require --exact-source-copies")
+        bindings, binding_sha = _read_object(exact_source_bindings)
+        provenance["exact_source_binding_file_sha256"] = binding_sha
+    generic_mode = any(row.get("parser_version") in GENERIC_PARSER_VERSIONS for row in extractions)
     base, base_sha = _read_object(oge_candidate)
-    if any(urlsplit(row.get("source_url") or "").hostname in
+    if native_inputs is not None and audit_out.is_file() and candidate_out.resolve()==oge_candidate.resolve():
+        prior,_=_read_object(audit_out)
+        if prior.get("candidate_sha256")==base_sha and prior.get("native_cross_source_applications"):
+            from unison_snapshot.oge_cross_source_replacements import verify_cross_source_native_applications
+            replayed,_=verify_cross_source_native_applications(prior.get("native_cross_source_applications"),evidence_root,review_root)
+            if failure_count:
+                health=next(row for row in replayed['source_health'] if row.get('source_id')=='oge')
+                health['detail']+=f" {failure_count} White House 278-T reports retained as extraction failures."
+            if replayed!=base:raise ValueError("Existing cross-source candidate differs from current source replay")
+            if prior.get("review_input_sha256")==provenance:
+                return {"idempotent":True,"report_count":prior["report_count"],
+                    "promoted_transaction_count":prior["promoted_transaction_count"],
+                    "quarantined_row_count":prior["quarantined_row_count"],
+                    "extraction_failure_count":prior.get("extraction_failure_count",0)}
+            if prior.get("review_input_sha256",{}).get("native_exhibit_application_input_sha256")!=native_sha:
+                raise ValueError("Changed EXHIBIT inputs require the preceding direct-source candidate stage")
+            base=deepcopy(prior['native_cross_source_applications']['context']['wh_inputs']['base'])
+            base_sha=hashlib.sha256(_json_bytes(base)).hexdigest()
+    if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
+        prior, _ = _read_object(audit_out)
+        if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
+                prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance):
+            normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
+            return {"idempotent": True, "audit_schema": EXACT_COPY_SCHEMA,
+                    "report_count": prior["report_count"],
+                    "promoted_transaction_count": prior["promoted_transaction_count"],
+                    "quarantined_row_count": prior["quarantined_row_count"],
+                    "exact_source_aliases": prior["exact_source_aliases"],
+                    "source_report_count": prior["source_report_count"],
+                    **({"cross_source_relations": prior["cross_source_relations"]}
+                       if "cross_source_relations" in prior else {}),
+                    "retained_existing_transaction_count": prior["retained_existing_transaction_count"]}
+    if generic_mode and not exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
+        prior, _ = _read_object(audit_out)
+        if prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance:
+            normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
+            return {"idempotent":True,"report_count":prior["report_count"],
+                "promoted_transaction_count":prior["promoted_transaction_count"],
+                "quarantined_row_count":prior["quarantined_row_count"],
+                "extraction_failure_count":prior.get("extraction_failure_count",0)}
+    if not exact_source_copies and not generic_mode and any(urlsplit(row.get("source_url") or "").hostname in
            {"whitehouse.gov", "www.whitehouse.gov"}
            for row in base.get("transactions", [])):
         if not audit_out.is_file() or candidate_out.resolve() != oge_candidate.resolve():
@@ -331,15 +409,30 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         mapping_path = (review_root / "whitehouse/278t/"
                         "trump-2026-ticker-mapping-current.json")
         ticker_audit = (_read_object(mapping_path)[0] if mapping_path.is_file() else None)
-        base = _strip_prior_whitehouse(base, prior, ticker_audit)
+        if not generic_mode:
+            base = _strip_prior_whitehouse(base, prior, ticker_audit)
         base_sha = hashlib.sha256(_json_bytes(base)).hexdigest()
-    eligibility = audit_whitehouse_278t(
-        extractions, oge_coverage, base, annual_extractions, directory, annual_people)
-    candidate, conservation = build_whitehouse_278t_review_candidate(
+    eligibility = (audit_whitehouse_278t_exact_source_candidate(
+        base, extractions, oge_coverage, annual_extractions=annual_extractions,
+        directory_index=directory, annual_identity_people=annual_people,
+        source_bindings=bindings) if exact_source_copies else
+        audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions, directory, annual_people))
+    candidate_builder = (build_whitehouse_278t_exact_source_candidate if exact_source_copies else
+                         build_whitehouse_278t_review_candidate)
+    candidate, conservation = candidate_builder(
         base, extractions, eligibility, oge_coverage,
         data_cutoff_at=base["meta"]["data_cutoff_at"],
         annual_extractions=annual_extractions, directory_index=directory,
-        annual_identity_people=annual_people)
+        annual_identity_people=annual_people,
+        **({"source_bindings": bindings} if exact_source_copies else {}))
+    if native_inputs is not None:
+        from unison_snapshot.oge_cross_source_replacements import apply_cross_source_native_replacements
+        wh_inputs={"base":base,"extractions":extractions,"oge_whitehouse_coverage":oge_coverage,
+            "annual_extractions":annual_extractions,"directory_index":directory,
+            "annual_identity_people":annual_people,"exact_source_copies":exact_source_copies,
+            "source_bindings":bindings}
+        candidate,application=apply_cross_source_native_replacements(candidate,native_inputs,wh_inputs,evidence_root,review_root)
+        conservation["native_cross_source_applications"]=application
     conservation["catalog_report_count"] = len(extractions) + failure_count
     conservation["extraction_failure_count"] = failure_count
     if failure_count:
@@ -359,6 +452,13 @@ def run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     audit_raw = _json_bytes(conservation)
     _write_pair(candidate_out, candidate_raw, audit_out, audit_raw)
     return {"idempotent": False, "report_count": conservation["report_count"],
+            **({"audit_schema": conservation["schema_version"],
+                "exact_source_aliases": conservation["exact_source_aliases"],
+                "source_report_count": conservation["source_report_count"],
+                **({"cross_source_relations": conservation["cross_source_relations"]}
+                   if "cross_source_relations" in conservation else {}),
+                "retained_existing_transaction_count": conservation["retained_existing_transaction_count"]}
+               if exact_source_copies else {}),
             "promoted_transaction_count": conservation["promoted_transaction_count"],
             "quarantined_row_count": conservation["quarantined_row_count"],
             "extraction_failure_count": failure_count}
@@ -371,11 +471,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--candidate-out", type=Path, required=True)
     parser.add_argument("--audit-out", type=Path, required=True)
     parser.add_argument("--expected-report-count", type=int)
+    parser.add_argument("--exact-source-copies", action="store_true",
+                        help="Opt in to same-PDF SHA aliases with reliable matching filer identity; preserve existing formal IDs")
+    parser.add_argument("--exact-source-bindings", type=Path,
+                        help="Optional archived OGE/White House metadata and old row receipts for cross-source aliases")
+    parser.add_argument("--coverage-input", type=Path)
+    parser.add_argument("--extraction-status-input", type=Path)
+    parser.add_argument("--saved-ocr-evidence-root", type=Path,
+                        help="Explicit root for relative saved-OCR archive metadata and original PDF refs")
+    parser.add_argument("--evidence-root", type=Path, help="Controlled evidence root; does not enable new parsing")
+    parser.add_argument("--saved-exhibit-observations", type=Path,
+                        help="Explicit offline OGE EXHIBIT input applied after normal White House qualification")
     args = parser.parse_args(argv)
     try:
         result = run(oge_candidate=args.oge_candidate, review_root=args.review_root,
                      candidate_out=args.candidate_out, audit_out=args.audit_out,
-                     expected_report_count=args.expected_report_count)
+                     expected_report_count=args.expected_report_count,
+                     exact_source_copies=args.exact_source_copies,
+                     exact_source_bindings=args.exact_source_bindings, coverage_input=args.coverage_input,
+                     extraction_status_input=args.extraction_status_input,
+                     saved_ocr_evidence_root=args.saved_ocr_evidence_root,
+                     evidence_root=args.evidence_root,saved_exhibit_observations=args.saved_exhibit_observations)
     except (OgeCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"White House 278-T candidate failed: {exc}", file=sys.stderr)
         return 1

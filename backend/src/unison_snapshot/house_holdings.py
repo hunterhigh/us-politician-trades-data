@@ -17,7 +17,7 @@ from .house_ptr import DETERMINISTIC_IDENTITY_BASES, OWNER_CODES
 
 EXTRACTION_SCHEMA = "house-holding-extraction/v1"
 QUALIFICATION_SCHEMA = "house-holding-qualification/v1"
-PARSER_VERSION = "house-annual-holdings-2026-02"
+PARSER_VERSION = "house-annual-holdings-2026-03"
 SUPPORTED_REPORT_TYPES = {"O": "Annual Report"}
 ASSET_RE = re.compile(
     r"^(.*?)\s*(?:\(([A-Z][A-Z0-9.\-^/]{0,31})\))?\s*\[([A-Z0-9]{2})\]\s*$")
@@ -154,17 +154,26 @@ def archive_indexed_financial_report(root: Path, year: int, index_sha: str, docu
     return archive_financial_document(root, matches[0], pdf, headers)
 
 
-def _value(value: str) -> tuple[int, int] | None:
+def _value(value: str) -> tuple[int, int | None] | None:
     normalized = _clean(value)
     match = VALUE_RANGE_RE.fullmatch(normalized)
     if match:
         return tuple(int(part.replace(",", "")) for part in match.groups())  # type: ignore[return-value]
+    opened = re.fullmatch(r"(?:Spouse/DC\s+)?Over\s+\$(\d[\d,]*)(?:\.00)?", normalized, re.I)
+    if opened:
+        return int(opened.group(1).replace(",", "")), None
     match = VALUE_EXACT_RE.fullmatch(normalized)
     if match:
         exact = int(match.group(1).replace(",", ""))
         return exact, exact
     return None
 
+
+
+def _asset_code_close(raw: str) -> re.Match[str] | None:
+    """A code followed immediately by an arrow belongs to a parent account."""
+    return next((match for match in re.finditer(r"\[[A-Z0-9]{2}\]", raw)
+                 if not raw[match.end():].lstrip().startswith("⇒")), None)
 
 def annual_report_period_from_pdf(full_text: str, metadata: dict) -> tuple[str, str]:
     """Return a period only when the PDF itself closes the annual-member semantics.
@@ -241,17 +250,34 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 break
         if header_top is None:
             continue
+        # Stop at the next official schedule, even when it shares the page.
+        section_end = min((top for top, tokens in lines if top > header_top + 10 and
+                           re.match(r"^Schedule\s+[B-Z]\b", _clean(" ".join(
+                               str(word.get("text", "")) for word in tokens)), re.I)),
+                          default=height)
+        section_end = min(section_end, min((float(word["top"]) for word in words
+            if float(word["top"]) > header_top + 10 and
+            "asset-type-codes.aspx" in _clean(word.get("text"))), default=height))
         anchors: list[tuple[float, list[dict]]] = []
         previous_value = ""
         previous_top = -100.0
         for top, line_words in lines:
-            if top <= header_top + 10:
+            if top <= header_top + 10 or top >= section_end:
                 continue
             asset_words = [word for word in line_words if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2]
             value_words = [word for word in line_words if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2]
             value_text = _clean(" ".join(str(word.get("text", "")) for word in value_words))
-            if asset_words and (value_text.startswith("$") or value_text in {"None", "Undetermined"}):
-                continuation = (previous_value.endswith("-") and top - previous_top < 16
+            has_code = any(re.fullmatch(r"\[[A-Z0-9]{2}\]", _clean(word.get("text")))
+                           for word in asset_words)
+            prior_asset = _clean(" ".join(str(word.get("text", ""))
+                for candidate_top, tokens in lines if anchors and anchors[-1][0] <= candidate_top < top
+                for word in tokens if float(asset_x) - 4 <= float(word["x0"]) < float(owner_x) - 2))
+            prior_closed = not anchors or _asset_code_close(prior_asset) is not None
+            if asset_words and (value_text.startswith("$") or value_text in {"None", "Undetermined"}
+                                or re.match(r"^(?:Spouse/DC\s+)?Over\b", value_text, re.I)
+                                or (has_code and prior_closed)):
+                continuation = ((previous_value.endswith("-") or
+                                 re.fullmatch(r"(?:Spouse/DC\s+)?Over", previous_value, re.I)) and top - previous_top < 16
                                 and VALUE_EXACT_RE.fullmatch(value_text) is not None)
                 if not continuation:
                     anchors.append((top, line_words))
@@ -264,7 +290,7 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 explicit_none = True
                 continue
         for position, (top, line_words) in enumerate(anchors):
-            end = anchors[position + 1][0] - 1 if position + 1 < len(anchors) else height
+            end = anchors[position + 1][0] - 1 if position + 1 < len(anchors) else section_end
             footer = [float(word["top"]) for word in words if top < float(word["top"]) < end
                       and "asset-type-codes.aspx" in _clean(word.get("text"))]
             if footer:
@@ -282,12 +308,18 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
                 if not top - 1 <= value_top < end:
                     continue
                 cells = [word for word in candidate_words
-                         if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2]
+                         if float(value_x) - 4 <= float(word["x0"]) < float(income_x) - 2
+                         and float(word.get("size") or base_size) >= base_size - .2]
                 cell = _clean(" ".join(str(word.get("text", "")) for word in cells))
-                if cell and re.fullmatch(r"[$0-9,.+\- ]+|None|Undetermined", cell):
+                if cell:
                     value_lines.append(cell)
             asset = _clean(" ".join(str(word.get("text", "")) for word in sorted(
                 asset_words, key=lambda word: (round(float(word["top"]), 1), float(word["x0"])))))
+            # A type code closes the printed asset cell. Later account titles
+            # belong to another row, including rows with an open/unknown value.
+            closed = _asset_code_close(asset)
+            if closed:
+                asset = asset[:closed.end()]
             owner_code = _clean(" ".join(str(word.get("text", "")) for word in owner_words))
             raw_value = _clean(" ".join(value_lines))
             asset_match = ASSET_RE.fullmatch(asset)
@@ -310,16 +342,72 @@ def extract_schedule_a_pages(pages: list[dict], *, source_sha256: str) -> tuple[
             extracted.append({
                 "extraction_id": "house-holding:" + hashlib.sha256(stable.encode()).hexdigest()[:24],
                 "owner_code": owner_code or None, "owner": OWNER_CODES.get(owner_code),
-                "asset_name": asset_name.strip(), "ticker": ticker,
+                "asset_name": asset_name.strip(), "asset_raw": asset, "ticker": ticker,
+                "asset_hierarchy": {
+                    "account_path_raw": [part.strip() for part in asset_name.split("⇒")[:-1]],
+                    "leaf_asset_raw": asset_name.split("⇒")[-1].strip(),
+                    "status": "explicit_path" if "⇒" in asset_name and
+                              all(part.strip() for part in asset_name.split("⇒")) else
+                              "unresolved" if "⇒" in asset_name else "direct_asset",
+                },
                 "ticker_mapping_basis": "filing_explicit" if ticker else None,
                 "asset_type_code": asset_type_code,
                 "instrument_type": ASSET_TYPES.get(asset_type_code),
                 "value_low": parsed_value[0] if parsed_value else None,
                 "value_high": parsed_value[1] if parsed_value else None,
+                **({"value_low_exclusive": True} if parsed_value and parsed_value[1] is None else {}),
                 "value_raw": raw_value, "excluded_no_reportable_value": excluded,
                 "evidence": {"page": page_index + 1, "top_points": round(top, 2)},
                 "review_reasons": reasons,
             })
+    # Native exports sometimes break a single Schedule A row at a page edge.
+    # Only an explicit unfinished account arrow plus the first asset-only row
+    # of the adjacent page can be joined; no page-gap or owner inference.
+    merged = []
+    first_on_page = set()
+    for row in extracted:
+        number = row["evidence"]["page"]
+        first = number not in first_on_page
+        first_on_page.add(number)
+        previous = merged[-1] if merged else None
+        if (previous and first and previous["evidence"]["page"] == number - 1 and
+                previous["asset_type_code"] is None and
+                (previous["asset_raw"].rstrip().endswith("⇒") or
+                 "⇒" in previous["asset_raw"] and re.fullmatch(
+                     r"\([A-Z][A-Z0-9.\-^/]{0,31}\)\s*\[[A-Z0-9]{2}\]", row["asset_raw"])) and
+                row["asset_type_code"] is not None and row["owner_code"] is None and
+                (not row["value_raw"] or
+                 previous["value_raw"].endswith("-") and VALUE_EXACT_RE.fullmatch(row["value_raw"]))):
+            asset = _clean(previous["asset_raw"] + " " + row["asset_raw"])
+            match = ASSET_RE.fullmatch(asset)
+            if match is not None:
+                name, ticker, code = match.groups()
+                value_raw = _clean(previous["value_raw"] + " " + row["value_raw"])
+                value = _value(value_raw)
+                previous.update(asset_raw=asset, asset_name=name.strip(), ticker=ticker,
+                    ticker_mapping_basis="filing_explicit" if ticker else None,
+                    asset_type_code=code, instrument_type=ASSET_TYPES.get(code),
+                    value_raw=value_raw, value_low=value[0] if value else None,
+                    value_high=value[1] if value else None,
+                    asset_hierarchy={"account_path_raw": [part.strip() for part in name.split("⇒")[:-1]],
+                                     "leaf_asset_raw": name.split("⇒")[-1].strip(), "status": "explicit_path"})
+                previous["review_reasons"] = [reason for reason in previous["review_reasons"]
+                    if reason not in {"asset_layout_unsupported", "unknown_asset_type_code", "value_not_representable"}]
+                if code not in ASSET_TYPES:
+                    previous["review_reasons"].append("unknown_asset_type_code")
+                if value is None:
+                    previous["review_reasons"].append("value_not_representable")
+                owner_raw = previous["owner_code"] or ""
+                evidence = previous["evidence"]
+                # Existing formal rows were already complete and never enter
+                # this branch. This replaces two unresolved fragments once.
+                stable = "|".join((source_sha256, str(evidence["page"]),
+                    f"{evidence['top_points']:.2f}", asset, owner_raw, value_raw))
+                previous["extraction_id"] = "house-holding:" + hashlib.sha256(stable.encode()).hexdigest()[:24]
+                evidence["continuation"] = row["evidence"]
+                continue
+        merged.append(row)
+    extracted = merged
     if not found_header:
         raise HouseIndexError("House annual report has no recognized Schedule A header")
     if not extracted and not explicit_none:
@@ -365,7 +453,7 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
     full_text = " ".join(texts)
     report_period_end, report_period_basis = annual_report_period_from_pdf(full_text, metadata)
     rows, explicit_none = extract_schedule_a_pages(page_objects, source_sha256=sha)
-    return {
+    result = {
         "schema_version": EXTRACTION_SCHEMA, "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filing_type", "report_type", "filer_name", "state_district", "filing_year",
@@ -375,6 +463,9 @@ def parse_archived_financial_report(root: Path, metadata: dict) -> dict:
         "extraction_method": "native_pdf_geometry", "schedule_a_complete": True,
         "explicit_no_holdings": explicit_none, "rows": rows,
     }
+    from .house_annual_sections import observe_annual_sections
+    result["source_text_coverage"] = observe_annual_sections(page_objects, result)["source_text_coverage"]
+    return result
 
 
 def qualify_financial_report(extraction: dict, identity: dict) -> dict:
@@ -404,17 +495,44 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
     if filed < period:
         raise HouseIndexError("House annual report filing predates its report period end")
     report_reasons = [] if identity_valid else ["identity_not_deterministic"]
+    row_problems = []
     for row in extraction.get("rows", []):
         if not isinstance(row, dict):
             raise HouseIndexError("House holding extraction row is invalid")
-        if row.get("review_reasons"):
-            report_reasons.extend(str(reason) for reason in row["review_reasons"])
-    eligible = not report_reasons
+        problems = [str(reason) for reason in row.get("review_reasons", [])]
+        if not row.get("excluded_no_reportable_value"):
+            low, high = row.get("value_low"), row.get("value_high")
+            if (type(low) is not int or low < 0 or
+                    (high is None and type(row.get("value_low_exclusive")) is not bool) or
+                    (high is not None and (type(high) is not int or low > high))):
+                problems.append("value_bounds_unresolved")
+        row_problems.append(sorted(set(problems)))
+        report_reasons.extend(problems)
+    coverage = extraction.get("source_text_coverage", {})
+    partial_allowed = bool(identity_valid and report_reasons and not extraction.get("document_reasons") and
+        any(not problems and not row.get("excluded_no_reportable_value")
+            for row, problems in zip(extraction["rows"], row_problems, strict=True)) and
+        coverage.get("schema_version") == "house-annual-native-text-coverage/v1" and
+        coverage.get("source_sha256") == extraction.get("source_sha256") and
+        coverage.get("unresolved_financial_text_line_count") == 0 and
+        any(s.get("section") == "A" for p in coverage.get("pages", []) for s in p.get("sections", [])) and
+        all(not problems or (set(problems) <= {"value_not_representable", "value_bounds_unresolved"}
+            and isinstance(row.get("value_raw"), str) and row["value_raw"].strip().casefold() == "undetermined"
+            and row.get("value_low") is None and row.get("value_high") is None
+            and "value_low_exclusive" not in row)
+            for row, problems in zip(extraction["rows"], row_problems, strict=True)))
+    eligible = not report_reasons or partial_allowed
     holdings: list[dict] = []
     excluded: list[dict] = []
     quarantined: list[dict] = []
     if eligible:
-        for row in extraction["rows"]:
+        for row, problems in zip(extraction["rows"], row_problems, strict=True):
+            if partial_allowed and problems:
+                quarantined.append({"extraction_id": row.get("extraction_id"),
+                    "reasons": problems,
+                    "asset_name": row.get("asset_name"), "value_raw": row.get("value_raw"),
+                    "evidence": row.get("evidence")})
+                continue
             if row.get("excluded_no_reportable_value"):
                 excluded.append({"extraction_id": row["extraction_id"],
                                  "reason": "no_reportable_asset_value", "evidence": row.get("evidence")})
@@ -427,6 +545,8 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
                 "report_period_end": extraction["report_period_end"],
                 "filed_at": f"{source['filed_date']}T00:00:00Z",
                 "value_low": row["value_low"], "value_high": row["value_high"],
+                **({"value_low_exclusive": row["value_low_exclusive"]}
+                   if row["value_high"] is None else {}),
                 "change_from_prior": "unknown", "source_id": "house_clerk",
                 "source": "U.S. House Clerk", "source_url": source["source_url"],
                 "verification_status": "official_matched",
@@ -436,7 +556,7 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
             quarantined.append({"extraction_id": row.get("extraction_id"),
                                 "reasons": sorted(set(report_reasons + row.get("review_reasons", []))),
                                 "evidence": row.get("evidence")})
-    return {
+    result = {
         "schema_version": QUALIFICATION_SCHEMA,
         "source": source, "source_sha256": extraction.get("source_sha256"),
         "report_period_end": extraction["report_period_end"],
@@ -444,4 +564,22 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
         "identity": identity, "report_complete": True, "production_eligible": eligible,
         "holdings": holdings, "excluded": excluded, "quarantined": quarantined,
         "qualification_reasons": sorted(set(report_reasons)),
+        **({"source_text_coverage": extraction["source_text_coverage"]}
+           if "source_text_coverage" in extraction else {}),
     }
+    if partial_allowed and quarantined:
+        result["holding_coverage"] = {
+            "schema_version": "house-approved-partial-holdings/v1",
+            "selection_basis": "complete_schedule_a_explicit_undetermined_value/v1",
+            "source_id": "house_clerk", "source_sha256": extraction["source_sha256"],
+            "source_url": source["source_url"], "filing_id": document_id,
+            "person_id": person_id, "report_period_end": extraction["report_period_end"],
+            "scope": "partial_report", "complete_total_assets": False,
+            "observed_row_count": len(extraction["rows"]),
+            "published_holding_ids": sorted(r["id"] for r in holdings),
+            "excluded_row_ids": sorted(r["extraction_id"] for r in excluded),
+            "unresolved_rows": quarantined,
+            "finite_value_low": sum(r["value_low"] for r in holdings if r["value_high"] is not None),
+            "finite_value_high": sum(r["value_high"] for r in holdings if r["value_high"] is not None),
+        }
+    return result

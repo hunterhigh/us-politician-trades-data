@@ -18,7 +18,8 @@ from .pipeline_ledger import (CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA,
                               RUN_MANIFEST_SCHEMA, idempotency_key,
                               validate_candidate_row, validate_run_manifest)
 from .senate_candidate import (_resolve_amendments, _transaction,
-                               CANDIDATE_BUILDER_VERSION)
+                               CANDIDATE_BUILDER_VERSION,
+                               _source_exchange_ticker_interpretations)
 from .senate_reports import (ELECTRONIC_EXTRACTION_SCHEMA, PARSER_VERSION,
                              parse_electronic_ptr)
 
@@ -245,6 +246,7 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         raise SenateShadowError("selected report identity uses a different official roster")
     identity_by_id = {item["document_id"]: item for item in selected}
     extractions = []
+    exchange_ticker_interpretations = {}
     failed_documents = []
     for document_id in sorted(document_ids):
         matches = [path for path in _git_paths(repo, review_commit,
@@ -300,6 +302,8 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
         if catalog_urls is not None and extraction.get("source_url") != catalog_urls[document_id]:
             raise SenateShadowError(f"document {document_id} conflicts with fixed catalog URL")
         extractions.append(extraction)
+        exchange_ticker_interpretations.update(_source_exchange_ticker_interpretations(
+            extraction, source_metadata=metadata, source_html=content))
 
     supplement, supplement_identities, supplement_sha = _supplement_predecessors(
         repo, evidence_commit, review_commit, extractions, identity_by_id)
@@ -336,7 +340,9 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
             elif extraction.get("portal_listed_date") != _filed_date(extraction.get("filed_at_raw")):
                 disposition, reasons, fact = "quarantined", ["filed_date_conflicts_catalog"], None
             else:
-                fact, reasons = _transaction(raw, extraction, identity)
+                fact, reasons = _transaction(
+                    raw, extraction, identity,
+                    exchange_ticker_interpretation=exchange_ticker_interpretations.get(raw.get("extraction_id")))
                 disposition = "quarantined" if reasons else "qualified"
             required = ["transaction_date", "transaction_type", "asset_name",
                         "amount_low", "amount_high"]
@@ -350,7 +356,8 @@ def build_shadow(repo: Path, *, code_commit: str, evidence_commit: str,
                 _observation(number, "amount_low", raw.get("amount_raw"), amount_low, True),
                 _observation(number, "amount_high", raw.get("amount_raw"), amount_high, True),
                 _observation(number, "owner", raw.get("owner_raw"), fact.get("owner") if fact else None, False),
-                _observation(number, "ticker", raw.get("ticker_raw"), raw.get("ticker_raw"), False),
+                _observation(number, "ticker", raw.get("ticker_raw"),
+                             fact.get("ticker") if fact else raw.get("ticker_raw"), False),
             ]
             location = {"page": 1, "row_locator": f"transaction-{number}",
                         "kind": "html_table_row"}

@@ -26,11 +26,16 @@ def _write(path: Path, value: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", required=True, type=Path)
+    parser.add_argument("--evidence-root", type=Path,
+                        help="Controlled archive required when PTR replacement references exist")
     parser.add_argument("--candidate", required=True, type=Path)
     parser.add_argument("--audit-out", required=True, type=Path)
+    parser.add_argument("--oge-annual-input", type=Path,
+                        help="Optional saved OGE annual extractions, archive metadata and date observations")
     args = parser.parse_args()
     candidate = json.loads(args.candidate.read_bytes())
-    result, audit = overlay_whitehouse_annual_candidate(candidate, args.review_root)
+    result, audit = overlay_whitehouse_annual_candidate(candidate, args.review_root, evidence_root=args.evidence_root,
+        **({"oge_annual_input": json.loads(args.oge_annual_input.read_bytes())} if args.oge_annual_input else {}))
     _write(args.candidate, result)
     _write(args.audit_out, audit)
     print(json.dumps(audit, sort_keys=True))

@@ -120,6 +120,79 @@ class HouseHoldingTests(unittest.TestCase):
         self.assertEqual(rows[0]["ticker"], "EXM")
         self.assertEqual((rows[0]["value_low"], rows[0]["value_high"]), (50001, 100000))
 
+    def test_missing_value_is_preserved_and_next_schedule_is_excluded(self):
+        source = page()
+        source["words"] += [word("Missing", 25, 195), word("[ST]", 75, 195),
+                            word("Schedule", 25, 220), word("B", 75, 220),
+                            word("Foreign", 25, 240), word("[ST]", 75, 240),
+                            word("$1,001", 321, 240)]
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[-1]["asset_name"], "Missing")
+        self.assertIn("value_not_representable", rows[-1]["review_reasons"])
+        wrapped, _ = extract_schedule_a_pages([wrapped_page()], source_sha256=SHA)
+        self.assertEqual(wrapped[0]["asset_hierarchy"], {
+            "account_path_raw": ["Retirement plan"], "leaf_asset_raw": "Example Fund",
+            "status": "explicit_path"})
+
+    def test_explicit_account_row_continues_with_asset_and_upper_bound_on_next_page(self):
+        first = wrapped_page()
+        first["words"] = [item for item in first["words"] if item["top"] != 141]
+        for item in first["words"]:
+            if item["top"] == 130:
+                item["top"] = 700
+        second = wrapped_page()
+        second["words"] = [item for item in second["words"] if item["top"] != 130]
+        for item in second["words"]:
+            if item["top"] == 141:
+                item["top"] = 130
+        rows, _ = extract_schedule_a_pages([first, second], source_sha256=SHA)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual((row["asset_name"], row["ticker"], row["owner"]),
+                         ("Retirement plan ⇒ Example Fund", "EXM", "Spouse"))
+        self.assertEqual((row["value_low"], row["value_high"]), (50001, 100000))
+        self.assertEqual(row["evidence"]["continuation"]["page"], 2)
+        self.assertEqual(row["review_reasons"], [])
+
+    def test_approved_open_value_keeps_source_semantics_and_enters_holdings(self):
+        source = wrapped_page()
+        for item in source["words"]:
+            if item["text"] == "$50,001":
+                item["text"] = "Spouse/DC Over"
+            elif item["text"] == "-":
+                item["text"] = ""
+            elif item["text"] == "$100,000":
+                item["text"] = "$1,000,000"
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["value_low"], rows[0]["value_high"], rows[0]["value_low_exclusive"]),
+                         (1000000, None, True))
+        self.assertEqual(rows[0]["review_reasons"], [])
+        result = qualify_financial_report(extraction(rows), IDENTITY)
+        self.assertTrue(result["production_eligible"])
+        self.assertIs(result["holdings"][0]["value_low_exclusive"], True)
+        del rows[0]["value_low_exclusive"]
+        unknown = qualify_financial_report(extraction(rows), IDENTITY)
+        self.assertFalse(unknown["production_eligible"])
+        self.assertIn("value_bounds_unresolved", unknown["qualification_reasons"])
+
+    def test_parent_type_code_does_not_split_or_truncate_its_leaf(self):
+        source = wrapped_page()
+        source["words"] += [word("[IR]", 95, 130)]
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(len(rows), 1)
+        self.assertIn("Example Fund", rows[0]["asset_name"])
+        self.assertEqual(rows[0]["asset_type_code"], "MF")
+        self.assertEqual(rows[0]["review_reasons"], [])
+
+    def test_unrecognized_value_literal_is_retained_for_explanation(self):
+        source = page(bad_value=True)
+        next(item for item in source["words"] if item["text"] == "Undetermined")["text"] = "Not established"
+        rows, _ = extract_schedule_a_pages([source], source_sha256=SHA)
+        self.assertEqual(rows[0]["value_raw"], "Not established")
+        self.assertIn("value_not_representable", rows[0]["review_reasons"])
+
     def test_one_unsupported_row_quarantines_the_whole_report(self):
         rows, _ = extract_schedule_a_pages([page(bad_value=True)], source_sha256=SHA)
         result = qualify_financial_report(extraction(rows), IDENTITY)

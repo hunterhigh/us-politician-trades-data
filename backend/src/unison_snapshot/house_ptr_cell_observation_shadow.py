@@ -87,6 +87,42 @@ def _column_boxes(region: dict, image) -> dict:
                               if len(action) == 5 else ["purchase", "sale", "exchange"])}
 
 
+def _printed_checkbox(crop) -> dict | None:
+    """Measure inside an inset printed box, excluding its four ruled sides.
+
+    A cell without four distinct frame sides retains the original measurement.
+    This detects geometry, never an OCR X or a relative winner among boxes.
+    """
+    import numpy as np
+    from .house_ptr_region_shadow import _clusters
+
+    dark = np.asarray(crop.convert("L")) < 100
+    height, width = dark.shape
+    if min(height, width) < 20:
+        return None
+    vertical = dark[int(.15 * height):int(.85 * height), :].mean(axis=0)
+    groups = _clusters(np.flatnonzero(vertical > .75))
+    left = [group for group in groups if .06 * width < sum(group) / len(group) < .4 * width]
+    right = [group for group in groups if .6 * width < sum(group) / len(group) < .94 * width]
+    if not left or not right:
+        return None
+    x0, x1 = max(left[-1]), min(right[0])
+    if x1 - x0 < 14:
+        return None
+    horizontal = dark[:, x0 + 3:x1 - 3].mean(axis=1)
+    groups = _clusters(np.flatnonzero(horizontal > .75))
+    top = [group for group in groups if sum(group) / len(group) < .4 * height]
+    bottom = [group for group in groups if sum(group) / len(group) > .6 * height]
+    if not top or not bottom:
+        return None
+    y0, y1 = max(top[-1]), min(bottom[0])
+    interior = dark[y0 + 3:y1 - 3, x0 + 3:x1 - 3]
+    if min(interior.shape) < 8:
+        return None
+    return {"method": "four_sided_printed_box/v1", "frame_pixels_in_crop": [x0, y0, x1, y1],
+            "interior_dark_fraction": round(float(interior.mean()), 4)}
+
+
 def _cell(image, words: list[dict], page, *, label: str,
           x0: float, x1: float, y0: float, y1: float) -> dict:
     import numpy as np
@@ -124,6 +160,7 @@ def _cell(image, words: list[dict], page, *, label: str,
                else "date_no_ocr_text" if date_field and not raw_text
                else "date_ocr_unclear" if date_field else "raw_unclassified"
                if label in {"owner", "asset"} else "mark_unknown")
+    box = _printed_checkbox(crop) if label in {"purchase", "sale", "partial_sale", "exchange", *"ABCDEFGHIJK"} else None
     return {"label": label, "status": "raw_unverified", "reading": reading,
             "raw_text": raw_text,
             "raw_ocr_confidence": round(mean(word["ocr_confidence"] for word in selected), 2)
@@ -135,12 +172,13 @@ def _cell(image, words: list[dict], page, *, label: str,
                             round(x1 * page.width, 2), round(y1 * page.height, 2)],
             "crop_sha256": hashlib.sha256(out.getvalue()).hexdigest(),
             "interior_dark_fraction": round(float((interior < 100).mean()), 4)
-            if interior.size else None, "value": None}
+            if interior.size else None, "value": None,
+            **({"printed_checkbox": box} if box is not None else {})}
 
 
 def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                           executable: str | None = None, dpi: int = 200,
-                          max_pages: int = 12) -> dict:
+                          max_pages: int = 12, page_numbers: list[int] | None = None) -> dict:
     """Observe physical rows and key cells without eligibility or fact IDs."""
     if hashlib.sha256(pdf_bytes).hexdigest() != source_sha256:
         raise ValueError("House PTR shadow source hash mismatch")
@@ -154,7 +192,17 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         if not 1 <= len(pdf.pages) <= max_pages:
             raise ValueError("House PTR shadow page count is outside bounds")
+        if (page_numbers is not None and (not isinstance(page_numbers, list) or not page_numbers or
+                any(type(number) is not int or not 1 <= number <= len(pdf.pages) for number in page_numbers) or
+                len(set(page_numbers)) != len(page_numbers))):
+            raise ValueError("House PTR shadow selected pages are invalid")
+        selected = set(range(1, len(pdf.pages) + 1)) if page_numbers is None else set(page_numbers)
         for number, page in enumerate(pdf.pages, 1):
+            if number not in selected:
+                pages_out.append({"page": number, "region_status": "coverage_unknown",
+                    "region_reason": "page_not_selected", "rows": [],
+                    "cell_status": "unobserved_not_selected", "coordinate_frame": "original_page"})
+                continue
             image = page.to_image(resolution=dpi).original
             region = locate_transaction_grid(image)
             record = {"page": number, "region_status": region["status"],
@@ -206,6 +254,11 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                 record["ocr_engine"] = None
                 record["cell_status"] = "image_only_ocr_unavailable"
                 record["ocr_error"] = str(error)
+            if number == 1 and words and region.get("coordinate_frame") == "original_page":
+                from .house_ptr import _legacy_filing_status
+                statuses = {_legacy_filing_status({"_image": image.convert("L")}, words, page.width, page.height, compact)
+                            for compact in (False, True)} - {None}
+                record["filing_status_observation"] = next(iter(statuses)) if len(statuses) == 1 else None
             for index, physical in enumerate(region["physical_row_bands"], 1):
                 y0, y1 = physical["band"]
                 cells = {"owner": _cell(image, words, cell_page, label="owner",

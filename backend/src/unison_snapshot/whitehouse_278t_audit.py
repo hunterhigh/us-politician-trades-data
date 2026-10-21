@@ -6,6 +6,7 @@ date or the equivalence of two PDFs.  This module never publishes facts.
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import date
 import hashlib
 import math
@@ -17,7 +18,8 @@ from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
-    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE,
+    EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
+    validate_generic_whitehouse_report, generic_existing_fact, DUAL_AXIS_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
     TRUMP_081225_SOURCE_URL, TRUMP_2026_PARSER_VERSION, _first_last,
@@ -42,6 +44,70 @@ _EXTRACTION_ID = re.compile(r"oge-278t:[0-9a-f]{24}")
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 
 
+def resolve_exact_source_reports(extractions: list[dict], coverage: dict, *,
+                                existing_transactions: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
+    """Opt-in exact-byte aliases; differing interpretations never choose a winner.
+
+    The regular audit still assesses every canonical row. This relation only
+    removes additional URLs for the same bytes and reliable catalog identity.
+    No field-based cross-report equivalence is inferred here.
+    """
+    catalog = [row for row in coverage.get("reports", [])
+               if row.get("document_type") == "278t"]
+    document_ids = [report.get("document_id") for report in extractions]
+    if (any(not isinstance(value, str) or not value for value in document_ids) or
+            len(set(document_ids)) != len(document_ids)):
+        raise OgeCatalogError("White House exact-source document identities are missing or duplicated")
+    groups = defaultdict(list)
+    for report in extractions:
+        identity, reasons = _catalog_identity(report, catalog)
+        sha = report.get("source_sha256")
+        source = urlsplit(report.get("source_url") or "")
+        official = (source.scheme == "https" and source.netloc.casefold() in {
+            "whitehouse.gov", "www.whitehouse.gov"} and not source.fragment and
+            source.path.startswith("/wp-content/uploads/") and source.path.casefold().endswith(".pdf"))
+        if (identity is not None and not reasons and official and
+                report.get("schema_version") == EXTRACTION_SCHEMA and
+                isinstance(sha, str) and _SHA256.fullmatch(sha)):
+            groups[(sha, _identity_key(identity))].append(report)
+    aliases, removed = [], set()
+    for (sha, identity_key), reports in groups.items():
+        if len(reports) < 2:
+            continue
+        if len(reports) != sum(report.get("source_sha256") == sha for report in extractions):
+            continue
+        def interpretation(report):
+            result = deepcopy(report)
+            for key in ("document_id", "source_url"):
+                result.pop(key, None)
+            result["transactions"] = [{key: value for key, value in row.items() if key != "extraction_id"}
+                                      for row in report.get("transactions", [])]
+            return result
+        if any(interpretation(report) != interpretation(reports[0]) for report in reports[1:]):
+            continue
+        numbers = [row.get("row_number") for row in [*reports[0]["transactions"], *reports[0]["quarantined"]]]
+        if len(set(numbers)) != len(numbers):
+            continue
+        existing_urls = {row.get("source_url") for row in existing_transactions or []}
+        prior = [report for report in reports if report["source_url"] in existing_urls]
+        if len(prior) > 1:
+            continue
+        canonical = prior[0] if prior else min(reports, key=lambda report: report["document_id"])
+        members = sorted(reports, key=lambda report: report["document_id"])
+        aliases.append({"source_sha256": sha, "identity_key": list(identity_key),
+                        "canonical_document_id": canonical["document_id"],
+                        "sources": [{"document_id": report["document_id"],
+                                     "source_url": report["source_url"],
+                                     "source_sha256": sha,
+                                     "rows": [{"row_number": row.get("row_number"),
+                                               "extraction_id": row.get("extraction_id")}
+                                              for row in [*report["transactions"], *report["quarantined"]]]}
+                                    for report in members]})
+        removed.update(report["document_id"] for report in members if report is not canonical)
+    return ([deepcopy(report) for report in extractions if report["document_id"] not in removed],
+            sorted(aliases, key=lambda relation: relation["canonical_document_id"]))
+
+
 def _words(value: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9 ]", " ", value.casefold().replace("&", " and ")).split())
 
@@ -56,11 +122,35 @@ def _role(value: str) -> str:
 def _trade_keys(row: dict, person_id: str) -> set[tuple]:
     common = (person_id, row.get("owner"), row.get("transaction_type"),
               row.get("transaction_date"), row.get("amount_low"), row.get("amount_high"))
+    if row.get("account_title"):
+        common += ("account", row["account_title"])
+    if "amount_low_exclusive" in row:
+        common += ("amount_low_exclusive", row["amount_low_exclusive"])
     keys = {(common, "asset", _words(row.get("asset_name") or ""))}
     ticker = row.get("ticker")
     if isinstance(ticker, str) and ticker:
         keys.add((common, "ticker", ticker.upper()))
     return keys
+
+
+def _legacy_report_facts_bound(report: dict, existing: list[dict], person_id: str | None) -> bool:
+    """Allow a proven unpublished source row only after conserving this report's base facts.
+
+    Validation has already replayed the v5 source and legacy inheritance. This
+    additional check proves that none of this report's published facts is left
+    outside that source inventory; financial similarity is never a row binding.
+    """
+    if (report.get("parser_version") != GENERIC_PARSER_VERSION or not person_id or
+            not report.get("legacy_source_binding")):
+        return False
+    facts = [fact for fact in existing if fact.get("filing_id") == report["document_id"]]
+    if not facts or any(fact.get("source_id") != "oge" or
+                        fact.get("source_url") != report["source_url"] or
+                        fact.get("person_id") != person_id for fact in facts):
+        return False
+    bound = [generic_existing_fact(report, row, existing, expected_person_id=person_id)
+             for row in report["transactions"]]
+    return all(sum(item is fact for item in bound) == 1 for fact in facts)
 
 
 def _day(value: object) -> date | None:
@@ -82,7 +172,9 @@ def source_bound_filing_date(report: dict) -> str | None:
         return None
     if profile is not None:
         evidence = report.get("filing_date_evidence")
-        if (report.get("parser_version") != TRUMP_2026_PARSER_VERSION or
+        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
+            return None
+        if (report.get("parser_version") not in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} or
                 report.get("signature_method") !=
                 "official_disclosure_date_source_bound" or
                 not isinstance(evidence, dict) or
@@ -131,8 +223,10 @@ def source_bound_filer_identity(report: dict) -> bool:
         return False
     if profile is not None:
         evidence = report.get("filer_identity_evidence")
+        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
+            return False
         return bool(
-            report.get("parser_version") == TRUMP_2026_PARSER_VERSION and
+            report.get("parser_version") in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} and
             report.get("pdf_filer_name") == "Donald J Trump" and
             report.get("pdf_position_title") ==
             "President of the United States of America" and
@@ -162,16 +256,16 @@ def source_bound_filer_identity(report: dict) -> bool:
         evidence.get("source_sha256") == TRUMP_TARGET_SOURCE_SHA256)
 
 
-def _row_reasons(row: dict, filing_day: date | None) -> list[str]:
+def _row_reasons(row: dict, filing_day: date | None, *, generic: bool = False) -> list[str]:
     reasons = []
     if not isinstance(row.get("extraction_id"), str) or not _EXTRACTION_ID.fullmatch(
             row["extraction_id"]):
         reasons.append("transaction_extraction_id_invalid")
     if type(row.get("row_number")) is not int or row["row_number"] <= 0:
         reasons.append("transaction_row_number_invalid")
-    if row.get("owner") not in {"Self", "Spouse", "Dependent Child"}:
+    if row.get("owner") not in ({"Self", "Spouse", "Dependent Child", "Undisclosed"} if generic else {"Self", "Spouse", "Dependent Child"}):
         reasons.append("transaction_owner_unsupported")
-    if row.get("transaction_type") not in {"purchase", "sale"}:
+    if row.get("transaction_type") not in ({"purchase", "sale", "exchange"} if generic else {"purchase", "sale"}):
         reasons.append("transaction_type_unsupported")
     transaction_day = _day(row.get("transaction_date"))
     if transaction_day is None:
@@ -179,8 +273,10 @@ def _row_reasons(row: dict, filing_day: date | None) -> list[str]:
     elif filing_day is not None and transaction_day > filing_day:
         reasons.append("transaction_after_filer_signature")
     if (type(row.get("amount_low")) is not int or
-            type(row.get("amount_high")) is not int or
-            row["amount_low"] <= 0 or row["amount_high"] < row["amount_low"]):
+            row["amount_low"] <= 0 or
+            not (type(row.get("amount_high")) is int and row["amount_high"] >= row["amount_low"] and
+                 "amount_low_exclusive" not in row or generic and row.get("amount_high") is None and
+                 row.get("amount_low") in {1000000, 50000000} and row.get("amount_low_exclusive") is True)):
         reasons.append("transaction_amount_range_invalid")
     if not isinstance(row.get("asset_name"), str) or not row["asset_name"].strip():
         reasons.append("transaction_asset_missing")
@@ -191,6 +287,20 @@ def _row_reasons(row: dict, filing_day: date | None) -> list[str]:
 
 
 def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | None, list[str]]:
+    resolution = report.get("source_identity_resolution")
+    if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION and resolution:
+        from .whitehouse_directory_identity_shadow import complete_name_tokens
+        if resolution.get("status") != "resolved":
+            return None, list(resolution.get("reasons") or ["source_directory_identity_unresolved"])
+        expected = resolution["catalog_identity"]
+        named = [row for row in catalog_rows if complete_name_tokens(row["filer_name"]) ==
+                 complete_name_tokens(expected["filer_name"])]
+        if ({_identity_key(row) for row in named} != {_identity_key(expected)} or
+                not set(resolution["matched_catalog_entry_ids"]) <= {row.get("catalog_entry_id") for row in named}):
+            return None, ["source_directory_current_catalog_identity_differs"]
+        return {**expected,"matched_catalog_entry_ids":resolution["matched_catalog_entry_ids"],
+                "identity_basis":"whitehouse_source_directory_catalog",
+                "directory_document_id":report["document_id"]}, []
     name = report.get("pdf_filer_name")
     role = report.get("pdf_position_title")
     office = report.get("pdf_agency_label")
@@ -326,7 +436,8 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                           existing_oge_candidate: dict,
                           annual_extractions: list[dict] | None = None,
                           directory_index: dict | None = None,
-                          annual_identity_people: list[dict] | None = None) -> dict:
+                          annual_identity_people: list[dict] | None = None,
+                          source_complete_extractions: list[dict] | None = None) -> dict:
     """Assess each archived public PDF and row without modifying source data.
 
     The caller must provide a verified OGE coverage artifact and the current
@@ -372,7 +483,23 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
            any(not isinstance(reason, str) for reason in item["document_reasons"])
            for item in extractions):
         raise OgeCatalogError("White House 278-T extraction contract is invalid")
-    for item in extractions:
+    complete = extractions if source_complete_extractions is None else source_complete_extractions
+    if source_complete_extractions is not None:
+        originals = {item["document_id"]: item for item in complete}
+        if len(originals) != len(complete):
+            raise OgeCatalogError("White House complete source census repeats a document")
+        for item in extractions:
+            original = originals.get(item["document_id"])
+            if original is None or {key: value for key, value in item.items() if key not in {"transactions", "quarantined"}} != {
+                    key: value for key, value in original.items() if key not in {"transactions", "quarantined"}}:
+                raise OgeCatalogError("White House selected rows changed complete source identity")
+            raw_rows = {row["extraction_id"]: row for row in [*original["transactions"], *original["quarantined"]]}
+            for row in [*item["transactions"], *item["quarantined"]]:
+                raw = raw_rows.get(row["extraction_id"])
+                if raw is None or {key: value for key, value in row.items() if key != "reasons"} != {
+                        key: value for key, value in raw.items() if key != "reasons"}:
+                    raise OgeCatalogError("White House selected row differs from complete source observation")
+    for item in complete:
         rows = [*item["transactions"], *item["quarantined"]]
         if str(item.get("extraction_method", "")).startswith(
                 "tesseract_ocr_geometry"):
@@ -417,6 +544,10 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                     sorted(printed) != list(range(1, len(rows) + 1))):
                 raise OgeCatalogError("Trump 2026 278-T source-bound contract is invalid")
 
+    generic_expected = {}
+    for item in complete:
+        if item.get("parser_version") in GENERIC_PARSER_VERSIONS:
+            generic_expected[item["document_id"]] = validate_generic_whitehouse_report(item)
     screened = quarantine_duplicate_report_groups(extractions)
     document_ids = [report.get("document_id") for report in screened]
     if (any(not isinstance(value, str) or not value.strip() for value in document_ids) or
@@ -469,6 +600,18 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
     annual_overlap_count = 0
     for report in screened:
         identity, identity_reasons = _catalog_identity(report, catalog_rows)
+        if identity and identity.get("identity_basis") == "whitehouse_source_directory_catalog":
+            from .whitehouse_directory_identity_shadow import complete_name_tokens
+            close = [person for person in existing_oge_candidate.get("people", []) if
+                     _first_last(person.get("display_name") or "") == _first_last(identity["filer_name"])]
+            matches = [person for person in close if person.get("disclosure_authority") == "oge" and
+                       complete_name_tokens(person.get("display_name") or "") == complete_name_tokens(identity["filer_name"]) and
+                       _words(person.get("office_type") or "") == _words(identity["agency"]) and
+                       _role(person.get("role") or "") == _role(identity["position_title"])]
+            if close and (len(close) != 1 or len(matches) != 1):
+                identity, identity_reasons = None, ["source_directory_existing_person_conflict"]
+            elif matches:
+                identity.update(person_id=matches[0]["id"],identity_basis="whitehouse_directory_existing_oge_person")
         if identity_reasons == ["catalog_filer_identity_missing"] and directory_index is not None:
             identity = _source_bound_person_from_directory(
                 report, directory_index, existing_oge_candidate,
@@ -517,15 +660,57 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                        if identity.get("identity_basis") else {})}
                    if identity else None)
         rows = []
+        legacy_report_bound = _legacy_report_facts_bound(
+            report, existing_oge_candidate["transactions"], person_id)
+        other_report_keys = set()
+        if legacy_report_bound:
+            for fact in existing_oge_candidate["transactions"]:
+                if (fact.get("filing_id") != report["document_id"] and
+                        fact.get("source_id") == "oge" and isinstance(fact.get("person_id"), str)):
+                    other_report_keys.update(_trade_keys(fact, fact["person_id"]))
         for source_row in report["transactions"]:
             if not isinstance(source_row, dict):
                 raise OgeCatalogError("White House 278-T transaction row is invalid")
-            field_reasons = _row_reasons(source_row, filing_day)
+            generic = report.get("parser_version") in GENERIC_PARSER_VERSIONS
+            field_reasons = _row_reasons(source_row, filing_day, generic=generic)
+            retained = generic_existing_fact(report, source_row, existing_oge_candidate["transactions"],
+                expected_person_id=person_id) if generic else None
+            bound_addition = False
+            if generic:
+                key = (source_row.get("page_number"),tuple(source_row.get("cells",[])))
+                matches = generic_expected[report["document_id"]].get(key,[])
+                expected = next((r for r in matches if r["source_rows_index"] == source_row.get("source_rows_index")),None)
+                if source_row.get("legacy_inheritance"):
+                    if retained is None and (expected is None or any(source_row.get(field) != expected.get(field)
+                            for field in ("owner", "asset_name", "ticker", "transaction_type", "transaction_date",
+                                          "amount_low", "amount_high", "amount_low_exclusive"))):
+                        field_reasons.append("legacy_formal_projection_unbound")
+                    if source_row["legacy_inheritance"].get("unresolved_field_differences"):
+                        field_reasons.append("legacy_field_reconciliation_pending")
+                    if expected and expected.get("reasons"):
+                        field_reasons.extend(expected["reasons"])
+                if source_row.get("legacy_unmatched"):
+                    field_reasons.append("legacy_source_row_correspondence_unresolved")
+                if retained is not None and retained.get("person_id") != person_id:
+                    field_reasons.append("legacy_person_binding_differs")
+                bound_addition = (legacy_report_bound and retained is None and
+                                  bool(source_row.get("legacy_inheritance")) and not field_reasons)
+                same_filing = [fact for fact in existing_oge_candidate["transactions"]
+                               if fact.get("filing_id") == report["document_id"]]
+                native_legacy = report.get("parser_version") == GENERIC_PARSER_VERSION
+                if retained is None and not bound_addition and any(
+                        native_legacy or fact.get("source_url") == report["source_url"]
+                        for fact in same_filing):
+                    field_reasons.append("legacy_report_new_row_binding_pending")
+                    if native_legacy and any(fact.get("source_url") != report["source_url"]
+                                             for fact in same_filing):
+                        field_reasons.append("legacy_report_source_url_mismatch")
             row_reasons = list(reasons) + field_reasons
             if person_id and not field_reasons:
                 keys = _trade_keys(source_row, person_id)
                 ignore_dedup = report.get("parser_version") == TRUMP_2026_PARSER_VERSION
-                if not ignore_dedup and keys & existing_keys:
+                comparison_keys = other_report_keys if bound_addition else existing_keys
+                if not ignore_dedup and keys & comparison_keys and retained is None:
                     row_reasons.append("possible_existing_oge_transaction_duplicate")
                 filer = _first_last(report.get("pdf_filer_name") or "")
                 annual_common = (filer, source_row.get("transaction_type"),
@@ -541,7 +726,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                 # this otherwise qualified 278-T row.
                 if annual_overlap:
                     annual_overlap_count += 1
-                if not ignore_dedup:
+                if not ignore_dedup and not generic:
                     for key in keys:
                         row_keys[key].append((len(reports), len(rows)))
             else:

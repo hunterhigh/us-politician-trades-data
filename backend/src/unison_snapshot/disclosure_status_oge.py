@@ -17,6 +17,10 @@ from urllib.parse import unquote, urlsplit
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _DIRECT_ID = re.compile(r"[0-9a-f]{32}\Z")
+_SAVED_WHITEHOUSE_PARSERS = {
+    "whitehouse-278t-saved-ocr-roles/v6": None,
+    "whitehouse-278t-saved-ocr-dual-axis/v7": "source_pdf_dual_axis/v1",
+}
 
 
 def _read(path: Path) -> dict:
@@ -113,13 +117,429 @@ def _date(value: object) -> str | None:
     return value
 
 
-def _apply_audit(record: dict, audit: dict) -> None:
+def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -> dict:
+    """Keep a verified observation count separate from an unknown source total."""
+    if audit.get("quarantine_count_unit") != "observed_slots_not_whole_source_unique_rows" or review is None:
+        raise ValueError("OGE observation count unit requires its bound legacy reference")
+    receipt, sha = audit.get("observation_receipt"), audit.get("source_sha256")
+    if (not isinstance(receipt, dict) or receipt.get("schema_version") != "oge-278t-observed-facts/v1" or
+            not isinstance(sha, str) or sha not in record["source_versions"] or
+            audit.get("document_id") != record["report_id"] or receipt.get("source_sha256") != sha or
+            receipt.get("legacy_inventory_basis") != "normalized_disposition_reference_without_physical_inventory" or
+            receipt.get("legacy_normalized_not_sent_to_qualification") is not True or
+            receipt.get("coverage_complete") is not False or
+            "unique_source_quarantined_row_count" not in audit or audit["unique_source_quarantined_row_count"] is not None or
+            "unique_source_row_count" not in receipt or receipt["unique_source_row_count"] is not None):
+        raise ValueError("OGE observed/reference counts lack consistent source evidence")
+    normalized = _count(audit.get("legacy_normalized_reference_count"))
+    old_quarantine = _count(audit.get("legacy_quarantined_reference_count"))
+    if (normalized is None or old_quarantine is None or normalized + old_quarantine == 0 or
+            receipt.get("legacy_normalized_transaction_count") != normalized or
+            receipt.get("legacy_quarantined_reference_count") != old_quarantine):
+        raise ValueError("OGE legacy reference counts disagree")
+    matched = []
+    for path in sorted((review / "oge/extractions" / record["report_id"] / sha).glob("*.json")):
+        if path.name.endswith(".failure.json"):
+            continue
+        old = _read(path)
+        if hashlib.sha256(json.dumps(old, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":")).encode()).hexdigest() == receipt.get("legacy_reference_sha256"):
+            matched.append(old)
+    if len(matched) != 1:
+        raise ValueError("OGE observed counts have no unique saved legacy reference")
+    old = matched[0]
+    if (old.get("schema_version") != "oge-278t-extraction/v1" or old.get("parser_version") != "oge-278t-pdf/v2" or
+            old.get("source_id") != "oge" or old.get("document_id") != record["report_id"] or
+            old.get("source_sha256") != sha or old.get("source_url") != record["source_url"] or "source_rows" in old or
+            len(_rows(old, "transactions")) != normalized or len(_rows(old, "quarantined")) != old_quarantine):
+        raise ValueError("OGE legacy reference differs from archived report identity")
+    rows = _rows(receipt, "rows")
+    locations, by_id = {}, defaultdict(list)
+    for row in rows:
+        page, slot = row.get("page_number"), row.get("slot_key")
+        key = (page, slot)
+        if (type(page) is not int or page < 1 or not isinstance(slot, str) or not re.fullmatch(r"[1-9]\d*", slot) or
+                key in locations or row.get("source_sha256") != sha or row.get("disposition") not in {
+                    "materialized", "quarantined", "unresolved", "retained_legacy", "excluded"}):
+            raise ValueError("OGE observed receipt repeats or changes a source slot")
+        locations[key] = row
+        if isinstance(row.get("extraction_id"), str):
+            by_id[row["extraction_id"]].append(key)
+    observed = _count(receipt.get("observed_slot_count"))
+    unknown = _rows(receipt, "unknown_regions")
+    if observed is None or len(rows) + len(unknown) != observed:
+        raise ValueError("OGE observed receipt slot counts do not close")
+    geometry = receipt.get("geometry_unknown_pages")
+    if (not isinstance(geometry, list) or any(type(page) is not int or page < 1 for page in geometry) or
+            geometry != sorted(set(geometry)) or set(geometry) & {page for page, _ in locations}):
+        raise ValueError("OGE geometry-unknown pages disagree with observed source slots")
+    unknown_locations = set()
+    for row in unknown:
+        page, slot = row.get("page_number"), row.get("slot_key")
+        key = (page, slot)
+        if (type(page) is not int or page not in geometry or not isinstance(slot, str) or
+                not re.fullmatch(r"[1-9]\d*", slot) or key in locations or key in unknown_locations or
+                row.get("source_sha256", sha) != sha or row.get("disposition") != "unknown" or
+                row.get("reason") != "column_geometry_unknown" or row.get("field_observation_ref") is not None):
+            raise ValueError("OGE unknown regions repeat or change source geometry slots")
+        unknown_locations.add(key)
+    quarantined_slots = set()
+    for row in _rows(audit, "quarantined"):
+        ref = row.get("observation_reference")
+        keys = ([(ref.get("page_number"), ref.get("slot_key"))] if isinstance(ref, dict) and
+                ref.get("source_sha256") == sha else by_id.get(row.get("extraction_id"), []))
+        if len(keys) != 1 or keys[0] not in locations or keys[0] in quarantined_slots:
+            raise ValueError("OGE quarantine does not bind uniquely to observed slots")
+        quarantined_slots.add(keys[0])
+    if len(quarantined_slots) != _count(audit.get("quarantined_count")):
+        raise ValueError("OGE observed quarantine count differs from its receipt")
+    unobserved = receipt.get("unobserved_pages")
+    if (not isinstance(unobserved, list) or any(type(page) is not int or page < 1 for page in unobserved) or
+            unobserved != sorted(set(unobserved)) or
+            set(unobserved) & ({page for page, _ in locations} | set(geometry))):
+        raise ValueError("OGE observed/unobserved page coverage is inconsistent")
+    all_pages = set(unobserved) | {page for page, _ in locations} | set(geometry)
+    if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
+        raise ValueError("OGE source page coverage has unexplained gaps")
+    return {"quarantined_row_count": None, "observed_quarantined_slot_count": len(quarantined_slots),
+            "observed_slot_count": observed, "legacy_normalized_reference_count": normalized,
+            "legacy_quarantined_reference_count": old_quarantine,
+            "quarantine_count_unit": audit["quarantine_count_unit"], "unique_source_quarantined_row_count": None,
+            "legacy_reference_sha256": receipt["legacy_reference_sha256"],
+            "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
+                "geometry_unknown_pages": receipt.get("geometry_unknown_pages", []),
+                "page_count_basis": receipt.get("page_count_basis")}}
+
+
+def _native_exhibit_counts(record: dict, audit: dict) -> dict:
+    """A replacement block count is never a whole-document transaction total."""
+    receipt = audit["observation_receipt"]
+    sha = audit.get("source_sha256")
+    if (receipt.get("schema_version") != "oge-278t-observed-facts/v1" or
+            sha not in record["source_versions"] or receipt.get("source_sha256") != sha or
+            audit.get("document_id") != record["report_id"] or receipt.get("coverage_complete") is not False or
+            receipt.get("observation_unit") != "native_replacement_table_block" or
+            receipt.get("unique_source_row_count", "missing") is not None):
+        raise ValueError("OGE native replacement coverage lacks consistent source evidence")
+    rows = _rows(receipt, "rows")
+    slots, quarantined = {}, {}
+    for row in rows:
+        page, table = row.get("page_number"), row.get("table_index")
+        if (type(page) is not int or page < 1 or type(table) is not int or table < 0 or
+                (page, table) in slots or row.get("source_sha256") != sha or
+                row.get("method") != "embedded_native_pdf_words" or
+                not _SHA.fullmatch(row.get("input_observation_canonical_sha256") or "") or
+                row.get("disposition") not in ({"quarantined", "unresolved", "qualified", "superseded"}
+                    if audit.get("native_exhibit_application_context") else {"quarantined", "unresolved"})):
+            raise ValueError("OGE native replacement receipt repeats or changes a source block")
+        slots[page, table] = row
+        if row["disposition"] == "quarantined":
+            identifier = row.get("extraction_id")
+            if not isinstance(identifier, str) or identifier in quarantined:
+                raise ValueError("OGE native replacement block identity is not unique")
+            quarantined[identifier] = row
+    if _count(receipt.get("observed_slot_count")) != len(rows):
+        raise ValueError("OGE native replacement block counts do not close")
+    bound = set()
+    for row in _rows(audit, "quarantined"):
+        ref = row.get("native_exhibit_reference")
+        if ref is None:
+            continue  # Existing inventory is not a new replacement block.
+        identifier = row.get("extraction_id")
+        expected = quarantined.get(identifier)
+        if (expected is None or identifier in bound or ref != {
+                key: value for key, value in expected.items()
+                if key not in {"extraction_id", "disposition", "reasons"}}):
+            raise ValueError("OGE quarantine differs from its native replacement source block")
+        bound.add(identifier)
+    if bound != set(quarantined):
+        raise ValueError("OGE native replacement quarantine is incomplete")
+    unobserved = receipt.get("unobserved_pages")
+    if (not isinstance(unobserved, list) or any(type(p) is not int or p < 1 for p in unobserved) or
+            unobserved != sorted(set(unobserved)) or set(unobserved) & {p for p, _ in slots}):
+        raise ValueError("OGE native replacement page coverage overlaps")
+    known_pages = {p for p, _ in slots}
+    for region in _rows(receipt, "unknown_regions"):
+        page = region.get("page_number")
+        if (type(page) is not int or page < 1 or page in unobserved or
+                not _SHA.fullmatch(region.get("input_observation_canonical_sha256") or "")):
+            raise ValueError("OGE native replacement unknown region is unbound")
+        known_pages.add(page)
+    all_pages = set(unobserved) | known_pages
+    if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
+        raise ValueError("OGE native replacement page coverage has unexplained gaps")
+    return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "quarantine_count_unit": "native_replacement_blocks_not_whole_source_unique_rows",
+        "observed_replacement_block_count": len(rows),
+        "observed_quarantined_replacement_block_count": len(quarantined),
+        **({"observed_applied_replacement_block_count":sum(r.get("disposition")=="qualified" for r in rows),
+            "observed_superseded_replacement_block_count":sum(r.get("disposition")=="superseded" for r in rows)}
+           if audit.get("native_exhibit_application_context") else {}),
+        "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
+            "unknown_regions": receipt.get("unknown_regions", []),
+            "page_count_basis": receipt.get("page_count_basis")}}
+
+
+def _whitehouse_retained_ids(record: dict, audit: dict, review: Path | None) -> list[str]:
+    """Reproduce retained source bindings before adding them to qualification."""
+    from .whitehouse_278t import (GENERIC_PARSER_VERSION, validate_generic_whitehouse_report,
+        _generic_table_rows, _inherit_whitehouse_generic_rows)
+    if audit.get("parser_version") != GENERIC_PARSER_VERSION:
+        return []
+    ids, count = audit.get("retained_ids"), _count(audit.get("retained_count"))
+    if (not isinstance(ids, list) or any(not isinstance(value, str) for value in ids) or
+            count is None or len(ids) != count or len(set(ids)) != count or
+            sorted(ids) != sorted(row.get("extraction_id") for row in _rows(audit, "rows")
+                                  if row.get("status") == "retained_existing")):
+        raise ValueError("White House retained identities do not match candidate decisions")
+    if not ids:
+        return []
+    sha, binding = audit.get("source_sha256"), audit.get("retained_source_bindings")
+    if (review is None or sha not in record["source_versions"] or not isinstance(binding, dict) or
+            binding.get("schema_version") != "whitehouse-generic-retained-source/v1" or
+            binding.get("source_sha256") != sha or
+            binding.get("legacy_cache_hash_is_reference_only") is not True):
+        raise ValueError("White House retained identities lack archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    cached = [_read(path) for path in sorted(folder.glob("*.json"))
+              if not path.name.endswith(".failure.json")]
+    reports = [item for item in cached if item.get("parser_version") == GENERIC_PARSER_VERSION]
+    def canonical(value):
+        return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    legacy = [item for item in cached if canonical(item) == binding.get("legacy_extraction_canonical_sha256")]
+    if len(reports) != 1 or len(legacy) != 1:
+        raise ValueError("White House retained identities lack unique current and legacy caches")
+    report = reports[0]
+    if any(report.get(key) != value for key, value in (("document_id", record["report_id"]),
+            ("source_sha256", sha), ("source_url", record["source_url"]))):
+        raise ValueError("White House retained cache crossed report sources")
+    validate_generic_whitehouse_report(report)
+    good, bad, _ = _generic_table_rows([(row["page_number"], row["cells"])
+        for row in report["source_rows"]], source_sha256=sha)
+    reproduced = _inherit_whitehouse_generic_rows({**report, "transactions": good, "quarantined": bad}, legacy[0])
+    source_rows = {row["extraction_id"]: row for row in reproduced["transactions"]
+                   if row.get("legacy_inheritance") and not row.get("reasons") and
+                   not row["legacy_inheritance"].get("new_observation_reasons")}
+    if not set(ids) <= set(source_rows):
+        raise ValueError("White House retained identities were not reproduced from raw source cells")
+    for identifier in ids:
+        stored = [row for row in report["transactions"] if row.get("extraction_id") == identifier]
+        if len(stored) != 1 or stored[0] != source_rows[identifier]:
+            raise ValueError("White House retained cache differs from its source replay")
+    expected = [{"formal_id": identifier, "page_number": source_rows[identifier]["page_number"],
+        "source_rows_index": source_rows[identifier]["source_rows_index"],
+        "raw_cells_canonical_sha256": canonical(source_rows[identifier]["cells"]),
+        "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"} for identifier in ids]
+    if binding.get("rows") != expected:
+        raise ValueError("White House retained cell bindings disagree with source replay")
+    return ids
+
+
+def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
+                            evidence: Path | None = None) -> dict:
+    """Replay the saved-word consumer; OCR pages are not a source-row census."""
+    from .whitehouse_278t import validate_generic_whitehouse_report
+    parser = audit.get("parser_version")
+    sha = audit.get("source_sha256")
+    receipt = audit.get("observation_receipt")
+    if (review is None or not isinstance(parser, str) or parser not in _SAVED_WHITEHOUSE_PARSERS or
+            sha not in record["source_versions"] or not isinstance(receipt, dict) or
+            audit.get("document_id") != record["report_id"] or
+            audit.get("source_url") != record["source_url"]):
+        raise ValueError("White House saved-word status lacks its archived source binding")
+    folder = review / "whitehouse/extractions" / record["report_id"].split(":")[-1] / sha
+    reports = [_read(path) for path in sorted(folder.glob("*.json"))
+               if not path.name.endswith(".failure.json")]
+    reports = [row for row in reports if row.get("parser_version") == parser]
+    if len(reports) != 1:
+        raise ValueError("White House saved-word status requires a unique current cache")
+    report = reports[0]
+    if any(report.get(key) != audit.get(key) for key in
+           ("document_id", "source_sha256", "source_url", "filed_at", "saved_ocr_input", "observation_receipt",
+            "source_identity_resolution")):
+        raise ValueError("White House saved-word audit differs from its source cache")
+    geometry_mode = _SAVED_WHITEHOUSE_PARSERS[parser]
+    saved_input = report.get("saved_ocr_input")
+    if (not isinstance(saved_input, dict) or
+            any(value != geometry_mode for value in
+                (report.get("geometry_mode"), audit.get("geometry_mode"),
+                 receipt.get("geometry_mode"), saved_input.get("geometry_mode"))) or
+            geometry_mode is not None and receipt.get("local_row_geometry_mode") != geometry_mode):
+        raise ValueError("White House saved-word geometry mode differs from its parser and source")
+    # This validator materializes again from the referenced checkpoint and PDF
+    # when available. A matching receipt/digest alone is not source validation.
+    if evidence is None:
+        validate_generic_whitehouse_report(report)
+    else:
+        from .whitehouse_278t import saved_ocr_source_roots
+        with saved_ocr_source_roots(evidence, review):
+            validate_generic_whitehouse_report(report)
+    source_rows = [*_rows(report, "transactions"), *_rows(report, "quarantined")]
+    decisions = _rows(audit, "rows")
+    source_ids = [row.get("extraction_id") for row in source_rows]
+    retained_ids = audit.get("retained_ids", [])
+    retained_count = _count(audit.get("retained_count", 0))
+    allowed_statuses = {"promoted", "quarantined"} | ({"retained_existing"} if geometry_mode else set())
+    if (None in source_ids or len(set(source_ids)) != len(source_ids) or
+            [row.get("extraction_id") for row in decisions] != source_ids or
+            _count(audit.get("source_row_count")) != len(source_rows) or
+            any(row.get("status") not in allowed_statuses for row in decisions) or
+            _count(audit.get("promoted_count")) != sum(row["status"] == "promoted" for row in decisions) or
+            _count(audit.get("quarantined_count")) != sum(row["status"] == "quarantined" for row in decisions) or
+            retained_count != sum(row["status"] == "retained_existing" for row in decisions) or
+            retained_ids != [row["extraction_id"] for row in decisions if row["status"] == "retained_existing"]):
+        raise ValueError("White House saved-word decisions do not conserve their source rows")
+    if retained_ids or audit.get("current_source_retained_bindings") is not None:
+        def canonical(value):
+            return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        expected_binding = {"schema_version": "whitehouse-saved-current-retained/v1",
+            "source_sha256": sha, "document_id": report["document_id"], "parser_version": parser,
+            "geometry_mode": geometry_mode, "rows": [
+                {"formal_id": row["extraction_id"], "source_rows_index": row.get("source_rows_index"),
+                 "page_number": row.get("page_number"), "raw_cells_canonical_sha256": canonical(row.get("cells")),
+                 "basis": "current_source_replayed_exact_formal_projection"}
+                for row in source_rows if row["extraction_id"] in retained_ids]}
+        if geometry_mode is None or audit.get("current_source_retained_bindings") != expected_binding:
+            raise ValueError("White House saved-word retained facts lack current source bindings")
+    qualified_source_ids = {row["extraction_id"] for row in _rows(report, "transactions")}
+    for source, decision in zip(source_rows, decisions, strict=True):
+        source_reasons, reasons = source.get("reasons", []), decision.get("reasons", [])
+        if (not isinstance(reasons, list) or not isinstance(source_reasons, list) or
+                not set(source_reasons) <= set(reasons) or
+                decision.get("status") in {"promoted", "retained_existing"} and
+                (reasons or source_reasons or source["extraction_id"] not in qualified_source_ids)):
+            raise ValueError("White House saved-word decision drops a source blocker")
+    source_document_reasons = report.get("document_reasons", [])
+    audit_document_reasons = audit.get("document_reasons", [])
+    if (not isinstance(source_document_reasons, list) or
+            not isinstance(audit_document_reasons, list) or
+            not set(source_document_reasons) <= set(audit_document_reasons)):
+        raise ValueError("White House saved-word audit drops a source document blocker")
+    if ((audit.get("promoted_count") or retained_count) and (receipt.get("source_original_verified") is not True or
+            _date(report.get("filed_at")) is None or source_document_reasons or audit_document_reasons)):
+        raise ValueError("White House saved-word promotion lacks verified source or filing date")
+    if (receipt.get("schema_version") != "whitehouse-278t-saved-ocr-receipt/v1" or
+            receipt.get("mode") != "saved_ocr_words" or receipt.get("source_sha256") != sha or
+            receipt.get("coverage_complete") is not False or
+            receipt.get("unique_source_row_count", "missing") is not None):
+        raise ValueError("White House saved-word receipt has inconsistent count semantics")
+    words = _count(receipt.get("observed_word_page_count"))
+    slots = _count(receipt.get("observed_physical_slot_count"))
+    if words is None or slots is None:
+        raise ValueError("White House saved-word observed counts are missing")
+    partial = (report.get("content_observations") or {}).get("partial_geometry_pages", [])
+    partial_counts = {}
+    if receipt.get("local_row_geometry_mode") is not None:
+        regions = [{"page_number": page["page_number"], "regions": page["unresolved_regions"]}
+                   for page in partial]
+        partial_by_page = {page["page_number"]: page for page in partial}
+        geometry_by_page = {page["page_number"]: page for page in
+                            _rows(report.get("geometry_observations") or {}, "pages")}
+        unbound_pages = []
+        for raw_page in _rows(report, "raw_page_observations"):
+            number = raw_page["page_number"]
+            if number == 1:
+                continue
+            if number in partial_by_page:
+                count = len(partial_by_page[number]["unbound_page_ocr_words"])
+                basis = "partial_grid_unbound_saved_words"
+            elif geometry_by_page.get(number, {}).get("coverage") == "physical_slots_located":
+                count = _count(geometry_by_page[number].get("words_outside_slots"))
+                basis = "fully_located_grid_words_outside_slots"
+            else:
+                count = len(_rows(raw_page, "words"))
+                basis = "geometry_unknown_all_saved_words"
+            if count is None:
+                raise ValueError("White House observed words lack a source count")
+            unbound_pages.append({"page_number": number, "word_count": count, "basis": basis})
+        expected_local_mode = geometry_mode or "strict_joint_boundaries/v1"
+        if (receipt["local_row_geometry_mode"] != expected_local_mode or
+                audit.get("partial_geometry_pages", []) != partial or
+                receipt.get("geometry_partial_pages") != [page["page_number"] for page in partial] or
+                receipt.get("unresolved_regions") != regions or
+                receipt.get("unbound_observed_word_unit") != "selected_table_page_words_outside_known_slots" or
+                receipt.get("unbound_observed_word_pages") != unbound_pages or
+                _count(receipt.get("unbound_observed_word_count")) != sum(page["word_count"] for page in unbound_pages) or
+                receipt.get("whole_selected_table_slot_count", "missing") !=
+                (None if partial or receipt.get("geometry_unknown_pages") else slots)):
+            raise ValueError("White House local geometry status differs from source coverage")
+        if any(_count(page.get("known_physical_slot_count")) is None or
+               page.get("whole_page_physical_slot_count", "missing") is not None for page in partial):
+            raise ValueError("White House local slot counts cannot claim a complete page census")
+        partial_counts = {"local_row_geometry_mode": receipt["local_row_geometry_mode"],
+            "geometry_partial_pages": receipt["geometry_partial_pages"],
+            "unresolved_regions": regions,
+            "whole_selected_table_slot_count": receipt["whole_selected_table_slot_count"],
+            "unbound_observed_word_count": receipt["unbound_observed_word_count"],
+            "unbound_observed_word_unit": receipt["unbound_observed_word_unit"],
+            "unbound_observed_word_pages": unbound_pages}
+    elif partial or audit.get("partial_geometry_pages"):
+        raise ValueError("White House partial source coverage requires its explicit local mode")
+    return {"quarantined_row_count": None, "unique_source_quarantined_row_count": None,
+        "qualified_retained_transaction_ids": retained_ids,
+        "quarantine_count_unit": "saved_ocr_entries_not_whole_source_unique_rows",
+        "observed_quarantined_entry_count": _count(audit.get("quarantined_count")),
+        "observed_word_page_count": words, "observed_physical_slot_count": slots,
+        "source_observation_coverage": {**partial_counts, **{key: receipt.get(key) for key in
+            ("coverage_complete", "unobserved_pages", "geometry_unknown_pages",
+             "page_count_basis", "source_original_verified", "selected_page_numbers")}}}
+
+
+def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
+                 evidence: Path | None = None) -> None:
+    application_view = None
+    if audit.get("native_exhibit_application_context") is not None:
+        if review is None or evidence is None:
+            raise ValueError("native replacement application requires controlled archive and review roots")
+        from .oge_native_replacements import verify_native_exhibit_context
+        application_view = verify_native_exhibit_context(audit["native_exhibit_application_context"], evidence, review).get(audit["document_id"])
+        if application_view is None or application_view["source_sha256"] not in record["source_versions"]:
+            raise ValueError("native replacement application lacks its source-bound view")
+        for field in ("observation_receipt", "native_exhibit_replacement_applications", "native_exhibit_superseded_transaction_ids"):
+            if audit.get(field) != application_view.get(field):
+                raise ValueError("native replacement qualification differs from current source replay")
+        expected_count = sum(r.get("native_replacement_disposition") != "superseded" for r in application_view["transactions"])
+        expected_count += len(application_view.get("native_exhibit_preserved_target_ids", []))
+        if audit.get("promoted_count") != expected_count or audit.get("quarantined_count") != len(application_view["quarantined"]):
+            raise ValueError("native replacement qualification counts differ from source replay")
+        from .oge_candidate import _identity_key, _person_id, _transaction_projection
+        key = _identity_key(audit["native_exhibit_application_context"]["records"][audit["document_id"]])
+        record["_native_replacement_expected_facts"] = [_transaction_projection(application_view,row,_person_id(key))
+            for row in application_view["transactions"] if row.get("native_replacement_disposition") != "superseded"]
+        record["superseded_transaction_ids"] = sorted(application_view.get("native_exhibit_superseded_transaction_ids", []))
+        record["native_replacement_mappings"] = [{field:item[field] for field in
+            ("effective_prior_transaction_id", "transaction_id", "prior_transaction_id", "amendment_document_id",
+             "amendment_source_sha256", "amendment_filed_at", "application_status")}
+            for item in application_view.get("native_exhibit_replacement_applications", [])]
+    receipt = audit.get("observation_receipt")
+    native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
+    if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
+            "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
+        raise ValueError("OGE legacy reference observation counts require their explicit unit")
+    saved_whitehouse = (isinstance(audit.get("parser_version"), str) and
+                       audit["parser_version"] in _SAVED_WHITEHOUSE_PARSERS or
+                       "saved_ocr_input" in audit or
+                       isinstance(receipt, dict) and (
+                           receipt.get("mode") == "saved_ocr_words" or
+                           receipt.get("schema_version") == "whitehouse-278t-saved-ocr-receipt/v1"))
+    separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
+                       _native_exhibit_counts(record, audit) if native_exhibit else
+                       _observed_reference_counts(record, audit, review)
+                       if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
+    retained = (separate_counts.pop("qualified_retained_transaction_ids", []) if saved_whitehouse else
+                _whitehouse_retained_ids(record, audit, review))
+    if retained:
+        if promoted is None:
+            raise ValueError("White House retained qualification lacks a promoted count")
+        promoted += len(retained)
+        record["qualified_retained_transaction_ids"] = retained
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
-    receipt = audit.get("observation_receipt")
     incomplete_observations = isinstance(receipt, dict) and receipt.get("coverage_complete") is not True
     if incomplete_observations:
         record["reason_codes"].append("observed_source_coverage_incomplete")
@@ -134,6 +554,11 @@ def _apply_audit(record: dict, audit: dict) -> None:
         record["qualification_state"] = "unknown"
     else:
         record["qualification_state"] = "zero_transactions"
+    record.update(separate_counts)
+    if application_view is not None and not promoted and not quarantined and (
+            record.get("superseded_transaction_ids") or any(
+                row.get("native_replacement_disposition") == "superseded" for row in application_view["transactions"])):
+        record["qualification_state"] = "superseded"
 
 
 def _unbound_qualification(record: dict, reason: str) -> None:
@@ -292,7 +717,8 @@ def _add_archive_state(record: dict, archives: list[dict], review: Path,
         record["reason_codes"].append("multiple_archive_versions")
 
 
-def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict]) -> None:
+def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict], *,
+                      direct_annual_ids: frozenset[str] = frozenset()) -> None:
     direct, _, whitehouse = scopes
     indexes = {scope["scope_id"]: {row["report_id"]: row for row in scope["reports"]}
                for scope in (direct, whitehouse)}
@@ -309,6 +735,14 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
             is_whitehouse = host == "www.whitehouse.gov"
             scope = whitehouse if is_whitehouse else direct
             report_id = _official_id(url, is_whitehouse)
+            if not is_whitehouse and report_id in direct_annual_ids:
+                # These controlled archives are Form 278e, not PTRs. Keep the
+                # existing scope contract and make the uncovered binding clear.
+                unmatched_key = ("unmatched_publication_transaction_ids" if key ==
+                                 "publication_transaction_ids" else "unmatched_publication_holding_ids")
+                scope.setdefault(unmatched_key, []).append(fact["id"])
+                scope["limitations"].append("oge_direct_278e_outside_current_278t_status_scope")
+                continue
             if report_id is None:
                 unmatched_key = ("unmatched_publication_transaction_ids" if key ==
                                  "publication_transaction_ids" else "unmatched_publication_holding_ids")
@@ -408,7 +842,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             record["acquisition_state"] = "not_archived"
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
-            _apply_audit(record, audit_by_id[report_id])
+            _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence)
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
@@ -418,8 +852,82 @@ def build_oge_status(evidence_root: Path, review_root: Path,
         direct["limitations"].append("direct_qualification_artifact_unavailable")
 
     public = _build_whitehouse(evidence, review)
+    trade = _read(review / "whitehouse/qualifications/candidate-current.json")
+    cross_application = trade.get("native_cross_source_applications")
+    if cross_application is not None:
+        from .oge_cross_source_replacements import verify_cross_source_native_applications
+        cross_candidate, verified = verify_cross_source_native_applications(cross_application,evidence,review)
+        direct_by_id = {row["report_id"]: row for row in direct["reports"]}
+        public_by_id = {row["report_id"]: row for row in public["reports"]}
+        published = {row["id"]: row for row in transactions}
+        active = {item["transaction_id"] for item in verified["applications"] if item["application_status"]=="applied"}
+        for item in verified["applications"]:
+            prior=item["prior_transaction_id"];new=item["transaction_id"]
+            if prior in published:
+                raise ValueError("superseded White House predecessor is still published")
+            if new in active:
+                expected=next(row for row in cross_candidate["transactions"] if row["id"]==new)
+                if new in published and any(expected.get(key)!=published[new].get(key) for key in set(expected)|set(published[new])):
+                    raise ValueError("cross-source published replacement differs from family-qualified facts")
+        for doc in {item["target"]["target_document_id"] for item in verified["applications"]}:
+            record=public_by_id.get(doc)
+            if record is None:raise ValueError("cross-source predecessor lacks its White House report status")
+            retired=sorted({item["prior_transaction_id"] for item in verified["applications"] if item["target"]["target_document_id"]==doc})
+            count=record.get("qualified_transaction_count",0)
+            if count<len(retired):raise ValueError("cross-source retirement exceeds qualified White House inventory")
+            record["qualified_transaction_count"]=count-len(retired)
+            record["superseded_transaction_ids"]=retired
+            record["reason_codes"]=sorted(set(record["reason_codes"]+["source_verified_amount_only_replacement"]))
+            if record["qualified_transaction_count"]==0 and record.get("quarantined_row_count")==0:
+                record["qualification_state"]="superseded"
+        for doc,view in verified["source_views"].items():
+            record=direct_by_id.get(doc)
+            if record is None:raise ValueError("cross-source replacement lacks its OGE report status")
+            applied=[item for item in verified["applications"] if item["amendment_document_id"]==doc]
+            if not applied:continue
+            record["qualified_transaction_count"]+=sum(item["transaction_id"] in active for item in applied)
+            record["observed_applied_replacement_block_count"]=sum(item["transaction_id"] in active for item in applied)
+            if "observed_quarantined_replacement_block_count" in record:
+                record["observed_quarantined_replacement_block_count"]-=len(applied)
+            record["qualification_state"]="partial" if view["observation_receipt"]["coverage_complete"] is False else "qualified"
+            if not view['quarantined']:
+                record['reason_codes']=[reason for reason in record['reason_codes'] if reason not in {
+                    'amendment_relationship_unresolved','replacement_target_document_unresolved',
+                    'replacement_original_source_or_unique_row_unverified','replacement_context_candidate_not_unique_or_unverified'}]
+            record["native_cross_source_replacement_mappings"]=[{key:item[key] for key in
+                ("prior_transaction_id","effective_prior_transaction_id","transaction_id","application_status")} for item in applied]
+    if trade.get("schema_version") == "whitehouse-278t-exact-source-candidate/v1":
+        direct_by_id = {row["report_id"]: row for row in direct["reports"]}
+        public_by_id = {row["report_id"]: row for row in public["reports"]}
+        for relation in _rows(trade, "cross_source_relations"):
+            record = direct_by_id.get(relation.get("oge_document_id"))
+            canonical = public_by_id.get(relation.get("canonical_document_id"))
+            sha = relation.get("source_sha256")
+            if (record is None or canonical is None or sha not in record["source_versions"] or
+                    sha not in canonical["source_versions"] or record["source_url"] != relation.get("oge_source_url")):
+                direct["limitations"].append("cross_source_exact_alias_archive_binding_unavailable")
+                continue
+            record["exact_source_related_report_id"] = canonical["report_id"]
+            record["exact_source_sha256"] = sha
+            if relation.get("oge_formal_transaction_count") == 0:
+                record["qualification_state"] = "superseded"
+                record["qualified_transaction_count"] = 0
+                record["quarantined_row_count"] = 0
+                record["reason_codes"].append("exact_source_copy_alias_to_whitehouse")
     result = [direct, request, public]
-    _bind_publication(result, transactions, holdings)
+    annual_archives = _archive_records(evidence, "oge/annual/reports", False)
+    if set(annual_archives) & (set(archives) | set(catalog_direct)):
+        raise ValueError("OGE annual archive is also classified as a direct 278-T report")
+    _bind_publication(result, transactions, holdings, direct_annual_ids=frozenset(annual_archives))
+    actual = {row["id"]: row for row in transactions}
+    for scope in result:
+        for record in scope["reports"]:
+            for expected in record.pop("_native_replacement_expected_facts", []):
+                fact = actual.get(expected["id"])
+                if fact is not None and any(fact.get(field) != expected.get(field) for field in set(fact) | set(expected)):
+                    raise ValueError("published native replacement differs from source-qualified formal facts")
+            if set(record.get("superseded_transaction_ids", [])) & set(actual):
+                raise ValueError("superseded native replacement predecessor is still published")
     return result
 
 
@@ -476,7 +984,7 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if record["source_url"] != url:
             raise ValueError("White House 278-T qualification URL conflicts with catalog")
         record["document_type"] = "278t"
-        _apply_audit(record, audit)
+        _apply_audit(record, audit, review=review, evidence=evidence)
         version_bound = _check_version(record, audit)
         if not version_bound:
             _unbound_qualification(record, "qualification_source_version_not_in_archive_inventory")
@@ -535,6 +1043,46 @@ def _build_whitehouse(evidence: Path, review: Path) -> dict:
         if _date(audit.get("filing_date")):
             record["filed_date" if version_bound else "observed_filed_date"] = audit["filing_date"]
             record["filed_date_basis" if version_bound else "observed_filed_date_basis"] = "qualified_annual_report"
+    if trade.get("schema_version") == "whitehouse-278t-exact-source-candidate/v1":
+        for group in _rows(trade, "exact_source_aliases"):
+            canonical_id, sha = group.get("canonical_document_id"), group.get("source_sha256")
+            sources = _rows(group, "aliases")
+            canonical_source = next((source for source in sources
+                                     if source.get("document_id") == canonical_id), None)
+            if canonical_source is None:
+                raise ValueError("White House exact-source relation has no canonical source")
+            canonical_versions = {item["sha256"] for item in archives.get(canonical_id, [])}
+            for source in sources:
+                report_id, url = source.get("document_id"), source.get("source_url")
+                if (_official_id(url, True) != report_id or source.get("source_sha256") != sha):
+                    raise ValueError("White House exact-source alias identity is invalid")
+                record = by_id.setdefault(report_id, _record(report_id, url, "278t", "historical"))
+                if sha not in record["source_versions"] or sha not in canonical_versions:
+                    record["reason_codes"].append("exact_source_alias_archive_binding_missing")
+                    continue
+                record["exact_source_canonical_report_id"] = canonical_id
+                record["exact_source_sha256"] = sha
+                record["document_type"] = "278t"
+                if report_id != canonical_id:
+                    record["qualification_state"] = "superseded"
+                    record["qualified_transaction_count"] = 0
+                    record["quarantined_row_count"] = 0
+                    record["reason_codes"].append("exact_source_copy_alias")
+                else:
+                    retained_rows = [row for row in _rows(trade, "retained_rows") if row.get("document_id") == report_id]
+                    counted = set(record.get("qualified_retained_transaction_ids", []))
+                    retained = sum(row.get("formal_source_url", url) == url and
+                                   row.get("formal_transaction_id") not in counted for row in retained_rows)
+                    if retained:
+                        record["qualified_transaction_count"] = (record["qualified_transaction_count"] or 0) + retained
+                        record["qualification_state"] = ("partial" if record["quarantined_row_count"] else "qualified")
+                    foreign = [row for row in retained_rows if row.get("formal_source_url", url) != url]
+                    if foreign and len(foreign) == group.get("canonical_row_count"):
+                        record["qualification_state"] = "superseded"
+                        record["qualified_transaction_count"] = 0
+                        record["quarantined_row_count"] = 0
+                        record["reason_codes"].append("exact_source_rows_retained_at_official_oge_url")
+                        record["exact_source_formal_url"] = foreign[0]["formal_source_url"]
     scope["reports"] = list(by_id.values())
     return scope
 

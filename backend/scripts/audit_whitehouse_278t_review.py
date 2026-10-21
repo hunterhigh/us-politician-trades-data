@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t  # noqa: E402
+from unison_snapshot.whitehouse_278t_candidate import audit_whitehouse_278t_exact_source_candidate  # noqa: E402
 from unison_snapshot.whitehouse_278t import SUPPORTED_PARSER_VERSIONS  # noqa: E402
 from unison_snapshot.oge_278e_public import SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSERS  # noqa: E402
 from unison_snapshot.oge_candidate import _identity_key, _person_id  # noqa: E402
@@ -285,7 +286,13 @@ def _identity_mapping_diagnostic(audit_reports: list[dict], coverage_rows: list[
 
 
 def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None,
-        local_git: bool = False, directory_identity_shadow: bool = False) -> dict:
+        local_git: bool = False, directory_identity_shadow: bool = False,
+        exact_source_copies: bool = False, exact_source_bindings: Path | None = None) -> dict:
+    bindings = None
+    if exact_source_bindings is not None:
+        if not exact_source_copies:
+            raise RuntimeError("Exact source bindings require --exact-source-copies")
+        bindings = json.loads(exact_source_bindings.read_bytes())
     if local_git and commit is None:
         raise RuntimeError("--local-git requires a pinned --commit")
     token = "" if local_git else _token()
@@ -366,9 +373,22 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
         annual_identity_people(contents["whitehouse/annual/filer-reported-current.json"])
         if "whitehouse/annual/filer-reported-current.json" in contents else [])
         if directory_identity_shadow else None)
+    exact_audit = None
+    if exact_source_copies:
+        exact_audit = audit_whitehouse_278t_exact_source_candidate(
+            oge_candidate, extractions, oge_catalog, annual_extractions=annual_extractions,
+            source_bindings=bindings)
+        audit = exact_audit["canonical_eligibility"]
+        if directory_identity_shadow:
+            shadow = audit_whitehouse_278t_exact_source_candidate(
+                oge_candidate, extractions, oge_catalog, annual_extractions=annual_extractions, source_bindings=bindings,
+                directory_index=directory, annual_identity_people=annual_identity_people(
+                    contents["whitehouse/annual/filer-reported-current.json"])
+                    if "whitehouse/annual/filer-reported-current.json" in contents else []
+            )["canonical_eligibility"]
     if audit_output is not None:
         audit_output.parent.mkdir(parents=True, exist_ok=True)
-        audit_output.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+        audit_output.write_text(json.dumps(exact_audit or audit, ensure_ascii=False, indent=2), encoding="utf-8")
     archived = [row for row in coverage_rows if row.get("archive_sha256_versions")]
     extracted_ids = {item["document_id"] for item in extractions}
     archived_not_extracted = [row for row in archived if row["document_id"] not in extracted_ids]
@@ -445,6 +465,38 @@ def run(*, ref: str | None, commit: str | None, audit_output: Path | None = None
             "identity_reason_removed_document_ids": sorted(row["document_id"] for row in changed),
             "qualification_written": False,
         }
+    if exact_audit is not None:
+        result.update(audit_schema=exact_audit["schema_version"],
+                      exact_source_aliases=exact_audit["exact_source_aliases"],
+                      retained_rows=exact_audit["retained_rows"],
+                      retained_existing_transaction_count=exact_audit["retained_existing_transaction_count"])
+        if "cross_source_relations" in exact_audit:
+            result["cross_source_relations"] = exact_audit["cross_source_relations"]
+    return result
+
+
+def run_local(*, review_root: Path, oge_candidate: Path, audit_output: Path | None = None,
+              exact_source_copies: bool = False, exact_source_bindings: Path | None = None) -> dict:
+    """Use the existing candidate script's local evidence gates without Git/network reads."""
+    from build_whitehouse_278t_candidate import _verify_review, _read_object
+    (extractions, annual, coverage, directory, people, provenance, failures) = _verify_review(
+        review_root, expected_report_count=None)
+    base, base_sha = _read_object(oge_candidate)
+    bindings = None
+    if exact_source_bindings is not None:
+        if not exact_source_copies:
+            raise RuntimeError("Exact source bindings require --exact-source-copies")
+        bindings, binding_sha = _read_object(exact_source_bindings)
+        provenance["exact_source_binding_file_sha256"] = binding_sha
+    audit = (audit_whitehouse_278t_exact_source_candidate(
+        base, extractions, coverage, annual_extractions=annual, directory_index=directory,
+        annual_identity_people=people, source_bindings=bindings) if exact_source_copies else
+        audit_whitehouse_278t(extractions, coverage, base, annual, directory, people))
+    result = {**audit, "input_provenance": provenance, "base_candidate_sha256": base_sha,
+              "extraction_failure_count": failures, "qualification_written": False}
+    if audit_output is not None:
+        audit_output.parent.mkdir(parents=True, exist_ok=True)
+        audit_output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf8")
     return result
 
 
@@ -453,15 +505,31 @@ def main() -> None:
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--ref", default="review")
     source.add_argument("--commit")
+    source.add_argument("--review-root", type=Path, help="Audit a local review using the existing candidate input validator")
+    parser.add_argument("--oge-candidate", type=Path, help="Required with --review-root")
     parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--local-git", action="store_true",
                         help="Read the pinned commit and verified blobs from local Git")
     parser.add_argument("--directory-identity-shadow", action="store_true",
                         help="Also calculate the read-only unique existing-person fallback")
+    parser.add_argument("--exact-source-copies", action="store_true",
+                        help="Opt in to canonical same-PDF SHA aliases; retain raw source URLs and row IDs in audit output")
+    parser.add_argument("--exact-source-bindings", type=Path,
+                        help="Optional archived cross-source SHA and original row bindings")
     args = parser.parse_args()
+    if args.review_root is not None:
+        if args.oge_candidate is None:
+            parser.error("--review-root requires --oge-candidate")
+        result = run_local(review_root=args.review_root, oge_candidate=args.oge_candidate,
+                           audit_output=args.audit_output, exact_source_copies=args.exact_source_copies,
+                           exact_source_bindings=args.exact_source_bindings)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     result = run(ref=args.ref, commit=args.commit, audit_output=args.audit_output,
                  local_git=args.local_git,
-                 directory_identity_shadow=args.directory_identity_shadow)
+                 directory_identity_shadow=args.directory_identity_shadow,
+                 exact_source_copies=args.exact_source_copies,
+                 exact_source_bindings=args.exact_source_bindings)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

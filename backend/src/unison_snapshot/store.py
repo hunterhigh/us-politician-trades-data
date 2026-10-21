@@ -6,7 +6,7 @@ import re
 import subprocess
 import tempfile
 
-from .builder import Bundle, LAYOUT, SCHEMA
+from .builder import Bundle, LAYOUT, SCHEMA, restore_shard_disclosure_relations
 from .codec import bucket, digest
 
 SHA = re.compile(r"[0-9a-f]{40}")
@@ -152,5 +152,6 @@ def assemble(store: GitStore, commit: str, *, mode: str = "dashboard", key: str 
         raise ValueError("Unsupported selection")
     excluded = {"board", "source_health"}
     meta = {name: value for name, value in manifest.items() if name not in excluded}
+    restore_shard_disclosure_relations(meta,board,subset=mode in {'people','tickers'})
     meta["selection_scope"] = {"mode": mode, "key": key, "universe_complete": False}
     return {"meta": meta, **board, "source_health": manifest.get("source_health", [])}

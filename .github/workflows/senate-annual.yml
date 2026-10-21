@@ -9,6 +9,10 @@ on:
         description: Maximum new annual reports to archive in this run
         required: true
         default: '200'
+      structured_asset_labels:
+        description: Rebuild structured asset labels from archived annual HTML without collecting new reports
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -59,12 +63,14 @@ jobs:
           test -f "$roster"
           echo "ROSTER=$roster" >> "$GITHUB_ENV"
       - name: Discover and archive latest annual versions
+        if: inputs.structured_asset_labels != true
         run: |
           python backend/scripts/senate_annual.py collect \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --roster "$ROSTER" --submitted-start-date 2025-01-01 \
             --limit "$REPORT_LIMIT"
       - name: Publish official originals and catalog
+        if: inputs.structured_asset_labels != true
         run: |
           evidence="$RUNNER_TEMP/senate-annual-evidence"
           git -C "$evidence" add senate_efd/annual
@@ -75,11 +81,44 @@ jobs:
             git -C "$evidence" push origin HEAD:refs/heads/evidence
           fi
       - name: Extract and qualify latest annual holdings
+        env:
+          STRUCTURED_ASSET_LABELS: ${{ inputs.structured_asset_labels }}
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
+          active_mode="$(python - "$review/senate_efd/annual/current.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          if not isinstance(value, dict):
+              raise SystemExit('Annual parser selection is invalid')
+          mode = value.get('asset_label_mode', 'legacy_v3')
+          if mode not in {'legacy_v3', 'structured_v4'}:
+              raise SystemExit('Annual parser selection is unsupported')
+          print(mode)
+          PY
+          )"
+          annual_args=()
+          if [ "$STRUCTURED_ASSET_LABELS" = "true" ] || [ "$active_mode" = "structured_v4" ]; then
+            annual_args+=(--structured-asset-labels)
+          fi
+          active_transactions="$(python - "$review/senate_efd/annual/current.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          mode = value.get('transaction_mode', 'legacy_observations')
+          if mode not in {'legacy_observations', 'independent_part4b/v1'}:
+              raise SystemExit('Annual transaction selection is unsupported')
+          print(mode)
+          PY
+          )"
+          if [ "$active_transactions" = "independent_part4b/v1" ]; then
+            annual_args+=(--independent-transactions)
+          fi
           python backend/scripts/senate_annual.py build \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
-            --review-root "$review" --roster "$ROSTER"
+            --review-root "$review" --roster "$ROSTER" "${annual_args[@]}"
           python backend/scripts/senate_annual.py overlay \
             --review-root "$review" \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \

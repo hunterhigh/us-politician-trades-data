@@ -146,6 +146,15 @@ def build_house_status(evidence_root: Path, review_root: Path,
                 raise ValueError(f"House review source binding mismatch: {path}")
             artifacts[kind][key] = value
             discovered.add(key[:2])
+    from .house_ptr import resolve_automatic_revisions
+    revision_inputs = [(qualification, artifacts["extractions"][key])
+        for key, qualification in artifacts["qualifications"].items()
+        if key in artifacts["extractions"] and len(versions.get(key[:2], {})) == 1
+        and key[2] in versions[key[:2]]]
+    revision_resolution = resolve_automatic_revisions(revision_inputs,
+        [row for q, _ in revision_inputs for row in q.get("transactions", [])],
+        prior_transactions=transactions)
+    superseded = {r["prior_transaction_id"]: r for r in revision_resolution["replacements"]}
     keys = discovered | set(versions)
     records = []
     for year, docid in sorted(keys):
@@ -195,6 +204,7 @@ def build_house_status(evidence_root: Path, review_root: Path,
             extraction = artifacts["extractions"].get(version)
             failure = artifacts["failures"].get(version)
             qualification = artifacts["qualifications"].get(version)
+            qualification = revision_resolution["qualifications"].get(docid, qualification)
             if extraction is not None:
                 record["extraction_state"] = "extracted"
                 if failure is not None:
@@ -215,16 +225,42 @@ def build_house_status(evidence_root: Path, review_root: Path,
                     reasons.add("qualification_without_extraction")
                     record["qualification_state"] = "unknown"
                 else:
+                    replaced = [row["id"] for row in rows if row["id"] in superseded]
+                    rows = [row for row in rows if row["id"] not in superseded]
                     record["qualified_transaction_count"] = len(rows)
+                    if replaced:
+                        record["superseded_transaction_ids"] = sorted(replaced)
+                        record["revision_replacements"] = [superseded[key] for key in sorted(replaced)]
                     record["quarantined_row_count"] = len(quarantined)
+                    from .house_ptr_paper_qualification import paper_materialization_counts
+                    paper_counts = paper_materialization_counts(qualification, extraction)
+                    if paper_counts is not None:
+                        record.update(paper_counts)
+                        record["quarantined_row_count"] = paper_counts["whole_source_unique_quarantined_row_count"]
                     reasons.update(_reasons(summary))
                     for row in quarantined:
                         if isinstance(row, dict):
                             reasons.update(_reasons(row))
                     state = ("partial" if rows and quarantined else "qualified" if rows else
                              "quarantined" if quarantined else "zero_transactions"
-                             if summary.get("zero_transaction_document_count") == 1 else "unknown")
+                             if summary.get("zero_transaction_document_count") == 1 else "superseded" if replaced else "unknown")
+                    ledger = qualification.get("source_report_ledger")
+                    if ledger is not None:
+                        if (not isinstance(ledger, dict) or
+                                ledger.get("document_sha256") != selected or
+                                ledger.get("source_id") != "house_clerk"):
+                            raise ValueError("House source ledger provenance mismatch")
+                        if ledger.get("relation_coverage") != "accounted":
+                            reasons.add("source_row_coverage_incomplete")
+                            if state != "superseded":
+                                state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
+                    from .house_ptr import revision_reference_dispositions
+                    revisions = revision_resolution["dispositions"].get(docid,
+                        revision_reference_dispositions(qualification, extraction, transactions))
+                    if revisions:
+                        record["revision_reference_dispositions"] = revisions
+                        reasons.update(item["disposition"] for item in revisions)
                     if state == "unknown":
                         reasons.add("empty_qualification_without_zero_declaration")
             elif extraction is not None:

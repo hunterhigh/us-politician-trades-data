@@ -9,6 +9,7 @@ from collections import Counter
 import hashlib
 from pathlib import Path
 import re
+from math import isfinite
 
 from .oge import OgeCatalogError
 
@@ -22,7 +23,122 @@ _SECTION = re.compile(r"\bPart\s+([2567])\s*:", re.I)
 _ROW = re.compile(r"^([1-9]\d*(?:\.\d+)*)\.?\s*(.*)$")
 _TRADE = re.compile(r"^(?P<asset>.+?)\s+(?P<kind>purchase|sale|exchange)\s+"
                     r"(?P<date>\d{1,2}/\d{1,2}/\d{4})\s+"
-                    r"(?P<amount>\$[\d,]+\s*[-–]\s*\$[\d,]+)$", re.I)
+                    r"(?P<amount>\$[\d,]+\s*[-\u2013]\s*\$[\d,]+)$", re.I)
+
+
+def _native_empty_cells(page, cells: list) -> dict:
+    """Prove no PDF marks within complete cells bounded by source rules.
+
+    Native table snapping may put a cell edge anywhere inside a thick rule.
+    Use the actual filled-rule interior faces, never a fitted margin.  Image
+    pages, annotations, unknown drawings and incomplete boundaries stay unknown.
+    """
+    boxes = [list(box) for box in cells if box is not None]
+    def bounds(obj):
+        values = [obj.get(k) for k in ("x0", "top", "x1", "bottom")]
+        return values if all(type(v) in (float, int) and isfinite(v) for v in values) else None
+    def valid(box):
+        return len(box) == 4 and all(type(v) in (float, int) and isfinite(v) for v in box) and box[0] < box[2] and box[1] < box[3]
+    if len(boxes) != len(cells) or not boxes or not all(valid(box) for box in boxes):
+        return {"status": "unknown", "reason": "cell_geometry_unresolved"}
+    def intersects(a, b):
+        return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
+    if any(intersects(a, b) for i, a in enumerate(boxes) for b in boxes[i+1:]):
+        return {"status": "unknown", "reason": "cell_geometry_overlaps"}
+    rules = [bounds(obj) for obj in page.objects.get("rect", [])
+             if obj.get("fill") is True and obj.get("stroke") is False and bounds(obj) is not None]
+    interiors = []
+    for box in boxes:
+        # Internal rules can terminate on the inside face of the outer frame.
+        # A table extractor's snapped boundary lies inside that frame, beyond
+        # the vertical rule's endpoint. Require a complete interior enclosure
+        # below, rather than extending source lines to snapped centre points.
+        vertical = [rule for rule in rules if 0 < rule[2]-rule[0] <= 2 and
+                    rule[1] < box[3] and rule[3] > box[1]]
+        left = [rule for rule in vertical if rule[0] <= box[0] <= rule[2]]
+        right = [rule for rule in vertical if rule[0] <= box[2] <= rule[2]]
+        if len(left) != 1 or len(right) != 1:
+            return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
+        x0, x1 = left[0][2], right[0][0]
+        horizontal = [rule for rule in rules if 0 < rule[3]-rule[1] <= 2 and
+                      rule[0] <= x0 and rule[2] >= x1]
+        top = [rule for rule in horizontal if rule[1] <= box[1] <= rule[3]]
+        bottom = [rule for rule in horizontal if rule[1] <= box[3] <= rule[3]]
+        if len(top) != 1 or len(bottom) != 1:
+            return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
+        if any(rule[1] > top[0][3] or rule[3] < bottom[0][1] for rule in (left[0], right[0])):
+            return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
+        interior = [x0, top[0][3], x1, bottom[0][1]]
+        if not valid(interior):
+            return {"status": "unknown", "reason": "native_cell_interior_unresolved", "cell_boxes": boxes}
+        interiors.append(interior)
+    for annotation in page.annots or []:
+        box = bounds(annotation)
+        if box is None or any(intersects(box, cell) for cell in boxes):
+            return {"status": "unknown", "reason": "annotation_may_cover_cells", "cell_boxes": boxes}
+    for kind, objects in page.objects.items():
+        if kind not in {"char", "rect", "line", "curve", "image"}:
+            return {"status": "unknown", "reason": "unsupported_pdf_object_kind", "cell_boxes": boxes}
+        for obj in objects:
+            box = bounds(obj)
+            if box is None:
+                return {"status": "unknown", "reason": "pdf_object_geometry_unresolved", "cell_boxes": boxes}
+            if kind in {"line", "curve"} or kind == "rect" and obj.get("stroke"):
+                width = obj.get("linewidth", 0)
+                if type(width) not in (int, float) or not isfinite(width) or width < 0:
+                    return {"status": "unknown", "reason": "drawing_width_unresolved", "cell_boxes": boxes}
+                box = [box[0]-width/2, box[1]-width/2, box[2]+width/2, box[3]+width/2]
+            if any(intersects(box, cell) for cell in interiors):
+                return {"status": "unknown", "reason": "source_mark_inside_cell", "object_kind": kind,
+                        "object_bbox": box, "cell_boxes": boxes}
+    return {"status": "source_objects_verified_empty", "cell_boxes": boxes, "native_interiors": interiors,
+            "basis": "no_char_image_annotation_or_nonboundary_drawing_in_original_pdf_cells"}
+
+
+def observe_holding_pages(pdf_path: Path, *, source_sha256: str,
+                          document_id: str, page_numbers: list[int]) -> dict:
+    """Read only explicitly selected, already located native holding pages.
+
+    This is an input to the existing annual materializer, not an alternative
+    annual parser or an OCR fallback.  Full tables and source text are retained
+    so the consumer can replay the same selected pages against archived bytes.
+    """
+    if (not _SHA.fullmatch(source_sha256) or not _ID.fullmatch(document_id) or
+            not isinstance(page_numbers, list) or not page_numbers or len(page_numbers) > 16 or
+            any(type(page) is not int or page < 1 for page in page_numbers) or
+            len(set(page_numbers)) != len(page_numbers)):
+        raise OgeCatalogError("annual selected holding page inventory is invalid")
+    content = Path(pdf_path).read_bytes()
+    if hashlib.sha256(content).hexdigest() != source_sha256:
+        raise OgeCatalogError("annual holding PDF differs from archived hash")
+    import pdfplumber
+    pages = []
+    with pdfplumber.open(pdf_path) as document:
+        if not 1 <= len(document.pages) <= 1200 or max(page_numbers) > len(document.pages):
+            raise OgeCatalogError("annual selected holding page is outside original")
+        for number in sorted(page_numbers):
+            page = document.pages[number - 1]
+            text = page.extract_text() or ""
+            sections = {f"part{match[1]}" for match in _SECTION.finditer(text)}
+            if len(sections) != 1 or not sections <= {"part2", "part5", "part6"}:
+                raise OgeCatalogError("selected annual page is not a unique holding section")
+            tables = page.find_tables()
+            extracted = [table.extract() for table in tables]
+            empty = []
+            for table_index, (table, rows) in enumerate(zip(tables, extracted, strict=True)):
+                for row_index, (row, row_text) in enumerate(zip(table.rows, rows, strict=True)):
+                    if (len(row_text) >= 6 and re.fullmatch(r"[1-9]\d*(?:\.\d+)*\.?", row_text[0] or "") and
+                            not any(row_text[1:])):
+                        proof = _native_empty_cells(page, row.cells[1:6])
+                        empty.append({"table_index": table_index, "table_row_index": row_index,
+                                      "printed_number": row_text[0], **proof})
+            pages.append({"page_number": number, "section": next(iter(sections)),
+                          "page_text": text, "page_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                          "tables": extracted, "number_only_cell_evidence": empty})
+        count = len(document.pages)
+    return {"schema_version": "oge-278e-native-holding-pages/v2", "source_document_id": document_id,
+            "source_sha256": source_sha256, "document_page_count": count,
+            "method": "selected_archived_native_tables_no_new_ocr", "pages": pages}
 
 
 def _line_text(line: dict) -> str:

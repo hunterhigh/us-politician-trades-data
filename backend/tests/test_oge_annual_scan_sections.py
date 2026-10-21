@@ -52,6 +52,18 @@ class OgeAnnualScanSectionsTests(unittest.TestCase):
         block = {"number": "1", "raw_lines": ["1. Example asset purchase unclear $1,001 - $15,000"]}
         self.assertEqual(_trade_observation(block)["classification"], "filled_unknown")
 
+    def test_actual_amount_dash_spellings_are_preserved_and_other_separators_rejected(self) -> None:
+        for separator in ("-", "\u2013"):
+            amount = "$1,001 " + separator + " $15,000"
+            result = _trade_observation({"number": "1", "raw_lines": [
+                "1. Example asset purchase 05/01/2025 " + amount]})
+            self.assertEqual(result["classification"], "filled_transaction")
+            self.assertEqual(result["amount_raw"], amount)
+        for separator in ("", "?", "\u9225\u63ee", "---"):
+            result = _trade_observation({"number": "1", "raw_lines": [
+                "1. Example asset purchase 05/01/2025 $1,001 " + separator + " $15,000"]})
+            self.assertEqual(result["classification"], "filled_unknown")
+
     def test_source_hash_mismatch_fails_before_page_reading(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             pdf = Path(folder) / "report.pdf"

@@ -140,3 +140,6 @@ try {
   await browser.close();
   rmSync(fixtureDir, { recursive: true, force: true });
 }
+
+// Keep the approved open transaction and holding semantics in the normal CI gate.
+await import('./open-amounts.e2e.mjs');

@@ -105,14 +105,39 @@ class SenateShadowTests(unittest.TestCase):
         self.assertEqual(len(manifest["documents"]), 122)
         self.assertEqual(sum(item["row_count"] for item in manifest["documents"]), len(rows))
         self.assertEqual(len(rows), 1647)
-        self.assertEqual(manifest["counts"]["qualified_rows"], 1435)
-        self.assertEqual(manifest["counts"]["quarantined_rows"], 171)
+        # Two official Exchange rows are eligible: the second has a source-
+        # verified two-ended ticker cell, projected as no single ticker.
+        # The complete archived disclosure-row universe stays unchanged.
+        self.assertEqual(manifest["counts"]["qualified_rows"], 1437)
+        self.assertEqual(manifest["counts"]["quarantined_rows"], 169)
         self.assertEqual(manifest["counts"]["excluded_rows"], 41)
         self.assertEqual(manifest["counts"]["failed_documents"], 0)
         self.assertEqual(manifest["unaccounted_source_row_count"], 0)
         self.assertEqual(manifest["amendment_supplement_sha256"],
                          "ebe495dde334280f83b169304e039b6b92b9cd604db6c128fd17024d6e6118f5")
         self.assertTrue(all("/ptr/" in item["source_url"] for item in manifest["documents"]))
+
+    def test_two_real_exchange_sources_keep_raw_and_have_no_single_ticker(self):
+        rows, manifest = replay(
+            identity_path=CURRENT_IDENTITY, roster_source_path=CURRENT_ROSTER,
+            document_ids=["b999bc0e-3eb0-4ca9-ab07-8e8f2e04b41f",
+                          "5ecc9b5c-07c1-4ec1-bd4a-2db759eff299"])
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(manifest["counts"]["qualified_rows"], 5)
+        self.assertEqual(manifest["counts"]["quarantined_rows"], 0)
+        exchange_ids = {"senate-ptr:6ecb6584a127dd783559dfbb",
+                        "senate-ptr:f452702aff44954ccb805e73"}
+        selected = [row for row in rows if row["candidate_id"] in exchange_ids]
+        self.assertEqual(len(selected), 2)
+        for row in selected:
+            observations = {value["field"]: value for value in row["observations"]}
+            self.assertEqual(observations["transaction_type"]["normalized_value"], "exchange")
+            self.assertIsNone(observations["ticker"]["normalized_value"])
+            self.assertEqual(row["reasons"], [])
+        original = next(row for row in selected if row["candidate_id"] ==
+                        "senate-ptr:6ecb6584a127dd783559dfbb")
+        self.assertEqual(next(value for value in original["observations"]
+                              if value["field"] == "ticker")["raw_value"], "-- AMCR")
 
     def test_missing_review_extraction_remains_file_failure_with_unknown_rows(self):
         original = senate_shadow._git_paths

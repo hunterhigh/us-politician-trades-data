@@ -81,6 +81,49 @@ class HousePaperPipelineTests(unittest.TestCase):
                                      self.relative).read_text())["extraction_method"],
                          "tesseract_legacy_checkbox")
 
+    def test_opt_in_saved_materialization_cannot_start_missing_ocr(self):
+        self._write(self.review / "house_clerk/paper_observations" / self.relative, self.observation)
+        self._write(self.review / "house_clerk/paper_amount_headers" / self.relative, self.header)
+        paper = dict(self.paper, quarantined=[{"source_quality_flags": ["asset_ocr_confidence_below_70"]}])
+        materialized = dict(self.paper, parser_version="house-paper-source-bound-qualification-v2",
+            materialized_extraction={"source_sha256": self.sha, "source": self.metadata,
+                                    "extraction_method": "source_bound_paper_cells"})
+        with (patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation", return_value=paper),
+              patch("unison_snapshot.house_paper_pipeline.preserved_paper_materialization", return_value=True),
+              patch("unison_snapshot.house_paper_pipeline.materialize_paper_observation", return_value=materialized) as materialize,
+              patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf") as observe,
+              patch("unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells") as reread):
+            outcome = bridge_paper_report(evidence_root=self.evidence, review_root=self.review,
+                metadata_path=self.metadata_path, tesseract="unused", observe_new=False,
+                materialize_saved=True)
+        self.assertEqual(outcome, "materialized_existing_observation")
+        observe.assert_not_called()
+        reread.assert_not_called()
+        self.assertIsNone(materialize.call_args.kwargs["field_reread"])
+        actual = json.loads(self.qualification_path.read_text())
+        self.assertEqual(actual, materialized)
+
+    def test_saved_failed_parser_input_needs_no_fabricated_legacy_extraction(self):
+        (self.review / "house_clerk/extractions" / self.relative).unlink()
+        self.qualification_path.unlink()
+        self._write(self.review / "house_clerk/failures" / self.relative,
+            {"schema_version": "house-ptr-parse-failure/v1", "document_id": "9116141",
+             "source_sha256": self.sha})
+        self._write(self.review / "house_clerk/paper_observations" / self.relative, self.observation)
+        self._write(self.review / "house_clerk/paper_amount_headers" / self.relative, self.header)
+        with (patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation", return_value=self.paper),
+              patch("unison_snapshot.house_paper_pipeline.preserved_paper_materialization", return_value=True),
+              patch("unison_snapshot.house_paper_pipeline.materialize_paper_observation", return_value={
+                  **self.paper, "materialized_extraction": {"source_sha256": self.sha,
+                    "source": self.metadata, "extraction_method": "source_bound_paper_cells"}}) as materialize):
+            outcome = bridge_paper_report(evidence_root=self.evidence, review_root=self.review,
+                metadata_path=self.metadata_path, tesseract="unused", observe_new=False,
+                materialize_saved=True)
+        self.assertEqual(outcome, "materialized_existing_observation")
+        self.assertIsNone(materialize.call_args.kwargs["prior_qualification"])
+        generated = json.loads((self.review / "house_clerk/extractions" / self.relative).read_text())
+        self.assertEqual(generated["extraction_method"], "source_bound_paper_cells")
+
     def test_failed_observation_keeps_legacy_and_records_failure(self):
         batch = Path(self.temporary.name) / "batch.txt"
         batch.write_text("", encoding="utf-8")

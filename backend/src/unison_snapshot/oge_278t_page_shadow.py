@@ -627,10 +627,10 @@ def reconcile_raster_ocr_rows(census: dict, ocr_records: list[dict], *,
         previous_bottom = -1.0
         for position, band in enumerate(bands, start=1):
             if (not isinstance(band, list) or len(band) != 2 or
-                    not all(isinstance(value, (int, float)) for value in band)):
+                    not all(type(value) in (int, float) and math.isfinite(value) for value in band)):
                 raise ValueError("raster slot band is invalid")
             top, bottom = map(float, band)
-            if top < previous_bottom or top >= bottom:
+            if top < 0 or top < previous_bottom or top >= bottom:
                 raise ValueError("raster slot bands overlap or are unordered")
             previous_bottom = bottom
             matches = [index for index, row_top in by_page.get(number, [])
@@ -653,3 +653,174 @@ def reconcile_raster_ocr_rows(census: dict, ocr_records: list[dict], *,
             "unknown_pages": sorted(page["page_number"] for page in pages
                                     if page["status"] == "coverage_unknown"),
             "production_mutation_authorized": False}
+
+
+_NATIVE_EXHIBIT_SCHEMA = "oge-278t-native-page-observation/v1"
+_NATIVE_EXHIBIT_METHOD = "existing_embedded_pdf_text_and_table_borders_no_new_ocr"
+_EXHIBIT_LABEL = re.compile(r"In\s+place\s+of\s*line\s+item\s*#\s*(?P<number>[1-9]\d*)"
+    r"(?P<context>.*?)\s*,?\s*substitute\s+the\s+following\s*:", re.I)
+
+
+def observe_native_exhibit_page(pdf_path: Path, *, source_sha256: str, page_number: int,
+                                embedded_column_structure: bool = False) -> dict:
+    """Read exactly one archived native-text page; never invoke OCR."""
+    import pdfplumber
+    source = Path(pdf_path)
+    if hashlib.sha256(source.read_bytes()).hexdigest() != source_sha256:
+        raise ValueError("native exhibit PDF differs from source SHA")
+    with pdfplumber.open(source) as document:
+        if type(page_number) is not int or not 1 <= page_number <= len(document.pages):
+            raise ValueError("native exhibit page is outside the original PDF")
+        page = document.pages[page_number-1]
+        text = page.extract_text() or ""
+        tables = page.find_tables()
+        result = {"schema_version": _NATIVE_EXHIBIT_SCHEMA, "source_sha256": source_sha256,
+            "page_number":page_number, "document_page_count":len(document.pages),
+            "coordinate_frame":"pdfplumber_displayed_pdf_points", "method":_NATIVE_EXHIBIT_METHOD,
+            "page_width":page.width,"page_height":page.height,"page_text":text,
+            "page_text_sha256":hashlib.sha256(text.encode()).hexdigest(),
+            "words":[{key:word[key] for key in ("text","x0","top","x1","bottom")} for word in page.extract_words()],
+            "table_bounds":[list(table.bbox) for table in tables],
+            "tables":[table.extract() for table in tables]}
+    if embedded_column_structure:
+        from .oge_278t_exhibit_structure import observe_embedded_exhibit_columns
+        result["embedded_column_structure"] = observe_embedded_exhibit_columns(source,
+            source_sha256=source_sha256,page_number=page_number,table_bounds=result["table_bounds"],
+            native_page_size=(result["page_width"],result["page_height"]))
+    return result
+
+
+def _native_word_lines(words: list[dict], indices: list[int]) -> list[list[int]]:
+    lines = []
+    for index in sorted(indices,key=lambda i:(words[i]["top"],words[i]["x0"])):
+        if not lines or abs(words[index]["top"]-words[lines[-1][0]]["top"]) > 3:
+            lines.append([index])
+        else:
+            lines[-1].append(index)
+    return [sorted(line,key=lambda i:words[i]["x0"]) for line in lines]
+
+
+def interpret_native_exhibit_page(observation: dict) -> dict:
+    """Partition source words into replacement candidates, never eligible facts.
+
+    Header starts are semantic reading partitions, not proof of vertical rules.
+    Every raw body word remains in a field or an explicit unresolved collection.
+    """
+    import json
+    if (not isinstance(observation,dict) or observation.get("schema_version") != _NATIVE_EXHIBIT_SCHEMA or
+            observation.get("method") != _NATIVE_EXHIBIT_METHOD or
+            observation.get("coordinate_frame") != "pdfplumber_displayed_pdf_points" or
+            not re.fullmatch(r"[0-9a-f]{64}",observation.get("source_sha256") or "") or
+            type(observation.get("page_number")) is not int or type(observation.get("document_page_count")) is not int or
+            not 1 <= observation["page_number"] <= observation["document_page_count"] or
+            not isinstance(observation.get("page_text"),str) or
+            hashlib.sha256(observation["page_text"].encode()).hexdigest() != observation.get("page_text_sha256")):
+        raise ValueError("native exhibit source/page/text contract is invalid")
+    width,height = observation.get("page_width"),observation.get("page_height")
+    if any(type(v) not in (int,float) or not math.isfinite(v) or v<=0 for v in (width,height)):
+        raise ValueError("native exhibit page dimensions are invalid")
+    words = observation.get("words")
+    bounds = observation.get("table_bounds")
+    if not isinstance(words,list) or not isinstance(bounds,list) or len(bounds) != len(observation.get("tables",[])):
+        raise ValueError("native exhibit word/table inventory is invalid")
+    for word in words:
+        if (not isinstance(word,dict) or not isinstance(word.get("text"),str) or
+                any(type(word.get(k)) not in (int,float) or not math.isfinite(word[k]) for k in ("x0","top","x1","bottom")) or
+                not 0<=word["x0"]<word["x1"]<=width or not 0<=word["top"]<word["bottom"]<=height):
+            raise ValueError("native exhibit source word box is invalid")
+    for box in bounds:
+        if (not isinstance(box,list) or len(box)!=4 or any(type(v) not in (int,float) or not math.isfinite(v) for v in box) or
+                not 0<=box[0]<box[2]<=width or not 0<=box[1]<box[3]<=height):
+            raise ValueError("native exhibit source table box is invalid")
+    ordered = sorted(enumerate(bounds),key=lambda item:item[1][1])
+    if any(a[1][3]>b[1][1] for a,b in zip(ordered,ordered[1:])):
+        raise ValueError("native exhibit source table boxes overlap")
+    lines = _native_word_lines(words,list(range(len(words))))
+    labels = []
+    for line in lines:
+        text = " ".join(words[i]["text"] for i in line)
+        match = _EXHIBIT_LABEL.fullmatch(text)
+        if match:
+            labels.append({"word_indices":line,"text":text,"target_printed_number":int(match["number"]),
+                "top":min(words[i]["top"] for i in line),"bottom":max(words[i]["bottom"] for i in line),
+                "predecessor_urls":re.findall(r"https://[^\s,]+",match["context"])})
+    text_targets = [int(match["number"]) for match in _EXHIBIT_LABEL.finditer(observation["page_text"])]
+    if text_targets != [row["target_printed_number"] for row in labels]:
+        raise ValueError("native exhibit text and source-word label ordering differ")
+    digest = hashlib.sha256(json.dumps(observation,ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode()).hexdigest()
+    structure_blocks = None
+    if "embedded_column_structure" in observation:
+        from .oge_278t_exhibit_structure import validated_structure_blocks
+        structure_blocks = validated_structure_blocks(observation["embedded_column_structure"],observation)
+    blocks, previous_bottom, used_labels = [],0,set()
+    names = ("printed_number","description","type","transaction_date","notification","amount")
+    role_names = ("#","description","type","date","notification","amount")
+    for table_index,box in ordered:
+        nearby = [(i,label) for i,label in enumerate(labels) if previous_bottom<=label["top"] and label["bottom"]<=box[1]]
+        previous_bottom=box[3]
+        base={"table_index":table_index,"table_bounds":box,"page_number":observation["page_number"],
+            "input_observation_canonical_sha256":digest,"source_sha256":observation["source_sha256"],
+            "partition_basis":"same_box_native_header_role_candidate_not_verified_column_geometry"}
+        if len(nearby)!=1:
+            blocks.append({**base,"status":"unresolved","reasons":["replacement_label_to_box_ambiguous"]});continue
+        label_index,label=nearby[0];used_labels.add(label_index)
+        indices=[i for i,w in enumerate(words) if box[0]<=w["x0"] and w["x1"]<=box[2] and box[1]<=w["top"] and w["bottom"]<=box[3]]
+        number_candidates=[i for i in indices if words[i]["text"]==str(label["target_printed_number"]) and
+            words[i]["x0"]<box[0]+(box[2]-box[0])*.15]
+        if len(number_candidates)!=1:
+            blocks.append({**base,"status":"unresolved","label":label,"reasons":["replacement_body_number_ambiguous"],"all_word_indices":indices});continue
+        body_top=words[number_candidates[0]]["top"]
+        header={}
+        for role in role_names:
+            found=[i for i in indices if words[i]["bottom"]<=body_top and words[i]["text"].strip("'!:•").casefold()==role]
+            if len(found)==1:header[role]=found[0]
+        if len(header)!=6 or not all(words[header[a]]["x0"]<words[header[b]]["x0"] for a,b in zip(role_names,role_names[1:])):
+            blocks.append({**base,"status":"unresolved","label":label,"reasons":["replacement_header_roles_unresolved"],"all_word_indices":indices});continue
+        edges=[box[0],*[words[header[role]]["x0"] for role in role_names[1:]],box[2]]
+        intervals = None
+        if structure_blocks is not None:
+            structure = structure_blocks.get(table_index,{})
+            tracks = structure.get("tracks",[])
+            if structure.get("status") != "tracks_observed" or len(tracks) != 7:
+                blocks.append({**base,"status":"unresolved","label":label,
+                    "reasons":["native_embedded_column_structure_unknown"],"all_word_indices":indices});continue
+            intervals = [track["candidate_interval_pdf_points"] for track in tracks]
+            if (any(len(v)!=2 or any(type(x) not in (int,float) or not math.isfinite(x) for x in v) or v[0]>v[1] for v in intervals) or
+                    any(a[1]>=b[0] for a,b in zip(intervals,intervals[1:]))):
+                raise ValueError("native EXHIBIT column intervals are not uniquely ordered")
+            # A missing real track plus an extra glyph/false track may still
+            # total seven. Official role anchors must agree with each column
+            # for every admissible boundary. Header punctuation may overhang
+            # a rule; body/financial boxes below still require full inclusion.
+            role_centers = {role:(words[index]["x0"]+words[index]["x1"])/2 for role,index in header.items()}
+            if any(not intervals[j][1] <= role_centers[role] <= intervals[j+1][0]
+                   for j,role in enumerate(role_names)):
+                blocks.append({**base,"status":"unresolved","label":label,
+                    "reasons":["native_column_tracks_header_roles_conflict"],"all_word_indices":indices});continue
+            base.update(partition_basis="source_embedded_image_tracks_and_complete_native_header_roles",
+                        column_boundary_intervals_pdf_points=intervals,
+                        header_role_anchor_basis="original_word_box_center_for_each_admissible_column_boundary",
+                        header_role_anchors_pdf_points=role_centers)
+        fields={name:[] for name in names};unassigned=[];crossing=[]
+        body=[i for i in indices if words[i]["top"]>=body_top-3]
+        for i in body:
+            word=words[i];center=(word["x0"]+word["x1"])/2
+            if intervals is not None:
+                matches=[j for j in range(6) if intervals[j][1]<=word["x0"] and word["x1"]<=intervals[j+1][0]]
+                if len(matches)!=1:
+                    unassigned.append(i);crossing.append(i);continue
+                fields[names[matches[0]]].append(i);continue
+            matches=[j for j in range(6) if edges[j]<=center<edges[j+1]]
+            if len(matches)!=1:unassigned.append(i);continue
+            j=matches[0];fields[names[j]].append(i)
+            if word["x0"]<edges[j] or word["x1"]>edges[j+1]:crossing.append(i)
+        raw={name:" ".join(words[i]["text"] for line in _native_word_lines(words,field) for i in line)
+             for name,field in fields.items()}
+        blocks.append({**base,"status":"replacement_row_candidate","label":label,"raw_columns":raw,
+            "field_word_indices":fields,"all_word_indices":indices,"body_word_indices":body,
+            "header_word_indices":header,"unassigned_body_word_indices":unassigned,"partition_crossing_word_indices":crossing,
+            "limitations":(["intersecting_source_word_boxes_remain_unresolved"] if intervals is not None else
+                           ["header_partitions_are_not_verified_column_rules"])})
+    return {"schema_version":"oge-278t-native-exhibit-rows/v1","source_sha256":observation["source_sha256"],
+        "page_number":observation["page_number"],"input_observation_canonical_sha256":digest,"blocks":blocks,
+        "unused_label_indices":[i for i in range(len(labels)) if i not in used_labels]}

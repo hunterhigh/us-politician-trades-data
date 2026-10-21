@@ -16,7 +16,7 @@ from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
 from .house_ptr_key_field_reread import (REREAD_RULE_VERSION,
                                           reread_doubtful_key_cells)
-from .house_ptr_paper_qualification import qualify_paper_observation
+from .house_ptr_paper_qualification import qualify_paper_observation, materialize_paper_observation
 from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
                                       validate_paper_source_metadata)
 
@@ -30,6 +30,33 @@ def _write(path: Path, value: dict) -> None:
     temporary = path.with_suffix(".json.tmp")
     temporary.write_bytes(encode(value))
     temporary.replace(path)
+
+
+def preserved_paper_materialization(metadata: dict, extraction: dict,
+                                   qualification: dict, observation: dict) -> bool:
+    """Keep a bound saved result out of legacy retries, retaining old failures.
+
+    A method label alone cannot protect an arbitrary artifact. Incomplete or
+    contradictory saved results stop selection instead of destructive fallback.
+    """
+    if extraction.get("extraction_method") != "source_bound_paper_cells":
+        return False
+    from .house_ptr import SCHEMA, QUALIFICATION_SCHEMA
+    from .house_ptr_paper_qualification import FACT_PARSER_VERSION, paper_materialization_counts
+    document_id, source_sha, _, _ = validate_paper_source_metadata(metadata)
+    receipt = qualification.get("observation_materialization") or {}
+    digest = hashlib.sha256(json.dumps(observation, ensure_ascii=False,
+        sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    if (extraction.get("schema_version") != SCHEMA or
+            qualification.get("schema_version") != QUALIFICATION_SCHEMA or
+            extraction.get("source") != metadata or extraction.get("source_sha256") != source_sha or
+            qualification.get("source_sha256") != source_sha or qualification.get("document_id") != document_id or
+            extraction.get("parser_version") != FACT_PARSER_VERSION or
+            qualification.get("parser_version") != FACT_PARSER_VERSION or
+            observation.get("source_sha256") != source_sha or receipt.get("observation_sha256") != digest or
+            paper_materialization_counts(qualification, extraction) is None):
+        raise ValueError("House saved paper retry protection has invalid source/qualification binding")
+    return True
 
 
 def _same_filer_peers(evidence_root: Path, target: dict) -> list[dict]:
@@ -49,8 +76,8 @@ def _same_filer_peers(evidence_root: Path, target: dict) -> list[dict]:
 
 def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                         metadata_path: Path, tesseract: str,
-                        observe_new: bool) -> str:
-    """Return a disposition; never turn an OCR observation into a formal row."""
+                        observe_new: bool, materialize_saved: bool = False) -> str:
+    """Return the review disposition; saved fact interpretation is explicit opt-in."""
     evidence_root = evidence_root.resolve()
     review_root = review_root.resolve()
     metadata_path = metadata_path.resolve()
@@ -67,19 +94,27 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
     reread_path = review_root / "house_clerk" / "paper_key_field_rereads" / relative
     reread_failure_path = review_root / "house_clerk" / "paper_reread_failures" / relative
     temporal_failure_path = review_root / "house_clerk" / "paper_temporal_failures" / relative
-    if not all(path.is_file() for path in (extraction_path, identity_path,
-                                            qualification_path)):
-        return "missing_legacy_inputs"
-    extraction = _read(extraction_path)
-    legacy = _read(qualification_path)
-    if extraction.get("extraction_method") != "tesseract_legacy_checkbox":
-        return "not_legacy_paper"
-    if legacy.get("source_sha256") != source_sha or legacy.get("document_id") != document_id:
-        raise ValueError("House legacy qualification does not match paper source")
-    if not isinstance(legacy.get("transactions"), list):
-        raise ValueError("House legacy qualification has no transaction list")
-    if legacy["transactions"]:
-        return "legacy_qualified_preserved"
+    failed_legacy_path = review_root / "house_clerk" / "failures" / relative
+    legacy = _read(qualification_path) if qualification_path.is_file() else None
+    extraction = _read(extraction_path) if extraction_path.is_file() else None
+    if not all(path.is_file() for path in (extraction_path, identity_path, qualification_path)):
+        if not (materialize_saved and identity_path.is_file() and failed_legacy_path.is_file()
+                and observation_path.is_file() and header_path.is_file()):
+            return "missing_legacy_inputs"
+        failure = _read(failed_legacy_path)
+        if (failure.get("source_sha256") != source_sha or failure.get("document_id") != document_id
+                or failure.get("schema_version") != "house-ptr-parse-failure/v1"):
+            raise ValueError("House saved materialization failure source mismatch")
+    if extraction is not None and extraction.get("extraction_method") != "tesseract_legacy_checkbox":
+        if not (materialize_saved and extraction.get("extraction_method") == "source_bound_paper_cells"):
+            return "not_legacy_paper"
+    if legacy is not None:
+        if legacy.get("source_sha256") != source_sha or legacy.get("document_id") != document_id:
+            raise ValueError("House legacy qualification does not match paper source")
+        if not isinstance(legacy.get("transactions"), list):
+            raise ValueError("House legacy qualification has no transaction list")
+        if legacy["transactions"]:
+            return "legacy_qualified_preserved"
     if observation_path.is_file() and header_path.is_file():
         observation = _read(observation_path)
         header = _read(header_path)
@@ -119,10 +154,13 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
             "document_id": document_id, "source_sha256": source_sha,
             "error": f"{type(error).__name__}: {str(error)[:320]}",
         })
+    reread = None
     if any(row.get("source_quality_flags") for row in paper.get("quarantined", [])):
         try:
             reread = _read(reread_path) if reread_path.is_file() else None
             if reread is None or reread.get("rule_version") != REREAD_RULE_VERSION:
+                if materialize_saved:
+                    raise ValueError("House saved materialization has no current secondary cache; OCR not started")
                 pdf_path = (evidence_root / metadata["archive_path"]).resolve()
                 if evidence_root not in pdf_path.parents:
                     raise ValueError("House paper reread archive path escapes evidence root")
@@ -142,6 +180,52 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                 "document_id": document_id, "source_sha256": source_sha,
                 "error": f"{type(error).__name__}: {str(error)[:320]}",
             })
+    if materialize_saved:
+        pdf_path = (evidence_root / metadata["archive_path"]).resolve()
+        if evidence_root not in pdf_path.parents:
+            raise ValueError("House paper materialization archive escapes evidence root")
+        if reread is None and reread_path.is_file():
+            reread = _read(reread_path)
+        paper = materialize_paper_observation(pdf_path.read_bytes(), observation, metadata,
+            identity, amount_header=header, field_reread=reread, prior_qualification=legacy)
+        disposition = "materialized_existing_observation"
+        interpreted = paper.get("materialized_extraction")
+        if (not isinstance(interpreted, dict) or interpreted.get("source_sha256") != source_sha or
+                interpreted.get("source", {}).get("document_id") != document_id or
+                interpreted.get("extraction_method") != "source_bound_paper_cells" or
+                not preserved_paper_materialization(metadata, interpreted, paper, observation)):
+            raise ValueError("House materialized extraction source mismatch")
+        reference = legacy.get("legacy_extraction_reference") if legacy else None
+        if reference is not None:
+            reference = dict(reference)
+            old_path = (review_root / reference.get("path", "")).resolve()
+            if review_root not in old_path.parents:
+                raise ValueError("House legacy extraction reference escapes review")
+            saved = _read(old_path)
+            digest = hashlib.sha256(encode(saved.get("extraction"))).hexdigest()
+            if (saved.get("schema_version") != "house-paper-legacy-extraction-reference/v1" or
+                    saved.get("source_sha256") != source_sha or saved.get("document_id") != document_id or
+                    reference != {"path": old_path.relative_to(review_root).as_posix(),
+                        "source_sha256": source_sha, "document_id": document_id,
+                        "canonical_extraction_sha256": digest} or
+                    saved.get("canonical_extraction_sha256") != digest):
+                raise ValueError("House legacy extraction reference binding differs")
+        if extraction is not None and extraction.get("extraction_method") == "tesseract_legacy_checkbox":
+            digest = hashlib.sha256(encode(extraction)).hexdigest()
+            old_path = (review_root / "house_clerk/paper_legacy_extraction_references" /
+                        relative.with_suffix("") / (digest + ".json"))
+            reference = {"path": old_path.relative_to(review_root).as_posix(),
+                "source_sha256": source_sha, "document_id": document_id,
+                "canonical_extraction_sha256": digest}
+            saved = {"schema_version": "house-paper-legacy-extraction-reference/v1",
+                     **{key: value for key, value in reference.items() if key != "path"},
+                     "extraction": extraction}
+            if old_path.is_file() and _read(old_path) != saved:
+                raise ValueError("House legacy extraction reference already differs")
+            _write(old_path, saved)
+        if reference is not None:
+            paper["legacy_extraction_reference"] = reference
+        _write(extraction_path, interpreted)
     # Write reusable source observations first; the qualification is replaced
     # only after the complete paper result has been constructed and checked.
     _write(observation_path, observation)
@@ -152,7 +236,8 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
 
 def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
                        parse_batch: Path, tesseract: str,
-                       document_id: str | None = None, max_new: int = 2) -> dict:
+                       document_id: str | None = None, max_new: int = 2,
+                       materialize_saved: bool = False) -> dict:
     """Replay saved observations and observe a bounded set of newly selected PDFs."""
     evidence_root = evidence_root.resolve()
     review_root = review_root.resolve()
@@ -191,7 +276,7 @@ def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
         try:
             disposition = bridge_paper_report(
                 evidence_root=evidence_root, review_root=review_root,
-                metadata_path=path, tesseract=tesseract, observe_new=is_new)
+                metadata_path=path, tesseract=tesseract, observe_new=is_new and not materialize_saved, materialize_saved=materialize_saved)
         except Exception as error:
             disposition = "paper_observation_failed"
             _write(failure_path, {
@@ -202,7 +287,7 @@ def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
                 "error": f"{type(error).__name__}: {str(error)[:320]}",
             })
         else:
-            if disposition in {"observed_and_qualified", "requalified_existing_observation"}:
+            if disposition in {"observed_and_qualified", "requalified_existing_observation", "materialized_existing_observation"}:
                 failure_path.unlink(missing_ok=True)
         if disposition == "observed_and_qualified" or disposition == "paper_observation_failed":
             new_count += int(is_new)

@@ -234,20 +234,25 @@ jobs:
         with:
           name: senate-amendment-supplement-${{ github.run_id }}
           path: .local
-      - name: Prepare review and state snapshots
+      - name: Prepare evidence, review and state snapshots
         id: trees
         run: |
           review_root="$RUNNER_TEMP/senate-history-review"
           state_root="$RUNNER_TEMP/senate-history-state"
+          evidence_root="$RUNNER_TEMP/senate-history-candidate-evidence"
           git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
             review:refs/remotes/origin/review \
             state:refs/remotes/origin/state
+          git worktree add --detach "$evidence_root" origin/evidence
           git worktree add --detach "$review_root" origin/review
           git worktree add --detach "$state_root" origin/state
           echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
           echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
       - name: Activate the immutable supplement and rebuild candidates
         env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
@@ -263,6 +268,7 @@ jobs:
           audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
             --base ingest/current.json \

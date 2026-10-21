@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import re
 
-from unison_snapshot.oge_annual_scan_cover import SCHEMA, observe_scan_cover
+from unison_snapshot.oge_annual_scan_cover import SCHEMA, observe_scan_cover, observe_native_cover_text
 from unison_snapshot.oge_whitehouse import ANNUAL_ARCHIVE_SCHEMA
 
 
@@ -84,10 +84,24 @@ def observe_failed_covers(evidence_root: Path, review_root: Path,
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--evidence-root", type=Path, required=True)
-    parser.add_argument("--review-root", type=Path, required=True)
+    parser.add_argument("--evidence-root", type=Path)
+    parser.add_argument("--review-root", type=Path)
+    parser.add_argument("--native-cover-pdf", type=Path)
+    parser.add_argument("--source-sha256")
+    parser.add_argument("--document-id")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--tesseract", default="tesseract")
     args = parser.parse_args()
+    if args.native_cover_pdf is not None:
+        if args.evidence_root or args.review_root or not all((args.source_sha256, args.document_id, args.output)):
+            parser.error("native cover mode requires PDF, source SHA, document ID and output only")
+        result = observe_native_cover_text(args.native_cover_pdf, source_sha256=args.source_sha256, document_id=args.document_id)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+        print(json.dumps({"source_sha256": result["source_sha256"], "page_number": 1, "method": result["method"]}))
+        return
+    if not args.evidence_root or not args.review_root or any((args.source_sha256, args.document_id, args.output)):
+        parser.error("batch mode requires evidence-root and review-root; native arguments must not be ignored")
     summary = observe_failed_covers(args.evidence_root, args.review_root,
                                     tesseract=args.tesseract)
     print(json.dumps({"observed": summary["cover_observation_count"],
