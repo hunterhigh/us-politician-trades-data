@@ -24,10 +24,10 @@ class SourceQuadCellTests(unittest.TestCase):
         recipe,pixels=source_quad_cell(render,data['pages'][0],data['pages'][0]['slots'][0],field,layer=layer)
         # The whole box is inside the source quad but within the old 1.5pt pad.
         width,height=pixels.shape[1]-40,pixels.shape[0]-40
-        token='06/01/2026' if field=='transaction_date' else 'purchase'
+        token='06/01/2026' if field=='transaction_date' else ('50' if field=='printed_number' else 'purchase')
         tsv=('level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n'
              f'5\t1\t1\t1\t1\t1\t{20+width-8}\t{20+height//2}\t6\t4\t95\t{token}\n')
-        recipe.update(physical_index=0,column=3 if field=='transaction_date' else 2,tsv_sha256=hashlib.sha256(tsv.encode()).hexdigest())
+        recipe.update(physical_index=0,column={'transaction_date':3,'type':2,'printed_number':0}[field],tsv_sha256=hashlib.sha256(tsv.encode()).hexdigest())
         saved=[{'page_number':2,'render_receipt':receipt,'cells':[{'slot_index':1,'recipe':recipe,'tsv_utf8':tsv}]}]
         return source,data,render,saved
 

@@ -35,7 +35,8 @@ _TYPE = {"purchase", "sale", "exchange"}
 _HEADER = re.compile(r"\b(description|type|date|notification|amount)\b", re.I)
 _FIELD_COLUMNS = {"printed_number": (0,), "description": (1,), "type": (2,),
                   "transaction_date": (3,), "amount": (4, 5)}
-_SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_observed"),
+_SECONDARY = {"oge-278t-printed-number-column-observation/v1": ("printed_number", "printed_number_column_observed"),
+              "oge-278t-type-column-observation/v1": ("type", "type_column_observed"),
               "oge-278t-description-column-observation/v1": ("description", "description_column_observed"),
               "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
@@ -403,6 +404,8 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     not isinstance(reading.get("ocr_engine"), str) or not reading["ocr_engine"].strip() or
                     type(dpi) is not int or not (150 if field == "type" else 200) <= dpi <= 400):
                 raise ValueError("secondary field read engine or input resolution differs")
+            if field == "printed_number" and not quad_mode:
+                raise ValueError("printed number secondary requires source quad replay")
             slots = {slot["slot_index"]: slot for slot in page["slots"]}
             base_slots = {slot["slot_index"]: slot for slot in original_page["slots"]}
             if (len(slots) != len(page["slots"]) or len(base_slots) != len(original_page["slots"]) or
@@ -425,6 +428,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     raise ValueError("secondary field slot differs from source dual-axis geometry")
                 if slot.get("band_pdf_points") != base.get("band_pdf_points"):
                     raise ValueError("secondary field slot band differs from source slot")
+                if slot.get("observation_status") == "not_selected":
+                    # Source replay above proves the sparse selection and its empty
+                    # placeholder. It is not another OCR observation or a vote.
+                    if not quad_mode:
+                        raise ValueError("unselected field slot lacks source quad replay")
+                    continue
                 identity = (field, number, slot_index, reading["ocr_engine"], reading["ocr_resolution_dpi"])
                 if quad_mode:
                     identity += ("source_quad_cells/v1",reading["source_quad_input"]["layer"])
@@ -489,6 +498,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     shape = _description_shape(description_reading)
                     if slot.get("column_reading") != description_reading:
                         raise ValueError("description physical reading differs from detections")
+                elif field == "printed_number":
+                    value = int(raw) if len(detections) == 1 and re.fullmatch(r"[1-9][0-9]*",raw) else None
+                    shape = {"status":"ocr_shape_only" if value is not None else "unknown", "value":value}
                 elif field == "transaction_date":
                     shape = _date_shape(raw) if len(detections) == 1 else {
                         "status": "unknown", "value": None,
