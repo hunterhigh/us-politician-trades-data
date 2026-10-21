@@ -253,6 +253,9 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
     saved = inputs.get("saved_scan_observations_by_document", {}) if isinstance(inputs, dict) else None
     if not isinstance(extractions, list) or not isinstance(metadata, dict) or not isinstance(dates, dict) or not isinstance(saved, dict):
         raise OgeCatalogError("OGE annual overlay input must contain extractions and source metadata")
+    amendments = inputs.get("amendment_letter_observations_by_document", {})
+    if not isinstance(amendments, dict):
+        raise OgeCatalogError("annual amendment observations must be a document mapping")
     extractions = list(extractions)
     if saved:
         from .oge_annual import materialize_saved_annual_scan
@@ -330,8 +333,30 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         holding_reasons = []
         if not ledger["holding_coverage_official_unknown_only"]:
             holding_reasons.append("partial_report_policy_pending")
+        amendment = None
+        target_rows = []
         if archive.get("amended_label"):
-            report_reasons.append("annual_amendment_relationship_unresolved")
+            bundle = amendments.get(document_id)
+            if bundle is not None:
+                from .oge_annual_amendment_letter import interpret_amendment_letter
+                if not isinstance(bundle, dict) or not bundle.get("archived_pdf_path"):
+                    raise OgeCatalogError("annual amendment requires its archived source PDF")
+                amendment = interpret_amendment_letter(bundle.get("observation"),
+                    archive_metadata=archive, archived_pdf_path=bundle["archived_pdf_path"])
+            if amendment is None:
+                report_reasons.append("annual_amendment_relationship_unresolved")
+            else:
+                from .oge_annual_ledger import official_unknown_holding_value
+                if filing_day and filing_day != amendment["original_report_signed_date"]:
+                    report_reasons.append("annual_amendment_original_report_date_conflict")
+                target_rows = [row for row in ledger["detected_source_rows"]
+                    if row.get("section") == amendment["section"] and
+                    row.get("row_number") == amendment["printed_row_number"]]
+                # Existing partial policy admits only proven official unknown
+                # values, not the amendment letter's unproved empty Value cell.
+                if len(target_rows) != 1 or not official_unknown_holding_value(target_rows[0]):
+                    holding_reasons.append("annual_amendment_target_value_unresolved")
+                amendment["target_binding_status"] = "unique_printed_row" if len(target_rows) == 1 else "unresolved"
         if archive.get("pending_final_oge_disposition") is True:
             report_reasons.append("pending_final_oge_disposition")
         identity = {key: archive.get(key) for key in ("filer_name", "agency", "position_title")}
@@ -350,6 +375,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         row_audit = []
         for decision, row in zip(ledger["rows"], ledger["detected_source_rows"], strict=True):
             reasons = decision["reasons"][:]
+            if amendment is not None and row in target_rows:
+                reasons.append("annual_amendment_target_value_unresolved")
             collection = decision["observations"][0]["conditions"]["extraction_collection"]
             if row["section"] == "part7":
                 reasons.extend(report_reasons)
@@ -516,6 +543,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
         reports.append({"document_id": document_id, "source_sha256": extraction["source_sha256"],
             "added_transaction_count": tx_added, "retained_transaction_ids": tx_retained,
             "transaction_report_reasons": sorted(set(transaction_report_reasons)),
+            **({"local_amendment_relation": amendment} if amendment is not None else {}),
             "transaction_field_differences": tx_differences, "unbound_existing_transaction_ids": tx_unbound,
             "added_holding_count": added, "retained_holding_count": len(retained_ids),
             "existing_field_differences": field_differences, "version_document_references": version_refs,
