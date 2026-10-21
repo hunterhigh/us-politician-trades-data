@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from pathlib import Path
 import sys
 import tempfile
@@ -83,6 +84,79 @@ class PublicRepositoryTests(unittest.TestCase):
         self.assertEqual(len(ticker["people"]), 2)
         self.assertEqual(len(ticker["transactions"]), 2)
         self.assertEqual(ticker["meta"]["selection_scope"]["key"], "ZZDEMO")
+
+    def test_cached_bytes_keep_ref_resolution_and_caller_objects_independent(self):
+        first = self.repo.fetch("dashboard")
+        expected = deepcopy(first.snapshot)
+        first.snapshot["people"].clear()
+        self.assertEqual(self.repo.fetch("search").snapshot["people"], expected["people"])
+        self.assertEqual(len([call for call in self.transport.calls if not call[2]]), 2)
+        self.assertEqual(len([call for call in self.transport.calls if call[2]]), 2)
+        next_commit = "3" * 40
+        self.transport.files_by_commit[next_commit] = self.files
+        self.transport.commit = next_commit
+        self.assertEqual(self.repo.fetch("dashboard").commit, next_commit)
+        self.assertEqual(len([call for call in self.transport.calls if not call[2]]), 4)
+
+    def test_cache_budget_eviction_and_hit_size_limit(self):
+        transport = FakeTransport({"a.json": b"1234", "b.json": b"5678"})
+        repo = PublicSnapshotRepository("example", "data", transport=transport, cache_bytes=4)
+        self.assertEqual(repo._read(COMMIT, "a.json", 4), b"1234")
+        with self.assertRaisesRegex(PublicSnapshotError, "size limit"):
+            repo._read(COMMIT, "a.json", 3)
+        repo._read(COMMIT, "b.json", 4)
+        repo._read(COMMIT, "a.json", 4)
+        self.assertEqual(len(transport.calls), 3)
+        self.assertEqual(repo._cache_size, 4)
+
+    def test_bulk_market_matches_entity_shards_and_reuses_pages(self):
+        markets = [{"ticker": f"X{i:03}", "company_name": f"Company {i}",
+                    "source_id": "alpaca_sip_eod", "price_source": "Alpaca SIP EOD",
+                    "source_url": "https://docs.alpaca.markets/docs/market-data",
+                    "feed": "sip", "timeframe": "1Day", "adjustment": "split",
+                    "price_history": [{"date": "2026-09-18", "close": i + 1}]}
+                   for i in range(101)]
+        bundle = build_market_bundle(markets, data_cutoff_at="2026-09-18T23:59:59Z")
+        manifest = {"market_commit": MARKET_COMMIT, "market_pages": bundle.page_shas}
+        requirements = [f"market:{row['ticker']}" for row in reversed(markets)]
+        transport = FakeTransport({}, extra_commits={MARKET_COMMIT: bundle.files})
+        repo = PublicSnapshotRepository("example", "data", transport=transport)
+        scoped = repo._market(manifest, requirements)
+        reference = PublicSnapshotRepository("example", "data", cache_bytes=0,
+            transport=FakeTransport({}, extra_commits={MARKET_COMMIT: bundle.files}))
+        self.assertEqual(scoped, reference._market({"market_commit": MARKET_COMMIT}, requirements))
+        self.assertLess(len(transport.calls), 2 * len(markets))
+        self.assertFalse(any("/market/" in url and not url.endswith("index.json")
+                             for url, _, _ in transport.calls))
+        count = len(transport.calls)
+        self.assertEqual(repo._market_pages(manifest), list(reversed(scoped)))
+        self.assertEqual(len(transport.calls), count)
+
+        # A bulk page cannot replace an entity with different content at its
+        # committed address; the original entity is fetched and checked.
+        changed = deepcopy(markets)
+        changed[0]["price_history"][0]["close"] = 999
+        other = build_market_bundle(changed, data_cutoff_at="2026-09-18T23:59:59Z")
+        files = dict(bundle.files)
+        files.update({path: value for path, value in other.files.items() if path.startswith("market-pages/")})
+        repo = PublicSnapshotRepository("example", "data", transport=FakeTransport(
+            {}, extra_commits={MARKET_COMMIT: files}))
+        changed_manifest = dict(manifest, market_pages=other.page_shas)
+        self.assertEqual(repo._market(changed_manifest, requirements), scoped)
+
+        missing = dict(bundle.files)
+        index_path = f"market/{bucket('market', 'X000')}/index.json"
+        index = json.loads(missing[index_path])
+        del index["shards"]["X000"]
+        missing[index_path] = encode(index)
+        with self.assertRaisesRegex(PublicSnapshotError, "No published market"):
+            PublicSnapshotRepository("example", "data", transport=FakeTransport(
+                {}, extra_commits={MARKET_COMMIT: missing}))._market(manifest, requirements)
+        corrupt = dict(bundle.files)
+        corrupt[f"market-pages/{bundle.page_shas[0]}.json"] = b"{}"
+        with self.assertRaisesRegex(PublicSnapshotError, "hash"):
+            PublicSnapshotRepository("example", "data", transport=FakeTransport(
+                {}, extra_commits={MARKET_COMMIT: corrupt}))._market(manifest, requirements)
 
     def test_licensed_market_commit_is_loaded_for_scoped_views(self):
         data = production_payload()
