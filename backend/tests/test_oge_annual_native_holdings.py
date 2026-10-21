@@ -138,6 +138,35 @@ class NativeAnnualHoldingTests(unittest.TestCase):
         self.assertEqual(len(bad), 1)
         self.assertEqual(excluded, [])
 
+    def test_native_part5_salary_is_income_source_not_a_missing_holding_value(self):
+        header = ["#", "Description", "EIF", "Value", "Income Type", "Income Amount"]
+        row = ["1.", "Georgetown University", "N/A", "", "salary", ""]
+        def parse(candidate, **options):
+            return _parse_rows(options.pop("section", "part5"), options.pop("owner", "Spouse"),
+                6, [options.pop("header", header), candidate], 2022,
+                qualified=True, native_table_context=options.pop("native", True), **options)
+        good, bad, excluded = parse(row)
+        self.assertEqual((good, bad), ([], []))
+        self.assertEqual(len(excluded), 1)
+        self.assertEqual(excluded[0]["reason"], "spouse_salary_income_source_not_holding")
+        self.assertEqual(excluded[0]["cells"], row)
+        self.assertEqual(excluded[0]["asset_name"], "Georgetown University")
+        for options in ({"section":"part2"}, {"owner":"Self"}, {"native":False},
+                {"scope_state":{"account_title":"Investment account","owner":"Spouse"}},
+                {"header":["#","Description","EIF","Value","Income Type","Unknown"]},
+                {"header":[*header,"Income Type"]}):
+            with self.subTest(options=options):
+                self.assertFalse(parse(row, **options)[2])
+        for column, text in ((1,""), (2,"Yes"), (4,"salary and stock"),
+                              (4,"royalties"), (5,"$25,000")):
+            with self.subTest(column=column,text=text):
+                changed=row[:];changed[column]=text
+                self.assertFalse(parse(changed)[2])
+        self.assertFalse(parse([*row,"Unassigned source content"])[2])
+        valued=row[:];valued[3]="$1,001 - $15,000"
+        self.assertEqual(len(parse(valued)[0]),1)
+        self.assertFalse(parse(valued)[2])
+
     def test_native_blank_proof_rejects_images_handwriting_annotations_and_bad_boundaries(self):
         def rect(x0, top, x1, bottom):
             return {"x0": x0, "top": top, "x1": x1, "bottom": bottom, "fill": True, "stroke": False}
