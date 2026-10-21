@@ -1596,7 +1596,8 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
             raise OgeCatalogError("native exhibit observations cross sources or repeat a page")
         seen_pages.add(item["page_number"])
         # This is a bounded native read of the selected archived page only.
-        actual=observe_native_exhibit_page(Path(archived_pdf_path),source_sha256=extraction["source_sha256"],page_number=item["page_number"])
+        actual=observe_native_exhibit_page(Path(archived_pdf_path),source_sha256=extraction["source_sha256"],page_number=item["page_number"],
+            **({"embedded_column_structure":True} if "embedded_column_structure" in item else {}))
         if actual!=item:
             raise OgeCatalogError("saved native exhibit words/tables differ from original archived page")
         if page_count is not None and page_count!=actual["document_page_count"]:
@@ -1634,6 +1635,8 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
         result["evidence_complete"]=False
     names=("printed_number","description","type","transaction_date","notification","amount")
     context_sources = {}  # Verified only for this materialization; never a persistent cache.
+    column_structures = {o["page_number"]:o["embedded_column_structure"] for o in observations
+                         if "embedded_column_structure" in o}
     prior_keys={(row["page_number"],tuple(row["cells"])) for row in result["source_rows"]}
     for page in rebuilt:
         for block in page["blocks"]:
@@ -1644,6 +1647,15 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
                 "label":block.get("label"),"partition_basis":block["partition_basis"],
                 "unassigned_body_word_indices":block.get("unassigned_body_word_indices",[]),
                 "partition_crossing_word_indices":block.get("partition_crossing_word_indices",[])}
+            if page["page_number"] in column_structures:
+                ref["column_structure_basis"]="source_sha_verified_embedded_image_reobserved"
+                ref["column_boundary_intervals_pdf_points"]=block.get("column_boundary_intervals_pdf_points")
+                ref["column_structure_decoded_pixels_sha256"]=column_structures[page["page_number"]].get("decoded_pixels_sha256")
+                ref["all_word_indices"]=block.get("all_word_indices",[])
+                ref["body_word_indices"]=block.get("body_word_indices",[])
+                ref["header_role_anchor_basis"]=block.get("header_role_anchor_basis")
+                ref["header_role_anchors_pdf_points"]=block.get("header_role_anchors_pdf_points")
+                ref["header_word_indices"]=block.get("header_word_indices",{})
             if page["page_number"] in overlapping_pages:
                 receipts.append({**ref,"disposition":"unresolved","reasons":["native_exhibit_prior_inventory_relation_unresolved"]});continue
             if block["status"]!="replacement_row_candidate":

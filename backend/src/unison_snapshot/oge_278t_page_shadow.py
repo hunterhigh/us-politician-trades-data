@@ -661,7 +661,8 @@ _EXHIBIT_LABEL = re.compile(r"In\s+place\s+of\s*line\s+item\s*#\s*(?P<number>[1-
     r"(?P<context>.*?)\s*,?\s*substitute\s+the\s+following\s*:", re.I)
 
 
-def observe_native_exhibit_page(pdf_path: Path, *, source_sha256: str, page_number: int) -> dict:
+def observe_native_exhibit_page(pdf_path: Path, *, source_sha256: str, page_number: int,
+                                embedded_column_structure: bool = False) -> dict:
     """Read exactly one archived native-text page; never invoke OCR."""
     import pdfplumber
     source = Path(pdf_path)
@@ -673,7 +674,7 @@ def observe_native_exhibit_page(pdf_path: Path, *, source_sha256: str, page_numb
         page = document.pages[page_number-1]
         text = page.extract_text() or ""
         tables = page.find_tables()
-        return {"schema_version": _NATIVE_EXHIBIT_SCHEMA, "source_sha256": source_sha256,
+        result = {"schema_version": _NATIVE_EXHIBIT_SCHEMA, "source_sha256": source_sha256,
             "page_number":page_number, "document_page_count":len(document.pages),
             "coordinate_frame":"pdfplumber_displayed_pdf_points", "method":_NATIVE_EXHIBIT_METHOD,
             "page_width":page.width,"page_height":page.height,"page_text":text,
@@ -681,6 +682,12 @@ def observe_native_exhibit_page(pdf_path: Path, *, source_sha256: str, page_numb
             "words":[{key:word[key] for key in ("text","x0","top","x1","bottom")} for word in page.extract_words()],
             "table_bounds":[list(table.bbox) for table in tables],
             "tables":[table.extract() for table in tables]}
+    if embedded_column_structure:
+        from .oge_278t_exhibit_structure import observe_embedded_exhibit_columns
+        result["embedded_column_structure"] = observe_embedded_exhibit_columns(source,
+            source_sha256=source_sha256,page_number=page_number,table_bounds=result["table_bounds"],
+            native_page_size=(result["page_width"],result["page_height"]))
+    return result
 
 
 def _native_word_lines(words: list[dict], indices: list[int]) -> list[list[int]]:
@@ -741,6 +748,10 @@ def interpret_native_exhibit_page(observation: dict) -> dict:
     if text_targets != [row["target_printed_number"] for row in labels]:
         raise ValueError("native exhibit text and source-word label ordering differ")
     digest = hashlib.sha256(json.dumps(observation,ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode()).hexdigest()
+    structure_blocks = None
+    if "embedded_column_structure" in observation:
+        from .oge_278t_exhibit_structure import validated_structure_blocks
+        structure_blocks = validated_structure_blocks(observation["embedded_column_structure"],observation)
     blocks, previous_bottom, used_labels = [],0,set()
     names = ("printed_number","description","type","transaction_date","notification","amount")
     role_names = ("#","description","type","date","notification","amount")
@@ -766,10 +777,39 @@ def interpret_native_exhibit_page(observation: dict) -> dict:
         if len(header)!=6 or not all(words[header[a]]["x0"]<words[header[b]]["x0"] for a,b in zip(role_names,role_names[1:])):
             blocks.append({**base,"status":"unresolved","label":label,"reasons":["replacement_header_roles_unresolved"],"all_word_indices":indices});continue
         edges=[box[0],*[words[header[role]]["x0"] for role in role_names[1:]],box[2]]
+        intervals = None
+        if structure_blocks is not None:
+            structure = structure_blocks.get(table_index,{})
+            tracks = structure.get("tracks",[])
+            if structure.get("status") != "tracks_observed" or len(tracks) != 7:
+                blocks.append({**base,"status":"unresolved","label":label,
+                    "reasons":["native_embedded_column_structure_unknown"],"all_word_indices":indices});continue
+            intervals = [track["candidate_interval_pdf_points"] for track in tracks]
+            if (any(len(v)!=2 or any(type(x) not in (int,float) or not math.isfinite(x) for x in v) or v[0]>v[1] for v in intervals) or
+                    any(a[1]>=b[0] for a,b in zip(intervals,intervals[1:]))):
+                raise ValueError("native EXHIBIT column intervals are not uniquely ordered")
+            # A missing real track plus an extra glyph/false track may still
+            # total seven. Official role anchors must agree with each column
+            # for every admissible boundary. Header punctuation may overhang
+            # a rule; body/financial boxes below still require full inclusion.
+            role_centers = {role:(words[index]["x0"]+words[index]["x1"])/2 for role,index in header.items()}
+            if any(not intervals[j][1] <= role_centers[role] <= intervals[j+1][0]
+                   for j,role in enumerate(role_names)):
+                blocks.append({**base,"status":"unresolved","label":label,
+                    "reasons":["native_column_tracks_header_roles_conflict"],"all_word_indices":indices});continue
+            base.update(partition_basis="source_embedded_image_tracks_and_complete_native_header_roles",
+                        column_boundary_intervals_pdf_points=intervals,
+                        header_role_anchor_basis="original_word_box_center_for_each_admissible_column_boundary",
+                        header_role_anchors_pdf_points=role_centers)
         fields={name:[] for name in names};unassigned=[];crossing=[]
         body=[i for i in indices if words[i]["top"]>=body_top-3]
         for i in body:
             word=words[i];center=(word["x0"]+word["x1"])/2
+            if intervals is not None:
+                matches=[j for j in range(6) if intervals[j][1]<=word["x0"] and word["x1"]<=intervals[j+1][0]]
+                if len(matches)!=1:
+                    unassigned.append(i);crossing.append(i);continue
+                fields[names[matches[0]]].append(i);continue
             matches=[j for j in range(6) if edges[j]<=center<edges[j+1]]
             if len(matches)!=1:unassigned.append(i);continue
             j=matches[0];fields[names[j]].append(i)
@@ -779,7 +819,8 @@ def interpret_native_exhibit_page(observation: dict) -> dict:
         blocks.append({**base,"status":"replacement_row_candidate","label":label,"raw_columns":raw,
             "field_word_indices":fields,"all_word_indices":indices,"body_word_indices":body,
             "header_word_indices":header,"unassigned_body_word_indices":unassigned,"partition_crossing_word_indices":crossing,
-            "limitations":["header_partitions_are_not_verified_column_rules"]})
+            "limitations":(["intersecting_source_word_boxes_remain_unresolved"] if intervals is not None else
+                           ["header_partitions_are_not_verified_column_rules"])})
     return {"schema_version":"oge-278t-native-exhibit-rows/v1","source_sha256":observation["source_sha256"],
         "page_number":observation["page_number"],"input_observation_canonical_sha256":digest,"blocks":blocks,
         "unused_label_indices":[i for i in range(len(labels)) if i not in used_labels]}
