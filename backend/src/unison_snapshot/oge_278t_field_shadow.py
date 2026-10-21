@@ -318,7 +318,7 @@ def _validate_type_cell_crop(reading: dict, slot: dict, original: dict, page: di
             raise ValueError("Type cell detection escaped its source crop")
 
 
-def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict]) -> None:
+def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict], *, source_pdf_path=None) -> None:
     """Join saved reads by source/page/slot/band, never by equal row totals."""
     source_pages = {page["page_number"]: (item, page)
                     for item in originals for page in item["pages"]}
@@ -327,7 +327,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
     seen = set()
     coverage = []
     input_refs = []
+    source_render_cache = {}
     for read_index, reading in enumerate(readings):
+        quad_mode = reading.get("read_mode") == "source_quad_cells/v1"
+        if quad_mode:
+            from .oge_278t_source_quad_cells import validate_source_quad_reading
+            validate_source_quad_reading(reading, originals, source_pdf_path, render_cache=source_render_cache)
         kind = _SECONDARY.get(reading.get("schema_version"))
         if kind is None or reading.get("source_sha256") != result["source_sha256"]:
             raise ValueError("secondary field read has unsupported schema or different source")
@@ -399,6 +404,8 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                 if slot.get("band_pdf_points") != base.get("band_pdf_points"):
                     raise ValueError("secondary field slot band differs from source slot")
                 identity = (field, number, slot_index, reading["ocr_engine"], reading["ocr_resolution_dpi"])
+                if quad_mode:
+                    identity += ("source_quad_cells/v1",reading["source_quad_input"]["layer"])
                 if identity in seen:
                     raise ValueError("secondary field reading identity repeated")
                 seen.add(identity)
@@ -431,7 +438,8 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                             not _slot_owns_center(original_page,base,box)):
                         raise ValueError("secondary detection is outside its source field or slot")
                     if _dual_geometry(original_page):
-                        if not _geometry.box_in_slot(original_page,base,box,left,right,left_pad=.6,right_pad=1.5):
+                        if not _geometry.box_in_slot(original_page,base,box,left,right,
+                                **({} if quad_mode else {"left_pad":.6,"right_pad":1.5})):
                             geometry_issues.append("detection_extends_beyond_source_quad_or_field")
                         continue
                     local = column_edges_at_y(original_page, (box[1]+box[3])/2)
@@ -478,6 +486,9 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                                   f"{page['slots'].index(slot)}"}
                 if cell_mode and slot.get("cell_crop") is not None:
                     observation["cell_crop"] = deepcopy(slot["cell_crop"])
+                if quad_mode:
+                    observation["read_mode"] = "source_quad_cells/v1"
+                    observation["source_quad_cell"] = deepcopy(slot["source_quad_cell"])
                 if field == "amount":
                     from .oge_278t_amount_categories import observe_template_amount
                     observation["template_category"] = observe_template_amount(raw)
@@ -778,7 +789,7 @@ def _description_shape(reading: dict) -> dict:
 
 
 def observe_field_shapes(observations: list[dict], *,
-                         secondary_observations: list[dict] | None = None) -> dict:
+                         secondary_observations: list[dict] | None = None, source_pdf_path=None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations:
         raise ValueError("expected saved 278-T raster slot observations v2/v3")
@@ -873,7 +884,7 @@ def observe_field_shapes(observations: list[dict], *,
     if secondary_observations is not None:
         if not isinstance(secondary_observations, list):
             raise ValueError("secondary field observations must be an array")
-        _attach_secondary_reads(result, observations, secondary_observations)
+        _attach_secondary_reads(result, observations, secondary_observations, source_pdf_path=source_pdf_path)
     return result
 
 
@@ -1096,7 +1107,9 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     for detection in read["detections"]:
         box = detection["bbox_pdf_points"]
         if _dual_geometry(page):
-            if not _geometry.box_in_slot(page,slot,box,start,end,left_pad=.6,right_pad=1.5):
+            quad_mode=read.get("read_mode")=="source_quad_cells/v1" and isinstance(read.get("source_quad_cell"),dict)
+            if not _geometry.box_in_slot(page,slot,box,start,end,
+                    **({} if quad_mode else {"left_pad":.6,"right_pad":1.5})):
                 return False
             continue
         domain = (page.get("column_line_model") or {}).get("valid_y_span_pdf_points")
@@ -1228,7 +1241,7 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
 
 
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
-                         secondary_observations: list[dict] | None = None) -> dict:
+                         secondary_observations: list[dict] | None = None, source_pdf_path=None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
 
     The whole-document page count must come from the bound source metadata,
@@ -1239,7 +1252,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
 
     if type(document_page_count) is not int or document_page_count < 1:
         raise ValueError("bound document page count is required")
-    fields = observe_field_shapes(observations, secondary_observations=secondary_observations)
+    fields = observe_field_shapes(observations, secondary_observations=secondary_observations, source_pdf_path=source_pdf_path)
     content_rules = ("oge-278t-content-rows/v5-type-cells" if any(
         reading.get("read_mode") == "bound_single_type_cells/v1"
         for reading in secondary_observations or []) else _CONTENT_RULES)

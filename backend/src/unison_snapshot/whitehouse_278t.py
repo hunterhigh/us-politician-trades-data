@@ -1335,6 +1335,11 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                     any(type(word.get(k)) is not int for k in ("block_num","par_num","line_num"))):
                 raise OgeCatalogError("White House saved word geometry or line reference is invalid")
         ocr[page["page_number"]] = OcrPage(width=width,height=height,words=words,render_frame=page.get("render_frame"))
+    secondary_observations = None
+    if any(key in inputs for key in ("secondary_observations_path","secondary_observations_sha256")):
+        secondary_observations, _ = read("secondary_observations")
+        if not isinstance(secondary_observations,list):
+            raise OgeCatalogError("White House secondary observations must be a saved list")
     legacy = None
     if inputs.get("legacy_extraction_path") is not None:
         legacy, _ = read("legacy_extraction")
@@ -1398,7 +1403,9 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                       saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],
                       **({"allow_partial_rows":True} if allow_partial_rows else {}),
                       **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}))
-                content = observe_content_rows([observations],document_page_count=count)
+                content = observe_content_rows([observations],document_page_count=count,
+                    **({"secondary_observations":secondary_observations,"source_pdf_path":Path(pdf)}
+                       if secondary_observations is not None else {}))
             except ValueError as exc:
                 reasons.append("saved_ocr_geometry_unresolved")
                 observations = {"geometry_failure":str(exc)}
