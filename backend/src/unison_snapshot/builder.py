@@ -312,8 +312,17 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 or item["ticker"] in unsupported:
                 raise ValueError("Market coverage contains an invalid unsupported ticker")
             unsupported.add(item["ticker"])
-        if unsupported & market_tickers or disclosed_tickers != market_tickers | unsupported:
-            classified = market_tickers | unsupported
+        pending = market_coverage.get("pending_tickers", [])
+        cached = market_coverage.get("price_scope") == "published_cache"
+        if not isinstance(pending, list) or any(not isinstance(item, str) for item in pending) \
+                or pending != sorted(set(pending)) or (pending and not cached):
+            raise ValueError("Pending market tickers require an explicit cached publication")
+        pending = set(pending)
+        classified = market_tickers | unsupported | pending
+        if unsupported & market_tickers or pending & (market_tickers | unsupported) \
+                or (unsupported | pending) - disclosed_tickers \
+                or disclosed_tickers - classified \
+                or (not cached and classified != disclosed_tickers):
             raise ValueError(
                 "Market coverage must classify every disclosed ticker exactly once: "
                 f"missing={sorted(disclosed_tickers - classified)[:10]}, "
@@ -386,9 +395,9 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
                 "publication_state": "bootstrap_empty" if not data["people"] else "active"}
     if allow_market:
         coverage.update(market_ticker_count=len(market_tickers),
-                        market_missing_ticker_count=0,
+                        market_missing_ticker_count=len(pending),
                         market_unsupported_ticker_count=len(unsupported),
-                        market_supported_complete=True,
+                        market_supported_complete=not pending,
                         market_coverage_sha256=digest(encode(market_coverage)))
     identity = {"storage_layout": LAYOUT, "schema_version": SCHEMA, "processor_sha256": processor_sha, "board": board_sha,
                 "indexes": {path: digest(files[path]) for path in sorted(indexes)},
