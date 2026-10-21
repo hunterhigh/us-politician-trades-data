@@ -357,6 +357,21 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
         if image.size != (3400, 4400):
             raise SenateEfdError("Senate grid source image has unsupported dimensions")
         images[number] = image
+    date_records = {}
+    for page in pages:
+        records = page.get("date_segment_observations", [])
+        if not isinstance(records, list):
+            raise SenateEfdError("Senate date segment observations must be an array")
+        for record in records:
+            key = (page["page_number"], record.get("grid_slot")) if isinstance(record, dict) else None
+            if key is None or key in date_records or record.get("page_number") != page["page_number"]:
+                raise SenateEfdError("Senate date segment source slots are repeated or invalid")
+            date_records[key] = record
+    data_slots = {(slot["page_number"], slot["grid_slot"]) for slot in observation["slots"]
+                  if slot["label"] == "data_observed"}
+    if not set(date_records) <= data_slots:
+        raise SenateEfdError("Senate date segment observations are outside source data slots")
+    date_images = {}
     rows, account, account_ref, scope_unknown, previous_page = [], None, None, False, None
     slots = sorted(observation["slots"], key=lambda slot: (slot["page_number"], slot["grid_slot"]))
     for slot in slots:
@@ -434,6 +449,27 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
             "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
         }
+        date_record = date_records.get((number, slot["grid_slot"]))
+        if date_record is not None:
+            from .senate_paper_dates import interpret_segmented_date
+            if number not in date_images:
+                date_images[number] = Image.open(BytesIO(page_images[number])).convert("RGB")
+            reread = interpret_segmented_date(date_images[number], date_record,
+                page_sha256=observed[number], page_number=number, grid_slot=slot["grid_slot"],
+                date_box_px=date["box_px"])
+            if reread is not None:
+                parsed = _parse_date(reread["complete_date_text"], allow_outer_periods=True)
+                reread["transaction_date"] = parsed
+                row["field_observations"]["segmented_date_read"] = reread
+                if parsed is not None:
+                    old = {_parse_date(w["text"], allow_outer_periods=True) for w in date_words}
+                    old.discard(None)
+                    if any(value != parsed for value in old):
+                        row["quarantine_reasons"].append("paper_date_observation_conflict")
+                    else:
+                        row["transaction_date"] = parsed
+                        row["quarantine_reasons"] = [r for r in row["quarantine_reasons"] if r not in {
+                            "paper_date_invalid", "paper_date_mark_ambiguous", "paper_date_ocr_low_confidence"}]
         raw_date = row["field_observations"]["date_raw"]
         interpreted = _BOUND_DATE_WITH_PERIODS.fullmatch(raw_date)
         if (row["transaction_date"] is not None and interpreted is not None and
@@ -498,7 +534,7 @@ def _grid_json_bytes(value: dict) -> bytes:
 
 
 def _save_legacy_grid_input(review_root: Path, report: dict, observation: dict,
-                            pages: list[dict], prior: dict) -> dict:
+                            pages: list[dict], prior: dict | None) -> dict:
     from .senate_reports import _write_once
     payload = _grid_json_bytes({"schema_version": "senate-paper-grid-replay/v1",
         "report": report, "observation": observation, "cached_word_pages": pages,
@@ -527,7 +563,7 @@ def replay_legacy_grid_extraction(extraction: dict, evidence_root: Path,
             not isinstance(saved.get("report"), dict) or
             not isinstance(saved.get("observation"), dict) or
             not isinstance(saved.get("cached_word_pages"), list) or
-            not isinstance(saved.get("prior_extraction"), dict)):
+            (saved.get("prior_extraction") is not None and not isinstance(saved["prior_extraction"], dict))):
         raise SenateEfdError("Senate legacy grid replay schema differs")
     manifest = json.loads((evidence_root / "senate_efd/paper_pages" /
                           extraction["document_id"] / "manifest.json").read_text(encoding="utf-8"))
@@ -748,7 +784,7 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                 extracted = parse_paper_grid_observations(
                     reports[document_id], manifest, observation, cached_pages[document_id], images,
                     prior_extraction=prior)
-                if prior is not None:
+                if prior is not None or any(page.get("date_segment_observations") for page in cached_pages[document_id]):
                     extracted["grid_replay_input"] = _save_legacy_grid_input(
                         review_root, reports[document_id], observation, cached_pages[document_id], prior)
                 extractions.append(extracted)

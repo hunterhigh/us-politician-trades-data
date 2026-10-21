@@ -820,7 +820,9 @@ def build_senate_candidate(
                  "source_report_ledger" not in item)):
             raise SenateEfdError("Senate legacy grid reference requires a paper source ledger")
         if item.get("schema_version") == PAPER_EXTRACTION_SCHEMA and "source_report_ledger" in item:
-            if "legacy_extraction_reference" in item:
+            if ("legacy_extraction_reference" in item or any(
+                    row.get("field_observations", {}).get("segmented_date_read")
+                    for row in item["transactions"])):
                 from .senate_paper import replay_legacy_grid_extraction
                 if evidence_root is None:
                     raise SenateEfdError("Senate legacy grid facts require archived source replay")
