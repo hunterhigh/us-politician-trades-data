@@ -603,6 +603,16 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 raise OgeCatalogError("OGE visual source row recovery differs from parser disposition")
             reasons.extend(parser_reasons)
             normalized = parser_row
+            native_ref = normalized.get("native_exhibit_reference", {})
+            if "transaction_date_interpretation" in native_ref:
+                from .oge_reports import _native_exhibit_period_date
+                expected_date = _native_exhibit_period_date(raw_cells[3],
+                    extraction.get("observation_receipt", {}).get("amendment_context"),
+                    native_ref.get("replacement_relation", {}))
+                if (expected_date is None or native_ref["transaction_date_interpretation"] != expected_date or
+                        normalized.get("transaction_date") != expected_date["normalized_value"] or
+                        raw.get("native_exhibit_reference") != native_ref):
+                    raise OgeCatalogError("native exhibit transaction date differs from source period interpretation")
             if disposition == "qualified":
                 transaction_day = normalized.get("transaction_date")
                 try:

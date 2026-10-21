@@ -1524,6 +1524,46 @@ def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) ->
         "reasons":["replacement_application_requires_source_reconciliation"]}
 
 
+def _native_exhibit_period_date(raw: str, context: dict | None, relation: dict) -> dict | None:
+    """Interpret a short numeric event date only inside the source's explicit period."""
+    if (not context or context.get("status") != "source_context_available" or
+            relation.get("status") != "candidate_context_match" or
+            relation.get("candidate", {}).get("source_context_sha256") !=
+            context.get("source_observation_canonical_sha256")):
+        return None
+    match = re.fullmatch(r"(\d{1,2})\s*/\s*(\d{1,2})\s*/\s*(\d{2})", raw)
+    if not match:
+        return None
+    try:
+        start, end = [datetime.strptime(value, "%Y-%m-%d").date()
+                      for value in context["original_reporting_period"]]
+    except (KeyError, TypeError, ValueError):
+        return None
+    if start > end or end.year - start.year > 100:
+        return None
+    first, second, suffix = map(int, match.groups())
+    candidates = set()
+    for year in range(start.year, end.year + 1):
+        if year % 100 != suffix:
+            continue
+        for month, day in ((first, second), (second, first)):
+            try:
+                value = datetime(year, month, day).date()
+            except ValueError:
+                continue
+            if start <= value <= end:
+                candidates.add(value.isoformat())
+    if len(candidates) != 1:
+        return None
+    return {"schema_version": "oge-278t-source-period-date/v1", "raw_value": raw,
+            "normalized_value": next(iter(candidates)),
+            "reporting_period": [start.isoformat(), end.isoformat()],
+            "source_context_sha256": context["source_observation_canonical_sha256"],
+            "source_cover_page_number": context["page_number"],
+            "basis": "unique_numeric_interpretation_within_explicit_same_source_reporting_period",
+            "role": "transaction_date_not_filing_date"}
+
+
 def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, *, observations: list[dict],
         archived_pdf_path: str, replacement_targets: list[dict] | None = None,
         formal_reference_ids: list[str] | None = None,
@@ -1620,8 +1660,14 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
                 receipts.append({**ref,"disposition":"unresolved","reasons":["replacement_body_not_one_parser_row"]});continue
             row=(good+bad)[0]
             reasons=set(row.get("reasons",[])+relation["reasons"])
+            date_evidence = _native_exhibit_period_date(cells[3], context, relation)
+            if date_evidence is not None:
+                row["transaction_date"] = date_evidence["normalized_value"]
+                ref["transaction_date_interpretation"] = date_evidence
+                reasons.discard("transaction_date_invalid")
             if re.fullmatch(r"\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{2}",cells[3]):
-                reasons.add("transaction_date_century_unbound")
+                if date_evidence is None:
+                    reasons.add("transaction_date_century_unbound")
             if block.get("partition_crossing_word_indices") or block.get("unassigned_body_word_indices"):
                 reasons.add("native_header_field_partition_ambiguous")
             physical={"page_number":page["page_number"],"cells":cells,"native_exhibit_reference":ref}
