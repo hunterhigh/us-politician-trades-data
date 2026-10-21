@@ -7,11 +7,38 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr
+from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import patch
 
 BACKEND = Path(__file__).resolve().parents[1]
 
 
 class CliTests(unittest.TestCase):
+    def test_market_commands_validate_before_writing_any_outputs(self):
+        import unison_snapshot.__main__ as cli
+
+        for command in ("build-alpaca-market-validation", "build-twelve-data-supplement"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as temp:
+                folder = Path(temp)
+                invalid = json.loads((BACKEND / "examples/synthetic.json").read_text(encoding="utf-8"))
+                invalid["transactions"][0]["person_id"] = "missing-person"
+                output, audit = folder / "candidate.json", folder / "audit.json"
+                args = ["unison_snapshot", command, "--input", str(BACKEND / "examples/synthetic.json"),
+                        "--output", str(output), "--audit-output", str(audit),
+                        "--distribution-authorized", "--checked-at", "2026-09-19T00:00:00Z"]
+                with patch.object(sys, "argv", args), patch.object(cli, "AlpacaMarketClient"), \
+                        patch.object(cli, "TwelveDataClient"), \
+                        patch.object(cli, "build_market_validation", return_value=SimpleNamespace(snapshot=invalid, audit={})), \
+                        patch.object(cli, "supplement_twelve_data", return_value=(invalid, {"accepted_count": 0})), \
+                        redirect_stderr(StringIO()) as error, self.assertRaises(SystemExit) as stopped:
+                    cli.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn("person", error.getvalue().lower())
+                self.assertFalse(output.exists())
+                self.assertFalse(audit.exists())
+
     def invoke(self, *args, environment=None):
         process_environment = dict(os.environ, PYTHONPATH=str(BACKEND / "src"))
         if environment:
