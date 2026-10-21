@@ -43,6 +43,22 @@ _SECONDARY = {"oge-278t-type-column-observation/v1": ("type", "type_column_obser
 _CONTENT_RULES = "oge-278t-content-rows/v4"
 
 
+def _official_type_shape(raw: str, *, bound_role: bool, source_ref: str) -> dict:
+    value = raw.strip().casefold()
+    shape = {"status": "ocr_shape_only" if value in _TYPE else "unknown",
+             "value": value if value in _TYPE else None}
+    if shape["value"] is None and bound_role:
+        from .oge_type_literal import interpret_official_type_literal
+        interpretation = interpret_official_type_literal(raw, field_role="type",
+            official_values=["Purchase", "Sale", "Exchange"])
+        if interpretation["status"] == "interpreted":
+            shape = {"status": "ocr_shape_only", "value": interpretation["value"],
+                     "literal_interpretation": {**interpretation,
+                         "source_field_ref": source_ref,
+                         "field_schema_basis": "confirmed_oge_2024_six_column_grid"}}
+    return shape
+
+
 def _dual_geometry(page: dict) -> bool:
     return page.get("geometry_mode") == _DUAL_GEOMETRY
 
@@ -477,6 +493,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     shape = {"status": "ocr_shape_only" if value else "unknown", "value": value}
                 if (slot.get("column_shape") != (shape["value"] if field == "type" else shape)):
                     raise ValueError("secondary field shape differs from its raw text")
+                # First validate the producer's unchanged literal read. Interpret
+                # the exact source variant only after its Type geometry binds.
+                if field == "type" and len(detections) == 1 and not geometry_issues:
+                    shape = _official_type_shape(raw, bound_role=_known_page_geometry(original_page),
+                        source_ref=f"secondary_observations/{read_index}/pages/{page_index}/slots/"
+                                   f"{page['slots'].index(slot)}/type")
                 observation = {"method": "column_ocr", "raw_ocr_text": raw,
                     "shape": shape, "detections": deepcopy(detections),
                     "geometry_status": "ambiguous" if geometry_issues else "source_bound",
@@ -835,9 +857,10 @@ def observe_field_shapes(observations: list[dict], *,
                                        "value": int(printed_number) if
                                        re.fullmatch(r"[1-9][0-9]*", printed_number) else None},
                     "description": _description_shape(description_reading),
-                    "type": {"status": "ocr_shape_only" if direction in _TYPE else
-                             "unknown", "value": direction if direction in _TYPE
-                             else None},
+                    "type": _official_type_shape(raw["type"],
+                        bound_role=isinstance(columns["type"].get("word_indices"), list)
+                                   and bool(columns["type"]["word_indices"]),
+                        source_ref=f"observations/{input_index}/pages/{page_index}/slots/{slot_index}/type"),
                     "transaction_date": _date_shape(raw["transaction_date"]),
                     "amount": _ordered_amount_shape(amount_reading),
                 }
