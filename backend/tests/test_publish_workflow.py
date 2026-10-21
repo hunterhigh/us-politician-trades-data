@@ -93,7 +93,7 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertIn("fetch-depth: 1", complete)
         self.assertNotIn("fetch-depth: 0", complete)
         complete += (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text()
-        self.assertIn("git fetch --no-tags --depth=1 origin", complete)
+        self.assertIn("git fetch --no-tags --depth=1 --filter=blob:none origin", complete)
         self.assertIn("review:refs/remotes/origin/review", complete)
         self.assertIn("main:refs/remotes/origin/main", complete)
         self.assertIn("market:refs/remotes/origin/market", complete)
