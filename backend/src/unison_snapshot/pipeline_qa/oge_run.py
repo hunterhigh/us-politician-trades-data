@@ -295,6 +295,16 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                           **({"reason": reason} if reason else {})})
     if set(failed_by_id) - seen_ids or available != expected_files:
         raise OgeShadowInputError("OGE failure or extraction files do not match archived report inventory")
+    from unison_snapshot.oge_native_replacements import prepare_native_exhibit_applications
+    native_views = prepare_native_exhibit_applications(original_extractions, by_id, exhibits,
+        candidate_base.get("transactions", []) if integration else [], data_cutoff_at)
+    if native_views:
+        rows = [row for row in rows if row["source"]["document_id"] not in native_views]
+        for document_id, view in sorted(native_views.items()):
+            adapted = adapt_oge_278t_extraction(view, by_id[document_id], run_id=run_id)
+            rows.extend(adapted["rows"])
+            document = next(row for row in documents if row["document_id"] == document_id)
+            document.update(rules_version=adapted["rules_version"], idempotency_key=adapted["idempotency_key"])
 
     row_bytes = (json.dumps(rows, ensure_ascii=False, sort_keys=True,
                             separators=(",", ":")) + "\n").encode("utf-8")

@@ -1463,7 +1463,7 @@ def _native_exhibit_context_target(label: dict, targets: list[dict], context: di
             "application_status": "not_applied_context_is_not_row_or_field_qualification"}
 
 
-def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) -> dict:
+def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str, *, verify_owner_scope: bool = False) -> dict:
     """Bind a printed target only through an explicit original-source URL."""
     urls = label.get("predecessor_urls", [])
     if not urls:
@@ -1511,11 +1511,32 @@ def _native_exhibit_target(label: dict, targets: list[dict], filer_name: str) ->
                 [_compact(cell) for cell in cells]==row["cells"]]
             if len(same_raw)!=1:
                 continue
+            if verify_owner_scope:
+                native_rows=[(page_number,cells) for table in original_tables for cells in table if isinstance(cells,list)]
+                if original.get("parser_version") == GENERIC_PARSER_VERSION:
+                    scope_good,scope_bad,_=parse_generic_table_rows(native_rows,source_sha256=sha)
+                else:
+                    scope_good,scope_bad=parse_table_rows(native_rows,source_sha=sha,default_owner="Self",
+                        allow_open_amounts=True,allow_exchange=True)
+                scope_rows=[r for r in scope_good+scope_bad if r.get("cells")==row["cells"]]
+                if len(scope_rows)!=1 or any(scope_rows[0].get(field)!=row.get(field) for field in
+                        ("extraction_id","owner","account_title")):
+                    continue
+                explicit_owner=False
+                for _, source_cells in native_rows:
+                    if [_compact(c) for c in source_cells]==row["cells"]:break
+                    structure=classify_table_structure([_compact(c) for c in source_cells])
+                    if structure and structure["kind"] in {"owner_heading","owner_account_heading"}:
+                        explicit_owner=True
         matches.append({"target_document_id":metadata["document_id"],"target_source_sha256":sha,
             "target_source_url":metadata["document_url"],"target_extraction_id":row["extraction_id"],
             "target_page_number":row["page_number"],"target_printed_number":label["target_printed_number"],
             "target_raw_row_basis":"unique_same_page_native_table_cells_reobserved_from_archive",
             "archive_metadata_sha256":hashlib.sha256(meta_path.read_bytes()).hexdigest(),
+            **({"owner_scope_basis":"source_page_parser_role_replay_not_cache_supplied_default",
+                "owner_scope_explicit":explicit_owner,
+                "owner_scope_page_rows_sha256":hashlib.sha256(json.dumps(native_rows,ensure_ascii=False,
+                    sort_keys=True,separators=(",",":")).encode()).hexdigest()} if verify_owner_scope else {}),
             "source_label_word_indices":label["word_indices"],"source_label_raw":label["text"]})
     if len(matches)!=1:
         return {"status":"pending","reasons":["replacement_original_source_or_unique_row_unverified"],
@@ -1566,7 +1587,9 @@ def _native_exhibit_period_date(raw: str, context: dict | None, relation: dict) 
 def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, *, observations: list[dict],
         archived_pdf_path: str, replacement_targets: list[dict] | None = None,
         formal_reference_ids: list[str] | None = None,
-        amendment_context_page_number: int | None = None) -> dict:
+        amendment_context_page_number: int | None = None,
+        replacement_application_mode: str | None = None,
+        prior_formal_transactions: list[dict] | None = None) -> dict:
     """Consume fixed native observations in the existing observed-extraction lane.
 
     No cover is manufactured. Original unknown pages and unresolved amendment
@@ -1590,6 +1613,11 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
     targets=[] if replacement_targets is None else replacement_targets
     if not isinstance(targets,list):
         raise OgeCatalogError("replacement target references must be a list")
+    if replacement_application_mode not in {None, "verified_amount_only/v1"}:
+        raise OgeCatalogError("unsupported native replacement application mode")
+    if prior_formal_transactions is not None and (not isinstance(prior_formal_transactions, list) or
+            any(not isinstance(row, dict) for row in prior_formal_transactions)):
+        raise OgeCatalogError("native replacement prior formal facts must be an array")
     rebuilt=[];seen_pages=set();page_count=None
     for item in observations:
         if not isinstance(item,dict) or item.get("source_sha256")!=extraction["source_sha256"] or type(item.get("page_number")) is not int or item.get("page_number") in seen_pages:
@@ -1662,7 +1690,8 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
                 receipts.append({**ref,"disposition":"unresolved","reasons":block["reasons"]});continue
             relation = (_native_exhibit_context_target(block["label"], targets, context, numbers, context_sources)
                         if context is not None and not block["label"].get("predecessor_urls") else
-                        _native_exhibit_target(block["label"], targets, extraction["catalog_filer_name"]))
+                        _native_exhibit_target(block["label"], targets, extraction["catalog_filer_name"],
+                            verify_owner_scope=replacement_application_mode is not None))
             ref["replacement_relation"]=relation
             cells=[block["raw_columns"][name] for name in names]
             good,bad=parse_table_rows([(page["page_number"],cells)],source_sha=extraction["source_sha256"],
@@ -1681,16 +1710,35 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
                     reasons.add("transaction_date_century_unbound")
             if block.get("partition_crossing_word_indices") or block.get("unassigned_body_word_indices"):
                 reasons.add("native_header_field_partition_ambiguous")
+            application = None
+            if replacement_application_mode is not None:
+                application, application_reasons = _native_amount_only_application(extraction, catalog_record,
+                    row, context, relation, targets, sorted(reasons), prior_formal_transactions or [])
+                reasons.update(application_reasons)
+                if application is not None:
+                    reasons.discard("replacement_application_requires_source_reconciliation")
+                    ref["replacement_application"] = application
+                    row["owner"] = application["resolved_owner"]
+                    if application["prior_row"].get("account_title"):
+                        row["account_title"] = application["prior_row"]["account_title"]
             physical={"page_number":page["page_number"],"cells":cells,"native_exhibit_reference":ref}
             key=(physical["page_number"],tuple(cells))
             if key in prior_keys:
                 raise OgeCatalogError("native exhibit row already exists in original source inventory")
             prior_keys.add(key)
             result["source_rows"].append(physical)
-            result["quarantined"].append({**row,"reasons":sorted(reasons),"native_exhibit_reference":ref,
+            disposition = "qualified" if application is not None and not reasons else "quarantined"
+            result["transactions" if disposition == "qualified" else "quarantined"].append({**row,
+                **({"reasons": sorted(reasons)} if reasons else {}),"native_exhibit_reference":ref,
                 "observation_reference":ref,"owner_disclosure_basis":"not_disclosed_in_bound_six_column_table"})
-            receipts.append({**ref,"disposition":"quarantined","extraction_id":row["extraction_id"],"reasons":sorted(reasons)})
-    if any(row["disposition"]=="quarantined" for row in receipts):
+            receipts.append({**ref,"disposition":disposition,"extraction_id":row["extraction_id"],"reasons":sorted(reasons)})
+    if replacement_application_mode is not None:
+        for row in list(result["transactions"]):
+            if row.get("native_exhibit_reference", {}).get("replacement_application"):
+                continue
+            result["transactions"].remove(row)
+            result["quarantined"].append({**row,"reasons":sorted(set(row.get("reasons",[])+["amendment_relationship_unresolved"]))})
+    if any(row["disposition"] in {"qualified", "quarantined"} for row in receipts):
         result["legacy_document_reasons"]=deepcopy(extraction.get("document_reasons",[]))
         result["document_reasons"]=[reason for reason in result.get("document_reasons",[]) if reason not in
             {"transaction_table_not_found","no_transaction_rows_found"}]
@@ -1712,4 +1760,91 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
             "legacy_normalized_transaction_count":reference["normalized_transaction_count"],
             "legacy_quarantined_reference_count":reference["quarantined_reference_count"],
             "legacy_normalized_not_sent_to_qualification":True} if reference else {})}
+    if replacement_application_mode is not None:
+        result["replacement_application_mode"] = replacement_application_mode
+        result["native_exhibit_application_replay"] = {
+            "schema_version": "oge-native-exhibit-application-replay/v1", "original_extraction": original,
+            "inputs": {"observations": deepcopy(observations), "archived_pdf_path": str(archived_pdf_path),
+                "replacement_targets": deepcopy(targets), "formal_reference_ids": sorted(protected),
+                "amendment_context_page_number": amendment_context_page_number,
+                "replacement_application_mode": replacement_application_mode,
+                "prior_formal_transactions": deepcopy(prior_formal_transactions or [])}}
     return result
+
+def _native_amount_only_application(source: dict, record: dict, row: dict, context: dict | None,
+        relation: dict, targets: list[dict], reasons: list[str], formal: list[dict]) -> tuple[dict | None, list[str]]:
+    """Prove fields and prior identity; never promote a context-only candidate."""
+    if relation.get('status') != 'bound_replacement_target':
+        return None, []
+    pending = [r for r in reasons if r != 'replacement_application_requires_source_reconciliation']
+    if pending:
+        return None, []
+    if not context or context.get('status') != 'source_context_available' or context.get('amount_only_statement') is not True:
+        return None, ['replacement_amount_only_source_statement_unverified']
+    target = relation['target']
+    if (target['target_document_id'] == source['document_id'] or
+            target['target_source_sha256'] == source['source_sha256']):
+        return None, ['replacement_self_reference']
+    originals = [bundle['extraction'] for bundle in targets if isinstance(bundle.get('extraction'), dict)
+        and bundle['extraction'].get('document_id') == target['target_document_id']
+        and bundle['extraction'].get('source_sha256') == target['target_source_sha256']]
+    if len(originals) != 1:
+        return None, ['replacement_original_interpretation_not_unique']
+    original = originals[0]
+    prior = [r for r in original.get('transactions', []) if r.get('extraction_id') == target['target_extraction_id']]
+    if len(prior) != 1 or prior[0].get('reasons') or original.get('document_reasons') or original.get('evidence_complete') is not True:
+        return None, ['replacement_original_required_fields_not_qualified']
+    old = prior[0]
+    if any(original.get(field) != source.get(field) for field in ('catalog_filer_name', 'agency', 'position_title')):
+        return None, ['replacement_original_source_identity_conflict']
+    try:
+        original_day = datetime.strptime(original.get('filed_at'), '%Y-%m-%d').date()
+        amendment_day = datetime.strptime(source.get('filed_at'), '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None, ['replacement_filing_dates_unqualified']
+    if amendment_day < original_day:
+        return None, ['replacement_precedes_original_filing']
+    if (row.get('transaction_date') is None or old.get('transaction_date') is None or
+            row['transaction_date'] > source['filed_at'] or old['transaction_date'] > original['filed_at']):
+        return None, ['replacement_transaction_date_sequence_invalid']
+    if context.get('original_report_date') != original_day.isoformat():
+        return None, ['replacement_original_report_date_conflict']
+    unresolved = set(source.get('document_reasons', [])) - {'transaction_table_not_found','no_transaction_rows_found'}
+    if unresolved:
+        return None, ['replacement_source_document_unqualified']
+    if any(row.get(field) != old.get(field) for field in ('asset_name','ticker','transaction_type','transaction_date')):
+        return None, ['amount_only_replacement_non_amount_financial_conflict']
+    from .oge_candidate import _identity_key, _person_id, _transaction_projection
+    key = _identity_key(record)
+    if key is None:
+        return None, ['replacement_source_identity_unqualified']
+    person = _person_id(key)
+    prior_fact = _transaction_projection(original, old, person)
+    retained_owner = any(r.get('id') in {prior_fact['id'],row['extraction_id']} and
+                         r.get('owner')==old['owner'] for r in formal)
+    resolved_owner = old['owner'] if target.get('owner_scope_explicit') or retained_owner or old['owner']!='Self' else 'Undisclosed'
+    expected_row = {**row, 'owner': resolved_owner}
+    if old.get('account_title'):
+        expected_row['account_title'] = old['account_title']
+    expected_fact = _transaction_projection({**source, 'parser_version': 'oge-278t-observed/v1'}, expected_row, person)
+    def equal(left, right):
+        return all(left.get(field) == right.get(field) for field in set(left) | set(right))
+    for expected in (prior_fact, expected_fact):
+        candidates = [r for r in formal if r.get('id') == expected['id']]
+        if len(candidates) > 1 or any(not equal(r, expected) for r in candidates):
+            return None, ['replacement_existing_formal_fact_not_source_bound']
+    if any(str(r.get('filing_id')) == str(original['document_id']) for r in formal) and not any(
+            r.get('id') == prior_fact['id'] for r in formal) and not any(r.get('id') == expected_fact['id'] for r in formal):
+        return None, ['replacement_prior_formal_row_identity_unresolved']
+    return {'schema_version':'oge-native-amount-only-application/v1', 'status':'source_verified_amount_only',
+        'resolved_owner':resolved_owner,
+        'owner_basis':'source_page_scope_or_existing_formal_owner_otherwise_approved_undisclosed',
+        'prior_transaction_id': prior_fact['id'], 'transaction_id': row['extraction_id'],
+        'prior_fact': prior_fact, 'prior_row': old, 'target': target,
+        'amendment_document_id':source['document_id'],'amendment_source_sha256':source['source_sha256'],
+        'amendment_source_url':source['source_url'],'original_filed_at':original_day.isoformat(),
+        'amendment_filed_at':amendment_day.isoformat(),
+        'source_context_sha256':context['source_observation_canonical_sha256'],
+        'notification_metadata':{'original_raw':old.get('late_notification_raw'),
+                                  'replacement_raw':row.get('late_notification_raw'),
+                                  'role':'optional_over30days_metadata_not_a_required_financial_field'}}, []
