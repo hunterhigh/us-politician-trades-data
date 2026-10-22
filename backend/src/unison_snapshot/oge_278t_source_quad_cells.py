@@ -8,6 +8,7 @@ from pathlib import Path
 
 MODE = "source_quad_cells/v1"
 DETECTION_QUAD_MODE = "mapped_detection_quadrilateral/v1"
+NUMBER_CONTENT_MODE = "source_quad_isolated_number_ink/v1"
 _FIELDS = {"printed_number":0,"type":2,"transaction_date":3,"amount":4}
 _LAYERS = {"full_source":"all_image","source_text_objects_auxiliary":"text_image"}
 
@@ -24,7 +25,35 @@ def _render(source,sha,number,resolution,cache):
     return cache[key]
 
 
-def source_quad_cell(rendered, page, slot, field, *, layer, padding=20):
+def _number_content_pixels(pixels, *, padding):
+    """Locate all ink separate from the grid, without painting any source pixel.
+
+    This bounded 300dpi mode supports narrow printed-number cells. A component
+    touching the grid corridor cannot be interpreted as content. Extra ink is
+    retained, never discarded as a small component or recognition noise.
+    """
+    import cv2
+    import numpy as np
+    ink=(pixels<100).astype('uint8')
+    count,labels,stats,_=cv2.connectedComponentsWithStats(ink,8)
+    height,width=pixels.shape;frames=[];content=[];proof=[]
+    for label in range(1,count):
+        yy,xx=np.where(labels==label)
+        inset=np.minimum.reduce([xx-padding,width-padding-1-xx,yy-padding,height-padding-1-yy])
+        x,y,w,h,area=map(int,stats[label])
+        frame=bool(inset.max()<=3 and (w>=.75*(width-2*padding) or h>=.75*(height-2*padding)))
+        proof.append({'bbox_pixels':[x,y,x+w,y+h],'area_pixels':area,'frame':frame})
+        if frame:frames.append(label)
+        else:
+            if inset.min()<=3:raise ValueError('number ink touches an unresolved frame component')
+            content.append(label)
+    if not frames or not content:raise ValueError('number source lacks separate grid and content')
+    yy,xx=np.where(np.isin(labels,content))
+    box=[int(xx.min())-2,int(yy.min())-2,int(xx.max())+3,int(yy.max())+3]
+    return box,pixels[box[1]:box[3],box[0]:box[2]].copy(),proof
+
+
+def source_quad_cell(rendered, page, slot, field, *, layer, padding=20, content_crop_mode=None):
     """Derive exact perspective crop and mapping from the real PDFium canvas."""
     import numpy as np
     import cv2
@@ -54,15 +83,27 @@ def source_quad_cell(rendered, page, slot, field, *, layer, padding=20):
     if width < 2 or height < 2:raise ValueError("source quad cell has no usable area")
     matrix=cv2.getPerspectiveTransform(points,np.array([[0,0],[width-1,0],[width-1,height-1],[0,height-1]],dtype="float32"))
     pixels=np.pad(cv2.warpPerspective(np.asarray(rendered[_LAYERS[layer]]),matrix,(width,height),borderValue=255),padding,constant_values=255)
+    content_proof={}
+    if content_crop_mode is not None:
+        if content_crop_mode!=NUMBER_CONTENT_MODE or field!='printed_number' or layer!='full_source' or receipt['resolution']!=300:
+            raise ValueError('isolated number crop requires 300dpi original full-source number field')
+        full_sha=hashlib.sha256(pixels.tobytes()).hexdigest()
+        box,pixels,components=_number_content_pixels(pixels,padding=padding)
+        # Preserve exactly the original two-pixel context of the saved crop.
+        # The matrix maps the new unpadded content coordinates; TSV stays raw.
+        matrix=np.array([[1,0,padding-box[0]-2],[0,1,padding-box[1]-2],[0,0,1.]])@matrix
+        padding=2
+        content_proof={'content_crop_mode':content_crop_mode,'content_crop_box_in_full_cell_pixels':box,
+                       'full_cell_pixel_sha256':full_sha,'source_component_observations':components}
     return {"quad_pdf_points":quad,"source_pixel_to_cell_matrix":matrix.tolist(),
         "source_crop_pixel_sha256":hashlib.sha256(pixels.tobytes()).hexdigest(),
-        "crop_pixel_size":[pixels.shape[1],pixels.shape[0]],"padding":padding},pixels
+        "crop_pixel_size":[pixels.shape[1],pixels.shape[0]],"padding":padding,**content_proof},pixels
 
 
 def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation: dict,
         field: str, saved_pages: list[dict], layer: str, resolution: int = 300,
         ocr_engine: str, render_cache: dict | None = None,
-        detection_geometry_mode: str | None = None) -> dict:
+        detection_geometry_mode: str | None = None, content_crop_mode: str | None = None) -> dict:
     """Validate saved recipes/TSV and reconstruct normal secondary observations.
 
     Source path is supplied by the controlled caller, never taken from a read.
@@ -76,6 +117,7 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
     from .ocr_geometry import words_from_tesseract_tsv
     if detection_geometry_mode not in (None, DETECTION_QUAD_MODE):
         raise ValueError("unknown source quad detection geometry mode")
+    if content_crop_mode not in (None,NUMBER_CONTENT_MODE):raise ValueError('unknown source content crop mode')
     _validate_geometry_input(slots_observation)
     if (field not in _FIELDS or layer not in _LAYERS or type(resolution) is not int or not 200 <= resolution <= 400
             or not isinstance(ocr_engine,str) or not ocr_engine.strip()):
@@ -121,11 +163,13 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
                     "observation_status":"not_selected"})
                 continue
             cell=bound_cells[index];recipe=cell.get("recipe")
-            expected,pixels=source_quad_cell(rendered,page,slot,field,layer=layer)
+            expected,pixels=source_quad_cell(rendered,page,slot,field,layer=layer,content_crop_mode=content_crop_mode)
             if (not isinstance(recipe,dict) or recipe.get("physical_index")!=index-1 or recipe.get("column")!=_FIELDS[field]
                     or any(canonical_sha(recipe.get(k))!=canonical_sha(expected[k]) for k in
                         ("quad_pdf_points","source_pixel_to_cell_matrix","source_crop_pixel_sha256","padding"))):
                 raise ValueError("source quad crop/transform differs from original PDF")
+            if content_crop_mode and any(canonical_sha(recipe.get(k))!=canonical_sha(v) for k,v in expected.items()):
+                raise ValueError('number content crop source proof differs')
             tsv=cell.get("tsv_utf8")
             if not isinstance(tsv,str) or "\ufffd" in tsv:
                 raise ValueError("source quad cell lacks unaltered valid original TSV")
@@ -179,7 +223,8 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
         "input_column_geometry_sha256":{str(p["page_number"]):column_geometry_sha256(pages[p["page_number"]]) for p in saved_pages},
         "ocr_engine":ocr_engine,"ocr_resolution_dpi":resolution,"input_ocr_resolution_dpi":slots_observation["ocr_resolution_dpi"],
         "source_quad_input":{"field":field,"layer":layer,"resolution":resolution,"saved_pages":deepcopy(saved_pages),
-            **({"detection_geometry_mode":detection_geometry_mode} if detection_geometry_mode else {})},
+            **({"detection_geometry_mode":detection_geometry_mode} if detection_geometry_mode else {}),
+            **({'content_crop_mode':content_crop_mode} if content_crop_mode else {})},
         **({"detection_geometry_mode":detection_geometry_mode} if detection_geometry_mode else {}),
         "summary":{"observed_slots":count,"new_ocr_invocation_count":0},"pages":output}
 
@@ -190,8 +235,9 @@ def validate_source_quad_reading(reading, originals, source_pdf_path, *, render_
     if len(matches)!=1:raise ValueError("source quad read differs from primary source fingerprint")
     inputs=reading.get("source_quad_input")
     required={"field","layer","resolution","saved_pages"}
-    if (not isinstance(inputs,dict) or set(inputs) not in (required,required|{'detection_geometry_mode'}) or
-            ('detection_geometry_mode' in inputs and inputs['detection_geometry_mode']!=DETECTION_QUAD_MODE)):
+    if (not isinstance(inputs,dict) or not required<=set(inputs)<=required|{'detection_geometry_mode','content_crop_mode'} or
+            ('detection_geometry_mode' in inputs and inputs['detection_geometry_mode']!=DETECTION_QUAD_MODE) or
+            ('content_crop_mode' in inputs and inputs['content_crop_mode']!=NUMBER_CONTENT_MODE)):
         raise ValueError("source quad replay inputs are invalid")
     expected=observe_saved_source_quad_cells(source_pdf_path,slots_observation=matches[0],ocr_engine=reading.get("ocr_engine"),
         render_cache=render_cache,**inputs)

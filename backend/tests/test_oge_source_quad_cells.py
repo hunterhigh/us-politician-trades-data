@@ -13,6 +13,30 @@ from unison_snapshot.oge_278t_field_shadow import observe_field_shapes,_complete
 
 
 class SourceQuadCellTests(unittest.TestCase):
+    def test_number_content_crop_keeps_all_interior_ink_and_rejects_frame_contact(self):
+        from unison_snapshot.oge_278t_source_quad_cells import _number_content_pixels,NUMBER_CONTENT_MODE
+        pixels=np.ones((100,200),dtype='uint8')*255
+        pixels[20,20:180]=pixels[79,20:180]=0
+        pixels[20:80,20]=pixels[20:80,179]=0
+        pixels[30:45,35:38]=0;pixels[30:33,35:47]=0
+        pixels[30:45,55:58]=0;pixels[30:33,55:67]=0
+        box,crop,proof=_number_content_pixels(pixels,padding=20)
+        self.assertTrue(np.array_equal(crop,pixels[box[1]:box[3],box[0]:box[2]]))
+        self.assertEqual(sum(p['frame'] for p in proof),1)
+        # Even a single interior dot is retained, not dismissed as OCR noise.
+        dot=pixels.copy();dot[65,140]=0
+        other,kept,_=_number_content_pixels(dot,padding=20)
+        self.assertGreaterEqual(other[2],143);self.assertEqual(kept[65-other[1],140-other[0]],0)
+        attached=pixels.copy();attached[40,20:50]=0
+        with self.assertRaisesRegex(ValueError,'unresolved frame'):_number_content_pixels(attached,padding=20)
+        for empty in [np.ones_like(pixels)*255,np.where(pixels<100,0,255).astype('uint8')]:
+            if (empty==pixels).all():empty[25:75,25:175]=255
+            with self.assertRaises(ValueError):_number_content_pixels(empty,padding=20)
+        with TemporaryDirectory() as folder:
+            source,data,render,saved=self.fixture(Path(folder),'type')
+            with self.assertRaisesRegex(ValueError,'number field'):
+                source_quad_cell(render,data['pages'][0],data['pages'][0]['slots'][0],'type',layer='full_source',content_crop_mode=NUMBER_CONTENT_MODE)
+
     def test_mapped_quad_mode_preserves_bbox_and_rejects_padding_and_proof_tamper(self):
         from unison_snapshot.oge_278t_source_quad_cells import DETECTION_QUAD_MODE
         for overhang in (0,1):
