@@ -1,0 +1,1009 @@
+
+{
+    "draw":111,
+    "recordsTotal":16746,
+    "recordsFiltered":16746,
+    "data":
+    [
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/DFCA2369853AF889852588A4002EBB8B\/$FILE\/Carlos-A-Monje-2022-278.pdf'>Annual (2022)<\/a>",
+          "name":"Monje, Carlos A",
+          "agency":"Department of Transportation",
+          "title":"Under Secretary for Policy",
+          "level":"Level II",
+          "docDate":"2022-08-20T04:30:26",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/8D3EEEE7C7EDA1A6852588A3002EBEEE\/$FILE\/Ritz%2C%20Kevin%20G.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Ritz, Kevin G",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Western District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:35",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/EFE2B28653685DCE852588A3002EBECF\/$FILE\/Leventis%2C%20Henry%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Leventis, Henry",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Middle District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:35",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/681E5EDCF99B6E2E852588A3002EBEA3\/$FILE\/Crane%2C%20David%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Crane, David",
+          "agency":"Department of Energy",
+          "title":"Under Secretary",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:34",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Talbert'>Request this Document<\/a>)",
+          "name":"Talbert, Phillip A",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney California Eastern District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:31",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ritz'>Request this Document<\/a>)",
+          "name":"Ritz, Kevin G",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Western District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:29",
+          "amended":""
+      },
+      
+      {
+          "type":"New Entrant (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Mizer'>Request this Document<\/a>)",
+          "name":"Mizer, Benjamin",
+          "agency":"Office of Personnel Management",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:26",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=McCord'>Request this Document<\/a>)",
+          "name":"McCord, Michael J",
+          "agency":"Department of Defense\/Office of The Secretary",
+          "title":"Under Secretary for Comptroller (2)",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:25",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Leventis'>Request this Document<\/a>)",
+          "name":"Leventis, Henry",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Tennessee Middle District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:23",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kavanaugh'>Request this Document<\/a>)",
+          "name":"Kavanaugh, Christopher",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Virginia Western District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Freedman'>Request this Document<\/a>)",
+          "name":"Freedman, Carla",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney New York Northern District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:17",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Brown'>Request this Document<\/a>)",
+          "name":"Brown, Nicholas",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Washington Western District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:13",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Aber'>Request this Document<\/a>)",
+          "name":"Aber, Jessica D",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Virginia Eastern District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:30:11",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/B59E421798A0ACF5852588A3002C0C5D\/$FILE\/Crowe%2C%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Crowe, Rachelle",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Illinois Southern District",
+          "level":"n\/a",
+          "docDate":"2022-08-19T04:01:07",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C661AAB0EC52E3BA852588A2002EBF03\/$FILE\/Shriver%2C%20Robert%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Shriver, Robert",
+          "agency":"Office of Personnel Management",
+          "title":"Deputy Director",
+          "level":"n\/a",
+          "docDate":"2022-08-18T04:30:35",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Shriver'>Request this Document<\/a>)",
+          "name":"Shriver, Robert",
+          "agency":"Office of Personnel Management",
+          "title":"Deputy Director",
+          "level":"n\/a",
+          "docDate":"2022-08-18T04:30:31",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/27CB29009E9DF159852588A1002C0F89\/$FILE\/Jorge%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Jorge, Maria F",
+          "agency":"Inter-American Development Bank",
+          "title":"U.S. Alternate Executive Director",
+          "level":"n\/a",
+          "docDate":"2022-08-17T04:01:15",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-156 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Yuan'>Request this Document<\/a>)",
+          "name":"Yuan, Sharon H.",
+          "agency":"Department of Commerce",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2022-08-17T03:15:04",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-154 & 155 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cotton'>Request this Document<\/a>)",
+          "name":"Cotton, Rachel",
+          "agency":"White House Office",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2022-08-17T03:15:03",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-166 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Leventhal'>Request this Document<\/a>)",
+          "name":"Leventhal, Alan",
+          "agency":"Department of State",
+          "title":"Ambassador to Denmark",
+          "level":"n\/a",
+          "docDate":"2022-08-17T03:15:03",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/4F06848F7072D2F0852588A0002EC86E\/$FILE\/Sanchez%2C%20Juan%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Sanchez, Juan",
+          "agency":"Southwest Border Regional Commission",
+          "title":"Federal Cochairperson",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:30:59",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/B340E5AB472F40D6852588A0002EC808\/$FILE\/Carter%2C%20Almo%20Jean%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Carter, Almo Jean",
+          "agency":"Department of Justice",
+          "title":"Commissioner, U.S. Parole Commission",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:30:58",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Sanchez'>Request this Document<\/a>)",
+          "name":"Sanchez, Juan",
+          "agency":"Southwest Border Regional Commission",
+          "title":"Federal Cochairperson",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:30:53",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7F6BB79A09810C31852588A0002C19D9\/$FILE\/Gordon%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Gordon, Julia",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Assistant Secretary for Housing-Federal Housing Commissioner",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:01:42",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/95C34EA63D896B9C852588A0002C19A3\/$FILE\/Gonzales%20(Rebecca)%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Gonzales, Rebecca E",
+          "agency":"Department of State",
+          "title":"Director, Office of Foreign Missions",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:01:41",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/B4F45612CB140EAB852588A0002C18B7\/$FILE\/Gibson%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Gibson, Ventris",
+          "agency":"Department of The Treasury",
+          "title":"Director of the Mint",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:01:39",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/25F84DED15CCF38E852588A0002C14A8\/$FILE\/Bagenstos%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Bagenstos, Samuel R",
+          "agency":"Department of Health and Human Services",
+          "title":"General Counsel",
+          "level":"n\/a",
+          "docDate":"2022-08-16T04:01:28",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/19B07F12AF1608458525889D002EC8D1\/$FILE\/Shogan%2C%20Colleen%20%20AMENDEDfinalEA.pdf'>Ethics Agreement<\/a> (Amended 08\/11\/2022)",
+          "name":"Shogan, Colleen",
+          "agency":"National Archives and Records Administration",
+          "title":"Archivist of the United States",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:31:00",
+          "amended":"2022-08-11T00:00:00"
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Walther'>Request this Document<\/a>)",
+          "name":"Walther, Steven T",
+          "agency":"Federal Election Commission",
+          "title":"Commissioner 2",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:58",
+          "amended":""
+      },
+      
+      {
+          "type":"Nominee 278 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Shogan'>Request this Document<\/a>) (Amended 08\/11\/2022)",
+          "name":"Shogan, Colleen",
+          "agency":"National Archives and Records Administration",
+          "title":"Archivist of the United States",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:55",
+          "amended":"2022-08-11T00:00:00"
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Oliver%20Davis'>Request this Document<\/a>)",
+          "name":"Oliver Davis, Valeria Rae",
+          "agency":"Department of Housing and Urban Development",
+          "title":"Inspector General",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:52",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Medina'>Request this Document<\/a>)",
+          "name":"Medina, Monica",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Oceans & International Environmental & Science Affairs",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:50",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kemper'>Request this Document<\/a>)",
+          "name":"Kemper, Rufus C",
+          "agency":"Institute of Museum and Library Services",
+          "title":"Director",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:46",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jagadesan'>Request this Document<\/a>)",
+          "name":"Jagadesan, Dev",
+          "agency":"U.S. International Development Finance Corporation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:45",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Chorle'>Request this Document<\/a>)",
+          "name":"Chorle, Erhard R",
+          "agency":"Railroad Retirement Board",
+          "title":"Chairman",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:40",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Cossa'>Request this Document<\/a>)",
+          "name":"Cossa, John G",
+          "agency":"Federal Permitting Improvement Steering Council",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:40",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Bianchi'>Request this Document<\/a>)",
+          "name":"Bianchi, Sarah",
+          "agency":"Office of The Us Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:30:39",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/693A581D05B84A948525889D002C13E6\/$FILE\/Bianchi%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Bianchi, Sarah",
+          "agency":"Office of the US Trade Representative",
+          "title":"Deputy U.S. Trade Representative",
+          "level":"n\/a",
+          "docDate":"2022-08-13T04:01:26",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/D8E46B1257346B208525889B002ECCDC\/$FILE\/Weiner%2C%20Richard%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Weiner, Richard",
+          "agency":"Department of The Treasury",
+          "title":"U.S. Executive Director, European Bank for Reconstruction & Development",
+          "level":"n\/a",
+          "docDate":"2022-08-11T04:31:11",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hill'>Request this Document<\/a>)",
+          "name":"Hill, Christopher R",
+          "agency":"Department of State",
+          "title":"Ambassador to Serbia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-11T04:30:52",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/C5A02AB1AD111B698525889B002C1E30\/$FILE\/Fois%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Fois, Andrew",
+          "agency":"Administrative Conference of The United States",
+          "title":"Chairman",
+          "level":"n\/a",
+          "docDate":"2022-08-11T04:01:53",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lausch'>Request this Document<\/a>)",
+          "name":"Lausch, John",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Illinois Northern District",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ison'>Request this Document<\/a>)",
+          "name":"Ison, Dawn",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Michigan Eastern District",
+          "level":"n\/a",
+          "docDate":"2022-08-10T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6AC26863324E4A8785258899002C298E\/$FILE\/Thompson%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Thompson, Dean R",
+          "agency":"Department of State",
+          "title":"Ambassador to Nepal (Federal Democratic Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:02:22",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/6FA2C1C2DBC832D685258899002C26FE\/$FILE\/Rosenblum%20EA%20Certification%20.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Rosenblum, Daniel N",
+          "agency":"Department of State",
+          "title":"Ambassador to Kazakhstan (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:02:15",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/245535FE196A950D85258899002C2371\/$FILE\/Henick%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Henick, Jonathan D",
+          "agency":"Department of State",
+          "title":"Ambassador to Uzbekistan (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:02:06",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/22A7A695E69FADA585258899002C22C0\/$FILE\/Gonzales%20(Michael)%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Gonzales, Michael C",
+          "agency":"Department of State",
+          "title":"Ambassador to Zambia (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:02:04",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/EF1031798A87980685258899002C20C9\/$FILE\/Carlson%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Carlson, MaryKay",
+          "agency":"Department of State",
+          "title":"Ambassador to Philippines (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:01:59",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/7FFE186C28F95FFB85258899002C204C\/$FILE\/Buangan%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Buangan, Richard L",
+          "agency":"Department of State",
+          "title":"Ambassador to Mongolia",
+          "level":"n\/a",
+          "docDate":"2022-08-09T04:01:58",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-149, 150 & 151 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Hartley'>Request this Document<\/a>)",
+          "name":"Hartley, Jane D",
+          "agency":"Department of State",
+          "title":"Ambassador to United Kingdom of Great Britain & Northern Ireland",
+          "level":"n\/a",
+          "docDate":"2022-08-09T03:15:55",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2CD67A45443EBC8585258896002ED768\/$FILE\/Looman%2C%20Jessica%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Looman, Jessica",
+          "agency":"Department of Labor",
+          "title":"Administrator, Wage and Hour Division",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:38",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/54648B89D666B95885258896002ED7B7\/$FILE\/Yon%2C%20Hugo%20Y.%20%20finalEA.pdf'>Ethics Agreement<\/a>",
+          "name":"Yon, Hugo",
+          "agency":"Department of State",
+          "title":"Ambassador to Maldives (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:38",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ross'>Request this Document<\/a>)",
+          "name":"Ross, Patricia",
+          "agency":"Department of Veterans Affairs",
+          "title":"Assistant Secretary for Congressional & Legislative Affairs",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:32",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Montoya'>Request this Document<\/a>)",
+          "name":"Montoya, Ryan",
+          "agency":"White House Office",
+          "title":"Deputy Assistant to the President & Director of Scheduling and Advance",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:27",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Liang'>Request this Document<\/a>)",
+          "name":"Liang, Jean N",
+          "agency":"Department of The Treasury",
+          "title":"Under Secretary for Domestic Finance",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:24",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kim'>Request this Document<\/a>)",
+          "name":"Kim, Todd",
+          "agency":"Department of Justice",
+          "title":"Assistant Attorney General, Environment & Natural Resources Division",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:23",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:21",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jaddou'>Request this Document<\/a>)",
+          "name":"Jaddou, Ur",
+          "agency":"Department of Homeland Security",
+          "title":"Director, U.S. Citizenship & Immigration Services",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:21",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Ihlenfeld'>Request this Document<\/a>)",
+          "name":"Ihlenfeld, William J",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney West Virginia Northern District 2",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:20",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Harris'>Request this Document<\/a>)",
+          "name":"Harris, Gregory",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Illinois Central District",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:19",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Graham'>Request this Document<\/a>)",
+          "name":"Graham, Michael E",
+          "agency":"National Transportation Safety Board",
+          "title":"Member",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:18",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Finegan'>Request this Document<\/a>)",
+          "name":"Finegan, Philip C",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Colorado",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Finegan'>Request this Document<\/a>)",
+          "name":"Finegan, Philip C",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Colorado",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Finegan'>Request this Document<\/a>)",
+          "name":"Finegan, Philip C",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Colorado",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Finegan'>Request this Document<\/a>)",
+          "name":"Finegan, Philip C",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Colorado",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:31:17",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/B85394F5E623521585258896002C2742\/$FILE\/Higgins%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Higgins, Trina",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Utah",
+          "level":"n\/a",
+          "docDate":"2022-08-06T04:02:16",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-146 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Gindhart'>Request this Document<\/a>)",
+          "name":"Gindhart, Joseph",
+          "agency":"Department of Health and Human Services",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2022-08-06T03:15:58",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-147 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Miller'>Request this Document<\/a>)",
+          "name":"Miller, Max",
+          "agency":"Federal Trade Commission",
+          "title":"Certificate of Divestiture",
+          "level":"n\/a",
+          "docDate":"2022-08-06T03:15:57",
+          "amended":""
+      },
+      
+      {
+          "type":"Certificate of Divestiture OGE-2022-148 (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Jorge'>Request this Document<\/a>)",
+          "name":"Jorge, Maria F",
+          "agency":"Inter-American Development Bank",
+          "title":"U.S. Alternate Executive Director",
+          "level":"n\/a",
+          "docDate":"2022-08-06T03:15:56",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/511DFBB16F914F0585258895002C2691\/$FILE\/Goldberg%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Goldberg, Philip S",
+          "agency":"Department of State",
+          "title":"Ambassador to Korea (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-05T04:02:14",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/2AB157D6B61A60F485258894002C2CB1\/$FILE\/Wagner%20EA%20Certification%201%20of%201.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Wagner, Alex",
+          "agency":"Department of The Air Force",
+          "title":"Assistant Secretary for Manpower & Reserve Affairs",
+          "level":"n\/a",
+          "docDate":"2022-08-04T04:02:30",
+          "amended":""
+      },
+      
+      {
+          "type":"<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/PAS+Index\/0ABC70C3529516EC85258894002C2816\/$FILE\/Monteiro%20EA%20Certification.pdf'>Certification of Ethics Agreement Compliance<\/a>",
+          "name":"Monteiro, Darron P",
+          "agency":"Department of Justice",
+          "title":"Director, Community Relations Service",
+          "level":"n\/a",
+          "docDate":"2022-08-04T04:02:18",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Thomas-Greenfield'>Request this Document<\/a>)",
+          "name":"Thomas-Greenfield, Linda J",
+          "agency":"Department of State",
+          "title":"Ambassador To The United Nations General Assembly",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:33",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Santoro'>Request this Document<\/a>)",
+          "name":"Santoro, Karen T",
+          "agency":"National Science Foundation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Santoro'>Request this Document<\/a>)",
+          "name":"Santoro, Karen T",
+          "agency":"National Science Foundation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Santoro'>Request this Document<\/a>)",
+          "name":"Santoro, Karen T",
+          "agency":"National Science Foundation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Santoro'>Request this Document<\/a>)",
+          "name":"Santoro, Karen T",
+          "agency":"National Science Foundation",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Sellinger'>Request this Document<\/a>)",
+          "name":"Sellinger, Philip",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney New Jersey",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:31",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Restaino'>Request this Document<\/a>)",
+          "name":"Restaino, Gary M",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Arizona",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:30",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Restaino'>Request this Document<\/a>)",
+          "name":"Restaino, Gary M",
+          "agency":"Department of Justice",
+          "title":"U.S. Attorney Arizona",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:30",
+          "amended":""
+      },
+      
+      {
+          "type":"Termination (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Russell'>Request this Document<\/a>)",
+          "name":"Russell, Catherine M",
+          "agency":"White House Office",
+          "title":"Assistant to the President & Director of Presidential Personnel",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:30",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Pommersheim'>Request this Document<\/a>)",
+          "name":"Pommersheim, John M",
+          "agency":"Department of State",
+          "title":"Ambassador to Tajikistan (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:28",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Peters'>Request this Document<\/a>)",
+          "name":"Peters, Noah",
+          "agency":"Federal Labor Relations Authority",
+          "title":"DAEO",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:27",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Miller'>Request this Document<\/a>)",
+          "name":"Miller, Scott",
+          "agency":"Department of State",
+          "title":"Ambassador to Swiss Confederation & to Principality of Liechtenstein",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:25",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lewis'>Request this Document<\/a>)",
+          "name":"Lewis, Jessica",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Political- Military Affairs",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:22",
+          "amended":""
+      },
+      
+      {
+          "type":"Annual (2022) (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Lewis'>Request this Document<\/a>)",
+          "name":"Lewis, Jessica",
+          "agency":"Department of State",
+          "title":"Assistant Secretary for Political- Military Affairs",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:22",
+          "amended":""
+      },
+      
+      {
+          "type":"278 Transaction (<a href='https:\/\/extapps2.oge.gov\/201\/Presiden.nsf\/201%20Request?OpenForm&Filer=Kaplan'>Request this Document<\/a>)",
+          "name":"Kaplan, Jonathan",
+          "agency":"Department of State",
+          "title":"Ambassador to Singapore (Republic of)",
+          "level":"n\/a",
+          "docDate":"2022-08-03T04:31:19",
+          "amended":""
+      }
+    ]
+}
