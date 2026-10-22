@@ -232,6 +232,11 @@ def _known_value(shape: dict):
     return shape.get("values", shape.get("value"))
 
 
+def _comparable_value(read: dict):
+    """Keep a disproved OCR literal visible without counting it as a valid vote."""
+    return None if read.get("comparison_eligible") is False else _known_value(read["shape"])
+
+
 def _description_text_difference(left: str, right: str) -> dict:
     """Describe literal differences; never use these labels to reconcile facts."""
     if left == right:
@@ -885,11 +890,16 @@ def _description_shape(reading: dict) -> dict:
 
 def observe_field_shapes(observations: list[dict], *,
                          secondary_observations: list[dict] | None = None, source_pdf_path=None,
-                         source_glyph_mode: str | None = None) -> dict:
+                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations:
         raise ValueError("expected saved 278-T raster slot observations v2/v3")
     from .oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
+    from .oge_278t_source_date_sequence_fields import MODE as SEQUENCE_MODE
+    if source_date_sequence_mode not in (None, SEQUENCE_MODE):
+        raise ValueError("unsupported source date sequence mode")
+    if source_date_sequence_mode and source_pdf_path is None:
+        raise ValueError("source date sequence requires original PDF")
     if source_glyph_mode not in (None, SOURCE_GLYPH_MODE):
         raise ValueError("unsupported source glyph field mode")
     if source_glyph_mode and source_pdf_path is None:
@@ -994,6 +1004,9 @@ def observe_field_shapes(observations: list[dict], *,
     if source_glyph_mode:
         from .oge_278t_source_glyph_fields import attach_source_glyph_dates
         attach_source_glyph_dates(result, observations, source_pdf_path=source_pdf_path)
+    if source_date_sequence_mode:
+        from .oge_278t_source_date_sequence_fields import attach_source_date_sequences
+        attach_source_date_sequences(result,observations,source_pdf_path=source_pdf_path)
     return result
 
 
@@ -1208,7 +1221,7 @@ def _complete_secondary_geometry(read: dict, *, field: str, slot: dict, page: di
     column OCR is cropped by x, not separately cropped to each physical row.
     """
     if (read.get("method") != "column_ocr" or read.get("geometry_status") != "source_bound"
-            or _known_value(read["shape"]) is None or not read.get("detections")):
+            or _comparable_value(read) is None or not read.get("detections")):
         return False
     positions = _FIELD_COLUMNS[field]
     start,end = min(positions),max(positions)+1
@@ -1288,10 +1301,10 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
         reasons.append("source_words_outside_column_model_domain")
     for field in ("description", "type", "transaction_date", "amount"):
         evidence = row["field_readings"][field]
-        recognized = [(index, read, _known_value(read["shape"]))
+        recognized = [(index, read, _comparable_value(read))
                       for index, read in enumerate(evidence["observations"])
                       if read.get("geometry_status") != "ambiguous" and
-                      _known_value(read["shape"]) is not None]
+                      _comparable_value(read) is not None]
         values = {repr(value) for _, _, value in recognized}
         if len(values) > 1:
             status = "conflicting_observations"
@@ -1359,7 +1372,7 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
 
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
                          secondary_observations: list[dict] | None = None, source_pdf_path=None,
-                         source_glyph_mode: str | None = None) -> dict:
+                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
 
     The whole-document page count must come from the bound source metadata,
@@ -1371,12 +1384,15 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     if type(document_page_count) is not int or document_page_count < 1:
         raise ValueError("bound document page count is required")
     fields = observe_field_shapes(observations, secondary_observations=secondary_observations,
-                                  source_pdf_path=source_pdf_path, source_glyph_mode=source_glyph_mode)
+                                  source_pdf_path=source_pdf_path, source_glyph_mode=source_glyph_mode,
+                                  source_date_sequence_mode=source_date_sequence_mode)
     content_rules = ("oge-278t-content-rows/v5-type-cells" if any(
         reading.get("read_mode") == "bound_single_type_cells/v1"
         for reading in secondary_observations or []) else _CONTENT_RULES)
     if source_glyph_mode:
         content_rules = "oge-278t-content-rows/v6-source-glyph-dates"
+    if source_date_sequence_mode:
+        content_rules = "oge-278t-content-rows/v7-source-date-sequences"
     sha = fields["source_sha256"]
     originals = {}
     for item in observations:

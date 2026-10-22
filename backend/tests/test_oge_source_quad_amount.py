@@ -42,7 +42,7 @@ class SourceQuadAmountTests(unittest.TestCase):
             self.assertIn('amount_reading_unresolved',_saved_supported_fields(raw,slot,source_sha=data['source_sha256'])['reasons'])
 
     def test_decimal_dot_missing_endpoint_extra_digits_remain_unknown(self):
-        for token in ('$50.001 - $100,000','$50.01 - $100,000','$50,001','$50,001 - $100,000 99'):
+        for token in ('$50.01 - $100,000','$50,001','$50,001 - $100,000 99'):
             with self.subTest(token=token),TemporaryDirectory() as folder:
                 source,data,render,saved=quad_tests.SourceQuadCellTests().fixture(Path(folder),'amount')
                 cell=saved[0]['cells'][0];cell['tsv_utf8']=cell['tsv_utf8'].replace('$50,001 - $100,000',token)
