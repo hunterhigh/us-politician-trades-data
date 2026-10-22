@@ -141,6 +141,60 @@ def observe_holding_pages(pdf_path: Path, *, source_sha256: str,
             "method": "selected_archived_native_tables_no_new_ocr", "pages": pages}
 
 
+def verify_part7_empty_slots(pdf_path: Path, sections: dict) -> dict[str, dict]:
+    """Verify already located number-only slots against original PDF cells.
+
+    Require matching source text, a unique printed locator in a five-column
+    transaction table, and complete empty cells. Missing text proves nothing.
+    """
+    sha = sections.get("source_sha256")
+    if not isinstance(sha, str) or not _SHA.fullmatch(sha) or hashlib.sha256(Path(pdf_path).read_bytes()).hexdigest() != sha:
+        raise OgeCatalogError("annual blank-slot original differs from archived source")
+    selected = [slot for slot in sections.get("part7_slots", [])
+                if re.fullmatch(r"\s*[1-9]\d*\.?\s*", " ".join(slot.get("raw_lines", [])))]
+    if not selected:
+        return {}
+    import pdfplumber
+    result = {}
+    with pdfplumber.open(pdf_path) as document:
+        if len(document.pages) != sections.get("page_count"):
+            raise OgeCatalogError("annual blank-slot page inventory differs from original")
+        for number in sorted({slot["page_number"] for slot in selected}):
+            if type(number) is not int or not 1 <= number <= len(document.pages):
+                raise OgeCatalogError("annual blank slot is outside original")
+            page = document.pages[number - 1]
+            text_sha = hashlib.sha256((page.extract_text() or "").encode()).hexdigest()
+            matches = {}
+            for table in page.find_tables():
+                contents = table.extract()
+                header = next((i for i, row in enumerate(contents)
+                    if row == ["#", "Description", "Type", "Date", "Amount"]), None)
+                if header is None:
+                    continue
+                for cells, row in zip(contents[header + 1:], table.rows[header + 1:], strict=True):
+                    if len(cells) != 5 or any(cells[1:]):
+                        continue
+                    match = re.fullmatch(r"([1-9]\d*)\.?", str(cells[0]).strip())
+                    if match:
+                        matches.setdefault(match[1], []).append((row, cells[0]))
+            for slot in (s for s in selected if s["page_number"] == number):
+                if slot.get("source_page_text_sha256") != text_sha:
+                    raise OgeCatalogError("annual blank-slot source page text differs from original")
+                rows = matches.get(slot.get("printed_number"), [])
+                if len(rows) != 1:
+                    continue
+                row, printed = rows[0]
+                locator = row.cells[0]
+                if locator is None or not locator[1] <= slot["top"] < slot["bottom"] <= locator[3]:
+                    continue
+                proof = _native_empty_cells(page, row.cells[1:])
+                if proof.get("status") == "source_objects_verified_empty":
+                    result[slot["slot_id"]] = {**proof, "source_sha256": sha,
+                        "source_page_text_sha256": text_sha, "page_number": number,
+                        "printed_number": str(printed), "slot_id": slot["slot_id"]}
+    return result
+
+
 def _line_text(line: dict) -> str:
     return " ".join(str(line.get("text", "")).split())
 

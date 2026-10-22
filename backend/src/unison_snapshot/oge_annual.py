@@ -104,7 +104,8 @@ def read_annual_cover_dates(text: str, *, source_sha256: str) -> dict:
 def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metadata: dict,
                                  holding_page_observations: dict | None = None,
                                  native_cover_observation: dict | None = None,
-                                 archived_pdf_path: Path | None = None) -> dict:
+                                 archived_pdf_path: Path | None = None,
+                                 verify_transaction_blank_slots: bool = False) -> dict:
     """Reuse saved scan text, preserving missing sections instead of new OCR."""
     import json
     from types import SimpleNamespace
@@ -127,7 +128,15 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
             pages[1].get("page_text_sha256") != cover.get("native_text_sha256") or
             len(pages) != len(sections["pages"])):
         raise OgeCatalogError("saved annual scan page inventory is not closed")
-    transactions, quarantined = [], []
+    if type(verify_transaction_blank_slots) is not bool:
+        raise OgeCatalogError("annual blank-slot verification flag must be boolean")
+    blank_proofs = {}
+    if verify_transaction_blank_slots:
+        if archived_pdf_path is None:
+            raise OgeCatalogError("annual blank-slot verification requires original source replay")
+        from .oge_annual_scan_sections import verify_part7_empty_slots
+        blank_proofs = verify_part7_empty_slots(Path(archived_pdf_path), sections)
+    transactions, quarantined, transaction_excluded = [], [], []
     slots = sections.get("part7_slots")
     if not isinstance(slots, list) or len(slots) != sections.get("part7_physical_slot_count"):
         raise OgeCatalogError("saved annual scan slot counts differ")
@@ -150,6 +159,12 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
         if identity != expected_id or number is None or number[1] != slot.get("printed_number"):
             raise OgeCatalogError("saved annual scan locator differs from raw source row")
         if re.fullmatch(r"\s*[1-9]\d*\.?\s*", raw):
+            if identity in blank_proofs:
+                transaction_excluded.append({"section": "part7", "page_number": slot["page_number"],
+                    "row_number": slot["printed_number"], "cells": slot["raw_lines"],
+                    "reason": "source_objects_verified_empty_template",
+                    "native_empty_cell_evidence": blank_proofs[identity]})
+                continue
             parsed, rejected = [], [_quarantine("part7", slot["page_number"], slot["raw_lines"],
                 ["empty_text_not_verified_blank"], slot.get("printed_number"))]
         else:
@@ -173,7 +188,7 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                 replay_cover["cover_text_sha256"] != cover["native_text_sha256"]):
             raise OgeCatalogError("annual native cover differs from original or saved cover inventory")
         cover_dates = read_annual_cover_dates(replay_cover["cover_text"], source_sha256=sha)
-    holdings, excluded, observed_pages = [], [], set()
+    holdings, excluded, observed_pages = [], transaction_excluded, set()
     if holding_page_observations is not None:
         from .oge_annual_scan_sections import observe_holding_pages
         if archived_pdf_path is None or not isinstance(holding_page_observations, dict):

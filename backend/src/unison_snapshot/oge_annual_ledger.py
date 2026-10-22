@@ -67,12 +67,19 @@ def _detected_rows(extraction: dict, *, qualified: bool = False) -> list[tuple[s
     return result
 
 
-def annual_filing_date_evidence(extraction: dict, scan_dates: dict | None = None) -> dict:
+def annual_filing_date_evidence(extraction: dict, scan_dates: dict | None = None,
+                                handwritten_date_input: dict | None = None) -> dict:
     """Use actual filer-role text; ignore receipt and fixed visual date values."""
+    handwritten = None
+    if handwritten_date_input is not None:
+        from .oge_handwritten_date import replay_annual_filer_date
+        handwritten = replay_annual_filer_date(extraction, handwritten_date_input)
     cover = extraction.get("cover_date_evidence")
     if isinstance(cover, dict) and isinstance(cover.get("cover_text"), str):
         replay = read_annual_cover_dates(cover.get("cover_text", ""), source_sha256=extraction["source_sha256"])
         if replay == cover and replay["filed_at"] is not None and replay["filed_at"] == extraction.get("filing_date"):
+            if handwritten and handwritten["date"] not in {None, replay["filed_at"]}:
+                raise ValueError("native and handwritten filer dates conflict")
             return {"date": replay["filed_at"], "method": "native_cover_roles", "source_reference": cover}
     if scan_dates is not None:
         from .oge_annual_scan_dates import FIXED_COVERS, SCHEMA as DATE_SCHEMA
@@ -105,12 +112,18 @@ def annual_filing_date_evidence(extraction: dict, scan_dates: dict | None = None
                 from .oge_annual import _date
                 values.add(_date(value))
             if len(values) == 1 and None not in values:
+                if handwritten and handwritten["date"] not in {None, next(iter(values))}:
+                    raise ValueError("embedded and handwritten filer dates conflict")
                 return {"date": next(iter(values)), "method": "automatic_embedded_text_in_existing_filer_region",
                     "source_reference": {"schema_version": scan_dates["schema_version"],
                         "source_sha256": extraction["source_sha256"], "source_document_id": extraction["source_document_id"],
                         "page_number": 1, "raw_text": raw, "raw_text_sha256": hashlib.sha256(raw.encode()).hexdigest(),
                         "region_fraction": block.get("region_fraction"),
                         "observation_sha256": hashlib.sha256(json.dumps(scan_dates, sort_keys=True, separators=(",", ":")).encode()).hexdigest()}}
+    if handwritten is not None:
+        if extraction.get("filing_date") not in {None, handwritten["date"]}:
+            raise ValueError("extraction and handwritten filer dates conflict")
+        return handwritten
     return {"date": None, "method": "filer_date_unresolved_receipt_not_substituted"}
 
 
@@ -260,7 +273,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                                    code_commit: str, started_at: str,
                                    completed_at: str | None = None,
                                    trigger: str = "replay", qualified: bool = False,
-                                   scan_date_observation: dict | None = None) -> dict:
+                                   scan_date_observation: dict | None = None,
+                                   handwritten_date_input: dict | None = None) -> dict:
     """Return validated rows and manifest; never claim full-report completeness."""
     _validate_source(extraction)
     if qualified and (type(extraction.get("annual_year")) is not int or
@@ -271,6 +285,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
     document_id = extraction["source_document_id"]
     parser_version = extraction["parser_version"]
     rules_version = QUALIFIED_RULES_VERSION if qualified else RULES_VERSION
+    if qualified and handwritten_date_input is not None:
+        rules_version += "+blue-date-v1"
     parser_id = "oge-278e-tables"
     layout = "oge-278e-tables:" + parser_version
     key = idempotency_key(source_id="oge", source_sha256=source_sha,
@@ -281,7 +297,7 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
                  (qualified and row["page_number"] > extraction["page_count"])]
     if qualified:
         detected = [(collection, row) for collection, row in detected if row not in unlocated]
-    filed = annual_filing_date_evidence(extraction, scan_date_observation) if qualified else None
+    filed = annual_filing_date_evidence(extraction, scan_date_observation, handwritten_date_input) if qualified else None
     parent_numbers = {row.get("row_number") for collection, row in detected
                       if row["section"] == "part6" and collection == "quarantined" and
                       isinstance(row.get("row_number"), str)}

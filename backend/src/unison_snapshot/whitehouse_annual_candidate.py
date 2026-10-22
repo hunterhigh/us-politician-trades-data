@@ -250,8 +250,10 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
     extractions = inputs.get("extractions") if isinstance(inputs, dict) else None
     metadata = inputs.get("archive_metadata_by_document", {}) if isinstance(inputs, dict) else None
     dates = inputs.get("scan_date_observations_by_document", {}) if isinstance(inputs, dict) else None
+    handwritten_dates = inputs.get("handwritten_date_inputs_by_document", {}) if isinstance(inputs, dict) else None
     saved = inputs.get("saved_scan_observations_by_document", {}) if isinstance(inputs, dict) else None
-    if not isinstance(extractions, list) or not isinstance(metadata, dict) or not isinstance(dates, dict) or not isinstance(saved, dict):
+    if (not isinstance(extractions, list) or not isinstance(metadata, dict) or not isinstance(dates, dict)
+            or not isinstance(saved, dict) or not isinstance(handwritten_dates, dict)):
         raise OgeCatalogError("OGE annual overlay input must contain extractions and source metadata")
     amendments = inputs.get("amendment_letter_observations_by_document", {})
     if not isinstance(amendments, dict):
@@ -265,7 +267,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             extractions.append(materialize_saved_annual_scan(bundle["cover_observation"], bundle["section_observation"],
                 archive_metadata=metadata[document], holding_page_observations=bundle.get("holding_page_observations"),
                 native_cover_observation=bundle.get("native_cover_observation"),
-                archived_pdf_path=bundle.get("archived_pdf_path")))
+                archived_pdf_path=bundle.get("archived_pdf_path"),
+                verify_transaction_blank_slots=bundle.get("verify_transaction_blank_slots", False)))
     result = deepcopy(candidate)
     people = {row["id"]: row for row in result["people"]}
     prior = {row["id"]: row for row in result["reported_holdings"]}
@@ -310,7 +313,8 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             raise OgeCatalogError("OGE annual overlay metadata differs from extraction")
         ledger = build_oge_annual_shadow_ledger(extraction, run_id="oge-annual-candidate",
             code_commit=inputs["code_commit"], started_at=inputs["started_at"], qualified=True,
-            scan_date_observation=dates.get(document_id))
+            scan_date_observation=dates.get(document_id),
+            handwritten_date_input=handwritten_dates.get(document_id))
         if canonical_documents.get(document_id, document_id) != document_id and document_id not in copy_conflicts:
             reports.append({"document_id": document_id, "source_sha256": extraction["source_sha256"],
                 "added_holding_count": 0, "added_transaction_count": 0,
