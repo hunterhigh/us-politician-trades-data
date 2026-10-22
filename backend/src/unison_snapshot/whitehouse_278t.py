@@ -1055,8 +1055,8 @@ def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expe
 def _generic_cover_identity(text: str) -> tuple:
     name, position, agency, role_raw, reasons = _filer_information(text)
     if name is None:
-        info = re.search(r"Filer(?:'|’)?s\s+Information\s*\n(.*?)"
-                         r"(?=^\s*(?:Filer(?:'|’)?s\s+Certification\b|Electronic\s+Signature\b|"
+        info = re.search(r"Filer(?:(?:'|’)?s)?\s+Information\s*\n(.*?)"
+                         r"(?=^\s*(?:Filer(?:(?:'|’)?s)?\s+Certification\b|Electronic\s+Signature\b|"
                          r"Agency\s+Ethics\s+Official\b))", text, re.I|re.S|re.M)
         lines=[line.strip() for line in info[1].splitlines() if line.strip()] if info else []
         # Paper covers use a labelled multi-column identity table. Its header

@@ -22,6 +22,14 @@ FIXTURE = Path(__file__).parent / "fixtures/oge_annual_harris_2023_native_holdin
 
 
 class NativeAnnualHoldingTests(unittest.TestCase):
+    def setUp(self):
+        # These cached-row contracts mock source access and have no original
+        # PDF geometry. They cannot claim the separately tested coverage proof.
+        coverage = patch("unison_snapshot.oge_annual_native_coverage.observe_native_holding_coverage",
+                         return_value={})
+        coverage.start()
+        self.addCleanup(coverage.stop)
+
     def setup_inputs(self):
         raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
         doc, sha = raw["source_document_id"], raw["source_sha256"]
@@ -86,7 +94,7 @@ class NativeAnnualHoldingTests(unittest.TestCase):
             candidate, audit = overlay_oge_annual_candidate(base(), request)
         self.assertEqual(candidate["reported_holdings"], [])
         report = audit["reports"][0]
-        self.assertEqual(report["report_reasons"], ["partial_report_policy_pending"])
+        self.assertEqual(report["report_reasons"], ["holding_coverage_or_field_evidence_incomplete"])
         self.assertIsNone(report["filing_date_evidence"]["date"])
         observed = [row for row in report["row_qualification"] if "saved_native_reference" in row]
         self.assertTrue(observed)

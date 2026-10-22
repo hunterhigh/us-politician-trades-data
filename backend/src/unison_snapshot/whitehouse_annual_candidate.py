@@ -336,7 +336,7 @@ def overlay_oge_annual_candidate(candidate: dict, inputs: dict) -> tuple[dict, d
             report_reasons.append("filing_exceeds_cutoff")
         holding_reasons = []
         if not ledger["holding_coverage_official_unknown_only"]:
-            holding_reasons.append("partial_report_policy_pending")
+            holding_reasons.append("holding_coverage_or_field_evidence_incomplete")
         amendment = None
         target_rows = []
         if archive.get("amended_label"):

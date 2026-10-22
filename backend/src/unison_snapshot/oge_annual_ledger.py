@@ -142,17 +142,34 @@ def official_unknown_holding_value(row: dict) -> bool:
 
 
 def annual_holdings_coverage_complete(extraction: dict, *, allow_official_unknown: bool = False) -> bool:
+    from .oge_annual_native_coverage import (SCHEMA as INVENTORY_SCHEMA, METHOD as INVENTORY_METHOD,
+                                           extracted_cells, inventory_sha256)
     evidence = extraction.get("source_coverage_evidence", {})
     pages = evidence.get("pages")
     count = extraction.get("page_count")
     if (extraction.get("parser_version") != QUALIFIED_PARSER_VERSION or
-            evidence.get("schema_version") != "oge-278e-native-page-roles/v1" or
+            (evidence.get("schema_version"), evidence.get("method")) not in {
+                ("oge-278e-native-page-roles/v1", "same_pass_full_archived_pdf_native_text_and_tables"),
+                (INVENTORY_SCHEMA, INVENTORY_METHOD)} or
             evidence.get("source_sha256") != extraction["source_sha256"] or
-            evidence.get("method") != "same_pass_full_archived_pdf_native_text_and_tables" or
             type(count) is not int or evidence.get("page_count") != count or
             not isinstance(pages, list) or [row.get("page_number") for row in pages] != list(range(1, count + 1))):
         return False
     holding_parts = {"part2", "part5", "part6"}
+    if evidence.get("schema_version") == INVENTORY_SCHEMA:
+        for page in pages:
+            if page.get("section") not in holding_parts:
+                continue
+            inventory = page.get("holding_inventory", {})
+            cells = extracted_cells(extraction, page["page_number"], page["section"])
+            if (inventory.get("reasons") != [] or
+                    type(inventory.get("source_row_count")) is not int or
+                    type(inventory.get("disposition_row_count")) is not int or
+                    inventory["source_row_count"] != len(cells) or
+                    inventory["disposition_row_count"] != len(cells) or
+                    inventory.get("source_cells_sha256") != inventory_sha256(cells) or
+                    inventory.get("disposition_cells_sha256") != inventory_sha256(cells)):
+                return False
     if not holding_parts <= {row.get("section") for row in pages if row.get("role") == "target_section"}:
         return False
     holding_rows = [row for collection in ("holdings", "excluded", "quarantined") for row in extraction[collection]
@@ -287,6 +304,8 @@ def build_oge_annual_shadow_ledger(extraction: dict, *, run_id: str,
     rules_version = QUALIFIED_RULES_VERSION if qualified else RULES_VERSION
     if qualified and handwritten_date_input is not None:
         rules_version += "+blue-date-v1"
+    if qualified and extraction.get("source_coverage_evidence", {}).get("schema_version") == "oge-278e-native-holding-coverage/v1":
+        rules_version += "+native-holding-inventory-v1"
     parser_id = "oge-278e-tables"
     layout = "oge-278e-tables:" + parser_version
     key = idempotency_key(source_id="oge", source_sha256=source_sha,

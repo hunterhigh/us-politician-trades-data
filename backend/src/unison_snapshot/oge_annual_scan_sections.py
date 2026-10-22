@@ -47,6 +47,10 @@ def _native_empty_cells(page, cells: list) -> dict:
         return {"status": "unknown", "reason": "cell_geometry_overlaps"}
     rules = [bounds(obj) for obj in page.objects.get("rect", [])
              if obj.get("fill") is True and obj.get("stroke") is False and bounds(obj) is not None]
+    # pdfplumber's snapped cell coordinates can differ from the original rule
+    # face by sub-millipoint rounding. Only matching uses this tolerance; the
+    # inspected interiors still end at the original, unexpanded rule faces.
+    precision = .001
     interiors = []
     for box in boxes:
         # Internal rules can terminate on the inside face of the outer frame.
@@ -55,15 +59,15 @@ def _native_empty_cells(page, cells: list) -> dict:
         # below, rather than extending source lines to snapped centre points.
         vertical = [rule for rule in rules if 0 < rule[2]-rule[0] <= 2 and
                     rule[1] < box[3] and rule[3] > box[1]]
-        left = [rule for rule in vertical if rule[0] <= box[0] <= rule[2]]
-        right = [rule for rule in vertical if rule[0] <= box[2] <= rule[2]]
+        left = [rule for rule in vertical if rule[0] - precision <= box[0] <= rule[2] + precision]
+        right = [rule for rule in vertical if rule[0] - precision <= box[2] <= rule[2] + precision]
         if len(left) != 1 or len(right) != 1:
             return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
         x0, x1 = left[0][2], right[0][0]
         horizontal = [rule for rule in rules if 0 < rule[3]-rule[1] <= 2 and
-                      rule[0] <= x0 and rule[2] >= x1]
-        top = [rule for rule in horizontal if rule[1] <= box[1] <= rule[3]]
-        bottom = [rule for rule in horizontal if rule[1] <= box[3] <= rule[3]]
+                      rule[0] <= x0 + precision and rule[2] >= x1 - precision]
+        top = [rule for rule in horizontal if rule[1] - precision <= box[1] <= rule[3] + precision]
+        bottom = [rule for rule in horizontal if rule[1] - precision <= box[3] <= rule[3] + precision]
         if len(top) != 1 or len(bottom) != 1:
             return {"status": "unknown", "reason": "native_boundary_rules_unresolved", "cell_boxes": boxes}
         if any(rule[1] > top[0][3] or rule[3] < bottom[0][1] for rule in (left[0], right[0])):

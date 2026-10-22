@@ -94,7 +94,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
                 self.assertFalse(candidate['reported_holdings'])
                 self.assertNotIn('holding_report_coverage', candidate['meta'])
                 self.assertEqual(len(candidate['transactions']), 1)
-                self.assertIn('partial_report_policy_pending', audit['reports'][0]['report_reasons'])
+                self.assertIn('holding_coverage_or_field_evidence_incomplete', audit['reports'][0]['report_reasons'])
 
     def test_previous_period_values_do_not_enter_current_gap_total(self):
         extraction,(candidate,_)=complete_case()

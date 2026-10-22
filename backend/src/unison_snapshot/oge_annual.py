@@ -235,7 +235,7 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
         if page.get("section") in {"part2", "part5", "part6"} and page["page_number"] not in observed_pages:
             quarantined.append(_quarantine(page["section"], page["page_number"], [],
                                            ["saved_section_summary_has_no_field_rows"]))
-    return {"schema_version": SCHEMA, "parser_version": QUALIFIED_PARSER_VERSION,
+    result = {"schema_version": SCHEMA, "parser_version": QUALIFIED_PARSER_VERSION,
         "source_id": "oge", "source_document_id": document, "source_sha256": sha,
         "source_url": archive_metadata["document_url"], "filer_name": archive_metadata["filer_name"],
         "evidence_archive_path": archive_metadata["archive_path"], "form_type": "278e", "report_type": "Annual",
@@ -250,6 +250,15 @@ def materialize_saved_annual_scan(cover: dict, sections: dict, *, archive_metada
                                     "sections": hashlib.sha256(json.dumps(sections, sort_keys=True).encode()).hexdigest()},
         **({"saved_native_holding_observations": holding_page_observations} if holding_page_observations is not None else {}),
         "requires_cross_report_dedup": True, "holding_coverage_status": "partial_unverified"}
+    if holding_page_observations is not None:
+        from .oge_annual_native_coverage import observe_native_holding_coverage
+        result["source_coverage_evidence"] = observe_native_holding_coverage(Path(archived_pdf_path), result)
+        from .oge_annual_ledger import annual_holdings_coverage_complete
+        if annual_holdings_coverage_complete(result):
+            result["holding_coverage_status"] = "complete"
+        elif annual_holdings_coverage_complete(result, allow_official_unknown=True):
+            result["holding_coverage_status"] = "partial_official_unknown_value"
+    return result
 
 
 def _date(value: str) -> str | None:

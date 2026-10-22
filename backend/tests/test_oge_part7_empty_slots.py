@@ -57,6 +57,16 @@ class Part7BlankSlotTests(unittest.TestCase):
             self.assertFalse(self.observe(), kind)
             del self.page.objects[kind]
 
+    def test_rounding_at_a_rule_face_keeps_the_original_inspected_interior(self):
+        before = self.observe()["source-slot"]["native_interiors"]
+        self.cells[:] = [(x0, y0, x1, 30.5005) for x0, y0, x1, _ in self.cells]
+        self.assertEqual(self.observe()["source-slot"]["native_interiors"], before)
+        self.page.objects["char"] = [{"x0": 12, "top": 29.49, "x1": 13, "bottom": 29.5}]
+        self.assertFalse(self.observe())
+        del self.page.objects["char"]
+        self.cells[:] = [(x0, y0, x1, 30.6) for x0, y0, x1, _ in self.cells]
+        self.assertFalse(self.observe())
+
     def test_duplicate_number_and_shifted_locator_stay_unresolved(self):
         self.rows.append(self.rows[-1])
         self.text_rows.append(self.text_rows[-1])

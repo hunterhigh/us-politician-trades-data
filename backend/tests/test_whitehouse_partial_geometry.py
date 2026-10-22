@@ -19,7 +19,7 @@ import test_whitehouse_278t_saved_ocr as saved_ocr_tests
 from test_whitehouse_278t_generic import consume
 from unison_snapshot.oge_278t_raster_slots import _oge_2024_image_grid, _joint_horizontal_partition, _partial_header_geometry, observe_raster_slots
 from unison_snapshot.oge_278t_field_shadow import observe_content_rows
-from unison_snapshot.whitehouse_278t import (_generic_cover_dates, _saved_source_cover_resolution,
+from unison_snapshot.whitehouse_278t import (_generic_cover_dates, _generic_cover_identity, _saved_source_cover_resolution,
     generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSION, TRUMP_2026_PROFILES,
     validate_generic_whitehouse_report, materialize_saved_whitehouse_278t)
 from unison_snapshot.whitehouse_278t_audit import source_bound_filer_identity, source_bound_filing_date
@@ -228,6 +228,15 @@ class PartialGeometryTests(unittest.TestCase):
         self.assertIn('ocr_source_filer_identity_conflict',value['document_reasons'])
         self.assertIn('ocr_source_filing_date_conflict',value['document_reasons'])
         self.assertIn('ocr_source_filer_role_conflict',value['document_reasons'])
+
+    def test_identity_boundary_variants_keep_real_names_and_reject_table_headers(self):
+        for label in ["Filer Certification", "Filer's Certification", "Filers Certification", "Filer’s Certification"]:
+            with self.subTest(label=label):
+                text = f"Filer's Information\nBiden, Joseph\nVice President\n{label}\nDate: unknown\n"
+                name, position, *_ = _generic_cover_identity(text)
+                self.assertEqual((name, position), ("Biden, Joseph", "Vice President"))
+                table = f"Filer's Information\nPosition | Agency\nLast Name First Name\n{label}\nDate: unknown\n"
+                self.assertIsNone(_generic_cover_identity(table)[0])
 
     def test_same_report_formal_rows_are_preserved_without_append_or_unproved_correction(self):
         from test_whitehouse_278t_candidate import _base,_catalog

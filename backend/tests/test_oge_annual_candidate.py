@@ -152,7 +152,7 @@ class AnnualCandidateTests(unittest.TestCase):
         self.assertEqual(actual["part_counts"]["part6"]["qualified"], 1)
         result, audit = overlay_oge_annual_candidate(base(), inputs(extraction))
         self.assertEqual(result["reported_holdings"], [])
-        self.assertIn("partial_report_policy_pending", audit["reports"][0]["report_reasons"])
+        self.assertIn("holding_coverage_or_field_evidence_incomplete", audit["reports"][0]["report_reasons"])
         self.assertTrue(any("holding_value_unreadable" in row["reasons"] for row in audit["reports"][0]["row_qualification"]))
 
     def test_open_holdings_reach_candidate_without_fake_high_or_finite_marker(self):
@@ -298,7 +298,7 @@ class AnnualCandidateTests(unittest.TestCase):
         extraction["holding_coverage_status"] = "complete"
         result, audit = overlay_oge_annual_candidate(base(), inputs(extraction))
         self.assertEqual(result["reported_holdings"], [])
-        self.assertIn("partial_report_policy_pending", audit["reports"][0]["report_reasons"])
+        self.assertIn("holding_coverage_or_field_evidence_incomplete", audit["reports"][0]["report_reasons"])
 
     def test_existing_oge_holdings_survive_the_whitehouse_review_refresh(self):
         previous, _ = overlay_oge_annual_candidate(base(), inputs(source()))
