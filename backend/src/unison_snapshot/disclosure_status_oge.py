@@ -719,9 +719,10 @@ def _add_archive_state(record: dict, archives: list[dict], review: Path,
 
 def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: list[dict], *,
                       direct_annual_ids: frozenset[str] = frozenset()) -> None:
-    direct, _, whitehouse = scopes
+    direct, _, whitehouse = scopes[:3]
+    annual = scopes[3] if len(scopes) == 4 else None
     indexes = {scope["scope_id"]: {row["report_id"]: row for row in scope["reports"]}
-               for scope in (direct, whitehouse)}
+               for scope in [direct, whitehouse] + ([annual] if annual is not None else [])}
     for key, facts in (("publication_transaction_ids", transactions),
                        ("publication_holding_ids", holdings)):
         for fact in facts:
@@ -736,13 +737,9 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
             scope = whitehouse if is_whitehouse else direct
             report_id = _official_id(url, is_whitehouse)
             if not is_whitehouse and report_id in direct_annual_ids:
-                # These controlled archives are Form 278e, not PTRs. Keep the
-                # existing scope contract and make the uncovered binding clear.
-                unmatched_key = ("unmatched_publication_transaction_ids" if key ==
-                                 "publication_transaction_ids" else "unmatched_publication_holding_ids")
-                scope.setdefault(unmatched_key, []).append(fact["id"])
-                scope["limitations"].append("oge_direct_278e_outside_current_278t_status_scope")
-                continue
+                if annual is None:
+                    raise ValueError("archived annual facts require their annual status scope")
+                scope = annual
             if report_id is None:
                 unmatched_key = ("unmatched_publication_transaction_ids" if key ==
                                  "publication_transaction_ids" else "unmatched_publication_holding_ids")
@@ -769,6 +766,11 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
     for scope in scopes:
         scope["reports"].sort(key=lambda row: row["record_key"])
         for record in scope["reports"]:
+            expected = record.pop("_annual_qualified_formal_ids", None)
+            if expected is not None and any(not set(record.get(key, [])) <= set(expected[key])
+                    for key in ("publication_transaction_ids", "publication_holding_ids")):
+                record["publication_binding"] = "unknown"
+                record["reason_codes"].append("published_annual_id_not_in_bound_qualification")
             published_dates = set(record.pop("_published_filed_dates", []))
             if not record["filed_date"] and len(published_dates) == 1:
                 record["filed_date"] = next(iter(published_dates))
@@ -784,6 +786,109 @@ def _bind_publication(scopes: list[dict], transactions: list[dict], holdings: li
                     "unmatched_publication_holding_ids"):
             if key in scope:
                 scope[key] = sorted(set(scope[key]))
+
+
+def _build_direct_annual(archives: dict[str, list[dict]], review: Path) -> dict:
+    """Keep direct 278e facts out of PTR status; reuse the annual producer audit."""
+    observed = max((row["retrieved_at"] for values in archives.values() for row in values
+                    if isinstance(row.get("retrieved_at"), str)), default="") or None
+    scope = _scope("oge_direct_278e", {
+        "document_types": ["278e_annual"],
+        "coverage_description": "Controlled archived annual reports; full annual catalog coverage is unknown.",
+        "qualification_count_unit": "observed_annual_row_decisions",
+    }, observed, ["annual_catalog_coverage_unknown",
+                  "annual_qualified_counts_are_observed_rows_not_whole_source_physical_totals"])
+    container = _read(review / "whitehouse/annual/candidate-current.json").get("oge_annual", {})
+    reports = _rows(container, "reports") if isinstance(container, dict) and container.get(
+        "schema_version") == "oge-annual-candidate-audit/v1" else []
+    by_id = {}
+    for audit in reports:
+        document = audit.get("document_id")
+        if document in by_id:
+            raise ValueError("Annual status audit has duplicate report identities")
+        by_id[document] = audit
+    for document, versions in sorted(archives.items()):
+        urls = {row["document_url"] for row in versions}
+        record = _record(document, sorted(urls)[0], "278e_annual", "historical")
+        if len(urls) > 1:
+            record["reason_codes"].append("multiple_annual_archive_urls")
+        _add_archive_state(record, versions, review, "oge/annual/extractions", False)
+        record["qualified_holding_count"] = None
+        record["quarantine_count_unit"] = "whole_source_annual_rows_unknown"
+        audit = by_id.get(document)
+        if audit is None:
+            record["reason_codes"].append("annual_qualification_audit_unavailable")
+        elif (len(record["source_versions"]) != 1 or
+                audit.get("source_sha256") != record["source_versions"][0]):
+            record["qualification_state"] = "unknown"
+            record["reason_codes"].append("annual_qualification_source_binding_unresolved")
+        else:
+            rows = audit.get("row_qualification")
+            if not isinstance(rows, list) or not rows:
+                record["reason_codes"].append("annual_row_qualification_unavailable")
+            else:
+                candidates, formal = set(), set()
+                counts = {"transactions": 0, "holdings": 0, "quarantined": 0}
+                missing_bindings = 0
+                report_reasons = audit.get("report_reasons", [])
+                if not isinstance(report_reasons, list) or any(not isinstance(r, str) or not r for r in report_reasons):
+                    raise ValueError("Annual status report reasons are invalid")
+                reasons = set(report_reasons)
+                expected = {"publication_transaction_ids": [], "publication_holding_ids": []}
+                if audit.get("unlocated_source_issues"):
+                    reasons.add("annual_source_rows_outside_page_inventory")
+                for row in rows:
+                    candidate = row.get("candidate_id")
+                    disposition = row.get("disposition")
+                    if (not isinstance(candidate, str) or not candidate or candidate in candidates or
+                            row.get("section") not in {"part2", "part5", "part6", "part7"} or
+                            disposition not in {"qualified", "quarantined", "excluded", "unrecognized"}):
+                        raise ValueError("Annual status row decisions are invalid or duplicated")
+                    row_reasons = row.get("reasons", [])
+                    if not isinstance(row_reasons, list) or any(not isinstance(r, str) or not r for r in row_reasons):
+                        raise ValueError("Annual status row reasons are invalid")
+                    candidates.add(candidate)
+                    if disposition == "qualified":
+                        identifier = row.get("formal_id")
+                        # Part 7's existing producer uses its source-row ID as
+                        # the formal transaction ID; holdings have a separate
+                        # formal_id. Require the full source identity binding.
+                        if identifier is None and row["section"] == "part7":
+                            identity = row.get("source_row_identity_sha256")
+                            if isinstance(identity, str) and _SHA.fullmatch(identity) and candidate == "oge-annual-row:" + identity[:24]:
+                                identifier = candidate
+                        if row_reasons:
+                            raise ValueError("Annual status qualified row has blocking reasons")
+                        if identifier is None:
+                            missing_bindings += 1
+                            continue
+                        if not isinstance(identifier, str) or not identifier or identifier in formal:
+                            raise ValueError("Annual status qualified formal identities are invalid or duplicated")
+                        formal.add(identifier)
+                        counts["transactions" if row["section"] == "part7" else "holdings"] += 1
+                        expected["publication_transaction_ids" if row["section"] == "part7"
+                                 else "publication_holding_ids"].append(identifier)
+                    elif disposition in {"quarantined", "unrecognized"}:
+                        counts["quarantined"] += 1
+                        reasons.update(row_reasons)
+                total = counts["transactions"] + counts["holdings"]
+                record.update(extraction_state="extracted", observed_annual_row_decision_count=len(rows),
+                              observed_quarantined_annual_row_count=counts["quarantined"])
+                if missing_bindings:
+                    record.update(qualification_state="unknown", observed_annual_row_identity_gap_count=missing_bindings)
+                    reasons.add("annual_formal_identity_binding_unavailable")
+                else:
+                    record.update(
+                        qualification_state=("partial" if total and (counts["quarantined"] or reasons)
+                            else "qualified" if total else "quarantined" if counts["quarantined"] else "unknown"),
+                        qualified_transaction_count=counts["transactions"], qualified_holding_count=counts["holdings"],
+                        selected_source_version=record["source_versions"][0], _annual_qualified_formal_ids=expected)
+                record["reason_codes"].extend(reasons)
+                # Empty/fully excluded decisions do not attest a zero-transaction report.
+                if not total and not counts["quarantined"]:
+                    record["reason_codes"].append("annual_empty_qualified_rows_not_zero_transaction_attestation")
+        scope["reports"].append(record)
+    return scope
 
 
 def build_oge_status(evidence_root: Path, review_root: Path,
@@ -918,6 +1023,8 @@ def build_oge_status(evidence_root: Path, review_root: Path,
     annual_archives = _archive_records(evidence, "oge/annual/reports", False)
     if set(annual_archives) & (set(archives) | set(catalog_direct)):
         raise ValueError("OGE annual archive is also classified as a direct 278-T report")
+    if annual_archives:
+        result.append(_build_direct_annual(annual_archives, review))
     _bind_publication(result, transactions, holdings, direct_annual_ids=frozenset(annual_archives))
     actual = {row["id"]: row for row in transactions}
     for scope in result:

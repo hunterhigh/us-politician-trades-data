@@ -372,14 +372,86 @@ class OgeDisclosureStatusTests(unittest.TestCase):
             "document_id": self.doc, "document_url": self.url, "sha256": self.sha})
         transaction = {"id": "annual-tx", "source_id": "oge", "source_url": self.url}
         holding = {"id": "annual-holding", "source_id": "oge", "source_url": self.url}
-        direct, _, _ = self.build([transaction], [holding])
+        direct, _, _, annual = self.build([transaction], [holding])
         self.assertEqual(direct["reports"], [])
-        self.assertEqual(direct["unmatched_publication_transaction_ids"], ["annual-tx"])
-        self.assertEqual(direct["unmatched_publication_holding_ids"], ["annual-holding"])
-        self.assertIn("oge_direct_278e_outside_current_278t_status_scope", direct["limitations"])
+        self.assertEqual(direct["unmatched_publication_transaction_ids"], [])
+        self.assertEqual(annual["scope_id"], "oge_direct_278e")
+        record = annual["reports"][0]
+        self.assertEqual(record["document_type"], "278e_annual")
+        self.assertEqual(record["publication_transaction_ids"], ["annual-tx"])
+        self.assertEqual(record["publication_holding_ids"], ["annual-holding"])
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIsNone(record["quarantined_row_count"])
         self.archive()
         with self.assertRaisesRegex(ValueError, "also classified"):
             self.build([transaction], [holding])
+
+    def annual_audit(self):
+        self.write(self.evidence, f"oge/annual/reports/{self.doc}/{self.sha}.json", {
+            "document_id": self.doc, "document_url": self.url, "sha256": self.sha})
+        report = {"document_id": self.doc, "source_sha256": self.sha, "report_reasons": [],
+            "row_qualification": [
+                {"candidate_id": "t", "formal_id": "annual-tx", "section": "part7", "disposition": "qualified", "reasons": []},
+                {"candidate_id": "h", "formal_id": "annual-holding", "section": "part2", "disposition": "qualified", "reasons": []},
+                {"candidate_id": "gap", "section": "part2", "disposition": "quarantined", "reasons": ["holding_value_missing"]}]}
+        self.save_annual_audit(report)
+        return report
+
+    def save_annual_audit(self, report):
+        self.write(self.review, "whitehouse/annual/candidate-current.json", {"oge_annual": {
+            "schema_version": "oge-annual-candidate-audit/v1", "reports": [report]}})
+
+    def test_annual_observed_counts_keep_value_gaps_and_unknown_physical_total(self):
+        self.catalog([])
+        self.annual_audit()
+        tx = {"id": "annual-tx", "source_id": "oge", "source_url": self.url, "filed_at": "2023-05-08T00:00:00Z"}
+        holding = {"id": "annual-holding", "source_id": "oge", "source_url": self.url}
+        record = self.build([tx], [holding])[3]["reports"][0]
+        self.assertEqual(record["qualification_state"], "partial")
+        self.assertEqual((record["qualified_transaction_count"], record["qualified_holding_count"]), (1, 1))
+        self.assertEqual(record["observed_quarantined_annual_row_count"], 1)
+        self.assertIsNone(record["quarantined_row_count"])
+        self.assertEqual(record["filed_date"], "2023-05-08")
+        self.assertEqual(record["publication_binding"], "verified")
+        self.assertIn("holding_value_missing", record["reason_codes"])
+        self.assertFalse(any(key.startswith("_") for key in record))
+
+    def test_annual_audit_cannot_change_source_version_or_duplicate_formal_rows(self):
+        self.catalog([])
+        report = self.annual_audit()
+        report["source_sha256"] = "b" * 64
+        self.save_annual_audit(report)
+        record = self.build()[3]["reports"][0]
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIn("annual_qualification_source_binding_unresolved", record["reason_codes"])
+        report["source_sha256"] = self.sha
+        report["row_qualification"][1]["formal_id"] = "annual-tx"
+        self.save_annual_audit(report)
+        with self.assertRaisesRegex(ValueError, "formal identities"):
+            self.build()
+
+    def test_unqualified_annual_publication_id_has_no_verified_qualification_binding(self):
+        self.catalog([])
+        self.annual_audit()
+        record = self.build([{"id": "other", "source_id": "oge", "source_url": self.url}])[3]["reports"][0]
+        self.assertEqual(record["publication_binding"], "unknown")
+        self.assertIn("published_annual_id_not_in_bound_qualification", record["reason_codes"])
+
+    def test_existing_part7_source_identity_binds_without_minting_an_id(self):
+        self.catalog([])
+        report = self.annual_audit()
+        row = report["row_qualification"][0]
+        row.pop("formal_id")
+        row.update(candidate_id="oge-annual-row:" + "c" * 24, source_row_identity_sha256="c" * 64)
+        self.save_annual_audit(report)
+        fact = {"id": row["candidate_id"], "source_id": "oge", "source_url": self.url}
+        self.assertEqual(self.build([fact])[3]["reports"][0]["publication_binding"], "verified")
+        row.pop("source_row_identity_sha256")
+        self.save_annual_audit(report)
+        record = self.build([fact])[3]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIn("annual_formal_identity_binding_unavailable", record["reason_codes"])
 
 
 if __name__ == "__main__":
