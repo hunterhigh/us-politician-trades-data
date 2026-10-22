@@ -553,6 +553,9 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
     asset_proofs = corroborate_asset_readings(
         pdf_bytes, observation, field_reread, rendered_secondary)
     asset_bindings = []
+    from .house_ptr_owner_reading import verified_owner_readings
+    owner_proofs = verified_owner_readings(pdf_bytes, observation, field_reread)
+    owner_reading_bindings = []
 
     for pending in baseline["quarantined"]:
         fields = pending.get("raw_fields")
@@ -587,7 +590,12 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
             else:
                 asset_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
         quality_blockers = {"event_date_ocr_confidence_below_70"}
-        if owner != "Undisclosed":
+        owner_proof = owner_proofs.get((page, band))
+        if owner_proof is not None and owner == OWNER_CODES.get(owner_proof["owner_code"]):
+            owner_reading_bindings.append({"extraction_id":paper_disclosure_id(source_sha,page,band), **owner_proof})
+        else:
+            owner_proof = None
+        if owner != "Undisclosed" and owner_proof is None:
             quality_blockers.add("owner_ocr_confidence_below_70")
         if any(flag in quality_blockers
                for flag in pending.get("source_quality_flags", [])):
@@ -637,6 +645,8 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         result["source_bound_owner_decisions"] = owner_bindings
     if asset_bindings:
         result["source_bound_asset_decisions"] = asset_bindings
+    if owner_reading_bindings:
+        result["source_bound_owner_reading_decisions"] = owner_reading_bindings
     result["quarantined"].extend(unresolved_physical)
     result["qualification"]["quarantined_count"] = len(result["quarantined"])
     if result["quarantined"]:
