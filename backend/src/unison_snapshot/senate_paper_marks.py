@@ -1,12 +1,60 @@
 """Recognize complete printed X marks anywhere inside calibrated source cells.
 
-The older center sample remains unchanged. Only a whole, isolated crossing
-component is supported here; fragmented marks, extra ink and clipping stay
-unknown. This module performs no OCR and never decides transaction eligibility.
+The older center sample remains unchanged. v1 requires one isolated crossing;
+v2 also separates directly witnessed rule flanks. Explicit v3 amount recovery
+retains disconnected ink in a closed source face and applies the same crossing
+geometry; it never invents missing strokes. Unexplained ink stays unknown.
+This module performs no OCR and never decides transaction eligibility.
 """
 import hashlib
 
 RULE = "senate-source-complete-x/v1"
+BOUNDARY_RULE = "senate-source-complete-x-boundary/v2"
+ENCLOSED_RULE = "senate-source-enclosed-amount-x/v3"
+
+
+def _source_rule_trace_result(gray, box, bands):
+    """Separate small inner-face flanks actually touching a proved rule core.
+
+    No arbitrary edge strip or interior noise is removed. Whole X-sized
+    components, including any touching a rule, remain untouched and uncertain.
+    """
+    from PIL import Image
+    crop=gray.crop(tuple(box));points={(x,y) for y in range(crop.height) for x in range(crop.width) if crop.getpixel((x,y))<160}
+    pending=set(points);removed=[]
+    while pending:
+        seed=pending.pop();group=[seed];stack=[seed]
+        while stack:
+            x,y=stack.pop()
+            for yy in range(y-1,y+2):
+                for xx in range(x-1,x+2):
+                    if (xx,yy) in pending:pending.remove((xx,yy));group.append((xx,yy));stack.append((xx,yy))
+        left,top=min(x for x,y in group),min(y for x,y in group);right,bottom=max(x for x,y in group)+1,max(y for x,y in group)+1
+        if right-left>=12 and bottom-top>=12:continue
+        witnesses=[]
+        all_points_on_flank=True
+        for x,y in group:
+            point_witnesses=[]
+            for yy in range(y-1,y+2):
+                for xx in range(x-1,x+2):
+                    if 0<=xx<crop.width and 0<=yy<crop.height:continue
+                    sx,sy=xx+box[0],yy+box[1]
+                    if (0<=sx<gray.width and 0<=sy<gray.height and gray.getpixel((sx,sy))<160 and
+                            (sx in bands['left'] or sx in bands['right'] or sy in bands['top'] or sy in bands['bottom'])):
+                        point_witnesses.append([sx,sy])
+            if not point_witnesses:all_points_on_flank=False
+            witnesses.extend(point_witnesses)
+        if witnesses and all_points_on_flank:
+            removed.append({'box_in_cell_px':[left,top,right,bottom],'source_dark_pixel_count':len(group),'source_rule_core_witnesses_px':[list(point) for point in sorted(set(map(tuple,witnesses)))]})
+            points.difference_update(group)
+    if not removed:return complete_x(crop)
+    analysis=Image.new('L',crop.size,255)
+    for x,y in points:analysis.putpixel((x,y),crop.getpixel((x,y)))
+    result=complete_x(analysis)
+    if result is None:return None
+    if result['status']=='no_dark_ink':result['status']='source_rule_traces_only'
+    return {**result,'source_rule_trace_components':removed,'original_crop_pixels_retained_in_receipt':True,
+            'source_financial_ink_not_changed':True}
 
 
 def _inner_face(gray, left, right, top, bottom):
@@ -54,8 +102,8 @@ def _inner_face(gray, left, right, top, bottom):
     return box, {"left": l, "right": r, "top": t, "bottom": b}
 
 
-def complete_x(crop):
-    """Require all dark pixels to form one interior X, retaining source geometry."""
+def complete_x(crop, *, allow_fragments=False):
+    """Check every dark pixel against interior X geometry; never join fragments."""
     gray = crop.convert("L")
     points = {(x, y) for y in range(gray.height) for x in range(gray.width)
               if gray.getpixel((x, y)) < 160}
@@ -70,7 +118,7 @@ def complete_x(crop):
             if other in points and other not in seen:
                 seen.add(other)
                 stack.append(other)
-    if seen != points:
+    if seen != points and not allow_fragments:
         return None
     left, top = min(x for x, _ in points), min(y for _, y in points)
     right, bottom = max(x for x, _ in points) + 1, max(y for _, y in points) + 1
@@ -88,13 +136,67 @@ def complete_x(crop):
     center = any(abs(x) < .2 and abs(y) < .2 for x, y in body)
     if near < .8 or min(arms) < .10 or not center:
         return None
-    return {"status": "complete_x", "box_in_cell_px": [left, top, right, bottom],
+    return {"status": "fragmented_x" if seen != points else "complete_x", "box_in_cell_px": [left, top, right, bottom],
             "dark_pixel_count": len(points), "body_near_diagonal_fraction": near,
             "body_arm_fractions": arms, "center_crossing_ink": center,
             "qualification": "not_assessed"}
 
 
-def interpret_complete_mark_row(image, slot):
+def interpret_enclosed_amount_row(image, slot):
+    """Recover only a missing amount, retaining a source-verified old direction.
+
+    The old unique center-sample direction is not reinterpreted. Every other
+    direction cell must be empty, and all amount cells are examined in full.
+    Fragmented amount ink must satisfy the same geometric X checks as v1;
+    disconnected pixels are retained and no strokes are invented.
+    """
+    from .senate_paper_cell_faces import enclosed_cell_ink
+    from .senate_slots_shadow import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
+    if (slot.get('label') != 'unknown' or slot.get('column_calibration') != 'verified' or
+            len(slot.get('type_marks', [])) != 1 or slot.get('amount_marks')):
+        return None
+    gray = image.convert('L')
+    lines = _row_form_lines(gray.tobytes(), slot)
+    if lines is None:
+        return None
+    top, bottom = slot['row_bounds_px']
+    date = slot['key_cells']['date']
+    if (date['box_px'] != [lines[3]+10, top+12, lines[4]-10, bottom-12] or
+            hashlib.sha256(gray.crop(tuple(date['box_px'])).tobytes()).hexdigest() != date['grayscale_sha256']):
+        return None
+    cells, amounts = [], []
+    for field, bounds, labels in [('direction', lines[:4], TYPE_CELLS), ('amount', lines[4:], AMOUNT_CELLS)]:
+        old_reads = slot['key_cells'][field]
+        if [r['label'] for r in old_reads] != [label for label, _ in labels]:
+            return None
+        for (label, _), left, right, old in zip(labels, bounds, bounds[1:], old_reads):
+            if (hashlib.sha256(gray.crop(tuple(old['box_px'])).tobytes()).hexdigest() != old['grayscale_sha256'] or
+                    _mark_count(gray, *old['center_px']) != old['dark_sample_count'] or
+                    old['mark_signal'] != (old['dark_sample_count'] >= 25)):
+                return None
+            observed = enclosed_cell_ink(gray, left, right, top, bottom)
+            if observed is None:
+                return None
+            ink, proof = observed
+            if field == 'direction' and label == slot['type_marks'][0]:
+                if not old['mark_signal']:
+                    return None
+                result = {'status': 'original_unique_center_mark_retained'}
+            else:
+                result = complete_x(ink, allow_fragments=field == 'amount')
+                if result is None or field == 'direction' and result['status'] != 'no_dark_ink':
+                    return None
+            if field == 'amount' and result['status'] in {'complete_x', 'fragmented_x'}:
+                amounts.append(label)
+            cells.append({'field': field, 'label': label, 'old_center_sample': old, **proof, **result})
+    if len(amounts) != 1:
+        return None
+    return {'rule_version': ENCLOSED_RULE, 'direction_labels': slot['type_marks'], 'amount_labels': amounts,
+            'original_type_marks': slot['type_marks'], 'original_amount_marks': [], 'cells': cells,
+            'source_column_lines_px': list(lines), 'qualification': 'not_assessed'}
+
+
+def interpret_complete_mark_row(image, slot, *, resolve_boundary_traces=False):
     from .senate_slots_shadow import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
     if slot.get("label") != "unknown" or slot.get("column_calibration") != "verified":
         return None
@@ -125,7 +227,7 @@ def interpret_complete_mark_row(image, slot):
                 return None
             box, boundary_bands = face
             crop = gray.crop(tuple(box))
-            result = complete_x(crop)
+            result = (_source_rule_trace_result(gray,box,boundary_bands) if resolve_boundary_traces else complete_x(crop))
             if result is None:
                 return None
             if result["status"] == "complete_x":
@@ -137,6 +239,6 @@ def interpret_complete_mark_row(image, slot):
         if len(marked) != 1 or original and original != marked:
             return None
         fields[field] = marked
-    return {"rule_version": RULE, "direction_labels": fields["direction"], "amount_labels": fields["amount"],
+    return {"rule_version": BOUNDARY_RULE if resolve_boundary_traces else RULE, "direction_labels": fields["direction"], "amount_labels": fields["amount"],
             "original_type_marks": slot["type_marks"], "original_amount_marks": slot["amount_marks"],
             "source_column_lines_px": list(lines), "cells": cells, "qualification": "not_assessed"}

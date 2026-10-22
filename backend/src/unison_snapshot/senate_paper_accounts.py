@@ -83,7 +83,7 @@ def interpret_account_spacing(image, record, *, page_sha256, page_number, grid_s
             "raw_tsv_sha256": record["raw_tsv_sha256"], "qualification": "not_assessed"}
 
 
-def unpunctuated_heading(image, slot, next_slot, words, *, text, confidence):
+def unpunctuated_heading(image, slot, next_slot, words, *, text, confidence, allow_top_boundary_ink=False):
     """Recognize this legacy form's unindented parent followed by an indented row.
 
     This is a positive layout role, not a general blank-row classifier. Empty
@@ -115,7 +115,8 @@ def unpunctuated_heading(image, slot, next_slot, words, *, text, confidence):
     if date["box_px"] != [lines[3] + 10, top + 12, lines[4] - 10, bottom - 12]:
         return None
     date_crop = gray.crop(tuple(date["box_px"]))
-    if (_sha(date_crop.tobytes()) != date["grayscale_sha256"] or date_crop.getextrema() != (255, 255)):
+    if (_sha(date_crop.tobytes()) != date["grayscale_sha256"] or
+            not allow_top_boundary_ink and date_crop.getextrema() != (255, 255)):
         return None
     for field in ("direction", "amount"):
         for read in slot["key_cells"][field]:
@@ -129,13 +130,63 @@ def unpunctuated_heading(image, slot, next_slot, words, *, text, confidence):
     for bounds in (lines[:4], lines[4:]):
         for left, right in zip(bounds, bounds[1:]):
             box = [left + 8, top + 12, right - 8, bottom - 12]
-            if gray.crop(tuple(box)).getextrema()[0] < 160:
+            if not allow_top_boundary_ink and gray.crop(tuple(box)).getextrema()[0] < 160:
                 return None
             interior_boxes.append(box)
     if any(w["left"] + w["width"] / 2 >= 1385 and
            top + 6 <= w["top"] + w["height"] / 2 < bottom - 6 for w in words):
         return None
+    trace = None
+    if allow_top_boundary_ink:
+        boxes = [date["box_px"]] + interior_boxes
+        points = [(x, y) for box in boxes for y in range(box[1], box[3])
+                  for x in range(box[0], box[2]) if gray.getpixel((x, y)) < 160]
+        if points:
+            # This is a positive title-role decision, not a blank-cell proof.
+            # Financial content on the title baseline or below remains unknown.
+            # Retain the upper frame's pixels even at imperfect T junctions;
+            # a perfectly straight/white frame is not required for a caption.
+            content_top = min(owner[0]["top"] - 6, top + .25 * (bottom - top))
+            span = max(x for x, y in points) - min(x for x, y in points)
+            if max(y for x, y in points) >= content_top or span < 240:
+                return None
+            # An upper-band location alone is insufficient: an unread small
+            # date or isolated mark must not disappear into a long frame's
+            # aggregate bounds. Every trace must actually connect to a long
+            # source rule. Use the original pixels rather than a straight-line
+            # fit, so the scanner's curves and T junctions remain intact.
+            from collections import deque
+            targets=set(points)
+            x0=min(b[0] for b in boxes)-16;x1=max(b[2] for b in boxes)+16
+            y0=max(0,min(b[1] for b in boxes)-24);y1=int(content_top)
+            available={(x,y) for y in range(y0,y1) for x in range(max(0,x0),min(gray.width,x1))
+                       if gray.getpixel((x,y))<160}
+            components=[]
+            while available:
+                seed=available.pop();group=[seed];queue=deque([seed])
+                while queue:
+                    x,y=queue.popleft()
+                    for yy in range(y-1,y+2):
+                        for xx in range(x-1,x+2):
+                            if (xx,yy) in available:
+                                available.remove((xx,yy));group.append((xx,yy));queue.append((xx,yy))
+                if any(p in targets for p in group):
+                    bounds=[min(x for x,y in group),min(y for x,y in group),max(x for x,y in group)+1,max(y for x,y in group)+1]
+                    if bounds[2]-bounds[0]<240:return None
+                    components.append({'bbox_px':bounds,'source_dark_pixel_count':len(group)})
+            trace = {"rule_version": "senate-source-account-top-boundary/v1",
+                     "basis": "positive_owner_title_child_indentation_no_financial_reads_or_body_ink",
+                     "dark_point_count": len(points), "horizontal_span_px": span,
+                     "content_top_px": content_top,
+                     "trace_bounds_px": [min(x for x, y in points), min(y for x, y in points),
+                                         max(x for x, y in points) + 1, max(y for x, y in points) + 1],
+                     "source_crops": [{"box_px": box, "grayscale_sha256": _sha(gray.crop(tuple(box)).tobytes())}
+                                      for box in boxes],
+                     "all_pixels_retained": True, "financial_blank_asserted": False,
+                     "exact_boundary_geometry_asserted": False, "qualification": "not_assessed"}
+            trace['source_connected_rule_components']=components
     return {"rule_version": RULE, "role": "heading", "original_label": "unknown",
             "text": text, "heading_owner_word": owner[0], "following_child_owner_word": child[0],
             "financial_interior_boxes_px": interior_boxes, "date_crop_sha256": date["grayscale_sha256"],
+            **({"top_boundary_role_interpretation": trace} if trace is not None else {}),
             "qualification": "not_assessed"}

@@ -85,6 +85,25 @@ class SenatePaperAccountsTests(unittest.TestCase):
         image,slot,nxt,words=heading();r=unpunctuated_heading(image,slot,nxt,words,text='(S) Parent LLC',confidence=96)
         self.assertEqual(r['role'],'heading');self.assertEqual(slot['label'],'unknown')
 
+    def test_requested_top_rule_role_keeps_isolated_marks_and_body_content_unknown(self):
+        def source(extra=None):
+            image,slot,nxt,words=heading();draw=ImageDraw.Draw(image)
+            draw.line((FORM_BOUNDS[0],218,FORM_BOUNDS[-1],218),fill=0,width=2)
+            if extra=='isolated':draw.point((1700,229),fill=0)
+            if extra=='body':draw.text((1700,245),'7/13/26',fill=0,font=ImageFont.load_default(size=20))
+            # Rebuild source crop hashes and source reads; this is an explicit
+            # synthetic counterfactual, not edited official evidence.
+            for field in ['date','direction','amount']:
+                reads=[slot['key_cells'][field]] if field=='date' else slot['key_cells'][field]
+                for cell in reads:cell['grayscale_sha256']=hashlib.sha256(image.crop(tuple(cell['box_px'])).tobytes()).hexdigest()
+            return image,slot,nxt,words
+        image,slot,nxt,words=source()
+        self.assertIsNone(unpunctuated_heading(image,slot,nxt,words,text='(S) Parent LLC',confidence=96))
+        self.assertIsNotNone(unpunctuated_heading(image,slot,nxt,words,text='(S) Parent LLC',confidence=96,allow_top_boundary_ink=True))
+        for extra in ['isolated','body']:
+            image,slot,nxt,words=source(extra)
+            self.assertIsNone(unpunctuated_heading(image,slot,nxt,words,text='(S) Parent LLC',confidence=96,allow_top_boundary_ink=True))
+
     def test_unknown_date_mark_residual_missing_child_or_no_indent_not_heading(self):
         for mode in ['date','mark','residual','no_child','no_indent','low_confidence','nonowner','missing_rule']:
             image,slot,nxt,words=heading();text='(S) Parent LLC';confidence=96

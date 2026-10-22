@@ -13,6 +13,7 @@ from unison_snapshot.senate_paper_marks import complete_x,interpret_complete_mar
 from unison_snapshot.senate_slots_shadow import FORM_BOUNDS,TYPE_CELLS,AMOUNT_CELLS,classify_slot
 from unison_snapshot.senate_paper import parse_paper_grid_observations
 from unison_snapshot.senate_paper_observation import _source_report_relations
+from unison_snapshot.senate import SenateEfdError
 from tests.test_senate_paper_grid import inputs
 from tests.test_senate_paper import word,page
 
@@ -36,6 +37,50 @@ def fixture():
 
 @unittest.skipIf(Image is None,'optional image dependency unavailable')
 class SenateCompleteMarksTests(unittest.TestCase):
+    def test_closed_source_face_keeps_all_islands_and_rejects_attached_ink_or_open_rule(self):
+        from unison_snapshot.senate_paper_cell_faces import enclosed_cell_ink
+        image=Image.new('L',(160,180),255);draw=ImageDraw.Draw(image)
+        draw.rectangle((45,45,115,135),outline=0,width=2)
+        draw.line((65,70,85,90),fill=0,width=2);draw.line((65,90,85,70),fill=0,width=2)
+        image.putpixel((100,110),0)
+        ink,proof=enclosed_cell_ink(image,45,115,45,135)
+        self.assertEqual(sum(v<160 for v in ink.getdata()),sum(image.getpixel((x,y))<160 for y in range(47,134) for x in range(47,114)))
+        self.assertTrue(proof['all_enclosed_dark_pixels_retained'])
+        self.assertIsNone(complete_x(ink,allow_fragments=True))
+        attached=image.copy();ImageDraw.Draw(attached).line((46,80,66,80),fill=0,width=2)
+        self.assertIsNone(enclosed_cell_ink(attached,45,115,45,135))
+        opened=image.copy();ImageDraw.Draw(opened).line((45,100,46,100),fill=255)
+        self.assertIsNone(enclosed_cell_ink(opened,45,115,45,135))
+
+    def test_fragment_mode_preserves_four_arm_geometry_and_never_joins_pixels(self):
+        image=Image.new('L',(80,80),255);draw=ImageDraw.Draw(image)
+        draw.line((20,20,40,40),fill=0,width=2);draw.line((20,40,40,20),fill=0,width=2)
+        draw.line((19,22,42,22),fill=255)
+        self.assertIsNone(complete_x(image))
+        read=complete_x(image,allow_fragments=True)
+        self.assertEqual(read['status'],'fragmented_x')
+        self.assertEqual(read['dark_pixel_count'],sum(v<160 for v in image.getdata()))
+        for text in ['O','V','H','I','+','-','/','8']:
+            other=Image.new('L',(80,80),255);ImageDraw.Draw(other).text((20,20),text,font=ImageFont.load_default(size=32),fill=0)
+            self.assertIsNone(complete_x(other,allow_fragments=True))
+
+    def test_only_small_components_connected_to_proved_frame_core_are_reclassified(self):
+        from unison_snapshot.senate_paper_marks import _source_rule_trace_result
+        image=Image.new('L',(100,100),255);draw=ImageDraw.Draw(image)
+        draw.rectangle((8,8,91,91),outline=0,width=2)
+        draw.line((30,30,50,50),fill=0,width=2);draw.line((30,50,50,30),fill=0,width=2)
+        draw.line((10,25,10,28),fill=0,width=1)
+        box=[10,10,90,90];bands={'left':[8,9],'right':[90,91],'top':[8,9],'bottom':[90,91]}
+        self.assertIsNone(complete_x(image.crop(box)))
+        read=_source_rule_trace_result(image,box,bands)
+        self.assertEqual(read['status'],'complete_x');self.assertTrue(read['source_rule_trace_components'])
+        dot=image.copy();dot.putpixel((20,20),0)
+        self.assertIsNone(_source_rule_trace_result(dot,box,bands))
+        attached=image.copy();d=ImageDraw.Draw(attached);d.line((10,45,30,65),fill=0,width=2);d.line((10,65,30,45),fill=0,width=2)
+        self.assertIsNone(_source_rule_trace_result(attached,box,bands))
+        inward=image.copy();ImageDraw.Draw(inward).line((10,26,18,26),fill=0)
+        self.assertIsNone(_source_rule_trace_result(inward,box,bands))
+
     def test_off_center_x_recovered_without_changing_center_samples(self):
         image,slot=fixture();old=deepcopy(slot);read=interpret_complete_mark_row(image,slot)
         self.assertEqual(slot,old);self.assertEqual(slot['label'],'unknown')
@@ -78,6 +123,26 @@ class SenateCompleteMarksTests(unittest.TestCase):
         row=result['transactions'][0];self.assertEqual(row['transaction_date'],'2026-05-29');self.assertEqual(row['amount_raw'],'$50,001 - $100,000')
         self.assertEqual(row['source_slot']['grid_slot'],1)
         self.assertEqual(row['field_observations']['whole_cell_mark_read']['original_amount_marks'],[])
+
+    def test_enclosed_rule_is_explicit_and_does_not_invent_owner_or_override_direction(self):
+        from unison_snapshot.senate_paper_marks import ENCLOSED_RULE,interpret_enclosed_amount_row
+        args=inputs();image,slot=fixture();stream=BytesIO();image.save(stream,format='GIF');raw=stream.getvalue();sha=hashlib.sha256(raw).hexdigest()
+        args[1]['pages'][1]['sha256']=sha;args[2]['slots']=[slot];args[2]['label_counts']={'unknown':1};args[2]['pages'][0].update(page_sha256=sha,label_counts={'unknown':1});args[2]['source_report_ledger']=_source_report_relations(args[2])
+        args[3][0]={**page(2,[word('[S)',650,260),word('Acme',760,260),word('5/29/26',1730,260)]),'source_sha256':sha};args[4][2]=raw
+        self.assertEqual(parse_paper_grid_observations(*args)['transactions'],[])
+        request={'rule_version':ENCLOSED_RULE,'page_number':2,'grid_slot':1,'page_sha256':sha}
+        args[3][0]['full_cell_mark_observations']=[request]
+        result=parse_paper_grid_observations(*args);row=result['transactions'][0]
+        self.assertEqual(result['whole_cell_mark_rule_version'],ENCLOSED_RULE)
+        self.assertEqual(row['amount_raw'],'$50,001 - $100,000')
+        self.assertEqual(row['quarantine_reasons'],['paper_owner_ocr_ambiguous'])
+        self.assertIsNone(row['owner_raw'])
+        self.assertEqual(row['field_observations']['asset_raw'],'[S) Acme')
+        self.assertEqual(row['field_observations']['whole_cell_mark_read']['cells'][0]['status'],'original_unique_center_mark_retained')
+        bad=deepcopy(slot);bad['type_marks']=['sale']
+        self.assertIsNone(interpret_enclosed_amount_row(image,bad))
+        request['page_sha256']='0'*64
+        with self.assertRaises(SenateEfdError):parse_paper_grid_observations(*args)
 
     def test_short_stroke_or_dot_at_rule_inner_face_is_not_erased(self):
         for mode in ('dot','short_stroke'):

@@ -378,7 +378,20 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
     account_reads = {}
     title_keys = {(s["page_number"], s["grid_slot"]): s for s in observation["slots"]
                   if s["label"] in {"heading_candidate", "unknown"}}
+    boundary_title_requests = set()
     for page in pages:
+        requests = page.get("account_boundary_role_observations", [])
+        if not isinstance(requests, list):
+            raise SenateEfdError("Senate account boundary role requests must be an array")
+        for request in requests:
+            if not isinstance(request, dict):
+                raise SenateEfdError("Senate account boundary role request must be an object")
+            key = (page["page_number"], request.get("grid_slot"))
+            if (request.get("rule_version") != "senate-source-account-top-boundary/v1" or
+                    request.get("page_number") != key[0] or request.get("page_sha256") != observed[key[0]] or
+                    key not in title_keys or title_keys[key]["label"] != "unknown" or key in boundary_title_requests):
+                raise SenateEfdError("Senate account boundary role request is not a unique bound unknown title")
+            boundary_title_requests.add(key)
         records = page.get("account_spacing_observations", [])
         if not isinstance(records, list):
             raise SenateEfdError("Senate account spacing observations must be an array")
@@ -404,8 +417,11 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
     effective_observation = deepcopy(observation)
     heading_roles = []
     ordered = sorted(effective_observation["slots"], key=lambda s: (s["page_number"], s["grid_slot"]))
-    from .senate_paper_marks import RULE as MARK_RULE, interpret_complete_mark_row
+    from .senate_paper_marks import (RULE as MARK_RULE, BOUNDARY_RULE, ENCLOSED_RULE,
+                                    interpret_complete_mark_row, interpret_enclosed_amount_row)
     mark_requests = set()
+    boundary_mark_requests = set()
+    enclosed_mark_requests = set()
     unknown_keys = {(s["page_number"], s["grid_slot"]) for s in ordered if s["label"] == "unknown"}
     for page in pages:
         requests = page.get("full_cell_mark_observations", [])
@@ -415,15 +431,21 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             if not isinstance(request, dict):
                 raise SenateEfdError("Senate complete mark request must be an object")
             key = (page["page_number"], request.get("grid_slot"))
-            if (request.get("rule_version") != MARK_RULE or request.get("page_number") != key[0] or
+            if (request.get("rule_version") not in {MARK_RULE,BOUNDARY_RULE,ENCLOSED_RULE} or request.get("page_number") != key[0] or
                     request.get("page_sha256") != observed[key[0]] or key not in unknown_keys or key in mark_requests):
                 raise SenateEfdError("Senate complete mark request differs from a unique unknown source slot")
             mark_requests.add(key)
+            if request['rule_version']==BOUNDARY_RULE:boundary_mark_requests.add(key)
+            if request['rule_version']==ENCLOSED_RULE:enclosed_mark_requests.add(key)
     mark_roles = {}
     for slot in ordered:
         if (slot["page_number"], slot["grid_slot"]) not in mark_requests:
             continue
-        read = interpret_complete_mark_row(images[slot["page_number"]], slot)
+        if (slot['page_number'],slot['grid_slot']) in enclosed_mark_requests:
+            read = interpret_enclosed_amount_row(images[slot['page_number']], slot)
+        else:
+            read = interpret_complete_mark_row(images[slot["page_number"]], slot,
+                resolve_boundary_traces=(slot['page_number'],slot['grid_slot']) in boundary_mark_requests)
         if read is not None:
             key = (slot["page_number"], slot["grid_slot"])
             mark_roles[key] = read
@@ -432,7 +454,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
         text, confidence = _grid_asset_cell(interpreted_words[slot["page_number"]], slot)
         role = unpunctuated_heading(images[slot["page_number"]], slot,
             ordered[index + 1] if index + 1 < len(ordered) else None,
-            by_page[slot["page_number"]], text=text, confidence=confidence)
+            by_page[slot["page_number"]], text=text, confidence=confidence,
+            allow_top_boundary_ink=(slot["page_number"], slot["grid_slot"]) in boundary_title_requests)
         if role is not None:
             slot["label"] = "heading_candidate"
             heading_roles.append({"page_number": slot["page_number"], "grid_slot": slot["grid_slot"],
@@ -604,8 +627,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "cached_word_pages_sha256": cache_sha,
             **({"date_segment_rule_version": "senate-source-segmented-date/v1"} if date_records else {}),
             **({"account_layout_rule_version": ACCOUNT_RULE,
-                "account_heading_role_interpretations": heading_roles} if heading_roles or account_reads else {}),
-            **({"whole_cell_mark_rule_version": MARK_RULE,
+                "account_heading_role_interpretations": heading_roles} if heading_roles or account_reads or boundary_title_requests else {}),
+            **({"whole_cell_mark_rule_version": ENCLOSED_RULE if enclosed_mark_requests else BOUNDARY_RULE if boundary_mark_requests else MARK_RULE,
                 "whole_cell_mark_attempts": [{"page_number": n, "grid_slot": s,
                     "status": "data_observed" if (n, s) in mark_roles else "unknown"}
                     for n, s in sorted(mark_requests)]} if mark_requests else {}),
