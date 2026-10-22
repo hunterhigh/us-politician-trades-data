@@ -1055,9 +1055,16 @@ def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expe
 def _generic_cover_identity(text: str) -> tuple:
     name, position, agency, role_raw, reasons = _filer_information(text)
     if name is None:
-        info = re.search(r"Filer(?:'|’)?s\s+Information\s*\n([^\n]+)\n([^\n]+)\n", text, re.I)
-        if info:
-            name, role_raw = info[1].strip(), info[2].strip()
+        info = re.search(r"Filer(?:'|’)?s\s+Information\s*\n(.*?)"
+                         r"(?=^\s*(?:Filer(?:'|’)?s\s+Certification\b|Electronic\s+Signature\b|"
+                         r"Agency\s+Ethics\s+Official\b))", text, re.I|re.S|re.M)
+        lines=[line.strip() for line in info[1].splitlines() if line.strip()] if info else []
+        # Paper covers use a labelled multi-column identity table. Its header
+        # order is not a two-line name/position block. Never turn Position /
+        # Agency, Last Name or First Name labels into a conflicting person.
+        header = r"(?:position|agency|last\s+name|first\s+name|mi)(?:[\s|]+(?:position|agency|last\s+name|first\s+name|mi))*"
+        if len(lines)==2 and not any(re.fullmatch(header,line,re.I) for line in lines):
+            name, role_raw = lines
             position, sep, agency = role_raw.rpartition(" - ")
             position, agency = (position.strip(), agency.strip()) if sep else (role_raw, None)
             reasons = []

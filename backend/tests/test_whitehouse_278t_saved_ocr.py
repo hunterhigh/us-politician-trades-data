@@ -19,6 +19,16 @@ from unison_snapshot.builder import build
 
 
 class SavedWhiteHouseTests(unittest.TestCase):
+    def test_labelled_identity_table_is_unknown_not_a_header_named_person(self):
+        from unison_snapshot.whitehouse_278t import _generic_cover_identity
+        for body in ['Position | Agency\nLast Name First Name\nTrump Donaid\nPresident\n',
+                     'Last Name First Name\nPosition Agency\n', '',
+                     'Filer\'s Certification\nDate: 06/13/2026\n']:
+            cover="Filer's Information\n"+body+"Filer's Certification\nDate: 06/13/2026\n"
+            value=_generic_cover_identity(cover)
+            self.assertIsNone(value[0]);self.assertIn('pdf_filer_information_not_verified',value[-1])
+        self.assertEqual(_generic_cover_identity("Filer's Information\nWiles, Susie\nChief of Staff - White House\nFiler's Certification\n")[0],'Wiles, Susie')
+
     def test_explicit_native_body_interface_validates_source_and_preserves_consumer(self):
         with tempfile.TemporaryDirectory() as folder:
             inputs, geometry = self.fixture(Path(folder))
