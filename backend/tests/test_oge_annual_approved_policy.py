@@ -285,17 +285,18 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
             report=audit['reports'][0]
             self.assertTrue(report['transaction_report_reasons'] or report['transaction_field_differences'])
 
-    def test_same_batch_exact_copies_choose_one_original_identity_and_status_stays_outside_ptr_scope(self):
+    def test_same_batch_exact_copies_choose_one_original_identity_and_annual_status(self):
         import json
         import tempfile
         from pathlib import Path
         from unison_snapshot.disclosure_status_oge import build_oge_status
         extraction = source(official_unknown=True)
         other = deepcopy(extraction)
-        other.update(source_document_id='b'*32, evidence_archive_path=extraction['evidence_archive_path'].replace(DOC,'b'*32))
+        other.update(source_document_id='b'*32, evidence_archive_path=extraction['evidence_archive_path'].replace(DOC,'b'*32),
+                     source_url=extraction['source_url'].replace(DOC,'b'*32))
         data = inputs(extraction)
         metadata = deepcopy(data['archive_metadata_by_document'][DOC])
-        metadata.update(document_id='b'*32, archive_path=other['evidence_archive_path'])
+        metadata.update(document_id='b'*32, archive_path=other['evidence_archive_path'], document_url=other['source_url'])
         data['archive_metadata_by_document']['b'*32] = metadata
         data['extractions'].append(other)
         candidate,audit = overlay_oge_annual_candidate(base(),data)
@@ -306,9 +307,27 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
             path=evidence/extraction['evidence_archive_path'].replace('.pdf','.json')
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps(data['archive_metadata_by_document'][DOC]),encoding='utf-8')
-            direct,_,_=build_oge_status(evidence,review,candidate['transactions'],candidate['reported_holdings'])
+            alias_path=evidence/other['evidence_archive_path'].replace('.pdf','.json')
+            alias_path.parent.mkdir(parents=True)
+            alias_path.write_text(json.dumps(metadata),encoding='utf-8')
+            audit_path=review/'whitehouse/annual/candidate-current.json'
+            audit_path.parent.mkdir(parents=True)
+            audit_path.write_text(json.dumps({'oge_annual':audit}),encoding='utf-8')
+            direct,_,_,annual=build_oge_status(evidence,review,candidate['transactions'],candidate['reported_holdings'])
             self.assertEqual(direct['reports'],[])
-            self.assertEqual(direct['unmatched_publication_transaction_ids'],[candidate['transactions'][0]['id']])
-            self.assertIn('oge_direct_278e_outside_current_278t_status_scope',direct['limitations'])
+            self.assertEqual(direct['unmatched_publication_transaction_ids'],[])
+            records={row['report_id']:row for row in annual['reports']}
+            self.assertEqual(records[DOC]['publication_transaction_ids'],[candidate['transactions'][0]['id']])
+            alias=records['b'*32]
+            self.assertEqual(alias['qualification_state'],'superseded')
+            self.assertEqual(alias['exact_source_canonical_report_id'],DOC)
+            self.assertEqual(alias['qualified_transaction_count'],0)
+            self.assertIsNone(alias['quarantined_row_count'])
+            metadata['sha256']='c'*64
+            alias_path.unlink()
+            alias_path.with_name('c'*64+'.json').write_text(json.dumps(metadata),encoding='utf-8')
+            alias=build_oge_status(evidence,review,[],[])[3]['reports'][1]
+            self.assertEqual(alias['qualification_state'],'unknown')
+            self.assertIsNone(alias['qualified_transaction_count'])
 
 if __name__=='__main__':unittest.main()

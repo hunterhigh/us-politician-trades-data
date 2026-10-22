@@ -822,6 +822,22 @@ def _build_direct_annual(archives: dict[str, list[dict]], review: Path) -> dict:
                 audit.get("source_sha256") != record["source_versions"][0]):
             record["qualification_state"] = "unknown"
             record["reason_codes"].append("annual_qualification_source_binding_unresolved")
+        elif audit.get("disposition") == "excluded_exact_source_copy":
+            canonical = audit.get("canonical_document_id")
+            canonical_versions = {row["sha256"] for row in archives.get(canonical, [])}
+            canonical_audit = by_id.get(canonical, {})
+            if (canonical != document and canonical_versions == set(record["source_versions"]) and
+                    canonical_audit.get("source_sha256") == audit["source_sha256"] and
+                    canonical_audit.get("disposition") != "excluded_exact_source_copy"):
+                record.update(qualification_state="superseded", qualified_transaction_count=0,
+                              qualified_holding_count=0, exact_source_canonical_report_id=canonical,
+                              exact_source_sha256=audit["source_sha256"],
+                              _annual_qualified_formal_ids={"publication_transaction_ids": [],
+                                                            "publication_holding_ids": []})
+                record["reason_codes"].append("exact_source_copy_alias")
+            else:
+                record["qualification_state"] = "unknown"
+                record["reason_codes"].append("annual_exact_source_alias_binding_unresolved")
         else:
             rows = audit.get("row_qualification")
             if not isinstance(rows, list) or not rows:
