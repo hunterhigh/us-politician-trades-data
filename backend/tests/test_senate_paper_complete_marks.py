@@ -128,7 +128,7 @@ class SenateCompleteMarksTests(unittest.TestCase):
         from unison_snapshot.senate_paper_marks import ENCLOSED_RULE,interpret_enclosed_amount_row
         args=inputs();image,slot=fixture();stream=BytesIO();image.save(stream,format='GIF');raw=stream.getvalue();sha=hashlib.sha256(raw).hexdigest()
         args[1]['pages'][1]['sha256']=sha;args[2]['slots']=[slot];args[2]['label_counts']={'unknown':1};args[2]['pages'][0].update(page_sha256=sha,label_counts={'unknown':1});args[2]['source_report_ledger']=_source_report_relations(args[2])
-        args[3][0]={**page(2,[word('[S)',650,260),word('Acme',760,260),word('5/29/26',1730,260)]),'source_sha256':sha};args[4][2]=raw
+        args[3][0]={**page(2,[word('[5)',650,260),word('Acme',760,260),word('5/29/26',1730,260)]),'source_sha256':sha};args[4][2]=raw
         self.assertEqual(parse_paper_grid_observations(*args)['transactions'],[])
         request={'rule_version':ENCLOSED_RULE,'page_number':2,'grid_slot':1,'page_sha256':sha}
         args[3][0]['full_cell_mark_observations']=[request]
@@ -137,12 +137,24 @@ class SenateCompleteMarksTests(unittest.TestCase):
         self.assertEqual(row['amount_raw'],'$50,001 - $100,000')
         self.assertEqual(row['quarantine_reasons'],['paper_owner_ocr_ambiguous'])
         self.assertIsNone(row['owner_raw'])
-        self.assertEqual(row['field_observations']['asset_raw'],'[S) Acme')
+        self.assertEqual(row['field_observations']['asset_raw'],'[5) Acme')
         self.assertEqual(row['field_observations']['whole_cell_mark_read']['cells'][0]['status'],'original_unique_center_mark_retained')
         bad=deepcopy(slot);bad['type_marks']=['sale']
         self.assertIsNone(interpret_enclosed_amount_row(image,bad))
         request['page_sha256']='0'*64
         with self.assertRaises(SenateEfdError):parse_paper_grid_observations(*args)
+
+    def test_exact_owner_code_bracket_punctuation_does_not_change_code_or_raw_text(self):
+        from unison_snapshot.senate_paper import _paper_row
+        for prefix,expected in [('[S)','Spouse'),('[J)','Joint'),('[DC)','Child'),('[5)',None),('[$)',None),('[Z)',None),('[S',None)]:
+            image,slot=fixture();slot['amount_marks']=['50001_100000']
+            row=_paper_row('a'*64,2,1,[word(prefix,650,260),word('Acme',760,260),word('5/29/26',1730,260)],275,grid_slot=slot)
+            with self.subTest(prefix=prefix):
+                self.assertEqual(row['owner_raw'],expected)
+                if expected:
+                    self.assertEqual(row['owner_prefix_interpretation']['raw_prefix'],prefix)
+                    self.assertEqual(row['asset_name_raw'],'Acme')
+                else:self.assertIn('paper_owner_ocr_ambiguous',row['quarantine_reasons'])
 
     def test_short_stroke_or_dot_at_rule_inner_face_is_not_erased(self):
         for mode in ('dot','short_stroke'):

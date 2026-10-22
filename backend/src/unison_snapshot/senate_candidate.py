@@ -858,8 +858,10 @@ def build_senate_candidate(
         if item.get("schema_version") == PAPER_EXTRACTION_SCHEMA and "source_report_ledger" in item:
             if ("legacy_extraction_reference" in item or "date_segment_rule_version" in item or
                     "account_layout_rule_version" in item or "whole_cell_mark_rule_version" in item or
+                    "owner_prefix_rule_version" in item or
                     "account_heading_role_interpretations" in item or any(
                     row.get("field_observations", {}).get("segmented_date_read") or
+                    row.get("field_observations", {}).get("owner_prefix_interpretation") or
                     row.get("field_observations", {}).get("whole_cell_mark_read") or
                     (row.get("account_heading_source_slot") or {}).get("spacing_interpretation")
                     for row in item["transactions"])):

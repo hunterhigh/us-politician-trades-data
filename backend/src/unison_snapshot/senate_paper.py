@@ -33,6 +33,7 @@ _FORM_HEIGHT = 4400.0
 _DATE = re.compile(r"[0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}")
 _BOUND_DATE_WITH_PERIODS = re.compile(r"\.?(?P<date>[0-9]{1,2}/[0-9]{1,2}/(?:[0-9]{2}|[0-9]{4}))\.?")
 _OWNER = re.compile(r"^\s*\((S|J|DC)\)\s*(.+)$", re.IGNORECASE)
+_BRACKET_OWNER = re.compile(r"^\s*\[(S|J|DC)\)\s*(.+)$", re.IGNORECASE)
 _TICKER = re.compile(r"\(([A-Z][A-Z0-9.\-]{0,9})\)(?:[0-9]+)?\s*$")
 _MARKS = {"X", "×"}
 _AMOUNTS = (
@@ -189,6 +190,21 @@ def _paper_row(source_sha: str, page_number: int, position: int,
     if grid_slot is not None:
         asset_cell, asset_confidence = _grid_asset_cell(words, grid_slot)
     owner_match = _OWNER.fullmatch(asset_cell)
+    owner_prefix_interpretation = None
+    if (owner_match is None and grid_slot is not None and asset_confidence is not None and
+            asset_confidence >= 85):
+        # The source-bound asset prefix still explicitly contains the exact
+        # official owner code. Interpret only its grouping punctuation; never
+        # substitute a code letter, infer it from an account, or edit raw OCR.
+        owner_match = _BRACKET_OWNER.fullmatch(asset_cell)
+        if owner_match is not None:
+            owner_prefix_interpretation = {
+                "rule_version": "senate-explicit-owner-code-bracket/v1",
+                "raw_prefix": asset_cell[:owner_match.start(2)].strip(),
+                "owner_code": owner_match.group(1).upper(),
+                "basis": "exact_official_owner_code_in_leading_bracket_group",
+                "raw_text_unchanged": True,
+            }
     if owner_match is None:
         reasons.append("paper_owner_ocr_ambiguous")
         owner_raw, asset_name = None, asset_cell or None
@@ -222,6 +238,7 @@ def _paper_row(source_sha: str, page_number: int, position: int,
         "qualification_status": "eligible" if not reasons else "quarantined",
         "quarantine_reasons": sorted(set(reasons)),
         "ocr_min_confidence": asset_confidence,
+        **({"owner_prefix_interpretation": owner_prefix_interpretation} if owner_prefix_interpretation else {}),
     }
 
 
@@ -552,6 +569,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "date_box_px": date["box_px"], "date_crop_sha256": date["grayscale_sha256"],
             "direction_labels": slot["type_marks"], "amount_labels": slot["amount_marks"],
         }
+        if "owner_prefix_interpretation" in row:
+            row["field_observations"]["owner_prefix_interpretation"] = row.pop("owner_prefix_interpretation")
         if (number, slot["grid_slot"]) in mark_roles:
             row["field_observations"]["whole_cell_mark_read"] = mark_roles[(number, slot["grid_slot"])]
         date_record = date_records.get((number, slot["grid_slot"]))
@@ -625,6 +644,8 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
             "evidence_complete": True, "page_manifest_sha256": manifest["manifest_sha256"],
             "page_count": manifest["page_count"], "transactions": rows,
             "cached_word_pages_sha256": cache_sha,
+            **({"owner_prefix_rule_version": "senate-explicit-owner-code-bracket/v1"}
+               if any(row["field_observations"].get("owner_prefix_interpretation") for row in rows) else {}),
             **({"date_segment_rule_version": "senate-source-segmented-date/v1"} if date_records else {}),
             **({"account_layout_rule_version": ACCOUNT_RULE,
                 "account_heading_role_interpretations": heading_roles} if heading_roles or account_reads or boundary_title_requests else {}),
@@ -897,6 +918,7 @@ def extract_archived_paper_reports(evidence_root: Path, review_root: Path,
                     reports[document_id], manifest, observation, cached_pages[document_id], images,
                     prior_extraction=prior)
                 if (prior is not None or extracted.get("account_layout_rule_version") or
+                        extracted.get("owner_prefix_rule_version") or
                         extracted.get("whole_cell_mark_rule_version") or
                         any(page.get("date_segment_observations") for page in cached_pages[document_id])):
                     extracted["grid_replay_input"] = _save_legacy_grid_input(
