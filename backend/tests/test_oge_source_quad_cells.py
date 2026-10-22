@@ -13,6 +13,32 @@ from unison_snapshot.oge_278t_field_shadow import observe_field_shapes,_complete
 
 
 class SourceQuadCellTests(unittest.TestCase):
+    def test_mapped_quad_mode_preserves_bbox_and_rejects_padding_and_proof_tamper(self):
+        from unison_snapshot.oge_278t_source_quad_cells import DETECTION_QUAD_MODE
+        for overhang in (0,1):
+            with self.subTest(overhang=overhang),TemporaryDirectory() as folder:
+                source,data,render,saved=self.fixture(Path(folder),'type')
+                recipe,pixels=source_quad_cell(render,data['pages'][0],data['pages'][0]['slots'][0],'type',layer='source_text_objects_auxiliary')
+                text=saved[0]['cells'][0]['tsv_utf8'];head,row=text.splitlines();parts=row.split('\t')
+                # The bottom corners reach the real slanted boundary. Their
+                # enclosing world-axis rectangle is deliberately not the proof.
+                parts[7]=str(pixels.shape[0]-20-1-4+overhang)
+                text=head+'\n'+'\t'.join(parts)+'\n';saved[0]['cells'][0]['tsv_utf8']=text
+                saved[0]['cells'][0]['recipe']['tsv_sha256']=hashlib.sha256(text.encode()).hexdigest()
+                with patch('unison_snapshot.pdf_text_objects.render_pdf_text_objects',return_value=render):
+                    old=self.make(source,data,saved,'type')
+                    new=observe_saved_source_quad_cells(source,slots_observation=data,field='type',saved_pages=saved,
+                        layer='source_text_objects_auxiliary',ocr_engine='saved synthetic TSV',detection_geometry_mode=DETECTION_QUAD_MODE)
+                    a=old['pages'][0]['slots'][0]['column_words'][0];b=new['pages'][0]['slots'][0]['column_words'][0]
+                    self.assertEqual(a['bbox_pdf_points'],b['bbox_pdf_points'])
+                    self.assertEqual(a['text'],b['text'])
+                    out=observe_field_shapes([data],secondary_observations=[new],source_pdf_path=source)
+                    status=out['pages'][0]['slots'][0]['field_readings']['type']['observations'][1]['geometry_status']
+                    self.assertEqual(status,'ambiguous' if overhang else 'source_bound')
+                    changed=deepcopy(new);changed['pages'][0]['slots'][0]['column_words'][0]['rectified_bbox_pixels'][3]-=2
+                    with self.assertRaisesRegex(ValueError,'replay'):
+                        observe_field_shapes([data],secondary_observations=[changed],source_pdf_path=source)
+
     def fixture(self,root,field='transaction_date',layer='source_text_objects_auxiliary'):
         source=root/'source.pdf';source.write_bytes(b'synthetic source quad PDF')
         data=dual_input();data['source_sha256']=hashlib.sha256(source.read_bytes()).hexdigest()

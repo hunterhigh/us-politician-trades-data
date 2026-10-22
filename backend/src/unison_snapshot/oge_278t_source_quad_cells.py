@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 MODE = "source_quad_cells/v1"
+DETECTION_QUAD_MODE = "mapped_detection_quadrilateral/v1"
 _FIELDS = {"printed_number":0,"type":2,"transaction_date":3,"amount":4}
 _LAYERS = {"full_source":"all_image","source_text_objects_auxiliary":"text_image"}
 
@@ -60,7 +61,8 @@ def source_quad_cell(rendered, page, slot, field, *, layer, padding=20):
 
 def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation: dict,
         field: str, saved_pages: list[dict], layer: str, resolution: int = 300,
-        ocr_engine: str, render_cache: dict | None = None) -> dict:
+        ocr_engine: str, render_cache: dict | None = None,
+        detection_geometry_mode: str | None = None) -> dict:
     """Validate saved recipes/TSV and reconstruct normal secondary observations.
 
     Source path is supplied by the controlled caller, never taken from a read.
@@ -72,6 +74,8 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
     from .oge_278t_field_shadow import _validate_geometry_input,_secondary_slot_geometry,_date_shape,_amount_detection_reading,_ordered_amount_shape
     from .oge_278t_raster_slots import column_geometry_sha256,DUAL_MODE
     from .ocr_geometry import words_from_tesseract_tsv
+    if detection_geometry_mode not in (None, DETECTION_QUAD_MODE):
+        raise ValueError("unknown source quad detection geometry mode")
     _validate_geometry_input(slots_observation)
     if (field not in _FIELDS or layer not in _LAYERS or type(resolution) is not int or not 200 <= resolution <= 400
             or not isinstance(ocr_engine,str) or not ocr_engine.strip()):
@@ -141,6 +145,15 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
                     corners.append((float(sx-media[0]),float(media[3]-sy)))
                 detections.append({"text":word["text"],"confidence":word["ocr_confidence"],
                     "bbox_pdf_points":[min(p[0] for p in corners),min(p[1] for p in corners),max(p[0] for p in corners),max(p[1] for p in corners)]})
+                if detection_geometry_mode:
+                    # Keep the old axis-aligned envelope and the actual mapped
+                    # quadrilateral separately. Under a projective transform an
+                    # enclosing horizontal box can cross a slanted row even
+                    # when all original corners are inside the field.
+                    detections[-1].update(quad_pdf_points=[list(p) for p in corners],
+                        rectified_bbox_pixels=[x,y,x1,y1],
+                        source_quad_inner_pixel_bounds=[expected['padding'],expected['padding'],
+                            pixels.shape[1]-expected['padding']-1,pixels.shape[0]-expected['padding']-1])
             text=" ".join(d["text"] for d in detections)
             if field=="type":shape=text.casefold() if len(detections)==1 and text.casefold() in {"purchase","sale","exchange"} else None
             elif field=="amount":
@@ -165,7 +178,9 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
         "input_page_canonical_sha256":{str(p["page_number"]):canonical_sha(pages[p["page_number"]]) for p in saved_pages},
         "input_column_geometry_sha256":{str(p["page_number"]):column_geometry_sha256(pages[p["page_number"]]) for p in saved_pages},
         "ocr_engine":ocr_engine,"ocr_resolution_dpi":resolution,"input_ocr_resolution_dpi":slots_observation["ocr_resolution_dpi"],
-        "source_quad_input":{"field":field,"layer":layer,"resolution":resolution,"saved_pages":deepcopy(saved_pages)},
+        "source_quad_input":{"field":field,"layer":layer,"resolution":resolution,"saved_pages":deepcopy(saved_pages),
+            **({"detection_geometry_mode":detection_geometry_mode} if detection_geometry_mode else {})},
+        **({"detection_geometry_mode":detection_geometry_mode} if detection_geometry_mode else {}),
         "summary":{"observed_slots":count,"new_ocr_invocation_count":0},"pages":output}
 
 
@@ -174,7 +189,9 @@ def validate_source_quad_reading(reading, originals, source_pdf_path, *, render_
     matches=[o for o in originals if canonical_sha(o)==reading.get("input_observation_canonical_sha256")]
     if len(matches)!=1:raise ValueError("source quad read differs from primary source fingerprint")
     inputs=reading.get("source_quad_input")
-    if not isinstance(inputs,dict) or set(inputs)!={"field","layer","resolution","saved_pages"}:
+    required={"field","layer","resolution","saved_pages"}
+    if (not isinstance(inputs,dict) or set(inputs) not in (required,required|{'detection_geometry_mode'}) or
+            ('detection_geometry_mode' in inputs and inputs['detection_geometry_mode']!=DETECTION_QUAD_MODE)):
         raise ValueError("source quad replay inputs are invalid")
     expected=observe_saved_source_quad_cells(source_pdf_path,slots_observation=matches[0],ocr_engine=reading.get("ocr_engine"),
         render_cache=render_cache,**inputs)

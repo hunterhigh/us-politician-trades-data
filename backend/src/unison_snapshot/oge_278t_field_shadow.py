@@ -478,8 +478,19 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                             not _slot_owns_center(original_page,base,box)):
                         raise ValueError("secondary detection is outside its source field or slot")
                     if _dual_geometry(original_page):
-                        if not _geometry.box_in_slot(original_page,base,box,left,right,
-                                **({} if quad_mode else {"left_pad":.6,"right_pad":1.5})):
+                        from .oge_278t_source_quad_cells import DETECTION_QUAD_MODE
+                        if quad_mode and reading.get('detection_geometry_mode') == DETECTION_QUAD_MODE:
+                            # validate_source_quad_reading has independently
+                            # replayed these coordinates from the original TSV
+                            # and source homography. Test the rectangle before
+                            # mapping, rather than its enlarged world envelope.
+                            x0,y0,x1,y1=detection['rectified_bbox_pixels']
+                            qx0,qy0,qx1,qy1=detection['source_quad_inner_pixel_bounds']
+                            inside=qx0<=x0<x1<=qx1 and qy0<=y0<y1<=qy1
+                        else:
+                            inside=_geometry.box_in_slot(original_page,base,box,left,right,
+                                **({} if quad_mode else {"left_pad":.6,"right_pad":1.5}))
+                        if not inside:
                             if detection_index in excluded_metadata:
                                 notification_geometry_issues.append({"detection_index":detection_index,
                                     "reason":"nonfinancial_notification_box_extends_beyond_source_quad_or_field"})
