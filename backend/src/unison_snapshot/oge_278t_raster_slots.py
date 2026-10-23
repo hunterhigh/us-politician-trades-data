@@ -1208,6 +1208,16 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                 geometry,header=_partial_header_geometry(words,geometry)
             else:
                 header = _header_role_evidence(words, geometry)
+                if header["status"] != "confirmed" and saved_ocr_pages is None:
+                    from .oge_278t_header_ocr import recover_header_words
+                    missing = [i for i, hits in enumerate(header["label_word_indices"].values(), 1) if not hits]
+                    if missing:
+                        supplemental, receipt = recover_header_words(source,
+                            source_sha256=actual_sha256, page_number=number, geometry=geometry,
+                            missing_columns=missing, resolution=resolution, executable=executable)
+                        recovered = _header_role_evidence([*words, *supplemental], geometry)
+                        geometry = {**geometry, "header_structure_recovery": receipt}
+                        header = {**recovered, "word_basis": "primary_page_plus_structure_only_recovery"}
             geometry = {**geometry, "header_role_evidence": header,
                         "status": header["status"]}
             if header["status"] != "confirmed":
