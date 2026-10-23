@@ -50,9 +50,9 @@
       "record_id": "oge-278t:dee002ed6a980788267295a2"
     }
   ],
-  "asset_master_sha256": "e5c8f619b76e8f04c038c7ea33f687c02db2e0765d79d70f9868a9bd5ede1ffa",
-  "candidate_before_sha256": "069e3d7b9c65803cfe1daa8f64cd5f71bfb8905f4282506e98147420ab4cf841",
-  "checked_at": "2026-10-22T20:22:00Z",
+  "asset_master_sha256": "2c7060ac033a03435b5edfb6fe6b40b4588c1bb55c2071ecb4040209d40217f7",
+  "candidate_before_sha256": "f4a3dfaa4829df2d769905495c1fecd75d94f7a16a99f289234414423936539c",
+  "checked_at": "2026-10-23T01:01:00Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
