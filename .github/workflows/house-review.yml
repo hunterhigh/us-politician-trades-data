@@ -140,8 +140,10 @@ jobs:
           import json, os
           from pathlib import Path
           from unison_snapshot.house_paper_pipeline import preserved_paper_materialization
+          from unison_snapshot.house_paper_commit import recover_pending_paper_materializations
           evidence = Path(os.environ['EVIDENCE_ROOT'])
           review = Path(os.environ['REVIEW_ROOT'])
+          recover_pending_paper_materializations(evidence, review)
           parser_commit = os.environ['PARSER_COMMIT']
           pending = []
           retries = []

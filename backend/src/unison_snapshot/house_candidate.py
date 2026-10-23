@@ -117,6 +117,16 @@ def _paper_pending_count(qualification: dict) -> int:
 def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                           annual_transaction_inputs: list[dict] | None = None,
                           annual_transaction_audit: dict | None = None) -> dict:
+    """Build a candidate only from a complete, idle House review directory."""
+    from .house_paper_commit import paper_review_access
+    with paper_review_access(review_root,require_complete=True):
+        return _build_house_candidate(review_root,state_status,base,
+            annual_transaction_inputs=annual_transaction_inputs,annual_transaction_audit=annual_transaction_audit)
+
+
+def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
+                           annual_transaction_inputs: list[dict] | None = None,
+                           annual_transaction_audit: dict | None = None) -> dict:
     review_root = review_root.resolve()
     source_status = review_root / "status" / "house_clerk.json"
     summary = _read_json(source_status if source_status.is_file()

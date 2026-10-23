@@ -60,6 +60,14 @@ def _reasons(value: dict) -> set[str]:
 
 def build_house_status(evidence_root: Path, review_root: Path,
                        transactions: list[dict], holdings: list[dict]) -> list[dict]:
+    """Read report status only from a complete, idle House review directory."""
+    from .house_paper_commit import paper_review_access
+    with paper_review_access(review_root,require_complete=True):
+        return _build_house_status(evidence_root,review_root,transactions,holdings)
+
+
+def _build_house_status(evidence_root: Path, review_root: Path,
+                        transactions: list[dict], holdings: list[dict]) -> list[dict]:
     """Account for every discovered PTR and bind supplied publication rows.
 
     Each year's most recently retrieved index defines its current catalog.

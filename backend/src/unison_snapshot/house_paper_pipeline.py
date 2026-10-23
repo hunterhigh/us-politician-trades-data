@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 
 from .codec import encode
+from .house_paper_commit import (paper_review_access, commit_paper_materialization,
+    recover_paper_materialization, recover_pending_paper_materializations)
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
 from .house_ptr_key_field_reread import (
@@ -78,6 +80,16 @@ def _same_filer_peers(evidence_root: Path, target: dict) -> list[dict]:
 def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                         metadata_path: Path, tesseract: str,
                         observe_new: bool, materialize_saved: bool = False) -> str:
+    """Bridge one report, recovering any prepared result before interpretation."""
+    with paper_review_access(review_root):
+        return _bridge_paper_report(evidence_root=evidence_root,review_root=review_root,
+            metadata_path=metadata_path,tesseract=tesseract,observe_new=observe_new,
+            materialize_saved=materialize_saved)
+
+
+def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
+                         metadata_path: Path, tesseract: str,
+                         observe_new: bool, materialize_saved: bool = False) -> str:
     """Return the review disposition; saved fact interpretation is explicit opt-in."""
     evidence_root = evidence_root.resolve()
     review_root = review_root.resolve()
@@ -86,6 +98,8 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
         raise ValueError("House paper metadata escapes evidence root")
     metadata = _read(metadata_path)
     document_id, source_sha, _, _ = validate_paper_source_metadata(metadata)
+    if recover_paper_materialization(review_root,evidence_root,metadata):
+        return "recovered_saved_materialization"
     relative = Path(str(metadata["filing_year"])) / document_id / f"{source_sha}.json"
     extraction_path = review_root / "house_clerk" / "extractions" / relative
     identity_path = review_root / "house_clerk" / "identities" / relative
@@ -216,6 +230,7 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                 interpreted.get("extraction_method") != "source_bound_paper_cells" or
                 not preserved_paper_materialization(metadata, interpreted, paper, observation)):
             raise ValueError("House materialized extraction source mismatch")
+        outputs={"observation":observation,"header":header,"extraction":interpreted,"qualification":paper}
         reference = legacy.get("legacy_extraction_reference") if legacy else None
         if reference is not None:
             reference = dict(reference)
@@ -231,6 +246,7 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                         "canonical_extraction_sha256": digest} or
                     saved.get("canonical_extraction_sha256") != digest):
                 raise ValueError("House legacy extraction reference binding differs")
+            outputs["legacy_reference"]=saved
         if extraction is not None and extraction.get("extraction_method") == "tesseract_legacy_checkbox":
             digest = hashlib.sha256(encode(extraction)).hexdigest()
             old_path = (review_root / "house_clerk/paper_legacy_extraction_references" /
@@ -243,10 +259,11 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
                      "extraction": extraction}
             if old_path.is_file() and _read(old_path) != saved:
                 raise ValueError("House legacy extraction reference already differs")
-            _write(old_path, saved)
+            outputs["legacy_reference"]=saved
         if reference is not None:
             paper["legacy_extraction_reference"] = reference
-        _write(extraction_path, interpreted)
+        commit_paper_materialization(review_root,evidence_root,metadata,outputs)
+        return disposition
     # Write reusable source observations first; the qualification is replaced
     # only after the complete paper result has been constructed and checked.
     _write(observation_path, observation)
@@ -278,8 +295,9 @@ def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
         if len(matches) != 1:
             raise ValueError("House paper document ID has no unique archived source")
         selected.insert(0, matches[0])
-    outcomes: dict[str, int] = {}
-    seen: set[Path] = set()
+    recovered=recover_pending_paper_materializations(evidence_root,review_root)
+    outcomes: dict[str, int] = {"recovered_saved_materialization":len(recovered)} if recovered else {}
+    seen: set[Path] = set(recovered)
     new_count = 0
     for path in [*replay, *selected]:
         path = path.resolve()
