@@ -1294,6 +1294,10 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     if geometry_mode not in (None,DUAL_AXIS_MODE) or geometry_mode and allow_partial_rows:
         raise OgeCatalogError("White House dual-axis mode cannot mix legacy partial geometry")
     dual=geometry_mode==DUAL_AXIS_MODE
+    from .oge_ocr_line_order import MODE as OCR_LINE_MODE
+    description_line_mode=inputs.get("description_line_mode")
+    if description_line_mode not in (None,OCR_LINE_MODE) or description_line_mode and not dual:
+        raise OgeCatalogError("White House description line mode requires explicit saved dual-axis input")
     word_mode=inputs.get("word_observation_mode")
     if word_mode not in (None,"source_objects_with_ocr_header/v1") or word_mode and not dual:
         raise OgeCatalogError("source word observations require explicit dual-axis mode")
@@ -1441,6 +1445,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                       resolution=observation_dpi,
                       **({"allow_partial_rows":True} if allow_partial_rows else {}),
                       **({"geometry_mode":DUAL_AXIS_MODE} if dual else {}),
+                      **({"description_line_mode":description_line_mode} if description_line_mode else {}),
                       **({"native_baseline_mode":inputs["native_baseline_mode"]} if "native_baseline_mode" in inputs else {}))
                 content = observe_content_rows([observations],document_page_count=count,source_pdf_path=Path(pdf),
                     **({"secondary_observations":secondary_observations} if secondary_observations is not None else {}),
@@ -1551,6 +1556,8 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
                        observation_resolution_dpi=observation_dpi)
     if source_date_sequence_mode:
         receipt["source_date_sequence_mode"] = source_date_sequence_mode
+    if description_line_mode:
+        receipt["description_line_mode"] = description_line_mode
     if metadata.get("amended_label") or dates["amendment_cover"]:
         reasons.append("amendment_relationship_unresolved")
     result = {"schema_version":EXTRACTION_SCHEMA,"parser_version":DUAL_AXIS_PARSER_VERSION if dual else SAVED_OCR_PARSER_VERSION,"source_id":"oge",

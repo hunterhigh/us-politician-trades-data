@@ -818,12 +818,17 @@ def _description_reading_in_frame(slot: dict, *, center_offsets: dict | None = N
             "line_word_indices": lines, "reason": None}
 
 
-def _description_reading(slot: dict, *, page: dict | None = None) -> dict:
-    """Compare source and row-relative ordering without changing source boxes.
+def _description_reading(slot: dict, *, page: dict | None = None, use_ocr_lines: bool = False) -> dict:
+    """Use retained OCR lines for descriptions, otherwise compare both frames.
 
-    Ruled-table slope is not independent proof of a handwritten text baseline.
-    Conflicting flattened word orders stay unknown, in either direction.
+    Without producer line evidence, ruled-table slope cannot independently
+    establish a text baseline. Conflicting inferred orders stay unknown.
     """
+    if use_ocr_lines and page is not None:
+        from .oge_ocr_line_order import description_line_reading
+        reading = description_line_reading(slot, page)
+        if reading is not None:
+            return reading
     source = _description_reading_in_frame(slot)
     if page is None or not _dual_geometry(page):
         return source
@@ -916,6 +921,8 @@ def observe_field_shapes(observations: list[dict], *,
     if source_glyph_mode and source_pdf_path is None:
         raise ValueError("source glyph mode requires the original PDF")
     for item in observations:
+        from .oge_ocr_line_order import validate_line_mode
+        validate_line_mode(item)
         _validate_geometry_input(item)
         from .pdf_text_baselines import validate_native_baseline_observation
         validate_native_baseline_observation(item,source_pdf_path)
@@ -928,6 +935,8 @@ def observe_field_shapes(observations: list[dict], *,
     evidence_counts: Counter[str] = Counter()
     for input_index, item in enumerate(observations):
         for page_index, page in enumerate(item["pages"]):
+            from .oge_ocr_line_order import validate_line_source
+            validate_line_source(page, source_sha256=item["source_sha256"])
             number = page["page_number"]
             if number in seen_pages:
                 raise ValueError("duplicate page in 278-T field observations")
@@ -946,7 +955,7 @@ def observe_field_shapes(observations: list[dict], *,
                     raise ValueError("confirmed column page lacks column observations")
                 raw = {name: columns[name]["raw_ocr_text"] for name in _COLUMNS}
                 printed_number = raw["printed_number"].strip()
-                description_reading = _description_reading(slot, page=page)
+                description_reading = _description_reading(slot, page=page, use_ocr_lines=True)
                 date_reading = _description_reading({**slot, "column_observation": {
                     "description": columns["transaction_date"]}}, page=page)
                 # OCR may join a notification word to the first dollar value.

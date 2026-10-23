@@ -1204,12 +1204,16 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                          resolution: int = 200,
                          saved_ocr_pages: dict | None = None,
                          saved_ocr_engine: str | None = None,
-                         allow_partial_rows: bool = False, geometry_mode=None, native_baseline_mode=None) -> dict:
+                         allow_partial_rows: bool = False, geometry_mode=None, native_baseline_mode=None,
+                         description_line_mode: str | None = None) -> dict:
     """Retain OCR words by independently located physical slot.
 
     OCR words are observations only.  A slot without recognized words may be
     blank or unreadable, and a slot with words is not yet a transaction.
     """
+    from .oge_ocr_line_order import MODE as OCR_LINE_MODE, prepare_line_source
+    if description_line_mode not in (None, OCR_LINE_MODE):
+        raise ValueError("unsupported OGE description OCR line mode")
     if (not page_numbers or len(page_numbers) > MAX_PAGES_PER_RUN or
             any(type(number) is not int or number < 1 for number in page_numbers) or
             len(set(page_numbers)) != len(page_numbers)):
@@ -1306,6 +1310,8 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
              **({"geometry_mode":DUAL_MODE,"row_line_model":geometry["row_line_model"]} if geometry_mode else {})}
         slots = []
         assigned: set[int] = set()
+        line_source = (prepare_line_source(words, source_sha256=actual_sha256, page_number=number)
+                       if description_line_mode else None)
         for index, band in enumerate(bands, start=1):
             top, bottom = band
             dual_slot=({"band_pdf_points":band,"row_boundary_refs":geometry["physical_row_boundary_refs"][index-1],
@@ -1321,6 +1327,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                              "bbox_pdf_points": [float(word[key]) if dual_slot else round(float(word[key]), 2)
                                                  for key in ("x0", "top", "x1", "bottom")],
                              "confidence": round(float(word["ocr_confidence"]), 2),
+                             **({"ocr_line_word_index":position} if line_source is not None else {}),
                              **({"source_page_word_index":position} if native_baseline_mode else {})}
                             for position,word in ordered]
             slots.append({"slot_index": index,
@@ -1358,6 +1365,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                           "unbound_page_ocr_words":[{"word_index":i,**word} for i,word in enumerate(words) if i not in assigned]}
                          if partial else {}),
                       "slots": slots,
+                      **({"ocr_line_source":line_source} if line_source is not None else {}),
                       "ocr_word_count": len(words),
                       "words_outside_slots": len(words) - len(assigned)})
     if native_baseline_mode:
@@ -1386,6 +1394,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     if geometry_mode:
         for page in pages:page["geometry_mode"]=DUAL_MODE
     return {"schema_version": DUAL_SCHEMA if geometry_mode else SCHEMA,
+            **({"description_line_mode":description_line_mode} if description_line_mode else {}),
             **({"geometry_mode":DUAL_MODE} if geometry_mode else {}),
             **({"native_baseline_mode":native_baseline_mode} if native_baseline_mode else {}),
             "source_sha256": actual_sha256,
