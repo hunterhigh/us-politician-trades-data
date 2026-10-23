@@ -1052,11 +1052,14 @@ def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expe
 
 
 
+_FILER_IDENTITY_LABEL = r"Filer(?:(?:'|’)?s)?"
+
+
 def _generic_cover_identity(text: str) -> tuple:
     name, position, agency, role_raw, reasons = _filer_information(text)
     if name is None:
-        info = re.search(r"Filer(?:(?:'|’)?s)?\s+Information\s*\n(.*?)"
-                         r"(?=^\s*(?:Filer(?:(?:'|’)?s)?\s+Certification\b|Electronic\s+Signature\b|"
+        info = re.search(_FILER_IDENTITY_LABEL + r"\s+Information\s*\n(.*?)"
+                         r"(?=^\s*(?:" + _FILER_IDENTITY_LABEL + r"\s+Certification\b|Electronic\s+Signature\b|"
                          r"Agency\s+Ethics\s+Official\b))", text, re.I|re.S|re.M)
         lines=[line.strip() for line in info[1].splitlines() if line.strip()] if info else []
         # Paper covers use a labelled multi-column identity table. Its header
@@ -1243,8 +1246,8 @@ def _saved_directory_identity(inputs: dict, metadata: dict, cover_text: str) -> 
     # A bounded, visibly empty identity block is missing information. An absent
     # or unclosed block is unknown, not permission to erase a possible conflict.
     blocks = list(re.finditer(
-        r"^Filer(?:'|’)?s[ \t]+Information[ \t]*\r?\n(.*?)"
-        r"^Filer(?:'|’)?s[ \t]+Certification[ \t]*\r?\n(?=(?:Date\s*:|I\s+certify\b))",
+        r"^" + _FILER_IDENTITY_LABEL + r"[ \t]+Information[ \t]*\r?\n(.*?)"
+        r"^" + _FILER_IDENTITY_LABEL + r"[ \t]+Certification[ \t]*\r?\n(?=(?:Date\s*:|I\s+certify\b))",
         cover_text, re.I | re.S | re.M))
     if len(blocks) != 1:
         return pending("official_directory_pdf_identity_block_ambiguous")

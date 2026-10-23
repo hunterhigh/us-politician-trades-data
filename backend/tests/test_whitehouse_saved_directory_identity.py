@@ -28,7 +28,8 @@ def write(path, value):
     return hashlib.sha256(raw).hexdigest()
 
 
-def fixture(root, *, info='', name='Wiles, Susie', extra_catalog=None):
+def fixture(root, *, info='', name='Wiles, Susie', extra_catalog=None,
+            information_label="Filer's", certification_label="Filer's"):
     case=SavedWhiteHouseTests();inputs,_=case.fixture(root)
     inputs['geometry_mode']=DUAL_AXIS_MODE
     meta_path=Path(inputs['archive_metadata_path']);meta=json.loads(meta_path.read_bytes())
@@ -56,7 +57,8 @@ def fixture(root, *, info='', name='Wiles, Susie', extra_catalog=None):
                         ('oge_identity_coverage',root/'coverage.json',coverage)]:
         inputs[key+'_path']=path.relative_to(root).as_posix();inputs[key+'_sha256']=write(path,obj)
     inputs.update(oge_identity_catalog_metadata_path='oge/catalog/source.json',oge_identity_catalog_metadata_sha256=cat_hash)
-    cover="Periodic Transaction Report (OGE Form 278-T)\nFiler's Information\n"+info+"\nFiler's Certification\nDate: 06/13/2026\nAgency Ethics Official's Opinion\nDate: 06/15/2026\n"
+    cover=("Periodic Transaction Report (OGE Form 278-T)\n" + information_label + " Information\n" + info +
+           "\n" + certification_label + " Certification\nDate: 06/13/2026\nAgency Ethics Official's Opinion\nDate: 06/15/2026\n")
     checkpoint=json.loads(Path(inputs['checkpoint_path']).read_bytes())
     checkpoint['pages'][0]['words']=[{'text':line,'x0':10.,'x1':700.,'top':10.+i*10.,'bottom':18.+i*10.,
         'ocr_confidence':95,'block_num':1,'par_num':1,'line_num':i+1} for i,line in enumerate(cover.splitlines())]
@@ -72,12 +74,71 @@ def consume(report,coverage,base=None):
 
 
 class SavedDirectoryIdentityTests(unittest.TestCase):
+    def test_identity_label_variants_share_bounded_saved_consumer_rule(self):
+        from unison_snapshot.whitehouse_278t import _generic_cover_identity
+        for information in ('Filer', "Filer's", 'Filer’s', 'Filers', 'fIlEr'):
+            for certification in ('Filer', "Filer's", 'Filer’s', 'fIlEr'):
+                with self.subTest(information=information,certification=certification),tempfile.TemporaryDirectory() as folder:
+                    root=Path(folder)
+                    case,inputs,data,cov=fixture(root,information_label=information,certification_label=certification)
+                    with saved_ocr_source_roots(root,root),case.context(data):
+                        report=materialize_saved_whitehouse_278t(inputs)
+                        validate_generic_whitehouse_report(report)
+                        candidate,_=consume(report,cov)
+                        again,_=consume(report,cov,candidate)
+                    resolution=report['source_identity_resolution']
+                    self.assertEqual(resolution['status'],'resolved')
+                    self.assertEqual(resolution['resolved_missing_fields'],['name','position','agency'])
+                    self.assertIsNone(report['pdf_filer_name'])
+                    self.assertIsNone(report['pdf_position_title'])
+                    self.assertEqual(report['filed_at'],'2026-06-13')
+                    self.assertEqual(len(candidate['transactions']),1)
+                    self.assertEqual(candidate['transactions'],again['transactions'])
+                    text=(information+' Information\nWiles, Susie\nChief of Staff - White House\n'+
+                          certification+' Certification\nDate: 06/13/2026\n')
+                    self.assertEqual(_generic_cover_identity(text)[:3],('Wiles, Susie','Chief of Staff','White House'))
+
+    def test_new_identity_label_forms_do_not_erase_real_conflicts_or_open_blocks(self):
+        for info in ('Someone, Else','Wiles, Susie\nUnrelated Position - White House',
+                     'Wiles, Susie\nAssistant to the President & Chief of Staff - Other Agency',
+                     'Wiles, Susie\nAssistant to the President & Chief of Staff\nExtra unresolved line',
+                     'Filer Certification Company\nSome Role',
+                     'Filer Certification\nNot A Date Field',
+                     'Filer Certification\nDate: 06/13/2026\nFiler Information'):
+            with self.subTest(info=info),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder)
+                case,inputs,data,cov=fixture(root,info=info,information_label='Filer',certification_label='Filer')
+                with saved_ocr_source_roots(root,root),case.context(data):
+                    report=materialize_saved_whitehouse_278t(inputs);candidate,_=consume(report,cov)
+                self.assertEqual(report['source_identity_resolution']['status'],'unresolved')
+                self.assertEqual(candidate['transactions'],[])
+        for information,certification in (('Filer Company','Filer'),('Filer','Filer Company')):
+            with self.subTest(information=information,certification=certification),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder)
+                case,inputs,data,cov=fixture(root,information_label=information,certification_label=certification)
+                with saved_ocr_source_roots(root,root),case.context(data):
+                    report=materialize_saved_whitehouse_278t(inputs);candidate,_=consume(report,cov)
+                self.assertEqual(report['source_identity_resolution']['status'],'unresolved')
+                self.assertEqual(candidate['transactions'],[])
+
+    def test_identity_token_compatibility_does_not_expand_date_recognition(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            case,inputs,data,cov=fixture(root,information_label='Filers',certification_label='Filers')
+            with saved_ocr_source_roots(root,root),case.context(data):
+                report=materialize_saved_whitehouse_278t(inputs);candidate,_=consume(report,cov)
+            # Identity labels and filing-date interpretation remain independent.
+            self.assertEqual(report['source_identity_resolution']['status'],'resolved')
+            self.assertIsNone(report['filed_at'])
+            self.assertIn('filer_signature_date_missing',report['document_reasons'])
+            self.assertEqual(candidate['transactions'],[])
+
     def test_normal_extract_coverage_candidate_cli_consumes_optional_inputs(self):
         from scripts.whitehouse_extract import main as extract_main
         from scripts.whitehouse_coverage import main as coverage_main
         from scripts.build_whitehouse_278t_candidate import main as candidate_main
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);case,inputs,data,cov=fixture(root)
+            root=Path(folder);case,inputs,data,cov=fixture(root,information_label='Filer',certification_label='Filer')
             meta=json.loads(Path(inputs['archive_metadata_path']).read_bytes())
             write(root/'input.json',inputs)
             index=json.loads((root/inputs['official_directory_index_path']).read_bytes())

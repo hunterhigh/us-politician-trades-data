@@ -5,6 +5,15 @@ on:
     # their shared disclosure-source-writer concurrency group.
     - cron: '43 4,10,16,22 * * *'
   workflow_dispatch:
+    inputs:
+      include_saved_oge_annual:
+        description: Include existing saved OGE annual inputs in the review candidate
+        type: boolean
+        default: false
+      oge_annual_document_id:
+        description: Optional saved annual document ID; empty uses the bounded available set
+        required: false
+        default: ''
 permissions:
   contents: write
 
@@ -334,9 +343,15 @@ jobs:
           review_root="$RUNNER_TEMP/oge-review"
           git fetch --no-tags --depth=1 origin review
           git worktree add --detach "$review_root" FETCH_HEAD
+          evidence_root="$RUNNER_TEMP/oge-review-evidence"
+          git fetch --no-tags --depth=1 origin evidence
+          git worktree add --detach "$evidence_root" FETCH_HEAD
       - name: Publish normalized review data and build source candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/oge-review
+          EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence
+          INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
+          OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
@@ -421,11 +436,36 @@ jobs:
             --evidence-root "$EVIDENCE_ROOT" \
             --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          # BEGIN bounded saved annual preparation
+          annual_args=()
+          case "${INCLUDE_SAVED_OGE_ANNUAL:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual preparation switch.' >&2; exit 2 ;;
+          esac
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" = true ]; then
+            selection_args=()
+            if [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
+              [[ "$OGE_ANNUAL_DOCUMENT_ID" =~ ^[0-9a-f]{32}$ ]] || exit 2
+              selection_args+=(--document-id "$OGE_ANNUAL_DOCUMENT_ID")
+            fi
+            PYTHONPATH=backend/src python backend/scripts/prepare_oge_annual_runtime.py \
+              --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+              --output "$RUNNER_TEMP/oge-annual-input.json" \
+              --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              "${selection_args[@]}"
+            annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
+              --oge-annual-runtime-root "$EVIDENCE_ROOT")
+          elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
+            echo 'A saved annual document selection requires the explicit preparation switch.' >&2
+            exit 2
+          fi
+          # END bounded saved annual preparation
           PYTHONPATH=backend/src python backend/scripts/overlay_whitehouse_annual_candidate.py \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json" \
+            "${annual_args[@]}"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
           assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
           PYTHONPATH=backend/src python backend/scripts/enrich_whitehouse_annual_tickers.py \
