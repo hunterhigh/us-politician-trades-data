@@ -759,6 +759,53 @@ def _oge_2024_image_grid(page, *, allow_partial_rows=False) -> dict:
     return {**partial,"strict_geometry_observation":strict}
 
 
+def _column_connected_component(gray, lines, edges, slopes, reference, xref, sections, sx, sy):
+    """Select witnessed table boundaries, excluding full-width page decorations.
+
+    A component must contain all three independent column-observation regions.
+    Missing column segments split components; no segment is extrapolated across
+    a break. Final whole-component column witnesses are checked by the caller.
+    """
+    connections = []
+    for index, (upper, lower) in enumerate(zip(lines, lines[1:])):
+        failures = []
+        for column, (x, slope) in enumerate(zip(edges, slopes)):
+            a = x - slope * reference
+            endpoints = [(line["b"] - line["r"]*xref + line["r"]*a)/(1-slope*line["r"])
+                         for line in (upper, lower)]
+            witness = _image_rule_witness(gray, x=x, top=endpoints[0], bottom=endpoints[1],
+                scale_x=sx, scale_y=sy, slope=slope, reference_y=reference)
+            # At a short cell interval, horizontal junctions can occupy most
+            # of an endpoint third. Only connectivity chooses components;
+            # the unchanged full-span thin/trajectory witness follows later.
+            if ("max_blank_gap_scanlines" not in witness or
+                    witness.get("first_disconnected_scanline") is not None or
+                    "line_endpoint_without_black_support" in witness.get("failure_reasons", [])):
+                failures.append(column)
+        connections.append({"row_boundary_indices": [index, index+1], "failed_columns": failures})
+    components = []
+    start = 0
+    for index in range(len(lines)):
+        if index == len(lines)-1 or connections[index]["failed_columns"]:
+            component = lines[start:index+1]
+            bounds = []
+            for line in (component[0], component[-1]):
+                b = line["b"]-line["r"]*xref
+                bounds.append([(b+line["r"]*(x-c*reference))/(1-c*line["r"])
+                               for x,c in zip(edges,slopes)])
+            contains_regions = all(max(bounds[0]) <= s["y_span_pdf_points"][0] and
+                                   min(bounds[1]) >= s["y_span_pdf_points"][1] for s in sections)
+            components.append({"start": start, "end": index, "contains_column_regions": contains_regions})
+            start = index+1
+    supported = [c for c in components if c["contains_column_regions"]]
+    proof = {"basis": "same_source_seven_column_connectivity/v1", "intervals": connections,
+             "components": components, "supported_component_count": len(supported)}
+    if len(supported) != 1:
+        return [], proof
+    selected = supported[0]
+    return lines[selected["start"]:selected["end"]+1], proof
+
+
 def _dual_axis_image_grid(page) -> dict:
     """Fit both source-coordinate axes; bounded candidates never imply trades."""
     import numpy as np
@@ -806,8 +853,10 @@ def _dual_axis_image_grid(page) -> dict:
             failures.append({"candidate_start_index":start,"reason":"column_interior_not_sampleable"});continue
         strips=[[a+.4*(b-a),a+.4*(b-a)+min(15,.15*(b-a))] for a,b in zip(edges,edges[1:])]
         seeds=[strips[0],[edges[1]+.6*(edges[2]-edges[1]),edges[1]+.6*(edges[2]-edges[1])+min(15,.15*(edges[2]-edges[1]))],strips[5]]
-        inventory=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,x0=a,x1=b) for a,b in seeds]
+        inventory=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,
+                                       x0=a,x1=b,y_span=(0.,page.height)) for a,b in seeds]
         evidence={"seed_strip_spans_pdf_points":seeds,"seed_candidates_y_pdf_points":inventory,
+                  "search_y_span_pdf_points":[0.,page.height],
                   "endpoint_pair_count":len(inventory[0])*len(inventory[2]),"maximum_endpoint_pairs":16384,
                   "maximum_fitted_proposals":512,"failed_line_proposals":[]}
         if any(len(row)>128 for row in inventory):
@@ -852,16 +901,24 @@ def _dual_axis_image_grid(page) -> dict:
         evidence["fitted_proposal_count"]=proposals
         if proposals>512:
             failures.append({"candidate_start_index":start,"reason":"horizontal_proposal_limit","evidence":evidence});continue
+        accepted.sort(key=lambda line:line["b"])
         if any(sum(other["source_candidate_indices"][c]==line["source_candidate_indices"][c] for other in accepted)>1
                for line in accepted for c in range(3)):
             failures.append({"candidate_start_index":start,"reason":"multiple_supported_row_models","evidence":evidence});continue
-        accepted.sort(key=lambda line:line["b"])
+        if len(accepted) >= 2:
+            accepted, component = _column_connected_component(gray, accepted, edges, slopes,
+                reference, xref, sections, sx, sy)
+            evidence["column_connected_component"] = component
+            if not accepted:
+                failures.append({"candidate_start_index":start,"reason":"image_vertical_rule_not_connected",
+                                 "evidence":evidence});continue
         if (len(accepted)<6 or accepted[-1]["b"]-accepted[0]["b"]<200 or
                 max(line["r"] for line in accepted)-min(line["r"] for line in accepted)>.008):
             failures.append({"candidate_start_index":start,"reason":"insufficient_supported_row_models","evidence":evidence});continue
         # Every other observed narrow-column candidate is either uniquely
         # explained by a supported line or a conservative slope-bounded barrier.
-        extra=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,x0=a,x1=b) for a,b in strips]
+        extra=[_raster_rule_centers(gray,points_per_pixel=1/sy,x_points_per_pixel=1/sx,
+                                  x0=a,x1=b,y_span=(0.,page.height)) for a,b in strips]
         evidence["column_candidate_strips_pdf_points"]=strips;evidence["column_candidates_y_pdf_points"]=extra
         barriers=[]
         for span,values in [*zip(seeds,inventory),*zip(strips,extra)]:
@@ -1020,12 +1077,13 @@ def _partial_header_geometry(words: list[dict], geometry: dict) -> tuple[dict,di
 
 def _dual_header_geometry(words,geometry):
     model=geometry["row_line_model"];values=row_edges_at_x(geometry,model["reference_x_pdf_points"])
-    confirmed=[]
+    confirmed=[];best_unique_labels=0
     for i,(a,b) in enumerate(zip(values,values[1:])):
         slot={"row_boundary_refs":[i,i+1],"band_pdf_points":[a,b],"band_coordinate_basis":"row_lines_at_reference_x"}
         quad=slot_quad(geometry,slot)
         probe={**geometry,"header_band_pdf_points":[min(p[1] for p in quad),max(p[1] for p in quad)]}
         header=_header_role_evidence(words,probe)
+        best_unique_labels=max(best_unique_labels,sum(len(hits)==1 for hits in header["label_word_indices"].values()))
         if header["status"]!="confirmed":continue
         valid=True
         for column,hits in enumerate(header["label_word_indices"].values(),1):
@@ -1036,7 +1094,9 @@ def _dual_header_geometry(words,geometry):
                 if not (vertical[0][0]+vertical[0][1]*py<=px<=vertical[1][0]+vertical[1][1]*py and
                         horizontal[0][0]+horizontal[0][1]*px-3<=py<=horizontal[1][0]+horizontal[1][1]*px+3):valid=False
         if valid:confirmed.append((i,slot,quad,header))
-    if len(confirmed)!=1:return geometry,{"status":"unknown","reason":"dual_axis_header_not_unique","confirmed_header_candidate_count":len(confirmed)}
+    if len(confirmed)!=1:return geometry,{"status":"unknown","reason":"dual_axis_header_not_unique",
+        "failure_stage":"header_role", "witnessed_boundary_count":len(values),
+        "best_unique_label_count":best_unique_labels,"confirmed_header_candidate_count":len(confirmed)}
     index,slot,quad,header=confirmed[0]
     pairs=[(b,r) for b,r in zip(geometry["physical_row_bands"],geometry["physical_row_boundary_refs"]) if r[0]>=index+1]
     result={**geometry,"physical_row_bands":[b for b,r in pairs],"physical_row_boundary_refs":[r for b,r in pairs],
@@ -1088,14 +1148,22 @@ def census_with_2024_fallback(pdf_path: Path, *, expected_sha256: str,
     except ImportError:
         raise RuntimeError("pdfplumber is required for 278-T grid observation") from None
     source = Path(pdf_path)
+    if geometry_mode == DUAL_MODE:
+        if (not page_numbers or len(page_numbers)>MAX_PAGES_PER_RUN or
+                len(set(page_numbers))!=len(page_numbers) or
+                any(type(n) is not int or n<1 for n in page_numbers)):
+            raise ValueError("dual-axis census requires 1-8 distinct positive pages")
+        if hashlib.sha256(source.read_bytes()).hexdigest()!=expected_sha256:
+            raise ValueError("PDF bytes do not match the fixed source SHA-256")
+        with pdfplumber.open(source) as document:
+            if any(n>len(document.pages) for n in page_numbers):
+                raise ValueError("dual-axis census page is outside the PDF")
+            results=[{"page_number":n,"status":"coverage_unknown","physical_row_bands":[],
+                "column_geometry_observation":_dual_axis_image_grid(document.pages[n-1])} for n in page_numbers]
+        return {"source_sha256":expected_sha256,"results":results},{n:None for n in page_numbers}
     census = probe_raster_row_bands(
         source, expected_sha256=expected_sha256, page_numbers=page_numbers)
     with pdfplumber.open(source) as document:
-        if geometry_mode == DUAL_MODE:
-            geometry={n:_dual_axis_image_grid(document.pages[n-1]) for n in page_numbers}
-            for page in census["results"]:
-                page.update(status="coverage_unknown",physical_row_bands=[],column_geometry_observation=geometry[page["page_number"]])
-            return census,{n:None for n in page_numbers}
         geometry = {number: _oge_2024_column_geometry(document.pages[number - 1])
                     for number in page_numbers}
         for number, item in list(geometry.items()):
@@ -1149,10 +1217,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     if type(resolution) is not int or not 150 <= resolution <= 400:
         raise ValueError("278-T raster observation DPI is outside bounds")
     source = Path(pdf_path)
-    if type(allow_partial_rows) is not bool or (allow_partial_rows and saved_ocr_pages is None):
+    if type(allow_partial_rows) is not bool or (allow_partial_rows and saved_ocr_pages is None and geometry_mode != DUAL_MODE):
         raise ValueError("partial row geometry requires explicit saved OCR pages")
-    if geometry_mode not in (None,DUAL_MODE) or geometry_mode and saved_ocr_pages is None:
-        raise ValueError("dual-axis geometry requires explicit saved words and mode")
+    if geometry_mode not in (None,DUAL_MODE):
+        raise ValueError("dual-axis geometry requires an explicit supported mode")
     if native_baseline_mode is not None:
         from .pdf_text_baselines import MODE
         if native_baseline_mode != MODE or geometry_mode != DUAL_MODE or saved_ocr_pages is None:
@@ -1185,7 +1253,8 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
         else:
             ocr_pages, engine = (ocr_pdf_pages(
             document, page_numbers=known_pages, max_pages=MAX_PAGES_PER_RUN,
-            resolution=resolution, executable=executable, force_mediabox=True)
+            resolution=resolution, executable=executable, force_mediabox=True,
+            source_sha256=actual_sha256)
             if known_pages else ([], None))
     ocr_by_page = dict(zip(known_pages, ocr_pages, strict=True))
     pages = []
@@ -1219,6 +1288,7 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
                         geometry = {**geometry, "header_structure_recovery": receipt}
                         header = {**recovered, "word_basis": "primary_page_plus_structure_only_recovery"}
             geometry = {**geometry, "header_role_evidence": header,
+                        "geometric_boundary_status": geometry["status"],
                         "status": header["status"]}
             if header["status"] != "confirmed":
                 pages.append({"page_number": number, "coverage": "physical_slots_unknown",
@@ -1308,6 +1378,10 @@ def observe_raster_slots(pdf_path: Path, *, expected_sha256: str,
     if saved_ocr_pages is not None:
         for page in pages:
             frame=getattr(saved_ocr_pages[page["page_number"]],"render_frame",None)
+            if frame is not None:page["render_frame"]=deepcopy(frame)
+    else:
+        for page in pages:
+            frame=getattr(ocr_by_page.get(page["page_number"]),"render_frame",None)
             if frame is not None:page["render_frame"]=deepcopy(frame)
     if geometry_mode:
         for page in pages:page["geometry_mode"]=DUAL_MODE

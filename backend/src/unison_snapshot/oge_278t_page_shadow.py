@@ -436,10 +436,14 @@ def probe_number_cells(path: Path, *, expected_sha256: str,
 
 
 def _raster_rule_centers(gray, *, points_per_pixel: float,
-                         x0: float, x1: float, x_points_per_pixel: float | None = None) -> list[float]:
+                         x0: float, x1: float, x_points_per_pixel: float | None = None,
+                         y_span: tuple[float, float] = (80., 590.)) -> list[float]:
     """Detect dark horizontal rules in one narrow, text-light image strip."""
     import numpy as np
 
+    if (len(y_span) != 2 or not all(math.isfinite(v) for v in y_span) or
+            not 0 <= y_span[0] < y_span[1]):
+        raise ValueError("raster rule search requires an explicit ordered vertical domain")
     x_scale = x_points_per_pixel if x_points_per_pixel is not None else points_per_pixel
     left, right = int(x0 / x_scale), int(x1 / x_scale)
     ratio = (gray[:, left:right] < 160).mean(axis=1)
@@ -453,7 +457,7 @@ def _raster_rule_centers(gray, *, points_per_pixel: float,
             groups.append([y])
     return [round(float(np.median(group)) * points_per_pixel, 1)
             for group in groups
-            if 80 < float(np.median(group)) * points_per_pixel < 590]
+            if y_span[0] < float(np.median(group)) * points_per_pixel < y_span[1]]
 
 
 def _raster_rule_consensus(strips: list[list[float]]) -> list[float]:
