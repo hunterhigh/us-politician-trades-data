@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-08"
+PARSER_RETRY_VERSION = "house-parser-suite-2026-09-mixed-pages"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -464,7 +464,8 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
 
 
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
-                     copy_allowed: bool | None, ocr_engine: str | None = None) -> dict:
+                     copy_allowed: bool | None, ocr_engine: str | None = None,
+                     page_text_methods: list[str] | None = None) -> dict:
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
         raise HouseIndexError("House PTR source hash is invalid")
     document_id = str(metadata.get("document_id", ""))
@@ -473,6 +474,23 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         raise HouseIndexError("House PTR metadata is invalid")
     if not pages:
         raise HouseIndexError("House PTR contains no pages")
+    if page_text_methods is None and any("text_reading_method" in page for page in pages):
+        raise HouseIndexError("House mixed page observations require their reading methods")
+    if page_text_methods is not None:
+        if (not isinstance(page_text_methods, list) or len(page_text_methods) != len(pages) or
+                any(not isinstance(method, str) for method in page_text_methods) or
+                set(page_text_methods) != {"native_pdf_text", "tesseract_ocr"} or
+                page_text_methods[0] != "native_pdf_text" or not isinstance(ocr_engine, str) or not ocr_engine):
+            raise HouseIndexError("House mixed page reading methods are invalid")
+        for method, page in zip(page_text_methods, pages):
+            if page.get("text_reading_method", method) != method:
+                raise HouseIndexError("House mixed page reading method binding differs")
+            for word in page["words"]:
+                confidence = word.get("ocr_confidence")
+                if ((method == "native_pdf_text" and confidence is not None) or
+                        (method == "tesseract_ocr" and (type(confidence) not in (int, float) or
+                         not 0 <= confidence <= 100))):
+                    raise HouseIndexError("House mixed page confidence differs from its reading method")
     if not any(page.get("words") for page in pages):
         raise HouseIndexError("House PTR requires OCR because it contains no extractable text")
     first_text = _clean(" ".join(str(word["text"]) for word in pages[0].get("words", [])))
@@ -490,6 +508,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                                 for page in pages for word in page.get("words", [])))
     legacy_form = (f"#{document_id}" not in first_text and ocr_engine is not None
                    and ((title_matches and "HOUSE" in compact_first_text) or has_legacy_table))
+    if page_text_methods is not None and (not title_matches or f"#{document_id}" not in first_text):
+        raise HouseIndexError("House mixed pages require a native modern PTR header")
     if legacy_form:
         declaration = _explicit_zero_transaction_declaration(pages)
         if declaration is not None:
@@ -501,6 +521,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
     declaration = _explicit_zero_transaction_declaration(pages)
+    if page_text_methods is not None and declaration is not None:
+        raise HouseIndexError("House mixed zero-transaction declaration lacks independent page coverage")
     if declaration is not None and not any(_unanchored_native_slots(page) for page in pages):
         return _zero_transaction_extraction(
             metadata, source_sha256, declaration, copy_allowed=copy_allowed,
@@ -687,6 +709,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "amount_raw": amount,
             "ocr_confidence": (round(sum(ocr_confidences) / len(ocr_confidences), 2)
                                if ocr_confidences else None),
+            **({"ocr_source_pages": sorted({index + 1 for index, _ in block
+                 if page_text_methods[index] == "tesseract_ocr"})} if page_text_methods is not None else {}),
             "subholding_of": details.get("subholding_of"),
             "location": details.get("location"),
             "description": details.get("description"),
@@ -703,6 +727,9 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     review_reasons = ["automatic_qualification_required", "source_use_clearance_required"]
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
+    saved_pages = ([{**{key:value for key,value in page.items() if key != "_image"},
+                     "text_reading_method":page_text_methods[index]}
+                    for index,page in enumerate(pages)] if page_text_methods is not None else pages)
     return {
         "source_report_ledger": ledger,
         "schema_version": SCHEMA,
@@ -711,12 +738,15 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
         "source_sha256": source_sha256,
         "source_pdf_copy_allowed": copy_allowed,
-        "extraction_method": "tesseract_ocr" if ocr_engine else "native_pdf_text",
+        "extraction_method": ("mixed_native_ocr" if page_text_methods is not None else
+                              "tesseract_ocr" if ocr_engine else "native_pdf_text"),
         "ocr_engine": ocr_engine,
-        **({"source_word_pages": deepcopy(pages),
-            "source_word_pages_sha256": hashlib.sha256(json.dumps(pages, ensure_ascii=False,
+        **({"page_text_methods": list(page_text_methods)} if page_text_methods is not None else {}),
+        **({"source_word_pages": deepcopy(saved_pages),
+            "source_word_pages_sha256": hashlib.sha256(json.dumps(
+                saved_pages, ensure_ascii=False,
                 sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()}
-           if ocr_engine is None else {}),
+           if ocr_engine is None or page_text_methods is not None else {}),
         "transactions": extracted,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
@@ -808,11 +838,14 @@ def _native_account_context(extraction: dict) -> dict:
     The word digest establishes cache consistency, not independent PDF truth.
     Older caches without saved words keep their existing financial facts.
     """
-    if extraction.get("extraction_method") != "native_pdf_text":
+    mixed = extraction.get("extraction_method") == "mixed_native_ocr"
+    if extraction.get("extraction_method") != "native_pdf_text" and not mixed:
         return {}
     titles = [r for r in extraction.get("transactions", []) if r.get("subholding_of")]
     pages = extraction.get("source_word_pages")
     if pages is None:
+        if mixed:
+            raise HouseIndexError("House mixed extraction requires saved page observations")
         return {"status": "source_pages_unavailable", "rows": []} if titles else {}
     try:
         actual = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
@@ -821,7 +854,9 @@ def _native_account_context(extraction: dict) -> dict:
             raise HouseIndexError("House native account source words differ from digest")
         source = extraction.get("source", {})
         reproduced = parse_word_pages({**source, "filing_type": "P"}, extraction["source_sha256"],
-            pages, copy_allowed=extraction.get("source_pdf_copy_allowed"))
+            pages, copy_allowed=extraction.get("source_pdf_copy_allowed"),
+            **({"ocr_engine": extraction.get("ocr_engine"),
+                "page_text_methods": extraction.get("page_text_methods")} if mixed else {}))
         # Exact legacy anchor-only ledgers remain valid; no financial/source
         # observation may differ. This accepts a recomputed old form, not a label.
         legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
@@ -848,6 +883,10 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    if extraction.get("extraction_method") != "mixed_native_ocr" and (
+            "page_text_methods" in extraction or any("text_reading_method" in page
+                for page in (extraction.get("source_word_pages") or []))):
+        raise HouseIndexError("House mixed observations cannot change extraction method")
     if (not isinstance(verified_blank_paper_owner_ids, frozenset) or
             (verified_blank_paper_owner_ids and extraction.get("extraction_method") != "source_bound_paper_cells")):
         raise HouseIndexError("House verified blank owners require source-bound paper interpretation")
@@ -907,7 +946,10 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                 reasons.append("amount_upper_bound_missing")
             elif type(row.get("amount_low_exclusive")) is not bool:
                 reasons.append("open_ended_amount_not_representable")
-        if str(extraction.get("extraction_method", "")).startswith("tesseract_") and (
+        needs_ocr_confidence = str(extraction.get("extraction_method", "")).startswith("tesseract_")
+        if extraction.get("extraction_method") == "mixed_native_ocr":
+            needs_ocr_confidence = bool(row["ocr_source_pages"])
+        if needs_ocr_confidence and (
                 not isinstance(row.get("ocr_confidence"), (int, float))
                 or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):
             reasons.append("ocr_confidence_below_threshold")
@@ -1092,7 +1134,13 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
     return words
 
 
-def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]:
+def _ocr_pdf_pages(document, *, resolution: int = 200,
+                   page_numbers: list[int] | None = None) -> tuple[list[dict], str]:
+    selected = list(range(1, len(document.pages) + 1)) if page_numbers is None else page_numbers
+    if (not isinstance(selected, list) or not selected or
+            any(type(number) is not int or not 1 <= number <= len(document.pages) for number in selected) or
+            len(set(selected)) != len(selected)):
+        raise HouseIndexError("House PTR OCR page selection is invalid")
     executable = shutil.which("tesseract")
     if not executable:
         raise HouseIndexError("House PTR requires OCR but the OCR engine is unavailable")
@@ -1103,20 +1151,41 @@ def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]
         raise HouseIndexError("House PTR OCR engine version is unavailable")
     pages: list[dict] = []
     with tempfile.TemporaryDirectory(prefix="house-ptr-ocr-") as folder:
-        for index, page in enumerate(document.pages):
-            image_path = Path(folder) / f"page-{index + 1}.png"
-            image = page.to_image(resolution=resolution, antialias=True).original.convert("L")
+        for number in selected:
+            page = document.pages[number - 1]
+            image_path = Path(folder) / f"page-{number}.png"
+            if page_numbers is not None and tuple(page.bbox[:2]) != (0, 0):
+                raise HouseIndexError("House mixed OCR page origin is unsupported")
+            image = page.to_image(resolution=resolution, antialias=True,
+                **({"force_mediabox":True} if page_numbers is not None else {})).original.convert("L")
             image.save(image_path, format="PNG")
             completed = subprocess.run(
                 [executable, str(image_path), "stdout", "--dpi", str(resolution), "-l", "eng", "tsv"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120, check=False)
             if completed.returncode:
-                raise HouseIndexError(f"House PTR OCR failed on page {index + 1}")
+                raise HouseIndexError(f"House PTR OCR failed on page {number}")
             pages.append({"width": page.width, "height": page.height,
                           "_image": image,
                           "words": _words_from_tesseract_tsv(
                               completed.stdout, points_per_pixel=72.0 / resolution)})
     return pages, engine
+
+
+def observe_native_word_pages(document, source_sha256: str) -> list[dict]:
+    """Share the source inventory between runtime preparation and parsing."""
+    from .house_native_coverage import observe_native_geometry
+    return [{"width":page.width, "height":page.height,
+             "words":page.extract_words(x_tolerance=2,y_tolerance=2,extra_attrs=["size"]),
+             "native_page_geometry":observe_native_geometry(page,source_sha256,number)}
+            for number,page in enumerate(document.pages,1)]
+
+
+def planned_ocr_pages(pages: list[dict]) -> list[int]:
+    """Select wordless content pages; no words is never a blank-page proof."""
+    if not any(page["words"] for page in pages):
+        return list(range(1,len(pages)+1))  # preserve the existing image-only path
+    return [number for number,page in enumerate(pages,1) if not page["words"] and
+            any(page["native_page_geometry"][kind] for kind in ("images","curves","rects","lines"))]
 
 
 def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
@@ -1145,20 +1214,38 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
     try:
         with pdfplumber.open(pdf_path) as document:
             copy_allowed = getattr(document.doc, "is_extractable", None)
-            from .house_native_coverage import observe_native_geometry
-            pages = [{"width": page.width, "height": page.height,
-                      "words": page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=["size"]),
-                      "native_page_geometry": observe_native_geometry(page, source_sha, number)}
-                     for number, page in enumerate(document.pages, start=1)]
+            pages = observe_native_word_pages(document,source_sha)
             ocr_engine = None
+            page_text_methods = None
             if not any(page["words"] for page in pages):
                 pages, ocr_engine = _ocr_pdf_pages(document)
+            else:
+                selected = planned_ocr_pages(pages)
+                if selected:
+                    if any(tuple(page.bbox[:2]) != (0, 0) for page in document.pages):
+                        raise HouseIndexError("House mixed PDF page origin is unsupported")
+                    first = _clean(" ".join(str(w["text"]) for w in pages[0]["words"]))
+                    compact = re.sub(r"[^A-Z]", "", first.upper())
+                    heading = [_clean(str(w["text"])) for w in pages[0]["words"] if float(w.get("size", 0)) >= 18]
+                    if (f"#{metadata.get('document_id')}" not in first or not (
+                            "PERIODICTRANSACTIONREPORT" in compact or heading[:3] == ["P", "T", "R"])):
+                        raise HouseIndexError("House mixed pages require a native modern PTR header")
+                    observed, ocr_engine = _ocr_pdf_pages(document, page_numbers=selected)
+                    if len(observed) != len(selected):
+                        raise HouseIndexError("House mixed OCR page count differs from its selection")
+                    page_text_methods = ["native_pdf_text"] * len(pages)
+                    for number, observed_page in zip(selected, observed):
+                        if any(observed_page.get(key) != pages[number-1][key] for key in ("width", "height")):
+                            raise HouseIndexError("House mixed OCR page dimensions differ")
+                        pages[number-1] = observed_page
+                        page_text_methods[number-1] = "tesseract_ocr"
     except HouseIndexError:
         raise
     except Exception as exc:
         raise HouseIndexError(f"House PTR extraction failed: {type(exc).__name__}") from None
     return parse_word_pages(metadata, source_sha, pages, copy_allowed=copy_allowed,
-                            ocr_engine=ocr_engine)
+                            ocr_engine=ocr_engine,
+                            **({"page_text_methods":page_text_methods} if page_text_methods is not None else {}))
 
 
 def make_review_template(extraction: dict) -> dict:

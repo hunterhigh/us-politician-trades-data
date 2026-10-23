@@ -181,7 +181,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 # Legacy formal facts are not requalified or rewritten merely
                 # because this additive display proof was not saved previously.
                 native_account_pending += sum(bool(r.get("subholding_of")) for r in extraction["transactions"])
-            elif extraction.get("extraction_method") == "native_pdf_text":
+            elif extraction.get("extraction_method") in {"native_pdf_text", "mixed_native_ocr"}:
                 from .house_ptr import qualify_automatic
                 source = extraction.get("source", {})
                 if (qualification.get("source_sha256") != extraction.get("source_sha256") or

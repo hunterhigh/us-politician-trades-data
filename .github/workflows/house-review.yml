@@ -198,7 +198,7 @@ jobs:
           Path('.local/parse-batch.txt').write_text(
               ''.join(f'{path}\n' for path in selected), encoding='utf-8')
           PY
-      - name: Detect image-only PDFs in this batch
+      - name: Detect pages requiring OCR in this batch
         if: inputs.materialize_saved_paper != true
         id: ocr
         env:
@@ -209,6 +209,7 @@ jobs:
           import json, os
           from pathlib import Path
           import pdfplumber
+          from unison_snapshot.house_ptr import observe_native_word_pages, planned_ocr_pages
           evidence = Path(os.environ['EVIDENCE_ROOT']).resolve()
           needs_ocr = False
           selected = Path('.local/parse-batch.txt').read_text(encoding='utf-8').splitlines()
@@ -226,7 +227,7 @@ jobs:
               if evidence not in pdf.parents:
                   raise SystemExit('Evidence path escapes its root')
               with pdfplumber.open(pdf) as document:
-                  if not any(page.extract_words(x_tolerance=2, y_tolerance=2) for page in document.pages):
+                  if planned_ocr_pages(observe_native_word_pages(document, metadata['sha256'])):
                       needs_ocr = True
                       break
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:

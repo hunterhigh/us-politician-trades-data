@@ -58,7 +58,7 @@ class HousePaperCliTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("materialize_saved_paper:", text)
         self.assertIn("paper_args+=(--materialize-saved)", text)
-        for name in ("Detect image-only PDFs in this batch", "Parse and prepare machine extraction artifacts",
+        for name in ("Detect pages requiring OCR in this batch", "Parse and prepare machine extraction artifacts",
                      "Refresh deterministic House identities", "Build automatic qualification artifacts"):
             step = text.split("- name: " + name, 1)[1].split("- name:", 1)[0]
             self.assertIn("if: inputs.materialize_saved_paper != true", step)
