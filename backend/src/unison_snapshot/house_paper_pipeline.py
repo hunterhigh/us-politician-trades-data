@@ -14,8 +14,9 @@ from pathlib import Path
 from .codec import encode
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
-from .house_ptr_key_field_reread import (REREAD_RULE_VERSION,
-                                          reread_doubtful_key_cells)
+from .house_ptr_key_field_reread import (
+    MATERIALIZATION_SELECTION, missing_key_field_rereads, plan_key_field_rereads,
+    reread_doubtful_key_cells)
 from .house_ptr_paper_qualification import qualify_paper_observation, materialize_paper_observation
 from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
                                       validate_paper_source_metadata)
@@ -155,29 +156,42 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
             "error": f"{type(error).__name__}: {str(error)[:320]}",
         })
     reread = None
-    if any(row.get("source_quality_flags") for row in paper.get("quarantined", [])):
+    if (any(row.get("source_quality_flags") for row in paper.get("quarantined", [])) or
+            any(row.get("disposition") == "data_candidate" and row.get("cells") is not None
+                for page in observation["pages"] for row in page.get("rows", []))):
+        missing = []
         try:
+            plan = plan_key_field_rereads(observation)
             reread = _read(reread_path) if reread_path.is_file() else None
-            if reread is None or reread.get("rule_version") != REREAD_RULE_VERSION:
+            try:
+                missing = missing_key_field_rereads(plan, reread)
+            except ValueError:
+                # Wrong-source, malformed and obsolete caches are not input
+                # to either a new preparation or saved materialization.
+                reread = None
+                missing = list(plan["requests"])
+            if missing:
                 if materialize_saved:
-                    raise ValueError("House saved materialization has no current secondary cache; OCR not started")
+                    raise ValueError(f"House saved materialization lacks {len(missing)} required secondary readings; OCR not started")
                 pdf_path = (evidence_root / metadata["archive_path"]).resolve()
                 if evidence_root not in pdf_path.parents:
                     raise ValueError("House paper reread archive path escapes evidence root")
                 reread = reread_doubtful_key_cells(
-                    pdf_path.read_bytes(), observation, executable=Path(tesseract))
-            if (reread.get("source_sha256") != source_sha or
-                    reread.get("qualification_status") != "unverified_shadow_only" or
-                    reread.get("rule_version") != REREAD_RULE_VERSION):
-                raise ValueError("House paper second reading source or status mismatch")
+                    pdf_path.read_bytes(), observation, executable=Path(tesseract),
+                    selection_mode=MATERIALIZATION_SELECTION, existing_reread=reread)
+            if missing_key_field_rereads(plan, reread):
+                raise ValueError("House paper secondary preparation is incomplete")
             paper["key_field_reread_status"] = "observed"
-            _write(reread_path, reread)
+            if reread is not None:
+                _write(reread_path, reread)
             reread_failure_path.unlink(missing_ok=True)
         except Exception as error:
             paper["key_field_reread_status"] = "unresolved"
             _write(reread_failure_path, {
                 "schema_version": "house-paper-reread-failure/v1",
                 "document_id": document_id, "source_sha256": source_sha,
+                "missing_required_cells": [{k: item[k] for k in ("page", "physical_band_index", "field")}
+                                           for item in missing],
                 "error": f"{type(error).__name__}: {str(error)[:320]}",
             })
     if materialize_saved:
@@ -185,7 +199,14 @@ def bridge_paper_report(*, evidence_root: Path, review_root: Path,
         if evidence_root not in pdf_path.parents:
             raise ValueError("House paper materialization archive escapes evidence root")
         if reread is None and reread_path.is_file():
-            reread = _read(reread_path)
+            cached = _read(reread_path)
+            # Saved replay may consume a valid partial cache, keeping missing
+            # cells quarantined. It never revives a wrong-source cache.
+            try:
+                missing_key_field_rereads(plan_key_field_rereads(observation), cached)
+                reread = cached
+            except ValueError:
+                pass
         paper = materialize_paper_observation(pdf_path.read_bytes(), observation, metadata,
             identity, amount_header=header, field_reread=reread, prior_qualification=legacy)
         disposition = "materialized_existing_observation"
