@@ -138,18 +138,24 @@ class HousePaperQualificationTests(unittest.TestCase):
         from PIL import Image
         from unison_snapshot.house_ptr_paper_qualification import _bound_amount_column
         image = Image.new("L", (1000, 1000), "white")
-        crop = image.crop((100, 100, 200, 200)).rotate(270, expand=True)
+        crop = image.crop((102, 105, 198, 195)).rotate(270, expand=True)
         encoded = io.BytesIO()
         crop.save(encoded, format="PNG")
         reading = {"page": 1, "label": "B", "status": "raw_column_observed",
-            "raw": "$15,001\n$50,000", "bbox_pixels": [100, 100, 200, 200],
+            "raw": "$15,001\n$50,000", "bbox_pixels": [102, 105, 198, 195],
             "render_dpi": 300, "image_rotation_degrees": 270, "coordinate_frame": "original_page",
             "crop_sha256": hashlib.sha256(encoded.getvalue()).hexdigest()}
         physical = {"band": [.3, .4], "cells": {"amount": [
             {"label": "B", "bbox_normalized": [.1, .3, .2, .4]}]}}
-        self.assertEqual(_bound_amount_column(b"unused", reading, physical, 1, {1: image})["low"], 15001)
-        reading["bbox_pixels"] = [300, 100, 400, 200]
-        self.assertIsNone(_bound_amount_column(b"unused", reading, physical, 1, {1: image}))
+        # This test isolates the column/crop contract; a blank image itself
+        # supplies no evidence that a printed header exists.
+        with patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value={
+                "status": "located_shadow", "coordinate_frame": "original_page", "header_band": [.1, .2]}), \
+             patch("unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value={
+                "status": "located_shadow", "amount": [i / 10 for i in range(11)]}):
+            self.assertEqual(_bound_amount_column(b"unused", reading, physical, 1, {1: image})["low"], 15001)
+            reading["bbox_pixels"] = [300, 105, 400, 195]
+            self.assertIsNone(_bound_amount_column(b"unused", reading, physical, 1, {1: image}))
 
     def test_peer_filing_dates_add_observation_without_promoting_rows(self):
         def official(document_id, filed_date, sha):

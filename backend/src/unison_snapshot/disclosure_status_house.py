@@ -63,7 +63,10 @@ def build_house_status(evidence_root: Path, review_root: Path,
     """Read report status only from a complete, idle House review directory."""
     from .house_paper_commit import paper_review_access
     with paper_review_access(review_root,require_complete=True):
-        return _build_house_status(evidence_root,review_root,transactions,holdings)
+        from .disclosure_status_house_annual import build_house_annual_status, is_annual_transaction
+        ptr_transactions = [row for row in transactions if not is_annual_transaction(row)]
+        return (_build_house_status(evidence_root,review_root,ptr_transactions,holdings) +
+                build_house_annual_status(Path(evidence_root),Path(review_root),transactions,holdings))
 
 
 def _build_house_status(evidence_root: Path, review_root: Path,

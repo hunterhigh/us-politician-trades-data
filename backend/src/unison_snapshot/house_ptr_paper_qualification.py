@@ -18,6 +18,38 @@ from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_rela
                                       validate_paper_source_metadata)
 
 
+def _selected_amount_letter(fields: dict) -> str | None:
+    """Keep primary ranges separate from the independently marked K column."""
+    letter = fields.get("amount_letter")
+    supplemental = fields.get("spouse_dc_over_1000000_mark")
+    if supplemental is True:
+        return "K" if letter is None and fields.get("amount_status") == "no_strong_mark" else None
+    if supplemental is False or fields.get("spouse_dc_mark_status") == "supplemental_column_absent":
+        return letter
+    return None
+
+
+def _amount_bounds_key(amount: dict) -> tuple:
+    low, high, letter = amount.get("low"), amount.get("high"), amount.get("letter")
+    if high is None and letter in {"J", "K"}:
+        low = 50000000 if letter == "J" else 1000000
+    return letter, low, high
+
+
+def _page_a_header_conflicts(header: dict, page: int, amount: dict) -> bool:
+    """A missing unrelated label cannot erase an observed conflicting A range."""
+    if amount.get("letter") != "A":
+        return False
+    for item in header.get("pages", []):
+        if item.get("page") != page or item.get("status") != "header_ocr_observed":
+            continue
+        text = re.sub(r"\s+", "", item.get("raw_header_text", "")).replace("§", "$")
+        observed = {low for low in (1000, 1001) if f"${low:,}-$15,000" in text}
+        if observed and observed != {amount.get("low")}:
+            return True
+    return False
+
+
 def _pending_transaction_projection(result: dict, metadata: dict) -> dict:
     """Shape observed paper slots for the builder without assigning formal IDs."""
     document_id, source_sha, _, _ = validate_paper_source_metadata(metadata)
@@ -143,12 +175,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             amount_observation = None
             if read and read["fields"] and header_ranges:
                 fields = read["fields"]
-                spouse_mark = fields["spouse_dc_over_1000000_mark"]
-                letter = fields["amount_letter"]
-                if spouse_mark is True and letter is None:
-                    letter = "K"
-                elif spouse_mark is True:
-                    letter = None
+                letter = _selected_amount_letter(fields)
                 if letter in header_ranges:
                     amount_observation = {
                         "status": "printed_bounds_unverified_transaction",
@@ -533,6 +560,7 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
     extraction_rows = []
     unresolved_physical = []
     rendered_secondary = {}
+    header_geometries = {}
     owner_images, owner_bindings = {}, []
     from .house_ptr_source_glyphs import corroborate_asset_readings
     asset_proofs = corroborate_asset_readings(
@@ -589,11 +617,27 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         if context.get("section_key"):
             blockers.append("account_title_reading_not_corroborated")
         amount = pending.get("amount_range_observation")
-        if not isinstance(amount, dict) and amount_header and amount_header.get("reading_mode") == "printed_columns/v1":
+        if amount_header and amount_header.get("reading_mode") == "printed_columns/v1":
+            letter = _selected_amount_letter(fields)
             readings = [item for item in amount_header.get("column_readings", [])
-                        if item.get("page") == page and item.get("label") == fields.get("amount_letter")]
+                        if item.get("page") == page and item.get("label") == letter]
+            local_amount = None
             if len(readings) == 1 and physical and physical.get("cells"):
-                amount = _bound_amount_column(pdf_bytes, readings[0], physical, page, rendered_secondary)
+                local_amount = _bound_amount_column(pdf_bytes, readings[0], physical, page,
+                    rendered_secondary, header_geometries=header_geometries)
+            if len(readings) > 1:
+                blockers.append("amount_column_reading_duplicated")
+                amount = None
+            elif readings and local_amount is None:
+                blockers.append("amount_column_reading_unverified")
+                amount = None
+            elif local_amount is not None:
+                if ((isinstance(amount, dict) and _amount_bounds_key(amount) != _amount_bounds_key(local_amount))
+                        or _page_a_header_conflicts(amount_header, page, local_amount)):
+                    blockers.append("amount_header_reading_conflict")
+                    amount = None
+                elif not isinstance(amount, dict):
+                    amount = local_amount
         if not isinstance(amount, dict):
             blockers.append("amount_header_unresolved")
             amount = {}
@@ -673,12 +717,12 @@ def _asset_reading_is_bound(pdf_bytes: bytes, item: dict, cell: dict,
 
 
 def _bound_amount_column(pdf_bytes: bytes, reading: dict, physical: dict,
-                          page: int, rendered: dict) -> dict | None:
+                          page: int, rendered: dict, *, header_geometries: dict | None = None) -> dict | None:
     import hashlib
     import io
     from .house_ptr_amount_header import interpret_amount_column
     amount = interpret_amount_column(reading)
-    if (amount is None or reading.get("render_dpi") != 300 or
+    if (amount is None or reading.get("page") != page or reading.get("render_dpi") != 300 or
             reading.get("image_rotation_degrees") != 270 or
             reading.get("coordinate_frame") != "original_page"):
         return None
@@ -692,6 +736,28 @@ def _bound_amount_column(pdf_bytes: bytes, reading: dict, physical: dict,
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             rendered[page] = pdf.pages[page - 1].to_image(resolution=300).original.convert("L")
     image = rendered[page]
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+    geometries = header_geometries if header_geometries is not None else {}
+    if page not in geometries:
+        region = locate_transaction_grid(image)
+        columns = (_column_boxes(region, image) if region.get("status") == "located_shadow"
+                   and region.get("coordinate_frame") == "original_page" else {})
+        geometries[page] = region, columns
+    region, columns = geometries[page]
+    edges = columns.get("amount", [])
+    if columns.get("status") != "located_shadow" or len(edges) not in (11, 12):
+        return None
+    index = ord(reading["label"]) - ord("A")
+    if not 0 <= index < len(edges) - 1:
+        return None
+    if reading.get("amount_column_count", len(edges) - 1) != len(edges) - 1:
+        return None
+    upper, lower = region["header_band"]
+    expected = [int(edges[index] * image.width) + 2, int((upper + .005) * image.height),
+                int(edges[index + 1] * image.width) - 2, int((lower - .005) * image.height)]
+    if box != expected:
+        return None
     cells = [cell for cell in physical["cells"]["amount"] if cell.get("label") == reading["label"]]
     if len(cells) != 1 or box[2] > image.width or box[3] > image.height:
         return None

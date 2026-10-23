@@ -15,6 +15,7 @@ from .codec import encode
 from .house_paper_commit import (paper_review_access, commit_paper_materialization,
     recover_paper_materialization, recover_pending_paper_materializations)
 from .house_ptr_amount_header import observe_amount_header
+from .house_ptr_amount_header_preparation import prepare_amount_headers
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
 from .house_ptr_key_field_reread import (
     MATERIALIZATION_SELECTION, missing_key_field_rereads, plan_key_field_rereads,
@@ -150,6 +151,12 @@ def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
         return "not_selected"
     if observation.get("source_sha256") != source_sha or header.get("source_sha256") != source_sha:
         raise ValueError("House paper observation source mismatch")
+    if observe_new and not materialize_saved and header.get("status") == "header_unresolved":
+        pdf_path = (evidence_root / metadata["archive_path"]).resolve()
+        if evidence_root not in pdf_path.parents:
+            raise ValueError("House paper amount preparation archive escapes evidence root")
+        header = prepare_amount_headers(pdf_path.read_bytes(), observation,
+            executable=tesseract, existing_header=header)
     identity = _read(identity_path)
     paper = qualify_paper_observation(observation, metadata, identity,
                                       amount_header=header)
@@ -290,11 +297,13 @@ def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
               for path in sorted(observation_root.glob("*/*/*.json"))]
     selected = [Path(line) for line in parse_batch.read_text(encoding="utf-8").splitlines()
                 if line.strip()]
+    explicit_target = None
     if document_id is not None:
         matches = list(metadata_root.glob(f"*/{document_id}/*.json"))
         if len(matches) != 1:
             raise ValueError("House paper document ID has no unique archived source")
         selected.insert(0, matches[0])
+        explicit_target = matches[0].resolve()
     recovered=recover_pending_paper_materializations(evidence_root,review_root)
     outcomes: dict[str, int] = {"recovered_saved_materialization":len(recovered)} if recovered else {}
     seen: set[Path] = set(recovered)
@@ -315,7 +324,9 @@ def bridge_paper_batch(*, evidence_root: Path, review_root: Path,
         try:
             disposition = bridge_paper_report(
                 evidence_root=evidence_root, review_root=review_root,
-                metadata_path=path, tesseract=tesseract, observe_new=is_new and not materialize_saved, materialize_saved=materialize_saved)
+                metadata_path=path, tesseract=tesseract,
+                observe_new=(is_new or path == explicit_target) and not materialize_saved,
+                materialize_saved=materialize_saved)
         except Exception as error:
             disposition = "paper_observation_failed"
             _write(failure_path, {

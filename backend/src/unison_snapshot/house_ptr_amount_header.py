@@ -140,6 +140,7 @@ def observe_amount_header(pdf_bytes: bytes, *, source_sha256: str,
                         "--psm", "6", "-l", "eng"], input=encoded.getvalue(),
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60, check=False)
                     reading = {"page": number, "label": label, "bbox_pixels": box,
+                        "amount_column_count": len(columns["amount"]) - 1,
                         "render_dpi": 300, "image_rotation_degrees": 270,
                         "coordinate_frame": "original_page", "crop_sha256": hashlib.sha256(encoded.getvalue()).hexdigest(),
                         "raw": completed.stdout.decode("utf-8", "replace").strip() if not completed.returncode else "",
@@ -208,7 +209,9 @@ def interpret_amount_column(reading: dict) -> dict | None:
     if valid:
         return {"letter": label, "low": values[0], "high": values[1], "kind": "range"}
     threshold = 50000000 if label == "J" else 1000000 if label == "K" else None
-    if threshold is not None and values == [threshold] and re.search(r"\bOver\b", raw, re.I):
+    role_bound = label != "K" or bool(re.search(r"spouse\s*/\s*dc", raw, re.I))
+    over = re.search(r"\bOver\b", raw, re.I) or (label == "K" and re.search(r"Amount\s*over", raw, re.I))
+    if threshold is not None and values == [threshold] and over and role_bound:
         return {"letter": label, "low": threshold, "high": None, "low_exclusive": True,
                 "kind": "open_ended" if label == "J" else "spouse_dc_special_open_ended"}
     return None

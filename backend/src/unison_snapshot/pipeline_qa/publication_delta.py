@@ -16,6 +16,7 @@ from .migration_inventory import InventoryError, _differences, _market_enrichmen
 from .holdings_rebinding import _archive, _official_index_replacement, git_tree_paths
 from .migration_inventory import git_object
 from .senate_annual_amendment import verified_amendment_rekeys
+from .senate_account_correction import verified_account_corrections
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -38,7 +39,8 @@ def _source_id(row, entity):
     return row.get("disclosure_authority" if entity == "people" else "source_id")
 
 
-def _decision(item, entity, old, current, *, repo, evidence_commit, verified_replacements):
+def _decision(item, entity, old, current, *, repo, evidence_commit, verified_replacements,
+              verified_corrections):
     kind, old_id, new_id = (item.get(key) for key in ("kind", "old_id", "new_id"))
     if (item.get("entity") != entity or kind not in {"rekey", "corrected", "withdrawn"} or
             not isinstance(old_id, str) or old_id not in old or item.get("reason") not in REASONS or
@@ -73,7 +75,9 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
                 raise InventoryError("official replacement evidence does not verify")
             verified_replacements.add(evidence_key)
     elif kind == "corrected":
-        raise InventoryError("correction needs a source-specific evidence verifier")
+        verified = verified_corrections.get(old_id)
+        if verified is None or any(item.get(key) != value for key, value in verified.items()):
+            raise InventoryError("correction needs a matching source-specific evidence verifier")
     else:
         raise InventoryError("withdrawal needs a source-specific evidence verifier")
     return {"entity": entity, "kind": kind, "old_id": old_id, "new_id": new_id,
@@ -103,6 +107,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         raise InventoryError("transition file does not bind fixed commits")
     changes, counts, used, verified_replacements = [], {}, set(), set()
     verified_amendments = 0
+    correction_count = 0
     for entity in ENTITIES:
         old = _index(previous_board.get(entity), f"previous {entity}")
         proposed = _index(unified.get(entity), f"review {entity}")
@@ -126,11 +131,16 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                                           for value in (row, review_row, source_row)):
                 raise InventoryError(f"{entity}/{record_id} lacks official qualification")
         selected = [item for item in decisions if isinstance(item, dict) and item.get("entity") == entity]
+        corrections = (verified_account_corrections(old=old, current=current, repo=repo,
+            evidence_commit=evidence_commit, review_commit=review_commit)
+            if entity == "transactions" else [])
+        verified_corrections = {item["old_id"]: item for item in corrections}
         old_seen, new_seen = set(), set()
         for item in selected:
             checked = _decision(item, entity, old, current, repo=repo,
                                 evidence_commit=evidence_commit,
-                                verified_replacements=verified_replacements)
+                                verified_replacements=verified_replacements,
+                                verified_corrections=verified_corrections)
             old_id, new_id = checked["old_id"], checked["new_id"]
             if old_id in old_seen or (checked["kind"] == "rekey" and new_id in new_seen):
                 raise InventoryError("transition repeats an old or new ID")
@@ -139,6 +149,10 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                 new_seen.add(new_id)
             changes.append(checked)
             used.add(id(item))
+        automatic_corrections = [item for item in corrections if item["old_id"] not in old_seen]
+        selected += automatic_corrections
+        changes.extend(automatic_corrections)
+        correction_count += len(corrections)
         if entity == "reported_holdings":
             automatic = verified_amendment_rekeys(
                 old=old, current=current, repo=repo,
@@ -171,6 +185,9 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "source_health_count": len(prepared["source_health"]),
             "changes": changes, "canonical_source_alignment_complete": True,
             "snapshot_changes_disposed": True,
+            "source_verified_correction_count": correction_count,
+            "correction_verification_level": ("archived_senate_account_pixels_and_saved_grid_replay"
+                if correction_count else "not_applicable_no_corrections"),
             "transition_verification_level": (
                 "archived_official_index_and_senate_amendment_bytes"
                 if verified_replacements and verified_amendments else
