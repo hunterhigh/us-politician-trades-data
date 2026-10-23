@@ -300,7 +300,6 @@ def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
     """
     import hashlib
     import io
-    import numpy as np
     import pdfplumber
     from .house_ptr_region_shadow import locate_transaction_grid
     from .house_ptr_cell_observation_shadow import _column_boxes
@@ -338,36 +337,22 @@ def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
     crop.save(encoded, format="PNG")
     if hashlib.sha256(encoded.getvalue()).hexdigest() != owner.get("crop_sha256"):
         raise ValueError("House blank owner crop differs from bound PDF")
-    # Inspect the whole cell. Never discard a percentage-wide edge strip:
-    # handwriting near a ruled boundary is still ownership evidence. Only
-    # actual continuous rules extending beyond the cell may be removed.
-    pad = 12
-    if (box[0] < pad or box[1] < pad or box[2] + pad > image.width or
-            box[3] + pad > image.height):
+    from .ruled_cell_blank import inspect_ruled_cell_blank
+    horizontal = []
+    for name in ("asset","event","notification"):
+        span = columns.get(name)
+        if span and len(span)==2:
+            horizontal.append([int(span[0]*image.width),int(span[1]*image.width)])
+    vertical = [[int(item["band"][0]*image.height),int(item["band"][1]*image.height)]
+                for ordinal,item in enumerate(bands,1) if ordinal!=index]
+    blank = inspect_ruled_cell_blank(image,box,horizontal_witness_spans=horizontal,
+                                     vertical_witness_spans=vertical)
+    if blank["status"] != "blank":
         return None
-    expanded = np.asarray(image.crop((box[0]-pad, box[1]-pad, box[2]+pad, box[3]+pad)).convert("L")) < 100
-    height, width = expanded.shape
-    rule_mask = np.zeros_like(expanded)
-    for axis, lines in ((0, expanded), (1, expanded.T)):
-        for rule_index, line in enumerate(lines):
-            target = height if axis == 0 else width
-            if min(abs(rule_index-pad), abs(rule_index-(target-pad-1))) > 8:
-                continue
-            points = np.flatnonzero(line)
-            groups = np.split(points, np.where(np.diff(points) > 1)[0]+1)
-            for group in groups:
-                if len(group) and group[0] <= 1 and group[-1] >= len(line)-2:
-                    if axis == 0:
-                        rule_mask[rule_index, group] = True
-                    else:
-                        rule_mask[group, rule_index] = True
-    remaining = (expanded & ~rule_mask)[pad:-pad, pad:-pad]
-    if not remaining.size or remaining.any():
-        return None
-    return {"rule": "source_bound_blank_paper_owner/v1", "source_sha256": observation["source_sha256"],
+    return {"rule": "source_bound_blank_paper_owner/v2", "source_sha256": observation["source_sha256"],
             "page": page_number, "physical_band_index": index, "crop_sha256": owner["crop_sha256"],
-            "bbox_pixels": box, "measurement": "whole_cell_minus_source_continuous_rules/v1",
-            "unexplained_dark_pixel_count": 0, "owner": "Undisclosed"}
+            "bbox_pixels": box, "measurement": blank["measurement"],
+            "unexplained_dark_pixel_count":0,"owner":"Undisclosed","source_blank_observation":blank}
 
 
 def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict | None:

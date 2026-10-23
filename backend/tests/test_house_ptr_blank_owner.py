@@ -44,7 +44,9 @@ class HouseBlankPaperOwnerTests(unittest.TestCase):
         pdf.__enter__.return_value.pages = [SimpleNamespace(to_image=lambda **kw:SimpleNamespace(original=self.image))]
         return [patch('pdfplumber.open',return_value=pdf),
                 patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid',return_value=self.grid),
-                patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes',return_value={'status':'located_shadow','owner':[.1,.2]})]
+                patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes',return_value={
+                    'status':'located_shadow','owner':[.1,.2], 'asset':[.2,.6],
+                    'event':[.6,.7], 'notification':[.7,.8]})]
 
     def proof(self):
         a,b,c=self.contexts()
@@ -99,13 +101,25 @@ class HouseBlankPaperOwnerTests(unittest.TestCase):
     def draw_rules(self):
         from PIL import ImageDraw
         pen=ImageDraw.Draw(self.image)
-        for x in (100,199): pen.line((x,380,x,470),fill='black',width=2)
-        for y in (400,449): pen.line((80,y,220,y),fill='black',width=2)
+        # Independent column spans and other physical rows must witness print;
+        # the target cell's own long strokes do not establish a form rule.
+        for x in (100,199): pen.line((x,380,x,600),fill='black',width=2)
+        for y in (400,449): pen.line((80,y,820,y),fill='black',width=2)
 
     def test_only_source_continuous_printed_rules_can_be_removed(self):
         self.draw_rules()
         self.refresh_crop()
         self.assertIsNotNone(self.proof())
+
+    def test_long_near_edge_strokes_are_not_promoted_to_printing_or_undisclosed(self):
+        from PIL import ImageDraw
+        for line in ((80,407,220,407),(80,442,220,442),(107,380,107,470),(192,380,192,470)):
+            with self.subTest(line=line):
+                self.image.paste('white',(0,0,1000,1000));self.draw_rules()
+                ImageDraw.Draw(self.image).line(line,fill='black',width=1)
+                self.refresh_crop()
+                self.assertIsNone(self.proof())
+                self.assertEqual(self.materialize()['transactions'],[])
 
     def test_blank_owner_does_not_need_ocr_but_event_date_still_does(self):
         self.owner['raw_ocr_confidence']=20
