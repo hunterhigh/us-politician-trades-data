@@ -354,21 +354,21 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
-        from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSION as VISIBLE_GENERIC, replay_partitioned_oge
+        from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSIONS as VISIBLE_GENERICS, replay_partitioned_oge
         visible = extraction.get('parser_version') in VISIBLE_VERSIONS
-        if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
+        if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION, *VISIBLE_VERSIONS}:
             from pathlib import Path
             from .oge_reports import _read_archived_source, selected_parser_version
             archive = Path(evidence_root)
             metadata, path, sha = _read_archived_source(archive,
                 archive / f"oge/reports/{document_id}/{extraction.get('source_sha256')}.json")
             expected_version = selected_parser_version(metadata, path, sha,
-                generic=extraction['parser_version'] == GENERIC_PARSER_VERSION)
+                generic=extraction['parser_version'] in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS})
             if expected_version != extraction['parser_version']:
                 raise OgeCatalogError('OGE cached native version differs from the current original source plan')
         if visible:
             extraction = replay_partitioned_oge(extraction, evidence_root)
-        generic = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC}
+        generic = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}
         if generic and not visible:
             from .oge_reports import validate_generic_table_interpretation
             validate_generic_table_interpretation(extraction)

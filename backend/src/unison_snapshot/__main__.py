@@ -174,6 +174,7 @@ def main() -> None:
     qualify_ptr = sub.add_parser("qualify-house-ptr")
     qualify_ptr.add_argument("--extraction", type=Path, required=True)
     qualify_ptr.add_argument("--identity", type=Path, required=True)
+    qualify_ptr.add_argument("--evidence-root", type=Path)
     qualify_ptr.add_argument("--output", type=Path, required=True)
     qualify_paper = sub.add_parser("qualify-house-paper-observation")
     qualify_paper.add_argument("--observation", type=Path, required=True)
@@ -193,6 +194,7 @@ def main() -> None:
                               help="Interpret saved paper evidence without starting OCR")
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
+    candidate.add_argument("--evidence-root", type=Path)
     candidate.add_argument("--state-status", type=Path, required=True)
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
@@ -552,7 +554,8 @@ def main() -> None:
         elif args.command == "qualify-house-ptr":
             extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
             identity = json.loads(args.identity.read_text(encoding="utf-8"))
-            result = qualify_automatic(extraction, identity)
+            result = qualify_automatic(extraction, identity,
+                **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_bytes(encode(result))
             print(json.dumps({"document_id": result["document_id"],
@@ -595,9 +598,11 @@ def main() -> None:
                     raise ValueError("Annual transaction audit must have its own output path")
                 annual_audit = {}
                 result = load_house_candidate(args.review_root, args.state_status, args.base,
-                                              annual_transaction_audit=annual_audit)
+                    annual_transaction_audit=annual_audit,
+                    **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
             else:
-                result = load_house_candidate(args.review_root, args.state_status, args.base)
+                result = load_house_candidate(args.review_root, args.state_status, args.base,
+                    **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
@@ -1006,7 +1011,7 @@ def main() -> None:
                 "parsed_extraction_count", "failure_count", "transaction_count",
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
-            from .oge_native_partition import DEFAULT_VERSION as VISIBLE_DEFAULT, GENERIC_VERSION as VISIBLE_GENERIC
+            from .oge_native_partition import DEFAULT_VERSIONS as VISIBLE_DEFAULTS, GENERIC_VERSIONS as VISIBLE_GENERICS
             from .oge_reports import selected_parser_version, _read_archived_source
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
             selected_extractions = {}
@@ -1027,12 +1032,12 @@ def main() -> None:
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
                 document_id = value.get("document_id")
-                if version not in {OGE_REPORT_PARSER_VERSION, VISIBLE_DEFAULT,
+                if version not in {OGE_REPORT_PARSER_VERSION, *VISIBLE_DEFAULTS,
                                    TRUMP_SEPT_2026_PARSER_VERSION,
                                    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
                                    TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
-                        args.generic and version in {OGE_GENERIC_PARSER_VERSION, VISIBLE_GENERIC}):
+                        args.generic and version in {OGE_GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}):
                     continue
                 if args.evidence_root is not None:
                     metadata_path = args.evidence_root / f"oge/reports/{document_id}/{value.get('source_sha256')}.json"

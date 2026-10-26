@@ -72,7 +72,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/pyproject.toml
       - name: Install pinned PDF extraction dependency
-        run: python -m pip install -e "backend[house-ingest]"
+        run: python -m pip install -e "backend[house-ingest,native-source-proof]"
       - name: Prepare evidence and review branches
         id: trees
         env:
@@ -169,6 +169,29 @@ jobs:
                               json.loads(qualification.read_text(encoding='utf-8')),
                               json.loads(observation.read_text(encoding='utf-8'))):
                           continue
+              from unison_snapshot.house_native_contrast import plan_house_native_contrast, PARSER_VERSION as CONTRAST_VERSION
+              from unison_snapshot.house import HouseIndexError
+              try:
+                  contrast_plan = plan_house_native_contrast(evidence, metadata_path)
+              except HouseIndexError:
+                  # Unavailable source is a parse/retry disposition, never an
+                  # absence proof allowing a retained success to skip policy.
+                  if not extraction.is_file() and failure.is_file():
+                      try:
+                          if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == os.environ['PARSER_RETRY_VERSION']:
+                              continue
+                      except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                          pass
+                  retries.append(metadata_path)
+                  continue
+              if contrast_plan['parser_version'] == CONTRAST_VERSION and extraction.is_file():
+                  try:
+                      selected = json.loads(extraction.read_text(encoding='utf-8'))
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      selected = {}
+                  if selected.get('parser_version') != CONTRAST_VERSION:
+                      retries.append(metadata_path)
+                      continue
               if extraction.is_file() and failure.is_file():
                   retries.append(metadata_path)
                   continue
@@ -336,7 +359,7 @@ jobs:
             test -f "$identity" || continue
             mkdir -p "$(dirname "$qualification")"
             PYTHONPATH=backend/src python -m unison_snapshot qualify-house-ptr \
-              --extraction "$extraction" --identity "$identity" --output "$qualification"
+              --extraction "$extraction" --identity "$identity" --evidence-root "$EVIDENCE_ROOT" --output "$qualification"
           done
       - name: Bridge bounded House paper observations into qualification
         env:
@@ -481,6 +504,7 @@ jobs:
           fi
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --state-status "$STATE_ROOT/status/house_clerk.json" \
             --base "$candidate_base" \
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"

@@ -1197,8 +1197,8 @@ def validate_generic_table_interpretation(extraction: dict, *, require_mode: boo
     Older generic extracts remain readable, but cannot masquerade as the new
     interpretation merely by editing their normalized account/owner fields.
     """
-    from .oge_native_partition import GENERIC_VERSION as VISIBLE_GENERIC, validate_partitioned_interpretation
-    if extraction.get('parser_version') == VISIBLE_GENERIC:
+    from .oge_native_partition import GENERIC_VERSIONS, validate_partitioned_interpretation
+    if extraction.get('parser_version') in GENERIC_VERSIONS:
         validate_partitioned_interpretation(extraction)
         return
     mode = extraction.get("row_interpretation_mode")
@@ -1231,7 +1231,8 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
     from .oge_native_partition import VERSIONS, parse_partitioned_oge
     selected = selected_parser_version(metadata, pdf_path, source_sha, generic=generic)
     if selected in VERSIONS:
-        return parse_partitioned_oge(metadata, pdf_path, source_sha256=source_sha, generic=generic)
+        return parse_partitioned_oge(metadata, pdf_path, source_sha256=source_sha,
+            generic=generic, parser_version=selected)
     extracted = (_extract_pdf(pdf_path, include_inventory=True, include_cover=True) if generic else
                  _extract_pdf(pdf_path, include_inventory=True))
     cover = None

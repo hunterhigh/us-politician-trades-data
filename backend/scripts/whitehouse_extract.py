@@ -32,7 +32,7 @@ from unison_snapshot.whitehouse_278t import (
     replay_trump_2026_v2_extraction,
     materialize_saved_whitehouse_278t, SAVED_OCR_PARSER_VERSION,
     saved_ocr_source_roots,
-    NATIVE_VISIBLE_PARSER_VERSIONS, NATIVE_VISIBLE_GENERIC_VERSION,
+    NATIVE_VISIBLE_PARSER_VERSIONS, NATIVE_VISIBLE_GENERIC_VERSIONS,
     plan_whitehouse_278t_archive, parse_native_visible_whitehouse_278t_pdf,
 )
 from unison_snapshot.whitehouse_disclosures import (
@@ -203,7 +203,8 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     if version in NATIVE_VISIBLE_PARSER_VERSIONS:
                         return parse_native_visible_whitehouse_278t_pdf(path, **common,
                             document_id=metadata['document_id'], filer_name=name,
-                            amended_label=metadata.get('link_label'), generic=version == NATIVE_VISIBLE_GENERIC_VERSION)
+                            amended_label=metadata.get('link_label'), generic=version in NATIVE_VISIBLE_GENERIC_VERSIONS,
+                            parser_version=version)
                     if generic_trade:
                         old_path = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
                         old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.is_file() else None

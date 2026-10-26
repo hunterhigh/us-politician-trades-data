@@ -158,13 +158,24 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             artifacts[kind][key] = value
             discovered.add(key[:2])
     from .house_ptr import resolve_automatic_revisions
+    from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
+    for key, qualification in artifacts['qualifications'].items():
+        if qualification.get('parser_version') != CONTRAST_VERSION:
+            continue
+        extraction = artifacts['extractions'].get(key)
+        if extraction is None:
+            raise ValueError('House contrast status requires its original selected extraction')
+        from .house_ptr import qualify_automatic
+        expected = qualify_automatic(extraction, qualification.get('identity', {}), evidence_root=evidence_root)
+        if qualification != expected:
+            raise ValueError('House contrast status qualification differs from complete original replay')
     revision_inputs = [(qualification, artifacts["extractions"][key])
         for key, qualification in artifacts["qualifications"].items()
         if key in artifacts["extractions"] and len(versions.get(key[:2], {})) == 1
         and key[2] in versions[key[:2]]]
     revision_resolution = resolve_automatic_revisions(revision_inputs,
         [row for q, _ in revision_inputs for row in q.get("transactions", [])],
-        prior_transactions=transactions)
+        prior_transactions=transactions, evidence_root=evidence_root)
     superseded = {r["prior_transaction_id"]: r for r in revision_resolution["replacements"]}
     keys = discovered | set(versions)
     records = []
@@ -266,6 +277,13 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                             if state != "superseded":
                                 state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
+                    if qualification.get('parser_version') == CONTRAST_VERSION:
+                        record['source_observation_coverage'] = {
+                            'coverage_complete':False, 'basis':'same_sha_original_native_contrast',
+                            'unknown_row_ids':[item['raw_row_id'] for item in qualification['native_contrast_dispositions']
+                                               if item['status'] == 'unknown']}
+                        record['qualification_state'] = 'partial' if rows else 'quarantined' if quarantined else 'unknown'
+                        reasons.add('source_row_coverage_incomplete')
                     from .house_ptr import revision_reference_dispositions
                     revisions = revision_resolution["dispositions"].get(docid,
                         revision_reference_dispositions(qualification, extraction, transactions))
@@ -310,6 +328,19 @@ def _build_house_status(evidence_root: Path, review_root: Path,
         if record is None:
             unmatched.append(txid)
         else:
+            version = record.get('selected_source_version')
+            selected_qualification = artifacts['qualifications'].get(
+                (int(record['report_id'].split(':')[1]),record['document_id'],version))
+            selected_qualification = revision_resolution['qualifications'].get(record['document_id'], selected_qualification)
+            if selected_qualification is not None and selected_qualification.get('parser_version') == CONTRAST_VERSION:
+                current = {item['id']:item for item in selected_qualification['transactions']}
+                if txid in current and row != current[txid]:
+                    raise ValueError('House contrast publication changed a current source-qualified fact')
+                if txid not in current:
+                    known = {item['raw_row_id'] for item in selected_qualification['native_contrast_dispositions']}
+                    if txid not in known:
+                        raise ValueError('House contrast publication has no original physical row')
+                    record.setdefault('retained_source_unqualified_transaction_ids', []).append(txid)
             record["publication_transaction_ids"].append(txid)
     for record in records:
         record["publication_transaction_ids"].sort()

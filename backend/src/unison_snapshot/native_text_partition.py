@@ -218,9 +218,10 @@ def _memberships(chars, tables):
     return result, crossings, count
 
 
-def _observe(raw, expected, document):
-    plan, inventories = _plan(raw, expected, document)
-    result = {'schema_version':SCHEMA, 'policy_version':POLICY_VERSION,
+def _observe(raw, expected, document, *, source_partition=None):
+    plan, inventories = (_plan(raw, expected, document) if source_partition is None else
+                         (source_partition['plan'], source_partition['inventories']))
+    result = {'schema_version':SCHEMA, 'policy_version':plan['policy_version'],
         'source_sha256':expected, 'source_byte_length':len(raw), 'plan':plan,
         'activated':plan['activated'], 'inventory_complete':plan['inventory_complete'],
         'status':'observed', 'pages':[], 'rows':[], 'inventory':[], 'raw_inventory':[],
@@ -236,9 +237,18 @@ def _observe(raw, expected, document):
         hidden = [index for index, mode in enumerate(modes) if mode == 3]
         visible_indices = [index for index, mode in enumerate(modes) if mode != 3]
         char_indices = {id(char):index for index, char in enumerate(page.chars)}
-        profile = (inspect_zero_three_native_page(page) if hidden else
+        selected_profile = (source_partition['profiles'].get(number)
+                            if source_partition is not None else None)
+        partitioned = bool(hidden) or selected_profile is not None
+        profile = (selected_profile if selected_profile is not None else
+                   inspect_zero_three_native_page(page) if hidden else
                    {'status':'unchanged_native', 'reason':None})
-        if hidden and not document_supported:
+        if selected_profile is not None:
+            visible_indices = profile.get('displayed_indices', [])
+            selected = set(visible_indices)
+            hidden = [index for index in range(len(chars)) if index not in selected]
+        selected_indices, hidden_indices = set(visible_indices), set(hidden)
+        if partitioned and not document_supported:
             profile = {'status':'unknown', 'reason':'native_document_paint_state_unsupported'}
         page_reasons = [] if profile['status'] != 'unknown' else [profile['reason']]
         view = page.filter(lambda obj, by_id=char_indices, selected=set(visible_indices):
@@ -251,6 +261,9 @@ def _observe(raw, expected, document):
             'visible_text':view.extract_text() or '', 'raw_lines':_lines(page, char_indices),
             'visible_lines':_lines(view, char_indices), 'tables':[], 'hidden_counterparts':{},
             'unmatched_hidden_indices':[], 'outside_table_hidden_indices':[]}
+        if selected_profile is not None:
+            page_result['source_contrast'] = {key:value for key,value in selected_profile.items()
+                if key not in {'chars', 'render_modes', 'visibility_flags', 'paint'}}
         if len(page.lines) > MAX_GRID_LINES:
             page_reasons.append('native_partition_grid_line_budget_exceeded')
         try:
@@ -261,10 +274,28 @@ def _observe(raw, expected, document):
                 page_result['visible_text'] = ''
                 page_result['visible_lines'] = []
             else:
-                tables = _partition_tables(page, view) if hidden else _baseline_tables(page)
+                table_page = page
+                if selected_profile is not None:
+                    # Source-proved fills describe backgrounds, not grid lines.
+                    # The contrast profile separately rejects fill/grid overlap.
+                    table_page = page.filter(lambda obj:obj.get('object_type') not in {'rect','curve'})
+                    view = view.filter(lambda obj:obj.get('object_type') not in {'rect','curve'})
+                    page_result['table_grid_basis'] = 'source_bound_strokes_only'
+                    edge_bound = len(page.lines) + 4 * (len(page.rects) + len(page.curves))
+                    if edge_bound * edge_bound <= MAX_MEMBERSHIP_COMPARISONS:
+                        original_tables = page.find_tables()
+                        if (len(original_tables) <= MAX_TABLES_PER_PAGE and
+                                sum(len(row.cells) for table in original_tables for row in table.rows) <= MAX_GRID_CELLS):
+                            page_result['historical_default_grids'] = [[row.cells for row in table.rows]
+                                for table in original_tables]
+                        else:
+                            page_result['historical_default_grid_status'] = 'unknown_budget'
+                    else:
+                        page_result['historical_default_grid_status'] = 'unknown_budget'
+                tables = _partition_tables(table_page, view) if partitioned else _baseline_tables(page)
                 if len(tables) > MAX_TABLES_PER_PAGE:
                     raise ValueError('native_partition_table_budget_exceeded')
-                if hidden and number > 1 and not any(table['selected'] for table in tables):
+                if partitioned and number > 1 and not any(table['selected'] for table in tables):
                     result['unknown_regions'].append({'page_number':number,
                         'reasons':['native_partition_source_table_map_unavailable']})
                     result['status'] = 'partial'
@@ -273,10 +304,14 @@ def _observe(raw, expected, document):
             page_result['membership_comparison_count'] = comparisons
             pairs = {}
             for index, mode in enumerate(modes):
-                if mode == 0:
+                if index in selected_indices and (selected_profile is not None or mode == 0):
                     pairs.setdefault(_glyph_key(chars[index]), []).append(index)
             for index in hidden:
                 peers = pairs.get(_glyph_key(chars[index]), [])
+                if selected_profile is not None and modes[index] != 3:
+                    states = selected_profile.get('glyph_states', [])
+                    if len(states) != len(chars) or states[index] not in {'no_effect','occluded'}:
+                        peers = []
                 if len(peers) == 1:
                     page_result['hidden_counterparts'][str(index)] = peers[0]
                 else:
@@ -284,7 +319,7 @@ def _observe(raw, expected, document):
             unmatched = set(page_result['unmatched_hidden_indices'])
             for table_index, table in enumerate(tables):
                 table_reasons = [table['reason']] if table.get('reason') else []
-                if hidden and table['selected'] and not any(_header(cells) for cells in table['cells']):
+                if partitioned and table['selected'] and not any(_header(cells) for cells in table['cells']):
                     table_reasons.append('native_table_header_visibility_unknown')
                 table_result = {**table, 'table_index':table_index, 'reasons':table_reasons, 'source_rows_indices':[]}
                 for row_index, (raw_cells, cells) in enumerate(zip(table['raw'], table['cells'])):
@@ -299,12 +334,12 @@ def _observe(raw, expected, document):
                     boxes = table['grid'][row_index] if table['grid'] is not None else None
                     members = [[i for i, location in memberships.items() if location == (table_index,row_index,col)]
                                for col in range(len(cells))]
-                    hidden_members = [[i for i in values if modes[i] == 3] for values in members]
+                    hidden_members = [[i for i in values if i in hidden_indices] for values in members]
                     unpaired = [i for values in hidden_members for i in values if i in unmatched]
                     touched = [i for i, locations in crossings.items() if any(
                         isinstance(location, tuple) and location[:2] == (table_index,row_index) for location in locations)]
                     reasons = list(table_reasons)
-                    if hidden and touched:
+                    if partitioned and touched:
                         reasons.append('native_partition_cell_membership_unresolved')
                         if not _financial(raw_cells) and not _header(raw_cells):
                             result['scope_barriers_before'][str(index)] = True
@@ -320,7 +355,7 @@ def _observe(raw, expected, document):
                         'row_index':row_index, 'raw_cells':list(map(_compact, raw_cells)),
                         'cells':list(map(_compact, cells)), 'cell_boxes':boxes,
                         'char_indices_by_cell':members,
-                        'visible_indices_by_cell':[[i for i in values if modes[i] != 3] for values in members],
+                        'visible_indices_by_cell':[[i for i in values if i in selected_indices] for values in members],
                         'hidden_indices_by_cell':hidden_members, 'unmatched_hidden_indices':unpaired,
                         'is_header':_header(raw_cells) or _header(cells), 'financial_slot':financial,
                         'reasons':sorted(set(reasons))}

@@ -129,8 +129,8 @@ def _amount_readings(readings: list[dict]) -> list[tuple[dict, list, bool]]:
 
 def open_amount_qualified(row: dict, parser_version: str) -> bool:
     from .oge_278t_amount_categories import observe_template_amount
-    from .oge_native_partition import GENERIC_VERSION as VISIBLE_GENERIC
-    if parser_version not in {GENERIC_PARSER_VERSION, OBSERVED_PARSER_VERSION, VISIBLE_GENERIC}:
+    from .oge_native_partition import GENERIC_VERSIONS as VISIBLE_GENERICS
+    if parser_version not in {GENERIC_PARSER_VERSION, OBSERVED_PARSER_VERSION, *VISIBLE_GENERICS}:
         return False
     raw = row.get("amount_raw")
     if not isinstance(raw, str):
@@ -570,15 +570,15 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     """
     if not isinstance(extraction, dict) or not isinstance(catalog_record, dict):
         raise OgeCatalogError("OGE 278-T adapter inputs must be objects")
-    from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSION as VISIBLE_GENERIC, replay_partitioned_oge
+    from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSIONS as VISIBLE_GENERICS, replay_partitioned_oge
     visible = extraction.get('parser_version') in VISIBLE_VERSIONS
-    if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
+    if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION, *VISIBLE_VERSIONS}:
         from .oge_reports import _read_archived_source, selected_parser_version
         archive = Path(evidence_root)
         metadata, path, sha = _read_archived_source(archive,
             archive / f"oge/reports/{extraction.get('document_id')}/{extraction.get('source_sha256')}.json")
         if selected_parser_version(metadata, path, sha,
-                generic=extraction['parser_version'] == GENERIC_PARSER_VERSION) != extraction['parser_version']:
+                generic=extraction['parser_version'] in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}) != extraction['parser_version']:
             raise OgeCatalogError('OGE ledger cache differs from current original source plan')
     if visible:
         extraction = replay_partitioned_oge(extraction, evidence_root)
@@ -613,7 +613,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T adapter requires the archived source hash")
     from .oge_reports import validate_generic_table_interpretation
-    scoped = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and "row_interpretation_mode" in extraction
+    scoped = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS} and "row_interpretation_mode" in extraction
     if legacy_extraction is not None and formal_reference_facts is None:
         raise OgeCatalogError("legacy scope binding requires the formal reference facts")
     if formal_reference_facts is not None and (not isinstance(formal_reference_facts, list) or
@@ -655,8 +655,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         report_reasons = []
     if extraction.get("evidence_complete") is not True or extraction.get("document_reasons"):
         report_reasons.append("document_evidence_incomplete")
-    if (extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} or
-            extraction.get("source_parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC}) and not generic_cover_evidence_valid(extraction):
+    if (extraction.get("parser_version") in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS} or
+            extraction.get("source_parser_version") in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}) and not generic_cover_evidence_valid(extraction):
         report_reasons.append("cover_date_evidence_invalid")
     if catalog_record.get("pending_final_oge_disposition") is True:
         report_reasons.append("pending_final_oge_disposition")
@@ -754,9 +754,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 if not isinstance(normalized.get("asset_name"), str) or not normalized["asset_name"].strip():
                     reasons.append("asset_name_not_qualified")
                 if normalized.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
-                        parser_version in {OBSERVED_PARSER_VERSION, GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and normalized.get("owner") == "Undisclosed"
+                        parser_version in {OBSERVED_PARSER_VERSION, GENERIC_PARSER_VERSION, *VISIBLE_GENERICS} and normalized.get("owner") == "Undisclosed"
                         and normalized.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
-                        and (parser_version in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and generic_cover_evidence_valid(extraction) or
+                        and (parser_version in {GENERIC_PARSER_VERSION, *VISIBLE_GENERICS} and generic_cover_evidence_valid(extraction) or
                              normalized.get("observation_reference", {}).get("source_sha256") == source_sha)):
                     reasons.append("owner_not_qualified")
                 if reasons:

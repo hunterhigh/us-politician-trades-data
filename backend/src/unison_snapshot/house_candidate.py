@@ -115,16 +115,19 @@ def _paper_pending_count(qualification: dict) -> int:
 
 
 def build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
+                          evidence_root: Path | None = None,
                           annual_transaction_inputs: list[dict] | None = None,
                           annual_transaction_audit: dict | None = None) -> dict:
     """Build a candidate only from a complete, idle House review directory."""
     from .house_paper_commit import paper_review_access
     with paper_review_access(review_root,require_complete=True):
         return _build_house_candidate(review_root,state_status,base,
+            evidence_root=evidence_root,
             annual_transaction_inputs=annual_transaction_inputs,annual_transaction_audit=annual_transaction_audit)
 
 
 def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
+                           evidence_root: Path | None = None,
                            annual_transaction_inputs: list[dict] | None = None,
                            annual_transaction_audit: dict | None = None) -> dict:
     review_root = review_root.resolve()
@@ -150,6 +153,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     native_account_unassessed_reports = 0
     revision_inputs = []
     revision_sources = []
+    contrast_sources = []
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -184,13 +188,29 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             elif extraction.get("extraction_method") in {"native_pdf_text", "mixed_native_ocr"}:
                 from .house_ptr import qualify_automatic
                 source = extraction.get("source", {})
+                if evidence_root is not None:
+                    from .house_native_contrast import plan_house_native_contrast, PARSER_VERSION as CONTRAST_VERSION
+                    relative = source.get('archive_path')
+                    if not isinstance(relative, str):
+                        raise HouseIndexError('House native source plan requires archived metadata')
+                    plan = plan_house_native_contrast(evidence_root,
+                        Path(evidence_root) / Path(relative).with_suffix('.json'))
+                    if plan['parser_version'] == CONTRAST_VERSION and extraction.get('parser_version') != CONTRAST_VERSION:
+                        raise HouseIndexError('House cached native version differs from current original source plan')
                 if (qualification.get("source_sha256") != extraction.get("source_sha256") or
                         qualification.get("document_id") != source.get("document_id") or
                         qualification.get("parser_version") != extraction.get("parser_version") or
                         extraction_path.stem != extraction.get("source_sha256") or
                         extraction_path.parent.name != str(source.get("document_id"))):
                     raise HouseIndexError("House native account document binding differs from qualification")
-                expected = qualify_automatic(extraction, identity)
+                from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
+                contrast = extraction.get('parser_version') == CONTRAST_VERSION
+                expected = qualify_automatic(extraction, identity,
+                    **({'evidence_root':evidence_root} if evidence_root is not None or contrast else {}))
+                if contrast:
+                    if qualification != expected:
+                        raise HouseIndexError('House contrast qualification differs from original source replay')
+                    contrast_sources.append((extraction, expected))
                 proof = expected.get("native_account_context", {})
                 if ("native_account_context" in qualification and
                         qualification["native_account_context"] != proof):
@@ -309,8 +329,26 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         raise HouseIndexError("House qualification row counts do not match their summary")
     from .house_ptr import resolve_automatic_revisions
     revision_resolution = resolve_automatic_revisions(revision_sources, transactions,
-                                                     prior_transactions=base.get("transactions", []))
+        prior_transactions=base.get("transactions", []),
+        **({'evidence_root':evidence_root} if evidence_root is not None else {}))
     transactions = revision_resolution["transactions"]
+    selected = {row['id']:row for row in transactions}
+    for extraction, qualification in contrast_sources:
+        source = extraction['source']
+        raw_ids = {row['extraction_id'] for row in extraction['transactions']}
+        for prior in base.get('transactions', []):
+            if (prior.get('source_id') != 'house_clerk' or
+                    str(prior.get('filing_id')) != str(source['document_id']) or
+                    prior.get('verification_status') != 'official_matched'):
+                continue
+            identifier = prior.get('id')
+            if (prior.get('source_url') != source['source_url'] or identifier not in raw_ids or
+                    prior.get('person_id') != qualification['identity'].get('person_id')):
+                raise HouseIndexError('Existing House contrast fact has no unique current physical source row')
+            if identifier in selected and selected[identifier] != prior:
+                raise HouseIndexError('Changed House contrast fact requires a separate source correction')
+            selected[identifier] = deepcopy(prior)
+    transactions = sorted(selected.values(), key=lambda row:row['id'])
     quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(
         str(q.get("document_id")), q)["quarantined"]) for q, _ in revision_sources)
     for row in transactions:
@@ -470,7 +508,9 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
 
 
 def load_house_candidate(review_root: Path, state_status_path: Path, base_path: Path, *,
+                         evidence_root: Path | None = None,
                          annual_transaction_audit: dict | None = None) -> dict:
     return build_house_candidate(review_root, _read_json(state_status_path, "House source state"),
                                  _read_json(base_path, "House candidate base"),
+                                 evidence_root=evidence_root,
                                  annual_transaction_audit=annual_transaction_audit)

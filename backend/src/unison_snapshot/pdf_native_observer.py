@@ -4,18 +4,24 @@ Mechanically shared from the House observer; projection, flags, paint order
 and exception values remain the same. Consumers choose their own profile.
 """
 
-def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000):
+def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000,
+                              include_path_events=False, max_paint_events=30_000):
     from pdfplumber.page import PDFPageAggregatorWithMarkedContent
     from pdfminer.pdfinterp import PDFPageInterpreter, PDFContentParser
     from pdfminer.layout import LTChar, LTContainer, LTFigure
     from pdfminer.pdftypes import resolve1
     from pdfminer.psparser import literal_name, PSEOF
 
+    if include_path_events and (type(max_paint_events) is not int or max_paint_events < 0):
+        raise ValueError('source_visibility_paint_budget_invalid')
+
     class Interpreter(PDFPageInterpreter):
         def init_state(self, *args, **kwargs):
             super().init_state(*args, **kwargs)
             self.visibility_flags = set(getattr(self, 'inherited_visibility_flags', ()))
             self.visibility_stack = []
+            if include_path_events:
+                self.device.path_visibility_flags = self.visibility_flags
 
         def subinterp(self):
             nested = super().subinterp()
@@ -47,6 +53,8 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
             if self.visibility_stack:
                 self.visibility_flags = self.visibility_stack.pop()
             super().do_Q()
+            if include_path_events:
+                self.device.path_visibility_flags = self.visibility_flags
 
         def do_gs(self, name):
             state = resolve1(resolve1(self.resources.get('ExtGState', {})).get(literal_name(name)))
@@ -73,7 +81,11 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
 
         def do_Do(self, name):
             self.device.visibility_flags = set(self.visibility_flags)
-            super().do_Do(name)
+            try:
+                super().do_Do(name)
+            finally:
+                if include_path_events:
+                    self.device.path_visibility_flags = self.visibility_flags
 
         def do_EI(self, obj):
             self.device.visibility_flags = set(self.visibility_flags)
@@ -90,10 +102,16 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.image_events = []
+            self.path_events = []
+
+        def check_paint_budget(self):
+            if include_path_events and self.paint_order > max_paint_events:
+                raise ValueError('source_visibility_paint_event_budget_exceeded')
 
         def render_string(self, textstate, *args, **kwargs):
             self.current_mode = textstate.render
             self.paint_order += 1
+            self.check_paint_budget()
             self.text_paint_order = self.paint_order
             return super().render_string(textstate, *args, **kwargs)
 
@@ -112,6 +130,7 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
 
         def render_image(self, *args, **kwargs):
             self.paint_order += 1
+            self.check_paint_budget()
             super().render_image(*args, **kwargs)
             flags = set(self.visibility_flags)
             if any(isinstance(item, LTFigure) for item in self._stack):
@@ -120,6 +139,21 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
 
         def paint_path(self, *args, **kwargs):
             self.paint_order += 1
+            self.check_paint_budget()
+            if include_path_events:
+                from copy import deepcopy
+                state, stroke, fill, evenodd, path = args
+                if not hasattr(state, 'ncs') or not hasattr(state, 'scs'):
+                    raise ValueError('source_visibility_path_colorspace_unavailable')
+                self.path_events.append({'paint_order': self.paint_order,
+                    'raw_path': deepcopy(path), 'stroke': stroke, 'fill': fill,
+                    'evenodd': evenodd, 'fill_colorspace': state.ncs.name,
+                    'fill_color': deepcopy(state.ncolor),
+                    'stroke_colorspace': state.scs.name,
+                    'stroke_color': deepcopy(state.scolor),
+                    'source_linewidth': state.linewidth,
+                    'visibility_flags': sorted(getattr(
+                        self, 'path_visibility_flags', self.visibility_flags))})
             return super().paint_path(*args, **kwargs)
 
     def walk(items):
@@ -146,5 +180,7 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
         'images': [{'paint_order': order,
             'box': [page.process_object(image)[key] for key in ('x0', 'top', 'x1', 'bottom')],
             'visibility_flags': image_flags} for image, order, image_flags in device.image_events]}
+    if include_path_events:
+        paint['path_events'] = device.path_events
     return records, [char.source_render_mode for char in chars], flags, paint
 

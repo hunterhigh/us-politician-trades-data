@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-12-image-paint-order"
+PARSER_RETRY_VERSION = "house-parser-suite-native-bichrome-v1"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -465,7 +465,10 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
 
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                      copy_allowed: bool | None, ocr_engine: str | None = None,
-                     page_text_methods: list[str] | None = None) -> dict:
+                     page_text_methods: list[str] | None = None,
+                     _row_member_sink: list | None = None) -> dict:
+    if _row_member_sink is not None and (not isinstance(_row_member_sink, list) or _row_member_sink):
+        raise HouseIndexError('House raw member collector must be an empty list')
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
         raise HouseIndexError("House PTR source hash is invalid")
     document_id = str(metadata.get("document_id", ""))
@@ -760,6 +763,21 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "verification_status": "awaiting_automatic_qualification",
             "review_reasons": reasons,
         })
+        if _row_member_sink is not None:
+            used = {id(word) for _, word in [*asset_words, *amount_words, *note_words]}
+            line_ranges = ((.04*width, .105*width), (.105*width, .165*width),
+                           (.42*width, .53*width), (.53*width-1., .62*width-1.),
+                           (.62*width, .725*width))
+            used.update(id(word) for word in words if abs(float(word['top'])-top) <= 2.0
+                        and any(left <= float(word['x0']) < right for left, right in line_ranges))
+            blocks = []
+            for pi in sorted({pi for pi, _ in block}):
+                selected = {id(word) for index, word in block if index == pi}
+                blocks.append({'page_number': pi+1,
+                    'word_indices': [i for i, word in enumerate(page_data[pi]['words']) if id(word) in selected],
+                    'field_word_indices': [i for i, word in enumerate(page_data[pi]['words'])
+                                           if id(word) in selected and id(word) in used]})
+            _row_member_sink.append({'raw_row_id': extracted[-1]['extraction_id'], 'blocks': blocks})
     ledger = _modern_report_ledger(source_sha256, page_data, extracted)
     if not extracted and not ledger["disposition_counts"].get("unknown") and not visibility_unknown_pages:
         raise HouseIndexError("House PTR contains no recognized transaction rows")
@@ -929,11 +947,26 @@ def _native_account_context(extraction: dict) -> dict:
 
 
 def qualify_automatic(extraction: dict, identity: dict, *,
+                      evidence_root: Path | None = None,
                       verified_blank_paper_owner_ids: frozenset[str] = frozenset(),
                       _source_bound_revision_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
+    from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION, qualify_native_contrast
+    if extraction.get('parser_version') == CONTRAST_VERSION or any(k.startswith('native_contrast_') for k in extraction):
+        if verified_blank_paper_owner_ids:
+            raise HouseIndexError('House native contrast cannot grant paper blank owners')
+        return qualify_native_contrast(extraction, identity, evidence_root=evidence_root,
+                                       revision_ids=_source_bound_revision_ids)
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    if evidence_root is not None and extraction.get('extraction_method') in {'native_pdf_text', 'mixed_native_ocr'}:
+        from .house_native_contrast import plan_house_native_contrast
+        relative = extraction.get('source', {}).get('archive_path')
+        if not isinstance(relative, str):
+            raise HouseIndexError('House native qualification needs archived source metadata')
+        plan = plan_house_native_contrast(evidence_root, Path(evidence_root)/Path(relative).with_suffix('.json'))
+        if plan['activated'] is not False:
+            raise HouseIndexError('House native qualification cache differs from selected source version')
     from .house_native_visibility import KEY as VISIBILITY_KEY, MODE as VISIBILITY_MODE
     visibility_saved = any(VISIBILITY_KEY in page for page in (extraction.get('source_word_pages') or []))
     if visibility_saved or 'native_visibility_mode' in extraction:
@@ -1279,6 +1312,13 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
         import pdfplumber
     except ImportError:
         raise HouseIndexError("PTR extraction requires the optional pdfplumber package") from None
+    from .house_native_contrast import parse_selected_native_contrast, SourceInventoryUnavailable, bounded_legacy_unknown
+    try:
+        contrast = parse_selected_native_contrast(archive_root, metadata_path)
+    except SourceInventoryUnavailable:
+        return bounded_legacy_unknown(archive_root, metadata_path)
+    if contrast is not None:
+        return contrast
     try:
         with pdfplumber.open(pdf_path) as document:
             copy_allowed = getattr(document.doc, "is_extractable", None)
@@ -1495,7 +1535,8 @@ def promote_review(extraction: dict, review: dict) -> dict:
             "advisories": advisories}
 
 def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transactions: list[dict],
-                                *, prior_transactions: list[dict] | None = None) -> dict:
+                                *, prior_transactions: list[dict] | None = None,
+                                evidence_root: Path | None = None) -> dict:
     """Derive a bounded official-ID revision chain from replayable source rows.
 
     Saved qualifications stay unchanged. This is a current-source interpretation
@@ -1535,7 +1576,9 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
                 ocr_engine=extraction.get('ocr_engine'))
             if any(extraction.get(key) != value for key, value in replay.items()):
                 raise HouseIndexError('House related OCR revision source differs from saved words')
-        expected = qualify_automatic(extraction, qualification.get('identity', {}))
+        from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
+        source_roots = {'evidence_root': evidence_root} if extraction.get('parser_version') == CONTRAST_VERSION else {}
+        expected = qualify_automatic(extraction, qualification.get('identity', {}), **source_roots)
         if expected != qualification:
             if qualification.get('revision_observations') or ocr_only:
                 raise HouseIndexError('House amendment source qualification differs from replay')
@@ -1551,12 +1594,16 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
         # no OCR-derived row becomes a predecessor merely from being mixed.
         native_rows = [row for row in extraction['transactions']
                        if not mixed or row.get('ocr_source_pages') == []]
-        candidates = qualify_automatic(extraction, qualification['identity'],
+        contrast = extraction.get('parser_version') == CONTRAST_VERSION
+        if contrast:
+            native_rows = [item['current_projected'] for item in extraction['native_contrast_dispositions']
+                           if item['status'] == 'current_projected']
+        candidates = qualify_automatic(extraction, qualification['identity'], **source_roots,
             _source_bound_revision_ids=frozenset(r['extraction_id'] for r in native_rows
                 if str(r.get('filing_status', '')).lower() == 'amended'))
         qualified = {r['id']: r for r in candidates['transactions']}
         source_facts[document] = qualified
-        for row in extraction['transactions']:
+        for row in native_rows if contrast else extraction['transactions']:
             official = row.get('reported_transaction_id')
             status = str(row.get('filing_status', '')).lower()
             if not isinstance(official, str) or not re.fullmatch(r'[0-9]{1,30}', official) or status not in {'new', 'amended'}:

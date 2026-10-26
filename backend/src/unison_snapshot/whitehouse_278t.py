@@ -26,7 +26,11 @@ PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
 GENERIC_PARSER_VERSION = "whitehouse-278t-native-roles/v5"
 NATIVE_VISIBLE_DEFAULT_VERSION = "whitehouse-278t-native-visible-default/v1"
 NATIVE_VISIBLE_GENERIC_VERSION = "whitehouse-278t-native-visible-generic/v1"
-NATIVE_VISIBLE_PARSER_VERSIONS = {NATIVE_VISIBLE_DEFAULT_VERSION, NATIVE_VISIBLE_GENERIC_VERSION}
+NATIVE_BICHROME_DEFAULT_VERSION = "whitehouse-278t-native-bichrome-default/v1"
+NATIVE_BICHROME_GENERIC_VERSION = "whitehouse-278t-native-bichrome-generic/v1"
+NATIVE_VISIBLE_DEFAULT_VERSIONS = {NATIVE_VISIBLE_DEFAULT_VERSION, NATIVE_BICHROME_DEFAULT_VERSION}
+NATIVE_VISIBLE_GENERIC_VERSIONS = {NATIVE_VISIBLE_GENERIC_VERSION, NATIVE_BICHROME_GENERIC_VERSION}
+NATIVE_VISIBLE_PARSER_VERSIONS = NATIVE_VISIBLE_DEFAULT_VERSIONS | NATIVE_VISIBLE_GENERIC_VERSIONS
 SAVED_OCR_PARSER_VERSION = "whitehouse-278t-saved-ocr-roles/v6"
 DUAL_AXIS_PARSER_VERSION = "whitehouse-278t-saved-ocr-dual-axis/v7"
 DUAL_AXIS_MODE = "source_pdf_dual_axis/v1"
@@ -1588,7 +1592,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
 def generic_whitehouse_filing_date(report: dict) -> str | None:
     """Validate same-source first-page role evidence without borrowing another date."""
     from .oge_reports import read_278t_cover_dates
-    if report.get('parser_version') == NATIVE_VISIBLE_DEFAULT_VERSION:
+    if report.get('parser_version') in NATIVE_VISIBLE_DEFAULT_VERSIONS:
         pages = report.get('native_text_partition', {}).get('pages', [])
         if not pages:
             raise OgeCatalogError('White House native visible cover evidence is unavailable')
@@ -1708,12 +1712,24 @@ def plan_whitehouse_278t_source(pdf_path: Path, *, source_url: str, source_sha25
     baseline = GENERIC_PARSER_VERSION if generic else parser_version_for_source(source_url, source_sha256)
     if not generic and baseline != PARSER_VERSION:
         return {'parser_version': baseline, 'partition_plan': None}
+    from .native_bichrome_partition import plan_native_bichrome_partition
+    contrast = plan_native_bichrome_partition(Path(pdf_path), expected_sha256=source_sha256)
+    if contrast.get('activated') is not False:
+        return {'parser_version':NATIVE_BICHROME_GENERIC_VERSION if generic else NATIVE_BICHROME_DEFAULT_VERSION,
+            'partition_plan':contrast}
     from .native_text_partition import plan_native_text_partition
     plan = plan_native_text_partition(Path(pdf_path), expected_sha256=source_sha256)
     unchanged = plan.get('activated') is False and plan.get('inventory_complete') is True
     return {'parser_version': baseline if unchanged else
             NATIVE_VISIBLE_GENERIC_VERSION if generic else NATIVE_VISIBLE_DEFAULT_VERSION,
             'partition_plan': plan}
+
+
+def _native_partition_version(proof: dict, *, generic: bool = False) -> str:
+    from .native_bichrome_partition import POLICY_VERSION as CONTRAST_POLICY
+    if proof.get('policy_version') == CONTRAST_POLICY:
+        return NATIVE_BICHROME_GENERIC_VERSION if generic else NATIVE_BICHROME_DEFAULT_VERSION
+    return NATIVE_VISIBLE_GENERIC_VERSION if generic else NATIVE_VISIBLE_DEFAULT_VERSION
 
 
 def _native_partition_inputs(proof: dict) -> tuple:
@@ -1763,13 +1779,23 @@ def plan_whitehouse_278t_archive(metadata: dict, evidence_root: Path, *, generic
 
 def parse_native_visible_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         source_sha256: str, document_id: str, filer_name: str,
-        amended_label: str | None = None, generic: bool = False) -> dict:
+        amended_label: str | None = None, generic: bool = False,
+        parser_version: str | None = None) -> dict:
     """Interpret a source-selected projection without OCR or legacy migration."""
     from .native_text_partition import observe_native_text_partition
     _validate_source(source_url, source_sha256, document_id, filer_name)
     if not generic and parser_version_for_source(source_url, source_sha256) != PARSER_VERSION:
         raise OgeCatalogError('White House fixed source keeps its historical default parser')
-    proof = observe_native_text_partition(Path(pdf_path), expected_sha256=source_sha256)
+    if parser_version is None:
+        parser_version = plan_whitehouse_278t_source(Path(pdf_path), source_url=source_url,
+            source_sha256=source_sha256, generic=generic)['parser_version']
+    if parser_version not in (NATIVE_VISIBLE_GENERIC_VERSIONS if generic else NATIVE_VISIBLE_DEFAULT_VERSIONS):
+        raise OgeCatalogError('White House native display policy and family differ')
+    observer = observe_native_text_partition
+    if parser_version in {NATIVE_BICHROME_DEFAULT_VERSION, NATIVE_BICHROME_GENERIC_VERSION}:
+        from .native_bichrome_partition import observe_native_bichrome_partition
+        observer = observe_native_bichrome_partition
+    proof = observer(Path(pdf_path), expected_sha256=source_sha256)
     if proof.get('activated') is False:
         raise OgeCatalogError('White House source does not select native visible parsing')
     parser = parse_generic_whitehouse_278t_pdf if generic else parse_whitehouse_278t_pdf
@@ -1803,7 +1829,8 @@ def replay_native_visible_whitehouse_report(report: dict) -> dict:
         pdf_path.write_bytes(content)
         return parse_native_visible_whitehouse_278t_pdf(pdf_path, source_url=report['source_url'],
             source_sha256=sha, document_id=document, filer_name=report['filer_name'],
-            amended_label=report.get('amended_label'), generic=version == NATIVE_VISIBLE_GENERIC_VERSION)
+            amended_label=report.get('amended_label'), generic=version in NATIVE_VISIBLE_GENERIC_VERSIONS,
+            parser_version=version)
 
 
 def validate_native_visible_whitehouse_report(report: dict) -> dict:
@@ -1866,7 +1893,7 @@ def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     if _native_partition is None:
         result = _inherit_whitehouse_generic_rows(result, legacy_extraction)
     else:
-        result['parser_version'] = NATIVE_VISIBLE_GENERIC_VERSION
+        result['parser_version'] = _native_partition_version(_native_partition, generic=True)
         result['native_text_partition'] = deepcopy(_native_partition)
         result['extraction_method'] = 'source_bound_native_visible_partition'
     result["source_row_count"] = len(result["transactions"]) + len(result["quarantined"])
@@ -1902,7 +1929,7 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     else:
         text, rows, cover = _native_partition_inputs(_native_partition)
         first_page = cover['text']
-        parser_version = NATIVE_VISIBLE_DEFAULT_VERSION
+        parser_version = _native_partition_version(_native_partition)
     filed_at, signature_method, signature_raw, signature_name, reasons = _filer_signature(first_page)
     pdf_filer_name, pdf_position_title, pdf_agency_label, pdf_role_raw, identity_reasons = (
         _filer_information(first_page))
