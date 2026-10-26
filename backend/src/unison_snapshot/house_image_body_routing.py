@@ -33,6 +33,9 @@ def _overlaps(left, right):
 
 def image_body_region(page: dict) -> list | None:
     """Require the existing eight-cell header and its directly attached image."""
+    from .house_native_visibility import unknown
+    if unknown(page):
+        return None
     from .house_native_coverage import GEOMETRY_SCHEMA, _header_cells
     geometry = page.get('native_page_geometry')
     if (not page.get('words') or not isinstance(geometry, dict) or

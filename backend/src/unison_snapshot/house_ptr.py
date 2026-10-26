@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-10-image-body"
+PARSER_RETRY_VERSION = "house-parser-suite-2026-12-image-paint-order"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -474,6 +474,11 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         raise HouseIndexError("House PTR metadata is invalid")
     if not pages:
         raise HouseIndexError("House PTR contains no pages")
+    from .house_native_visibility import KEY as VISIBILITY_KEY, MODE as VISIBILITY_MODE, BLOCKER, validate_visibility, unknown, affects_row, format_anchors_visible
+    for number, page in enumerate(pages, 1):
+        validate_visibility(page, source_sha256, number)
+    visibility_unknown_pages = {number for number, page in enumerate(pages, 1) if unknown(page)}
+    visibility_format_blocked = not format_anchors_visible(pages[0], document_id)
     if page_text_methods is None and any("text_reading_method" in page for page in pages):
         raise HouseIndexError("House mixed page observations require their reading methods")
     if page_text_methods is not None:
@@ -526,6 +531,8 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if page_text_methods is not None and (not title_matches or f"#{document_id}" not in first_text):
         raise HouseIndexError("House mixed pages require a native modern PTR header")
     if legacy_form:
+        if visibility_unknown_pages:
+            raise HouseIndexError('House legacy native visibility is unsupported; no zero claim can be made')
         declaration = _explicit_zero_transaction_declaration(pages)
         if declaration is not None:
             return _zero_transaction_extraction(
@@ -535,7 +542,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                                         copy_allowed=copy_allowed, ocr_engine=ocr_engine)
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
-    declaration = _explicit_zero_transaction_declaration(pages)
+    declaration = None if visibility_unknown_pages else _explicit_zero_transaction_declaration(pages)
     if page_text_methods is not None and declaration is not None:
         raise HouseIndexError("House mixed zero-transaction declaration lacks independent page coverage")
     if declaration is not None and not any(_unanchored_native_slots(page) for page in pages):
@@ -552,6 +559,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House PTR page geometry is invalid")
         page_data.append({"width": width, "height": height, "words": words,
+            **({VISIBILITY_KEY: page[VISIBILITY_KEY]} if VISIBILITY_KEY in page else {}),
             **({"native_page_geometry": page["native_page_geometry"]}
                if "native_page_geometry" in page else {})})
         for top in _modern_date_anchors(words, width):
@@ -575,6 +583,13 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         for segment_page_index in range(page_index, last_page_index + 1):
             segment = page_data[segment_page_index]
             start = top - 2 if segment_page_index == page_index else 0.14 * segment["height"]
+            if segment_page_index > page_index and unknown(pages[segment_page_index]):
+                from .house_native_coverage import _header_cells
+                observed = pages[segment_page_index]
+                cells = _header_cells({**observed, 'words': observed[VISIBILITY_KEY]['original_words']},
+                                      observed['native_page_geometry'])
+                if cells is not None:
+                    start = max(start, cells[0][3])
             if (page_text_methods is not None and segment_page_index > page_index and
                     page_text_methods[segment_page_index] == IMAGE_BODY_METHOD):
                 # The independently identified printed header is not a
@@ -700,6 +715,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         stable = "|".join((source_sha256, str(page_number), f"{top:.2f}", asset,
                            transaction_date, raw_type, raw_owner, amount,
                            reported_transaction_id, details.get("filing_status", "")))
+        if visibility_format_blocked or any(affects_row(pages[segment['page']-1], segment['bbox_points']) for segment in evidence_segments):
+            field_problems = sorted(set(field_problems + [BLOCKER]))
+        if visibility_format_blocked:
+            field_problems = sorted(set(field_problems + ['native_format_anchor_visibility_unknown']))
         extracted.append({
             "extraction_id": "house-ptr:" + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24],
             "reported_transaction_id": reported_transaction_id or None,
@@ -742,7 +761,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "review_reasons": reasons,
         })
     ledger = _modern_report_ledger(source_sha256, page_data, extracted)
-    if not extracted and not ledger["disposition_counts"].get("unknown"):
+    if not extracted and not ledger["disposition_counts"].get("unknown") and not visibility_unknown_pages:
         raise HouseIndexError("House PTR contains no recognized transaction rows")
     if len({row["extraction_id"] for row in extracted}) != len(extracted):
         raise HouseIndexError("House PTR produced duplicate extraction IDs")
@@ -763,6 +782,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         "extraction_method": ("mixed_native_ocr" if page_text_methods is not None else
                               "tesseract_ocr" if ocr_engine else "native_pdf_text"),
         "ocr_engine": ocr_engine,
+        **({'native_visibility_mode': VISIBILITY_MODE} if any(VISIBILITY_KEY in page for page in pages) else {}),
         **({"page_text_methods": list(page_text_methods)} if page_text_methods is not None else {}),
         **({"source_word_pages": deepcopy(saved_pages),
             "source_word_pages_sha256": hashlib.sha256(json.dumps(
@@ -850,7 +870,16 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], 
                          pages=observed, logical_rows=logical)
     if include_unanchored:
         from .house_native_coverage import apply_native_coverage
-        return apply_native_coverage(source_sha, pages, rows, ledger)
+        ledger = apply_native_coverage(source_sha, pages, rows, ledger)
+        from .house_native_visibility import unknown, BLOCKER
+        if any(unknown(page) for page in pages):
+            for number, page in enumerate(pages, 1):
+                if unknown(page):
+                    ledger['pages'][number-1].update(coverage='unknown', coverage_reason=BLOCKER)
+            ledger = report_ledger(source_id='house_clerk', document_sha256=source_sha,
+                adapter_version=PARSER_VERSION, page_count=len(pages), pages=ledger['pages'],
+                logical_rows=[{key:value for key,value in row.items() if key != 'qualification'}
+                              for row in ledger['logical_rows']], unresolved_data_slots=ledger['unresolved_data_slots'])
     return ledger
 
 
@@ -905,6 +934,12 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    from .house_native_visibility import KEY as VISIBILITY_KEY, MODE as VISIBILITY_MODE
+    visibility_saved = any(VISIBILITY_KEY in page for page in (extraction.get('source_word_pages') or []))
+    if visibility_saved or 'native_visibility_mode' in extraction:
+        if (not visibility_saved or extraction.get('native_visibility_mode') != VISIBILITY_MODE or
+                extraction.get('extraction_method') not in {'native_pdf_text', 'mixed_native_ocr'}):
+            raise HouseIndexError('House native visibility observations require their saved native method')
     if extraction.get("extraction_method") != "mixed_native_ocr" and (
             "page_text_methods" in extraction or any("text_reading_method" in page
                 for page in (extraction.get("source_word_pages") or []))):
@@ -1204,9 +1239,10 @@ def _ocr_pdf_pages(document, *, resolution: int = 200,
 def observe_native_word_pages(document, source_sha256: str) -> list[dict]:
     """Share the source inventory between runtime preparation and parsing."""
     from .house_native_coverage import observe_native_geometry
-    return [{"width":page.width, "height":page.height,
+    from .house_native_visibility import observe_visibility
+    return [observe_visibility(page, {"width":page.width, "height":page.height,
              "words":page.extract_words(x_tolerance=2,y_tolerance=2,extra_attrs=["size"]),
-             "native_page_geometry":observe_native_geometry(page,source_sha256,number)}
+             "native_page_geometry":observe_native_geometry(page,source_sha256,number)}, source_sha256, number)
             for number,page in enumerate(document.pages,1)]
 
 

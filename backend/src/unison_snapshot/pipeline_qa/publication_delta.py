@@ -17,6 +17,7 @@ from .holdings_rebinding import _archive, _official_index_replacement, git_tree_
 from .migration_inventory import git_object
 from .senate_annual_amendment import verified_amendment_rekeys
 from .senate_account_correction import verified_account_corrections
+from .whitehouse_owner_correction import verified_owner_corrections
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -108,6 +109,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
     changes, counts, used, verified_replacements = [], {}, set(), set()
     verified_amendments = 0
     correction_count = 0
+    correction_levels = set()
     for entity in ENTITIES:
         old = _index(previous_board.get(entity), f"previous {entity}")
         proposed = _index(unified.get(entity), f"review {entity}")
@@ -134,6 +136,14 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         corrections = (verified_account_corrections(old=old, current=current, repo=repo,
             evidence_commit=evidence_commit, review_commit=review_commit)
             if entity == "transactions" else [])
+        if corrections:
+            correction_levels.add('archived_senate_account_pixels_and_saved_grid_replay')
+        owner_corrections = (verified_owner_corrections(old=old, current=current, repo=repo,
+            evidence_commit=evidence_commit, review_commit=review_commit,
+            main_commit=main_commit, previous_people=previous_board.get('people')) if entity == 'transactions' else [])
+        if owner_corrections:
+            correction_levels.add('archived_whitehouse_native_owner_and_historical_projection_replay')
+        corrections += owner_corrections
         verified_corrections = {item["old_id"]: item for item in corrections}
         old_seen, new_seen = set(), set()
         for item in selected:
@@ -186,7 +196,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "changes": changes, "canonical_source_alignment_complete": True,
             "snapshot_changes_disposed": True,
             "source_verified_correction_count": correction_count,
-            "correction_verification_level": ("archived_senate_account_pixels_and_saved_grid_replay"
+            "correction_verification_level": ('+'.join(sorted(correction_levels))
                 if correction_count else "not_applicable_no_corrections"),
             "transition_verification_level": (
                 "archived_official_index_and_senate_amendment_bytes"

@@ -457,7 +457,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "coverage_complete": (not legacy_reference and page_count_verified and not unresolved and not unknown_pages
             and not content["source_report_ledger"]["unobserved_pages"]
             and not content["source_report_ledger"]["coverage_unknown_pages"]
-            and raster_inventory.get("all_selected_boundaries_accounted") is True),
+            and raster_inventory.get("all_selected_boundaries_accounted") is True
+            and raster_inventory.get("report_completeness_attested") is True),
     }
     return result
 
@@ -832,6 +833,11 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
         observed = status.get(page["page_number"], {})
         if observed.get("status") != "source_boundaries_aligned":
             page.update(coverage="unknown", coverage_reason="independent_source_boundaries_unresolved")
+        elif observed.get('content_status') != 'verified':
+            # A horizontal-rule census cannot account for financial text or
+            # images elsewhere on the page. Keep its slots and positive rule
+            # evidence without turning them into a whole-source row total.
+            page.update(coverage='unknown', coverage_reason='independent_source_content_unverified')
     proofs, conflicts = [], []
     by_number = {page['page_number']: page for page in pages}
     role_candidates = sorted(set(ledger['unobserved_pages']) | {
