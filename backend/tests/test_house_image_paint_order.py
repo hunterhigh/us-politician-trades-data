@@ -111,10 +111,13 @@ class ImagePaintOrderTests(unittest.TestCase):
         self.assertEqual(f.pdf.read_bytes(), f.original_bytes)
 
     def test_mixed_order_cross_boundary_duplicate_and_image_own_graphics_states_block_native_fallback(self):
+        from unison_snapshot.house_native_contrast import PARSER_VERSIONS
         for mode in ('mixed_order', 'cross', 'duplicate', 'image_opacity', 'image_clip', 'image_form',
                      'hidden_image_opacity', 'hidden_image_clip'):
             with self.subTest(mode=mode):
-                f = self.fixture(mode); x, ocr = self.parse(f); q = qualify_automatic(x, IDENTITY)
+                f = self.fixture(mode); x, ocr = self.parse(f)
+                q = qualify_automatic(x, IDENTITY, **({'evidence_root':f.root}
+                    if x.get('parser_version') in PARSER_VERSIONS else {}))
                 self.assertFalse(ocr.called)
                 self.assertEqual(planned_ocr_pages(f.pages), [])
                 self.assertEqual(f.pages[1][KEY]['status'], 'unknown')

@@ -142,11 +142,12 @@ class NativeVisibilityTests(unittest.TestCase):
             self.assertEqual(qualify_automatic(json.loads(json.dumps(x)), IDENTITY), q)
 
     def test_no_image_cross_boundary_and_mixed_mode_never_qualify_stale_facts(self):
+        from unison_snapshot.house_native_contrast import PARSER_VERSIONS
         for mode in ('no_image', 'cross', 'mixed', 'opacity', 'clip', 'form'):
             with self.subTest(mode=mode):
                 f = self.fixture(mode); x, ocr = self.parse(f)
                 q = qualify_automatic(x, IDENTITY, **({'evidence_root':f.root}
-                    if mode == 'opacity' else {}))
+                    if x.get('parser_version') in PARSER_VERSIONS else {}))
                 self.assertFalse(ocr.called)
                 self.assertEqual(planned_ocr_pages(f.pages), [])
                 self.assertEqual([r['asset_name'] for r in q['transactions']], ['Example Corp.'])
