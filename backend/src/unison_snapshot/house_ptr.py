@@ -1474,6 +1474,7 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
     effective = {}
     identities = {}
     source_facts = {}
+    non_native_groups = set()
     wanted_ids = {row.get('reported_transaction_id') for q, _ in inputs
                   for row in q.get('revision_observations', [])
                   if isinstance(row.get('reported_transaction_id'), str)}
@@ -1484,19 +1485,38 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
         document = str(qualification.get('document_id'))
         if qualification.get('revision_observations'):
             observations[document] = revision_reference_dispositions(qualification, extraction, current_transactions)
-        if extraction.get('extraction_method') != 'native_pdf_text' or not extraction.get('source_word_pages'):
+        method = extraction.get('extraction_method')
+        mixed = method == 'mixed_native_ocr'
+        ocr_only = method == 'tesseract_ocr'
+        if method not in {'native_pdf_text', 'mixed_native_ocr', 'tesseract_ocr'} or (
+                not ocr_only and not extraction.get('source_word_pages')):
             continue
         if not any(row.get('reported_transaction_id') in wanted_ids for row in extraction.get('transactions', [])):
             continue
+        if ocr_only and extraction.get('source_word_pages'):
+            replay = parse_word_pages({**extraction['source'], 'filing_type': 'P'}, extraction['source_sha256'],
+                extraction['source_word_pages'], copy_allowed=extraction.get('source_pdf_copy_allowed'),
+                ocr_engine=extraction.get('ocr_engine'))
+            if any(extraction.get(key) != value for key, value in replay.items()):
+                raise HouseIndexError('House related OCR revision source differs from saved words')
         expected = qualify_automatic(extraction, qualification.get('identity', {}))
         if expected != qualification:
-            if qualification.get('revision_observations'):
+            if qualification.get('revision_observations') or ocr_only:
                 raise HouseIndexError('House amendment source qualification differs from replay')
             continue  # Legacy reviewed facts cannot become automatic predecessors.
+        if ocr_only:
+            non_native_groups.update((qualification['identity'].get('person_id'), row.get('reported_transaction_id'))
+                for row in extraction['transactions'] if row.get('reported_transaction_id') in wanted_ids)
+            continue  # Source evidence blocks uniqueness; it never becomes an automatic predecessor.
         effective[document] = expected
         identities[document] = qualification['identity']
+        # The replay above verifies every row's saved provenance. An unrelated
+        # OCR page does not make an entirely native row unreadable; conversely
+        # no OCR-derived row becomes a predecessor merely from being mixed.
+        native_rows = [row for row in extraction['transactions']
+                       if not mixed or row.get('ocr_source_pages') == []]
         candidates = qualify_automatic(extraction, qualification['identity'],
-            _source_bound_revision_ids=frozenset(r['extraction_id'] for r in extraction['transactions']
+            _source_bound_revision_ids=frozenset(r['extraction_id'] for r in native_rows
                 if str(r.get('filing_status', '')).lower() == 'amended'))
         qualified = {r['id']: r for r in candidates['transactions']}
         source_facts[document] = qualified
@@ -1506,6 +1526,9 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
             if not isinstance(official, str) or not re.fullmatch(r'[0-9]{1,30}', official) or status not in {'new', 'amended'}:
                 continue
             key = (qualification['identity'].get('person_id'), official)
+            if mixed and row.get('ocr_source_pages') != []:
+                non_native_groups.add(key)
+                continue
             groups.setdefault(key, []).append({'row': row, 'fact': qualified.get(row['extraction_id']),
                 'status': status, 'extraction': extraction, 'qualification': qualification,
                 'document_id': document, 'date': extraction['source']['filed_date']})
@@ -1540,7 +1563,9 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
             continue
         originals = [r for r in entries if r['status'] == 'new']
         reason = None
-        if any(len(source_versions[r['document_id']]) != 1 for r in entries):
+        if (person, official) in non_native_groups:
+            reason = 'revision_related_row_uses_ocr'
+        elif any(len(source_versions[r['document_id']]) != 1 for r in entries):
             reason = 'revision_source_version_ambiguous'
         elif len({tuple(r['qualification']['identity'].get(field) for field in
                 ('official_name', 'state', 'party', 'state_district')) for r in entries}) != 1:

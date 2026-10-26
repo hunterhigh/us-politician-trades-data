@@ -10,6 +10,10 @@ on:
         description: Include existing saved OGE annual inputs in the review candidate
         type: boolean
         default: false
+      include_saved_oge_annual_scans:
+        description: Also include complete saved annual scan observations; requires saved annual preparation
+        type: boolean
+        default: false
       oge_annual_document_id:
         description: Optional saved annual document ID; empty uses the bounded available set
         required: false
@@ -351,6 +355,7 @@ jobs:
           REVIEW_ROOT: ${{ runner.temp }}/oge-review
           EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence
           INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
+          INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
           OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
@@ -442,8 +447,19 @@ jobs:
             true|false) ;;
             *) echo 'Invalid saved annual preparation switch.' >&2; exit 2 ;;
           esac
+          case "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual scan preparation switch.' >&2; exit 2 ;;
+          esac
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ] && [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ]; then
+            echo 'Saved annual scans require the explicit annual preparation switch.' >&2
+            exit 2
+          fi
           if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" = true ]; then
             selection_args=()
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ]; then
+              selection_args+=(--include-saved-scans)
+            fi
             if [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
               [[ "$OGE_ANNUAL_DOCUMENT_ID" =~ ^[0-9a-f]{32}$ ]] || exit 2
               selection_args+=(--document-id "$OGE_ANNUAL_DOCUMENT_ID")

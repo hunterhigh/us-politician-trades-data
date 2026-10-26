@@ -283,9 +283,10 @@ class Oge278TPageShadowTests(unittest.TestCase):
         self.assertEqual(result["row_coverage"], "unknown")
         self.assertEqual(result["candidate_row_bands"], [])
 
-    def test_native_endnotes_is_not_transaction_table(self):
+    def test_native_endnotes_heading_alone_is_not_a_non_table_proof(self):
         result = inspect_page(Page("Endnotes. Summary of Contents " * 5), 4)
-        self.assertEqual(result["coverage"], "non_table_section")
+        self.assertEqual(result["coverage"], "coverage_unknown")
+        self.assertEqual(result['page_role_proof']['status'],'unknown')
 
 
 if __name__ == "__main__":

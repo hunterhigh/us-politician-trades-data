@@ -9,6 +9,7 @@ import re
 
 from unison_snapshot.oge_annual_scan_cover import SCHEMA, observe_scan_cover, observe_native_cover_text
 from unison_snapshot.oge_whitehouse import ANNUAL_ARCHIVE_SCHEMA
+from unison_snapshot.oge_annual_runtime import controlled_scan_output_path, guard_scan_observation_output
 
 
 _ID = re.compile(r"[0-9a-f]{32}")
@@ -41,8 +42,8 @@ def observe_failed_covers(evidence_root: Path, review_root: Path,
         pdf = evidence / metadata["archive_path"]
         if hashlib.sha256(pdf.read_bytes()).hexdigest() != sha:
             raise ValueError("OGE annual cover source bytes changed")
-        target = (review / "oge/annual/cover_observations" / document_id / sha /
-                  "cover-ocr-v1.json")
+        target = controlled_scan_output_path(review,'cover_observation',document_id,sha)
+        guard_scan_observation_output(target,pdf)
         try:
             if target.exists():
                 prior = json.loads(target.read_text(encoding="utf-8"))
@@ -93,11 +94,15 @@ def main() -> None:
     parser.add_argument("--tesseract", default="tesseract")
     args = parser.parse_args()
     if args.native_cover_pdf is not None:
-        if args.evidence_root or args.review_root or not all((args.source_sha256, args.document_id, args.output)):
-            parser.error("native cover mode requires PDF, source SHA, document ID and output only")
+        if (args.evidence_root or bool(args.review_root) == bool(args.output) or
+                not all((args.source_sha256, args.document_id))):
+            parser.error("native cover mode requires PDF, source SHA, document ID and exactly one output/review-root")
+        output = (controlled_scan_output_path(args.review_root,'native_cover_observation',
+            args.document_id,args.source_sha256) if args.review_root is not None else args.output)
+        guard_scan_observation_output(output,args.native_cover_pdf)
         result = observe_native_cover_text(args.native_cover_pdf, source_sha256=args.source_sha256, document_id=args.document_id)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True), encoding="utf-8")
         print(json.dumps({"source_sha256": result["source_sha256"], "page_number": 1, "method": result["method"]}))
         return
     if not args.evidence_root or not args.review_root or any((args.source_sha256, args.document_id, args.output)):

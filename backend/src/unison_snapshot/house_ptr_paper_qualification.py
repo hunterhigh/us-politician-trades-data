@@ -97,6 +97,8 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                               identity: dict, *, amount_header: dict | None = None,
                               peer_metadata: list[dict] | None = None) -> dict:
     """Account for every physical row while blocking unverified promotion."""
+    from .house_asset_line_order import validate_asset_line_mode
+    validate_asset_line_mode(observation)
     source_sha = observation.get("source_sha256")
     if (not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha)
             or metadata.get("sha256") != source_sha):
@@ -511,6 +513,8 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
             # Existing formal qualifications stay authoritative. This path does
             # not rescan them to manufacture a batch Owner migration/diff.
             return deepcopy(prior_qualification)
+    from .house_asset_line_order import validate_asset_line_pdf, project_asset_line_reading
+    validate_asset_line_pdf(pdf_bytes, observation)
     zero = _source_bound_no_transactions(pdf_bytes, observation)
     if zero is not None:
         extraction = {"schema_version": SCHEMA, "parser_version": FACT_PARSER_VERSION,
@@ -595,13 +599,24 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
             blockers.append("asset_reading_not_corroborated")
         elif not _asset_reading_is_bound(pdf_bytes, reread, cell, page, rendered_secondary):
             blockers.append("asset_reading_evidence_unbound")
-        elif (re.sub(r"[^a-z0-9]", "", asset.casefold()) !=
-              re.sub(r"[^a-z0-9]", "", str(reread.get("second_ocr_raw", "")).casefold())):
-            proof = asset_proofs.get((page, band))
-            if proof is None:
-                blockers.append("asset_reading_conflict")
-            else:
-                asset_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
+        else:
+            normalize = lambda value: re.sub(r'[^a-z0-9]', '', value.casefold())
+            line_proof = project_asset_line_reading(observation, page, physical)
+            alternate = str(reread.get('second_ocr_raw', ''))
+            if line_proof is not None and normalize(line_proof['ordered_raw']) != normalize(asset):
+                if normalize(line_proof['ordered_raw']) == normalize(alternate):
+                    asset = ' '.join(line_proof['ordered_raw'].split())
+                    asset_bindings.append({'extraction_id': paper_disclosure_id(source_sha, page, band),
+                        **line_proof, 'second_raw': alternate,
+                        'second_crop_sha256': reread.get('second_crop_sha256')})
+                else:
+                    blockers.append('asset_reading_conflict')
+            elif normalize(asset) != normalize(alternate):
+                proof = asset_proofs.get((page, band))
+                if proof is None:
+                    blockers.append("asset_reading_conflict")
+                else:
+                    asset_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
         quality_blockers = {"event_date_ocr_confidence_below_70"}
         owner_proof = owner_proofs.get((page, band))
         if owner_proof is not None and owner == OWNER_CODES.get(owner_proof["owner_code"]):

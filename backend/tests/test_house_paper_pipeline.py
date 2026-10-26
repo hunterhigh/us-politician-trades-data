@@ -80,7 +80,7 @@ class HousePaperPipelineTests(unittest.TestCase):
 
     def test_new_observation_replaces_only_empty_legacy_qualification(self):
         with (patch("unison_snapshot.house_paper_pipeline.observe_house_ptr_pdf",
-                    return_value=self.observation),
+                    return_value=self.observation) as observe,
               patch("unison_snapshot.house_paper_pipeline.observe_amount_header",
                     return_value=self.header),
               patch("unison_snapshot.house_paper_pipeline.qualify_paper_observation",
@@ -90,6 +90,9 @@ class HousePaperPipelineTests(unittest.TestCase):
                                           metadata_path=self.metadata_path,
                                           tesseract="tesseract", observe_new=True)
         self.assertEqual(outcome, "observed_and_qualified")
+        from unison_snapshot.house_asset_line_order import MODE
+        observe.assert_called_once_with(self.pdf, source_sha256=self.sha,
+                                        executable="tesseract", asset_line_mode=MODE)
         self.assertEqual(json.loads(self.qualification_path.read_text()), self.paper)
         self.assertTrue((self.review / "house_clerk/paper_observations" / self.relative).is_file())
         self.assertTrue((self.review / "house_clerk/paper_amount_headers" / self.relative).is_file())

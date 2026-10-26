@@ -17,6 +17,7 @@ from .house_paper_commit import (paper_review_access, commit_paper_materializati
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_amount_header_preparation import prepare_amount_headers
 from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
+from .house_asset_line_order import MODE as ASSET_LINE_MODE
 from .house_ptr_key_field_reread import (
     MATERIALIZATION_SELECTION, missing_key_field_rereads, plan_key_field_rereads,
     reread_doubtful_key_cells)
@@ -143,7 +144,7 @@ def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
         if hashlib.sha256(pdf).hexdigest() != source_sha:
             raise ValueError("House paper archive hash mismatch")
         observation = observe_house_ptr_pdf(pdf, source_sha256=source_sha,
-                                            executable=tesseract)
+                                            executable=tesseract, asset_line_mode=ASSET_LINE_MODE)
         header = observe_amount_header(pdf, source_sha256=source_sha,
                                        executable=tesseract)
         disposition = "observed_and_qualified"

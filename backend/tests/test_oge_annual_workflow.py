@@ -27,7 +27,7 @@ def bash_binary():
 
 
 class AnnualWorkflowTests(unittest.TestCase):
-    def run_branch(self, enabled='false', document='', *, fail=False):
+    def run_branch(self, enabled='false', document='', *, fail=False, scans='false'):
         shell = bash_binary()
         if shell is None:
             self.skipTest('Bash is required to execute the actual workflow branch')
@@ -50,6 +50,7 @@ class AnnualWorkflowTests(unittest.TestCase):
             env = dict(os.environ, REAL_PYTHON=sys.executable, TEST_RECORDER=str(record),
                 TEST_CALL_LOG=str(log), TEST_FAIL_PREPARE='1' if fail else '0',
                 INCLUDE_SAVED_OGE_ANNUAL=enabled, OGE_ANNUAL_DOCUMENT_ID=document,
+                INCLUDE_SAVED_OGE_ANNUAL_SCANS=scans,
                 REVIEW_ROOT=str(folder / 'review root'), EVIDENCE_ROOT=str(folder / 'evidence root'),
                 RUNNER_TEMP=str(folder / 'runtime output'), MSYS_NO_PATHCONV='1')
             result = subprocess.run([shell, '-c', script], cwd=ROOT, env=env,
@@ -84,9 +85,24 @@ class AnnualWorkflowTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertIn('prepare_oge_annual_runtime.py', calls[0][0])
 
+    def test_scan_preparation_requires_its_explicit_switch_and_main_preparation(self):
+        result, calls = self.run_branch('true', 'a'*32, scans='true')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--include-saved-scans', calls[0])
+        self.assertEqual(calls[0][-3:], ['--include-saved-scans', '--document-id', 'a'*32])
+        for enabled, scans in [('false', 'true'), ('true', 'yes'), ('true', '$(exit 0)')]:
+            with self.subTest(enabled=enabled, scans=scans):
+                result, calls = self.run_branch(enabled, scans=scans)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
+        result, calls = self.run_branch('true', scans='true', fail=True)
+        self.assertEqual(result.returncode, 9, result.stderr)
+        self.assertEqual(len(calls), 1)
+
     def test_evidence_tree_and_opt_in_are_bound_in_the_real_workflow(self):
         content = WORKFLOW.read_text(encoding='utf-8')
         self.assertIn('include_saved_oge_annual:\n', content)
+        self.assertIn('include_saved_oge_annual_scans:\n', content)
         self.assertIn('type: boolean\n        default: false', content)
         self.assertIn('evidence_root="$RUNNER_TEMP/oge-review-evidence"', content)
         self.assertIn('git worktree add --detach "$evidence_root" FETCH_HEAD', content)

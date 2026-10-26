@@ -195,7 +195,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                        secondary_observations=secondary_observations)
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
-    raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path)
+    raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
+        parser_claimed_pages=_parser_claimed_pages(extraction))
     result = deepcopy(extraction)
     if legacy_reference is not None:
         result["source_rows"] = []  # Populated only by actual saved observations below.
@@ -451,6 +452,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
         "initial_account_scope_basis": "optional_account_title_not_observed_no_absence_claim",
         "raster_source_inventory": raster_inventory,
+        "non_table_page_proofs": content["non_table_page_proofs"],
+        "page_role_conflicts": content["page_role_conflicts"],
         "coverage_complete": (not legacy_reference and page_count_verified and not unresolved and not unknown_pages
             and not content["source_report_ledger"]["unobserved_pages"]
             and not content["source_report_ledger"]["coverage_unknown_pages"]
@@ -798,11 +801,17 @@ def _content_census(ledger: dict, sha: str) -> dict:
         {"page_number": page["page_number"],
          "status": "physical_slots_located" if page["slots"] else "coverage_unknown",
          "physical_row_bands": [slot["bounds"] for slot in page["slots"]]}
-        for page in ledger["pages"] if page["page_number"] not in ledger["unobserved_pages"]]}
+        for page in ledger["pages"] if page["page_number"] not in ledger["unobserved_pages"]
+        and page["coverage"] != "non_table"]}
+
+
+def _parser_claimed_pages(extraction: dict) -> set:
+    return {row.get('page_number') for key in ('source_rows', 'transactions', 'quarantined')
+            for row in extraction.get(key, []) if isinstance(row, dict)}
 
 
 def _audit_content_source(content: dict, sha: str, page_count: int,
-                          archived_pdf_path: str | Path | None) -> dict:
+                          archived_pdf_path: str | Path | None, *, parser_claimed_pages: set) -> dict:
     from .oge_278t_raster_inventory import SCHEMA, audit_raster_source_inventory
     if archived_pdf_path is None:
         audit = {"schema_version": SCHEMA, "source_sha256": sha,
@@ -814,7 +823,7 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
                 census=_content_census(content["source_report_ledger"], sha), document_page_count=page_count)
         except ValueError as exc:
             raise OgeCatalogError(f"source raster inventory is invalid: {exc}") from exc
-    from .source_row_ledger import report_ledger
+    from .source_row_ledger import report_ledger, page_ledger
     ledger = content["source_report_ledger"]
     status = {page["page_number"]: page for page in audit.get("pages", [])}
     pages = deepcopy([page for page in ledger["pages"]
@@ -823,6 +832,40 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
         observed = status.get(page["page_number"], {})
         if observed.get("status") != "source_boundaries_aligned":
             page.update(coverage="unknown", coverage_reason="independent_source_boundaries_unresolved")
+    proofs, conflicts = [], []
+    by_number = {page['page_number']: page for page in pages}
+    role_candidates = sorted(set(ledger['unobserved_pages']) | {
+        number for number, page in by_number.items() if page['coverage'] == 'unknown'})
+    if archived_pdf_path is not None and role_candidates:
+        import io
+        import pdfplumber
+        from .oge_278t_page_roles import observe_native_privacy_role
+        raw = Path(archived_pdf_path).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha:
+            raise OgeCatalogError('source page roles differ from archived PDF')
+        with pdfplumber.open(io.BytesIO(raw)) as document:
+            if len(document.pages) != page_count:
+                raise OgeCatalogError('source page roles differ from archived page count')
+            for number in role_candidates:
+                proof = observe_native_privacy_role(document.pages[number-1], number, source_sha256=sha)
+                if proof['status'] != 'non_table':
+                    continue
+                existing = by_number.get(number)
+                conflict = number in parser_claimed_pages or bool(existing and (
+                    existing['slots'] or existing['unresolved_regions']))
+                (conflicts if conflict else proofs).append(proof)
+                reason = 'source_page_role_conflicts_with_parser_rows' if conflict else \
+                         'source_replayed_native_privacy_statement'
+                if conflict and existing is not None:
+                    existing.update(coverage='unknown', coverage_reason=reason)
+                    continue  # Preserve every claimed physical slot and logical reference.
+                by_number[number] = page_ledger(source_id=ledger['source_id'], document_sha256=sha,
+                    page_number=number, adapter_version=ledger['adapter_version'],
+                    coverage='unknown' if conflict else 'non_table', slots=[], coordinate_frame='pdf_points',
+                    coverage_reason=reason)
+    pages = [by_number[number] for number in sorted(by_number)]
+    content['non_table_page_proofs'] = proofs
+    content['page_role_conflicts'] = conflicts
     content["source_report_ledger"] = report_ledger(source_id=ledger["source_id"],
         document_sha256=sha, adapter_version=ledger["adapter_version"], page_count=page_count,
         pages=pages, logical_rows=[{key: row[key] for key in
@@ -845,7 +888,8 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
     observed = observe_content_rows(
         observations, document_page_count=document_page_count,
         secondary_observations=secondary_field_observations)
-    audit = _audit_content_source(observed, extraction["source_sha256"], document_page_count, archived_pdf_path)
+    audit = _audit_content_source(observed, extraction["source_sha256"], document_page_count, archived_pdf_path,
+        parser_claimed_pages=_parser_claimed_pages(extraction))
     ledger = observed["source_report_ledger"]
     census = _content_census(ledger, extraction["source_sha256"])
     source_indices, positioned, relations = [], [], []

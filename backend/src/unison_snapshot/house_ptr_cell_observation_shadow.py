@@ -178,12 +178,16 @@ def _cell(image, words: list[dict], page, *, label: str,
 
 def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                           executable: str | None = None, dpi: int = 200,
-                          max_pages: int = 12, page_numbers: list[int] | None = None) -> dict:
+                          max_pages: int = 12, page_numbers: list[int] | None = None,
+                          asset_line_mode: str | None = None) -> dict:
     """Observe physical rows and key cells without eligibility or fact IDs."""
     if hashlib.sha256(pdf_bytes).hexdigest() != source_sha256:
         raise ValueError("House PTR shadow source hash mismatch")
     if type(dpi) is not int or dpi not in (150, 200, 300):
         raise ValueError("House PTR shadow DPI is unsupported")
+    from .house_asset_line_order import MODE, attach_asset_line_source
+    if asset_line_mode not in (None, MODE):
+        raise ValueError('House asset OCR line mode is unsupported')
     import pdfplumber
 
     from .house_ptr_region_shadow import locate_transaction_grid
@@ -286,7 +290,12 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
                         image, words, cell_page, label=chr(ord("A") + slot),
                         x0=left, x1=right, y0=y0, y1=y1))
                 record["rows"][index - 1]["cells"] = cells
+            if (asset_line_mode == MODE and tuple(page.bbox[:2]) == (0, 0) and
+                    tuple(page.cropbox or page.mediabox) == tuple(page.mediabox)):
+                attach_asset_line_source(record, words, width=cell_page.width, height=cell_page.height,
+                                          source_sha256=source_sha256)
             pages_out.append(record)
     return {"schema_version": "house-ptr-cell-observation-shadow/v3",
             "source_sha256": source_sha256, "render_dpi": dpi,
+            **({'asset_line_mode': asset_line_mode} if asset_line_mode is not None else {}),
             "qualification_status": "unverified_shadow_only", "pages": pages_out}

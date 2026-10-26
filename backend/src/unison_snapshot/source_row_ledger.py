@@ -312,7 +312,7 @@ def senate_shadow_cell_observations(report: dict) -> list[dict[str, Any]]:
     return output
 
 
-def oge_278t_shadow_pages(report: dict, *, source_id: str) -> list[dict[str, Any]]:
+def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=None) -> list[dict[str, Any]]:
     """Normalize 278-T physical grids, retaining unread numbers and pages."""
     if source_id not in {"oge", "whitehouse"}:
         raise ValueError("278-T source must be OGE or White House")
@@ -320,10 +320,16 @@ def oge_278t_shadow_pages(report: dict, *, source_id: str) -> list[dict[str, Any
     for page in report["pages"]:
         row_state = page["row_coverage"]
         if page["coverage"] == "non_table_section":
+            from .oge_278t_page_roles import replay_native_privacy_role
+            proof=page.get('page_role_proof')
+            verified=(isinstance(proof,dict) and archived_pdf_path is not None and
+                replay_native_privacy_role(archived_pdf_path,proof,source_sha256=report['source_sha256'],
+                                           page_number=page['page_number']))
             output.append(page_ledger(
                 source_id=source_id, document_sha256=report["source_sha256"],
                 page_number=page["page_number"], adapter_version="278t-page-shadow/v1",
-                coverage="non_table", coverage_reason="non_table_section", slots=[],
+                coverage="non_table" if verified else "unknown",
+                coverage_reason="source_replayed_native_privacy_statement" if verified else "non_table_source_proof_unavailable_or_invalid",slots=[],
                 coordinate_frame="pdf_points"))
             continue
         physical = row_state in {"physical_slots_located",
