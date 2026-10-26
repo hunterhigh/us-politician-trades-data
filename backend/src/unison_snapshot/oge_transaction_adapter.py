@@ -11,7 +11,7 @@ from typing import Any
 
 from .oge import OgeCatalogError
 from .oge_reports import (
-    GENERIC_PARSER_VERSION,
+    GENERIC_PARSER_VERSION, PARSER_VERSION,
     TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
     collapse_direct_catalog_records,
 )

@@ -102,11 +102,16 @@ class NativePartitionConsumptionTests(unittest.TestCase):
         self.assertEqual(fetched['transactions'],candidate['transactions'])
 
     def test_oge_actual_default_and_generic_cli_overlay_reader_and_repeat(self):
+        from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
         for generic in (False,True):
             with self.subTest(generic=generic):
-                root,_,_=self.oge_inputs('overlay')
+                root,_,catalog_value=self.oge_inputs('overlay')
                 extraction=self.oge_extract(root,generic)
                 self.assertIn('native-visible',extraction['parser_version'])
+                adapted=adapt_oge_278t_extraction(extraction,catalog_value['transactions'][0],
+                    evidence_root=root)
+                self.assertEqual(adapted['parser_version'],extraction['parser_version'])
+                self.assertEqual(sum(row['disposition']=='qualified' for row in adapted['rows']),2)
                 candidate=self.oge_candidate(root,generic)
                 self.assertEqual(len(candidate['transactions']),2)
                 self.assertTrue(all('Investment account' not in row['asset_name'] or '#7' in row['asset_name'] for row in candidate['transactions']))

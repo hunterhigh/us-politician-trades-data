@@ -23,6 +23,11 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
             return nested
 
         def execute(self, streams):
+            # A valid PDF page may omit Contents entirely. Preserve the
+            # interpreter's empty-program behavior rather than treating it
+            # as an unavailable source inventory.
+            if not streams:
+                return super().execute(streams)
             parser = PDFContentParser(streams)
             while True:
                 try:

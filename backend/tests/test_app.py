@@ -12,6 +12,7 @@ from copy import deepcopy
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+from native_pdf_fixture_bytes import blank_native_pdf
 
 BACKEND = Path(__file__).resolve().parents[1]
 
@@ -139,7 +140,7 @@ class CliTests(unittest.TestCase):
 
     def test_oge_extract_cli_reports_a_verified_checkpoint_hit(self):
         document_id = "42300720a4227e9e85258e77002dd1b3"
-        pdf = b"%PDF-1.7\nminimal checkpoint envelope\n%%EOF\n"
+        pdf = blank_native_pdf()
         sha = hashlib.sha256(pdf).hexdigest()
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp)

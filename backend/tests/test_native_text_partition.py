@@ -86,6 +86,21 @@ class NativeTextPartitionTests(unittest.TestCase):
             return (plan_native_text_partition if planner else observe_native_text_partition)(
                 path,sha256(raw).hexdigest())
 
+    def test_page_without_contents_is_an_observed_empty_program(self):
+        for kind in ('control','overlay'):
+            with self.subTest(kind=kind):
+                document=pymupdf.open(stream=source_pdf(kind),filetype='pdf')
+                document.new_page(width=700,height=792)
+                raw=document.tobytes();document.close()
+                plan=self.proof(raw,True)
+                self.assertTrue(plan['inventory_complete'],plan)
+                self.assertIs(plan['activated'],kind=='overlay')
+                self.assertEqual(plan['pages'][-1]['character_count'],0)
+                self.assertEqual(plan['pages'][-1]['render_mode_counts'],{})
+                proof=self.proof(raw)
+                self.assertEqual(proof['pages'][-1]['raw_text'],'')
+                self.assertEqual(proof['pages'][-1]['paint']['paint_event_count'],0)
+
     def test_no_mode3_keeps_original_inventory_without_new_font_gate(self):
         for kind in ('control','ordinary_font'):
             with self.subTest(kind=kind):
