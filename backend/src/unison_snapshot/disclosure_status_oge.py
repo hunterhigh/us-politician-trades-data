@@ -2,7 +2,8 @@
 
 Qualification comes from the existing qualification artifacts.  Publication comes
 only from the actual transaction/holding arguments, never from candidate totals.
-No PDF parsing or name-based crosswalk is performed here.
+Saved administrative page proofs are replayed from original bytes; they never
+grant transaction qualification or a name-based crosswalk.
 """
 from __future__ import annotations
 
@@ -117,7 +118,52 @@ def _date(value: object) -> str | None:
     return value
 
 
-def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -> dict:
+def _verified_administrative_pages(record, receipt, old, evidence, catalog_record):
+    """Recheck saved roles with independent expected identity and source bytes."""
+    proofs = _rows(receipt, 'non_table_page_proofs')
+    conflicts = _rows(receipt, 'page_role_conflicts')
+    if not proofs and not conflicts:
+        return [], [], None
+    if evidence is None or not _DIRECT_ID.fullmatch(record.get('report_id') or ''):
+        raise ValueError('OGE administrative page proof requires controlled original source')
+    sha, document = receipt['source_sha256'], record['report_id']
+    relative = f'oge/reports/{document}/{sha}.pdf'
+    path = evidence / relative
+    raw = path.read_bytes()
+    metadata = _read(path.with_suffix('.json'))
+    if (metadata.get('schema_version') != 'oge-278t-archive/v1' or metadata.get('source_id') != 'oge' or
+            metadata.get('document_id') != document or metadata.get('document_url') != record['source_url'] or
+            metadata.get('sha256') != sha or metadata.get('archive_path') != relative or
+            metadata.get('byte_length') != len(raw) or hashlib.sha256(raw).hexdigest() != sha):
+        raise ValueError('OGE administrative page source metadata or bytes differ')
+    import pdfplumber
+    with pdfplumber.open(path) as document_pages:
+        page_count = len(document_pages.pages)
+    if not 1 <= page_count <= 1200 or receipt.get('page_count_basis') != 'source_sha256_verified_pdf':
+        raise ValueError('OGE administrative page proof lacks its verified source page inventory')
+    from .oge_transaction_adapter import _cover_identity_context, _parser_claimed_pages
+    from .oge_278t_page_roles import replay_native_page_role
+    context = _cover_identity_context(old, catalog_record)
+    if context is not None and any(metadata.get(key) != context[key]
+                                   for key in ('filer_name', 'agency', 'position_title')):
+        context = None
+    observed, conflicting = [], []
+    for collection, destination in ((proofs, observed), (conflicts, conflicting)):
+        for proof in collection:
+            number = proof.get('page_number')
+            if (type(number) is not int or number < 1 or number > 1200 or
+                    number in observed or number in conflicting or proof.get('source_sha256') != sha or
+                    not replay_native_page_role(path, proof, source_sha256=sha, page_number=number,
+                                                cover_identity_context=context)):
+                raise ValueError('OGE administrative page proof differs from original source replay')
+            if destination is observed and number in _parser_claimed_pages(old):
+                raise ValueError('OGE administrative page proof conflicts with original parser rows')
+            destination.append(number)
+    return sorted(observed), sorted(conflicting), page_count
+
+
+def _observed_reference_counts(record: dict, audit: dict, review: Path | None,
+                               evidence: Path | None = None, catalog_record: dict | None = None) -> dict:
     """Keep a verified observation count separate from an unknown source total."""
     if audit.get("quarantine_count_unit") != "observed_slots_not_whole_source_unique_rows" or review is None:
         raise ValueError("OGE observation count unit requires its bound legacy reference")
@@ -198,9 +244,15 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
             unobserved != sorted(set(unobserved)) or
             set(unobserved) & ({page for page, _ in locations} | set(geometry))):
         raise ValueError("OGE observed/unobserved page coverage is inconsistent")
-    all_pages = set(unobserved) | {page for page, _ in locations} | set(geometry)
+    administrative, conflicts, page_count = _verified_administrative_pages(record, receipt, old, evidence, catalog_record)
+    claimed_pages = set(unobserved) | {page for page, _ in locations} | set(geometry)
+    if set(administrative) & claimed_pages:
+        raise ValueError('OGE administrative page proof overlaps observed or unknown source claims')
+    all_pages = claimed_pages | set(administrative) | set(conflicts)
     if not all_pages or max(all_pages) > 1200 or all_pages != set(range(1, max(all_pages) + 1)):
         raise ValueError("OGE source page coverage has unexplained gaps")
+    if page_count is not None and all_pages != set(range(1, page_count+1)):
+        raise ValueError('OGE administrative page partition differs from actual source page count')
     return {"quarantined_row_count": None, "observed_quarantined_slot_count": len(quarantined_slots),
             "observed_slot_count": observed, "legacy_normalized_reference_count": normalized,
             "legacy_quarantined_reference_count": old_quarantine,
@@ -208,7 +260,9 @@ def _observed_reference_counts(record: dict, audit: dict, review: Path | None) -
             "legacy_reference_sha256": receipt["legacy_reference_sha256"],
             "source_observation_coverage": {"coverage_complete": False, "unobserved_pages": unobserved,
                 "geometry_unknown_pages": receipt.get("geometry_unknown_pages", []),
-                "page_count_basis": receipt.get("page_count_basis")}}
+                "page_count_basis": receipt.get("page_count_basis"),
+                **({'non_table_pages':administrative, 'page_role_conflict_pages':conflicts}
+                   if administrative or conflicts else {})}}
 
 
 def _native_exhibit_counts(record: dict, audit: dict) -> dict:
@@ -488,7 +542,7 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
 
 
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
-                 evidence: Path | None = None) -> None:
+                 evidence: Path | None = None, catalog_record: dict | None = None) -> None:
     application_view = None
     if audit.get("native_exhibit_application_context") is not None:
         if review is None or evidence is None:
@@ -526,7 +580,7 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                            receipt.get("schema_version") == "whitehouse-278t-saved-ocr-receipt/v1"))
     separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
                        _native_exhibit_counts(record, audit) if native_exhibit else
-                       _observed_reference_counts(record, audit, review)
+                       _observed_reference_counts(record, audit, review, evidence, catalog_record)
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
@@ -963,7 +1017,8 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             record["acquisition_state"] = "not_archived"
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
-            _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence)
+            _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence,
+                         catalog_record=catalog_direct.get(report_id))
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:

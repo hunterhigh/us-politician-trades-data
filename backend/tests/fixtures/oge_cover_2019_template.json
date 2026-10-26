@@ -1,0 +1,170 @@
+{
+  "schema_version": "oge-cover-2019-government-template/v1",
+  "width": 842,
+  "height": 595,
+  "static_text": [
+    {
+      "x": 36,
+      "baseline": 36.0,
+      "size": 10.0,
+      "text": "Periodic Transaction Report | U.S. Office of Government Ethics; 5 C.F.R. part 2634 (Updated Nov. 2019)"
+    },
+    {
+      "x": 36,
+      "baseline": 60.0,
+      "size": 16.0,
+      "text": "Executive Branch Personnel"
+    },
+    {
+      "x": 36,
+      "baseline": 84.0,
+      "size": 16.0,
+      "text": "Public Financial Disclosure Report:"
+    },
+    {
+      "x": 36,
+      "baseline": 108.0,
+      "size": 16.0,
+      "text": "Periodic Transaction Report (OGE Form 278-T)"
+    },
+    {
+      "x": 36,
+      "baseline": 132,
+      "size": 12,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 142.0,
+      "size": 14.0,
+      "text": "Filer's Information"
+    },
+    {
+      "x": 36,
+      "baseline": 177,
+      "size": 10,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 222,
+      "size": 10,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 237.0,
+      "size": 10.0,
+      "text": "Electronic Signature - I certify that the statements I have made in this form are true, complete and correct to the best of my knowledge."
+    },
+    {
+      "x": 36,
+      "baseline": 282,
+      "size": 10,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 297.0,
+      "size": 10.0,
+      "text": "Agency Ethics Official's Opinion - On the basis of information contained in this report, I conclude that the filer is in compliance with applicable laws and regulations (subject to"
+    },
+    {
+      "x": 36,
+      "baseline": 312.0,
+      "size": 10.0,
+      "text": "any comments below)."
+    },
+    {
+      "x": 36,
+      "baseline": 357,
+      "size": 10,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 372.0,
+      "size": 10.0,
+      "text": "Other review conducted by"
+    },
+    {
+      "x": 36,
+      "baseline": 417,
+      "size": 10,
+      "text": " "
+    },
+    {
+      "x": 36,
+      "baseline": 432.0,
+      "size": 10.0,
+      "text": "U.S. Office of Government Ethics Certification"
+    },
+    {
+      "x": 36,
+      "baseline": 477,
+      "size": 10,
+      "text": " "
+    }
+  ],
+  "lines": [
+    {
+      "x0": 36.0,
+      "top": 152.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 36.0,
+      "top": 207.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 36.0,
+      "top": 267.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 36.0,
+      "top": 342.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 36.0,
+      "top": 402.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 36.0,
+      "top": 462.0,
+      "x1": 421.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    },
+    {
+      "x0": 421.0,
+      "top": 462.0,
+      "x1": 806.0,
+      "linewidth": 1.0,
+      "gray": 0.75294
+    }
+  ],
+  "dynamic_baselines": {
+    "filer_name": 167,
+    "position_agency": 192,
+    "filer_signature": 252,
+    "agency_review": 327,
+    "other_review": 387,
+    "oge_certification": 447,
+    "revision_date": 492,
+    "footer": 559
+  }
+}

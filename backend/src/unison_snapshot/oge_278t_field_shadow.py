@@ -1107,7 +1107,7 @@ _CONTINUATION_LABEL = re.compile(
     r"^\s*\(?\s*(?:continued|continuation|cont[.'’]?d)\b", re.I)
 
 
-def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
+def _fragment_constraints(content: list[dict], fields: dict, *, source_role_conflict_pages=None) -> list[dict]:
     """Keep suspected fragments unresolved; adjacency never proves a join.
 
     Explicit continuation text also inhibits a possible preceding standalone
@@ -1122,6 +1122,11 @@ def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
         if item.get("unresolved_region_before"):
             previous_data = None
         number = item["page_number"]
+        if number in (source_role_conflict_pages or set()):
+            # A source-replayed administrative page cannot supply a financial
+            # parent or a continuation of the previous financial row. Its own
+            # fragment and local blockers remain recorded below.
+            previous_data = None
         if previous_page is not None and number not in {previous_page, previous_page + 1}:
             previous_data = None
         previous_page = number
@@ -1171,7 +1176,7 @@ def _fragment_constraints(content: list[dict], fields: dict) -> list[dict]:
                 reason = ("multiple_transaction_signals_in_slot" if target is item and multiple else
                           "explicit_continuation_relation_unresolved")
                 relation["blocking_reasons"] = sorted(set(relation["blocking_reasons"] + [reason]))
-        if item["disposition"] == "data_candidate":
+        if item["disposition"] == "data_candidate" and number not in (source_role_conflict_pages or set()):
             previous_data = item
         elif not (item["disposition"] == "heading" and
                   item["reason"] == "multiple_column_header_labels"):
@@ -1392,7 +1397,8 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
 
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
                          secondary_observations: list[dict] | None = None, source_pdf_path=None,
-                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None) -> dict:
+                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None,
+                         source_role_conflict_pages=None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
 
     The whole-document page count must come from the bound source metadata,
@@ -1525,7 +1531,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             **({"unresolved_regions":regions,"coverage_reason":"supported_local_rows_only"}
                if original.get("partial_row_geometry") else {}),
             coordinate_frame="pdf_points_row_lines_at_reference_x" if _dual_geometry(original) else "pdf_points"))
-    fragments = _fragment_constraints(content, fields)
+    fragments = _fragment_constraints(content, fields, source_role_conflict_pages=source_role_conflict_pages)
     # Fragment checks may inhibit a previously complete-looking single slot.
     # Rebuild local links and counts from final relations, retaining all reads.
     inhibited = {(item["page_number"], item["slot_key"]): item for item in content

@@ -1,4 +1,4 @@
-"""Source-object proof for one fixed native OGE privacy-statement layout.
+"""Source-object proof and replay for fixed native government page profiles.
 
 This is not a title classifier. Unknown drawings, text styles and raster
 objects cannot be excused by a Privacy/Endnotes heading. No OCR is invoked.
@@ -6,8 +6,6 @@ objects cannot be excused by a Privacy/Endnotes heading. No OCR is invoked.
 from __future__ import annotations
 
 import hashlib
-import json
-import math
 from pathlib import Path
 import re
 
@@ -18,24 +16,9 @@ RULE = "oge-278t-native-privacy-role/v1"
 # report identity and page number never select this role.
 BODY_LAYOUT_SHA256 = "a945bba71130936fad550b60f29021e516b37228862d0b6f93fe4fcc11c31ce5"
 LINE_LAYOUT_SHA256 = "cb37e40a51c5c6b6ca797ba914d38ef6fbdfcd21190b8871f0fd1186d0efbb1f"
-_OPS = {"BT","ET","Q","RG","rg","g","G","S","TJ","Td","Tm","Tf","Tj","cm","l","m","q","w"}
-
-
-def _digest(value):
-    return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,
-        separators=(",", ":"),allow_nan=False).encode()).hexdigest()
-
-
-def _char_geometry(chars):
-    return sorted([[c['text'],*[round(float(c[key]),5) for key in ('x0','top','x1','bottom')]]
-                   for c in chars],key=lambda item:(item[2],item[1],item[0]))
-
-
-def _line_geometry(lines):
-    return sorted([[*[round(float(line[key]),5) for key in ('x0','top','x1','bottom','linewidth')],
-                    list(line['stroking_color']) if isinstance(line['stroking_color'],(list,tuple))
-                      else [line['stroking_color']],line['stroke'],line['fill']]
-                   for line in lines])
+from .oge_278t_native_objects import (
+    OPS as _OPS, digest as _digest, char_geometry as _char_geometry,
+    line_geometry as _line_geometry, inspect_strict_native_objects)
 
 
 def _bounded_footer(footer, page_number, text_runs):
@@ -63,70 +46,12 @@ def observe_native_privacy_role(page, page_number: int, *, source_sha256: str | 
     def unknown(reason):return {**base,'reason':reason}
     if not isinstance(source_sha256,str) or not re.fullmatch(r'[0-9a-f]{64}',source_sha256):
         return unknown('page_role_source_binding_unavailable')
-    # Tests/adapters with partial page interfaces are not source-object inventories.
-    if not all(hasattr(page,key) for key in ('chars','objects','annots','page_obj','bbox')):
-        return unknown('native_page_object_inventory_unavailable')
-    if (tuple(float(v)for v in page.bbox)!=(0.,0.,842.,595.) or page.rotation not in (0,90) or
-            any(key not in {'char','line'} and values for key,values in page.objects.items()) or
-            page.annots):
-        return unknown('unsupported_page_geometry_or_nontext_objects')
-    chars=page.chars
-    if not chars or len(chars)>10_000:
-        return unknown('native_character_inventory_unsupported')
-    for c in chars:
-        if (not isinstance(c.get('text'),str) or len(c['text'])!=1 or c.get('fontname')!='Helvetica' or
-                c.get('upright') is not True or abs(float(c.get('size',0))-10)>1e-5 or
-                c.get('non_stroking_color') not in (0,(0,),[0]) or
-                list(c.get('matrix',()))[:4]!=[1.,0.,0.,1.] or
-                any(not math.isfinite(float(c.get(k,float('nan')))) for k in ('x0','top','x1','bottom')) or
-                not 0<=c['x0']<c['x1']<=page.width or not 0<=c['top']<c['bottom']<=page.height):
-            return unknown('native_character_style_or_geometry_unsupported')
-    # Only the standard Type1 Helvetica program is admitted; Type3 glyphs,
-    # remapping, transparency, clipping and invisible text are outside scope.
-    from pdfminer.pdftypes import resolve1
-    from pdfminer.pdfinterp import PDFContentParser
-    from pdfminer.psparser import PSEOF,PSKeyword
-    fonts=resolve1(page.page_obj.resources.get('Font',{}))
-    if not fonts:
-        return unknown('standard_font_program_unavailable')
-    for value in fonts.values():
-        value=resolve1(value)
-        if (set(value)!={'Subtype','Type','BaseFont','Encoding'} or
-                getattr(value['Subtype'],'name',None)!='Type1' or
-                getattr(value['Type'],'name',None)!='Font' or
-                getattr(value['BaseFont'],'name',None)!='Helvetica' or
-                getattr(value['Encoding'],'name',None)!='WinAnsiEncoding'):
-            return unknown('standard_font_program_unavailable')
-    parser=PDFContentParser(page.page_obj.contents);operators=[];tokens=0;depth=0
-    operands=[];text_runs=[];text_run=bytearray()
-    try:
-        while True:
-            _,obj=parser.nextobject();tokens+=1
-            if tokens>100_000:return unknown('native_content_budget_exceeded')
-            if isinstance(obj,PSKeyword):
-                op=obj.name.decode('ascii')
-                if op not in _OPS:return unknown('unsupported_native_content_operator')
-                operators.append(op)
-                if op in {'Tj','TJ'}:
-                    if len(operands)!=1 or op=='Tj' and not isinstance(operands[0],bytes):
-                        return unknown('unsupported_native_text_show')
-                    sequence=[operands[0]] if op=='Tj' else operands[0]
-                    if (not isinstance(sequence,list) or any(not isinstance(value,bytes) and
-                            (type(value)not in (int,float) or not math.isfinite(value)) for value in sequence)):
-                        return unknown('unsupported_native_text_show')
-                    for value in sequence:
-                        if isinstance(value,bytes):text_run.extend(value)
-                elif text_run:
-                    text_runs.append(bytes(text_run));text_run.clear()
-                operands=[]
-                depth+=(op=='q')-(op=='Q')
-                if not 0<=depth<=32:return unknown('unsupported_graphics_state')
-            else:
-                operands.append(obj)
-    except PSEOF:
-        pass
-    if text_run:text_runs.append(bytes(text_run))
-    if depth!=0:return unknown('unsupported_graphics_state')
+    inventory = inspect_strict_native_objects(page)
+    if inventory['status'] != 'observed':
+        return unknown(inventory['reason'])
+    chars = inventory['chars']
+    text_runs = inventory['text_runs']
+    operators = inventory['operators']
     body=[c for c in chars if c['bottom']<=page.height-100]
     footer=[c for c in chars if c['top']>=page.height-60 and c['bottom']<=page.height-25]
     if len(body)+len(footer)!=len(chars):return unknown('unaccounted_native_characters')
@@ -153,3 +78,28 @@ def replay_native_privacy_role(path: Path, proof: dict, *, source_sha256: str, p
             raise ValueError('non-table proof page is outside source PDF')
         actual=observe_native_privacy_role(document.pages[page_number-1],page_number,source_sha256=source_sha256)
     return actual['status']=='non_table' and actual==proof
+
+
+def observe_native_page_role(page, page_number: int, *, source_sha256: str | None,
+                             cover_identity_context=None) -> dict:
+    """Try only known complete source profiles; a title is never authority."""
+    privacy = observe_native_privacy_role(page, page_number, source_sha256=source_sha256)
+    if privacy['status'] == 'non_table' or page_number != 1:
+        return privacy
+    from .oge_278t_cover_role import observe_native_cover_role
+    return observe_native_cover_role(page, page_number, source_sha256=source_sha256,
+                                     cover_identity_context=cover_identity_context)
+
+
+def replay_native_page_role(path: Path, proof: dict, *, source_sha256: str,
+                            page_number: int, cover_identity_context=None) -> bool:
+    if not isinstance(proof, dict):
+        return False
+    if proof.get('rule_version') == RULE:
+        return replay_native_privacy_role(path, proof, source_sha256=source_sha256,
+                                          page_number=page_number)
+    from .oge_278t_cover_role import COVER_RULE, replay_native_cover_role
+    if proof.get('rule_version') == COVER_RULE:
+        return replay_native_cover_role(path, proof, source_sha256=source_sha256,
+            page_number=page_number, cover_identity_context=cover_identity_context)
+    return False

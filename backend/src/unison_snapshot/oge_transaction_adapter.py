@@ -33,6 +33,23 @@ OBSERVED_PARSER_VERSION = "oge-278t-observed/v1"
 LEGACY_REFERENCE_SCHEMA = "oge-278t-legacy-disposition-reference/v1"
 
 
+def _cover_identity_context(extraction: dict, catalog_record: dict | None) -> dict | None:
+    """Expected source identity only; no page role, date or fact permission."""
+    if (not isinstance(catalog_record, dict) or extraction.get('source_id') != 'oge' or
+            catalog_record.get('source_id', 'oge') != 'oge' or
+            not re.fullmatch(r'[0-9a-f]{64}', extraction.get('source_sha256') or '') or
+            any(extraction.get(left) != catalog_record.get(right) for left, right in (
+                ('document_id', 'source_document_id'), ('source_url', 'document_url'),
+                ('catalog_filer_name', 'filer_name'), ('agency', 'agency'), ('position_title', 'position_title'))) or
+            any(not isinstance(catalog_record.get(key), str) or not catalog_record[key].strip()
+                for key in ('filer_name', 'agency', 'position_title'))):
+        return None
+    return {'schema_version':'oge-278t-cover-identity-context/v1',
+        'source_sha256':extraction['source_sha256'], 'filer_name':catalog_record['filer_name'],
+        'agency':catalog_record['agency'], 'position_title':catalog_record['position_title'],
+        'document_id':extraction['document_id'], 'source_url':extraction['source_url']}
+
+
 def legacy_disposition_reference(extraction: dict, catalog_record: dict) -> dict:
     """Bind normalized old output without inventing a physical row inventory."""
     from .oge_reports import PARSER_VERSION, EXTRACTION_SCHEMA
@@ -196,7 +213,17 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
     raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
-        parser_claimed_pages=_parser_claimed_pages(extraction))
+        parser_claimed_pages=_parser_claimed_pages(extraction),
+        cover_identity_context=_cover_identity_context(extraction, catalog_record))
+    verified_conflicts = {proof['page_number'] for proof in content['page_role_conflicts']}
+    if verified_conflicts:
+        # Rebuild dependencies using the original saved readings after source
+        # replay established the scope. Never remove a generic blocker by name.
+        content = observe_content_rows(observations, document_page_count=document_page_count,
+            secondary_observations=secondary_observations, source_role_conflict_pages=verified_conflicts)
+        raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
+            parser_claimed_pages=_parser_claimed_pages(extraction),
+            cover_identity_context=_cover_identity_context(extraction, catalog_record))
     result = deepcopy(extraction)
     if legacy_reference is not None:
         result["source_rows"] = []  # Populated only by actual saved observations below.
@@ -211,6 +238,18 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             any(not isinstance(value, str) for value in formal_reference_ids)):
         raise OgeCatalogError("formal reference IDs must come from the existing candidate")
     protected_ids = set(formal_reference_ids or [])
+    role_conflict_pages = {proof['page_number'] for proof in content['page_role_conflicts']}
+    non_table_pages = {proof['page_number'] for proof in content['non_table_page_proofs']}
+    role_conflict_reason = 'source_page_role_conflicts_with_observed_rows'
+    # A parser cache is not a published predecessor. A proven administrative
+    # source page contradicts new financial readings, while protected formal
+    # facts remain on the separate existing-fact conservation path.
+    blocked_parser_rows = [row for row in result['transactions']
+        if row.get('page_number') in role_conflict_pages and row.get('extraction_id') not in protected_ids]
+    if blocked_parser_rows:
+        result['transactions'] = [row for row in result['transactions'] if row not in blocked_parser_rows]
+        result['quarantined'].extend({**deepcopy(row),
+            'reasons':sorted(set([*row.get('reasons', []), role_conflict_reason]))} for row in blocked_parser_rows)
     if legacy_reference is not None:
         old_rows = [row for row in old_rows if row["extraction_id"] in protected_ids]
     old_by_key: dict[str, list[dict]] = {}
@@ -248,6 +287,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                 account_scope_lost = account_scope_lost or account_established
         previous_page = page_number
         if page.get("status") != "field_shapes_observed":
+            if page_number in non_table_pages:
+                continue  # Full original-page proof explains this no-slot page.
             unknown_pages.append(page_number)
             owner_conflicted = owner_conflicted or owner_reference is not None
             owner = None
@@ -271,6 +312,17 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             receipt = {**reference, "disposition": "unresolved", "reasons": []}
             receipt_rows.append(receipt)
             matches = old_by_key.get(_row_key(physical), [])
+            if page_number in role_conflict_pages and not (len(matches) == 1 and
+                    matches[0].get('extraction_id') in protected_ids and
+                    matches[0].get('extraction_id') not in used_old_ids):
+                receipt.update(disposition='quarantined', reasons=[role_conflict_reason])
+                if len(matches) == 1:
+                    receipt['extraction_id'] = matches[0].get('extraction_id')
+                defer(physical, reference, receipt['reasons'])
+                owner_conflicted = owner_conflicted or owner_reference is not None
+                owner = owner_reference = None
+                account_scope_lost = account_scope_lost or account_established
+                continue
             if len(matches) == 1 and matches[0].get("extraction_id") not in used_old_ids:
                 # Preserve existing IDs and qualified/unqualified facts verbatim.
                 existing = matches[0]
@@ -280,6 +332,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                     kind = "transactions" if existing in extraction["transactions"] else "quarantined"
                     result[kind].append(deepcopy(existing))
                 receipt.update(disposition="retained_legacy", extraction_id=existing.get("extraction_id"))
+                if page_number in role_conflict_pages:
+                    receipt['reasons'] = [role_conflict_reason, 'retained_formal_with_source_role_conflict']
                 relation = observation.get("relation_evidence")
                 if relation and relation.get("status") != "supported_observation_relation":
                     receipt.update(disposition="unresolved", reasons=["retained_legacy_with_observation_conflict", *relation.get("blocking_reasons", [])])
@@ -370,7 +424,16 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                     if field == "amount":
                         field_evidence[field] = [read["source_ref"] for read, _, _ in amount_readings]
             account = observation.get("account_context", {})
-            if account.get("status") == "observed":
+            heading_ref = account.get('heading_slot_ref') or {}
+            source_role_conflicted_account = heading_ref.get('page_number') in role_conflict_pages
+            if source_role_conflicted_account:
+                # Field observation scopes are retained as source evidence, but
+                # a title on an independently contradicted page cannot supply
+                # an account to a later disclosure. A later valid heading can
+                # establish a new scope through the ordinary heading branch.
+                account_scope_lost = True
+                reasons.append('source_role_conflicted_account_heading')
+            if account.get("status") == "observed" and not source_role_conflicted_account:
                 account_established = True
                 established_account_context = deepcopy(account)
             effective_account = deepcopy(account)
@@ -791,7 +854,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if raster_observations is not None:
         result.update(_source_content_relations(
             extraction, raster_observations, document_page_count=document_page_count,
-            secondary_field_observations=secondary_field_observations, archived_pdf_path=archived_pdf_path))
+            secondary_field_observations=secondary_field_observations, archived_pdf_path=archived_pdf_path,
+            cover_identity_context=_cover_identity_context(extraction, catalog_record)))
     elif document_page_count is not None or secondary_field_observations is not None:
         raise OgeCatalogError("content relations require saved raster observations")
     return result
@@ -807,12 +871,15 @@ def _content_census(ledger: dict, sha: str) -> dict:
 
 
 def _parser_claimed_pages(extraction: dict) -> set:
-    return {row.get('page_number') for key in ('source_rows', 'transactions', 'quarantined')
-            for row in extraction.get(key, []) if isinstance(row, dict)}
+    reference = extraction.get('legacy_disposition_reference', {}).get('source_extraction')
+    inputs = [extraction, reference] if isinstance(reference, dict) else [extraction]
+    return {row.get('page_number') for item in inputs for key in ('source_rows', 'transactions', 'quarantined')
+            for row in item.get(key, []) if isinstance(row, dict)}
 
 
 def _audit_content_source(content: dict, sha: str, page_count: int,
-                          archived_pdf_path: str | Path | None, *, parser_claimed_pages: set) -> dict:
+                          archived_pdf_path: str | Path | None, *, parser_claimed_pages: set,
+                          cover_identity_context: dict | None = None) -> dict:
     from .oge_278t_raster_inventory import SCHEMA, audit_raster_source_inventory
     if archived_pdf_path is None:
         audit = {"schema_version": SCHEMA, "source_sha256": sha,
@@ -845,7 +912,7 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
     if archived_pdf_path is not None and role_candidates:
         import io
         import pdfplumber
-        from .oge_278t_page_roles import observe_native_privacy_role
+        from .oge_278t_page_roles import observe_native_page_role
         raw = Path(archived_pdf_path).read_bytes()
         if hashlib.sha256(raw).hexdigest() != sha:
             raise OgeCatalogError('source page roles differ from archived PDF')
@@ -853,15 +920,17 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
             if len(document.pages) != page_count:
                 raise OgeCatalogError('source page roles differ from archived page count')
             for number in role_candidates:
-                proof = observe_native_privacy_role(document.pages[number-1], number, source_sha256=sha)
+                proof = observe_native_page_role(document.pages[number-1], number, source_sha256=sha,
+                    cover_identity_context=cover_identity_context)
                 if proof['status'] != 'non_table':
                     continue
                 existing = by_number.get(number)
                 conflict = number in parser_claimed_pages or bool(existing and (
                     existing['slots'] or existing['unresolved_regions']))
                 (conflicts if conflict else proofs).append(proof)
-                reason = 'source_page_role_conflicts_with_parser_rows' if conflict else \
-                         'source_replayed_native_privacy_statement'
+                reason = ('source_page_role_conflicts_with_parser_rows' if conflict else
+                    'source_replayed_native_privacy_statement' if proof.get('role') == 'fixed_native_privacy_statement_2019'
+                    else 'source_replayed_native_administrative_cover')
                 if conflict and existing is not None:
                     existing.update(coverage='unknown', coverage_reason=reason)
                     continue  # Preserve every claimed physical slot and logical reference.
@@ -884,7 +953,8 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
 def _source_content_relations(extraction: dict, observations: list[dict], *,
                               document_page_count: int,
                               secondary_field_observations: list[dict] | None,
-                              archived_pdf_path: str | Path | None = None) -> dict:
+                              archived_pdf_path: str | Path | None = None,
+                              cover_identity_context: dict | None = None) -> dict:
     """Connect original grids to the existing adapter without changing its facts."""
     from .oge_278t_field_shadow import observe_content_rows
     from .oge_278t_page_shadow import reconcile_raster_ocr_rows
@@ -895,7 +965,13 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
         observations, document_page_count=document_page_count,
         secondary_observations=secondary_field_observations)
     audit = _audit_content_source(observed, extraction["source_sha256"], document_page_count, archived_pdf_path,
-        parser_claimed_pages=_parser_claimed_pages(extraction))
+        parser_claimed_pages=_parser_claimed_pages(extraction), cover_identity_context=cover_identity_context)
+    verified_conflicts = {proof['page_number'] for proof in observed['page_role_conflicts']}
+    if verified_conflicts:
+        observed = observe_content_rows(observations, document_page_count=document_page_count,
+            secondary_observations=secondary_field_observations, source_role_conflict_pages=verified_conflicts)
+        audit = _audit_content_source(observed, extraction['source_sha256'], document_page_count, archived_pdf_path,
+            parser_claimed_pages=_parser_claimed_pages(extraction), cover_identity_context=cover_identity_context)
     ledger = observed["source_report_ledger"]
     census = _content_census(ledger, extraction["source_sha256"])
     source_indices, positioned, relations = [], [], []

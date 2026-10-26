@@ -312,29 +312,40 @@ def senate_shadow_cell_observations(report: dict) -> list[dict[str, Any]]:
     return output
 
 
-def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=None) -> list[dict[str, Any]]:
+def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=None,
+                         cover_identity_context=None, parser_claimed_pages=None) -> list[dict[str, Any]]:
     """Normalize 278-T physical grids, retaining unread numbers and pages."""
     if source_id not in {"oge", "whitehouse"}:
         raise ValueError("278-T source must be OGE or White House")
     output = []
     for page in report["pages"]:
         row_state = page["row_coverage"]
+        physical = row_state in {"physical_slots_located", "physical_slots_with_unread_number"}
+        role_conflict = False
+        role_reason = None
         if page["coverage"] == "non_table_section":
-            from .oge_278t_page_roles import replay_native_privacy_role
+            from .oge_278t_page_roles import replay_native_page_role
             proof=page.get('page_role_proof')
             verified=(isinstance(proof,dict) and archived_pdf_path is not None and
-                replay_native_privacy_role(archived_pdf_path,proof,source_sha256=report['source_sha256'],
-                                           page_number=page['page_number']))
-            output.append(page_ledger(
-                source_id=source_id, document_sha256=report["source_sha256"],
-                page_number=page["page_number"], adapter_version="278t-page-shadow/v1",
-                coverage="non_table" if verified else "unknown",
-                coverage_reason="source_replayed_native_privacy_statement" if verified else "non_table_source_proof_unavailable_or_invalid",slots=[],
-                coordinate_frame="pdf_points"))
-            continue
-        physical = row_state in {"physical_slots_located",
-                                 "physical_slots_with_unread_number"}
-        bands = page["candidate_row_bands"] if physical else []
+                replay_native_page_role(archived_pdf_path,proof,source_sha256=report['source_sha256'],
+                    page_number=page['page_number'], cover_identity_context=cover_identity_context))
+            if page.get('slots'):
+                raise ValueError('non-table page proof conflicts with separately saved slots')
+            role_conflict = bool(page.get('candidate_row_bands') or page.get('unresolved_row_bands') or
+                page.get('unresolved_row_regions') or page.get('parser_rows') or
+                page.get('native_unnumbered_prefix_rows', 0) > 0 or
+                page['page_number'] in (parser_claimed_pages or set()))
+            if verified and not role_conflict:
+                reason = ('source_replayed_native_privacy_statement'
+                    if proof.get('role') == 'fixed_native_privacy_statement_2019'
+                    else 'source_replayed_native_administrative_cover')
+                output.append(page_ledger(source_id=source_id, document_sha256=report['source_sha256'],
+                    page_number=page['page_number'], adapter_version='278t-page-shadow/v1',
+                    coverage='non_table', coverage_reason=reason, slots=[], coordinate_frame='pdf_points'))
+                continue
+            role_reason = ('source_page_role_conflicts_with_parser_rows' if verified and role_conflict else
+                           'non_table_source_proof_unavailable_or_invalid')
+        bands = page["candidate_row_bands"] if physical or role_conflict else []
         unread = {tuple(band) for band in page.get("unresolved_row_bands", [])}
         warned = {warning["slot_index"] for warning in
                   page.get("number_sequence_warnings", [])}
@@ -342,13 +353,17 @@ def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=Non
                   "disposition": ("unknown" if tuple(band) in unread or
                                   index in warned else "data_candidate")}
                  for index, band in enumerate(bands, 1)]
+        regions = deepcopy(page.get('unresolved_row_regions', [])) if not physical or role_conflict else []
+        if role_conflict:
+            for band in page.get('unresolved_row_bands', []):
+                if band not in regions:
+                    regions.append(deepcopy(band))
         output.append(page_ledger(
             source_id=source_id, document_sha256=report["source_sha256"],
             page_number=page["page_number"], adapter_version="278t-page-shadow/v1",
-            coverage="located" if physical else "unknown", slots=slots,
-            coverage_reason=None if physical else row_state,
-            unresolved_regions=[] if physical else
-            page.get("unresolved_row_regions", []), coordinate_frame="pdf_points"))
+            coverage="located" if physical and role_reason is None else "unknown", slots=slots,
+            coverage_reason=role_reason or (None if physical else row_state),
+            unresolved_regions=regions, coordinate_frame="pdf_points"))
     return output
 
 

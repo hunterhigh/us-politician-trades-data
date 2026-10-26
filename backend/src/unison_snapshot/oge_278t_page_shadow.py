@@ -187,7 +187,8 @@ def _native_unnumbered_prefix(page) -> int:
     return count
 
 
-def inspect_page(page, page_number: int, *, source_sha256: str | None = None) -> dict:
+def inspect_page(page, page_number: int, *, source_sha256: str | None = None,
+                 cover_identity_context: dict | None = None) -> dict:
     """Classify one page and retain provisional row locations for review."""
     text = page.extract_text() or ""
     words = page.extract_words() or []
@@ -212,9 +213,10 @@ def inspect_page(page, page_number: int, *, source_sha256: str | None = None) ->
     header_partial = len(present) >= 3 and "description" in present
     lower = text.casefold()
     page_role = None
-    if any(marker in lower for marker in _END_MARKERS):
-        from .oge_278t_page_roles import observe_native_privacy_role
-        page_role = observe_native_privacy_role(page,page_number,source_sha256=source_sha256)
+    if any(marker in lower for marker in _END_MARKERS) or cover_identity_context is not None:
+        from .oge_278t_page_roles import observe_native_page_role
+        page_role = observe_native_page_role(page,page_number,source_sha256=source_sha256,
+            cover_identity_context=cover_identity_context)
     end_top = min((float(word["top"]) for word in words
                    if str(word["text"]).casefold().strip(" :") == "endnotes"),
                   default=float(page.height))
@@ -327,7 +329,8 @@ def inspect_page(page, page_number: int, *, source_sha256: str | None = None) ->
 
 def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None,
                 raster_ocr_records: list[dict] | None = None,
-                raster_ocr_source_sha256: str | None = None) -> dict:
+                raster_ocr_source_sha256: str | None = None,
+                cover_identity_context: dict | None = None) -> dict:
     """Inspect an immutable local PDF; caller decides whether any page is usable."""
     try:
         import pdfplumber
@@ -339,7 +342,8 @@ def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None,
         selected = page_numbers or list(range(1, len(document.pages) + 1))
         if any(not 1 <= number <= len(document.pages) for number in selected):
             raise ValueError("page number outside PDF")
-        pages = [inspect_page(document.pages[number - 1], number,source_sha256=source_sha256)
+        pages = [inspect_page(document.pages[number - 1], number,source_sha256=source_sha256,
+                              cover_identity_context=cover_identity_context)
                  for number in selected]
         result = {"source_sha256": source_sha256,
                   "page_count": len(document.pages), "pages": pages}

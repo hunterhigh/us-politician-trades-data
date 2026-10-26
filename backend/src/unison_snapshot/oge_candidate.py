@@ -371,11 +371,30 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         if document_id in native_views:
             extraction = native_views[document_id]
         legacy_reference_rows = {}
+        source_role_conflicted_formal_ids = set()
         if observed:
             from .oge_transaction_adapter import materialize_oge_278t_observations, _validated_legacy_reference
             if document_id in saved:
+                source_formal = [row for row in base.get("transactions", [])
+                    if row.get("source_id") == "oge"
+                    and row.get("filing_id") == document_id
+                    and row.get("source_url") == extraction.get("source_url")
+                    and row.get("verification_status") == "official_matched"]
+                prior_source_rows = extraction.get("transactions", [])
                 extraction = materialize_oge_278t_observations(extraction, record,
-                    formal_reference_ids=[row["id"] for row in retained], **saved[document_id])
+                    formal_reference_ids=[row["id"] for row in source_formal],
+                    **saved[document_id])
+                # Only this call's source-replayed contradiction can select
+                # these predecessors. Page roles cannot silently reproject an
+                # existing formal fact under today's classification rules.
+                receipt = extraction["observation_receipt"]
+                conflict_pages = {proof["page_number"] for proof in receipt["page_role_conflicts"]}
+                source_role_conflicted_formal_ids = {
+                    row["extraction_id"] for row in prior_source_rows
+                    if row.get("page_number") in conflict_pages} & {row["id"] for row in source_formal}
+                retained_ids = {row["id"] for row in retained}
+                retained.extend(row for row in source_formal
+                    if row["id"] in source_role_conflicted_formal_ids and row["id"] not in retained_ids)
             else:
                 from .oge_reports import materialize_saved_oge_278t_exhibits
                 if "prior_formal_transactions" in exhibits[document_id]:
@@ -468,6 +487,13 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if extraction_id in source_role_conflicted_formal_ids and extraction_id in retained_by_id:
+                if extraction_id in promoted_ids:
+                    raise OgeCatalogError("source-conflicted formal identity is duplicated")
+                transactions.append(deepcopy(retained_by_id.pop(extraction_id)))
+                promoted_ids.add(extraction_id)
+                report_promoted += 1
+                continue
             if row.get("native_replacement_disposition") == "superseded":
                 retained_by_id.pop(extraction_id, None)
                 continue
