@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -140,7 +141,8 @@ class AnnualScopeBoundaryTests(unittest.TestCase):
             run = subprocess.run([sys.executable, str(root/"backend/scripts/oge_annual_review.py"),
                 "--evidence-root", str(evidence), "--review-root", str(review),
                 "--parser-version", "oge-278e-tables/v3", "--document-id", DOC],
-                cwd=root, capture_output=True, text=True)
+                cwd=root, env={**os.environ, "PYTHONPATH": str(root/"backend/src")},
+                capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stderr)
             out = review/f"oge/annual/extractions/{DOC}/{sha}/oge-278e-tables-v3.json"
             extracted = json.loads(out.read_bytes())
