@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import textwrap
+import tomllib
 import unittest
 
 
@@ -10,6 +11,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublishWorkflowTests(unittest.TestCase):
+
+    def test_native_source_proof_dependencies_are_ready_before_publication_replay(self):
+        project = tomllib.loads((ROOT / 'backend/pyproject.toml').read_text(encoding='utf-8'))
+        extras = project['project']['optional-dependencies']
+        requirements = extras['native-source-proof']
+        self.assertEqual({item.split('==')[0] for item in requirements}, {'pdfplumber', 'PyMuPDF'})
+        for requirement in requirements:
+            self.assertIn(requirement, extras['oge-raster-ocr'])
+        publish = (ROOT / '.github/workflows/publish-complete.yml').read_text(encoding='utf-8')
+        publish = publish.split('  publish:\n', 1)[1]
+        install = publish.index("python -m pip install -e 'backend[native-source-proof]'")
+        self.assertLess(install, publish.index('unison_snapshot.pipeline_qa.publication_delta'))
+        ci = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+        self.assertLess(ci.index('backend[house-ingest,native-source-proof]'),
+                        ci.index('python scripts/verify.py'))
 
     def test_publication_and_preview_explicitly_keep_saved_parser_inputs(self):
         prepare = (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text(encoding="utf-8")

@@ -118,7 +118,7 @@ class _Sources:
 
 
 def _replay(sources, evidence, review, document, url, *, require_qualified_document=True,
-            allow_missing_legacy=False):
+            allow_missing_legacy=False, require_account_visibility=False):
     from .whitehouse_278t import (GENERIC_PARSER_VERSION, PARSER_VERSION,
         parse_generic_whitehouse_278t_pdf, validate_generic_whitehouse_report)
     from .whitehouse_disclosures import parse_disclosure_index
@@ -181,6 +181,12 @@ def _replay(sources, evidence, review, document, url, *, require_qualified_docum
         with pdfplumber.open(root/pdf_path) as pdf:
             if not 1 <= len(pdf.pages) <= sources.max_pages:
                 raise NativeCorrectionError('White House correction source page count exceeds budget')
+            if require_account_visibility:
+                from .native_source_visibility import inspect_standard_visible_document
+                visible = inspect_standard_visible_document(pdf, max_pages=sources.max_pages)
+                if visible.get('status') != 'observed':
+                    raise NativeCorrectionError('White House account display source visibility is unknown: ' +
+                        str(visible.get('reason')))
         replay = parse_generic_whitehouse_278t_pdf(root/pdf_path, source_url=url, source_sha256=sha,
             document_id=document, filer_name=entries[0]['filer_name_from_label'],
             amended_label=entries[0]['link_label'], legacy_extraction=legacy)
@@ -197,6 +203,34 @@ def _replay(sources, evidence, review, document, url, *, require_qualified_docum
     return replay, old_rows, catalog_coverage, index
 
 
+def replay_native_account_display(sources, evidence, review, document, url):
+    """Reprove account migration against every page of the same fixed original.
+
+    This strict source precondition belongs only to account-display migration.
+    Ordinary owner/classification replay and saved native observations retain
+    their established contracts; no saved visibility marker grants this proof.
+    """
+    return _replay(sources, evidence, review, document, url, require_account_visibility=True)
+
+
+
+def _qualified_native_person(report, coverage, directory, key, source_people, prior, *, correction='owner'):
+    """Ordinary qualification plus identity independently read from the directory."""
+    from .whitehouse_278t_audit import audit_whitehouse_278t, _source_bound_person_from_directory
+    checked = audit_whitehouse_278t([report], coverage,
+        {'meta': {'is_demo': False}, 'transactions': [prior],
+         'people': source_people}, directory_index=directory)
+    decision = checked['reports'][0]
+    identity = decision['matched_catalog_identity']
+    source_identity = _source_bound_person_from_directory(report, directory,
+        {'people': source_people}, [], [report])
+    disposition = [item for item in decision['rows'] if item['extraction_id'] == key]
+    if (identity is None or source_identity is None or
+            source_identity['person_id'] != identity['person_id'] or decision['document_reasons'] or
+            len(disposition) != 1 or disposition[0]['status'] != 'eligible'):
+        raise NativeCorrectionError(f'White House {correction} correction source is not qualified')
+    return identity['person_id']
+
 
 def prove_native_row(report, raw_rows, coverage, directory, key, source_people, prior):
     """Reconstruct a whole predecessor and owner-normalized state from sources.
@@ -204,7 +238,6 @@ def prove_native_row(report, raw_rows, coverage, directory, key, source_people, 
     The supplied prior only participates in ordinary identity/audit matching;
     none of its transaction fields supplies a reconstructed projection field.
     """
-    from .whitehouse_278t_audit import audit_whitehouse_278t, _source_bound_person_from_directory
     rows = [row for row in report['transactions'] if row.get('extraction_id') == key]
     raw = [row for row in raw_rows if row.get('extraction_id') == key]
     if len(rows) != 1 or len(raw) != 1 or raw[0].get('owner') != 'Self':
@@ -222,26 +255,72 @@ def prove_native_row(report, raw_rows, coverage, directory, key, source_people, 
                 'new_value': 'Undisclosed', 'rule': 'approved_default_self_to_undisclosed/v1',
                 'source_rows_index': row['source_rows_index']}):
         raise NativeCorrectionError('White House owner correction has no isolated default-owner source proof')
-    checked = audit_whitehouse_278t([report], coverage,
-        {'meta': {'is_demo': False}, 'transactions': [prior],
-         'people': source_people}, directory_index=directory)
-    decision = checked['reports'][0]
-    identity = decision['matched_catalog_identity']
     # A fixed review catalog cache may constrain ordinary eligibility,
     # but cannot grant identity. Independently bind the original PDF
     # and archived official directory to the previous stable person.
-    source_identity = _source_bound_person_from_directory(report, directory,
-        {'people': source_people}, [], [report])
-    disposition = [item for item in decision['rows'] if item['extraction_id'] == key]
-    if (identity is None or source_identity is None or
-            source_identity['person_id'] != identity['person_id'] or decision['document_reasons'] or
-            len(disposition) != 1 or disposition[0]['status'] != 'eligible'):
-        raise NativeCorrectionError('White House owner correction source is not qualified')
+    person_id = _qualified_native_person(report, coverage, directory, key, source_people, prior)
     # Identity reuse follows the existing source-directory/candidate
     # rules. Prior people supply a stable identity, never transaction
     # fields; the full name/office is checked against the original.
-    reconstructed = _historical_projection(report, raw[0], identity['person_id'])
+    reconstructed = _historical_projection(report, raw[0], person_id)
     return reconstructed, {**reconstructed, 'owner': 'Undisclosed'}, row
+
+
+def prove_native_account_display(report, raw_rows, coverage, directory, key, source_people, prior):
+    """Prove a same-ID account suffix, with the independent default-owner fix.
+
+    Callers first obtain the complete report through original-source _replay.
+    Neither a saved correction marker nor prior/current fact fields supplies
+    account text, owner scope, classification or any reconstructed fact field.
+    """
+    from .whitehouse_278t import GENERIC_PARSER_VERSION, validate_generic_whitehouse_report
+    from .oge_reports import parse_generic_table_rows, parse_table_rows
+    if report.get('parser_version') != GENERIC_PARSER_VERSION:
+        raise NativeCorrectionError('White House account display needs native v5 source')
+    validate_generic_whitehouse_report(report)
+    inventory = [(item['page_number'], item['cells']) for item in report['source_rows']]
+    conventional, _ = parse_table_rows(inventory, source_sha=report['source_sha256'], default_owner='Self')
+    native_good, _, _ = parse_generic_table_rows(inventory, source_sha256=report['source_sha256'])
+    rows = [row for row in report['transactions'] if row.get('extraction_id') == key]
+    supplied_raw = [row for row in raw_rows if row.get('extraction_id') == key]
+    raw = [row for row in conventional if row.get('extraction_id') == key]
+    if (len(rows) != 1 or len(raw) != 1 or supplied_raw != raw or raw[0].get('owner') != 'Self' or
+            raw[0].get('account_title') or len(raw[0].get('cells', [])) != 6 or
+            'amount_low_exclusive' in raw[0]):
+        raise NativeCorrectionError('White House account display legacy source row is not unique')
+    row = rows[0]
+    inherited = row.get('legacy_inheritance', {})
+    legacy = inherited.get('legacy_row', {})
+    expected = [item for item in native_good if
+        item.get('source_rows_index') == row.get('source_rows_index') and
+        item.get('page_number') == raw[0]['page_number'] and item.get('cells') == raw[0]['cells']]
+    if len(expected) != 1:
+        raise NativeCorrectionError('White House account display has no unique whole-input scope')
+    source = expected[0]
+    title = source.get('account_title')
+    fields = ('extraction_id', 'page_number', 'row_number', 'owner', 'asset_name', 'ticker',
+              'transaction_type', 'transaction_date', 'amount_low', 'amount_high', 'amount_low_exclusive', 'cells')
+    correction = {'field': 'asset_name', 'rule': 'approved_source_account_title_display/v1',
+        'old_value': raw[0]['asset_name'], 'new_value': f"{raw[0]['asset_name']} — {title}"}
+    owner_correction = {'field': 'owner', 'old_value': 'Self', 'new_value': 'Undisclosed',
+        'rule': 'approved_default_self_to_undisclosed/v1', 'source_rows_index': source['source_rows_index']}
+    if (not isinstance(title, str) or not title.strip() or source.get('owner') != 'Undisclosed' or
+            source.get('account_context') != {'status': 'observed', 'title': title} or source.get('reasons') or
+            'amount_low_exclusive' in source or
+            any(legacy.get(field) != raw[0].get(field) for field in fields) or legacy.get('account_title') or
+            row.get('owner') != source['owner'] or row.get('account_title') != title or
+            row.get('account_context') != source['account_context'] or row.get('reasons') or
+            inherited.get('unresolved_field_differences') or inherited.get('owner_correction') != owner_correction or
+            inherited.get('account_display_correction') != correction):
+        raise NativeCorrectionError('White House account display differs from independent source scope')
+    person_id = _qualified_native_person(report, coverage, directory, key, source_people, prior,
+        correction='account display')
+    historical = _historical_projection(report, raw[0], person_id)
+    normalized = {**historical, 'owner': 'Undisclosed'}
+    final = {**normalized, 'asset_name': correction['new_value']}
+    if prior != historical and prior != normalized:
+        raise NativeCorrectionError('White House account display does not reproduce complete predecessor')
+    return historical, normalized, final
 
 
 POLICY_VERSION = 'whitehouse-native-endnote-classification/v1'

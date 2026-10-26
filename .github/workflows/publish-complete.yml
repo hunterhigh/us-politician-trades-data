@@ -236,8 +236,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: frontend-e2e/package-lock.json
-      - name: Install producer
-        run: python -m pip install -e backend
+      - name: Install producer and native source proofs
+        run: python -m pip install -e 'backend[native-source-proof]'
       - name: Enforce licensed cache publication
         env:
           AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
