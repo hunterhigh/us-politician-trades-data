@@ -381,8 +381,14 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     and row.get("source_url") == extraction.get("source_url")
                     and row.get("verification_status") == "official_matched"]
                 prior_source_rows = extraction.get("transactions", [])
+                parser_reference_ids = {row["extraction_id"] for row in
+                    prior_source_rows + extraction.get("quarantined", [])}
                 extraction = materialize_oge_278t_observations(extraction, record,
-                    formal_reference_ids=[row["id"] for row in source_formal],
+                    # Full physical inventories may have additional formal
+                    # rows from a previous saved-observation run. Those rows
+                    # are replayed below, not missing legacy parser references.
+                    formal_reference_ids=[row["id"] for row in source_formal
+                        if "source_rows" not in extraction or row["id"] in parser_reference_ids],
                     **saved[document_id])
                 # Only this call's source-replayed contradiction can select
                 # these predecessors. Page roles cannot silently reproject an
