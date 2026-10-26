@@ -1030,6 +1030,21 @@ def _is_fixed_trump_september_source(metadata: dict, source_sha: str) -> bool:
     )
 
 
+def selected_parser_version(metadata: dict, pdf_path: Path, source_sha: str, *, generic=False):
+    """Select from the actual source before consulting an old saved result."""
+    fixed = _is_fixed_trump_september_source(metadata, source_sha)
+    if generic or not fixed:
+        from .oge_native_partition import source_plan
+        _, visible_version = source_plan(pdf_path, source_sha256=source_sha, generic=generic)
+        if visible_version:
+            return visible_version
+    return (GENERIC_PARSER_VERSION if generic else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
+        if fixed and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
+        else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
+        if fixed and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
+        else TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed else PARSER_VERSION)
+
+
 def load_reusable_extraction(root: Path, metadata_path: Path,
                              reuse_root: Path, *, generic: bool = False) -> dict | None:
     """Load a source- and parser-bound review result after re-hashing its PDF.
@@ -1040,16 +1055,9 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
     so the caller can run the parser again.
     """
 
-    metadata, _, source_sha = _read_archived_source(root, metadata_path)
+    metadata, pdf_path, source_sha = _read_archived_source(root, metadata_path)
     fixed_source = _is_fixed_trump_september_source(metadata, source_sha)
-    parser_version = (
-        GENERIC_PARSER_VERSION if generic else TRUMP_SEPT_2026_PAGE7_PASS_VERSION
-        if fixed_source and source_sha == _TRUMP_SEPT_2026_PAGE7_SOURCE_SHA256
-        else TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION
-        if fixed_source and source_sha == _TRUMP_SEPT_2026_STRUCTURAL_SOURCE_SHA256
-        else TRUMP_SEPT_2026_SECOND_PASS_VERSION if fixed_source
-        else PARSER_VERSION
-    )
+    parser_version = selected_parser_version(metadata, pdf_path, source_sha, generic=generic)
     checkpoint = (reuse_root / metadata["document_id"] / source_sha /
                   f"{parser_version.replace('/', '-')}.json")
     if not checkpoint.is_file():
@@ -1078,6 +1086,12 @@ def load_reusable_extraction(root: Path, metadata_path: Path,
             not isinstance(value.get("document_reasons"), list) or
             type(value.get("evidence_complete")) is not bool):
         return None
+    from .oge_native_partition import VERSIONS, replay_partitioned_oge
+    if parser_version in VERSIONS:
+        try:
+            return replay_partitioned_oge(value, root)
+        except (OgeCatalogError, OSError, ValueError, KeyError, TypeError):
+            return None
     if generic:
         try:
             validate_generic_table_interpretation(value, require_mode=True)
@@ -1183,6 +1197,10 @@ def validate_generic_table_interpretation(extraction: dict, *, require_mode: boo
     Older generic extracts remain readable, but cannot masquerade as the new
     interpretation merely by editing their normalized account/owner fields.
     """
+    from .oge_native_partition import GENERIC_VERSION as VISIBLE_GENERIC, validate_partitioned_interpretation
+    if extraction.get('parser_version') == VISIBLE_GENERIC:
+        validate_partitioned_interpretation(extraction)
+        return
     mode = extraction.get("row_interpretation_mode")
     if mode is None and not require_mode:
         if "structural_rows" in extraction or any(
@@ -1210,6 +1228,10 @@ def validate_generic_table_interpretation(extraction: dict, *, require_mode: boo
 
 def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False) -> dict:
     metadata, pdf_path, source_sha = _read_archived_source(root, metadata_path)
+    from .oge_native_partition import VERSIONS, parse_partitioned_oge
+    selected = selected_parser_version(metadata, pdf_path, source_sha, generic=generic)
+    if selected in VERSIONS:
+        return parse_partitioned_oge(metadata, pdf_path, source_sha256=source_sha, generic=generic)
     extracted = (_extract_pdf(pdf_path, include_inventory=True, include_cover=True) if generic else
                  _extract_pdf(pdf_path, include_inventory=True))
     cover = None

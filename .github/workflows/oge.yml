@@ -116,7 +116,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install pinned PDF parser
-        run: python -m pip install -e 'backend[house-ingest]'
+        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
       - name: Prepare evidence, review cache and state branches
         id: trees
         run: |
@@ -281,7 +281,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install pinned PDF parser
-        run: python -m pip install -e 'backend[house-ingest]'
+        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
       - uses: actions/download-artifact@v4
         with:
           name: oge-direct-${{ github.run_id }}
@@ -431,6 +431,7 @@ jobs:
             --catalog .local/oge-catalog.json \
             --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
             --extractions-dir "$REVIEW_ROOT/oge/extractions" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --manual-cover-dates-dir "$REVIEW_ROOT/oge/manual_cover_dates" \
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \

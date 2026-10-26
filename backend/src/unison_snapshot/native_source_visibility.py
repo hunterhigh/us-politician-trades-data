@@ -49,7 +49,7 @@ def _within(box, width, height):
             0 <= box[0] < box[2] <= width and 0 <= box[1] < box[3] <= height)
 
 
-def _program(page, fonts):
+def _program(page, fonts, allowed_modes=(0,)):
     """Close the actual operators, operands and single-segment stroke states."""
     from pdfminer.pdfinterp import PDFContentParser
     from pdfminer.psparser import PSEOF, PSKeyword, PSLiteral
@@ -124,7 +124,7 @@ def _program(page, fonts):
                         else:
                             _require(_finite(value), 'native_text_show_invalid')
             elif op == 'Tr':
-                _require(operands == [0], 'native_render_mode_unsupported')
+                _require(operands[0] in allowed_modes, 'native_render_mode_unsupported')
             elif op in {'g', 'G', 'rg', 'RG'}:
                 _require(all(0 <= value <= 1 for value in operands), 'native_color_operands_invalid')
                 if op in {'G', 'RG'}:
@@ -174,7 +174,7 @@ def _disjoint(rectangles, max_comparisons):
     return comparisons
 
 
-def _inspect(page, max_comparisons):
+def _inspect(page, max_comparisons, *, allowed_modes=(0,), include_inventory=False):
     from pdfminer.pdftypes import resolve1
     _require(type(max_comparisons) is int and 0 <= max_comparisons <= 200_000,
              'native_comparison_budget_invalid')
@@ -196,7 +196,7 @@ def _inspect(page, max_comparisons):
         _require(isinstance(font, dict) and set(font) == set(expected) and all(
             getattr(font[key], 'name', None) == name for key, name in expected.items()),
             'native_standard_font_unavailable')
-    raw, strokes, tokens = _program(page, fonts)
+    raw, strokes, tokens = _program(page, fonts, allowed_modes)
     chars, modes, flags, paint = observe_source_characters(page,
         max_characters=MAX_CHARACTERS, max_tokens=MAX_TOKENS)
     # The controlled observer stops before accessing page.chars if its limit
@@ -206,11 +206,11 @@ def _inspect(page, max_comparisons):
     _require(raw.decode('ascii') == ''.join(char['text'] for char in chars) and
              len(chars) == len(modes) == len(flags) == len(paint['character_orders']),
              'native_glyph_projection_differs')
-    _require(not any(mode != 0 for mode in modes) and not any(flags), 'native_render_state_unsupported')
+    _require(not any(mode not in allowed_modes for mode in modes) and not any(flags), 'native_render_state_unsupported')
     import pymupdf
     font = pymupdf.Font('helv')
     rectangles = []
-    for char in chars:
+    for char, render_mode in zip(chars, modes):
         text, matrix, size = char['text'], char.get('matrix'), char.get('size')
         box = [char[key] for key in ('x0', 'top', 'x1', 'bottom')]
         _require(len(text) == 1 and 32 <= ord(text) <= 126 and char.get('fontname') == 'Helvetica' and
@@ -220,7 +220,7 @@ def _inspect(page, max_comparisons):
                  abs(char['adv'] - font.glyph_advance(ord(text)) * size) <= 1e-4 and
                  _within(box, width, height) and _black(char.get('ncs'), char.get('non_stroking_color')),
                  'native_glyph_style_or_geometry_unsupported')
-        if text != ' ':
+        if text != ' ' and render_mode == 0:
             glyph = font.glyph_bbox(ord(text))
             x, y = matrix[-2:]
             ink = [x + glyph.x0 * size, height - y - glyph.y1 * size,
@@ -242,8 +242,28 @@ def _inspect(page, max_comparisons):
         _require(_within(footprint, width, height), 'native_stroke_visible_domain_unsupported')
         rectangles.append((footprint, 'line'))
     comparisons = _disjoint(rectangles, max_comparisons)
-    return {'status':'observed', 'reason':None, 'character_count':len(chars),
+    result = {'status':'observed', 'reason':None, 'character_count':len(chars),
             'stroke_count':len(strokes), 'content_token_count':tokens, 'comparison_count':comparisons}
+    if include_inventory:
+        result.update(chars=chars, render_modes=modes, visibility_flags=flags, paint=paint)
+    return result
+
+
+def inspect_zero_three_native_page(page, *, max_comparisons=200_000):
+    """Explicit partition precondition; mode3 is observed but paints no ink.
+
+    This API returns the complete original glyph inventory. It does not remove
+    hidden glyphs, infer empty cells or assign transaction/header/scope roles.
+    The strict account-publication APIs below retain their mode0-only default.
+    """
+    try:
+        return _inspect(page, max_comparisons, allowed_modes=(0, 3), include_inventory=True)
+    except _Unsupported as error:
+        return {'status':'unknown', 'reason':str(error)}
+    except Exception as error:
+        reason = str(error)
+        return {'status':'unknown', 'reason':reason if reason.startswith('source_visibility_') else
+                'native_visibility_inventory_unavailable'}
 
 
 def inspect_standard_visible_page(page, *, max_comparisons=200_000):

@@ -270,7 +270,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                                   "formal_reference_facts": scoped_formal}
                                  if scoped_formal is not None and extraction.get("parser_version") == GENERIC_PARSER_VERSION
                                  else {})
-                adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id, **scope_binding)
+                adapted = adapt_oge_278t_extraction(extraction, record, run_id=run_id,
+                    evidence_root=evidence_path_root, **scope_binding)
             except Exception as exc:
                 raise OgeShadowInputError(
                     f"{document_id}: source-row ledger adaptation failed: {exc}") from exc
@@ -321,7 +322,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         candidate, audit = build_oge_candidate(
             catalog, original_extractions, candidate_base,
             data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved,
-            legacy_extractions_by_document=legacy,saved_exhibit_observations_by_document=exhibits)
+            legacy_extractions_by_document=legacy,saved_exhibit_observations_by_document=exhibits,
+            evidence_root=evidence_path_root)
         for name, value in (("candidate.json", candidate), ("candidate_audit.json", audit)):
             artifacts[name] = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
         # Exercise the existing final builder locally; no publication or refs.

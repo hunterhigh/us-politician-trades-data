@@ -548,6 +548,7 @@ def build_whitehouse_278t_review_candidate(
         promoted_count = sum(row["status"] == "promoted" for row in row_results)
         retained_count = sum(row["status"] == "retained_existing" for row in row_results)
         quarantined_count = len(row_results) - promoted_count - retained_count
+        from .native_partition_rows import partition_binding
         audit_reports.append({
             "document_id": document_id, "source_url": report["source_url"],
             "source_sha256": report["source_sha256"],
@@ -556,6 +557,10 @@ def build_whitehouse_278t_review_candidate(
             "identity_basis": identity.get("identity_basis") if identity else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
+            **({'parser_version': report['parser_version'], 'retained_count': retained_count,
+                'retained_ids': [row['extraction_id'] for row in row_results if row['status'] == 'retained_existing'],
+                'native_source_partition_binding': partition_binding(report['native_text_partition'], report['parser_version'])}
+               if 'native_text_partition' in report else {}),
             **({"parser_version": report["parser_version"], "retained_count": retained_count,
                 "retained_ids": [row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
                 "retained_source_bindings": {"schema_version": "whitehouse-generic-retained-source/v1",

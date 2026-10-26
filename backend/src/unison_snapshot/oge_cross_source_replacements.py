@@ -90,7 +90,8 @@ def _cache_matches(root,folder,value):
 
 def _whitehouse_source_row(report,row,evidence):
     """Never treat an OCR cache as native text or infer its printed ordinal."""
-    from .whitehouse_278t import GENERIC_PARSER_VERSIONS,SAVED_OCR_PARSER_VERSIONS,validate_generic_whitehouse_report
+    from .whitehouse_278t import (GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
+        NATIVE_VISIBLE_PARSER_VERSIONS, validate_generic_whitehouse_report)
     from .oge_reports import _compact,_extract_borderless_transaction_tables,parse_table_rows,_ROW_NUMBER
     doc=report['document_id'];sha=report['source_sha256']
     tail=doc.removeprefix('wh-url:')
@@ -112,6 +113,14 @@ def _whitehouse_source_row(report,row,evidence):
         if report.get('observation_receipt',{}).get('source_original_verified') is not True:
             return None
         basis='whitehouse_saved_original_pdf_replayed_geometry_and_fields'
+    elif report.get('parser_version') in NATIVE_VISIBLE_PARSER_VERSIONS:
+        # The validator above reopened the complete same-SHA projection. The
+        # unfiltered table may contain duplicate nonpainting glyphs and cannot
+        # substitute for that independently reconstructed visible inventory.
+        matching = [item for item in report['transactions'] if item == row and not item.get('reasons')]
+        if len(matching) != 1 or report.get('document_reasons'):
+            return None
+        basis='same_source_visible_glyph_cell_projection_fully_reobserved_from_archive'
     else:
         # An old OCR extraction must independently match actual native cells;
         # a readable native number alone does not certify its OCR fields/frame.

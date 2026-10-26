@@ -277,7 +277,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         catalog_history: list[dict] | None = None,
                         saved_observations_by_document: dict | None = None,
                         legacy_extractions_by_document: dict | None = None,
-                        saved_exhibit_observations_by_document: dict | None = None) -> tuple[dict, dict]:
+                        saved_exhibit_observations_by_document: dict | None = None,
+                        evidence_root=None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -353,12 +354,26 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
-        generic = extraction.get("parser_version") == GENERIC_PARSER_VERSION
-        if generic:
+        from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSION as VISIBLE_GENERIC, replay_partitioned_oge
+        visible = extraction.get('parser_version') in VISIBLE_VERSIONS
+        if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
+            from pathlib import Path
+            from .oge_reports import _read_archived_source, selected_parser_version
+            archive = Path(evidence_root)
+            metadata, path, sha = _read_archived_source(archive,
+                archive / f"oge/reports/{document_id}/{extraction.get('source_sha256')}.json")
+            expected_version = selected_parser_version(metadata, path, sha,
+                generic=extraction['parser_version'] == GENERIC_PARSER_VERSION)
+            if expected_version != extraction['parser_version']:
+                raise OgeCatalogError('OGE cached native version differs from the current original source plan')
+        if visible:
+            extraction = replay_partitioned_oge(extraction, evidence_root)
+        generic = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC}
+        if generic and not visible:
             from .oge_reports import validate_generic_table_interpretation
             validate_generic_table_interpretation(extraction)
         observed = document_id in saved or document_id in exhibits
-        retained = [row for row in base.get("transactions", []) if (generic or document_id in exhibits or
+        retained = [row for row in base.get("transactions", []) if (visible or generic or document_id in exhibits or
                     document_id in native_views and native_views[document_id].get("native_exhibit_preserved_target_ids") or
                     observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
@@ -366,7 +381,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         if any(row.get("source_url") != extraction.get("source_url") for row in retained):
             raise OgeCatalogError("existing formal facts differ from generic report URL")
         inheritance = None
-        if generic and record is not None:
+        if generic and not visible and record is not None:
             extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record)
         if document_id in native_views:
             extraction = native_views[document_id]
@@ -437,7 +452,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         reasons = []
         fixed_trump = _fixed_trump_sept_source(extraction, record)
         supported_parser = (
-            observed or extraction.get("parser_version") in {PARSER_VERSION, GENERIC_PARSER_VERSION}
+            observed or visible or extraction.get("parser_version") in {PARSER_VERSION, GENERIC_PARSER_VERSION}
             or (extraction.get("parser_version") in {
                 TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                 TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -486,6 +501,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             source_rows, source_quarantine = [], []
         report_promoted = 0
         retained_by_id = {row["id"]: row for row in retained}
+        visible_retained_positions = set()
+        visible_unbound_formal = False
+        if visible and retained:
+            from .native_partition_rows import interpret_partition_rows
+            raw_proof = {**extraction['native_text_partition'],
+                'inventory': extraction['native_text_partition']['raw_inventory'],
+                'scope_barriers_before': {}, 'row_reasons': {}}
+            raw_good, raw_bad, _ = interpret_partition_rows(raw_proof,
+                source_sha256=extraction['source_sha256'], generic=generic)
+            for fact in retained:
+                positions = [row['source_rows_index'] for row in raw_good + raw_bad
+                             if row.get('extraction_id') == fact['id']]
+                positions += [row['source_rows_index'] for row in source_rows
+                              if row.get('extraction_id') == fact['id']]
+                if len(set(positions)) == 1:
+                    visible_retained_positions.update(positions)
+                else:
+                    visible_unbound_formal = True
         row_quarantines = list(source_quarantine)
         for row in source_rows:
             row_reasons = list(reasons)
@@ -493,6 +526,17 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if visible and extraction_id in retained_by_id:
+                if extraction_id in promoted_ids:
+                    raise OgeCatalogError('Native visible retained formal identity is duplicated')
+                transactions.append(deepcopy(retained_by_id.pop(extraction_id)))
+                promoted_ids.add(extraction_id)
+                report_promoted += 1
+                continue
+            if visible and (visible_unbound_formal or row.get('source_rows_index') in visible_retained_positions):
+                row_quarantines.append({'extraction_id': extraction_id,
+                    'reasons': ['native_visible_formal_correspondence_unresolved']})
+                continue
             if extraction_id in source_role_conflicted_formal_ids and extraction_id in retained_by_id:
                 if extraction_id in promoted_ids:
                     raise OgeCatalogError("source-conflicted formal identity is duplicated")
@@ -606,8 +650,18 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         deferred = (sorted(row["id"] for row in retained) if observed and
             exhibits.get(document_id,{}).get("application_stage")=="post_whitehouse/v1" else [])
         deferred_formal_ids.update(deferred)
+        if visible:
+            reasons = sorted(set(reasons + extraction.get('document_reasons', [])))
+        from .native_partition_rows import partition_binding
         audit_reports.append({
             "document_id": document_id,
+            **({'source_sha256': extraction['source_sha256'],
+                'parser_version': extraction['parser_version'],
+                'native_partition_published_ids': sorted(row['id'] for row in transactions
+                    if row.get('filing_id') == document_id and row.get('source_url') == extraction['source_url']),
+                'native_partition_retained_formal_ids': sorted(row['id'] for row in retained),
+                'native_source_partition_binding': partition_binding(extraction['native_text_partition'], extraction['parser_version'])}
+               if visible else {}),
             **({"legacy_inheritance": inheritance} if inheritance is not None else {}),
             **({"cover_date_evidence": extraction.get("cover_date_evidence"),
                 "source_sha256": extraction["source_sha256"]} if generic else {}),

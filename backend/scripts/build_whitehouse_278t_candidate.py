@@ -336,6 +336,32 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
      provenance, failure_count) = _verify_review(
         review_root, expected_report_count=expected_report_count,
         coverage_input=coverage_input, extraction_status_input=extraction_status_input)
+    from unison_snapshot.whitehouse_278t import (NATIVE_VISIBLE_PARSER_VERSIONS,
+        NATIVE_VISIBLE_GENERIC_VERSION, GENERIC_PARSER_VERSION,
+        plan_whitehouse_278t_archive, validate_native_visible_whitehouse_report)
+    from unison_snapshot.native_text_partition import POLICY_VERSION as PARTITION_POLICY
+    partition_dependencies = []
+    for report in extractions:
+        version = report.get('parser_version')
+        if version in NATIVE_VISIBLE_PARSER_VERSIONS:
+            validate_native_visible_whitehouse_report(report)
+            partition_dependencies.append({'document_id': report['document_id'],
+                'parser_version': version, 'source_sha256': report['source_sha256'],
+                'projection_sha256': hashlib.sha256(_json_bytes(report['native_text_partition'])).hexdigest()})
+        if evidence_root is not None and version in {TRADE_PARSER, GENERIC_PARSER_VERSION, *NATIVE_VISIBLE_PARSER_VERSIONS}:
+            folder = report['document_id'].removeprefix('wh-url:')
+            metadata_path = evidence_root / f"whitehouse/disclosures/reports/{folder}/{report['source_sha256']}.json"
+            metadata, metadata_sha = _read_object(metadata_path)
+            plan = plan_whitehouse_278t_archive(metadata, evidence_root,
+                generic=version in {GENERIC_PARSER_VERSION, NATIVE_VISIBLE_GENERIC_VERSION})
+            if plan['parser_version'] != version:
+                raise ValueError('White House cached native version differs from current original source plan')
+            partition_dependencies.append({'document_id': report['document_id'],
+                'metadata_sha256': metadata_sha, 'source_plan': plan})
+    if partition_dependencies:
+        provenance['native_source_partition_policy_version'] = PARTITION_POLICY
+        provenance['native_source_partition_dependencies_sha256'] = hashlib.sha256(
+            _json_bytes(partition_dependencies)).hexdigest()
     from unison_snapshot.whitehouse_native_correction import prepare_native_classification_sources
     classification_sources = None
     def classification_context(transactions):

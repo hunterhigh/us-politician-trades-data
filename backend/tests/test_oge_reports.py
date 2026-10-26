@@ -23,7 +23,8 @@ from unison_snapshot.oge_reports import (
 DOCUMENT_ID = "42300720a4227e9e85258e77002dd1b3"
 URL = ("https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/"
        f"{DOCUMENT_ID}/$FILE/Example-278T.pdf")
-PDF = b"%PDF-1.7\nminimal test envelope\n%%EOF\n"
+from native_pdf_fixture_bytes import blank_native_pdf
+PDF = blank_native_pdf()
 
 
 def record(access_method="direct_pdf"):

@@ -32,6 +32,8 @@ from unison_snapshot.whitehouse_278t import (
     replay_trump_2026_v2_extraction,
     materialize_saved_whitehouse_278t, SAVED_OCR_PARSER_VERSION,
     saved_ocr_source_roots,
+    NATIVE_VISIBLE_PARSER_VERSIONS, NATIVE_VISIBLE_GENERIC_VERSION,
+    plan_whitehouse_278t_archive, parse_native_visible_whitehouse_278t_pdf,
 )
 from unison_snapshot.whitehouse_disclosures import (
     PDF_ARCHIVE_SCHEMA, PDF_CHUNK_ARCHIVE_SCHEMA, read_archived_pdf,
@@ -144,6 +146,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
     known_failures = 0
     recorded_failures = 0
     checkpoint_pending = []
+    source_partition_plans = []
     last_attempted_id = start_after_id
     for metadata, pdf in rows:
         kind = metadata.get("document_type_from_label")
@@ -154,6 +157,11 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                    if kind == "278t" else
                    parser_version_for_source(metadata.get("document_url"),
                                              metadata.get("sha256")))
+        if kind == '278t':
+            selection = plan_whitehouse_278t_archive(metadata, evidence_root, generic=generic_trade)
+            version = selection['parser_version']
+            source_partition_plans.append({'document_id': metadata['document_id'],
+                'source_sha256': metadata['sha256'], **selection})
         suffix = version.replace("/", "-")
         target = (review_root / "whitehouse/extractions" /
                   metadata["document_id"].split(":", 1)[1] /
@@ -192,6 +200,10 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                       "source_sha256": metadata["sha256"]}
             def parse(path: Path) -> dict:
                 if kind == "278t":
+                    if version in NATIVE_VISIBLE_PARSER_VERSIONS:
+                        return parse_native_visible_whitehouse_278t_pdf(path, **common,
+                            document_id=metadata['document_id'], filer_name=name,
+                            amended_label=metadata.get('link_label'), generic=version == NATIVE_VISIBLE_GENERIC_VERSION)
                     if generic_trade:
                         old_path = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
                         old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.is_file() else None
@@ -279,6 +291,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
             "recorded_failure_count": recorded_failures,
             "checkpoint_pending_count": len(checkpoint_pending),
             "checkpoint_pending": checkpoint_pending,
+            "source_partition_plans": source_partition_plans,
             "pending_count": len(rows) - skipped - created - known_failures - recorded_failures,
             "failure_count": len(failures), "failures": failures,
             "production_qualification": "not_attempted"}

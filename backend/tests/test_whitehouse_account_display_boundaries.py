@@ -228,11 +228,17 @@ class WhiteHouseAccountDisplayBoundaryTests(unittest.TestCase):
             git('add','.');git('commit','-qm','fixed source with invisible account title');ref=git('rev-parse','HEAD').decode().strip()
             write_files(root,{'base.json':raw})
             candidate,audit=root/'candidate.json',root/'audit.json'
-            candidate_cli.run(oge_candidate=root/'base.json',review_root=repo,evidence_root=repo,
-                candidate_out=candidate,audit_out=audit,expected_report_count=1)
-            current=json.loads(candidate.read_bytes())
-            self.assertEqual(current['transactions'],[expected],
-                'this regression isolates final publication proof; fresh/native parsing is a separate boundary')
+            candidate.write_bytes(b'prior candidate must survive\n')
+            audit.write_bytes(b'prior audit must survive\n')
+            old_outputs=candidate.read_bytes(),audit.read_bytes()
+            with self.assertRaisesRegex(ValueError,'current original source plan'):
+                candidate_cli.run(oge_candidate=root/'base.json',review_root=repo,evidence_root=repo,
+                    candidate_out=candidate,audit_out=audit,expected_report_count=1)
+            self.assertEqual(old_outputs,(candidate.read_bytes(),audit.read_bytes()))
+            # Also exercise the independent publication gate with a supplied
+            # invalid candidate, even though normal source selection rejects it.
+            current=deepcopy(base);current['transactions']=[expected]
+            candidate.write_bytes(encoded(current))
             for name in ('house_clerk','senate_efd','oge'):
                 value=current if name=='oge' else {**current,'people':[],'transactions':[],'reported_holdings':[]}
                 write_files(root/'sources',{f'{name}-current.json':encoded(value)})

@@ -61,7 +61,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
           tesseract --version | head -1
-          python -m pip install -e 'backend[house-ingest]'
+          python -m pip install -e 'backend[house-ingest,native-source-proof]'
       - name: Prepare evidence and review trees
         run: |
           git fetch --no-tags origin evidence review
@@ -153,8 +153,9 @@ jobs:
       - name: Account for every public report link
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
+          EVIDENCE_ROOT: ${{ runner.temp }}/whitehouse-evidence
         run: |
-          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT"
+          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT"
       - name: Index filer-reported rows independently of frontend eligibility
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review

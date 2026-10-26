@@ -20,6 +20,8 @@ from unison_snapshot.whitehouse_278t import (
     TRUMP_081225_PARSER_VERSION,
     TRUMP_2026_PARSER_VERSION,
     parser_version_for_source as trade_parser_version_for_source,
+    plan_whitehouse_278t_archive,
+    NATIVE_VISIBLE_PARSER_VERSIONS,
 )
 
 
@@ -58,7 +60,8 @@ def _load(path: Path) -> dict:
     return value
 
 
-def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade: bool = False, saved_ocr_trade: bool = False, dual_axis_trade: bool = False) -> dict:
+def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade: bool = False, saved_ocr_trade: bool = False, dual_axis_trade: bool = False,
+                   evidence_root: Path | None = None) -> dict:
     reports = index.get("reports")
     archive_rows = batch.get("reports")
     if (index.get("schema_version") != INDEX_SCHEMA or
@@ -104,6 +107,12 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
             is_trade = report.get("document_type_from_label") == "278t"
             versions_to_check = (_trade_versions(metadata["document_url"], sha, generic_trade=generic_trade, saved_ocr_trade=saved_ocr_trade,dual_axis_trade=dual_axis_trade) if is_trade else
                                  _annual_versions(metadata["document_url"], sha))
+            if is_trade and evidence_root is not None and not saved_ocr_trade and not dual_axis_trade:
+                selection = plan_whitehouse_278t_archive(metadata, evidence_root, generic=generic_trade)
+                if selection['parser_version'] in NATIVE_VISIBLE_PARSER_VERSIONS:
+                    # One source-derived current version; older successes and
+                    # failures remain history, never a fallback from uncertainty.
+                    versions_to_check = (selection['parser_version'],)
             forbidden_v3 = folder / f"{TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json"
             if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != TRUMP_081225_PARSER_VERSION and
                     forbidden_v3.is_file()):
@@ -207,6 +216,7 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-root", type=Path, required=True)
+    parser.add_argument('--evidence-root', type=Path)
     parser.add_argument("--generic-trade", action="store_true")
     parser.add_argument("--saved-ocr-trade", action="store_true")
     parser.add_argument("--dual-axis-trade",action="store_true")
@@ -217,7 +227,8 @@ def main() -> None:
     root = args.review_root / "whitehouse/disclosures"
     result = build_coverage(_load(root / "index-current.json"),
                             _load(root / "batch-current.json"), args.review_root, generic_trade=args.generic_trade,
-                            saved_ocr_trade=args.saved_ocr_trade,dual_axis_trade=args.dual_axis_trade)
+                            saved_ocr_trade=args.saved_ocr_trade,dual_axis_trade=args.dual_axis_trade,
+                            evidence_root=args.evidence_root)
     target = args.output or args.review_root / "whitehouse/coverage-current.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, ensure_ascii=False, sort_keys=True,

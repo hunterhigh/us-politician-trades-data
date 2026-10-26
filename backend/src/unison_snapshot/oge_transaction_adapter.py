@@ -129,7 +129,8 @@ def _amount_readings(readings: list[dict]) -> list[tuple[dict, list, bool]]:
 
 def open_amount_qualified(row: dict, parser_version: str) -> bool:
     from .oge_278t_amount_categories import observe_template_amount
-    if parser_version not in {GENERIC_PARSER_VERSION, OBSERVED_PARSER_VERSION}:
+    from .oge_native_partition import GENERIC_VERSION as VISIBLE_GENERIC
+    if parser_version not in {GENERIC_PARSER_VERSION, OBSERVED_PARSER_VERSION, VISIBLE_GENERIC}:
         return False
     raw = row.get("amount_raw")
     if not isinstance(raw, str):
@@ -559,7 +560,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                               legacy_extraction: dict | None = None,
                               formal_reference_facts: list[dict] | None = None,
                               cross_source_evidence_root: str | Path | None = None,
-                              cross_source_review_root: str | Path | None = None) -> dict:
+                              cross_source_review_root: str | Path | None = None,
+                              evidence_root: str | Path | None = None) -> dict:
     """Map a parsed, archived 278-T document to ledger rows with full accounting.
 
     This adapter is offline only. It requires the parser's extracted table rows,
@@ -568,6 +570,18 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     """
     if not isinstance(extraction, dict) or not isinstance(catalog_record, dict):
         raise OgeCatalogError("OGE 278-T adapter inputs must be objects")
+    from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSION as VISIBLE_GENERIC, replay_partitioned_oge
+    visible = extraction.get('parser_version') in VISIBLE_VERSIONS
+    if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
+        from .oge_reports import _read_archived_source, selected_parser_version
+        archive = Path(evidence_root)
+        metadata, path, sha = _read_archived_source(archive,
+            archive / f"oge/reports/{extraction.get('document_id')}/{extraction.get('source_sha256')}.json")
+        if selected_parser_version(metadata, path, sha,
+                generic=extraction['parser_version'] == GENERIC_PARSER_VERSION) != extraction['parser_version']:
+            raise OgeCatalogError('OGE ledger cache differs from current original source plan')
+    if visible:
+        extraction = replay_partitioned_oge(extraction, evidence_root)
     if not isinstance(run_id, str) or not run_id.strip():
         raise OgeCatalogError("OGE 278-T adapter requires a run ID")
     collapse_direct_catalog_records([catalog_record])
@@ -599,7 +613,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha):
         raise OgeCatalogError("OGE 278-T adapter requires the archived source hash")
     from .oge_reports import validate_generic_table_interpretation
-    scoped = extraction.get("parser_version") == GENERIC_PARSER_VERSION and "row_interpretation_mode" in extraction
+    scoped = extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and "row_interpretation_mode" in extraction
     if legacy_extraction is not None and formal_reference_facts is None:
         raise OgeCatalogError("legacy scope binding requires the formal reference facts")
     if formal_reference_facts is not None and (not isinstance(formal_reference_facts, list) or
@@ -641,8 +655,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         report_reasons = []
     if extraction.get("evidence_complete") is not True or extraction.get("document_reasons"):
         report_reasons.append("document_evidence_incomplete")
-    if (extraction.get("parser_version") == GENERIC_PARSER_VERSION or
-            extraction.get("source_parser_version") == GENERIC_PARSER_VERSION) and not generic_cover_evidence_valid(extraction):
+    if (extraction.get("parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} or
+            extraction.get("source_parser_version") in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC}) and not generic_cover_evidence_valid(extraction):
         report_reasons.append("cover_date_evidence_invalid")
     if catalog_record.get("pending_final_oge_disposition") is True:
         report_reasons.append("pending_final_oge_disposition")
@@ -692,7 +706,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         raw_cells = _cells(raw.get("cells"))
         key = _row_key({"page_number": raw["page_number"], "cells": raw_cells})
         parsed = dispositions.get(key, [])
-        if scoped:
+        if scoped or visible:
             matching=[item for item in parsed if item[1].get("source_rows_index") == physical_index - 1]
             if len(matching) > 1:
                 raise OgeCatalogError("OGE scoped source row locator is duplicated")
@@ -701,7 +715,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         normalized: dict[str, object] = {}
         if parsed:
             disposition, parser_row, parser_reasons = parsed.pop(0)
-            if scoped:
+            if scoped or visible:
                 dispositions[key].remove((disposition, parser_row, parser_reasons))
             if recovery is not None and (disposition != "qualified" or
                     parser_row.get("source_bound_row_recovery") != recovery or
@@ -740,9 +754,9 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                 if not isinstance(normalized.get("asset_name"), str) or not normalized["asset_name"].strip():
                     reasons.append("asset_name_not_qualified")
                 if normalized.get("owner") not in {"Self", "Spouse", "Dependent Child"} and not (
-                        parser_version in {OBSERVED_PARSER_VERSION, GENERIC_PARSER_VERSION} and normalized.get("owner") == "Undisclosed"
+                        parser_version in {OBSERVED_PARSER_VERSION, GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and normalized.get("owner") == "Undisclosed"
                         and normalized.get("owner_disclosure_basis") == "not_disclosed_in_bound_six_column_table"
-                        and (parser_version == GENERIC_PARSER_VERSION and generic_cover_evidence_valid(extraction) or
+                        and (parser_version in {GENERIC_PARSER_VERSION, VISIBLE_GENERIC} and generic_cover_evidence_valid(extraction) or
                              normalized.get("observation_reference", {}).get("source_sha256") == source_sha)):
                     reasons.append("owner_not_qualified")
                 if reasons:

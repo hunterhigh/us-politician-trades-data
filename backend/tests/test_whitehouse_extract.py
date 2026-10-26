@@ -35,7 +35,8 @@ class WhiteHouseExtractTests(unittest.TestCase):
 
     def archive(self, suffix: str, kind: str = "278t") -> dict:
         document_id = f"wh-url:{suffix * 24}"
-        content = b"%PDF-1.4\nfixture\n%%EOF"
+        from native_pdf_fixture_bytes import blank_native_pdf
+        content = blank_native_pdf()
         sha = hashlib.sha256(content).hexdigest()
         folder = self.evidence / "whitehouse/disclosures/reports" / document_id[7:]
         folder.mkdir(parents=True)

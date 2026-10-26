@@ -24,11 +24,14 @@ from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 EXTRACTION_SCHEMA = "whitehouse-278t-extraction/v1"
 PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v2"
 GENERIC_PARSER_VERSION = "whitehouse-278t-native-roles/v5"
+NATIVE_VISIBLE_DEFAULT_VERSION = "whitehouse-278t-native-visible-default/v1"
+NATIVE_VISIBLE_GENERIC_VERSION = "whitehouse-278t-native-visible-generic/v1"
+NATIVE_VISIBLE_PARSER_VERSIONS = {NATIVE_VISIBLE_DEFAULT_VERSION, NATIVE_VISIBLE_GENERIC_VERSION}
 SAVED_OCR_PARSER_VERSION = "whitehouse-278t-saved-ocr-roles/v6"
 DUAL_AXIS_PARSER_VERSION = "whitehouse-278t-saved-ocr-dual-axis/v7"
 DUAL_AXIS_MODE = "source_pdf_dual_axis/v1"
 SAVED_OCR_PARSER_VERSIONS = {SAVED_OCR_PARSER_VERSION,DUAL_AXIS_PARSER_VERSION}
-GENERIC_PARSER_VERSIONS = {GENERIC_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS}
+GENERIC_PARSER_VERSIONS = {GENERIC_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS,*NATIVE_VISIBLE_PARSER_VERSIONS}
 _SAVED_OCR_ROOTS = ContextVar("whitehouse_saved_ocr_roots", default=None)
 
 
@@ -122,9 +125,10 @@ _TRUMP_2026_BY_SOURCE = {
     for profile in TRUMP_2026_PROFILES
 }
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
-SUPPORTED_PARSER_VERSIONS = (
+HISTORICAL_PARSER_VERSIONS = (
     PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
     *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION, DUAL_AXIS_PARSER_VERSION)
+SUPPORTED_PARSER_VERSIONS = (*HISTORICAL_PARSER_VERSIONS, *sorted(NATIVE_VISIBLE_PARSER_VERSIONS))
 MAX_INLINE_OCR_PAGES = 100
 MAX_CHECKPOINT_OCR_PAGES = 200
 OCR_CHECKPOINT_SCHEMA = "whitehouse-278t-ocr-checkpoint/v1"
@@ -911,7 +915,7 @@ def _inherit_whitehouse_generic_rows(result: dict, legacy: dict | None) -> dict:
     if legacy is None:
         return result
     if (not isinstance(legacy, dict) or legacy.get("schema_version") != EXTRACTION_SCHEMA or
-            legacy.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+            legacy.get("parser_version") not in HISTORICAL_PARSER_VERSIONS or
             any(legacy.get(key) != result.get(key) for key in
                 ("document_id", "source_sha256", "source_url", "filer_name"))):
         raise OgeCatalogError("White House generic legacy source binding differs")
@@ -1010,8 +1014,8 @@ def _validate_generic_legacy_owner(report: dict, row: dict, expected: dict, repl
 
 def generic_existing_fact(report: dict, row: dict, existing: list[dict], *, expected_person_id: str | None = None) -> dict | None:
     """Only exact-source inherited rows can reference an existing formal fact."""
-    if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION:
-        # The caller has rematerialized this saved report from its bound inputs.
+    if report.get("parser_version") in {DUAL_AXIS_PARSER_VERSION, *NATIVE_VISIBLE_PARSER_VERSIONS}:
+        # The caller has rematerialized this report from its bound inputs.
         # A current-source repeat is not a legacy owner correction or a match by
         # similar fields: the complete publication object must be identical.
         from .whitehouse_278t_candidate import _transaction
@@ -1385,7 +1389,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
     legacy = None
     if inputs.get("legacy_extraction_path") is not None:
         legacy, _ = read("legacy_extraction")
-        if (legacy.get("schema_version") != EXTRACTION_SCHEMA or legacy.get("parser_version") not in SUPPORTED_PARSER_VERSIONS or
+        if (legacy.get("schema_version") != EXTRACTION_SCHEMA or legacy.get("parser_version") not in HISTORICAL_PARSER_VERSIONS or
                 any(legacy.get(k) != value for k,value in (("document_id",document),("source_sha256",sha),("source_url",url)))):
             raise OgeCatalogError("White House saved OCR legacy source differs")
     count = legacy.get("page_count") if legacy else inputs.get("document_page_count")
@@ -1584,6 +1588,16 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
 def generic_whitehouse_filing_date(report: dict) -> str | None:
     """Validate same-source first-page role evidence without borrowing another date."""
     from .oge_reports import read_278t_cover_dates
+    if report.get('parser_version') == NATIVE_VISIBLE_DEFAULT_VERSION:
+        pages = report.get('native_text_partition', {}).get('pages', [])
+        if not pages:
+            raise OgeCatalogError('White House native visible cover evidence is unavailable')
+        filed, method, raw, name, _ = _filer_signature(pages[0]['visible_text'])
+        if any(report.get(key) != value for key, value in
+               (('filed_at', filed), ('signature_method', method),
+                ('filer_signature_evidence', raw), ('filer_signature_name', name))):
+            raise OgeCatalogError('White House native visible default signature differs')
+        return filed
     evidence = report.get("cover_date_evidence", {})
     if (not isinstance(evidence.get("cover_text"), str) or
             _generic_cover_dates(evidence["cover_text"], report["source_sha256"],
@@ -1605,6 +1619,8 @@ def generic_whitehouse_filing_date(report: dict) -> str | None:
 
 def validate_generic_whitehouse_report(report: dict) -> dict:
     """Recompute roles and exact row interpretations before qualification."""
+    if report.get('parser_version') in NATIVE_VISIBLE_PARSER_VERSIONS:
+        return validate_native_visible_whitehouse_report(report)
     if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS:
         replay = materialize_saved_whitehouse_278t(report.get("saved_ocr_input"))
         if replay != report:
@@ -1686,9 +1702,124 @@ def validate_generic_whitehouse_report(report: dict) -> dict:
     return by_key
 
 
+def plan_whitehouse_278t_source(pdf_path: Path, *, source_url: str, source_sha256: str,
+                                generic: bool = False) -> dict:
+    """Select from original source modes before consulting a saved result."""
+    baseline = GENERIC_PARSER_VERSION if generic else parser_version_for_source(source_url, source_sha256)
+    if not generic and baseline != PARSER_VERSION:
+        return {'parser_version': baseline, 'partition_plan': None}
+    from .native_text_partition import plan_native_text_partition
+    plan = plan_native_text_partition(Path(pdf_path), expected_sha256=source_sha256)
+    unchanged = plan.get('activated') is False and plan.get('inventory_complete') is True
+    return {'parser_version': baseline if unchanged else
+            NATIVE_VISIBLE_GENERIC_VERSION if generic else NATIVE_VISIBLE_DEFAULT_VERSION,
+            'partition_plan': plan}
+
+
+def _native_partition_inputs(proof: dict) -> tuple:
+    pages = proof.get('pages', [])
+    cover = pages[0] if pages else {}
+    return ('\n'.join(page.get('visible_text', '') for page in pages),
+        [(page, list(cells)) for page, cells in proof.get('inventory', [])],
+        {'text': cover.get('visible_text', ''), 'document_page_count': len(pages),
+         'source_visible': cover.get('status') == 'observed'})
+
+
+def _native_sequence_gap_explained(proof: dict, rows: list[dict]) -> bool:
+    """Account for missing numbers by independent physical unknown slots only."""
+    located = {row['row_number']: row['source_rows_index'] for row in rows
+        if type(row.get('row_number')) is int and type(row.get('source_rows_index')) is int}
+    if not located:
+        return False
+    unknown_indices = {row['source_rows_index'] for row in rows if row.get('native_unknown_source_row')}
+    financial = {row['source_rows_index'] for row in proof.get('rows', [])
+        if row.get('financial_slot') is True and row.get('reasons') and
+        row.get('source_rows_index') in unknown_indices}
+    if max(located) - len(located) > len(financial):
+        return False
+    gaps = {}
+    for missing in set(range(1, max(located) + 1)) - set(located):
+        lower = max((number for number in located if number < missing), default=0)
+        upper = min(number for number in located if number > missing)
+        bounds = (located[lower] if lower else -1, located[upper])
+        gaps[bounds] = gaps.get(bounds, 0) + 1
+    return bool(gaps) and all(sum(left < index < right for index in financial) >= count
+        for (left, right), count in gaps.items())
+
+
+def plan_whitehouse_278t_archive(metadata: dict, evidence_root: Path, *, generic: bool = False) -> dict:
+    baseline = GENERIC_PARSER_VERSION if generic else parser_version_for_source(
+        metadata.get('document_url'), metadata.get('sha256'))
+    if not generic and baseline != PARSER_VERSION:
+        return {'parser_version': baseline, 'partition_plan': None}
+    from .whitehouse_disclosures import read_archived_pdf
+    content = read_archived_pdf(evidence_root, metadata)
+    with tempfile.TemporaryDirectory(prefix='whitehouse-native-plan-') as temporary:
+        path = Path(temporary) / 'source.pdf'
+        path.write_bytes(content)
+        return plan_whitehouse_278t_source(path, source_url=metadata['document_url'],
+            source_sha256=metadata['sha256'], generic=generic)
+
+
+def parse_native_visible_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
+        source_sha256: str, document_id: str, filer_name: str,
+        amended_label: str | None = None, generic: bool = False) -> dict:
+    """Interpret a source-selected projection without OCR or legacy migration."""
+    from .native_text_partition import observe_native_text_partition
+    _validate_source(source_url, source_sha256, document_id, filer_name)
+    if not generic and parser_version_for_source(source_url, source_sha256) != PARSER_VERSION:
+        raise OgeCatalogError('White House fixed source keeps its historical default parser')
+    proof = observe_native_text_partition(Path(pdf_path), expected_sha256=source_sha256)
+    if proof.get('activated') is False:
+        raise OgeCatalogError('White House source does not select native visible parsing')
+    parser = parse_generic_whitehouse_278t_pdf if generic else parse_whitehouse_278t_pdf
+    return parser(Path(pdf_path), source_url=source_url, source_sha256=source_sha256,
+        document_id=document_id, filer_name=filer_name, amended_label=amended_label,
+        _native_partition=proof)
+
+
+def replay_native_visible_whitehouse_report(report: dict) -> dict:
+    """Reopen the controlled original; saved projection labels grant nothing."""
+    version = report.get('parser_version')
+    roots = _SAVED_OCR_ROOTS.get()
+    if version not in NATIVE_VISIBLE_PARSER_VERSIONS or roots is None or roots[0] is None:
+        raise OgeCatalogError('White House native visible replay requires controlled evidence roots')
+    evidence = roots[0]
+    document, sha = report.get('document_id'), report.get('source_sha256')
+    _validate_source(report.get('source_url'), sha, document, report.get('filer_name'))
+    path = (evidence / 'whitehouse/disclosures/reports' / document.removeprefix('wh-url:') /
+            f'{sha}.json').resolve(strict=True)
+    if not path.is_relative_to(evidence):
+        raise OgeCatalogError('White House native visible metadata escaped controlled evidence')
+    metadata = json.loads(path.read_bytes())
+    if any(metadata.get(key) != expected for key, expected in
+           (('document_id', document), ('document_url', report['source_url']), ('sha256', sha),
+            ('filer_name_from_label', report['filer_name']), ('link_label', report.get('amended_label')))):
+        raise OgeCatalogError('White House native visible metadata differs from selected source')
+    from .whitehouse_disclosures import read_archived_pdf
+    content = read_archived_pdf(evidence, metadata)
+    with tempfile.TemporaryDirectory(prefix='whitehouse-native-visible-') as temporary:
+        pdf_path = Path(temporary) / 'source.pdf'
+        pdf_path.write_bytes(content)
+        return parse_native_visible_whitehouse_278t_pdf(pdf_path, source_url=report['source_url'],
+            source_sha256=sha, document_id=document, filer_name=report['filer_name'],
+            amended_label=report.get('amended_label'), generic=version == NATIVE_VISIBLE_GENERIC_VERSION)
+
+
+def validate_native_visible_whitehouse_report(report: dict) -> dict:
+    replay = replay_native_visible_whitehouse_report(report)
+    if replay != report:
+        raise OgeCatalogError('White House native visible report differs from complete original-source replay')
+    by_key = {}
+    for row in replay['transactions'] + replay['quarantined']:
+        by_key.setdefault((row['page_number'], tuple(row['cells'])), []).append(row)
+    return by_key
+
+
 def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         source_sha256: str, document_id: str, filer_name: str,
-        amended_label: str | None = None, legacy_extraction: dict | None = None) -> dict:
+        amended_label: str | None = None, legacy_extraction: dict | None = None,
+        _native_partition: dict | None = None) -> dict:
     """Opt-in native parsing; scans remain unknown without new OCR side effects."""
     from .oge_reports import read_278t_cover_dates, _compact
     _validate_source(source_url, source_sha256, document_id, filer_name)
@@ -1696,7 +1827,10 @@ def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     _validate_pdf(content)
     if hashlib.sha256(content).hexdigest() != source_sha256:
         raise OgeCatalogError("White House generic source PDF hash differs")
-    text, _, inventory, cover = _extract_pdf(Path(pdf_path), include_inventory=True, include_cover=True)
+    if _native_partition is None:
+        text, _, inventory, cover = _extract_pdf(Path(pdf_path), include_inventory=True, include_cover=True)
+    else:
+        text, inventory, cover = _native_partition_inputs(_native_partition)
     dates = read_278t_cover_dates(cover["text"], source_sha256=source_sha256)
     name, position, agency, role_raw, identity_reasons = _generic_cover_identity(cover["text"])
     reasons = list(dates["document_reasons"]) + identity_reasons
@@ -1708,7 +1842,15 @@ def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         reasons.append("amendment_relationship_unresolved")
     if re.search(r"\bEXHIBIT\s+[A-Z]\b|\bData\s+Revised\b", text, re.I):
         reasons.append("replacement_block_relationship_unresolved")
-    good, bad, structural = _generic_table_rows(inventory, source_sha256=source_sha256)
+    if _native_partition is None:
+        good, bad, structural = _generic_table_rows(inventory, source_sha256=source_sha256)
+    else:
+        from .native_partition_rows import interpret_partition_rows
+        good, bad, structural = interpret_partition_rows(_native_partition, source_sha256=source_sha256,
+            generic=True)
+        reasons.extend(_native_partition.get('document_reasons', []))
+        if not cover.get('source_visible'):
+            reasons.append('native_visible_cover_unproved')
     if not good and not bad:
         reasons.append("transaction_table_not_found_native_text_only")
     result = {"schema_version": EXTRACTION_SCHEMA, "parser_version": GENERIC_PARSER_VERSION,
@@ -1721,14 +1863,20 @@ def parse_generic_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         "page_count": cover["document_page_count"], "transactions": good, "quarantined": bad,
         "source_rows": [{"page_number": p, "cells": [_compact(c) for c in row]} for p,row in inventory],
         "structural_rows": structural, "document_reasons": sorted(set(reasons)), "evidence_complete": not reasons}
-    result = _inherit_whitehouse_generic_rows(result, legacy_extraction)
+    if _native_partition is None:
+        result = _inherit_whitehouse_generic_rows(result, legacy_extraction)
+    else:
+        result['parser_version'] = NATIVE_VISIBLE_GENERIC_VERSION
+        result['native_text_partition'] = deepcopy(_native_partition)
+        result['extraction_method'] = 'source_bound_native_visible_partition'
     result["source_row_count"] = len(result["transactions"]) + len(result["quarantined"])
     return result
 
 
 def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
                               source_sha256: str, document_id: str,
-                              filer_name: str, amended_label: str | None = None) -> dict:
+                              filer_name: str, amended_label: str | None = None,
+                              _native_partition: dict | None = None) -> dict:
     """Extract row evidence; uncertain filings and rows remain quarantined.
 
     ``source_sha256`` is the archive's expected byte hash, not a web header.
@@ -1748,8 +1896,13 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     _validate_pdf(content)
     if hashlib.sha256(content).hexdigest() != source_sha256:
         raise OgeCatalogError("White House 278-T PDF does not match archive hash")
-    text, rows = _extract_pdf(Path(pdf_path))
-    first_page = text.split("Transactions", 1)[0] if text else ""
+    if _native_partition is None:
+        text, rows = _extract_pdf(Path(pdf_path))
+        first_page = text.split("Transactions", 1)[0] if text else ""
+    else:
+        text, rows, cover = _native_partition_inputs(_native_partition)
+        first_page = cover['text']
+        parser_version = NATIVE_VISIBLE_DEFAULT_VERSION
     filed_at, signature_method, signature_raw, signature_name, reasons = _filer_signature(first_page)
     pdf_filer_name, pdf_position_title, pdf_agency_label, pdf_role_raw, identity_reasons = (
         _filer_information(first_page))
@@ -1764,6 +1917,13 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     needs_ocr = ((not rows and native_cover_incomplete) or
                  (bool(rows) and (not title_verified or
                                   (pdf_filer_name is None and len(content) > 100_000))))
+    if _native_partition is not None:
+        needs_ocr = False
+        page_count = len(_native_partition.get('pages', []))
+        extraction_method = 'source_bound_native_visible_partition'
+        reasons.extend(_native_partition.get('document_reasons', []))
+        if not cover.get('source_visible'):
+            reasons.append('native_visible_cover_unproved')
     if needs_ocr:
         ocr = _extract_ocr_pdf(Path(pdf_path), filer_name)
         first_page = ocr["text"]
@@ -1843,7 +2003,12 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     if not rows:
         reasons.append("transaction_table_not_found")
 
-    transactions, quarantined = parse_table_rows(rows, source_sha=source_sha256)
+    if _native_partition is None:
+        transactions, quarantined = parse_table_rows(rows, source_sha=source_sha256)
+    else:
+        from .native_partition_rows import interpret_partition_rows
+        transactions, quarantined, structural = interpret_partition_rows(_native_partition,
+            source_sha256=source_sha256, generic=False, default_owner='Self')
     if ocr_records is not None:
         transactions, quarantined = _attach_ocr_evidence(
             transactions, quarantined, ocr_records)
@@ -1851,8 +2016,12 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         reasons.append("no_transaction_rows_found")
     numbered = [row["row_number"] for row in [*transactions, *quarantined]
                 if isinstance(row, dict) and type(row.get("row_number")) is int]
-    if numbered and sorted(numbered) != list(range(1, max(numbered) + 1)):
-        reasons.append("transaction_row_sequence_incomplete")
+    sequence_unknown = False
+    if any(number != expected for expected, number in enumerate(sorted(numbered), 1)):
+        sequence_unknown = (_native_partition is not None and len(set(numbered)) == len(numbered) and
+            _native_sequence_gap_explained(_native_partition, transactions + quarantined))
+        if not sequence_unknown:
+            reasons.append("transaction_row_sequence_incomplete")
     if len(numbered) != len(set(numbered)):
         reasons.append("transaction_row_number_duplicated")
     for row in transactions:
@@ -1888,6 +2057,11 @@ def parse_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
         "evidence_complete": not reasons,
         "transactions": transactions,
         "quarantined": quarantined,
+        **({'native_text_partition': deepcopy(_native_partition),
+            'source_rows': [{'page_number': page, 'cells': list(cells)} for page, cells in rows],
+            'structural_rows': structural,
+            **({'native_visible_sequence_status': 'partial_physical_unknown'} if sequence_unknown else {})}
+           if _native_partition is not None else {}),
     }
 
 

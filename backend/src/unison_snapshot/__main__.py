@@ -357,6 +357,7 @@ def main() -> None:
     oge_candidate.add_argument("--catalog", type=Path, required=True)
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
+    oge_candidate.add_argument("--evidence-root", type=Path)
     oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
     oge_candidate.add_argument("--generic", action="store_true")
     oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
@@ -1005,8 +1006,11 @@ def main() -> None:
                 "parsed_extraction_count", "failure_count", "transaction_count",
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
+            from .oge_native_partition import DEFAULT_VERSION as VISIBLE_DEFAULT, GENERIC_VERSION as VISIBLE_GENERIC
+            from .oge_reports import selected_parser_version, _read_archived_source
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
             selected_extractions = {}
+            required_current_documents = set()
             legacy_extractions = {}
             if args.legacy_extractions_dir:
                 if not args.generic:
@@ -1023,13 +1027,20 @@ def main() -> None:
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
                 document_id = value.get("document_id")
-                if version not in {OGE_REPORT_PARSER_VERSION,
+                if version not in {OGE_REPORT_PARSER_VERSION, VISIBLE_DEFAULT,
                                    TRUMP_SEPT_2026_PARSER_VERSION,
                                    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
                                    TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
-                        args.generic and version == OGE_GENERIC_PARSER_VERSION):
+                        args.generic and version in {OGE_GENERIC_PARSER_VERSION, VISIBLE_GENERIC}):
                     continue
+                if args.evidence_root is not None:
+                    metadata_path = args.evidence_root / f"oge/reports/{document_id}/{value.get('source_sha256')}.json"
+                    metadata, source_path, source_sha = _read_archived_source(args.evidence_root, metadata_path)
+                    expected = selected_parser_version(metadata, source_path, source_sha, generic=args.generic)
+                    required_current_documents.add(document_id)
+                    if version != expected:
+                        continue
                 if version in {TRUMP_SEPT_2026_PARSER_VERSION,
                                TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -1067,6 +1078,8 @@ def main() -> None:
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value
+            if required_current_documents - set(selected_extractions):
+                raise OgeCatalogError('A current source-selected OGE extraction is missing')
             extractions = list(selected_extractions.values())
             if args.manual_cover_dates_dir:
                 from .oge_manual_dates import apply_manual_cover_dates
@@ -1082,6 +1095,7 @@ def main() -> None:
             base = json.loads(args.base.read_text(encoding="utf-8"))
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
+                evidence_root=args.evidence_root,
                 catalog_history=catalog_history,
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}

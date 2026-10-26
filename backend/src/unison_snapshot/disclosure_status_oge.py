@@ -7,7 +7,7 @@ grant transaction qualification or a name-based crosswalk.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime
 import hashlib
 import json
@@ -541,6 +541,87 @@ def _saved_whitehouse_counts(record: dict, audit: dict, review: Path | None,
              "page_count_basis", "source_original_verified", "selected_page_numbers")}}}
 
 
+def _native_partition_counts(record, audit, review, evidence):
+    """Reopen the selected native projection before reporting its status."""
+    from .native_partition_rows import partition_binding
+    from .oge_native_partition import VERSIONS, replay_partitioned_oge
+    from .whitehouse_278t import (NATIVE_VISIBLE_PARSER_VERSIONS,
+        saved_ocr_source_roots, validate_native_visible_whitehouse_report)
+    binding = audit.get('native_source_partition_binding')
+    version, sha = audit.get('parser_version'), audit.get('source_sha256')
+    if review is None or evidence is None or not isinstance(binding, dict) or sha not in record['source_versions']:
+        raise ValueError('Native partition report status requires its selected review and original')
+    whitehouse = version in NATIVE_VISIBLE_PARSER_VERSIONS
+    if not whitehouse and version not in VERSIONS:
+        raise ValueError('Native partition report status parser is unsupported')
+    prefix = ('whitehouse/extractions/' + record['report_id'].removeprefix('wh-url:')
+              if whitehouse else 'oge/extractions/' + record['report_id'])
+    report = _read(review / prefix / sha / (version.replace('/', '-') + '.json'))
+    if report.get('source_url') != record['source_url'] or report.get('document_id') != record['report_id']:
+        raise ValueError('Native partition status crossed report identity')
+    if whitehouse:
+        with saved_ocr_source_roots(evidence, review):
+            validate_native_visible_whitehouse_report(report)
+    else:
+        replay_partitioned_oge(report, evidence)
+    if binding != partition_binding(report['native_text_partition'], version):
+        raise ValueError('Native partition report status differs from original projection')
+    audit_reasons = audit.get('document_reasons', [])
+    if not isinstance(audit_reasons, list) or not set(report.get('document_reasons', [])) <= set(audit_reasons):
+        raise ValueError('Native partition status erased original document blockers')
+    retained = audit.get('retained_ids', []) if whitehouse else []
+    current_good = {row.get('extraction_id') for row in report['transactions']}
+    if report.get('document_reasons'):
+        current_good = set()
+    current_qualified_count = None
+    if whitehouse:
+        decisions = _rows(audit, 'rows')
+        source = report['transactions'] + report['quarantined']
+        if len(source) != len(decisions) or any(
+                decision.get('extraction_id') != row.get('extraction_id') or
+                decision.get('row_number') != row.get('row_number') or
+                not set(row.get('reasons', [])) <= set(decision.get('reasons', []) if isinstance(decision.get('reasons'), list) else []) or
+                decision.get('status') not in {'promoted', 'retained_existing', 'quarantined'} or
+                decision.get('status') != 'quarantined' and row.get('extraction_id') not in current_good
+                for row, decision in zip(source, decisions)):
+            raise ValueError('Native partition status decisions differ from visible source rows')
+        expected = [row['extraction_id'] for row in decisions if row.get('status') == 'retained_existing']
+        if not isinstance(retained, list) or retained != expected or len(set(retained)) != len(retained) or not set(retained) <= current_good:
+            raise ValueError('Native partition retained status differs from visible source rows')
+        if (audit.get('promoted_count') != sum(row['status'] == 'promoted' for row in decisions) or
+                audit.get('retained_count') != len(retained) or
+                audit.get('quarantined_count') != sum(row['status'] == 'quarantined' for row in decisions)):
+            raise ValueError('Native partition qualification counts differ from source decisions')
+    else:
+        published = audit.get('native_partition_published_ids')
+        preserved = audit.get('native_partition_retained_formal_ids')
+        rejected = _rows(audit, 'quarantined')
+        all_source_ids = {row.get('extraction_id') for row in report['transactions'] + report['quarantined']}
+        def rejection_key(row):
+            return json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        required_rejections = Counter(rejection_key(row) for row in report['quarantined'])
+        observed_rejections = Counter(rejection_key(row) for row in rejected)
+        if (not isinstance(published, list) or not isinstance(preserved, list) or
+                any(not isinstance(value, str) for value in published + preserved) or
+                len(set(published)) != len(published) or len(set(preserved)) != len(preserved) or
+                not set(preserved) <= set(published) or
+                not set(published) - set(preserved) <= current_good or
+                audit.get('promoted_count') != len(published) or
+                audit.get('quarantined_count') != len(rejected) or
+                bool(required_rejections - observed_rejections) or
+                any(row.get('extraction_id') not in all_source_ids for row in rejected)):
+            raise ValueError('Native partition qualification counts differ from source decisions')
+        # Publication may preserve historical complete facts that the current
+        # visible projection cannot qualify again. Keep those separate.
+        current_qualified_count = len(set(published) & current_good)
+    return {'source_observation_coverage': {'coverage_complete': False,
+                'unknown_regions': report['native_text_partition'].get('unknown_regions', []),
+                'page_count_basis': 'same_sha_original_native_partition'},
+            'qualified_retained_transaction_ids': retained,
+            **({'native_partition_current_qualified_count': current_qualified_count}
+               if current_qualified_count is not None else {})}
+
+
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                  evidence: Path | None = None, catalog_record: dict | None = None) -> None:
     application_view = None
@@ -578,23 +659,27 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                        isinstance(receipt, dict) and (
                            receipt.get("mode") == "saved_ocr_words" or
                            receipt.get("schema_version") == "whitehouse-278t-saved-ocr-receipt/v1"))
-    separate_counts = (_saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
+    native_partition = 'native_source_partition_binding' in audit
+    separate_counts = (_native_partition_counts(record, audit, review, evidence) if native_partition else
+                       _saved_whitehouse_counts(record, audit, review, evidence) if saved_whitehouse else
                        _native_exhibit_counts(record, audit) if native_exhibit else
                        _observed_reference_counts(record, audit, review, evidence, catalog_record)
                        if "quarantine_count_unit" in audit else {})
     promoted = _count(audit.get("promoted_count"))
     quarantined = _count(audit.get("quarantined_count"))
-    retained = (separate_counts.pop("qualified_retained_transaction_ids", []) if saved_whitehouse else
+    retained = (separate_counts.pop("qualified_retained_transaction_ids", []) if saved_whitehouse or native_partition else
                 _whitehouse_retained_ids(record, audit, review))
     if retained:
         if promoted is None:
             raise ValueError("White House retained qualification lacks a promoted count")
         promoted += len(retained)
         record["qualified_retained_transaction_ids"] = retained
+    if 'native_partition_current_qualified_count' in separate_counts:
+        promoted = separate_counts.pop('native_partition_current_qualified_count')
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
-    incomplete_observations = isinstance(receipt, dict) and receipt.get("coverage_complete") is not True
+    incomplete_observations = native_partition or isinstance(receipt, dict) and receipt.get("coverage_complete") is not True
     if incomplete_observations:
         record["reason_codes"].append("observed_source_coverage_incomplete")
     if promoted is None or quarantined is None:

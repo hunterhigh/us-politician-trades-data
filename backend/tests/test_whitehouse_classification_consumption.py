@@ -338,13 +338,22 @@ class NativeClassificationConsumptionTests(unittest.TestCase):
             'coverage_input':selected.relative_to(self.review).as_posix(),
             'extraction_status_input':selected_status.relative_to(self.review).as_posix()}
         real_open = pdfplumber.open
+        from unison_snapshot.whitehouse_278t import plan_whitehouse_278t_archive as real_plan
+        def source_plan(metadata, evidence_root, *, generic=False):
+            if metadata['sha256'] == d['wh']['source_sha256']:
+                # This pre-existing EXHIBIT fixture supplies offline native
+                # readings. It does not exercise the new mode inventory.
+                return {'parser_version': d['wh']['parser_version'], 'partition_plan': None}
+            return real_plan(metadata, evidence_root, generic=generic)
         def opened(path, *args, **kwargs):
             # Fixed OGE readings exercise the old EXHIBIT consumer only. The
             # new native correction always reads and parses its real PDF bytes.
-            if Path(path).stem == native['source_sha256']:
+            if (hasattr(path, 'getvalue') and hashlib.sha256(path.getvalue()).hexdigest() == native['source_sha256'] or
+                    not hasattr(path, 'getvalue') and Path(path).stem == native['source_sha256']):
                 return real_open(path, *args, **kwargs)
             return _Document([_Page('', [d['raw']])])
         with patch('pdfplumber.open', side_effect=opened), \
+                patch('unison_snapshot.whitehouse_278t.plan_whitehouse_278t_archive', side_effect=source_plan), \
                 patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page', side_effect=d['native']), \
                 patch('unison_snapshot.oge_reports._extract_borderless_transaction_tables', return_value=[]):
             candidate, _, _ = cross._bound_whitehouse_candidate(inputs, self.evidence, self.review)
