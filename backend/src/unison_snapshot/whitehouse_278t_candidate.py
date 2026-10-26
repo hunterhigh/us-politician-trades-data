@@ -78,12 +78,12 @@ def _cross_source_bindings(extractions, bindings):
 
 def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
                          annual_extractions=None, directory_index=None, annual_identity_people=None,
-                         source_bindings=None):
+                         source_bindings=None, native_classification_sources=None):
     base = deepcopy(base)
     removed_duplicates = []
     cross = _cross_source_bindings(extractions, source_bindings)
     canonical, aliases = resolve_exact_source_reports(extractions, coverage,
-                                                     existing_transactions=base["transactions"])
+        existing_transactions=base["transactions"], native_classification_sources=native_classification_sources)
     complete = deepcopy(canonical)
     groups = {group["canonical_document_id"]: group for group in aliases}
     retained, receipts = [], []
@@ -143,7 +143,17 @@ def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
                                     ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()})
                     base["transactions"] = [old for old in base["transactions"] if old["id"] not in duplicate_ids]
                     matches = [keep]
-            if len(matches) == 1:
+            classification_row = (native_classification_sources is not None and
+                native_classification_sources.includes_row(report, row) and
+                any(old.get('id') == row.get('extraction_id') and
+                    old.get('source_url') == report.get('source_url') and
+                    old.get('filing_id') == report.get('document_id') for old in matches))
+            if classification_row:
+                # This canonical row needs the ordinary retained consumer's
+                # complete source projection, including on a current repeat.
+                # Counting it here as well would duplicate the disposition.
+                remaining.append(row)
+            elif len(matches) == 1:
                 retained.append({"document_id": report["document_id"],
                                  "extraction_id": row["extraction_id"],
                                  "row_number": row["row_number"], "formal_transaction_id": matches[0]["id"],
@@ -190,25 +200,30 @@ def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
 
 def audit_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], coverage: dict,
                                                 *, annual_extractions=None, directory_index=None,
-                                                annual_identity_people=None, source_bindings=None) -> dict:
+                                                annual_identity_people=None, source_bindings=None,
+                                                native_classification_sources=None) -> dict:
     """Explicit development entry; the existing production default is unchanged."""
     return _exact_source_inputs(base, extractions, coverage, annual_extractions,
-                                directory_index, annual_identity_people, source_bindings)[1]
+                                directory_index, annual_identity_people, source_bindings,
+                                native_classification_sources)[1]
 
 
 def build_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], audit: dict,
                                                 coverage: dict, *, data_cutoff_at: str,
                                                 annual_extractions=None, directory_index=None,
-                                                annual_identity_people=None, source_bindings=None) -> tuple[dict, dict]:
+                                                annual_identity_people=None, source_bindings=None,
+                                                native_classification_sources=None) -> tuple[dict, dict]:
     """Consume exact PDF copies once and retain their source aliases and old IDs."""
     selected, expected, complete, consumer_base = _exact_source_inputs(base, extractions, coverage, annual_extractions,
-                                              directory_index, annual_identity_people, source_bindings)
+                                              directory_index, annual_identity_people, source_bindings,
+                                              native_classification_sources)
     if audit != expected:
         raise OgeCatalogError("White House exact-source qualification is stale or altered")
     candidate, result = build_whitehouse_278t_review_candidate(
         consumer_base, selected, expected["canonical_eligibility"], coverage, data_cutoff_at=data_cutoff_at,
         annual_extractions=annual_extractions, directory_index=directory_index,
-        annual_identity_people=annual_identity_people, source_complete_extractions=complete)
+        annual_identity_people=annual_identity_people, source_complete_extractions=complete,
+        native_classification_sources=native_classification_sources)
     outcomes = {(report["document_id"], row["row_number"]): row
                 for report in result["reports"] for row in report["rows"]}
     retained = {(row["document_id"], row["row_number"]): row for row in expected["retained_rows"]}
@@ -342,7 +357,8 @@ def build_whitehouse_278t_review_candidate(
         annual_extractions: list[dict] | None = None,
         directory_index: dict | None = None,
         annual_identity_people: list[dict] | None = None,
-        source_complete_extractions: list[dict] | None = None) -> tuple[dict, dict]:
+        source_complete_extractions: list[dict] | None = None,
+        native_classification_sources=None) -> tuple[dict, dict]:
     """Return an append-only OGE review candidate and every source row's fate.
 
     The supplied audit is recomputed from these exact inputs to reject stale or
@@ -492,10 +508,26 @@ def build_whitehouse_278t_review_candidate(
                     inheritance = source_row.get("legacy_inheritance", {})
                     corrections = [value for value in (inheritance.get("owner_correction"), inheritance.get("account_display_correction"))
                                    if value and retained.get(value["field"]) != value["new_value"]]
+                    replacement = deepcopy(retained)
+                    for correction in corrections:
+                        replacement[correction["field"]] = correction["new_value"]
+                    if native_classification_sources is not None:
+                        from .whitehouse_native_correction import reconcile_native_classification
+                        original = [value for value in source_complete_extractions or []
+                                    if value.get('document_id') == report['document_id']]
+                        classification_report = original[0] if len(original) == 1 else report
+                        classified = reconcile_native_classification(classification_report, source_row, retained,
+                            person_id=person['id'], source_people=candidate['people'],
+                            sources=native_classification_sources)
+                        if classified is not None:
+                            if any(classified['fact'].get(value['field']) != value['new_value']
+                                   for value in corrections):
+                                raise OgeCatalogError('White House classification conflicts with a source field correction')
+                            replacement = classified['fact']
+                            by_field = {value['field']: value for value in corrections}
+                            by_field.update({value['field']: value for value in classified['corrections']})
+                            corrections = [by_field[key] for key in sorted(by_field)]
                     if corrections:
-                        replacement = deepcopy(retained)
-                        for correction in corrections:
-                            replacement[correction["field"]] = correction["new_value"]
                         corrected_existing[row_id] = {"fact": replacement, "audit": [{**correction,
                             "formal_id": row_id, "source_sha256": report["source_sha256"],
                             "page_number": source_row["page_number"], "cells": source_row["cells"]} for correction in corrections]}

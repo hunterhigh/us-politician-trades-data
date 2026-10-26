@@ -19,7 +19,7 @@ def encoded(value):
     return (json.dumps(value, ensure_ascii=False, sort_keys=True) + '\n').encode()
 
 
-def fixture(extra=None):
+def fixture(extra=None, asset='Example Common Stock See Endnote (EXM)'):
     import pymupdf
     from unison_snapshot.whitehouse_disclosures import parse_disclosure_index
     from unison_snapshot.whitehouse_278t import parse_generic_whitehouse_278t_pdf, PARSER_VERSION
@@ -41,7 +41,7 @@ def fixture(extra=None):
     edges=[30,50,350,410,480,550,680]
     table=[['#','DESCRIPTION','TYPE','DATE','NOTIFICATION','AMOUNT']]
     if extra=='scope':table.append(['','Spouse retirement account unclear','','','',''])
-    table.append(['1','Example Common Stock See Endnote (EXM)','Purchase','06/01/2026','No','$1,001 - $15,000'])
+    table.append(['1',asset,'Purchase','06/01/2026','No','$1,001 - $15,000'])
     if extra=='unrelated':table.append(['2','Unrelated Company (OTH)','Purchase','06/02/2026','No','unread amount'])
     for x in edges:page.draw_line((x,100),(x,100+len(table)*25))
     for y in range(100,101+len(table)*25,25):page.draw_line((30,y),(680,y))
@@ -238,7 +238,9 @@ class WhiteHouseOwnerCorrectionTests(unittest.TestCase):
         with self.assertRaises(InventoryError):self.verify(fixture(extra='scope'))
 
     def test_normal_candidate_then_real_git_delta_cli_automatic_explicit_and_repeat(self):
-        old,expected,review,evidence,base=deepcopy(self.data)
+        # Classification has its own migration now. Keep this normal CLI
+        # contract exercising the distinct owner-only Bond -> Bond behavior.
+        old,expected,review,evidence,base=fixture(asset='Example Treasury Bond (EXM)')
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);repo=root/'repo';repo.mkdir();project=Path(__file__).resolve().parents[2]
             env=dict(os.environ,PYTHONPATH=str(project/'backend/src'),GIT_NO_LAZY_FETCH='1')

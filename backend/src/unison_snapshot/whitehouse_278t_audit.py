@@ -45,7 +45,8 @@ _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
 
 
 def resolve_exact_source_reports(extractions: list[dict], coverage: dict, *,
-                                existing_transactions: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
+                                existing_transactions: list[dict] | None = None,
+                                native_classification_sources=None) -> tuple[list[dict], list[dict]]:
     """Opt-in exact-byte aliases; differing interpretations never choose a winner.
 
     The regular audit still assesses every canonical row. This relation only
@@ -76,12 +77,21 @@ def resolve_exact_source_reports(extractions: list[dict], coverage: dict, *,
             continue
         if len(reports) != sum(report.get("source_sha256") == sha for report in extractions):
             continue
+        legacy_digests = ({report['document_id']:
+            native_classification_sources.canonical_legacy_digest(report) for report in reports}
+            if native_classification_sources is not None else {})
+        normalize_legacy = bool(legacy_digests) and all(legacy_digests.values())
         def interpretation(report):
             result = deepcopy(report)
             for key in ("document_id", "source_url"):
                 result.pop(key, None)
             result["transactions"] = [{key: value for key, value in row.items() if key != "extraction_id"}
                                       for row in report.get("transactions", [])]
+            if normalize_legacy:
+                # Both originals and their complete legacy inputs were replayed.
+                # Ignore only the URL/document identity in those legacy objects;
+                # every other field still participates through this digest.
+                result['legacy_source_binding']['legacy_extraction_sha256'] = legacy_digests[report['document_id']]
             return result
         if any(interpretation(report) != interpretation(reports[0]) for report in reports[1:]):
             continue

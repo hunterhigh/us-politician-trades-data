@@ -18,11 +18,12 @@ from .migration_inventory import git_object
 from .senate_annual_amendment import verified_amendment_rekeys
 from .senate_account_correction import verified_account_corrections
 from .whitehouse_owner_correction import verified_owner_corrections
+from .whitehouse_classification_correction import verified_classification_corrections
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
 REASONS = {"official_index_replacement", "official_amendment", "source_identity_correction",
-           "duplicate_resolution", "official_withdrawal"}
+           "source_classification_correction", "duplicate_resolution", "official_withdrawal"}
 
 
 def _index(rows, label):
@@ -144,6 +145,14 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         if owner_corrections:
             correction_levels.add('archived_whitehouse_native_owner_and_historical_projection_replay')
         corrections += owner_corrections
+        classification_corrections = (verified_classification_corrections(old=old, current=current, repo=repo,
+            evidence_commit=evidence_commit, review_commit=review_commit,
+            main_commit=main_commit, previous_people=previous_board.get('people')) if entity == 'transactions' else [])
+        if classification_corrections:
+            correction_levels.add('archived_whitehouse_native_endnote_and_historical_projection_replay')
+        corrections += classification_corrections
+        if len({item['old_id'] for item in corrections}) != len(corrections):
+            raise InventoryError('source correction verifiers repeat an old ID')
         verified_corrections = {item["old_id"]: item for item in corrections}
         old_seen, new_seen = set(), set()
         for item in selected:

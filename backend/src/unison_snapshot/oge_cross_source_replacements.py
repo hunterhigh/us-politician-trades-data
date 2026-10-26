@@ -27,15 +27,41 @@ def _same(left,right):
     return all(left.get(key)==right.get(key) for key in set(left)|set(right))
 
 
-def _whitehouse_candidate(inputs):
+def _whitehouse_candidate(inputs, *, evidence_root=None, review_root=None):
     from .whitehouse_278t_audit import audit_whitehouse_278t
     from .whitehouse_278t_candidate import (build_whitehouse_278t_review_candidate,
         audit_whitehouse_278t_exact_source_candidate,build_whitehouse_278t_exact_source_candidate)
     args=(inputs['base'],inputs['extractions'])
     kw={key:inputs.get(key) for key in ('annual_extractions','directory_index','annual_identity_people')}
+    policy = inputs.get('native_classification_policy_version')
+    sources = None
+    if policy is not None:
+        from .whitehouse_native_correction import POLICY_VERSION, prepare_native_classification_sources
+        if policy != POLICY_VERSION:
+            raise OgeCatalogError('cross-source White House classification policy is unsupported')
+        selection = inputs.get('native_classification_selection', {})
+        if (not isinstance(selection, dict) or
+                set(selection) - {'coverage_input', 'extraction_status_input'}):
+            raise OgeCatalogError('cross-source White House classification selection is invalid')
+        selected = {}
+        for name, relative in selection.items():
+            if (not isinstance(relative, str) or len(relative) > 512 or '\\' in relative or
+                    Path(relative).is_absolute() or Path(relative).drive or
+                    any(part in {'', '.', '..'} for part in relative.split('/')) or review_root is None):
+                raise OgeCatalogError('cross-source White House classification selection escaped controlled review root')
+            root = Path(review_root).resolve(strict=True)
+            path = (root / relative).resolve(strict=True)
+            if not path.is_relative_to(root) or not path.is_file():
+                raise OgeCatalogError('cross-source White House classification selection escaped controlled review root')
+            selected[name] = path
+        sources = prepare_native_classification_sources(inputs['extractions'],
+            evidence_root=evidence_root, review_root=review_root,
+            previous_transactions=inputs['base']['transactions'], **selected)
     coverage=inputs['oge_whitehouse_coverage']
     if inputs.get('exact_source_copies'):
         kw['source_bindings']=inputs.get('source_bindings')
+        if policy is not None:
+            kw['native_classification_sources'] = sources
         eligibility=audit_whitehouse_278t_exact_source_candidate(*args,coverage,**kw)
         candidate,audit=build_whitehouse_278t_exact_source_candidate(*args,eligibility,coverage,
             data_cutoff_at=inputs['base']['meta']['data_cutoff_at'],**kw)
@@ -43,8 +69,17 @@ def _whitehouse_candidate(inputs):
         eligibility=audit_whitehouse_278t(inputs['extractions'],coverage,inputs['base'],
             inputs.get('annual_extractions'),inputs.get('directory_index'),inputs.get('annual_identity_people'))
         candidate,audit=build_whitehouse_278t_review_candidate(*args,eligibility,coverage,
-            data_cutoff_at=inputs['base']['meta']['data_cutoff_at'],**kw)
+            data_cutoff_at=inputs['base']['meta']['data_cutoff_at'],
+            **({'native_classification_sources': sources} if policy is not None else {}), **kw)
     return candidate,audit,eligibility
+
+
+def _bound_whitehouse_candidate(inputs, evidence_root, review_root):
+    # Old stored contexts deliberately retain their original projection policy.
+    # New contexts contain a version, never a serialized Sources/approval object.
+    if 'native_classification_policy_version' in inputs:
+        return _whitehouse_candidate(inputs, evidence_root=evidence_root, review_root=review_root)
+    return _whitehouse_candidate(inputs)
 
 
 def _cache_matches(root,folder,value):
@@ -141,7 +176,7 @@ def apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_ro
 
 def _apply_cross_source_native_replacements(candidate,saved,wh_inputs,evidence_root,review_root):
     evidence=Path(evidence_root);review=Path(review_root)
-    expected,wh_audit,eligibility=_whitehouse_candidate(wh_inputs)
+    expected,wh_audit,eligibility=_bound_whitehouse_candidate(wh_inputs,evidence_root,review_root)
     if candidate!=expected:raise OgeCatalogError('cross-source input is not the current normal White House candidate')
     if _read(review/'oge/whitehouse/coverage-current.json')!=wh_inputs['oge_whitehouse_coverage']:
         raise OgeCatalogError('cross-source White House identity coverage differs from controlled source')
@@ -309,7 +344,7 @@ def verify_cross_source_native_applications(audit,evidence_root,review_root):
     wh_inputs=context['wh_inputs']
     from .whitehouse_278t import saved_ocr_source_roots
     with saved_ocr_source_roots(evidence_root,review_root):
-        candidate,_,_=_whitehouse_candidate(wh_inputs)
+        candidate,_,_=_bound_whitehouse_candidate(wh_inputs,evidence_root,review_root)
         actual,proof=apply_cross_source_native_replacements(candidate,context['saved_inputs'],wh_inputs,evidence_root,review_root)
     if proof!=audit:raise OgeCatalogError('cross-source replacement audit differs from current family source replay')
     return actual,proof
@@ -319,7 +354,7 @@ def replay_cross_source_context(context,evidence_root,review_root):
     if context.get('schema_version')!=SCHEMA:raise OgeCatalogError('cross-source replacement context is invalid')
     from .whitehouse_278t import saved_ocr_source_roots
     with saved_ocr_source_roots(evidence_root,review_root):
-        candidate,_,_=_whitehouse_candidate(context['wh_inputs'])
+        candidate,_,_=_bound_whitehouse_candidate(context['wh_inputs'],evidence_root,review_root)
         return apply_cross_source_native_replacements(candidate,context['saved_inputs'],context['wh_inputs'],evidence_root,review_root)
 
 

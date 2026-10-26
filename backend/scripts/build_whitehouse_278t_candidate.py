@@ -336,6 +336,35 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
      provenance, failure_count) = _verify_review(
         review_root, expected_report_count=expected_report_count,
         coverage_input=coverage_input, extraction_status_input=extraction_status_input)
+    from unison_snapshot.whitehouse_native_correction import prepare_native_classification_sources
+    classification_sources = None
+    def classification_context(transactions):
+        return prepare_native_classification_sources(extractions,
+            evidence_root=evidence_root, review_root=review_root,
+            coverage_input=coverage_input, extraction_status_input=extraction_status_input,
+            previous_transactions=transactions)
+    def current_classification(candidate):
+        # A cache receipt cannot bless a pending or edited complete projection.
+        from unison_snapshot.whitehouse_native_correction import reconcile_native_classification
+        if not any(classification_sources.includes_row(report, row)
+                   for report in extractions for row in report.get('transactions', [])):
+            return True
+        pending = False
+        for report in extractions:
+            if report.get('document_reasons'):
+                continue  # Source uncertainty grants no new correction.
+            for row in report.get('transactions', []):
+                if row.get('reasons') or not classification_sources.includes_row(report, row):
+                    continue
+                matches = [fact for fact in candidate['transactions'] if
+                    fact.get('id') == row.get('extraction_id') and
+                    fact.get('source_url') == report.get('source_url') and
+                    fact.get('filing_id') == report.get('document_id')]
+                for fact in matches:
+                    pending |= reconcile_native_classification(report, row, fact,
+                        person_id=fact['person_id'], source_people=candidate['people'],
+                        sources=classification_sources) is not None
+        return not pending
     bindings = None
     native_inputs = None
     if saved_exhibit_observations is not None:
@@ -361,7 +390,10 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                 health=next(row for row in replayed['source_health'] if row.get('source_id')=='oge')
                 health['detail']+=f" {failure_count} White House 278-T reports retained as extraction failures."
             if replayed!=base:raise ValueError("Existing cross-source candidate differs from current source replay")
-            if prior.get("review_input_sha256")==provenance:
+            classification_sources = classification_context(
+                prior['native_cross_source_applications']['context']['wh_inputs']['base']['transactions'])
+            provenance.update(classification_sources.provenance())
+            if prior.get("review_input_sha256")==provenance and current_classification(base):
                 return {"idempotent":True,"report_count":prior["report_count"],
                     "promoted_transaction_count":prior["promoted_transaction_count"],
                     "quarantined_row_count":prior["quarantined_row_count"],
@@ -370,10 +402,15 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                 raise ValueError("Changed EXHIBIT inputs require the preceding direct-source candidate stage")
             base=deepcopy(prior['native_cross_source_applications']['context']['wh_inputs']['base'])
             base_sha=hashlib.sha256(_json_bytes(base)).hexdigest()
+    if classification_sources is None:
+        classification_sources = classification_context(base['transactions'])
+        # This precedes every cache return; scope includes already-Stock repeats.
+        provenance.update(classification_sources.provenance())
     if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
         if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
-                prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance):
+                prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance
+                and current_classification(base)):
             normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
             return {"idempotent": True, "audit_schema": EXACT_COPY_SCHEMA,
                     "report_count": prior["report_count"],
@@ -386,7 +423,8 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                     "retained_existing_transaction_count": prior["retained_existing_transaction_count"]}
     if generic_mode and not exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
-        if prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance:
+        if (prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance
+                and current_classification(base)):
             normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
             return {"idempotent":True,"report_count":prior["report_count"],
                 "promoted_transaction_count":prior["promoted_transaction_count"],
@@ -399,7 +437,7 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             raise ValueError("White House rows already exist without an idempotent audit pair")
         prior, _ = _read_object(audit_out)
         if (prior.get("candidate_sha256") == base_sha and
-                prior.get("review_input_sha256") == provenance):
+                prior.get("review_input_sha256") == provenance and current_classification(base)):
             normalize(base, allow_production=True,
                       allow_market=bool(base.get("security_market_data")))
             return {"idempotent": True, "report_count": prior["report_count"],
@@ -415,7 +453,7 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     eligibility = (audit_whitehouse_278t_exact_source_candidate(
         base, extractions, oge_coverage, annual_extractions=annual_extractions,
         directory_index=directory, annual_identity_people=annual_people,
-        source_bindings=bindings) if exact_source_copies else
+        source_bindings=bindings, native_classification_sources=classification_sources) if exact_source_copies else
         audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions, directory, annual_people))
     candidate_builder = (build_whitehouse_278t_exact_source_candidate if exact_source_copies else
                          build_whitehouse_278t_review_candidate)
@@ -424,6 +462,7 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         data_cutoff_at=base["meta"]["data_cutoff_at"],
         annual_extractions=annual_extractions, directory_index=directory,
         annual_identity_people=annual_people,
+        native_classification_sources=classification_sources,
         **({"source_bindings": bindings} if exact_source_copies else {}))
     if native_inputs is not None:
         from unison_snapshot.oge_cross_source_replacements import apply_cross_source_native_replacements
@@ -431,6 +470,14 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             "annual_extractions":annual_extractions,"directory_index":directory,
             "annual_identity_people":annual_people,"exact_source_copies":exact_source_copies,
             "source_bindings":bindings}
+        from unison_snapshot.whitehouse_native_correction import POLICY_VERSION
+        wh_inputs['native_classification_policy_version'] = POLICY_VERSION
+        selection = {}
+        for name, path in (('coverage_input', coverage_input), ('extraction_status_input', extraction_status_input)):
+            if path is not None:
+                selection[name] = path.resolve(strict=True).relative_to(review_root.resolve(strict=True)).as_posix()
+        if selection:
+            wh_inputs['native_classification_selection'] = selection
         candidate,application=apply_cross_source_native_replacements(candidate,native_inputs,wh_inputs,evidence_root,review_root)
         conservation["native_cross_source_applications"]=application
     conservation["catalog_report_count"] = len(extractions) + failure_count
