@@ -18,14 +18,25 @@ from .house import HouseIndexError
 
 PARSER_VERSION = 'house-ptr-native-bichrome/v1'
 MODE = 'source_pdfminer_bichrome_partition/v1'
+OPACITY_PARSER_VERSION = 'house-ptr-native-opacity/v1'
+OPACITY_MODE = 'source_pdfminer_opacity_partition/v1'
+PARSER_VERSIONS = frozenset({PARSER_VERSION, OPACITY_PARSER_VERSION})
+
 DISPLAY_DOMAIN = 'opaque_white_paper/v1'
 MAX_BYTES = 50 * 1024 * 1024
 MAX_PAGES = 32
 MAX_CHARACTERS = 25_000
 MAX_TOTAL_CHARACTERS = 100_000
+MAX_DOCUMENT_GRAPHICS_STATE_EVENTS = 10_000
+MAX_DOCUMENT_PAINT_EVENTS = 100_000
 MAX_ROW_WORK = 2_000_000
 MAX_PROOF_BYTES = 64 * 1024 * 1024
 BLOCKER = 'native_bichrome_row_visibility_unknown'
+
+
+def is_native_contrast(value):
+    """Recognize explicit source-bound families without changing old versions."""
+    return (value.get('parser_version') if isinstance(value, dict) else value) in PARSER_VERSIONS
 
 
 class SourceInventoryUnavailable(HouseIndexError):
@@ -108,14 +119,25 @@ def _black(char):
     return mono(char.get('ncs'), char.get('non_stroking_color')) == 0
 
 
-def _inventory(pdf, sha):
+def _inventory(pdf, sha, *, include_opacity=False):
     from .house_native_visibility import _source_characters, _words
     from .house_native_coverage import observe_native_geometry
     from .house_ptr import _modern_date_anchors, _explicit_zero_transaction_declaration
     if not 0 < len(pdf.pages) <= MAX_PAGES:
         raise HouseIndexError('House native contrast page budget exceeded')
     pages, observed, hints, total_characters = [], [], [], 0
+    graphics = []
+    total_graphics_events = total_paint_events = 0
     for number, page in enumerate(pdf.pages, 1):
+        if include_opacity:
+            # The explicit observer bounds gs reference resolution before the
+            # unchanged historical observer can resolve any used state.
+            from .pdf_native_observer import observe_source_characters
+            try:
+                cc, mm, ff, pp = observe_source_characters(page, max_characters=MAX_CHARACTERS,
+                    max_tokens=100_000, include_graphics_state_events=True)
+            except Exception as exc:
+                raise HouseIndexError('House opacity source inventory is unavailable') from exc
         try:
             chars, modes, flags, paint = _source_characters(page)
         except Exception as exc:
@@ -123,6 +145,15 @@ def _inventory(pdf, sha):
         total_characters += len(chars)
         if total_characters > MAX_TOTAL_CHARACTERS:
             raise HouseIndexError('House native contrast document character budget exceeded')
+        if include_opacity:
+            if _json((cc, mm, ff)) != _json((chars, modes, flags)):
+                raise HouseIndexError('House opacity original glyph inventory differs')
+            total_graphics_events += len(pp['graphics_state_events'])
+            total_paint_events += pp['paint_event_count']
+            if (total_graphics_events > MAX_DOCUMENT_GRAPHICS_STATE_EVENTS or
+                    total_paint_events > MAX_DOCUMENT_PAINT_EVENTS):
+                raise HouseIndexError('House opacity document source event budget exceeded')
+            graphics.append(pp['graphics_state_events'])
         words = page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=['size'])
         pages.append({'width': page.width, 'height': page.height, 'words': words,
             'native_page_geometry': observe_native_geometry(page, sha, number)})
@@ -157,17 +188,19 @@ def _inventory(pdf, sha):
     # route from a pure paper/image/legacy layout; raw headings only select it.
     native_rows = any(_modern_date_anchors(_words([c for c, m in zip(chars, modes) if m == 0]), p['width'])
                       for p, (chars, modes, _, _) in zip(pages, observed))
-    return pages, observed, hints, text, compact, large, bool(native_rows or _explicit_zero_transaction_declaration(pages))
+    result = (pages, observed, hints, text, compact, large, bool(native_rows or _explicit_zero_transaction_declaration(pages)))
+    return (*result, graphics) if include_opacity else result
 
 
 def _selection(metadata, inventory):
-    _, _, hints, text, compact, large, native = inventory
+    _, _, hints, text, compact, large, native = inventory[:7]
+    opacity = len(inventory) > 7 and any(inventory[7])
     modern = (f"#{metadata['document_id']}" in text and
               ('PERIODICTRANSACTIONREPORT' in compact or large[:3] == ['P', 'T', 'R']))
-    active = (True if any(value is True for value in hints) else None if None in hints else False) if modern and native else False
+    active = (True if opacity or any(value is True for value in hints) else None if None in hints else False) if modern and native else False
     return {'schema_version': 'house-native-contrast-plan/v1', 'activated': active,
         'status': 'unknown' if active is None else 'observed',
-        'parser_version': PARSER_VERSION if active is not False else None,
+        'parser_version': (OPACITY_PARSER_VERSION if opacity else PARSER_VERSION) if active is not False else None,
         'source_sha256': metadata['sha256'], 'document_id': str(metadata['document_id']),
         'observed_character_count': sum(len(old[0]) for old in inventory[1]),
         'character_budget': MAX_TOTAL_CHARACTERS,
@@ -181,7 +214,7 @@ def plan_house_native_contrast(archive_root, metadata_path):
     metadata, path, content = _load(archive_root, metadata_path)
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            plan = _selection(metadata, _inventory(pdf, metadata['sha256']))
+            plan = _selection(metadata, _inventory(pdf, metadata['sha256'], include_opacity=True))
             if plan['activated'] is not False:
                 _selected_source(metadata, archive_root, metadata_path, path, content)
             return plan
@@ -195,12 +228,32 @@ def _word_signature(chars):
     return [(c['text'], c['fontname'], c['size'], c['matrix'], c['adv'], _box(c)) for c in chars]
 
 
-def _build(metadata, pdf, inventory):
+def _build(metadata, pdf, inventory, *, parser_version=PARSER_VERSION):
     from pdfplumber.utils.text import WordExtractor
     from .native_bichrome_visibility import inspect_bichrome_native_page, POLICY_VERSION
+    opacity = parser_version == OPACITY_PARSER_VERSION
+    if opacity:
+        from .native_opacity_visibility import inspect_opacity_native_page, POLICY_VERSION
+    inspect_page = inspect_opacity_native_page if opacity else inspect_bichrome_native_page
+    mode = OPACITY_MODE if opacity else MODE
+    family = 'opacity' if opacity else 'bichrome'
+    grid_conflicts = set()
     from .house_native_visibility import _words
     from .house_ptr import parse_word_pages
     pages, observed, hints, *_ = inventory
+    if opacity:
+        # Preserve the established native raw-block boundary at repeated table
+        # headers. Unknown image/alpha body text is not a continuation header.
+        # Only the existing non-filtering unknown observation is reused; all
+        # original words remain and the old profile grants no visible field.
+        from .house_native_visibility import observe_visibility, unknown
+        from .house_native_coverage import _header_cells
+        pages = list(pages)
+        for index in range(1, len(pages)):
+            if _header_cells(pages[index], pages[index]['native_page_geometry']) is not None:
+                legacy = observe_visibility(pdf.pages[index], pages[index], metadata['sha256'], index+1)
+                if unknown(legacy) and legacy['words'] == pages[index]['words']:
+                    pages[index] = legacy
     plan = _selection(metadata, inventory)
     row_members = []
     raw = parse_word_pages(metadata, metadata['sha256'], pages,
@@ -214,15 +267,26 @@ def _build(metadata, pdf, inventory):
     tuples, members, aliases, source_pages, states = [], [], [], [], []
     for number, (page, old, hint) in enumerate(zip(pdf.pages, observed, hints), 1):
         chars, modes, flags, paint = old
-        selected = hint is not False or any(mode != 0 for mode in modes) or any(flags)
-        proof = inspect_bichrome_native_page(page, display_domain=DISPLAY_DOMAIN) if selected else {
+        selected = (opacity and bool(inventory[7][number-1])) or hint is not False or any(mode != 0 for mode in modes) or any(flags)
+        proof = inspect_page(page, display_domain=DISPLAY_DOMAIN) if selected else {
             'status': 'unchanged_legacy_native', 'reason': 'mechanism_absent',
             'chars': chars, 'render_modes': modes, 'visibility_flags': flags, 'paint': paint,
             'glyph_states': ['spacing' if c['text'].isspace() else 'displayed' for c in chars]}
         if proof['status'] == 'observed':
             if _json(proof['chars']) != _json(chars) or proof['render_modes'] != modes:
                 raise HouseIndexError('House contrast glyph inventory differs from original words')
+            if opacity:
+                from .pdf_native_observer import observe_source_characters
+                cc, mm, ff, pp = observe_source_characters(page, max_characters=MAX_CHARACTERS,
+                    max_tokens=100_000, include_path_events=True, include_graphics_state_events=True)
+                if _json((proof['chars'], proof['render_modes'], proof['visibility_flags'], proof['paint'])) != _json((cc, mm, ff, pp)):
+                    raise HouseIndexError('House opacity full source paint projection differs')
+                paint = pp
             ss = proof['glyph_states']
+            # Preserve the original physical geometry. A zero-alpha stroke
+            # cannot disappear and merge source blocks or grant their grid.
+            if opacity and proof.get('displayed_stroke_indices') != list(range(len(page.lines))):
+                grid_conflicts.add(number)
         elif proof['status'] == 'unchanged_legacy_native':
             ss = proof['glyph_states']
         else:
@@ -264,7 +328,9 @@ def _build(metadata, pdf, inventory):
                  if len(owners) > 1 for ri in owners}
     dispositions, runtime = [], []
     for ri, (row, sets) in enumerate(zip(raw['transactions'], row_sets)):
-        reasons = []
+        reasons = (['native_opacity_grid_visibility_unresolved'] if any(sets[p] and p+1 in grid_conflicts for p in range(len(pages))) else [])
+        if opacity and 'native_text_visibility_unknown' in row.get('field_problems', []):
+            reasons.append('native_text_visibility_unknown')
         risks, raw_members, effective = [], [], []
         for p, indices in enumerate(sets):
             for wi in sorted(indices):
@@ -284,7 +350,12 @@ def _build(metadata, pdf, inventory):
                 if wi in indices or (wi not in all_members[p] and float(w['top']) < first)
                 for c in cs}
             cs = [c for ci, c in enumerate(observed[p][0]) if id(c) in take and states[p][ci] in {'displayed', 'spacing'}]
-            effective.append({**pages[p], 'words': _words(cs)})
+            effective_page = {**pages[p], 'words': _words(cs)}
+            if opacity:
+                # The new per-show source proof replaces conservative old
+                # alpha flags for interpretation, never for raw membership.
+                effective_page.pop('native_visibility_observation', None)
+            effective.append(effective_page)
         if risks:
             reasons.append(BLOCKER)
         if ri in conflicts:
@@ -314,15 +385,15 @@ def _build(metadata, pdf, inventory):
         runtime.append(one if not reasons else None)
     # A source role is required even if its raw text selected this route. Each
     # row interpretation independently reads the displayed original header.
-    observation = {'schema_version': 'house-native-bichrome-observation/v1',
+    observation = {'schema_version': f'house-native-{family}-observation/v1',
         'source_sha256': metadata['sha256'], 'policy_version': POLICY_VERSION,
         'display_domain': DISPLAY_DOMAIN, 'pages': source_pages, 'plan': plan}
-    binding = {'schema_version': 'house-native-bichrome-binding/v1',
+    binding = {'schema_version': f'house-native-{family}-binding/v1',
         'source_sha256': metadata['sha256'], 'document_id': str(metadata['document_id']),
-        'policy_version': POLICY_VERSION, 'parser_version': PARSER_VERSION,
+        'policy_version': POLICY_VERSION, 'parser_version': parser_version,
         'display_domain': DISPLAY_DOMAIN, 'observation_sha256': _digest(observation),
         'metadata_sha256': _digest(metadata), 'coverage_complete': False}
-    report = {**deepcopy(raw), 'parser_version': PARSER_VERSION, 'native_contrast_mode': MODE,
+    report = {**deepcopy(raw), 'parser_version': parser_version, 'native_contrast_mode': mode,
         'native_contrast_observation': observation, 'native_contrast_binding': binding,
         'native_contrast_dispositions': dispositions, 'source_status': 'partial', 'coverage_complete': False}
     from .source_row_ledger import page_ledger, report_ledger
@@ -346,13 +417,14 @@ def parse_selected_native_contrast(archive_root, metadata_path, *, required=Fals
     metadata, path, content = _load(archive_root, metadata_path)
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            inventory = _inventory(pdf, metadata['sha256'])
-            if _selection(metadata, inventory)['activated'] is False:
+            inventory = _inventory(pdf, metadata['sha256'], include_opacity=True)
+            plan = _selection(metadata, inventory)
+            if plan['activated'] is False:
                 if required:
                     raise HouseIndexError('House native contrast source no longer selects this parser')
                 return None
             _selected_source(metadata, archive_root, metadata_path, path, content)
-            report, _ = _build(metadata, pdf, inventory)
+            report, _ = _build(metadata, pdf, inventory, parser_version=plan['parser_version'])
             return report
     except HouseIndexError:
         raise
@@ -363,7 +435,9 @@ def parse_selected_native_contrast(archive_root, metadata_path, *, required=Fals
 def _replay(extraction, evidence_root):
     if evidence_root is None:
         raise HouseIndexError('House native contrast requires an evidence root')
-    if extraction.get('parser_version') != PARSER_VERSION or extraction.get('native_contrast_mode') != MODE:
+    version = extraction.get('parser_version')
+    expected_mode = OPACITY_MODE if version == OPACITY_PARSER_VERSION else MODE
+    if version not in PARSER_VERSIONS or extraction.get('native_contrast_mode') != expected_mode:
         raise HouseIndexError('House native contrast parser binding differs')
     source = extraction.get('source', {})
     relative = source.get('archive_path')
@@ -377,10 +451,10 @@ def _replay(extraction, evidence_root):
         raise HouseIndexError('House native contrast replay source hash differs')
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            inventory = _inventory(pdf, metadata['sha256'])
+            inventory = _inventory(pdf, metadata['sha256'], include_opacity=version == OPACITY_PARSER_VERSION)
             if _selection(metadata, inventory)['activated'] is False:
                 raise HouseIndexError('House native contrast source no longer selects this parser')
-            fresh, runtime = _build(metadata, pdf, inventory)
+            fresh, runtime = _build(metadata, pdf, inventory, parser_version=version)
     except HouseIndexError:
         raise
     except Exception as exc:
@@ -434,6 +508,10 @@ def bounded_legacy_unknown(archive_root, metadata_path):
 def qualify_native_contrast(extraction, identity, *, evidence_root, revision_ids=frozenset()):
     from .house_ptr import qualify_automatic, QUALIFICATION_SCHEMA
     fresh, (raw, reports) = _replay(extraction, evidence_root)
+    metadata_path = Path(evidence_root) / Path(extraction['source']['archive_path']).with_suffix('.json')
+    current = plan_house_native_contrast(evidence_root, metadata_path)
+    if current['parser_version'] != extraction['parser_version']:
+        raise HouseIndexError('House native contrast current source selects a different parser')
     good, bad, advisories, dispositions, revisions = [], [], [], [], []
     for original, disposition, report in zip(raw['transactions'], fresh['native_contrast_dispositions'], reports):
         reasons = list(disposition['reasons'])
@@ -462,11 +540,11 @@ def qualify_native_contrast(extraction, identity, *, evidence_root, revision_ids
             'reasons': sorted(set(reasons)), 'current_projected': fact})
     # This bounded local partition never certifies whole-report zero/completion.
     return {'schema_version': QUALIFICATION_SCHEMA, 'source_sha256': raw['source_sha256'],
-        'parser_version': PARSER_VERSION, 'document_id': raw['source']['document_id'],
+        'parser_version': fresh['parser_version'], 'document_id': raw['source']['document_id'],
         'identity': deepcopy(identity), 'document_disposition': None,
         'source_report_ledger': deepcopy(fresh['source_report_ledger']),
         'transactions': good, 'quarantined': bad, 'advisories': advisories,
-        'native_contrast_mode': MODE, 'native_contrast_binding': deepcopy(fresh['native_contrast_binding']),
+        'native_contrast_mode': fresh['native_contrast_mode'], 'native_contrast_binding': deepcopy(fresh['native_contrast_binding']),
         'native_contrast_dispositions': dispositions, 'source_status': 'partial', 'coverage_complete': False,
         **({'revision_observations': revisions} if revisions else {}),
         'qualification': {'method': 'deterministic_automatic_rules',

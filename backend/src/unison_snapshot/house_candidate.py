@@ -189,13 +189,13 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 from .house_ptr import qualify_automatic
                 source = extraction.get("source", {})
                 if evidence_root is not None:
-                    from .house_native_contrast import plan_house_native_contrast, PARSER_VERSION as CONTRAST_VERSION
+                    from .house_native_contrast import plan_house_native_contrast, PARSER_VERSIONS as CONTRAST_VERSIONS
                     relative = source.get('archive_path')
                     if not isinstance(relative, str):
                         raise HouseIndexError('House native source plan requires archived metadata')
                     plan = plan_house_native_contrast(evidence_root,
                         Path(evidence_root) / Path(relative).with_suffix('.json'))
-                    if plan['parser_version'] == CONTRAST_VERSION and extraction.get('parser_version') != CONTRAST_VERSION:
+                    if plan['parser_version'] in CONTRAST_VERSIONS and extraction.get('parser_version') != plan['parser_version']:
                         raise HouseIndexError('House cached native version differs from current original source plan')
                 if (qualification.get("source_sha256") != extraction.get("source_sha256") or
                         qualification.get("document_id") != source.get("document_id") or
@@ -203,8 +203,8 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                         extraction_path.stem != extraction.get("source_sha256") or
                         extraction_path.parent.name != str(source.get("document_id"))):
                     raise HouseIndexError("House native account document binding differs from qualification")
-                from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
-                contrast = extraction.get('parser_version') == CONTRAST_VERSION
+                from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
+                contrast = extraction.get('parser_version') in CONTRAST_VERSIONS
                 expected = qualify_automatic(extraction, identity,
                     **({'evidence_root':evidence_root} if evidence_root is not None or contrast else {}))
                 if contrast:

@@ -5,15 +5,20 @@ and exception values remain the same. Consumers choose their own profile.
 """
 
 def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000,
-                              include_path_events=False, max_paint_events=30_000):
+                              include_path_events=False, max_paint_events=30_000,
+                              include_graphics_state_events=False,
+                              max_graphics_state_events=5_000):
     from pdfplumber.page import PDFPageAggregatorWithMarkedContent
     from pdfminer.pdfinterp import PDFPageInterpreter, PDFContentParser
     from pdfminer.layout import LTChar, LTContainer, LTFigure
     from pdfminer.pdftypes import resolve1
     from pdfminer.psparser import literal_name, PSEOF
 
-    if include_path_events and (type(max_paint_events) is not int or max_paint_events < 0):
+    if (include_path_events or include_graphics_state_events) and (type(max_paint_events) is not int or max_paint_events < 0):
         raise ValueError('source_visibility_paint_budget_invalid')
+    if include_graphics_state_events and (type(max_graphics_state_events) is not int or
+                                          max_graphics_state_events < 0):
+        raise ValueError('source_visibility_graphics_state_budget_invalid')
 
     class Interpreter(PDFPageInterpreter):
         def init_state(self, *args, **kwargs):
@@ -57,7 +62,20 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
                 self.device.path_visibility_flags = self.visibility_flags
 
         def do_gs(self, name):
-            state = resolve1(resolve1(self.resources.get('ExtGState', {})).get(literal_name(name)))
+            if include_graphics_state_events:
+                resources = _resolve_graphics_state(self.resources.get('ExtGState', {}))
+                if not isinstance(resources, dict):
+                    raise ValueError('source_visibility_graphics_state_resources_unsupported')
+                state = _resolve_graphics_state(resources.get(literal_name(name)))
+            else:
+                state = resolve1(resolve1(self.resources.get('ExtGState', {})).get(literal_name(name)))
+            if include_graphics_state_events:
+                if len(self.device.graphics_state_events) >= max_graphics_state_events:
+                    raise ValueError('source_visibility_graphics_state_budget_exceeded')
+                self.device.graphics_state_events.append({
+                    'name': literal_name(name),
+                    'state': _graphics_state_value(state),
+                    'before_paint_order': self.device.paint_order + 1})
             if (not isinstance(state, dict) or any(
                     key in state and state[key] != 1 for key in ('ca', 'CA')) or
                     any(key in state for key in ('SMask', 'TR', 'TR2', 'Font')) or
@@ -103,9 +121,10 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
             super().__init__(*args, **kwargs)
             self.image_events = []
             self.path_events = []
+            self.graphics_state_events = []
 
         def check_paint_budget(self):
-            if include_path_events and self.paint_order > max_paint_events:
+            if (include_path_events or include_graphics_state_events) and self.paint_order > max_paint_events:
                 raise ValueError('source_visibility_paint_event_budget_exceeded')
 
         def render_string(self, textstate, *args, **kwargs):
@@ -182,5 +201,66 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
             'visibility_flags': image_flags} for image, order, image_flags in device.image_events]}
     if include_path_events:
         paint['path_events'] = device.path_events
+    if include_graphics_state_events:
+        paint['graphics_state_events'] = device.graphics_state_events
     return records, [char.source_render_mode for char in chars], flags, paint
 
+
+
+def _graphics_state_value(value):
+    """Bounded typed source values, without traversing referenced object graphs.
+
+    References inside a state remain references. The closed profile separately
+    resolves only its supported numeric/name operands; this is observation only.
+    """
+    from pdfminer.pdftypes import PDFObjRef
+    from pdfminer.psparser import PSLiteral
+    nodes = 0
+
+    def visit(item, depth=0):
+        nonlocal nodes
+        nodes += 1
+        if nodes > 128 or depth > 4:
+            raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+        if isinstance(item, PDFObjRef):
+            return {'pdf_object_reference': item.objid}
+        if isinstance(item, PSLiteral):
+            if type(item.name) is not str or len(item.name) > 1024:
+                raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+            return {'pdf_literal': item.name}
+        if type(item) in (int, float, bool, str) or item is None:
+            if isinstance(item, str) and len(item) > 1024:
+                raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+            return item
+        if isinstance(item, bytes):
+            if len(item) > 1024:
+                raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+            return {'pdf_bytes_hex': item.hex()}
+        if isinstance(item, (tuple, list)):
+            if len(item) > 128:
+                raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+            return [visit(part, depth + 1) for part in item]
+        if isinstance(item, dict):
+            if len(item) > 64 or any(type(key) is not str or len(key) > 128 for key in item):
+                raise ValueError('source_visibility_graphics_state_value_budget_exceeded')
+            return {key: visit(part, depth + 1) for key, part in item.items()}
+        raise ValueError('source_visibility_graphics_state_value_unsupported')
+
+    return visit(value)
+
+
+def _resolve_graphics_state(value, *, max_hops=16):
+    """Resolve one used gs value with a bounded, cycle-checked reference chain.
+
+    Legacy observations intentionally keep pdfminer's original resolve1 path.
+    This bound belongs only to the explicit graphics-state inventory/profile.
+    """
+    from pdfminer.pdftypes import PDFObjRef
+    visited = set()
+    while isinstance(value, PDFObjRef):
+        identity = (id(value.doc), value.objid)
+        if identity in visited or len(visited) >= max_hops:
+            raise ValueError('source_visibility_graphics_state_reference_budget_exceeded')
+        visited.add(identity)
+        value = value.resolve()
+    return value

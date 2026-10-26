@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-native-bichrome-v1"
+PARSER_RETRY_VERSION = "house-parser-suite-native-opacity-v1"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -951,8 +951,8 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                       verified_blank_paper_owner_ids: frozenset[str] = frozenset(),
                       _source_bound_revision_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
-    from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION, qualify_native_contrast
-    if extraction.get('parser_version') == CONTRAST_VERSION or any(k.startswith('native_contrast_') for k in extraction):
+    from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS, qualify_native_contrast
+    if extraction.get('parser_version') in CONTRAST_VERSIONS or any(k.startswith('native_contrast_') for k in extraction):
         if verified_blank_paper_owner_ids:
             raise HouseIndexError('House native contrast cannot grant paper blank owners')
         return qualify_native_contrast(extraction, identity, evidence_root=evidence_root,
@@ -1576,8 +1576,8 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
                 ocr_engine=extraction.get('ocr_engine'))
             if any(extraction.get(key) != value for key, value in replay.items()):
                 raise HouseIndexError('House related OCR revision source differs from saved words')
-        from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
-        source_roots = {'evidence_root': evidence_root} if extraction.get('parser_version') == CONTRAST_VERSION else {}
+        from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
+        source_roots = {'evidence_root': evidence_root} if extraction.get('parser_version') in CONTRAST_VERSIONS else {}
         expected = qualify_automatic(extraction, qualification.get('identity', {}), **source_roots)
         if expected != qualification:
             if qualification.get('revision_observations') or ocr_only:
@@ -1594,7 +1594,7 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
         # no OCR-derived row becomes a predecessor merely from being mixed.
         native_rows = [row for row in extraction['transactions']
                        if not mixed or row.get('ocr_source_pages') == []]
-        contrast = extraction.get('parser_version') == CONTRAST_VERSION
+        contrast = extraction.get('parser_version') in CONTRAST_VERSIONS
         if contrast:
             native_rows = [item['current_projected'] for item in extraction['native_contrast_dispositions']
                            if item['status'] == 'current_projected']

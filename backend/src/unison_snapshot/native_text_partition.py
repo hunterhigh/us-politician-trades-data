@@ -281,6 +281,21 @@ def _observe(raw, expected, document, *, source_partition=None):
                     table_page = page.filter(lambda obj:obj.get('object_type') not in {'rect','curve'})
                     view = view.filter(lambda obj:obj.get('object_type') not in {'rect','curve'})
                     page_result['table_grid_basis'] = 'source_bound_strokes_only'
+                    if 'displayed_stroke_indices' in selected_profile:
+                        # Keep the original stroke grid as physical inventory.
+                        # Removing an invisible divider must not merge its raw
+                        # cells and promote a newly combined financial field.
+                        displayed_strokes = selected_profile['displayed_stroke_indices']
+                        if (not isinstance(displayed_strokes, list) or
+                                any(type(index) is not int or not 0 <= index < len(page.lines)
+                                    for index in displayed_strokes) or
+                                displayed_strokes != sorted(set(displayed_strokes))):
+                            raise ValueError('native_partition_displayed_stroke_inventory_invalid')
+                        stroke_indices = {id(line):index for index,line in enumerate(page.lines)}
+                        view = view.filter(lambda obj, by_id=stroke_indices,
+                            selected=set(displayed_strokes): obj.get('object_type') != 'line' or
+                            by_id[id(obj)] in selected)
+                        page_result['table_grid_basis'] = 'source_bound_displayed_strokes_only'
                     edge_bound = len(page.lines) + 4 * (len(page.rects) + len(page.curves))
                     if edge_bound * edge_bound <= MAX_MEMBERSHIP_COMPARISONS:
                         original_tables = page.find_tables()

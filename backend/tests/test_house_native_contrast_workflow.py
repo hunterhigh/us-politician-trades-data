@@ -13,9 +13,21 @@ from unison_snapshot.house_ptr import PARSER_RETRY_VERSION, LEGACY_PARSER_VERSIO
 
 class HouseContrastWorkflowTests(unittest.TestCase):
     def test_actual_source_selection_precedes_old_success_and_failure(self):
-        helper=core.HouseNativeContrastTests();self.addCleanup(helper.doCleanups)
-        root,legacy,current=helper.source('white')
+        self.assert_source_selection(core.HouseNativeContrastTests(), 'white')
+
+    def test_opacity_source_selection_requeues_old_cache_before_success_skip(self):
+        from test_house_native_opacity import HouseNativeOpacityTests
+        self.assert_source_selection(HouseNativeOpacityTests(), 'ca0')
+
+    def assert_source_selection(self, helper, kind):
+        self.addCleanup(helper.doCleanups)
+        root,legacy,current=helper.source(kind)
         metadata=root/Path(legacy['source']['archive_path']).with_suffix('.json')
+        # The opacity fixture also constructed its control source. Keep this
+        # selector contract scoped to the one archived version under test.
+        for setup_metadata in metadata.parent.glob('*.json'):
+            if setup_metadata != metadata:
+                setup_metadata.unlink()
         review=root/'review';review.mkdir()
         relative=Path('2026/20000001')/(legacy['source_sha256']+'.json')
         extraction=review/'house_clerk/extractions'/relative

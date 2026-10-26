@@ -144,7 +144,9 @@ class NativeVisibilityTests(unittest.TestCase):
     def test_no_image_cross_boundary_and_mixed_mode_never_qualify_stale_facts(self):
         for mode in ('no_image', 'cross', 'mixed', 'opacity', 'clip', 'form'):
             with self.subTest(mode=mode):
-                f = self.fixture(mode); x, ocr = self.parse(f); q = qualify_automatic(x, IDENTITY)
+                f = self.fixture(mode); x, ocr = self.parse(f)
+                q = qualify_automatic(x, IDENTITY, **({'evidence_root':f.root}
+                    if mode == 'opacity' else {}))
                 self.assertFalse(ocr.called)
                 self.assertEqual(planned_ocr_pages(f.pages), [])
                 self.assertEqual([r['asset_name'] for r in q['transactions']], ['Example Corp.'])

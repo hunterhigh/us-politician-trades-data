@@ -28,8 +28,10 @@ NATIVE_VISIBLE_DEFAULT_VERSION = "whitehouse-278t-native-visible-default/v1"
 NATIVE_VISIBLE_GENERIC_VERSION = "whitehouse-278t-native-visible-generic/v1"
 NATIVE_BICHROME_DEFAULT_VERSION = "whitehouse-278t-native-bichrome-default/v1"
 NATIVE_BICHROME_GENERIC_VERSION = "whitehouse-278t-native-bichrome-generic/v1"
-NATIVE_VISIBLE_DEFAULT_VERSIONS = {NATIVE_VISIBLE_DEFAULT_VERSION, NATIVE_BICHROME_DEFAULT_VERSION}
-NATIVE_VISIBLE_GENERIC_VERSIONS = {NATIVE_VISIBLE_GENERIC_VERSION, NATIVE_BICHROME_GENERIC_VERSION}
+NATIVE_OPACITY_DEFAULT_VERSION = "whitehouse-278t-native-opacity-default/v1"
+NATIVE_OPACITY_GENERIC_VERSION = "whitehouse-278t-native-opacity-generic/v1"
+NATIVE_VISIBLE_DEFAULT_VERSIONS = {NATIVE_VISIBLE_DEFAULT_VERSION, NATIVE_BICHROME_DEFAULT_VERSION, NATIVE_OPACITY_DEFAULT_VERSION}
+NATIVE_VISIBLE_GENERIC_VERSIONS = {NATIVE_VISIBLE_GENERIC_VERSION, NATIVE_BICHROME_GENERIC_VERSION, NATIVE_OPACITY_GENERIC_VERSION}
 NATIVE_VISIBLE_PARSER_VERSIONS = NATIVE_VISIBLE_DEFAULT_VERSIONS | NATIVE_VISIBLE_GENERIC_VERSIONS
 SAVED_OCR_PARSER_VERSION = "whitehouse-278t-saved-ocr-roles/v6"
 DUAL_AXIS_PARSER_VERSION = "whitehouse-278t-saved-ocr-dual-axis/v7"
@@ -1712,6 +1714,11 @@ def plan_whitehouse_278t_source(pdf_path: Path, *, source_url: str, source_sha25
     baseline = GENERIC_PARSER_VERSION if generic else parser_version_for_source(source_url, source_sha256)
     if not generic and baseline != PARSER_VERSION:
         return {'parser_version': baseline, 'partition_plan': None}
+    from .native_opacity_partition import plan_native_opacity_partition
+    opacity = plan_native_opacity_partition(Path(pdf_path), expected_sha256=source_sha256)
+    if opacity.get('activated') is not False:
+        return {'parser_version':NATIVE_OPACITY_GENERIC_VERSION if generic else NATIVE_OPACITY_DEFAULT_VERSION,
+            'partition_plan':opacity}
     from .native_bichrome_partition import plan_native_bichrome_partition
     contrast = plan_native_bichrome_partition(Path(pdf_path), expected_sha256=source_sha256)
     if contrast.get('activated') is not False:
@@ -1726,6 +1733,9 @@ def plan_whitehouse_278t_source(pdf_path: Path, *, source_url: str, source_sha25
 
 
 def _native_partition_version(proof: dict, *, generic: bool = False) -> str:
+    from .native_opacity_partition import POLICY_VERSION as OPACITY_POLICY
+    if proof.get('policy_version') == OPACITY_POLICY:
+        return NATIVE_OPACITY_GENERIC_VERSION if generic else NATIVE_OPACITY_DEFAULT_VERSION
     from .native_bichrome_partition import POLICY_VERSION as CONTRAST_POLICY
     if proof.get('policy_version') == CONTRAST_POLICY:
         return NATIVE_BICHROME_GENERIC_VERSION if generic else NATIVE_BICHROME_DEFAULT_VERSION
@@ -1795,6 +1805,9 @@ def parse_native_visible_whitehouse_278t_pdf(pdf_path: Path, *, source_url: str,
     if parser_version in {NATIVE_BICHROME_DEFAULT_VERSION, NATIVE_BICHROME_GENERIC_VERSION}:
         from .native_bichrome_partition import observe_native_bichrome_partition
         observer = observe_native_bichrome_partition
+    elif parser_version in {NATIVE_OPACITY_DEFAULT_VERSION, NATIVE_OPACITY_GENERIC_VERSION}:
+        from .native_opacity_partition import observe_native_opacity_partition
+        observer = observe_native_opacity_partition
     proof = observer(Path(pdf_path), expected_sha256=source_sha256)
     if proof.get('activated') is False:
         raise OgeCatalogError('White House source does not select native visible parsing')

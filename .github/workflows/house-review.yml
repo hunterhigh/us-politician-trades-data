@@ -169,7 +169,7 @@ jobs:
                               json.loads(qualification.read_text(encoding='utf-8')),
                               json.loads(observation.read_text(encoding='utf-8'))):
                           continue
-              from unison_snapshot.house_native_contrast import plan_house_native_contrast, PARSER_VERSION as CONTRAST_VERSION
+              from unison_snapshot.house_native_contrast import plan_house_native_contrast, PARSER_VERSIONS as CONTRAST_VERSIONS
               from unison_snapshot.house import HouseIndexError
               try:
                   contrast_plan = plan_house_native_contrast(evidence, metadata_path)
@@ -184,12 +184,12 @@ jobs:
                           pass
                   retries.append(metadata_path)
                   continue
-              if contrast_plan['parser_version'] == CONTRAST_VERSION and extraction.is_file():
+              if contrast_plan['parser_version'] in CONTRAST_VERSIONS and extraction.is_file():
                   try:
                       selected = json.loads(extraction.read_text(encoding='utf-8'))
                   except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                       selected = {}
-                  if selected.get('parser_version') != CONTRAST_VERSION:
+                  if selected.get('parser_version') != contrast_plan['parser_version']:
                       retries.append(metadata_path)
                       continue
               if extraction.is_file() and failure.is_file():

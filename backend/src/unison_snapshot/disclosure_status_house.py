@@ -158,9 +158,9 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             artifacts[kind][key] = value
             discovered.add(key[:2])
     from .house_ptr import resolve_automatic_revisions
-    from .house_native_contrast import PARSER_VERSION as CONTRAST_VERSION
+    from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
     for key, qualification in artifacts['qualifications'].items():
-        if qualification.get('parser_version') != CONTRAST_VERSION:
+        if qualification.get('parser_version') not in CONTRAST_VERSIONS:
             continue
         extraction = artifacts['extractions'].get(key)
         if extraction is None:
@@ -277,7 +277,7 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                             if state != "superseded":
                                 state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
-                    if qualification.get('parser_version') == CONTRAST_VERSION:
+                    if qualification.get('parser_version') in CONTRAST_VERSIONS:
                         record['source_observation_coverage'] = {
                             'coverage_complete':False, 'basis':'same_sha_original_native_contrast',
                             'unknown_row_ids':[item['raw_row_id'] for item in qualification['native_contrast_dispositions']
@@ -332,7 +332,7 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             selected_qualification = artifacts['qualifications'].get(
                 (int(record['report_id'].split(':')[1]),record['document_id'],version))
             selected_qualification = revision_resolution['qualifications'].get(record['document_id'], selected_qualification)
-            if selected_qualification is not None and selected_qualification.get('parser_version') == CONTRAST_VERSION:
+            if selected_qualification is not None and selected_qualification.get('parser_version') in CONTRAST_VERSIONS:
                 current = {item['id']:item for item in selected_qualification['transactions']}
                 if txid in current and row != current[txid]:
                     raise ValueError('House contrast publication changed a current source-qualified fact')
