@@ -295,6 +295,13 @@ def _quarantine(section: str, page: int, cells: list[str], reasons: list[str],
             "cells": cells, "reasons": sorted(set(reasons))}
 
 
+def _interrupt_annual_scope(state: dict, page: int, cells: list[str]) -> None:
+    # An unread boundary can contain a new owner or account. Retain the last
+    # heading as source evidence, but never use it to establish later scope.
+    state.update(account_scope_lost=True, owner_scope_lost=True,
+                 scope_boundary_ref={"page_number": page, "cells": cells})
+
+
 def _parse_rows(section: str, default_owner: str, page_number: int,
                 rows: list[list[object]], annual_year: int, *,
                 preserve_valued_unreadable: bool = False, qualified: bool = False,
@@ -304,6 +311,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
     """Return strict rows, quarantines, and explicit non-holding exclusions."""
     header = _header(rows, section)
     if header is None:
+        if qualified and scope_state is not None:
+            _interrupt_annual_scope(scope_state, page_number, [])
         if preserve_valued_unreadable and section != "part7":
             # A scanned page can merge the first asset into its header cell.
             # Preserve every populated body row as evidence, without guessing
@@ -325,8 +334,7 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
     state = scope_state if scope_state is not None else {}
     owner = state.get("owner", default_owner) if qualified else default_owner
     if qualified and state.get("previous_page") not in {None, page_number, page_number - 1}:
-        if state.get("account_title") or state.get("owner_heading_ref"):
-            state["account_scope_lost"] = True
+        _interrupt_annual_scope(state, page_number, [])
         # Keep the last observed scope as evidence, but do not qualify it
         # across an unobserved intervening page.  In particular an explicit
         # spouse heading must not silently become the section's default Self.
@@ -367,26 +375,30 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
                 owner = "Spouse"
                 if qualified:
                     state.update(owner=owner, account_title=None, account_heading_ref=None, account_scope_lost=False,
-                                 owner_heading_ref={"page_number": page_number, "cells": cells})
+                                 owner_scope_lost=False, scope_boundary_ref=None,
+                                 owner_heading_ref={"page_number": page_number, "table_row_index": source_row_index, "cells": cells})
                 continue
             if "dependent" in heading and ("account" in heading or "asset" in heading):
                 owner = "Dependent Child"
                 if qualified:
                     state.update(owner=owner, account_title=None, account_heading_ref=None, account_scope_lost=False,
-                                 owner_heading_ref={"page_number": page_number, "cells": cells})
+                                 owner_scope_lost=False, scope_boundary_ref=None,
+                                 owner_heading_ref={"page_number": page_number, "table_row_index": source_row_index, "cells": cells})
                 continue
             if ("filer" in heading or "self" in heading) and ("account" in heading or "asset" in heading):
                 owner = "Self"
                 if qualified:
                     state.update(owner=owner, account_title=None, account_heading_ref=None, account_scope_lost=False,
-                                 owner_heading_ref={"page_number": page_number, "cells": cells})
+                                 owner_scope_lost=False, scope_boundary_ref=None,
+                                 owner_heading_ref={"page_number": page_number, "table_row_index": source_row_index, "cells": cells})
                 continue
             if (not qualified and ("account" in heading or "trust" in heading) or
                     qualified and _ACCOUNT_HEADING.fullmatch(description)):
                 owner = owner if qualified else default_owner
                 if qualified:
-                    state.update(account_title=description, account_scope_lost=False,
-                                 owner=owner, account_heading_ref={"page_number": page_number, "cells": cells})
+                    state.update(account_title=description, account_scope_lost=bool(state.get("owner_scope_lost")),
+                                 owner=owner, account_heading_ref={"page_number": page_number,
+                                     "table_row_index": source_row_index, "cells": cells})
                 continue
         if qualified and number is None and description.casefold() == "none" and not has_business_values:
             excluded.append({"section": section, "page_number": page_number, "row_number": None,
@@ -394,6 +406,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
             continue
         if number is None:
             quarantined.append(_quarantine(section, page_number, cells, ["row_number_unreadable"]))
+            if qualified:
+                _interrupt_annual_scope(state, page_number, cells)
             continue
         evidence = {"section": section, "page_number": page_number,
                     "row_number": number, "owner": owner,
@@ -401,7 +415,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
         if qualified and isinstance(proof, dict):
             evidence["native_empty_cell_evidence"] = proof
         if qualified:
-            evidence["owner_context"] = {"basis": "explicit_owner_heading" if state.get("owner_heading_ref") else
+            evidence["owner_context"] = {"basis": "unresolved_after_source_boundary" if state.get("owner_scope_lost") else
+                "explicit_owner_heading" if state.get("owner_heading_ref") else
                 "section_role" if default_owner != "Unknown" else "not_disclosed",
                 "heading_ref": state.get("owner_heading_ref"), "section": section}
             prefix = re.match(r"^\((Self|Spouse|Dependent Child|Joint)\)\s+(.+)$", description, re.I)
@@ -414,6 +429,8 @@ def _parse_rows(section: str, default_owner: str, page_number: int,
                           "observed" if state.get("account_title") else "not_observed",
                 "title": state.get("account_title"),
                 "heading_ref": state.get("account_heading_ref")})
+            if state.get("scope_boundary_ref") is not None:
+                evidence["account_context"]["boundary_ref"] = state["scope_boundary_ref"]
         reasons: list[str] = []
         if not description or description.casefold() in {"none", "n/a", "na"}:
             reasons.append("asset_unreadable")
@@ -563,11 +580,15 @@ def _reject_nested_aggregates(holdings: list[dict], quarantined: list[dict],
         def source_scope(row):
             # A leaf's explicit owner prefix does not change its printed
             # parent account.  Separate owner headings and account titles do.
+            if row.get("account_context", {}).get("status") == "unknown":
+                return None
             return (row["section"], row.get("account_context", {}).get("title"),
+                    row.get("account_context", {}).get("heading_ref"),
                     row.get("owner_context", {}).get("heading_ref"))
 
         def related_rows(row):
-            return [other for other in all_rows if source_scope(other) == source_scope(row)
+            scope = source_scope(row)
+            return [other for other in all_rows if scope is not None and source_scope(other) == scope
                     and isinstance(other.get("row_number"), str)]
 
         for row in list(quarantined):
@@ -586,7 +607,8 @@ def _reject_nested_aggregates(holdings: list[dict], quarantined: list[dict],
             children = [other for other in related if other["row_number"].startswith(row["row_number"] + ".")]
             parents = [other for other in related if row["row_number"].startswith(other["row_number"] + ".")]
             row["hierarchy_evidence"] = {
-                "status": "parent_aggregate" if children else "leaf",
+                "status": "scope_unresolved" if source_scope(row) is None else
+                          "parent_aggregate" if children else "leaf",
                 "parent_refs": [{"page_number": other["page_number"], "row_number": other["row_number"],
                                   "asset_name": other.get("asset_name")} for other in parents],
                 "child_refs": [{"page_number": other["page_number"], "row_number": other["row_number"]} for other in children],

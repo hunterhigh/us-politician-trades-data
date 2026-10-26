@@ -300,6 +300,10 @@ class OgeContentRelationsTests(unittest.TestCase):
         new = adapt_oge_278t_extraction(extraction, catalog, raster_observations=[saved()], document_page_count=4)
         self.assertEqual({key: new[key] for key in old}, old)
         self.assertEqual(new["source_report_ledger"]["logical_row_count"], 1)
+        self.assertEqual(new["source_report_ledger"]["unobserved_pages"], [1, 3, 4])
+        self.assertEqual(new["source_report_ledger"]["relation_coverage"], "partial_unknown")
+        self.assertEqual(new["source_report_ledger"]["coverage_unknown_pages"], [1, 2, 3, 4])
+        self.assertEqual(new["raster_source_inventory"]["status"], "archived_source_unavailable")
         self.assertEqual(new["parser_row_relations"][0]["status"], "parser_row_geometry_unavailable")
 
     def test_parser_positions_keep_zero_one_many_and_unknown_pages(self):

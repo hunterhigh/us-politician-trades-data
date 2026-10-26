@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-09-mixed-pages"
+PARSER_RETRY_VERSION = "house-parser-suite-2026-10-image-body"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -477,23 +477,38 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
     if page_text_methods is None and any("text_reading_method" in page for page in pages):
         raise HouseIndexError("House mixed page observations require their reading methods")
     if page_text_methods is not None:
+        from .house_image_body_routing import METHOD as IMAGE_BODY_METHOD, WORD_TAG, validate_image_body_page
         if (not isinstance(page_text_methods, list) or len(page_text_methods) != len(pages) or
                 any(not isinstance(method, str) for method in page_text_methods) or
-                set(page_text_methods) != {"native_pdf_text", "tesseract_ocr"} or
-                page_text_methods[0] != "native_pdf_text" or not isinstance(ocr_engine, str) or not ocr_engine):
+                not set(page_text_methods) <= {"native_pdf_text", "tesseract_ocr", IMAGE_BODY_METHOD} or
+                not set(page_text_methods) & {"tesseract_ocr", IMAGE_BODY_METHOD} or
+                page_text_methods[0] not in {"native_pdf_text", IMAGE_BODY_METHOD} or
+                not isinstance(ocr_engine, str) or not ocr_engine):
             raise HouseIndexError("House mixed page reading methods are invalid")
-        for method, page in zip(page_text_methods, pages):
+        for page_number, (method, page) in enumerate(zip(page_text_methods, pages), 1):
             if page.get("text_reading_method", method) != method:
                 raise HouseIndexError("House mixed page reading method binding differs")
+            if method == IMAGE_BODY_METHOD:
+                geometry = page.get('native_page_geometry', {})
+                if geometry.get('source_sha256') != source_sha256 or geometry.get('page_number') != page_number:
+                    raise HouseIndexError('House image body source or page binding differs')
+                validate_image_body_page(page)
+            elif 'image_body_observation' in page or any(WORD_TAG in word for word in page['words']):
+                raise HouseIndexError("House image body observations require their reading method")
             for word in page["words"]:
                 confidence = word.get("ocr_confidence")
-                if ((method == "native_pdf_text" and confidence is not None) or
-                        (method == "tesseract_ocr" and (type(confidence) not in (int, float) or
+                native_word = method == "native_pdf_text" or (method == IMAGE_BODY_METHOD and not word.get(WORD_TAG))
+                ocr_word = method == "tesseract_ocr" or (method == IMAGE_BODY_METHOD and word.get(WORD_TAG))
+                if ((native_word and confidence is not None) or
+                        (ocr_word and (type(confidence) not in (int, float) or
                          not 0 <= confidence <= 100))):
                     raise HouseIndexError("House mixed page confidence differs from its reading method")
     if not any(page.get("words") for page in pages):
         raise HouseIndexError("House PTR requires OCR because it contains no extractable text")
-    first_text = _clean(" ".join(str(word["text"]) for word in pages[0].get("words", [])))
+    first_words = (pages[0]['image_body_observation']['native_words']
+                   if page_text_methods is not None and page_text_methods[0] == IMAGE_BODY_METHOD
+                   else pages[0].get('words', []))
+    first_text = _clean(" ".join(str(word["text"]) for word in first_words))
     all_text = _clean(" ".join(str(word["text"]) for page in pages
                                for word in page.get("words", [])))
     compact_first_text = re.sub(r"[^A-Z]", "", first_text.upper())
@@ -560,6 +575,11 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         for segment_page_index in range(page_index, last_page_index + 1):
             segment = page_data[segment_page_index]
             start = top - 2 if segment_page_index == page_index else 0.14 * segment["height"]
+            if (page_text_methods is not None and segment_page_index > page_index and
+                    page_text_methods[segment_page_index] == IMAGE_BODY_METHOD):
+                # The independently identified printed header is not a
+                # continuation of the preceding native transaction.
+                start = max(start, pages[segment_page_index]['image_body_observation']['region'][1])
             if following and segment_page_index == following["page_index"]:
                 end = following["top"] - 2
             elif segment_page_index == page_index and following is None:
@@ -710,7 +730,9 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "ocr_confidence": (round(sum(ocr_confidences) / len(ocr_confidences), 2)
                                if ocr_confidences else None),
             **({"ocr_source_pages": sorted({index + 1 for index, _ in block
-                 if page_text_methods[index] == "tesseract_ocr"})} if page_text_methods is not None else {}),
+                 if page_text_methods[index] == "tesseract_ocr"} | {index + 1 for index, word in block
+                 if page_text_methods[index] == IMAGE_BODY_METHOD and word.get(WORD_TAG)})}
+               if page_text_methods is not None else {}),
             "subholding_of": details.get("subholding_of"),
             "location": details.get("location"),
             "description": details.get("description"),
@@ -1102,7 +1124,8 @@ def revision_reference_dispositions(qualification: dict, extraction: dict,
             for row in observed]
 
 
-def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:
+def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float,
+                              include_word_bounds: bool = False) -> list[dict]:
     words: list[dict] = []
     try:
         lines = value.splitlines()
@@ -1111,6 +1134,8 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
         columns = lines[0].split("\t")
         if not {"level", "text", "conf", "left", "top", "height"} <= set(columns):
             raise HouseIndexError("House PTR OCR returned invalid word geometry")
+        if include_word_bounds and 'width' not in columns:
+            raise HouseIndexError('House image body OCR requires complete word bounds')
         for line in lines[1:]:
             cells = line.split("\t", len(columns) - 1)
             if len(cells) != len(columns):
@@ -1128,6 +1153,9 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
                 "top": float(row["top"]) * points_per_pixel,
                 "size": max(float(row["height"]) * points_per_pixel, 1.0),
                 "ocr_confidence": confidence,
+                **({'x1': (float(row['left']) + float(row['width'])) * points_per_pixel,
+                    'bottom': (float(row['top']) + float(row['height'])) * points_per_pixel}
+                   if include_word_bounds else {}),
             })
     except (KeyError, TypeError, ValueError):
         raise HouseIndexError("House PTR OCR returned invalid word geometry") from None
@@ -1135,7 +1163,8 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
 
 
 def _ocr_pdf_pages(document, *, resolution: int = 200,
-                   page_numbers: list[int] | None = None) -> tuple[list[dict], str]:
+                   page_numbers: list[int] | None = None,
+                   include_word_bounds: bool = False) -> tuple[list[dict], str]:
     selected = list(range(1, len(document.pages) + 1)) if page_numbers is None else page_numbers
     if (not isinstance(selected, list) or not selected or
             any(type(number) is not int or not 1 <= number <= len(document.pages) for number in selected) or
@@ -1167,7 +1196,8 @@ def _ocr_pdf_pages(document, *, resolution: int = 200,
             pages.append({"width": page.width, "height": page.height,
                           "_image": image,
                           "words": _words_from_tesseract_tsv(
-                              completed.stdout, points_per_pixel=72.0 / resolution)})
+                              completed.stdout, points_per_pixel=72.0 / resolution,
+                              include_word_bounds=include_word_bounds)})
     return pages, engine
 
 
@@ -1181,11 +1211,13 @@ def observe_native_word_pages(document, source_sha256: str) -> list[dict]:
 
 
 def planned_ocr_pages(pages: list[dict]) -> list[int]:
-    """Select wordless content pages; no words is never a blank-page proof."""
+    """Select wordless content or an explicitly partitioned native table image."""
+    from .house_image_body_routing import image_body_region
     if not any(page["words"] for page in pages):
         return list(range(1,len(pages)+1))  # preserve the existing image-only path
-    return [number for number,page in enumerate(pages,1) if not page["words"] and
-            any(page["native_page_geometry"][kind] for kind in ("images","curves","rects","lines"))]
+    return [number for number,page in enumerate(pages,1) if
+            (not page["words"] and any(page["native_page_geometry"][kind]
+                for kind in ("images","curves","rects","lines"))) or image_body_region(page) is not None]
 
 
 def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
@@ -1230,15 +1262,23 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
                     if (f"#{metadata.get('document_id')}" not in first or not (
                             "PERIODICTRANSACTIONREPORT" in compact or heading[:3] == ["P", "T", "R"])):
                         raise HouseIndexError("House mixed pages require a native modern PTR header")
-                    observed, ocr_engine = _ocr_pdf_pages(document, page_numbers=selected)
+                    from .house_image_body_routing import image_body_region
+                    image_body_selected = any(image_body_region(pages[number-1]) is not None for number in selected)
+                    observed, ocr_engine = _ocr_pdf_pages(document, page_numbers=selected,
+                        **({'include_word_bounds': True} if image_body_selected else {}))
                     if len(observed) != len(selected):
                         raise HouseIndexError("House mixed OCR page count differs from its selection")
                     page_text_methods = ["native_pdf_text"] * len(pages)
                     for number, observed_page in zip(selected, observed):
                         if any(observed_page.get(key) != pages[number-1][key] for key in ("width", "height")):
                             raise HouseIndexError("House mixed OCR page dimensions differ")
-                        pages[number-1] = observed_page
-                        page_text_methods[number-1] = "tesseract_ocr"
+                        if pages[number-1]['words']:
+                            from .house_image_body_routing import METHOD as IMAGE_BODY_METHOD, merge_image_body_page
+                            pages[number-1] = merge_image_body_page(pages[number-1], observed_page)
+                            page_text_methods[number-1] = IMAGE_BODY_METHOD
+                        else:
+                            pages[number-1] = observed_page
+                            page_text_methods[number-1] = "tesseract_ocr"
     except HouseIndexError:
         raise
     except Exception as exc:

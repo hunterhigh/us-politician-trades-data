@@ -11,6 +11,28 @@ import hashlib
 RULE = "senate-source-complete-x/v1"
 BOUNDARY_RULE = "senate-source-complete-x-boundary/v2"
 ENCLOSED_RULE = "senate-source-enclosed-amount-x/v3"
+INDEPENDENT_BOUNDARY_RULE = "senate-source-independent-rule-boundary/v4"
+
+
+def _independent_blank_boundary(gray, slot, lines, left, right):
+    """Only outside-cell print witnesses may explain a failed unmarked frame.
+
+    This supports continuous axis-aligned bands up to 12 pixels and 1/8 cell
+    size. It neither fits curves nor uses target contours to expand the mask.
+    """
+    from .ruled_cell_blank import inspect_ruled_cell_blank
+    top,bottom = slot['row_bounds_px']
+    height = bottom-top
+    horizontal = [[a,b] for a,b in zip(lines,lines[1:])
+                  if b<=left or a>=right]
+    vertical = [[top-height+20,top-20],[bottom+20,bottom+height-20]]
+    result = inspect_ruled_cell_blank(gray,[left,top,right,bottom],
+        horizontal_witness_spans=horizontal,vertical_witness_spans=vertical,
+        rule_profile='straight_wide/v2')
+    if result['status'] != 'blank':
+        return None
+    return {'status':'independently_witnessed_blank','qualification':'not_assessed',
+            'independent_blank_observation':result}
 
 
 def _source_rule_trace_result(gray, box, bands):
@@ -196,7 +218,8 @@ def interpret_enclosed_amount_row(image, slot):
             'source_column_lines_px': list(lines), 'qualification': 'not_assessed'}
 
 
-def interpret_complete_mark_row(image, slot, *, resolve_boundary_traces=False):
+def interpret_complete_mark_row(image, slot, *, resolve_boundary_traces=False,
+                                independent_blank_boundaries=False):
     from .senate_slots_shadow import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
     if slot.get("label") != "unknown" or slot.get("column_calibration") != "verified":
         return None
@@ -223,22 +246,24 @@ def interpret_complete_mark_row(image, slot, *, resolve_boundary_traces=False):
                     old["mark_signal"] != (old["dark_sample_count"] >= 25)):
                 return None
             face = _inner_face(gray, left, right, top, bottom)
-            if face is None:
-                return None
-            box, boundary_bands = face
-            crop = gray.crop(tuple(box))
-            result = (_source_rule_trace_result(gray,box,boundary_bands) if resolve_boundary_traces else complete_x(crop))
+            box, boundary_bands = face if face else (None,None)
+            crop = gray.crop(tuple(box)) if box is not None else None
+            result = ((_source_rule_trace_result(gray,box,boundary_bands) if resolve_boundary_traces else complete_x(crop))
+                      if face else None)
+            if independent_blank_boundaries and not old['mark_signal'] and (
+                    result is None or result['status'] != 'complete_x'):
+                result = _independent_blank_boundary(gray,slot,lines,left,right)
             if result is None:
                 return None
             if result["status"] == "complete_x":
                 marked.append(label)
             cells.append({"field": field, "label": label, "box_px": box,
                           "boundary_bands_px": boundary_bands,
-                          "grayscale_sha256": hashlib.sha256(crop.tobytes()).hexdigest(),
+                          "grayscale_sha256": hashlib.sha256(crop.tobytes()).hexdigest() if crop else None,
                           "old_center_sample": old, **result})
         if len(marked) != 1 or original and original != marked:
             return None
         fields[field] = marked
-    return {"rule_version": BOUNDARY_RULE if resolve_boundary_traces else RULE, "direction_labels": fields["direction"], "amount_labels": fields["amount"],
+    return {"rule_version": INDEPENDENT_BOUNDARY_RULE if independent_blank_boundaries else BOUNDARY_RULE if resolve_boundary_traces else RULE, "direction_labels": fields["direction"], "amount_labels": fields["amount"],
             "original_type_marks": slot["type_marks"], "original_amount_marks": slot["amount_marks"],
             "source_column_lines_px": list(lines), "cells": cells, "qualification": "not_assessed"}

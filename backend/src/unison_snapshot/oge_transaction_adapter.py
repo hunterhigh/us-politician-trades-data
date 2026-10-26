@@ -6,6 +6,7 @@ import json
 import re
 from copy import deepcopy
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from .oge import OgeCatalogError
@@ -194,6 +195,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                        secondary_observations=secondary_observations)
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
+    raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path)
     result = deepcopy(extraction)
     if legacy_reference is not None:
         result["source_rows"] = []  # Populated only by actual saved observations below.
@@ -448,7 +450,11 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             "unique_source_row_count": None} if legacy_reference else {}),
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
         "initial_account_scope_basis": "optional_account_title_not_observed_no_absence_claim",
-        "coverage_complete": not legacy_reference and page_count_verified and not unresolved and not unknown_pages and not content["source_report_ledger"]["unobserved_pages"],
+        "raster_source_inventory": raster_inventory,
+        "coverage_complete": (not legacy_reference and page_count_verified and not unresolved and not unknown_pages
+            and not content["source_report_ledger"]["unobserved_pages"]
+            and not content["source_report_ledger"]["coverage_unknown_pages"]
+            and raster_inventory.get("all_selected_boundaries_accounted") is True),
     }
     return result
 
@@ -482,6 +488,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
                               raster_observations: list[dict] | None = None,
                               document_page_count: int | None = None,
                               secondary_field_observations: list[dict] | None = None,
+                              archived_pdf_path: str | Path | None = None,
                               legacy_extraction: dict | None = None,
                               formal_reference_facts: list[dict] | None = None,
                               cross_source_evidence_root: str | Path | None = None,
@@ -780,15 +787,55 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
     if raster_observations is not None:
         result.update(_source_content_relations(
             extraction, raster_observations, document_page_count=document_page_count,
-            secondary_field_observations=secondary_field_observations))
+            secondary_field_observations=secondary_field_observations, archived_pdf_path=archived_pdf_path))
     elif document_page_count is not None or secondary_field_observations is not None:
         raise OgeCatalogError("content relations require saved raster observations")
     return result
 
 
+def _content_census(ledger: dict, sha: str) -> dict:
+    return {"source_sha256": sha, "results": [
+        {"page_number": page["page_number"],
+         "status": "physical_slots_located" if page["slots"] else "coverage_unknown",
+         "physical_row_bands": [slot["bounds"] for slot in page["slots"]]}
+        for page in ledger["pages"] if page["page_number"] not in ledger["unobserved_pages"]]}
+
+
+def _audit_content_source(content: dict, sha: str, page_count: int,
+                          archived_pdf_path: str | Path | None) -> dict:
+    from .oge_278t_raster_inventory import SCHEMA, audit_raster_source_inventory
+    if archived_pdf_path is None:
+        audit = {"schema_version": SCHEMA, "source_sha256": sha,
+                "status": "archived_source_unavailable", "all_selected_boundaries_accounted": False,
+                "report_completeness_attested": False}
+    else:
+        try:
+            audit = audit_raster_source_inventory(Path(archived_pdf_path), expected_sha256=sha,
+                census=_content_census(content["source_report_ledger"], sha), document_page_count=page_count)
+        except ValueError as exc:
+            raise OgeCatalogError(f"source raster inventory is invalid: {exc}") from exc
+    from .source_row_ledger import report_ledger
+    ledger = content["source_report_ledger"]
+    status = {page["page_number"]: page for page in audit.get("pages", [])}
+    pages = deepcopy([page for page in ledger["pages"]
+                      if page["page_number"] not in ledger["unobserved_pages"]])
+    for page in pages:
+        observed = status.get(page["page_number"], {})
+        if observed.get("status") != "source_boundaries_aligned":
+            page.update(coverage="unknown", coverage_reason="independent_source_boundaries_unresolved")
+    content["source_report_ledger"] = report_ledger(source_id=ledger["source_id"],
+        document_sha256=sha, adapter_version=ledger["adapter_version"], page_count=page_count,
+        pages=pages, logical_rows=[{key: row[key] for key in
+            ("local_key", "slot_refs", "split_basis", "observation_ref") if key in row}
+            for row in ledger["logical_rows"]],
+        unresolved_data_slots=ledger["unresolved_data_slots"])
+    return audit
+
+
 def _source_content_relations(extraction: dict, observations: list[dict], *,
                               document_page_count: int,
-                              secondary_field_observations: list[dict] | None) -> dict:
+                              secondary_field_observations: list[dict] | None,
+                              archived_pdf_path: str | Path | None = None) -> dict:
     """Connect original grids to the existing adapter without changing its facts."""
     from .oge_278t_field_shadow import observe_content_rows
     from .oge_278t_page_shadow import reconcile_raster_ocr_rows
@@ -798,12 +845,9 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
     observed = observe_content_rows(
         observations, document_page_count=document_page_count,
         secondary_observations=secondary_field_observations)
+    audit = _audit_content_source(observed, extraction["source_sha256"], document_page_count, archived_pdf_path)
     ledger = observed["source_report_ledger"]
-    census = {"source_sha256": extraction["source_sha256"], "results": [
-        {"page_number": page["page_number"],
-         "status": "physical_slots_located" if page["slots"] else "coverage_unknown",
-         "physical_row_bands": [slot["bounds"] for slot in page["slots"]]}
-        for page in ledger["pages"]]}
+    census = _content_census(ledger, extraction["source_sha256"])
     source_indices, positioned, relations = [], [], []
     for index, row in enumerate(extraction["source_rows"]):
         if not 1 <= row["page_number"] <= document_page_count:
@@ -834,4 +878,5 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
             relations[index].update({"slot_refs": [refs], "logical_row_keys": keys,
                 "status": "multiple_parser_rows_in_slot" if len(indices) > 1 else
                 "geometry_match_only" if len(keys) == 1 else "slot_relation_unresolved"})
-    return {**observed, "parser_row_relations": relations, "slot_parser_matches": slot_matches}
+    return {**observed, "raster_source_inventory": audit,
+            "parser_row_relations": relations, "slot_parser_matches": slot_matches}

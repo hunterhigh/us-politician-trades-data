@@ -350,6 +350,10 @@ def inspect_pdf(path: Path, *, page_numbers: list[int] | None = None,
         result["raster_ocr_coverage"] = reconcile_raster_ocr_rows(
             census, raster_ocr_records, expected_sha256=source_sha256,
             ocr_source_sha256=raster_ocr_source_sha256)
+        from .oge_278t_raster_inventory import audit_raster_source_inventory
+        result["raster_source_inventory"] = audit_raster_source_inventory(
+            source, expected_sha256=source_sha256, census=census,
+            document_page_count=result["page_count"])
     return result
 
 
