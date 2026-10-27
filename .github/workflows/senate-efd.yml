@@ -61,7 +61,7 @@ jobs:
               'source_id': 'senate_efd',
               'run_at': datetime.now(timezone.utc).isoformat(),
               'status': (prior['status'] if gate['status'] == 'enabled' and
-                         prior.get('status') == 'catalog_ready_for_review' else
+                         prior.get('status') in {'catalog_ready_for_review', 'failed'} else
                          gate['status']),
               'collection_enabled': gate['collection_enabled'],
               'terms_acknowledged': gate['terms_acknowledged'],
@@ -126,6 +126,7 @@ jobs:
           echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
           echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
       - name: Verify authorization gate and collect PTR catalog
+        id: collect
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
@@ -140,6 +141,7 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
             --archive "$EVIDENCE_ROOT" \
             --submitted-start-date "$start_date" \
+            --failure-output .local/senate-efd-failure.json \
             --output .local/senate-efd-discovery.json
           roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
           import json, os
@@ -181,6 +183,7 @@ jobs:
             --archive "$EVIDENCE_ROOT" \
             --output .local/senate-efd-extraction-batch.json
       - name: Publish immutable catalog evidence
+        id: publish_evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
         run: |
@@ -193,6 +196,48 @@ jobs:
             git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git -C "$EVIDENCE_ROOT" commit -m "evidence: Senate eFD catalog ${{ github.run_id }}"
             git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
+          fi
+      - name: Record failed catalog collection without advancing source data
+        if: ${{ always() && steps.trees.outcome == 'success' && (steps.collect.outcome == 'failure' || steps.publish_evidence.outcome == 'failure') }}
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          target = Path(os.environ['STATE_ROOT']) / 'status/senate_efd.json'
+          prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          failed_step = ('collect_catalog' if os.environ['COLLECT_OUTCOME'] == 'failure'
+                         else 'publish_evidence')
+          diagnostic_path = Path('.local/senate-efd-failure.json')
+          diagnostic = (json.loads(diagnostic_path.read_text(encoding='utf-8'))
+                        if diagnostic_path.is_file() else {})
+          attempted_at = datetime.now(timezone.utc).isoformat()
+          value = {
+              **prior, 'schema_version': 'senate-source-run/v1',
+              'source_id': 'senate_efd', 'status': 'failed', 'run_at': attempted_at,
+              'detail': 'Senate catalog collection failed; prior source data is retained.',
+              'last_collection_attempt': {
+                  'status': 'failed', 'attempted_at': attempted_at,
+                  'workflow_run_url': os.environ['WORKFLOW_RUN_URL'],
+                  'failed_step': failed_step,
+                  **{key: diagnostic[key] for key in
+                     ('http_status', 'request_stage', 'error_code') if key in diagnostic},
+              },
+          }
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                      separators=(',', ':')), encoding='utf-8')
+          PY
+          git -C "$STATE_ROOT" add status/senate_efd.json
+          if ! git -C "$STATE_ROOT" diff --cached --quiet; then
+            git -C "$STATE_ROOT" config user.name "github-actions[bot]"
+            git -C "$STATE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$STATE_ROOT" commit -m "state: Senate eFD collection failed ${{ github.run_id }}"
+            git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
       - name: Record catalog source state
         env:

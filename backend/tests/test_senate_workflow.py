@@ -75,7 +75,7 @@ class SenateWorkflowTests(unittest.TestCase):
         gate_step = content.split("- name: Record authorization gate state", 1)[1].split(
             "- name: Fail a partially enabled gate", 1)[0]
         self.assertIn("**prior", gate_step)
-        self.assertIn("prior.get('status') == 'catalog_ready_for_review'", gate_step)
+        self.assertIn("prior.get('status') in {'catalog_ready_for_review', 'failed'}", gate_step)
         self.assertNotIn("value['historical_roster']", gate_step)
 
     def test_catalog_respects_evidence_review_and_state_boundaries(self):
