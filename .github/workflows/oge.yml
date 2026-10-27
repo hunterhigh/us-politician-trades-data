@@ -34,6 +34,22 @@ on:
         description: Optional existing saved native annual parser version; requires saved annual preparation
         required: false
         default: ''
+      oge_annual_blue_date_document_id:
+        description: Optional saved scan document for the existing blue-date consumer; requires saved annual scans and a model directory
+        required: false
+        default: ''
+      oge_annual_blue_date_model_directory:
+        description: Existing canonical model directory relative to evidence; paired with the blue-date document ID
+        required: false
+        default: ''
+      verify_oge_annual_blank_slots:
+        description: Verify transaction blank slots from original pixels; requires saved annual scans
+        type: boolean
+        default: false
+      replay_oge_annual_cover_ocr:
+        description: Replay existing cover form/type/report-period OCR from source; requires saved annual scans and does not verify signature dates
+        type: boolean
+        default: false
 permissions:
   contents: write
 
@@ -380,6 +396,10 @@ jobs:
           INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
           OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
           OGE_ANNUAL_PARSER_VERSION: ${{ inputs.oge_annual_parser_version }}
+          OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID: ${{ inputs.oge_annual_blue_date_document_id }}
+          OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY: ${{ inputs.oge_annual_blue_date_model_directory }}
+          VERIFY_OGE_ANNUAL_BLANK_SLOTS: ${{ inputs.verify_oge_annual_blank_slots || false }}
+          REPLAY_OGE_ANNUAL_COVER_OCR: ${{ inputs.replay_oge_annual_cover_ocr || false }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
@@ -535,6 +555,31 @@ jobs:
             true|false) ;;
             *) echo 'Invalid saved annual scan preparation switch.' >&2; exit 2 ;;
           esac
+          case "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual blank-slot switch.' >&2; exit 2 ;;
+          esac
+          case "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual cover replay switch.' >&2; exit 2 ;;
+          esac
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ] || [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ] || [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ] || [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" != true ]; then
+              echo 'Blue dates, blank slots and cover replay require saved annual scan preparation.' >&2
+              exit 2
+            fi
+          fi
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ]; then
+            [[ "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" =~ ^[0-9a-f]{32}$ ]] || exit 2
+            python - <<'PY'
+          import os
+          raw = os.environ.get('OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY', '')
+          if (not raw or len(raw) > 512 or raw != raw.strip() or raw.startswith('/') or
+                  chr(92) in raw or ':' in raw or any(ord(c) < 32 or ord(c) == 127 for c in raw) or
+                  any(part in ('', '.', '..') for part in raw.split('/'))):
+              raise SystemExit('Blue-date model directory must be a bounded canonical evidence-relative path')
+          PY
+          fi
           if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ] && [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ]; then
             echo 'Saved annual scans require the explicit annual preparation switch.' >&2
             exit 2
@@ -551,11 +596,28 @@ jobs:
               [[ "$OGE_ANNUAL_DOCUMENT_ID" =~ ^[0-9a-f]{32}$ ]] || exit 2
               selection_args+=(--document-id "$OGE_ANNUAL_DOCUMENT_ID")
             fi
+            if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" ]; then
+              selection_args+=(--blue-date-document-id "$OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID" \
+                --blue-date-model-directory "$OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY")
+            fi
+            if [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ]; then
+              selection_args+=(--verify-transaction-blank-slots)
+            fi
+            if [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+              if ! command -v tesseract >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y tesseract-ocr
+              fi
+              selection_args+=(--replay-cover-ocr)
+            fi
             PYTHONPATH=backend/src python backend/scripts/prepare_oge_annual_runtime.py \
               --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
               --output "$RUNNER_TEMP/oge-annual-input.json" \
               --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
               "${selection_args[@]}"
+            if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" ]; then
+              python -m pip install -e 'backend[oge-handwritten-date]'
+            fi
             annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
               --oge-annual-runtime-root "$EVIDENCE_ROOT")
           elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}${OGE_ANNUAL_PARSER_VERSION:-}" ]; then

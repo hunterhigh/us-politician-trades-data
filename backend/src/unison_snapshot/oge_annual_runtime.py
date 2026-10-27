@@ -1,12 +1,14 @@
 """Offline preparation of saved annual inputs from controlled trees.
 
 This consumes the existing annual-review writer's layout. It never upgrades a
-parser version, manufactures missing observations, downloads, or runs OCR.
+parser version, manufactures missing observations, downloads, or runs date
+models. Cover OCR is available only through an explicit source-replay option.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+from math import ceil, isfinite
 from pathlib import Path, PurePosixPath
 import re
 import sys
@@ -23,6 +25,8 @@ _ID = re.compile(r"[0-9a-f]{32}\Z")
 _VERSIONS = {PARSER_VERSION, SHADOW_PARSER_VERSION, QUALIFIED_PARSER_VERSION}
 MAX_SCAN_FILES = MAX_DOCUMENTS * 4
 MAX_SCAN_PAGES = 100  # Same scope as the saved section-observation writer.
+MAX_COVER_RENDER_PIXELS = 16_000_000
+MAX_COVER_RENDER_EDGE = 10_000
 SCAN_LAYOUT = {
     'cover_observation': ('cover_observations', 'cover-ocr-v1.json',
                           {'cover-ocr-v1.json': 'oge-278e-scan-cover-observation/v1'}),
@@ -111,6 +115,25 @@ def _digest(path: Path, *, limit: int) -> tuple[str, int]:
     return digest.hexdigest(), size
 
 
+def _blue_model_directory(evidence: Path, reference: str) -> str:
+    """Keep the two pinned leaf files under one canonical portable directory."""
+    if (not isinstance(reference, str) or not reference or '\\' in reference or ':' in reference or
+            PurePosixPath(reference).is_absolute() or
+            PurePosixPath(reference).as_posix() != reference or
+            any(not part or part in {'.', '..'} or part.rstrip(' .') != part or
+                any(ord(char) < 32 for char in part) for part in reference.split('/'))):
+        raise ValueError('Annual blue date model directory must be a canonical relative POSIX path')
+    directory = (evidence / reference).resolve(strict=True)
+    if (not directory.is_relative_to(evidence) or not directory.is_dir() or
+            directory.relative_to(evidence).as_posix() != reference):
+        raise ValueError('Annual blue date model directory escapes its root or is an alias')
+    for name in ('model.onnx', 'config.json'):
+        source = _inside(evidence, f'{reference}/{name}')
+        if source.relative_to(evidence).as_posix() != f'{reference}/{name}':
+            raise ValueError('Annual blue date model file is an alias')
+    return reference
+
+
 def _json(path: Path) -> dict:
     if path.stat().st_size > MAX_JSON_BYTES:
         raise ValueError("Annual controlled runtime JSON exceeds byte budget")
@@ -120,24 +143,71 @@ def _json(path: Path) -> dict:
     return value
 
 
+def _cover_source_projection(value: dict) -> dict:
+    """Only source fields consumed as form/period evidence can authorize them."""
+    from .oge_annual_scan_cover import SCHEMA
+    years = value.get('annual_year_text_candidates')
+    if (value.get('schema_version') != SCHEMA or
+            not isinstance(value.get('document_id'), str) or not _ID.fullmatch(value['document_id']) or
+            not isinstance(value.get('source_sha256'), str) or
+            not re.fullmatch(r'[0-9a-f]{64}', value['source_sha256']) or
+            type(value.get('page_count')) is not int or not 1 <= value['page_count'] <= MAX_SCAN_PAGES or
+            type(value.get('cover_page_number')) is not int or value['cover_page_number'] != 1 or
+            not isinstance(value.get('native_text_sha256'), str) or
+            not re.fullmatch(r'[0-9a-f]{64}', value['native_text_sha256']) or
+            value.get('form_278e_text_observed') is not True or
+            value.get('annual_type_text_observed') is not True or
+            not isinstance(years, list) or len(years) != 1 or type(years[0]) is not int):
+        raise ValueError('Annual controlled cover replay lacks a unique typed source form and period')
+    keys = ('schema_version', 'document_id', 'source_sha256', 'page_count',
+            'cover_page_number', 'native_text_sha256', 'form_278e_text_observed',
+            'annual_type_text_observed')
+    return {**{key: value[key] for key in keys}, 'annual_year_text_candidates': list(years)}
+
+
 def _replay_scan_sources(pdf: Path, *, roles: dict, document: str, sha: str,
-                         archive: dict) -> None:
-    """Bind field-bearing saved text to the original; never run cover OCR."""
+                         archive: dict, replay_cover_ocr: bool = False) -> dict | None:
+    """Bind saved text; explicit cover replay does not verify signature dates."""
     from .oge_annual_scan_sections import observe_scan_sections
     if observe_scan_sections(pdf, source_sha256=sha, document_id=document) != roles['section_observation']:
         raise ValueError('Annual controlled scan sections differ from original source replay')
     native = roles.get('native_cover_observation')
-    if native is None:
+    if native is None and not replay_cover_ocr:
         # Saved OCR remains an observation boundary. Without the explicit native
         # cover role the existing consumer leaves filing_date unresolved.
         return
     from .oge_annual_scan_cover import observe_native_cover_text, _TYPE, _YEAR
     replay = observe_native_cover_text(pdf, source_sha256=sha, document_id=document)
-    if replay != native:
+    if native is not None and replay != native:
         raise ValueError('Annual controlled native cover differs from original source replay')
     text, cover = replay['cover_text'], roles['cover_observation']
     years = sorted(set(int(year) for year in _YEAR.findall(text)))
-    if (not re.search(r'\b278e\b', text, re.I) or not _TYPE.search(text) or len(years) != 1 or
+    if not re.search(r'\b278e\b', text, re.I):
+        raise ValueError('Annual controlled native cover form or year is missing or contradicts saved OCR')
+    proof = None
+    if replay_cover_ocr:
+        from .oge_annual_scan_cover import observe_scan_cover
+        reading = observe_scan_cover(pdf, source_sha256=sha, document_id=document,
+            catalog_filer=archive['filer_name'], catalog_year=archive.get('report_year'))
+        projection = _cover_source_projection(reading)
+        if _cover_source_projection(cover) != projection:
+            raise ValueError('Annual controlled cover fields differ from original source OCR replay')
+        first_pages = [page for page in roles['section_observation'].get('pages', [])
+                       if page.get('page_number') == 1]
+        if (len(first_pages) != 1 or replay.get('cover_text_sha256') != projection['native_text_sha256'] or
+                first_pages[0].get('page_text_sha256') != projection['native_text_sha256']):
+            raise ValueError('Annual controlled cover replay differs from the original first-page inventory')
+        declared = re.findall(r'Report\s+Type\s*:\s*([A-Za-z]+)', text, re.I)
+        if (any(value.casefold() != 'annual' for value in declared) or
+                years and years != projection['annual_year_text_candidates']):
+            raise ValueError('Annual controlled native cover explicitly contradicts source OCR form or period')
+        raw = json.dumps(reading, sort_keys=True, separators=(',', ':'),
+                         ensure_ascii=False, allow_nan=False).encode('utf-8')
+        proof = {'method': 'source_ocr_cover_fields/v1', 'document_id': document,
+                 'source_sha256': sha, 'projection': projection,
+                 'observation_sha256': hashlib.sha256(raw).hexdigest(),
+                 'ocr_engine': reading.get('ocr_engine')}
+    elif (not _TYPE.search(text) or len(years) != 1 or
             cover.get('form_278e_text_observed') is not True or
             cover.get('annual_type_text_observed') is not True or
             cover.get('annual_year_text_candidates') != years):
@@ -151,13 +221,18 @@ def _replay_scan_sources(pdf: Path, *, roles: dict, document: str, sha: str,
     actual = re.findall(r'[a-z]+', names[0].casefold()) if len(names) == 1 else []
     if not expected or not all(token in actual for token in expected):
         raise ValueError('Annual controlled native cover filer is missing or contradicts archive identity')
+    return proof
 
 
 def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
                                     code_commit: str, started_at: str,
                                     document_ids: list[str] | None = None,
                                     include_saved_scans: bool = False,
-                                    parser_version: str | None = None) -> dict:
+                                    parser_version: str | None = None,
+                                    blue_date_document_ids: list[str] | None = None,
+                                    blue_date_model_directory: str | None = None,
+                                    verify_transaction_blank_slots: bool = False,
+                                    replay_cover_ocr: bool = False) -> dict:
     """Discover saved source caches, verify all dependencies, then return input."""
     review, evidence = review_root.resolve(strict=True), evidence_root.resolve(strict=True)
     if not review.is_dir() or not evidence.is_dir():
@@ -167,6 +242,19 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
     timestamp(started_at)
     if type(include_saved_scans) is not bool:
         raise ValueError('Annual controlled scan preparation flag must be boolean')
+    if type(replay_cover_ocr) is not bool or (replay_cover_ocr and not include_saved_scans):
+        raise ValueError('Annual cover OCR replay requires saved scans and a boolean flag')
+    if type(verify_transaction_blank_slots) is not bool or (
+            verify_transaction_blank_slots and not include_saved_scans):
+        raise ValueError('Annual blank slot verification requires saved scans and a boolean flag')
+    if (blue_date_document_ids is None) != (blue_date_model_directory is None):
+        raise ValueError('Annual blue date document selection and model directory must be paired')
+    if blue_date_document_ids is not None and (
+            not include_saved_scans or not isinstance(blue_date_document_ids, list) or
+            not blue_date_document_ids or len(blue_date_document_ids) > MAX_DOCUMENTS or
+            any(not isinstance(item, str) or not _ID.fullmatch(item) for item in blue_date_document_ids) or
+            len(set(blue_date_document_ids)) != len(blue_date_document_ids)):
+        raise ValueError('Annual blue date document selection requires unique saved scan documents')
     if parser_version is not None and (not isinstance(parser_version, str) or
                                        parser_version not in _VERSIONS):
         raise ValueError('Annual controlled runtime parser selection is unsupported')
@@ -193,6 +281,10 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
     if parser_version is not None and available_documents != {path.parent.parent.name for path in paths}:
         raise ValueError('Annual controlled runtime selected parser is missing for a selected document')
     scans = _saved_scans(review, document_ids) if include_saved_scans else {}
+    if replay_cover_ocr and not scans:
+        raise ValueError('Annual cover OCR replay requires selected saved scan observations')
+    if blue_date_document_ids is not None and not set(blue_date_document_ids) <= scans.keys():
+        raise ValueError('Annual blue date documents must be selected saved scan inputs')
     if not paths and not scans:
         raise ValueError("Annual controlled runtime has no selected saved extractions")
     extractions, metadata, files, documents, seen, total = [], {}, [], [], set(), 0
@@ -247,7 +339,17 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
                             else 'saved_legacy_parser_input',
             'qualification_status': 'deferred_to_existing_consumer',
             'holding_coverage_parser_supported': parser == QUALIFIED_PARSER_VERSION})
-    saved = {}
+    blue_selection = {}
+    if blue_date_document_ids is not None:
+        directory = _blue_model_directory(evidence, blue_date_model_directory)
+        # Importing these constants does not load the optional inference runtime.
+        from .oge_handwritten_date import MODEL_SHA256, CONFIG_SHA256
+        for name, expected in (('model.onnx', MODEL_SHA256), ('config.json', CONFIG_SHA256)):
+            if bind_file('evidence', f'{directory}/{name}') != expected:
+                raise ValueError('Annual blue date model or configuration hash differs from pinned source')
+        blue_selection = {'blue_date_document_ids': sorted(blue_date_document_ids),
+                          'blue_date_model_directory': directory}
+    saved, handwritten_dates, cover_replays = {}, {}, []
     for document, group in sorted(scans.items()):
         if document in seen:
             raise ValueError('Annual controlled runtime native and scan inputs duplicate a document')
@@ -277,22 +379,45 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
         import pdfplumber
         with pdfplumber.open(_inside(evidence,pdf_relative)) as source_pdf:
             page_count = len(source_pdf.pages)
+            if replay_cover_ocr:
+                # The existing cover reader renders page 1 at 200 DPI. Bound
+                # that allocation before invoking either renderer or engine.
+                if not 1 <= page_count <= MAX_SCAN_PAGES:
+                    raise ValueError('Annual cover source page inventory exceeds its reader scope')
+                first = source_pdf.pages[0]
+                boxes = [first.mediabox, first.cropbox or first.mediabox]
+                widths = [abs(float(box[2])-float(box[0])) for box in boxes]
+                heights = [abs(float(box[3])-float(box[1])) for box in boxes]
+                if (first.page_obj.attrs.get('UserUnit', 1) != 1 or
+                        any(not isfinite(value) or value <= 0 for value in widths+heights)):
+                    raise ValueError('Annual cover source render frame is unsupported')
+                width, height = ceil(max(widths)*200/72), ceil(max(heights)*200/72)
+                if (max(width, height) > MAX_COVER_RENDER_EDGE or
+                        width*height > MAX_COVER_RENDER_PIXELS):
+                    raise ValueError('Annual cover source render exceeds pixel budget')
         if (page_count != roles['cover_observation'].get('page_count') or
                 page_count != roles['section_observation'].get('page_count')):
             raise ValueError('Annual controlled scan saved page count differs from source PDF')
-        _replay_scan_sources(_inside(evidence, pdf_relative), roles=roles, document=document,
-                             sha=sha, archive=archive)
+        cover_proof = _replay_scan_sources(_inside(evidence, pdf_relative), roles=roles,
+            document=document, sha=sha, archive=archive, replay_cover_ocr=replay_cover_ocr)
+        if cover_proof is not None:
+            cover_replays.append(cover_proof)
         # Use the existing source replay as a contract preflight. Its result is
         # discarded: preparation grants no row or report qualification.
         from .oge_annual import materialize_saved_annual_scan
         value = materialize_saved_annual_scan(roles['cover_observation'], roles['section_observation'],
             archive_metadata=archive, holding_page_observations=roles.get('holding_page_observations'),
             native_cover_observation=roles.get('native_cover_observation'),
-            archived_pdf_path=_inside(evidence,pdf_relative))
+            archived_pdf_path=_inside(evidence,pdf_relative),
+            **({'verify_transaction_blank_slots': True} if verify_transaction_blank_slots else {}))
         _validate_source(value)
         seen.add(document)
         metadata[document] = archive
-        saved[document] = {**roles, 'archived_pdf_path': pdf_relative}
+        saved[document] = {**roles, 'archived_pdf_path': pdf_relative,
+            **({'verify_transaction_blank_slots': True} if verify_transaction_blank_slots else {})}
+        if blue_date_document_ids is not None and document in blue_date_document_ids:
+            handwritten_dates[document] = {'archived_pdf_path': pdf_relative,
+                                          'model_directory': blue_date_model_directory}
         documents.append({'document_id':document,'source_sha256':sha,
             'parser_version':value['parser_version'],'input_status':'saved_scan_observation_input',
             'qualification_status':'deferred_to_existing_consumer',
@@ -301,13 +426,17 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
         raise ValueError("Annual controlled runtime selected document lacks a saved extraction")
     return {'extractions': extractions, 'archive_metadata_by_document': metadata,
             **({'saved_scan_observations_by_document':saved} if include_saved_scans else {}),
+            **({'handwritten_date_inputs_by_document': handwritten_dates} if handwritten_dates else {}),
             'code_commit': code_commit, 'started_at': started_at,
             'controlled_annual_runtime': {'schema_version': RECEIPT_SCHEMA,
                 'mode': 'saved_native_and_scan_inputs' if include_saved_scans else 'saved_native_extractions',
                 **({'selected_parser_version': parser_version} if parser_version is not None else {}),
+                **blue_selection,
+                **({'verify_transaction_blank_slots': True} if verify_transaction_blank_slots else {}),
+                **({'replay_cover_ocr': True, 'cover_source_replays': cover_replays} if replay_cover_ocr else {}),
                 'documents': documents,
                 'files': sorted(files, key=lambda item: (item['root'], item['path'])),
-                'total_bytes': total, 'python_minimum': '3.11', 'recognizer_started': False}}
+                'total_bytes': total, 'python_minimum': '3.11', 'recognizer_started': replay_cover_ocr}}
 
 
 def verify_controlled_annual_input(value: dict, *, review_root: Path, evidence_root: Path) -> dict:
@@ -325,7 +454,11 @@ def verify_controlled_annual_input(value: dict, *, review_root: Path, evidence_r
     expected = prepare_controlled_annual_input(review_root, evidence_root,
         code_commit=value.get('code_commit'), started_at=value.get('started_at'), document_ids=docs,
         include_saved_scans=receipt['mode']=='saved_native_and_scan_inputs',
-        parser_version=receipt.get('selected_parser_version'))
+        parser_version=receipt.get('selected_parser_version'),
+        blue_date_document_ids=receipt.get('blue_date_document_ids'),
+        blue_date_model_directory=receipt.get('blue_date_model_directory'),
+        verify_transaction_blank_slots=receipt.get('verify_transaction_blank_slots', False),
+        replay_cover_ocr=receipt.get('replay_cover_ocr', False))
     if expected != value:
         raise ValueError("Annual controlled runtime saved input or dependency hash differs")
     return receipt
