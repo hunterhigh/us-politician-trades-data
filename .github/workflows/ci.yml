@@ -28,6 +28,58 @@ concurrency:
   group: offline-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  senate-browser-comparison:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/senate-access-investigation' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    environment: production
+    timeout-minutes: 8
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      SENATE_ACCESS_OUTPUT: ${{ github.workspace }}/.local/browser-${{ matrix.os }}.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Establish the existing HTTP baseline
+        shell: bash
+        env:
+          PYTHONPATH: backend/src
+        run: |
+          python - <<'PY'
+          import json
+          from unison_snapshot.senate import SenateEfdClient, SenateEfdError, source_config_from_environment, require_collection_enabled
+          require_collection_enabled(source_config_from_environment())
+          try:
+              SenateEfdClient().begin_authorized_session()
+              result = {'outcome': 'agreement_completed'}
+          except SenateEfdError as error:
+              result = {'outcome': 'agreement_not_completed',
+                        'diagnostic': getattr(error, 'diagnostic', {})}
+          print('SENATE_HTTP_BASELINE=' + json.dumps(result))
+          PY
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend-e2e
+      - name: Test the ordinary system browser session
+        run: node frontend-e2e/tests/senate-access-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: senate-browser-${{ matrix.os }}-${{ github.run_id }}
+          path: .local/browser-${{ matrix.os }}.json
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 7
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
