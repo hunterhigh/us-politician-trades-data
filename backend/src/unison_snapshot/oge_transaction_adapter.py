@@ -598,6 +598,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         "raster_source_inventory": raster_inventory,
         "non_table_page_proofs": content["non_table_page_proofs"],
         "page_role_conflicts": content["page_role_conflicts"],
+        **({'non_transaction_regions':content['non_transaction_regions']}
+           if content.get('non_transaction_regions') else {}),
         "coverage_complete": (not legacy_reference and page_count_verified and not unresolved and not unknown_pages
             and not content["source_report_ledger"]["unobserved_pages"]
             and not content["source_report_ledger"]["coverage_unknown_pages"]
@@ -987,7 +989,7 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
                 census=_content_census(content["source_report_ledger"], sha), document_page_count=page_count)
         except ValueError as exc:
             raise OgeCatalogError(f"source raster inventory is invalid: {exc}") from exc
-    from .source_row_ledger import report_ledger, page_ledger
+    from .source_row_ledger import report_ledger, page_ledger, add_non_transaction_region
     ledger = content["source_report_ledger"]
     status = {page["page_number"]: page for page in audit.get("pages", [])}
     pages = deepcopy([page for page in ledger["pages"]
@@ -1009,6 +1011,7 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
         import io
         import pdfplumber
         from .oge_278t_page_roles import observe_native_page_role
+        from .oge_278t_summary_region import observe_native_summary_region
         raw = Path(archived_pdf_path).read_bytes()
         if hashlib.sha256(raw).hexdigest() != sha:
             raise OgeCatalogError('source page roles differ from archived PDF')
@@ -1018,6 +1021,11 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
             for number in role_candidates:
                 proof = observe_native_page_role(document.pages[number-1], number, source_sha256=sha,
                     cover_identity_context=cover_identity_context)
+                region = observe_native_summary_region(document.pages[number-1], number, source_sha256=sha)
+                if region['status'] == 'observed' and number in by_number:
+                    updated = add_non_transaction_region(by_number[number], region)
+                    if updated is not None:
+                        by_number[number] = updated
                 if proof['status'] != 'non_table':
                     continue
                 existing = by_number.get(number)
@@ -1037,6 +1045,11 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
     pages = [by_number[number] for number in sorted(by_number)]
     content['non_table_page_proofs'] = proofs
     content['page_role_conflicts'] = conflicts
+    regions = [proof for page in pages for proof in page.get('non_transaction_regions', [])]
+    if regions:
+        content['non_transaction_regions'] = regions
+    else:
+        content.pop('non_transaction_regions', None)
     content["source_report_ledger"] = report_ledger(source_id=ledger["source_id"],
         document_sha256=sha, adapter_version=ledger["adapter_version"], page_count=page_count,
         pages=pages, logical_rows=[{key: row[key] for key in

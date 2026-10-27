@@ -212,6 +212,12 @@ def inspect_page(page, page_number: int, *, source_sha256: str | None = None,
     header_complete = set(_HEADERS) <= present
     header_partial = len(present) >= 3 and "description" in present
     lower = text.casefold()
+    region_proof = None
+    if 'summary' in lower:
+        from .oge_278t_summary_region import observe_native_summary_region
+        region = observe_native_summary_region(page, page_number, source_sha256=source_sha256)
+        if region['status'] == 'observed':
+            region_proof = region
     page_role = None
     if any(marker in lower for marker in _END_MARKERS) or cover_identity_context is not None:
         from .oge_278t_page_roles import observe_native_page_role
@@ -324,6 +330,7 @@ def inspect_page(page, page_number: int, *, source_sha256: str | None = None,
         "number_sequence_warnings": number_sequence_warnings,
         "native_unnumbered_prefix_rows": native_unnumbered_prefix,
         **({'page_role_proof':page_role} if page_role is not None else {}),
+        **({'non_transaction_regions':[region_proof]} if region_proof is not None else {}),
     }
 
 

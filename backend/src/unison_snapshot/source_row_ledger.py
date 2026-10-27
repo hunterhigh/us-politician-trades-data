@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
+import math
 from typing import Any
 
 
@@ -44,7 +45,7 @@ def report_ledger(*, source_id: str, document_sha256: str,
         checked = page_ledger(**{key: page[key] for key in (
             "source_id", "document_sha256", "page_number", "adapter_version",
             "coverage", "slots", "unresolved_regions", "coverage_reason",
-            "coordinate_frame")})
+            "coordinate_frame")}, non_transaction_regions=page.get('non_transaction_regions'))
         if any(page.get(key) != checked[key] for key in (
                 "physical_slot_count", "disposition_counts", "slot_coverage")):
             raise ValueError("report page counts differ from physical slots")
@@ -164,7 +165,8 @@ def page_ledger(*, source_id: str, document_sha256: str, page_number: int,
                 adapter_version: str, coverage: str, slots: list[dict],
                 unresolved_regions: list[list[float]] | None = None,
                 coverage_reason: str | None = None,
-                coordinate_frame: str = "source_page") -> dict[str, Any]:
+                coordinate_frame: str = "source_page",
+                non_transaction_regions: list[dict] | None = None) -> dict[str, Any]:
     """Build a page account with explicit unknowns and per-slot conservation.
 
     Slot IDs are local to this adapter version; downstream candidate IDs must
@@ -213,6 +215,27 @@ def page_ledger(*, source_id: str, document_sha256: str, page_number: int,
     counts = Counter(slot["disposition"] for slot in normalized)
     if sum(counts.values()) != len(normalized):
         raise ValueError("physical slot conservation failed")
+    role_regions = [] if non_transaction_regions is None else non_transaction_regions
+    if not isinstance(role_regions, list) or len(role_regions) > 8:
+        raise ValueError('non-transaction region inventory is invalid')
+    seen_regions = set()
+    for proof in role_regions:
+        box = proof.get('region_bbox_pdf_points') if isinstance(proof, dict) else None
+        if (not isinstance(box, list) or len(box) != 4 or
+                any(type(v) not in (int, float) or not math.isfinite(v) for v in box) or
+                not 0 <= box[0] < box[2] or not 0 <= box[1] < box[3] or
+                proof.get('source_sha256') != document_sha256.lower() or
+                proof.get('page_number') != page_number or proof.get('status') != 'observed' or
+                proof.get('coordinate_frame') != coordinate_frame or
+                proof.get('financial_fact_qualification') is not False or
+                proof.get('page_coverage') != 'partial' or
+                not isinstance(proof.get('role'), str) or not proof['role'] or
+                tuple(box) in seen_regions):
+            raise ValueError('non-transaction region source binding is invalid')
+        seen_regions.add(tuple(box))
+        if any(slot['disposition'] in {'data_candidate', 'unknown'} and
+               slot['bounds'][0] < box[3] and slot['bounds'][1] > box[1] for slot in normalized):
+            raise ValueError('non-transaction region overlaps an unresolved or data slot')
     return {
         "schema_version": SCHEMA_VERSION,
         "source_id": source_id,
@@ -228,7 +251,36 @@ def page_ledger(*, source_id: str, document_sha256: str, page_number: int,
         "unresolved_regions": regions,
         "slots": normalized,
         "qualified_transaction_count": None,
+        **({'non_transaction_regions': deepcopy(role_regions)} if role_regions else {}),
     }
+
+
+def add_non_transaction_region(page, proof):
+    """Attach a caller-replayed region without reclassifying any source slot."""
+    box = proof.get('region_bbox_pdf_points') if isinstance(proof, dict) else None
+    if not isinstance(box, list) or len(box) != 4:
+        raise ValueError('non-transaction region has no source bounds')
+    if proof in page.get('non_transaction_regions', []):
+        return deepcopy(page)
+    if any(slot['disposition'] in {'data_candidate', 'unknown'} and
+           slot['bounds'][0] < box[3] and slot['bounds'][1] > box[1] for slot in page['slots']):
+        return None
+    regions = deepcopy(page['unresolved_regions'])
+    # This source profile explains the entire page width, including its footer.
+    # Subtract its vertical extent only; upper unknown areas remain unknown.
+    if box[0] == 0 and proof.get('role') == 'fixed_native_summary_of_contents_2019':
+        remainder = []
+        for top, bottom in regions:
+            if top < box[1]:
+                remainder.append([top, min(bottom, box[1])])
+            if bottom > box[3]:
+                remainder.append([max(top, box[3]), bottom])
+        regions = remainder
+    return page_ledger(**{key: page[key] for key in (
+        'source_id', 'document_sha256', 'page_number', 'adapter_version',
+        'coverage', 'slots', 'coverage_reason', 'coordinate_frame')},
+        unresolved_regions=regions,
+        non_transaction_regions=[*page.get('non_transaction_regions', []), proof])
 
 
 def senate_shadow_pages(report: dict) -> list[dict[str, Any]]:
@@ -358,12 +410,19 @@ def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=Non
             for band in page.get('unresolved_row_bands', []):
                 if band not in regions:
                     regions.append(deepcopy(band))
-        output.append(page_ledger(
+        normalized = page_ledger(
             source_id=source_id, document_sha256=report["source_sha256"],
             page_number=page["page_number"], adapter_version="278t-page-shadow/v1",
             coverage="located" if physical and role_reason is None else "unknown", slots=slots,
             coverage_reason=role_reason or (None if physical else row_state),
-            unresolved_regions=regions, coordinate_frame="pdf_points"))
+            unresolved_regions=regions, coordinate_frame="pdf_points")
+        for region in page.get('non_transaction_regions', []):
+            from .oge_278t_summary_region import replay_native_summary_region
+            if (archived_pdf_path is None or not replay_native_summary_region(archived_pdf_path,
+                    region, source_sha256=report['source_sha256'], page_number=page['page_number'])):
+                raise ValueError('non-transaction region differs from original source replay')
+            normalized = add_non_transaction_region(normalized, region) or normalized
+        output.append(normalized)
     return output
 
 

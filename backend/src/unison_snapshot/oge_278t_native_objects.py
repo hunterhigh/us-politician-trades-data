@@ -1,4 +1,4 @@
-"""Bounded native PDF objects shared by two fixed government page profiles.
+"""Bounded native PDF objects shared by fixed government page/region profiles.
 
 An inventory is not a page role or a qualification. Only the fixed profile
 consumer can account for its complete text, style, drawings and source runs.
@@ -32,7 +32,7 @@ def line_geometry(lines):
         else [line['stroking_color']], line['stroke'], line['fill']] for line in lines])
 
 
-def inspect_strict_native_objects(page, *, allowed_sizes=(10,)):
+def inspect_strict_native_objects(page, *, allowed_sizes=(10,), allow_square_linecaps=False):
     """Return actual source objects and runs, or a specific unsupported reason.
 
     Privacy's original checks and operator projection are preserved. Cover's
@@ -40,12 +40,12 @@ def inspect_strict_native_objects(page, *, allowed_sizes=(10,)):
     can check them; this function never excuses arbitrary text in those sizes.
     """
     try:
-        return _inspect(page, allowed_sizes=allowed_sizes)
+        return _inspect(page, allowed_sizes=allowed_sizes, allow_square_linecaps=allow_square_linecaps)
     except (AttributeError, TypeError, ValueError, KeyError, IndexError, OverflowError):
         return {'status': 'unknown', 'reason': 'native_page_object_inventory_unavailable'}
 
 
-def _inspect(page, *, allowed_sizes):
+def _inspect(page, *, allowed_sizes, allow_square_linecaps=False):
     def unknown(reason):
         return {'status': 'unknown', 'reason': reason}
 
@@ -84,11 +84,23 @@ def _inspect(page, *, allowed_sizes):
                 getattr(value['BaseFont'], 'name', None) != 'Helvetica' or
                 getattr(value['Encoding'], 'name', None) != 'WinAnsiEncoding'):
             return unknown('standard_font_program_unavailable')
+    if type(allow_square_linecaps) is not bool:
+        return unknown('native_linecap_profile_invalid')
     parser = PDFContentParser(page.page_obj.contents)
     operators, operands, text_runs, run_records = [], [], [], []
     text_run = bytearray()
     show_indices = []
     tokens = depth = 0
+    # This opt-in is solely for the mixed-page regional consumer. The default
+    # Privacy/Cover operator profile and returned fields remain unchanged.
+    caps, strokes, state_stack, path = [], [], [], []
+    linecap, linewidth, in_text = 0, 1., False
+    from pdfminer.utils import mult_matrix, apply_matrix_pt
+    ctm = None
+    if allow_square_linecaps:
+        x0, y0, x1, y1 = page.page_obj.mediabox
+        ctm = ((0., -1., 1., 0., -y0, x1) if page.page_obj.rotate == 90
+               else (1., 0., 0., 1., -x0, -y0))
 
     def flush():
         if text_run:
@@ -106,9 +118,56 @@ def _inspect(page, *, allowed_sizes):
                 return unknown('native_content_budget_exceeded')
             if isinstance(obj, PSKeyword):
                 op = obj.name.decode('ascii')
-                if op not in OPS:
+                if op not in OPS and not (allow_square_linecaps and op == 'J'):
                     return unknown('unsupported_native_content_operator')
                 operators.append(op)
+                if allow_square_linecaps:
+                    numeric = lambda n: (len(operands) == n and all(
+                        type(v) in (int, float) and math.isfinite(v) for v in operands))
+                    if op == 'J':
+                        if in_text or len(operands) != 1 or type(operands[0]) is not int or operands[0] != 2:
+                            return unknown('unsupported_native_linecap')
+                        linecap = 2
+                        caps.append({'operator_index': len(operators)-1,
+                                     'graphics_depth': depth, 'line_cap': 2})
+                    elif op == 'q':
+                        if path or in_text:
+                            return unknown('unsupported_native_regional_graphics_state')
+                        state_stack.append((ctm, linecap, linewidth))
+                    elif op == 'Q':
+                        if path or in_text or not state_stack:
+                            return unknown('unsupported_native_regional_graphics_state')
+                        ctm, linecap, linewidth = state_stack.pop()
+                    elif op == 'cm':
+                        if not numeric(6):
+                            return unknown('unsupported_native_regional_matrix')
+                        ctm = mult_matrix(tuple(operands), ctm)
+                    elif op == 'w':
+                        if not numeric(1) or not 0 < operands[0] <= 2:
+                            return unknown('unsupported_native_regional_stroke_width')
+                        linewidth = operands[0]
+                    elif op == 'BT':
+                        if in_text or path:
+                            return unknown('unsupported_native_regional_text_state')
+                        in_text = True
+                    elif op == 'ET':
+                        if not in_text:
+                            return unknown('unsupported_native_regional_text_state')
+                        in_text = False
+                    elif op in {'m', 'l'}:
+                        if in_text or not numeric(2) or len(path) != (0 if op == 'm' else 1):
+                            return unknown('unsupported_native_regional_path')
+                        path.append(apply_matrix_pt(ctm, tuple(operands)))
+                    elif op == 'S':
+                        if in_text or len(path) != 2 or tuple(ctm[:4]) != (1., 0., 0., 1.):
+                            return unknown('unsupported_native_regional_path')
+                        box = [min(p[0] for p in path), page.height-max(p[1] for p in path),
+                               max(p[0] for p in path), page.height-min(p[1] for p in path)]
+                        strokes.append({'operator_index': len(operators)-1, 'line_cap': linecap,
+                            'linewidth': linewidth, 'bbox_pdf_points': box,
+                            'outer_bbox_pdf_points': [box[0]-linewidth, box[1]-linewidth,
+                                                      box[2]+linewidth, box[3]+linewidth]})
+                        path = []
                 if op in {'Tj', 'TJ'}:
                     if len(operands) != 1 or op == 'Tj' and not isinstance(operands[0], bytes):
                         return unknown('unsupported_native_text_show')
@@ -134,6 +193,16 @@ def _inspect(page, *, allowed_sizes):
     flush()
     if depth != 0:
         return unknown('unsupported_graphics_state')
-    return {'status': 'observed', 'reason': None, 'chars': chars, 'lines': page.lines,
+    result = {'status': 'observed', 'reason': None, 'chars': chars, 'lines': page.lines,
             'operators': operators, 'text_runs': text_runs, 'text_run_records': run_records,
             'content_token_count': tokens}
+    if allow_square_linecaps:
+        if path or in_text or state_stack or len(strokes) != len(page.lines):
+            return unknown('native_regional_path_projection_differs')
+        for stroke, line in zip(strokes, page.lines):
+            if (round(stroke['linewidth'], 5) != round(line['linewidth'], 5) or
+                    any(round(a, 5) != round(line[key], 5) for a, key in zip(
+                        stroke['bbox_pdf_points'], ('x0', 'top', 'x1', 'bottom')))):
+                return unknown('native_regional_path_projection_differs')
+        result.update(line_cap_operations=caps, source_stroke_records=strokes)
+    return result
