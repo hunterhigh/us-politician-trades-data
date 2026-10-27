@@ -13,6 +13,10 @@ on:
         description: Rebuild structured asset labels from archived annual HTML without collecting new reports
         type: boolean
         default: false
+      independent_transactions:
+        description: Build independent Part 4b disclosures from archived annual HTML without collecting new reports
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -63,14 +67,14 @@ jobs:
           test -f "$roster"
           echo "ROSTER=$roster" >> "$GITHUB_ENV"
       - name: Discover and archive latest annual versions
-        if: inputs.structured_asset_labels != true
+        if: inputs.structured_asset_labels != true && inputs.independent_transactions != true
         run: |
           python backend/scripts/senate_annual.py collect \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --roster "$ROSTER" --submitted-start-date 2025-01-01 \
             --limit "$REPORT_LIMIT"
       - name: Publish official originals and catalog
-        if: inputs.structured_asset_labels != true
+        if: inputs.structured_asset_labels != true && inputs.independent_transactions != true
         run: |
           evidence="$RUNNER_TEMP/senate-annual-evidence"
           git -C "$evidence" add senate_efd/annual
@@ -83,6 +87,7 @@ jobs:
       - name: Extract and qualify latest annual holdings
         env:
           STRUCTURED_ASSET_LABELS: ${{ inputs.structured_asset_labels }}
+          INDEPENDENT_TRANSACTIONS: ${{ inputs.independent_transactions }}
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
           active_mode="$(python - "$review/senate_efd/annual/current.json" <<'PY'
@@ -113,7 +118,7 @@ jobs:
           print(mode)
           PY
           )"
-          if [ "$active_transactions" = "independent_part4b/v1" ]; then
+          if [ "$INDEPENDENT_TRANSACTIONS" = "true" ] || [ "$active_transactions" = "independent_part4b/v1" ]; then
             annual_args+=(--independent-transactions)
           fi
           python backend/scripts/senate_annual.py build \
