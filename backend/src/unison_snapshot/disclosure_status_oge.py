@@ -722,6 +722,44 @@ def _unbound_default_owner_hint(record, review, transactions):
     return False
 
 
+def _unbound_native_classification_hint(record, review, transactions, catalog_record):
+    """Withhold an unselected legacy classifier; a cache cannot grant q."""
+    if review is None or transactions is None:
+        return False
+    facts = [row for row in transactions if row.get('source_id') == 'oge'
+        and row.get('verification_status') == 'official_matched'
+        and row.get('instrument_type') == 'Bond'
+        and row.get('filing_id') == record['report_id']
+        and row.get('source_url') == record['source_url']]
+    if not facts:
+        return False
+    from .oge_native_classification import _mechanism, _endnote, prepare_native_classification
+    for sha in record.get('source_versions', []):
+        for version in ('oge-278t-pdf/v2', 'oge-278t-pdf/v7'):
+            path = review / 'oge/extractions' / record['report_id'] / sha / (version.replace('/', '-')+'.json')
+            if not path.exists():
+                continue
+            if (not path.resolve().is_relative_to(review.resolve()) or not path.is_file()
+                    or path.stat().st_size > 16*1024*1024):
+                raise ValueError('OGE unbound classification cache is unavailable or exceeds budget')
+            raw = _read(path)
+            if (raw.get('parser_version') != version or raw.get('document_id') != record['report_id']
+                    or raw.get('source_sha256') != sha or raw.get('source_url') != record['source_url']):
+                continue
+            if catalog_record is None:
+                if any(_endnote(row.get('asset_name')) for row in facts):
+                    return True
+            else:
+                # This context has no original root and can only request
+                # withholding. It also covers an old native-owner ID when
+                # only the other interpretation's physical ID remains.
+                hint = prepare_native_classification(raw, facts, catalog_record,
+                    legacy_extraction=raw if version == 'oge-278t-pdf/v2' else None)
+                if hint.target_ids:
+                    return True
+    return False
+
+
 def _selected_source_input(record, audit, *, review, evidence, catalog_record, transactions=None):
     """Bind execution selection without guessing it from cache existence."""
     from .oge_reports import (PARSER_VERSION, GENERIC_PARSER_VERSION, MAX_PDF_BYTES,
@@ -732,9 +770,11 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
     selected = audit.get('source_interpretation_binding')
     ordinary = _source_receiver_is_ordinary(audit)
     if selected is None:
-        owner_hint = _owner_scope_hint(audit) or 'default_owner_conservation' in audit
+        owner_hint = (_owner_scope_hint(audit) or 'default_owner_conservation' in audit
+                      or 'native_classification' in audit)
         if owner_hint or ordinary and (
                 _unbound_default_owner_hint(record, review, transactions) or
+                _unbound_native_classification_hint(record, review, transactions, catalog_record) or
                 review is not None and any(all((review / 'oge/extractions' /
                     record['report_id'] / sha / (version.replace('/', '-') + '.json')).is_file()
                     for version in (PARSER_VERSION, GENERIC_PARSER_VERSION))
@@ -792,6 +832,21 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
         catalog_record=catalog_record, transactions=transactions)
     if raw is None:
         return
+    classification = _native_classification_state(record, audit, raw, review=review,
+        evidence=evidence, catalog_record=catalog_record, transactions=transactions)
+    if classification is not None:
+        record['_native_classification_deferred_ids'] = classification['source_deferred_ids']
+    try:
+        _apply_selected_owner_interpretation(record, audit, raw, review=review,
+            evidence=evidence, catalog_record=catalog_record, transactions=transactions)
+        if classification is not None:
+            _finish_native_classification(record, audit, classification)
+    finally:
+        record.pop('_native_classification_deferred_ids', None)
+
+
+def _apply_selected_owner_interpretation(record, audit, raw, *, review, evidence,
+                                         catalog_record, transactions):
     from .oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
     if raw['parser_version'] != GENERIC_PARSER_VERSION:
         if _owner_scope_hint(audit):
@@ -845,9 +900,11 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
     if _source_receiver_is_ordinary(audit):
         view = scope.ordinary_native_view(facts)
         current = set(view['current_ids']) - rejected
+        current -= set(record.get('_native_classification_deferred_ids', []))
         if audit.get('document_reasons'):
             current.clear()
         view['current_ids'] = sorted(current)
+        view['deferred_ids'] = sorted(set(view['published_ids'])-current)
         stored = audit.get('owner_scope_view')
         if stored is not None and any(stored.get(key) != view[key]
                 for key in ('current_ids', 'mechanism_ids', 'published_ids')):
@@ -884,6 +941,108 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
             record['qualification_state'] = 'partial' if current else 'unknown'
     if scope.status != 'observed':
         record['reason_codes'].append('owner_migration_source_scope_unknown')
+
+
+def _native_classification_state(record, audit, raw, *, review, evidence,
+                                  catalog_record, transactions):
+    """Replay classification before intersecting independent owner masks."""
+    stored = audit.get('native_classification')
+    ordinary = _source_receiver_is_ordinary(audit)
+    if not ordinary or raw.get('parser_version') not in {'oge-278t-pdf/v2', 'oge-278t-pdf/v7'}:
+        if stored is not None:
+            raise ValueError('OGE classification requires its selected ordinary native receiver')
+        return None
+    facts = [row for row in transactions if row.get('source_id') == 'oge'
+        and row.get('verification_status') == 'official_matched'
+        and row.get('filing_id') == record['report_id'] and row.get('source_url') == record['source_url']]
+    from .oge_native_classification import prepare_native_classification, _mechanism, _endnote
+    hinted = (any(row.get('instrument_type') == 'Bond' and _endnote(row.get('asset_name')) for row in facts)
+        or any(row.get('instrument_type') == 'Bond' for row in facts) and
+           any(_mechanism(row) for row in raw.get('transactions', []) + raw.get('quarantined', [])))
+    if stored is None and not hinted:
+        return None
+    if catalog_record is None:
+        raise ValueError('OGE classification requires catalog identity')
+    effective = raw
+    if audit.get('manual_filing_date_evidence') is not None:
+        from .oge_manual_dates import apply_manual_cover_dates
+        effective = apply_manual_cover_dates([raw], review/'oge/manual_cover_dates')[0]
+        if effective.get('manual_filing_date_evidence') != audit['manual_filing_date_evidence']:
+            raise ValueError('OGE classification manual layer differs from bound raw input')
+    legacy = None
+    if raw['parser_version'] == 'oge-278t-pdf/v7':
+        path = review/'oge/extractions'/record['report_id']/raw['source_sha256']/'oge-278t-pdf-v2.json'
+        if path.is_file():
+            if not path.resolve().is_relative_to(review.resolve()) or path.stat().st_size > 16*1024*1024:
+                raise ValueError('OGE classification legacy input is unavailable or exceeds budget')
+            legacy = _read(path)
+    context = prepare_native_classification(effective, facts, catalog_record,
+        evidence_root=evidence, source_extraction=raw, legacy_extraction=legacy)
+    mechanism = set(context.target_ids)
+    if not mechanism and stored is None:
+        return None
+    published = {row['id'] for row in facts}
+    if not mechanism <= published or _count(audit.get('promoted_count')) != len(published):
+        raise ValueError('OGE classification publication identities do not close')
+    rejected = {row.get('extraction_id') for row in audit.get('quarantined', [])}
+    rejected.update(row.get('extraction_id') for row in effective.get('quarantined', []))
+    for fact in facts:
+        selected = context.selected_binding(fact)
+        if selected is not None and selected.get('extraction_id') in rejected:
+            rejected.add(fact['id'])
+    source_current = (context.source_current_ids(facts) | context.unchanged_current_ids(facts)) & mechanism
+    source_current -= rejected
+    if effective.get('document_reasons') or audit.get('document_reasons'):
+        source_current.clear()
+    if stored is not None:
+        if (not isinstance(stored, dict) or stored.get('binding') != context.binding
+                or stored.get('mechanism_ids') != sorted(mechanism)):
+            raise ValueError('OGE classification binding differs from complete source replay')
+    return {'binding': context.binding, 'mechanism_ids': sorted(mechanism),
+        'source_current_ids': sorted(source_current),
+        'source_deferred_ids': sorted(mechanism-source_current),
+        'published_ids': sorted(published), 'rejected_ids': sorted(value for value in rejected if isinstance(value, str)),
+        'status': context.status, 'reason': context.reason}
+
+
+def _finish_native_classification(record, audit, state):
+    """Intersect with the existing receiver; never restore another blocked row."""
+    mechanism = set(state['mechanism_ids'])
+    published = set(state['published_ids'])
+    baseline = set(published)
+    if 'owner_scope_view' in record:
+        baseline &= set(record['owner_scope_view']['current_ids'])
+    conservation = record.get('default_owner_conservation', {})
+    baseline -= set(conservation.get('deferred_ids', []))
+    baseline -= set(state['rejected_ids'])
+    if audit.get('document_reasons'):
+        baseline.clear()
+    current = set(state['source_current_ids']) & baseline
+    stored = audit.get('native_classification')
+    qualified = baseline - (mechanism-current)
+    if stored is not None:
+        if (stored.get('current_ids') != sorted(current)
+                or stored.get('deferred_ids') != sorted(mechanism-current)):
+            raise ValueError('OGE classification current identities differ from source and receiver masks')
+        full = stored.get('qualified_ids')
+        if (not isinstance(full, list) or any(not isinstance(value, str) for value in full)
+                or full != sorted(set(full)) or not set(full) <= qualified
+                or set(full) & mechanism != current):
+            raise ValueError('OGE classification cannot restore an independently unqualified fact')
+        qualified = set(full)
+    count = record.get('qualified_transaction_count')
+    if count is not None and len(qualified) > count:
+        raise ValueError('OGE classification exceeds its existing receiver qualification')
+    if count is not None:
+        record['qualified_transaction_count'] = len(qualified)
+        if len(qualified) < len(published):
+            record['qualification_state'] = 'partial' if qualified else 'unknown'
+    record['native_classification'] = {
+        key: state[key] for key in ('binding', 'mechanism_ids', 'status', 'reason')}
+    record['native_classification'].update(current_ids=sorted(current),
+        deferred_ids=sorted(mechanism-current), qualified_ids=sorted(qualified))
+    if mechanism-current:
+        record['reason_codes'].append('native_classification_current_unresolved')
 
 
 def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
@@ -925,6 +1084,7 @@ def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
     # when the complete historical Howner object has a valid source alias.
     rejected.update(row.get('extraction_id') for row in effective.get('quarantined', []))
     current -= rejected
+    current -= set(record.get('_native_classification_deferred_ids', []))
     if effective.get('document_reasons') or audit.get('document_reasons'):
         current.clear()
     expected = {'binding':context.binding, 'retained_ids':sorted(protected),

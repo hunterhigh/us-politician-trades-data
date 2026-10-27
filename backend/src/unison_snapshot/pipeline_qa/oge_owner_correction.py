@@ -171,7 +171,16 @@ def _prove_source(legacy, generic, scoped_catalog, record, scoped_history, prior
     expected_correction = {'extraction_id': prior['id'], 'field': 'owner', 'old_value': 'Self',
         'new_value': 'Undisclosed', 'rule': 'approved_v2_default_self_to_undisclosed/v1',
         'source_reference': proof}
-    if (target != [replacement] or report['document_reasons'] or
+    # The owner-only policy predates the independent Endnote correction.
+    # A current producer may compose that known source-proved classification
+    # without invalidating an earlier owner-only transition. This does not
+    # authorize a classification change in the returned owner event.
+    normal_targets = [replacement]
+    if (prior.get('instrument_type') == 'Bond'
+            and re.search(r'\bEndnote\b', raw_row['asset_name'], re.I)
+            and _instrument(raw_row['asset_name'], raw_row['ticker']) == 'Stock'):
+        normal_targets.append({**replacement, 'instrument_type': 'Stock'})
+    if (len(target) != 1 or target[0] not in normal_targets or report['document_reasons'] or
             report['legacy_inheritance']['field_corrections'] != [expected_correction]):
         raise InventoryError('Direct OGE correction is not the qualified normal source interpretation')
 

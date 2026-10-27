@@ -54,14 +54,24 @@ class NativeOwnerScopeConsumptionTests(unittest.TestCase):
                 legacy_extractions_by_document={DOCUMENT: legacy})
         return actual, result, audit['reports'][0]
 
-    def test_independent_explicit_legacy_classifier_is_preserved_and_current(self):
+    def test_explicit_legacy_classification_requires_its_own_source_proof(self):
         for data in (self.closed, self.unknown):
             with self.subTest(unknown=data is self.unknown):
                 actual, result, report = self.consume(data, explicit_history=True)
                 independent = next(row for row in result['transactions'] if row['id'] != actual['id'])
-                self.assertEqual(independent['owner'], 'Self')
-                self.assertEqual(independent['instrument_type'], 'Bond')
-                self.assertIn(independent['id'], report['owner_scope_view']['current_ids'])
+                legacy = json.loads(next(raw for path, raw in data[2].items()
+                                         if path.endswith('pdf-v2.json')))
+                prior = _historical_projection(legacy, legacy['transactions'][1], actual['person_id'])
+                expected = {**prior, 'instrument_type': 'Stock'} if data is self.closed else prior
+                self.assertEqual(independent, expected)
+                current = report['owner_scope_view']['current_ids']
+                classification = report['native_classification']
+                if data is self.closed:
+                    self.assertIn(independent['id'], current)
+                    self.assertIn(independent['id'], classification['current_ids'])
+                else:
+                    self.assertNotIn(independent['id'], current)
+                    self.assertIn(independent['id'], classification['deferred_ids'])
                 self.assertEqual(report['legacy_inheritance']['unbound_formal_ids'], [])
 
     def test_corrected_physical_alias_does_not_block_an_independent_explicit_owner_row(self):

@@ -112,7 +112,7 @@ class OwnerScopeCliTests(unittest.TestCase):
                 facts = candidate['transactions']
                 target = next(row for row in facts if row['id'] == old['id'])
                 independent = next(row for row in facts if row['id'] != old['id'])
-                self.assertEqual(target, expected if case == 'closed' else old)
+                self.assertEqual(target, {**expected, 'instrument_type': 'Stock'} if case == 'closed' else old)
                 self.assertEqual(independent['owner'], 'Self')
                 self.assertEqual(independent['asset_name'], 'INDEPENDENT Fund')
                 self.assertEqual(len(facts), 2)
