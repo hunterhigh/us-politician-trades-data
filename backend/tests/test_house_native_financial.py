@@ -204,6 +204,43 @@ class HouseNativeFinancialTests(unittest.TestCase):
         self.assertNotIn(predecessor['id'], {row['id'] for row in candidate['transactions']})
         self.assertEqual(candidate['transactions'], qualification['transactions'])
 
+    def test_verified_supersession_state_keeps_incomplete_contrast_coverage_separate(self):
+        # Only the consuming status contract is isolated here. Authentication
+        # of a real New/Amended mapping remains the retained-program test's job.
+        from unison_snapshot.disclosure_status_house import build_house_status
+        root, _, report = self.fixture.source('white_dark')
+        report.pop('native_contrast_financial_profile', None)
+        qualification = qualify_automatic(report, IDENTITY, evidence_root=root)
+        self.assertEqual(len(qualification['transactions']), 2)
+        self.assertFalse(qualification['quarantined'])
+        review = root / 'superseded-status-review'
+
+        def write(relative, value):
+            path = review / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True), encoding='utf-8')
+
+        relative = f'2026/20000001/{report["source_sha256"]}.json'
+        write('house_clerk/extractions/' + relative, report)
+        write('house_clerk/qualifications/' + relative, qualification)
+        mappings = [{'prior_transaction_id': row['id'],
+                     'transaction_id': 'private-contract-successor-' + str(index)}
+                    for index, row in enumerate(qualification['transactions'])]
+        authenticated = {'transactions': [], 'qualifications': {'20000001': qualification},
+                         'identities': {}, 'dispositions': {}, 'replacements': mappings}
+        with patch('unison_snapshot.house_source_revisions.resolve_source_bound_house_revisions',
+                   return_value=authenticated):
+            scopes = build_house_status(root, review, [], [])
+        status = next(row for scope in scopes if scope['scope_id'] == 'house_ptr'
+                      for row in scope['reports'] if row['document_id'] == '20000001')
+        self.assertEqual(status['qualification_state'], 'superseded')
+        self.assertEqual(status['qualified_transaction_count'], 0)
+        self.assertFalse(status['publication_transaction_ids'])
+        self.assertEqual(status['superseded_transaction_ids'],
+                         sorted(row['id'] for row in qualification['transactions']))
+        self.assertFalse(status['source_observation_coverage']['coverage_complete'])
+        self.assertIn('source_row_coverage_incomplete', status['reason_codes'])
+
 
 if __name__ == '__main__':
     unittest.main()

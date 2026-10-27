@@ -282,7 +282,8 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                             'coverage_complete':False, 'basis':'same_sha_original_native_contrast',
                             'unknown_row_ids':[item['raw_row_id'] for item in qualification['native_contrast_dispositions']
                                                if item['status'] == 'unknown']}
-                        record['qualification_state'] = 'partial' if rows else 'quarantined' if quarantined else 'unknown'
+                        if state != 'superseded':
+                            record['qualification_state'] = 'partial' if rows else 'quarantined' if quarantined else 'unknown'
                         reasons.add('source_row_coverage_incomplete')
                     from .house_ptr import revision_reference_dispositions
                     revisions = revision_resolution["dispositions"].get(docid,
