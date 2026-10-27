@@ -48,7 +48,7 @@ class SavedOgeWorkflowTests(unittest.TestCase):
 
     def execute(self, enabled='false', path='', *, real=False, evidence=None, cwd=None):
         function = ('python() { PYTHONPATH="$TEST_SOURCE_ROOT" "$REAL_PYTHON" "$@"; }\n' if real else
-            'python() { if [[ "$1" == - ]]; then "$REAL_PYTHON" "$@"; '
+            'python() { if [[ "$1" == - ]]; then PYTHONPATH="$TEST_SOURCE_ROOT" "$REAL_PYTHON" "$@"; '
             'else "$REAL_PYTHON" "$TEST_RECORDER" "$@"; fi; }\n')
         script = 'set -euo pipefail\n' + function + 'cutoff="$TEST_CUTOFF"\n' + source_branch()
         env = dict(os.environ, REAL_PYTHON=sys.executable, TEST_SOURCE_ROOT=str(ROOT/'backend/src'),

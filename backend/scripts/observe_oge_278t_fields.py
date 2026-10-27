@@ -98,6 +98,7 @@ def main() -> None:
                                                           separators=(",", ":")), encoding="utf-8")
         secondary = [*(secondary or []), description]
     saved, package = None, None
+    source_kwargs = {}
     if preparation:
         from unison_snapshot.oge_saved_observations import prepare_saved_oge_observations
         saved = prepare_saved_oge_observations(
@@ -106,11 +107,15 @@ def main() -> None:
             document_page_count=args.document_page_count, **interpretation)
         package = _preparation_outputs(args, saved)
         args.document_page_count = next(iter(saved.values()))["document_page_count"]
+        if any(item.get("read_mode") == "source_quad_cells/v1" for item in secondary or []):
+            from unison_snapshot.oge_saved_observations import _source
+            _, source, _ = _source(args.evidence_root, args.metadata)
+            source_kwargs = {"source_pdf_path": source}
     if args.document_page_count is None:
-        result = observe_field_shapes(inputs, secondary_observations=secondary, **interpretation)
+        result = observe_field_shapes(inputs, secondary_observations=secondary, **interpretation, **source_kwargs)
     else:
         content = observe_content_rows(inputs, document_page_count=args.document_page_count,
-                                       secondary_observations=secondary, **interpretation)
+                                       secondary_observations=secondary, **interpretation, **source_kwargs)
         result = content.pop("field_observations")
         result.update(content)
     ledger_content = json.dumps(result, ensure_ascii=False, sort_keys=True,

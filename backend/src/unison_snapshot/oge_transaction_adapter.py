@@ -210,9 +210,13 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     if not observations or any(item.get("source_sha256") != sha for item in observations):
         raise OgeCatalogError("saved observations differ from extraction source")
     try:
+        from .oge_saved_observations import _quad_source_path
+        quad_source = _quad_source_path(secondary_observations, archived_pdf_path,
+                                       field_interpretation_mode=field_interpretation_mode)
+        source_kwargs = {"source_pdf_path": quad_source} if quad_source is not None else {}
         content = observe_content_rows(observations, document_page_count=document_page_count,
                                        secondary_observations=secondary_observations,
-                                       field_interpretation_mode=field_interpretation_mode)
+                                       field_interpretation_mode=field_interpretation_mode, **source_kwargs)
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
     raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
@@ -224,7 +228,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         # replay established the scope. Never remove a generic blocker by name.
         content = observe_content_rows(observations, document_page_count=document_page_count,
             secondary_observations=secondary_observations, source_role_conflict_pages=verified_conflicts,
-            field_interpretation_mode=field_interpretation_mode)
+            field_interpretation_mode=field_interpretation_mode, **source_kwargs)
         raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
             parser_claimed_pages=_parser_claimed_pages(extraction),
             cover_identity_context=_cover_identity_context(extraction, catalog_record))
@@ -1053,15 +1057,22 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
 
     if any(item.get("source_sha256") != extraction["source_sha256"] for item in observations):
         raise OgeCatalogError("content observations differ from extraction source")
+    from .oge_saved_observations import _quad_source_path
+    try:
+        quad_source = _quad_source_path(secondary_field_observations, archived_pdf_path)
+    except ValueError as exc:
+        raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
+    source_kwargs = {"source_pdf_path": quad_source} if quad_source is not None else {}
     observed = observe_content_rows(
         observations, document_page_count=document_page_count,
-        secondary_observations=secondary_field_observations)
+        secondary_observations=secondary_field_observations, **source_kwargs)
     audit = _audit_content_source(observed, extraction["source_sha256"], document_page_count, archived_pdf_path,
         parser_claimed_pages=_parser_claimed_pages(extraction), cover_identity_context=cover_identity_context)
     verified_conflicts = {proof['page_number'] for proof in observed['page_role_conflicts']}
     if verified_conflicts:
         observed = observe_content_rows(observations, document_page_count=document_page_count,
-            secondary_observations=secondary_field_observations, source_role_conflict_pages=verified_conflicts)
+            secondary_observations=secondary_field_observations, source_role_conflict_pages=verified_conflicts,
+            **source_kwargs)
         audit = _audit_content_source(observed, extraction['source_sha256'], document_page_count, archived_pdf_path,
             parser_claimed_pages=_parser_claimed_pages(extraction), cover_identity_context=cover_identity_context)
     ledger = observed["source_report_ledger"]
