@@ -14,6 +14,7 @@ if (process.env.GITHUB_ACTIONS !== 'true' ||
 }
 const executable = [
   '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -30,12 +31,22 @@ const result = {
   recorded_at: new Date().toISOString(),
 };
 let browser;
+let page;
 try {
   browser = await chromium.launch({ executablePath: executable, headless: true });
   result.browser_version = browser.version();
   const context = await browser.newContext();
-  const page = await context.newPage();
+  page = await context.newPage();
   page.setDefaultTimeout(15_000);
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (url.host === HOST && url.pathname === '/search/home/' && request.method() === 'POST') {
+      const body = new URLSearchParams(request.postData() || '');
+      result.agreement_post_fields = [...body.keys()].sort();
+      result.agreement_value = body.get('prohibition_agreement');
+      result.csrf_body_present = Boolean(body.get('csrfmiddlewaretoken'));
+    }
+  });
   page.on('response', response => {
     const url = new URL(response.url());
     if (url.host === HOST && response.request().isNavigationRequest()) {
@@ -116,6 +127,14 @@ try {
   result.error_type = error.name;
   result.error_message = error.message.split('\n')[0].slice(0, 180);
 } finally {
+  if (result.requests.some(request => request.method === 'POST' &&
+      request.path === '/search/home/' && request.status === 403)) {
+    result.outcome = 'agreement_refused';
+    if (page && !page.isClosed()) {
+      result.final_path = new URL(page.url()).pathname;
+      result.final_title = (await page.title()).slice(0, 120);
+    }
+  }
   await browser?.close();
   mkdirSync(path.dirname(output), {recursive: true});
   writeFileSync(output, JSON.stringify(result, null, 2));
