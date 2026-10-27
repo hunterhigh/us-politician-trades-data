@@ -73,6 +73,10 @@ class NativeClassification:
             and fact.get('source_url') == self._source.get('source_url')}
         if self._source.get('parser_version') not in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
             return
+        hinted = bool(self._formal.keys() & hinted_ids)
+        hinted |= any(_endnote(fact.get('asset_name')) for fact in self._formal.values())
+        if not self._formal or not hinted:
+            return
         identity = ('document_id', 'source_id', 'source_sha256', 'source_url',
                     'catalog_filer_name', 'agency', 'position_title')
         if (extraction.get('parser_version') != self._source['parser_version'] or
@@ -81,10 +85,6 @@ class NativeClassification:
         if self._legacy is not None and (self._legacy.get('parser_version') != PARSER_VERSION or
                 any(self._legacy.get(field) != self._source.get(field) for field in identity)):
             raise OgeCatalogError('OGE classification legacy input differs from selected source')
-        hinted = bool(self._formal.keys() & hinted_ids)
-        hinted |= any(_endnote(fact.get('asset_name')) for fact in self._formal.values())
-        if not self._formal or not hinted:
-            return
         self.status, self.reason = 'unknown', 'original_source_unavailable'
         if evidence_root is not None:
             self._authenticate(Path(evidence_root), record)
