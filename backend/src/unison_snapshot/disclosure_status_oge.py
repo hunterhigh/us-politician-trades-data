@@ -692,16 +692,19 @@ def _owner_scope_hint(audit: dict) -> bool:
                     inheritance.get('deferred_field_corrections', []))
 
 
-def _unbound_default_owner_hint(record, review, transactions):
+def _unbound_default_owner_hint(record, review, transactions, *, evidence=None, catalog_record=None):
     """A cache intersection can withhold q, never establish source eligibility."""
     if review is None or transactions is None:
         return False
-    undisclosed = {row['id'] for row in transactions if row.get('source_id') == 'oge'
+    facts = [row for row in transactions if row.get('source_id') == 'oge'
         and row.get('verification_status') == 'official_matched'
-        and row.get('owner') == 'Undisclosed' and row.get('filing_id') == record['report_id']
-        and row.get('source_url') == record['source_url']}
-    if not undisclosed:
+        and row.get('owner') in {'Undisclosed', 'Spouse', 'Dependent Child'}
+        and row.get('filing_id') == record['report_id']
+        and row.get('source_url') == record['source_url']]
+    if not facts:
         return False
+    undisclosed = {row['id'] for row in facts if row['owner'] == 'Undisclosed'}
+    explicit = [row for row in facts if row['owner'] in {'Spouse', 'Dependent Child'}]
     for sha in record.get('source_versions', []):
         path = review / 'oge/extractions' / record['report_id'] / sha / 'oge-278t-pdf-v2.json'
         if not path.exists():
@@ -718,6 +721,16 @@ def _unbound_default_owner_hint(record, review, transactions):
             rows = cached.get(key)
             if isinstance(rows, list) and any(isinstance(row, dict) and row.get('owner') == 'Self'
                     and row.get('extraction_id') in undisclosed for row in rows):
+                return True
+        if explicit and catalog_record is not None:
+            # An explicit native ID need not equal v2's Self ID. Reuse the
+            # canonical-source mapping rather than inventing a second row
+            # matcher here. This only withholds an unselected interpretation;
+            # even an observed source cannot turn this hint into current q.
+            from .oge_default_owner_conservation import prepare_default_owner_conservation
+            context = prepare_default_owner_conservation(cached, explicit, catalog_record,
+                evidence_root=evidence, source_extraction=cached)
+            if context.protected_ids:
                 return True
     return False
 
@@ -773,7 +786,8 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
         owner_hint = (_owner_scope_hint(audit) or 'default_owner_conservation' in audit
                       or 'native_classification' in audit)
         if owner_hint or ordinary and (
-                _unbound_default_owner_hint(record, review, transactions) or
+                _unbound_default_owner_hint(record, review, transactions,
+                    evidence=evidence, catalog_record=catalog_record) or
                 _unbound_native_classification_hint(record, review, transactions, catalog_record) or
                 review is not None and any(all((review / 'oge/extractions' /
                     record['report_id'] / sha / (version.replace('/', '-') + '.json')).is_file()
@@ -1058,8 +1072,9 @@ def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
              and row.get('source_url') == record['source_url']]
     stored = audit.get('default_owner_conservation')
     # Only a hint to avoid source work for ordinary sources without any actual
-    # Undisclosed fact. The shared context derives real physical membership.
-    if stored is None and not any(row.get('owner') == 'Undisclosed' for row in facts):
+    # non-Self fact. The shared context derives real physical membership.
+    if stored is None and not any(row.get('owner') in {'Undisclosed', 'Spouse', 'Dependent Child'}
+                                  for row in facts):
         return
     if catalog_record is None:
         raise ValueError('OGE default owner conservation requires catalog identity')
@@ -1083,6 +1098,11 @@ def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
     # Actual source quarantine remains an independent financial blocker even
     # when the complete historical Howner object has a valid source alias.
     rejected.update(row.get('extraction_id') for row in effective.get('quarantined', []))
+    for fact in facts:
+        if fact['id'] in protected:
+            selected = context.selected_binding(fact)
+            if selected is not None and selected.get('extraction_id') in rejected:
+                rejected.add(fact['id'])
     current -= rejected
     current -= set(record.get('_native_classification_deferred_ids', []))
     if effective.get('document_reasons') or audit.get('document_reasons'):

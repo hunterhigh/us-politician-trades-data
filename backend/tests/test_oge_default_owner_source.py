@@ -82,7 +82,6 @@ class DefaultOwnerSourceTests(unittest.TestCase):
     def test_no_target_or_other_reader_does_not_read_original(self):
         raw, facts, record, _ = self.inputs()
         cases = [(raw, [{**facts[0], 'owner': 'Self'}]),
-                 (raw, [{**facts[0], 'source_url': 'https://example.invalid/other'}]),
                  (raw, [{**facts[0], 'verification_status': 'unverified'}]),
                  ({**raw, 'parser_version': 'oge-278t-pdf/v7'}, facts)]
         with patch('unison_snapshot.oge_reports.parse_archived_pdf', side_effect=AssertionError('No source read expected')):
@@ -92,6 +91,10 @@ class DefaultOwnerSourceTests(unittest.TestCase):
                         evidence_root=Path('missing-original-root'))
                     self.assertEqual(context.protected_ids, set())
                     self.assertEqual(context.status, 'not_applicable')
+            wrong_source = [{**facts[0], 'source_url': 'https://example.invalid/other'}]
+            with self.assertRaisesRegex(OgeCatalogError, 'formal source URL differs'):
+                prepare_default_owner_conservation(raw, wrong_source, record,
+                    evidence_root=Path('missing-original-root'))
 
     def test_wrong_whole_cache_and_missing_original_fail_without_mutation(self):
         raw, facts, record, evidence = self.inputs()

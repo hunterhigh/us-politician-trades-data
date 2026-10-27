@@ -423,15 +423,22 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             if context.target_ids:
                 classification = context
         default_conservation = None
+        conservation_formal = base.get('transactions', [])
+        if evidence_root is None and classification is not None:
+            # The existing classification path already conserves these old
+            # native identities without claiming current source qualification.
+            conservation_formal = [fact for fact in conservation_formal
+                if not (fact.get('owner') in {'Spouse', 'Dependent Child'}
+                        and fact.get('id') in classification.target_ids)]
         if (not generic and not visible and not observed and document_id not in native_views
                 and extraction.get('parser_version') == PARSER_VERSION and record is not None
                 and not _fixed_trump_sept_source(extraction, record)
                 and any(fact.get('source_id') == 'oge' and fact.get('filing_id') == document_id
-                    and fact.get('source_url') == extraction.get('source_url')
                     and fact.get('verification_status') == 'official_matched'
-                    and fact.get('owner') == 'Undisclosed' for fact in base.get('transactions', []))):
+                    and fact.get('owner') in {'Undisclosed', 'Spouse', 'Dependent Child'}
+                    for fact in conservation_formal)):
             from .oge_default_owner_conservation import prepare_default_owner_conservation
-            context = prepare_default_owner_conservation(extraction, base.get('transactions', []), record,
+            context = prepare_default_owner_conservation(extraction, conservation_formal, record,
                 evidence_root=evidence_root, source_extraction=source_extraction)
             if context.protected_ids:
                 default_conservation = context
@@ -442,6 +449,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
                     and row.get("verification_status") == "official_matched"]
         if default_conservation is not None:
+            from .oge_transaction_adapter import _row_key
+            default_blocked_keys = {_row_key(row) for row in
+                source_extraction.get('transactions', []) + source_extraction.get('quarantined', [])
+                if row.get('extraction_id') in default_conservation.blocked_selected_ids}
             retained.extend(deepcopy(fact) for fact in base['transactions']
                             if fact['id'] in default_conservation.protected_ids)
         if classification is not None:
@@ -462,16 +473,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record,
                 evidence_root=evidence_root, source_extraction=source_extraction, _owner_scope=owner_scope,
                 _classification_scope=classification)
-        if classification is not None:
+        if classification is not None or default_conservation is not None:
             # This is an existing formal identity bound to one source row, not
             # a new identifier or an assertion about the row's owner/class.
             aliases = {}
-            for fact in retained:
-                selected = classification.selected_binding(fact)
-                if selected is not None:
-                    aliases[selected['extraction_id']] = fact['id']
+            for context in (classification, default_conservation):
+                if context is None:
+                    continue
+                for fact in retained:
+                    selected = context.selected_binding(fact)
+                    if selected is not None:
+                        identifier = selected['extraction_id']
+                        if identifier in aliases and aliases[identifier] != fact['id']:
+                            raise OgeCatalogError('OGE source row has conflicting existing formal identities')
+                        aliases[identifier] = fact['id']
             extraction = deepcopy(extraction)
             for disposition in ('transactions', 'quarantined'):
+                if disposition == 'quarantined' and classification is None:
+                    continue  # Keep the selected reader's original quarantine locator.
                 for row in extraction[disposition]:
                     row['extraction_id'] = aliases.get(row['extraction_id'], row['extraction_id'])
         owner_mechanisms = set(owner_scope.owner_decisions(retained)['mechanism_ids']) if owner_scope else set()
@@ -623,6 +642,11 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 row_quarantines.append({"reasons": ["transaction_row_invalid"]})
                 continue
             extraction_id = row.get("extraction_id")
+            if (default_conservation is not None and (extraction_id in default_conservation.blocked_selected_ids
+                    or _row_key(row) in default_blocked_keys)):
+                row_quarantines.append({'extraction_id': extraction_id,
+                    'reasons': ['default_owner_physical_correspondence_unresolved']})
+                continue
             if (classification is not None and (extraction_id in classification.blocked_selected_ids
                     or _row_key(row) in classification_blocked_keys)):
                 row_quarantines.append({'extraction_id': extraction_id,
