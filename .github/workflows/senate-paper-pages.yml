@@ -1,10 +1,20 @@
 name: Senate paper PTR pages
 on:
   workflow_dispatch:
+    inputs:
+      replay_saved_paper:
+        description: Replay explicitly selected existing source-bound paper inputs without collection or OCR
+        type: boolean
+        default: false
+      saved_paper_document_ids:
+        description: Comma-separated canonical document UUIDs to replay (at most 12); requires saved replay
+        required: false
+        default: ''
 permissions:
   contents: write
 jobs:
   archive-pages:
+    if: ${{ !inputs.replay_saved_paper }}
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -15,6 +25,14 @@ jobs:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
     steps:
+      - name: Validate fresh mode selection
+        env:
+          SAVED_PAPER_DOCUMENT_IDS: ${{ inputs.saved_paper_document_ids }}
+        run: |
+          if [[ -n "${SAVED_PAPER_DOCUMENT_IDS:-}" ]]; then
+            echo 'Saved document selection requires explicit saved replay.' >&2
+            exit 2
+          fi
       - uses: actions/checkout@v7
         with:
           ref: code
@@ -306,4 +324,129 @@ jobs:
           path: |
             .local/senate-paper-page-batch.json
             .local/senate-paper-extraction-batch.json
+          retention-days: 1
+  replay-saved:
+    if: ${{ inputs.replay_saved_paper }}
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: disclosure-source-writer
+      cancel-in-progress: false
+    steps:
+      - name: Validate saved replay selection
+        env:
+          SAVED_PAPER_DOCUMENT_IDS: ${{ inputs.saved_paper_document_ids }}
+        run: |
+          python - <<'PY'
+          import os, re
+          raw = os.environ.get('SAVED_PAPER_DOCUMENT_IDS', '')
+          ids = raw.split(',')
+          if (not raw or len(raw) > 12 * 37 or len(ids) > 12 or len(set(ids)) != len(ids)
+                  or any(not re.fullmatch('[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', value) for value in ids)):
+              raise SystemExit('Saved replay requires 1-12 unique canonical document UUIDs')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install fixed saved paper reader
+        run: python -m pip install Pillow==12.3.0
+      - name: Prepare existing saved replay trees
+        id: trees
+        run: |
+          evidence_root="$RUNNER_TEMP/senate-saved-paper-evidence"
+          review_root="$RUNNER_TEMP/senate-saved-paper-review"
+          state_root="$RUNNER_TEMP/senate-saved-paper-state"
+          git fetch --no-tags origin \
+            evidence:refs/remotes/origin/evidence \
+            review:refs/remotes/origin/review \
+            state:refs/remotes/origin/state
+          git worktree add --detach "$evidence_root" origin/evidence
+          git worktree add --detach "$review_root" origin/review
+          git worktree add --detach "$state_root" origin/state
+          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
+          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
+          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+      - name: Prepare and consume selected saved paper inputs
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          SAVED_PAPER_DOCUMENT_IDS: ${{ inputs.saved_paper_document_ids }}
+        run: |
+          mkdir -p .local
+          saved_args=()
+          IFS=, read -r -a documents <<< "$SAVED_PAPER_DOCUMENT_IDS"
+          for document_id in "${documents[@]}"; do saved_args+=(--document-id "$document_id"); done
+          PYTHONPATH=backend/src python backend/scripts/prepare_senate_paper_runtime.py \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            "${saved_args[@]}" --grid-output .local/senate-saved-grids.json \
+            --word-output .local/senate-saved-words.json --receipt-output .local/senate-saved-receipt.json
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-paper-pages \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --saved-grid-observations .local/senate-saved-grids.json \
+            --saved-word-pages .local/senate-saved-words.json --tesseract __OCR_DISABLED__ \
+            --output .local/senate-saved-extraction-batch.json
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
+          selected = set(os.environ['SAVED_PAPER_DOCUMENT_IDS'].split(','))
+          batch = json.loads(Path('.local/senate-saved-extraction-batch.json').read_text(encoding='utf-8'))
+          if (batch.get('scope') != 'selected_fixed_reports_not_full_catalog'
+                  or batch['failure_count'] != 0 or batch['report_count'] != len(selected)
+                  or {row['document_id'] for row in batch['extractions']} != selected):
+              raise SystemExit('Saved replay must conserve every selected report without failures')
+          for row in batch['extractions']:
+              path = review / 'senate_efd/extractions' / row['document_id'] / row['source_sha256'] / (row['parser_version'] + '.json')
+              if json.loads(path.read_text(encoding='utf-8')) != row:
+                  raise SystemExit('Saved replay differs from its existing complete extraction')
+          receipt = json.loads(Path('.local/senate-saved-receipt.json').read_text(encoding='utf-8'))
+          for item in receipt['files']:
+              path = (review if item['root'] == 'review' else evidence) / item['path']
+              if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+                  raise SystemExit('Saved replay changed an archived input or global source status')
+          PY
+      - name: Build candidates from existing source state
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          # Keep global source counts, readiness and watermarks unchanged.
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/senate_efd.json" --base ingest/current.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$REVIEW_ROOT/senate_efd/qualifications/current.json" \
+            --html-output "$RUNNER_TEMP/senate-saved-paper-current.html"
+          source_args=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
+          for source in house_clerk oge; do
+            path="$REVIEW_ROOT/candidates/sources/$source-current.json"
+            if [ -f "$path" ]; then source_args+=(--source "$source=$path"); fi
+          done
+          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
+            --html-output "$RUNNER_TEMP/senate-saved-disclosure-current.html"
+      - name: Publish replayed review candidates
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          git -C "$REVIEW_ROOT" add candidates senate_efd/qualifications status/disclosure_cutoff.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
+            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$REVIEW_ROOT" commit -m "review: replay selected Senate paper inputs ${{ github.run_id }}"
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: senate-saved-paper-replay-${{ github.run_id }}
+          path: .local/senate-saved-*.json
           retention-days: 1
