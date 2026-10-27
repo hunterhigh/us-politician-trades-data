@@ -23,6 +23,7 @@ from .oge_classification_correction import verified_oge_classification_correctio
 from .whitehouse_classification_correction import verified_classification_corrections
 from .whitehouse_account_display_correction import verified_account_display_corrections
 from .house_revision_supersession import verified_house_revision_supersessions
+from .house_paper_owner_correction import verified_house_paper_owner_corrections
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -169,6 +170,13 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         if direct_owner_corrections:
             correction_levels.add('archived_oge_catalog_native_owner_and_historical_projection_replay')
         corrections += direct_owner_corrections
+        paper_owner_corrections = (verified_house_paper_owner_corrections(
+            old=old, current=current, repo=repo, evidence_commit=evidence_commit,
+            review_commit=review_commit, main_commit=main_commit,
+            previous_people=previous_board.get('people')) if entity == 'transactions' else [])
+        if paper_owner_corrections:
+            correction_levels.add('archived_house_paper_blank_owner_and_historical_projection_replay')
+        corrections += paper_owner_corrections
         classification_corrections = (verified_classification_corrections(old=whitehouse_source_old, current=current, repo=repo,
             evidence_commit=evidence_commit, review_commit=review_commit,
             main_commit=main_commit, previous_people=previous_board.get('people')) if entity == 'transactions' else [])

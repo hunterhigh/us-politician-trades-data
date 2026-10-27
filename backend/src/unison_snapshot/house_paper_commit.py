@@ -125,6 +125,9 @@ def _targets(root: Path, metadata: dict, outputs: dict) -> dict:
             "source_sha256": metadata["sha256"], "document_id": metadata["document_id"],
             "canonical_extraction_sha256": sha,
         }
+        if 'source_bound_paper_owner_correction' in outputs['qualification']:
+            from .house_paper_owner_correction import _legacy_reference
+            reference = _legacy_reference(saved.get('extraction'), metadata)
         if (saved.get("schema_version") != "house-paper-legacy-extraction-reference/v1" or
                 any(saved.get(k) != v for k, v in reference.items() if k != "path") or
                 outputs["qualification"].get("legacy_extraction_reference") != reference):

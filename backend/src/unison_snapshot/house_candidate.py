@@ -154,6 +154,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     revision_inputs = []
     revision_sources = []
     contrast_sources = []
+    paper_owner_people = set()
     for path in paths:
         qualification = _read_json(path, "House qualification artifact")
         if qualification.get("schema_version") != QUALIFICATION_SCHEMA:
@@ -171,6 +172,28 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             paper_unknown_physical += paper_counts["unresolved_physical_slot_count"]
         paper_pending_count += _paper_pending_count(qualification)
         extraction_path = review_root / "house_clerk/extractions" / path.relative_to(review_root / "house_clerk/qualifications")
+        if 'source_bound_paper_owner_correction' in qualification:
+            from .house_paper_owner_inputs import (replay_house_paper_owner_correction,
+                                                   represented_paper_owner_fact)
+            try:
+                replayed = replay_house_paper_owner_correction(evidence_root, review_root,
+                    qualification=qualification)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                raise HouseIndexError(f'House paper owner source replay failed: {error}') from error
+            old_rows = {row['id']: row for row in replayed['legacy_qualification']['transactions']}
+            current_rows = {row['id']: row for row in replayed['final_qualification']['transactions']}
+            derived = []
+            for row in rows:
+                prior = [item for item in base.get('transactions', []) if item.get('id') == row['id']]
+                if row['id'] in old_rows and prior:
+                    if (len(prior) != 1 or
+                            represented_paper_owner_fact(old_rows[row['id']], prior[0]) is None and
+                            represented_paper_owner_fact(current_rows[row['id']], prior[0]) is None):
+                        raise HouseIndexError('House paper owner correction cannot explain the complete existing fact')
+                    row = {**deepcopy(prior[0]), 'owner': current_rows[row['id']]['owner']}
+                derived.append(deepcopy(row))
+            rows = derived
+            paper_owner_people.add(identity.get('person_id'))
         if (qualification.get("native_account_context", {}).get("status") == "source_words_reproduced"
                 and not extraction_path.is_file()):
             raise HouseIndexError("House native account context requires its source extraction")
@@ -380,6 +403,15 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     meta["subtitle"] = "House真实候选数据；其余披露来源和行情仍在回填"
     candidate["people"] = sorted((_person({"person_id": person_id, **identity})
                                   for person_id, identity in identities.items()), key=lambda row: row["id"])
+    for index, person in enumerate(candidate['people']):
+        if person['id'] not in paper_owner_people:
+            continue
+        prior = [item for item in base.get('people', []) if item.get('id') == person['id']]
+        if prior:
+            fields = ('id', 'display_name', 'role', 'office_type', 'chamber', 'party', 'state', 'disclosure_authority')
+            if len(prior) != 1 or any(prior[0].get(key) != person.get(key) for key in fields):
+                raise HouseIndexError('House paper owner correction changed the existing person identity')
+            candidate['people'][index] = deepcopy(prior[0])
     candidate["transactions"] = sorted(transactions, key=lambda row: row["id"])
     from .house_ptr import revision_reference_dispositions
     revision_dispositions = [item for qualification, path in revision_inputs for item in

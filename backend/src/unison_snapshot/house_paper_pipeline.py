@@ -1,8 +1,8 @@
 """Bounded, source-bound House paper observation inside the review workflow.
 
-The legacy extraction remains the comparison artifact.  A paper qualification
-may replace its qualification only when the freshly rebuilt legacy result has
-no qualified transactions.  Observation failures leave that result intact.
+The legacy extraction remains the comparison artifact. Existing qualified
+facts are retained unless complete historical and original-source replay
+permits a same-ID owner correction. Saved interpretation never starts OCR.
 """
 
 from __future__ import annotations
@@ -131,7 +131,9 @@ def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
         if not isinstance(legacy.get("transactions"), list):
             raise ValueError("House legacy qualification has no transaction list")
         if legacy["transactions"]:
-            return "legacy_qualified_preserved"
+            if not (materialize_saved and all(path.is_file() for path in (
+                    extraction_path, identity_path, observation_path, header_path, reread_path))):
+                return "legacy_qualified_preserved"
     if observation_path.is_file() and header_path.is_file():
         observation = _read(observation_path)
         header = _read(header_path)
@@ -230,7 +232,10 @@ def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
             except ValueError:
                 pass
         paper = materialize_paper_observation(pdf_path.read_bytes(), observation, metadata,
-            identity, amount_header=header, field_reread=reread, prior_qualification=legacy)
+            identity, amount_header=header, field_reread=reread, prior_qualification=legacy,
+            prior_extraction=extraction)
+        if legacy is not None and legacy.get("transactions") and paper == legacy:
+            return "legacy_qualified_preserved"
         disposition = "materialized_existing_observation"
         interpreted = paper.get("materialized_extraction")
         if (not isinstance(interpreted, dict) or interpreted.get("source_sha256") != source_sha or
@@ -257,11 +262,16 @@ def _bridge_paper_report(*, evidence_root: Path, review_root: Path,
             outputs["legacy_reference"]=saved
         if extraction is not None and extraction.get("extraction_method") == "tesseract_legacy_checkbox":
             digest = hashlib.sha256(encode(extraction)).hexdigest()
-            old_path = (review_root / "house_clerk/paper_legacy_extraction_references" /
-                        relative.with_suffix("") / (digest + ".json"))
-            reference = {"path": old_path.relative_to(review_root).as_posix(),
-                "source_sha256": source_sha, "document_id": document_id,
-                "canonical_extraction_sha256": digest}
+            from .house_paper_owner_correction import PROFILE_KEY, _legacy_reference
+            if PROFILE_KEY in paper:
+                reference = _legacy_reference(extraction, metadata)
+                old_path = (review_root / reference["path"]).resolve()
+            else:
+                old_path = (review_root / "house_clerk/paper_legacy_extraction_references" /
+                            relative.with_suffix("") / (digest + ".json"))
+                reference = {"path": old_path.relative_to(review_root).as_posix(),
+                    "source_sha256": source_sha, "document_id": document_id,
+                    "canonical_extraction_sha256": digest}
             saved = {"schema_version": "house-paper-legacy-extraction-reference/v1",
                      **{key: value for key, value in reference.items() if key != "path"},
                      "extraction": extraction}

@@ -288,7 +288,8 @@ def paper_materialization_counts(qualification: dict, extraction: dict | None = 
             ledger.get("document_sha256") != source or ledger.get("source_id") != "house_clerk"):
         raise ValueError("House paper materialization ledger binding is invalid")
     ids = {row.get("extraction_id") for row in rows}
-    published_ids = {row.get("id") for row in published}
+    from .house_paper_owner_correction import qualification_physical_ids
+    published_ids = qualification_physical_ids(qualification)
     unknown_slots = {(page["page_number"], slot["local_key"]) for page in ledger.get("pages", [])
                      for slot in page.get("slots", []) if slot.get("disposition") == "unknown"}
     pending_ids, unresolved = set(), set()
@@ -488,10 +489,11 @@ def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict |
 def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata: dict,
                                   identity: dict, *, amount_header: dict | None = None,
                                   field_reread: dict | None = None,
-                                  prior_qualification: dict | None = None) -> dict:
+                                  prior_qualification: dict | None = None,
+                                  prior_extraction: dict | None = None) -> dict:
     """Interpret saved source cells through existing House qualification.
 
-    This opt-in development entry never changes prior qualified paper facts.
+    Existing facts change only through complete legacy/source owner replay.
     Unknown cover status, conflicting readings, and incomplete printed legends
     remain specific row blockers. It does not rerun OCR or invent a ticker/name.
     """
@@ -510,8 +512,13 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
                 prior_qualification.get("document_id") != document_id):
             raise ValueError("House prior qualification source mismatch")
         if prior_qualification.get("transactions"):
-            # Existing formal qualifications stay authoritative. This path does
-            # not rescan them to manufacture a batch Owner migration/diff.
+            if prior_extraction is not None:
+                from .house_paper_owner_correction import prepare_paper_owner_correction
+                prepared = prepare_paper_owner_correction(pdf_bytes, observation, metadata, identity,
+                    amount_header=amount_header, field_reread=field_reread,
+                    prior_extraction=prior_extraction, prior_qualification=prior_qualification)
+                if prepared is not None:
+                    return prepared["final_qualification"]
             return deepcopy(prior_qualification)
     from .house_asset_line_order import validate_asset_line_pdf, project_asset_line_reading
     validate_asset_line_pdf(pdf_bytes, observation)

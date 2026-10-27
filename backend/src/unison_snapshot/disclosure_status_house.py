@@ -158,6 +158,11 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             artifacts[kind][key] = value
             discovered.add(key[:2])
     from .house_source_revisions import resolve_source_bound_house_revisions
+    from .house_paper_owner_inputs import replay_house_paper_owner_correction
+    for key, qualification in artifacts['qualifications'].items():
+        if 'source_bound_paper_owner_correction' in qualification:
+            replay_house_paper_owner_correction(evidence_root, review_root,
+                qualification=qualification, extraction=artifacts['extractions'].get(key))
     from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
     for key, qualification in artifacts['qualifications'].items():
         if qualification.get('parser_version') not in CONTRAST_VERSIONS:
@@ -342,6 +347,11 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                     if txid not in known:
                         raise ValueError('House contrast publication has no original physical row')
                     record.setdefault('retained_source_unqualified_transaction_ids', []).append(txid)
+            if selected_qualification is not None and 'source_bound_paper_owner_correction' in selected_qualification:
+                from .house_paper_owner_inputs import represented_paper_owner_fact
+                current = {item['id']: item for item in selected_qualification['transactions']}
+                if txid not in current or represented_paper_owner_fact(current[txid], row) is None:
+                    raise ValueError('House paper owner publication differs from the source-qualified fact')
             record["publication_transaction_ids"].append(txid)
     for record in records:
         record["publication_transaction_ids"].sort()
