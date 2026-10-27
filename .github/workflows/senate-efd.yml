@@ -61,7 +61,7 @@ jobs:
               'source_id': 'senate_efd',
               'run_at': datetime.now(timezone.utc).isoformat(),
               'status': (prior['status'] if gate['status'] == 'enabled' and
-                         prior.get('status') in {'catalog_ready_for_review', 'failed'} else
+                         prior.get('status') in {'catalog_ready_for_review', 'failed', 'blocked', 'unavailable'} else
                          gate['status']),
               'collection_enabled': gate['collection_enabled'],
               'terms_acknowledged': gate['terms_acknowledged'],
@@ -100,6 +100,8 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      source_status: ${{ steps.collect.outputs.source_status }}
     env:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
@@ -141,8 +143,24 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
             --archive "$EVIDENCE_ROOT" \
             --submitted-start-date "$start_date" \
+            --isolate-source-unavailable \
+            --attempt-output .local/senate-efd-attempt.json \
             --failure-output .local/senate-efd-failure.json \
             --output .local/senate-efd-discovery.json
+          source_status="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          value = json.loads(Path('.local/senate-efd-attempt.json').read_text(encoding='utf-8'))
+          if value['status'] not in {'ready', 'blocked', 'unavailable'}:
+              raise ValueError('Unexpected Senate source attempt status')
+          print(value['status'])
+          PY
+          )"
+          echo "source_status=$source_status" >> "$GITHUB_OUTPUT"
+          if [ "$source_status" != ready ]; then
+            echo "::warning::Senate source $source_status; recording the failed attempt and retaining prior source data."
+            exit 0
+          fi
           roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
           import json, os
           from pathlib import Path
@@ -183,6 +201,7 @@ jobs:
             --archive "$EVIDENCE_ROOT" \
             --output .local/senate-efd-extraction-batch.json
       - name: Publish immutable catalog evidence
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
         id: publish_evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -198,10 +217,11 @@ jobs:
             git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
           fi
       - name: Record failed catalog collection without advancing source data
-        if: ${{ always() && steps.trees.outcome == 'success' && (steps.collect.outcome == 'failure' || steps.publish_evidence.outcome == 'failure') }}
+        if: ${{ always() && steps.trees.outcome == 'success' && (steps.collect.outcome == 'failure' || steps.publish_evidence.outcome == 'failure' || steps.collect.outputs.source_status == 'blocked' || steps.collect.outputs.source_status == 'unavailable') }}
         env:
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
           COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          SOURCE_STATUS: ${{ steps.collect.outputs.source_status }}
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           python - <<'PY'
@@ -210,18 +230,21 @@ jobs:
           from pathlib import Path
           target = Path(os.environ['STATE_ROOT']) / 'status/senate_efd.json'
           prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          source_status = os.environ.get('SOURCE_STATUS', '')
           failed_step = ('collect_catalog' if os.environ['COLLECT_OUTCOME'] == 'failure'
+                         or source_status in {'blocked', 'unavailable'}
                          else 'publish_evidence')
           diagnostic_path = Path('.local/senate-efd-failure.json')
           diagnostic = (json.loads(diagnostic_path.read_text(encoding='utf-8'))
                         if diagnostic_path.is_file() else {})
           attempted_at = datetime.now(timezone.utc).isoformat()
+          recorded_status = source_status if source_status in {'blocked', 'unavailable'} else 'failed'
           value = {
               **prior, 'schema_version': 'senate-source-run/v1',
-              'source_id': 'senate_efd', 'status': 'failed', 'run_at': attempted_at,
+              'source_id': 'senate_efd', 'status': recorded_status, 'run_at': attempted_at,
               'detail': 'Senate catalog collection failed; prior source data is retained.',
               'last_collection_attempt': {
-                  'status': 'failed', 'attempted_at': attempted_at,
+                  'status': recorded_status, 'attempted_at': attempted_at,
                   'workflow_run_url': os.environ['WORKFLOW_RUN_URL'],
                   'failed_step': failed_step,
                   **{key: diagnostic[key] for key in
@@ -231,6 +254,11 @@ jobs:
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                       separators=(',', ':')), encoding='utf-8')
+          if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
+              with Path(summary).open('a', encoding='utf-8') as handle:
+                  handle.write(f"\nSenate source status: **{recorded_status}**. Prior catalog/reports retained; no new Senate data was produced.\n")
+                  handle.write(f"Last successful catalog: `{prior.get('catalog', {}).get('retrieved_at', 'unknown')}`.\n")
+                  handle.write(f"Run: {os.environ['WORKFLOW_RUN_URL']}\n")
           PY
           git -C "$STATE_ROOT" add status/senate_efd.json
           if ! git -C "$STATE_ROOT" diff --cached --quiet; then
@@ -240,6 +268,7 @@ jobs:
             git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
       - name: Record catalog source state
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
         env:
           STATE_ROOT: ${{ steps.trees.outputs.state_root }}
         run: |
@@ -300,6 +329,7 @@ jobs:
             git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
       - uses: actions/upload-artifact@v4
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
         with:
           name: senate-efd-discovery-${{ github.run_id }}
           path: |
@@ -313,6 +343,7 @@ jobs:
 
   publish-review-catalog:
     needs: collect-catalog
+    if: ${{ needs.collect-catalog.outputs.source_status == 'ready' }}
     concurrency:
       group: disclosure-source-writer
       cancel-in-progress: false
@@ -482,7 +513,7 @@ jobs:
           cp "$audit_temp" "$audit"
           cp "$audit_temp" "$REVIEW_ROOT/senate_efd/qualifications/current.json"
           # Persist the validated Senate projection before cross-source assembly.
-          # A stale peer keeps this run red, but cannot strand the Senate waterline.
+          # A stale peer defers assembly without stranding the Senate waterline.
           git -C "$REVIEW_ROOT" add senate_efd status/senate_efd.json \
             candidates/sources/senate_efd-current.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
@@ -500,12 +531,26 @@ jobs:
             source_args+=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
           fi
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --defer-stale-sources \
+            --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
             --base ingest/current.json \
             --harmonize-cutoffs \
             "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
+          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+            --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
+          if [ "$assembly_status" = deferred ]; then
+            git -C "$REVIEW_ROOT" add status/disclosure_assembly.json
+            if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+              git -C "$REVIEW_ROOT" config user.name 'github-actions[bot]'
+              git -C "$REVIEW_ROOT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git -C "$REVIEW_ROOT" commit -m "review: deferred source assembly ${{ github.run_id }}"
+              git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+            fi
+            exit 0
+          fi
           CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
             BUILDER_COMMIT="${{ github.sha }}" python - <<'PY'
           import json, os
@@ -532,7 +577,7 @@ jobs:
                             encoding='utf-8')
           PY
           git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
-            status/disclosure_candidate.json status/disclosure_cutoff.json
+            status/disclosure_candidate.json status/disclosure_cutoff.json status/disclosure_assembly.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -499,9 +499,23 @@ jobs:
             if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
           done
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
+            --defer-stale-sources \
+            --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
             --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
+          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+            --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
+          if [ "$assembly_status" = deferred ]; then
+            git -C "$REVIEW_ROOT" add status/disclosure_assembly.json
+            if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+              git -C "$REVIEW_ROOT" config user.name 'github-actions[bot]'
+              git -C "$REVIEW_ROOT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git -C "$REVIEW_ROOT" commit -m "review: deferred source assembly ${{ github.run_id }}"
+              git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+            fi
+            exit 0
+          fi
           REVIEW_ROOT="$REVIEW_ROOT" BUILDER_COMMIT="${{ github.sha }}" python - <<'PY'
           import json, os
           from pathlib import Path
@@ -529,7 +543,7 @@ jobs:
                          separators=(',', ':')), encoding='utf-8')
           PY
           git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
-            status/disclosure_cutoff.json status/disclosure_candidate.json
+            status/disclosure_cutoff.json status/disclosure_candidate.json status/disclosure_assembly.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
             git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

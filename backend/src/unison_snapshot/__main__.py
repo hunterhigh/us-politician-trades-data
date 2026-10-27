@@ -8,7 +8,7 @@ import tempfile
 
 from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_validation
 from .twelve_data_market import TwelveDataClient, TwelveDataError, supplement as supplement_twelve_data
-from .builder import build
+from .builder import build, normalize
 from .codec import digest, encode
 from .materialize import materialize
 from .market_store import (build_market_bundle, load_published_market_cache,
@@ -23,13 +23,14 @@ from .house_members import HouseMemberClient, discover_members, suggest_identity
 from .house_candidate import load_house_candidate
 from .house_holdings import (HouseFinancialDocumentClient, archive_indexed_financial_report,
                              parse_archived_financial_report, qualify_financial_report)
-from .disclosure_candidate import DisclosureCandidateError, build_disclosure_candidate
+from .disclosure_candidate import (DisclosureCandidateError, SourceCutoffsStaleError,
+                                  build_disclosure_candidate, project_source_candidate)
 from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
     discover_congress_senate_members,
 )
 from .legacy import load, PROCESSOR_V2_SHA256
-from .senate import SenateEfdError, SenateHttpError, collection_gate_status, discover_ptrs, parse_search_page, \
+from .senate import SenateEfdError, SenateHttpError, SenateTransportError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
@@ -210,6 +211,9 @@ def main() -> None:
     disclosure_candidate.add_argument("--output", type=Path, required=True)
     disclosure_candidate.add_argument("--audit-output", type=Path)
     disclosure_candidate.add_argument("--html-output", type=Path)
+    disclosure_candidate.add_argument("--assembly-status-output", type=Path)
+    disclosure_candidate.add_argument("--defer-stale-sources", action="store_true",
+                                      help="Record stale-source assembly as deferred; never replace the candidate")
     disclosure_candidate.add_argument(
         "--harmonize-cutoffs", action="store_true",
         help="Align source candidates to their earliest cutoff and exclude later-filed facts")
@@ -273,6 +277,8 @@ def main() -> None:
     senate_discovery.add_argument("--archive", type=Path, required=True)
     senate_discovery.add_argument("--output", type=Path, required=True)
     senate_discovery.add_argument("--failure-output", type=Path)
+    senate_discovery.add_argument("--attempt-output", type=Path)
+    senate_discovery.add_argument("--isolate-source-unavailable", action="store_true")
     senate_discovery.add_argument("--submitted-start-date", required=True)
     senate_discovery.add_argument("--page-size", type=int, default=100)
     senate_discovery.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
@@ -616,18 +622,57 @@ def main() -> None:
                               "audit": str(args.audit_output.resolve()),
                               "html": str(args.html_output.resolve()) if args.html_output else None}))
         elif args.command == "build-disclosure-candidate":
+            if args.defer_stale_sources and not args.assembly_status_output:
+                raise DisclosureCandidateError("Deferring stale sources requires --assembly-status-output")
+            if args.assembly_status_output and args.assembly_status_output.resolve() in {
+                    value.resolve() for value in (args.base, args.output, args.audit_output,
+                                                   args.html_output) if value}:
+                raise DisclosureCandidateError("Assembly status must have its own output path")
             sources: dict[str, dict] = {}
             for item in args.source:
                 source_id, separator, source_path = item.partition("=")
                 if not separator or not source_id or not source_path or source_id in sources:
                     raise DisclosureCandidateError(
                         "Each --source must be a unique SOURCE_ID=PATH value")
+                if (args.assembly_status_output and
+                        args.assembly_status_output.resolve() == Path(source_path).resolve()):
+                    raise DisclosureCandidateError("Assembly status cannot replace a source candidate")
                 sources[source_id] = json.loads(Path(source_path).read_text(encoding="utf-8"))
             base = json.loads(args.base.read_text(encoding="utf-8"))
             cutoff_audit = {} if args.audit_output else None
-            result = build_disclosure_candidate(
-                base, sources, harmonize_cutoffs=args.harmonize_cutoffs,
-                harmonization_audit=cutoff_audit)
+            try:
+                result = build_disclosure_candidate(
+                    base, sources, harmonize_cutoffs=args.harmonize_cutoffs,
+                    harmonization_audit=cutoff_audit)
+            except SourceCutoffsStaleError as exc:
+                if not args.defer_stale_sources:
+                    raise
+                # Deferral must not turn malformed facts or colliding IDs into
+                # an expected availability result. It authorizes no publication.
+                normalize(base, allow_production=True, allow_empty_production=True)
+                people_ids, fact_ids = set(), set()
+                for source_id, source in sources.items():
+                    build(source, generated_at=source['meta']['data_cutoff_at'],
+                          allow_production=True, allow_empty_production=True)
+                    projection = project_source_candidate(source_id, source)
+                    for person in projection['people']:
+                        if person['id'] in people_ids:
+                            raise DisclosureCandidateError("Deferred sources duplicate a person ID")
+                        people_ids.add(person['id'])
+                    for fact in projection['transactions'] + projection['reported_holdings']:
+                        if fact['id'] in fact_ids:
+                            raise DisclosureCandidateError("Deferred sources duplicate a fact ID")
+                        fact_ids.add(fact['id'])
+                status = {'schema_version': 'disclosure-assembly-status/v1',
+                          'status': 'deferred', 'reason': 'source_cutoffs_too_stale',
+                          'attempted_at': datetime.now(timezone.utc).isoformat(),
+                          'source_cutoffs': exc.source_cutoffs,
+                          'source_candidate_sha256': {
+                              source_id: digest(encode(source))
+                              for source_id, source in sorted(sources.items())}}
+                _write_atomic(args.assembly_status_output, status)
+                print(json.dumps(status))
+                return
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
@@ -642,6 +687,13 @@ def main() -> None:
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
+            if args.assembly_status_output:
+                _write_atomic(args.assembly_status_output, {
+                    'schema_version': 'disclosure-assembly-status/v1', 'status': 'ready',
+                    'attempted_at': datetime.now(timezone.utc).isoformat(),
+                    'data_cutoff_at': generated_at,
+                    'candidate_sha256': digest(encode(result)),
+                })
             print(json.dumps({"sources": sorted(sources), "people": len(result["people"]),
                               "transactions": len(result["transactions"]),
                               "reported_holdings": len(result["reported_holdings"]),
@@ -798,14 +850,46 @@ def main() -> None:
                               "terms_acknowledged": result["terms_acknowledged"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-senate-efd":
+            if args.isolate_source_unavailable and not args.attempt_output:
+                raise SenateEfdError("Source failure isolation requires --attempt-output")
+            if args.attempt_output and args.attempt_output.resolve() in {
+                    value.resolve() for value in (args.output, args.failure_output) if value}:
+                raise SenateEfdError("Source attempt must have its own output path")
             if args.failure_output and args.failure_output.resolve() == args.output.resolve():
                 raise SenateEfdError("Discovery and failure outputs must be different paths")
             config = source_config_from_environment(
                 enabled_name=args.enabled_env, terms_name=args.terms_env)
-            result = discover_ptrs(
-                args.archive, config, submitted_start_date=args.submitted_start_date,
-                page_size=args.page_size)
+            try:
+                result = discover_ptrs(
+                    args.archive, config, submitted_start_date=args.submitted_start_date,
+                    page_size=args.page_size)
+            except (SenateHttpError, SenateTransportError) as exc:
+                recoverable = (isinstance(exc, SenateTransportError) or
+                               exc.diagnostic['http_status'] in {403, 408, 429, 500, 502, 503, 504})
+                if not args.isolate_source_unavailable or not recoverable:
+                    raise
+                status = {'schema_version': 'senate-source-attempt/v1',
+                          'source_id': 'senate_efd',
+                          'status': ('blocked' if exc.diagnostic.get('http_status') == 403
+                                     else 'unavailable'),
+                          'available': False,
+                          'attempted_at': datetime.now(timezone.utc).isoformat(),
+                          **exc.diagnostic}
+                _write_atomic(args.attempt_output, status)
+                if args.failure_output:
+                    _write_atomic(args.failure_output, {
+                        'schema_version': 'senate-collection-failure/v1',
+                        'source_id': 'senate_efd', 'status': 'failed',
+                        'recorded_at': status['attempted_at'], **exc.diagnostic})
+                print(json.dumps(status))
+                return
             _write_atomic(args.output, result)
+            if args.attempt_output:
+                _write_atomic(args.attempt_output, {
+                    'schema_version': 'senate-source-attempt/v1', 'source_id': 'senate_efd',
+                    'status': 'ready', 'available': True,
+                    'attempted_at': datetime.now(timezone.utc).isoformat(),
+                    'retrieved_at': result['metadata']['retrieved_at']})
             print(json.dumps({"records": result["records_total"],
                               "pages": result["metadata"]["page_count"],
                               "sha256": result["metadata"]["sha256"],
