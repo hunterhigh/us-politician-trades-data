@@ -18,6 +18,7 @@ from .migration_inventory import git_object
 from .senate_annual_amendment import verified_amendment_rekeys
 from .senate_account_correction import verified_account_corrections
 from .whitehouse_owner_correction import verified_owner_corrections
+from .oge_owner_correction import verified_oge_owner_corrections
 from .whitehouse_classification_correction import verified_classification_corrections
 from .whitehouse_account_display_correction import verified_account_display_corrections
 from .house_revision_supersession import verified_house_revision_supersessions
@@ -146,12 +147,27 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             if entity == "transactions" else [])
         if corrections:
             correction_levels.add('archived_senate_account_pixels_and_saved_grid_replay')
-        owner_corrections = (verified_owner_corrections(old=old, current=current, repo=repo,
+        # Direct OGE and White House share source_id='oge', but their official
+        # directories and original-document identities require different proof.
+        direct_owner_old = {key: row for key, row in old.items()
+            if isinstance(row.get('filing_id'), str)
+            and re.fullmatch(r'[0-9a-f]{32}', row['filing_id'])}
+        whitehouse_owner_old = {key: row for key, row in old.items()
+            if key not in direct_owner_old}
+        owner_corrections = (verified_owner_corrections(old=whitehouse_owner_old, current=current, repo=repo,
             evidence_commit=evidence_commit, review_commit=review_commit,
             main_commit=main_commit, previous_people=previous_board.get('people')) if entity == 'transactions' else [])
         if owner_corrections:
             correction_levels.add('archived_whitehouse_native_owner_and_historical_projection_replay')
         corrections += owner_corrections
+        direct_owner_corrections = (verified_oge_owner_corrections(
+            old=direct_owner_old, current=current, repo=repo,
+            evidence_commit=evidence_commit, review_commit=review_commit,
+            main_commit=main_commit, previous_people=previous_board.get('people'))
+            if entity == 'transactions' else [])
+        if direct_owner_corrections:
+            correction_levels.add('archived_oge_catalog_native_owner_and_historical_projection_replay')
+        corrections += direct_owner_corrections
         classification_corrections = (verified_classification_corrections(old=old, current=current, repo=repo,
             evidence_commit=evidence_commit, review_commit=review_commit,
             main_commit=main_commit, previous_people=previous_board.get('people')) if entity == 'transactions' else [])
