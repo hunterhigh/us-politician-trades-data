@@ -692,7 +692,37 @@ def _owner_scope_hint(audit: dict) -> bool:
                     inheritance.get('deferred_field_corrections', []))
 
 
-def _selected_source_input(record, audit, *, review, evidence, catalog_record):
+def _unbound_default_owner_hint(record, review, transactions):
+    """A cache intersection can withhold q, never establish source eligibility."""
+    if review is None or transactions is None:
+        return False
+    undisclosed = {row['id'] for row in transactions if row.get('source_id') == 'oge'
+        and row.get('verification_status') == 'official_matched'
+        and row.get('owner') == 'Undisclosed' and row.get('filing_id') == record['report_id']
+        and row.get('source_url') == record['source_url']}
+    if not undisclosed:
+        return False
+    for sha in record.get('source_versions', []):
+        path = review / 'oge/extractions' / record['report_id'] / sha / 'oge-278t-pdf-v2.json'
+        if not path.exists():
+            continue
+        if (not path.resolve().is_relative_to(review.resolve()) or not path.is_file()
+                or path.stat().st_size > 16 * 1024 * 1024):
+            raise ValueError('OGE unbound default cache is unavailable or exceeds budget')
+        cached = _read(path)
+        if (cached.get('parser_version') != 'oge-278t-pdf/v2' or
+                cached.get('document_id') != record['report_id'] or
+                cached.get('source_sha256') != sha or cached.get('source_url') != record['source_url']):
+            continue
+        for key in ('transactions', 'quarantined'):
+            rows = cached.get(key)
+            if isinstance(rows, list) and any(isinstance(row, dict) and row.get('owner') == 'Self'
+                    and row.get('extraction_id') in undisclosed for row in rows):
+                return True
+    return False
+
+
+def _selected_source_input(record, audit, *, review, evidence, catalog_record, transactions=None):
     """Bind execution selection without guessing it from cache existence."""
     from .oge_reports import (PARSER_VERSION, GENERIC_PARSER_VERSION, MAX_PDF_BYTES,
         TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
@@ -702,11 +732,13 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record):
     selected = audit.get('source_interpretation_binding')
     ordinary = _source_receiver_is_ordinary(audit)
     if selected is None:
-        owner_hint = _owner_scope_hint(audit)
-        if owner_hint or ordinary and review is not None and any(all((review / 'oge/extractions' /
-                record['report_id'] / sha / (version.replace('/', '-') + '.json')).is_file()
-                for version in (PARSER_VERSION, GENERIC_PARSER_VERSION))
-                for sha in record.get('source_versions', [])):
+        owner_hint = _owner_scope_hint(audit) or 'default_owner_conservation' in audit
+        if owner_hint or ordinary and (
+                _unbound_default_owner_hint(record, review, transactions) or
+                review is not None and any(all((review / 'oge/extractions' /
+                    record['report_id'] / sha / (version.replace('/', '-') + '.json')).is_file()
+                    for version in (PARSER_VERSION, GENERIC_PARSER_VERSION))
+                    for sha in record.get('source_versions', []))):
             _unbound_qualification(record, 'source_interpretation_selection_unknown')
         return None
     if review is None or evidence is None or not isinstance(selected, dict):
@@ -757,14 +789,21 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record):
 
 def _apply_source_interpretation(record, audit, *, review, evidence, catalog_record, transactions):
     raw = _selected_source_input(record, audit, review=review, evidence=evidence,
-        catalog_record=catalog_record)
+        catalog_record=catalog_record, transactions=transactions)
     if raw is None:
         return
     from .oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
     if raw['parser_version'] != GENERIC_PARSER_VERSION:
         if _owner_scope_hint(audit):
             raise ValueError('OGE owner source request differs from selected receiver parser')
+        if raw['parser_version'] == PARSER_VERSION and _source_receiver_is_ordinary(audit):
+            _apply_default_owner_conservation(record, audit, raw, review=review,
+                evidence=evidence, catalog_record=catalog_record, transactions=transactions)
+        elif 'default_owner_conservation' in audit:
+            raise ValueError('OGE default owner conservation differs from selected receiver')
         return  # Default v2 keeps its existing manual-date qualification layer.
+    if 'default_owner_conservation' in audit:
+        raise ValueError('OGE default owner conservation requires the selected default parser')
     from .oge_candidate import _fixed_trump_sept_source
     if catalog_record is not None and _fixed_trump_sept_source(raw, catalog_record):
         return  # The existing exact-source lane has its independent contract.
@@ -845,6 +884,67 @@ def _apply_source_interpretation(record, audit, *, review, evidence, catalog_rec
             record['qualification_state'] = 'partial' if current else 'unknown'
     if scope.status != 'observed':
         record['reason_codes'].append('owner_migration_source_scope_unknown')
+
+
+def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
+                                      catalog_record, transactions):
+    """Mask only actual conserved owner targets in the ordinary default lane.
+
+    The auxiliary generic interpretation proves a historical owner alias; it
+    never becomes the selected reader or replaces independent financial q.
+    """
+    facts = [row for row in transactions if row.get('source_id') == 'oge'
+             and row.get('verification_status') == 'official_matched'
+             and row.get('filing_id') == record['report_id']
+             and row.get('source_url') == record['source_url']]
+    stored = audit.get('default_owner_conservation')
+    # Only a hint to avoid source work for ordinary sources without any actual
+    # Undisclosed fact. The shared context derives real physical membership.
+    if stored is None and not any(row.get('owner') == 'Undisclosed' for row in facts):
+        return
+    if catalog_record is None:
+        raise ValueError('OGE default owner conservation requires catalog identity')
+    effective = raw
+    if audit.get('manual_filing_date_evidence') is not None:
+        from .oge_manual_dates import apply_manual_cover_dates
+        effective = apply_manual_cover_dates([raw], review / 'oge/manual_cover_dates')[0]
+        if effective.get('manual_filing_date_evidence') != audit['manual_filing_date_evidence']:
+            raise ValueError('OGE default owner manual layer differs from bound source input')
+    from .oge_default_owner_conservation import prepare_default_owner_conservation
+    context = prepare_default_owner_conservation(effective, facts, catalog_record,
+        evidence_root=evidence, source_extraction=raw)
+    protected = set(context.protected_ids)
+    if not protected and stored is None:
+        return
+    published = {row['id'] for row in facts}
+    if not protected <= published:
+        raise ValueError('OGE default owner protection differs from actual published facts')
+    rejected = {row.get('extraction_id') for row in audit.get('quarantined', [])}
+    current = set(context.source_current_ids(facts)) & protected
+    # Actual source quarantine remains an independent financial blocker even
+    # when the complete historical Howner object has a valid source alias.
+    rejected.update(row.get('extraction_id') for row in effective.get('quarantined', []))
+    current -= rejected
+    if effective.get('document_reasons') or audit.get('document_reasons'):
+        current.clear()
+    expected = {'binding':context.binding, 'retained_ids':sorted(protected),
+                'current_ids':sorted(current), 'deferred_ids':sorted(protected-current),
+                'status':context.status, 'reason':context.reason}
+    if stored is not None and (not isinstance(stored, dict) or any(
+            stored.get(key) != expected[key]
+            for key in ('binding', 'retained_ids', 'current_ids', 'deferred_ids'))):
+        raise ValueError('OGE default owner conservation differs from original source replay')
+    record['default_owner_conservation'] = expected
+    count = record.get('qualified_transaction_count')
+    if count is None:
+        return
+    if count < len(protected):
+        raise ValueError('OGE default owner conservation exceeds its ordinary receiver count')
+    count = count-len(protected)+len(current)
+    record['qualified_transaction_count'] = count
+    if protected-current:
+        record['qualification_state'] = 'partial' if count else 'unknown'
+        record['reason_codes'].append('default_owner_conservation_current_unresolved')
 
 
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,

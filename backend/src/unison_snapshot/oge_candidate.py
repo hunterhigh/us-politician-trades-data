@@ -402,12 +402,28 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             validate_generic_table_interpretation(extraction)
         observed = document_id in saved or document_id in exhibits
         amount_recompute = document_id in saved and saved[document_id].get('field_interpretation_mode') is not None
+        default_conservation = None
+        if (not generic and not visible and not observed and document_id not in native_views
+                and extraction.get('parser_version') == PARSER_VERSION and record is not None
+                and not _fixed_trump_sept_source(extraction, record)
+                and any(fact.get('source_id') == 'oge' and fact.get('filing_id') == document_id
+                    and fact.get('source_url') == extraction.get('source_url')
+                    and fact.get('verification_status') == 'official_matched'
+                    and fact.get('owner') == 'Undisclosed' for fact in base.get('transactions', []))):
+            from .oge_default_owner_conservation import prepare_default_owner_conservation
+            context = prepare_default_owner_conservation(extraction, base.get('transactions', []), record,
+                evidence_root=evidence_root, source_extraction=source_extraction)
+            if context.protected_ids:
+                default_conservation = context
         retained = [row for row in base.get("transactions", []) if (visible or generic or document_id in exhibits or
                     amount_recompute or
                     document_id in native_views and native_views[document_id].get("native_exhibit_preserved_target_ids") or
                     observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
                     and row.get("verification_status") == "official_matched"]
+        if default_conservation is not None:
+            retained.extend(deepcopy(fact) for fact in base['transactions']
+                            if fact['id'] in default_conservation.protected_ids)
         if any(row.get("source_url") != extraction.get("source_url") for row in retained):
             raise OgeCatalogError("existing formal facts differ from generic report URL")
         inheritance = None
@@ -537,6 +553,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         report_promoted = 0
         amount_current_qualified_ids = set()
         current_qualified_ids = set()
+        default_qualified_ids = set()
         retained_by_id = {row["id"]: row for row in retained}
         visible_retained_positions = set()
         visible_unbound_formal = False
@@ -694,6 +711,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 raise OgeCatalogError("OGE candidate duplicates a promoted transaction ID")
             promoted_ids.add(fact_id)
             fact = _transaction_projection(extraction, row, person_id)
+            if default_conservation is not None and fact_id in default_conservation.protected_ids:
+                fact = deepcopy(retained_by_id.pop(fact_id))
+                if fact_id in default_conservation.source_current_ids([fact]):
+                    default_qualified_ids.add(fact_id)
             if amount_recompute and fact_id in retained_by_id:
                 prior_fact = retained_by_id.pop(fact_id)
                 # Public shards can omit nullable cells. Their absence and an
@@ -718,7 +739,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     raise OgeCatalogError("existing native replacement differs from current source facts")
                 fact = deepcopy(prior_fact)
             transactions.append(fact)
-            if not amount_recompute or fact_id in amount_current_qualified_ids:
+            if ((not amount_recompute or fact_id in amount_current_qualified_ids)
+                    and (default_conservation is None or fact_id not in default_conservation.protected_ids
+                         or fact_id in default_qualified_ids)):
                 current_qualified_ids.add(fact_id)
             report_promoted += 1
         for fact in retained_by_id.values():
@@ -755,6 +778,16 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 view['current_ids'] = sorted(set(view['current_ids']) & current_qualified_ids)
                 view['deferred_ids'] = sorted(set(view['published_ids']) - set(view['current_ids']))
                 owner_audit['owner_scope_view'] = view
+        if default_conservation is not None:
+            published_ids = {fact['id'] for fact in transactions
+                if fact.get('filing_id') == document_id and fact.get('source_url') == extraction['source_url']}
+            protected = default_conservation.protected_ids & published_ids
+            rejected = {row.get('extraction_id') for row in row_quarantines}
+            current = (default_qualified_ids & protected) - rejected if not reasons else set()
+            owner_audit['default_owner_conservation'] = {
+                'binding': default_conservation.binding, 'retained_ids': sorted(protected),
+                'current_ids': sorted(current), 'deferred_ids': sorted(protected - current),
+                'status': default_conservation.status, 'reason': default_conservation.reason}
         audit_reports.append({
             "document_id": document_id,
             'source_interpretation_binding': interpretation_binding,
@@ -832,8 +865,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         candidate["meta"]["transaction_disclosure_relations"] = relations
     candidate["security_market_data"] = []
     owner_current_count = (sum(len(report['owner_scope_current_qualified_ids'])
-        if 'owner_scope_current_qualified_ids' in report else report['promoted_count']
+        if 'owner_scope_current_qualified_ids' in report else
+        report['promoted_count'] - len(report['default_owner_conservation']['retained_ids'])
+            + len(report['default_owner_conservation']['current_ids'])
+        if 'default_owner_conservation' in report else report['promoted_count']
         for report in audit_reports) if any('owner_scope_current_qualified_ids' in report
+                                            or 'default_owner_conservation' in report
                                             for report in audit_reports) else None)
     health = {
         "source_id": "oge",
