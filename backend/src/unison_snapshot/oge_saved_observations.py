@@ -96,14 +96,15 @@ def _quad_source_path(secondary, source_pdf_path, *, field_interpretation_mode=N
         return None
     if field_interpretation_mode is not None:
         raise ValueError("Saved OGE source quad reads cannot combine with legacy field interpretation")
-    fields = {"oge-278t-type-column-observation/v1": "type",
+    fields = {"oge-278t-printed-number-column-observation/v1": "printed_number",
+              "oge-278t-type-column-observation/v1": "type",
               "oge-278t-amount-column-observation/v2": "amount"}
     for reading in selected:
         inputs = reading.get("source_quad_input")
         field = fields.get(reading.get("schema_version"))
         if (field is None or not isinstance(inputs, dict) or inputs.get("field") != field
                 or inputs.get("layer") != "full_source" or "content_crop_mode" in inputs):
-            raise ValueError("Saved OGE source quad reads support only full-source type and amount")
+            raise ValueError("Saved OGE source quad reads support only full-source printed number, type and amount")
         pages = inputs.get("saved_pages")
         if not isinstance(pages, list) or not pages:
             raise ValueError("Saved OGE source quad reads require saved source render pages")

@@ -36,8 +36,8 @@ class SavedSourceQuadContractTests(unittest.TestCase):
             reading = helper.make(source, primary, pages, field=field, layer='full_source')
         return source, primary, render, reading
 
-    def test_prepare_and_load_replay_type_and_amount_but_keep_portable_paths_out(self):
-        for field in ('type', 'amount'):
+    def test_prepare_and_load_replay_type_amount_and_printed_number_but_keep_portable_paths_out(self):
+        for field in ('type', 'amount', 'printed_number'):
             with self.subTest(field=field):
                 source, primary, render, reading = self.fixture(field)
                 before = deepcopy((primary, reading))
@@ -65,7 +65,7 @@ class SavedSourceQuadContractTests(unittest.TestCase):
     def test_unsupported_quad_policies_and_excluded_annotations_fail_before_source_replay(self):
         source, primary, _, reading = self.fixture()
         variants=[]
-        for schema, field in (('date','transaction_date'),('printed-number','printed_number')):
+        for schema, field in (('date','transaction_date'),('description','description')):
             bad=deepcopy(reading); bad['schema_version']=f'oge-278t-{schema}-column-observation/v1'
             bad['source_quad_input']['field']=field; variants.append(bad)
         bad=deepcopy(reading);bad['source_quad_input']['field']='amount';variants.append(bad)
