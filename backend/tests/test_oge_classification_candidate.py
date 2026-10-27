@@ -13,6 +13,7 @@ from test_oge_candidate import base as empty_base
 from test_oge_owner_correction import fixture, write_files, CUTOFF, DOCUMENT
 from unison_snapshot.codec import encode
 from unison_snapshot.oge_candidate import build_oge_candidate
+from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_native_correction import _historical_projection
 
 
@@ -145,6 +146,17 @@ class ClassificationCandidateTests(unittest.TestCase):
         candidate, audit = self.run_candidate(data, rooted=False, selected=selected)
         self.assertEqual(candidate['transactions'], data['base']['transactions'])
         self.assertEqual(audit['current_qualified_transaction_count'], 0)
+
+    def test_conflicting_formal_source_cannot_bypass_classification_by_filtering(self):
+        data = classification_candidate_inputs(self.root, owner='Self')
+        data['base']['transactions'][0]['source_url'] = 'https://example.invalid/wrong-original.pdf'
+        original = deepcopy(data['base'])
+        for generic in (False, True):
+            for rooted in (False, True):
+                with self.subTest(generic=generic, rooted=rooted):
+                    with self.assertRaisesRegex(OgeCatalogError, 'formal source URL conflicts'):
+                        self.run_candidate(data, generic=generic, rooted=rooted)
+                    self.assertEqual(data['base'], original)
 
     def test_ambiguous_old_bindings_do_not_create_a_default_self_copy(self):
         data = classification_candidate_inputs(self.root, owner='Spouse', extra_row=True)

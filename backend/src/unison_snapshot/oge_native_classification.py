@@ -58,6 +58,15 @@ class NativeClassification:
         facts = list(formal)
         if len({fact.get('id') for fact in facts}) != len(facts):
             raise OgeCatalogError('OGE classification formal IDs are duplicated')
+        hinted_ids = {row.get('extraction_id') for report in (self._source, self._legacy)
+                      for row in _rows(report) if _mechanism(row)}
+        if any(fact.get('source_id') == 'oge'
+               and fact.get('verification_status') == 'official_matched'
+               and fact.get('filing_id') == self._source.get('document_id')
+               and fact.get('source_url') != self._source.get('source_url')
+               and (fact.get('id') in hinted_ids or _endnote(fact.get('asset_name')))
+               for fact in facts):
+            raise OgeCatalogError('OGE classification formal source URL conflicts with selected source')
         self._formal = {fact['id']: deepcopy(fact) for fact in facts if
             fact.get('source_id') == 'oge' and fact.get('verification_status') == 'official_matched'
             and fact.get('filing_id') == self._source.get('document_id')
@@ -72,8 +81,6 @@ class NativeClassification:
         if self._legacy is not None and (self._legacy.get('parser_version') != PARSER_VERSION or
                 any(self._legacy.get(field) != self._source.get(field) for field in identity)):
             raise OgeCatalogError('OGE classification legacy input differs from selected source')
-        hinted_ids = {row.get('extraction_id') for report in (self._source, self._legacy)
-                      for row in _rows(report) if _mechanism(row)}
         hinted = bool(self._formal.keys() & hinted_ids)
         hinted |= any(_endnote(fact.get('asset_name')) for fact in self._formal.values())
         if not self._formal or not hinted:
