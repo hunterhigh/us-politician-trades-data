@@ -24,6 +24,7 @@ from .whitehouse_classification_correction import verified_classification_correc
 from .whitehouse_account_display_correction import verified_account_display_corrections
 from .house_revision_supersession import verified_house_revision_supersessions
 from .house_paper_owner_correction import verified_house_paper_owner_corrections
+from .whitehouse_exact_duplicate import verified_exact_source_duplicates
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -47,9 +48,9 @@ def _source_id(row, entity):
 
 
 def _decision(item, entity, old, current, *, repo, evidence_commit, verified_replacements,
-              verified_corrections, verified_supersessions):
+              verified_corrections, verified_supersessions, verified_duplicates=None):
     kind, old_id, new_id = (item.get(key) for key in ("kind", "old_id", "new_id"))
-    if (item.get("entity") != entity or kind not in {"rekey", "corrected", "withdrawn", "superseded"} or
+    if (item.get("entity") != entity or kind not in {"rekey", "corrected", "withdrawn", "superseded", "duplicate"} or
             not isinstance(old_id, str) or old_id not in old or item.get("reason") not in REASONS or
             not re.fullmatch(r"[0-9a-f]{64}", str(item.get("source_sha256")))):
         raise InventoryError("invalid fact transition")
@@ -89,6 +90,12 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
         verified = verified_supersessions.get(old_id)
         if verified is None or any(item.get(key) != value for key, value in verified.items()):
             raise InventoryError("supersession needs matching original source scope and revision chain")
+    elif kind == "duplicate":
+        verified = (verified_duplicates or {}).get(old_id)
+        if (verified is None or any(item.get(key) != value for key,value in verified.items()) or
+                entity != 'transactions' or old_id in current or new_id not in old or
+                new_id not in current or old[new_id] != current[new_id]):
+            raise InventoryError('duplicate removal needs complete same-source replay and an unchanged published peer')
     else:
         raise InventoryError("withdrawal needs a source-specific evidence verifier")
     return {"entity": entity, "kind": kind, "old_id": old_id, "new_id": new_id,
@@ -120,6 +127,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
     verified_amendments = 0
     correction_count = 0
     house_supersession_count = 0
+    duplicate_count = 0
     correction_levels = set()
     for entity in ENTITIES:
         old = _index(previous_board.get(entity), f"previous {entity}")
@@ -201,6 +209,12 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         if len({item['old_id'] for item in corrections}) != len(corrections):
             raise InventoryError('source correction verifiers repeat an old ID')
         verified_corrections = {item["old_id"]: item for item in corrections}
+        duplicates = (verified_exact_source_duplicates(old=old,current=current,repo=repo,
+            evidence_commit=evidence_commit,review_commit=review_commit,main_commit=main_commit,
+            previous_people=previous_board.get('people')) if entity == 'transactions' else [])
+        if len({item['old_id'] for item in duplicates}) != len(duplicates):
+            raise InventoryError('Exact duplicate verifier repeats an old ID')
+        verified_duplicates = {item['old_id']:item for item in duplicates}
         house_supersessions = (verified_house_revision_supersessions(old=old, current=current,
             repo=repo, evidence_commit=evidence_commit, review_commit=review_commit,
             main_commit=main_commit, previous_people=previous_board.get('people'))
@@ -231,7 +245,8 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
                                 evidence_commit=evidence_commit,
                                 verified_replacements=verified_replacements,
                                 verified_corrections=verified_corrections,
-                                verified_supersessions=verified_supersessions)
+                                verified_supersessions=verified_supersessions,
+                                verified_duplicates=verified_duplicates)
             old_id, new_id = checked["old_id"], checked["new_id"]
             if old_id in old_seen or (checked["kind"] in {"rekey", "superseded"} and new_id in new_seen):
                 raise InventoryError("transition repeats an old or new ID")
@@ -256,6 +271,17 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             changes.append(item)
             selected.append(item)
         house_supersession_count += len(house_supersessions)
+        for item in duplicates:
+            _decision(item,entity,old,current,repo=repo,evidence_commit=evidence_commit,
+                verified_replacements=verified_replacements,verified_corrections=verified_corrections,
+                verified_supersessions=verified_supersessions,verified_duplicates=verified_duplicates)
+            if item['old_id'] in old_seen:
+                if not any(all(decision.get(key)==value for key,value in item.items())
+                           for decision in selected if decision.get('kind')=='duplicate'):
+                    raise InventoryError('Exact duplicate conflicts with an explicit transition')
+                continue
+            old_seen.add(item['old_id']);changes.append(item);selected.append(item)
+        duplicate_count += len(duplicates)
         if entity == "reported_holdings":
             automatic = verified_amendment_rekeys(
                 old=old, current=current, repo=repo,
@@ -270,7 +296,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             selected = selected + automatic
         missing = old.keys() - current.keys()
         changed = {key for key in old.keys() & current.keys() if old[key] != current[key]}
-        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn", "superseded"}} or
+        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn", "superseded", "duplicate"}} or
                 changed != {item["old_id"] for item in selected if item["kind"] == "corrected"}):
             raise InventoryError(f"{entity} has an unexplained removal or field change")
         added = current.keys() - old.keys() - new_seen
@@ -290,6 +316,9 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "snapshot_changes_disposed": True,
             "source_verified_correction_count": correction_count,
             "source_verified_house_supersession_count": house_supersession_count,
+            **({'source_verified_exact_duplicate_count':duplicate_count,
+                'exact_duplicate_verification_level':'archived_same_PDF_two_native_replays_and_complete_published_objects'}
+               if duplicate_count else {}),
             "house_supersession_verification_level": (
                 "archived_person_scope_native_ID_inventory_and_complete_revision_projection"
                 if house_supersession_count else "not_applicable_no_house_supersessions"),

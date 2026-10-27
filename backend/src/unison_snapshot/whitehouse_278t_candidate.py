@@ -78,7 +78,8 @@ def _cross_source_bindings(extractions, bindings):
 
 def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
                          annual_extractions=None, directory_index=None, annual_identity_people=None,
-                         source_bindings=None, native_classification_sources=None):
+                         source_bindings=None, native_classification_sources=None,
+                         exact_duplicate_sources=None):
     base = deepcopy(base)
     removed_duplicates = []
     cross = _cross_source_bindings(extractions, source_bindings)
@@ -128,21 +129,20 @@ def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
                            (row.get("ticker") is None or old.get("ticker") == row.get("ticker")) and
                            all(old.get(key) == proposed[key] for key in core)]
                 direct_matches = [old for old in matches if old["id"] in bound_old_ids]
-                wh_row_ids = {entry["extraction_id"] for source in group["sources"]
-                              for entry in source["rows"] if entry["row_number"] == row["row_number"]}
-                if (len(matches) > 1 and len(direct_matches) == 1 and
-                        all(old is direct_matches[0] or old["id"] in wh_row_ids for old in matches)):
+                if len(matches) > 1 and len(direct_matches) == 1:
                     keep = direct_matches[0]
-                    duplicate_ids = {old["id"] for old in matches if old is not keep}
-                    for old in matches:
-                        if old["id"] in duplicate_ids:
-                            removed_duplicates.append({"old_transaction_id": old["id"],
-                                "canonical_transaction_id": keep["id"], "source_sha256": report["source_sha256"],
-                                "page_number": row.get("page_number"), "row_number": row["row_number"],
-                                "old_fact_sha256": hashlib.sha256(json.dumps(old, sort_keys=True,
-                                    ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()})
-                    base["transactions"] = [old for old in base["transactions"] if old["id"] not in duplicate_ids]
-                    matches = [keep]
+                    # Equal financial values can belong to other disclosed
+                    # rows. Only this row's actual WH ID can be removed, and
+                    # its complete source replay must prove that exact pair.
+                    duplicate_ids = {old["id"] for old in matches
+                                     if old is not keep and old['id'] == row['extraction_id']}
+                    proofs = [exact_duplicate_sources.resolve(report, row, canonical_fact=keep,
+                                duplicate_fact=old) if exact_duplicate_sources is not None else None
+                              for old in matches if old["id"] in duplicate_ids]
+                    if proofs and all(proof is not None for proof in proofs):
+                        removed_duplicates.extend(proof['record'] for proof in proofs)
+                        base["transactions"] = [old for old in base["transactions"] if old["id"] not in duplicate_ids]
+                        matches = [keep]
             classification_row = (native_classification_sources is not None and
                 native_classification_sources.includes_row(report, row) and
                 any(old.get('id') == row.get('extraction_id') and
@@ -201,22 +201,24 @@ def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
 def audit_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], coverage: dict,
                                                 *, annual_extractions=None, directory_index=None,
                                                 annual_identity_people=None, source_bindings=None,
-                                                native_classification_sources=None) -> dict:
+                                                native_classification_sources=None,
+                                                exact_duplicate_sources=None) -> dict:
     """Explicit development entry; the existing production default is unchanged."""
     return _exact_source_inputs(base, extractions, coverage, annual_extractions,
                                 directory_index, annual_identity_people, source_bindings,
-                                native_classification_sources)[1]
+                                native_classification_sources, exact_duplicate_sources)[1]
 
 
 def build_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], audit: dict,
                                                 coverage: dict, *, data_cutoff_at: str,
                                                 annual_extractions=None, directory_index=None,
                                                 annual_identity_people=None, source_bindings=None,
-                                                native_classification_sources=None) -> tuple[dict, dict]:
+                                                native_classification_sources=None,
+                                                exact_duplicate_sources=None) -> tuple[dict, dict]:
     """Consume exact PDF copies once and retain their source aliases and old IDs."""
     selected, expected, complete, consumer_base = _exact_source_inputs(base, extractions, coverage, annual_extractions,
                                               directory_index, annual_identity_people, source_bindings,
-                                              native_classification_sources)
+                                              native_classification_sources, exact_duplicate_sources)
     if audit != expected:
         raise OgeCatalogError("White House exact-source qualification is stale or altered")
     candidate, result = build_whitehouse_278t_review_candidate(

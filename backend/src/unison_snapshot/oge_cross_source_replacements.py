@@ -60,6 +60,11 @@ def _whitehouse_candidate(inputs, *, evidence_root=None, review_root=None):
     coverage=inputs['oge_whitehouse_coverage']
     if inputs.get('exact_source_copies'):
         kw['source_bindings']=inputs.get('source_bindings')
+        from .whitehouse_exact_duplicate import prepare_whitehouse_exact_duplicate_sources
+        kw['exact_duplicate_sources'] = prepare_whitehouse_exact_duplicate_sources(
+            inputs['base'], inputs['extractions'], inputs.get('source_bindings'),
+            evidence_root=evidence_root, review_root=review_root,
+            **(selected if policy is not None else {}))
         if policy is not None:
             kw['native_classification_sources'] = sources
         eligibility=audit_whitehouse_278t_exact_source_candidate(*args,coverage,**kw)

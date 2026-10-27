@@ -38,7 +38,7 @@ def write_files(root, files):
 
 
 def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True,
-            pdf_mutator=None, extra_rows=None):
+            pdf_mutator=None, extra_rows=None, filer_name='Example, Ada'):
     """Return (old, proposed owner correction, review bytes, evidence bytes, base).
 
     Scope negatives deliberately return a proposed change that the normal
@@ -46,7 +46,7 @@ def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True
     """
     with tempfile.TemporaryDirectory() as directory:
         cover_path = Path(directory) / 'cover.pdf'
-        native_cover(cover_path, filer_name='Example, Ada', position_title='Director', agency='Example Agency')
+        native_cover(cover_path, filer_name=filer_name, position_title='Director', agency='Example Agency')
         pdf = pymupdf.open(stream=cover_path.read_bytes(), filetype='pdf')
     page = pdf.new_page(width=792, height=792)
     page.insert_text((30, 40), 'Transactions')
@@ -72,7 +72,7 @@ def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True
             raise AssertionError('Fixture mutator must return source bytes before hashing')
     sha = hashlib.sha256(raw).hexdigest()
     payload = {'draw': 1, 'recordsTotal': 1, 'recordsFiltered': 1, 'data': [{
-        'type': f"<a href='{URL}'>278 Transaction</a>", 'name': 'Example, Ada',
+        'type': f"<a href='{URL}'>278 Transaction</a>", 'name': filer_name,
         'agency': 'Example Agency', 'title': 'Director', 'level': 'I',
         'docDate': '2026-06-20T00:00:00', 'amended': ''}]}
     catalog = build_catalog([parse_catalog_page(payload, start=0, length=1)])

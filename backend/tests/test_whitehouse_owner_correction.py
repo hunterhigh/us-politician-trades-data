@@ -42,6 +42,7 @@ def fixture(extra=None, asset='Example Common Stock See Endnote (EXM)'):
     table=[['#','DESCRIPTION','TYPE','DATE','NOTIFICATION','AMOUNT']]
     if extra=='scope':table.append(['','Spouse retirement account unclear','','','',''])
     table.append(['1',asset,'Purchase','06/01/2026','No','$1,001 - $15,000'])
+    if extra=='same_financial':table.append(['2',asset,'Purchase','06/01/2026','No','$1,001 - $15,000'])
     if extra=='unrelated':table.append(['2','Unrelated Company (OTH)','Purchase','06/02/2026','No','unread amount'])
     for x in edges:page.draw_line((x,100),(x,100+len(table)*25))
     for y in range(100,101+len(table)*25,25):page.draw_line((30,y),(680,y))
@@ -77,7 +78,7 @@ def fixture(extra=None, asset='Example Common Stock See Endnote (EXM)'):
         native=parse_generic_whitehouse_278t_pdf(root/pdfpath,source_url=url,source_sha256=sha,
             document_id=doc,filer_name='Example, Ada',amended_label=label)
         oldrows,bad=parse_table_rows([(r['page_number'],r['cells']) for r in native['source_rows']],source_sha=sha)
-        assert len(oldrows)==1, (oldrows,bad,native)
+        assert len(oldrows)==(2 if extra=='same_financial' else 1), (oldrows,bad,native)
         legacy={'schema_version':'whitehouse-278t-extraction/v1','parser_version':PARSER_VERSION,
             'document_id':doc,'source_url':url,'source_sha256':sha,'filer_name':'Example, Ada',
             'transactions':oldrows,'quarantined':bad}
@@ -97,6 +98,8 @@ def fixture(extra=None, asset='Example Common Stock See Endnote (EXM)'):
     identity=coverage['reports'][0];person=_person(identity);personid=_person_id(_identity_key(identity))
     old=_historical_projection(native,oldrows[0],personid)
     base=_base();base['people']=[person];base['transactions']=[old];base['meta']['data_cutoff_at']='2026-06-20T00:00:00Z'
+    if extra=='same_financial':
+        base['transactions'].extend(_historical_projection(native,row,personid) for row in oldrows[1:])
     return old,{**old,'owner':'Undisclosed'},review,evidence,base
 
 

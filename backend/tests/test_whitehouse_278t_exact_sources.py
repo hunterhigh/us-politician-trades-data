@@ -107,15 +107,15 @@ class ExactSourceTests(unittest.TestCase):
         self.assertEqual(audit["quarantined_row_count"], 1)
         self.assertIn("existing_exact_source_row_interpretation_conflict", audit["reports"][0]["rows"][0]["reasons"])
 
-    def test_proven_old_double_formal_fact_collapses_to_one_id_with_receipt(self):
+    def test_saved_binding_alone_cannot_remove_an_old_formal_duplicate(self):
         base, report, bindings = self._cross_fixture()
         wh, _ = build(_base(), [report])
         base["transactions"].append(wh["transactions"][0])
         candidate, audit = self._build_cross(base, report, bindings)
         self.assertEqual(len(base["transactions"]), 4)
-        self.assertEqual(len(candidate["transactions"]), 3)
-        self.assertEqual(len(audit["removed_duplicate_formal_rows"]), 1)
-        self.assertFalse(audit["candidate_is_append_only"])
+        self.assertEqual(len(candidate["transactions"]), 4)
+        self.assertNotIn("removed_duplicate_formal_rows", audit)
+        self.assertTrue(audit["candidate_is_append_only"])
 
     def test_exact_bytes_consumed_once_and_all_links_retained(self):
         reports = copies()

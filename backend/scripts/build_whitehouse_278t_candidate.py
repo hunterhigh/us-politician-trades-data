@@ -422,6 +422,13 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             classification_sources = classification_context(
                 prior['native_cross_source_applications']['context']['wh_inputs']['base']['transactions'])
             provenance.update(classification_sources.provenance())
+            if exact_source_copies:
+                from unison_snapshot.whitehouse_exact_duplicate import prepare_whitehouse_exact_duplicate_sources
+                duplicate_sources = prepare_whitehouse_exact_duplicate_sources(
+                    prior['native_cross_source_applications']['context']['wh_inputs']['base'],
+                    extractions, bindings, evidence_root=evidence_root, review_root=review_root,
+                    coverage_input=coverage_input, extraction_status_input=extraction_status_input)
+                provenance.update(duplicate_sources.provenance())
             if prior.get("review_input_sha256")==provenance and current_classification(base):
                 return {"idempotent":True,"report_count":prior["report_count"],
                     "promoted_transaction_count":prior["promoted_transaction_count"],
@@ -435,6 +442,13 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         classification_sources = classification_context(base['transactions'])
         # This precedes every cache return; scope includes already-Stock repeats.
         provenance.update(classification_sources.provenance())
+    duplicate_sources = None
+    if exact_source_copies:
+        from unison_snapshot.whitehouse_exact_duplicate import prepare_whitehouse_exact_duplicate_sources
+        duplicate_sources = prepare_whitehouse_exact_duplicate_sources(base, extractions, bindings,
+            evidence_root=evidence_root, review_root=review_root, coverage_input=coverage_input,
+            extraction_status_input=extraction_status_input)
+        provenance.update(duplicate_sources.provenance())
     if exact_source_copies and audit_out.is_file() and candidate_out.resolve() == oge_candidate.resolve():
         prior, _ = _read_object(audit_out)
         if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
@@ -482,7 +496,8 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
     eligibility = (audit_whitehouse_278t_exact_source_candidate(
         base, extractions, oge_coverage, annual_extractions=annual_extractions,
         directory_index=directory, annual_identity_people=annual_people,
-        source_bindings=bindings, native_classification_sources=classification_sources) if exact_source_copies else
+        source_bindings=bindings, native_classification_sources=classification_sources,
+        exact_duplicate_sources=duplicate_sources) if exact_source_copies else
         audit_whitehouse_278t(extractions, oge_coverage, base, annual_extractions, directory, annual_people))
     candidate_builder = (build_whitehouse_278t_exact_source_candidate if exact_source_copies else
                          build_whitehouse_278t_review_candidate)
@@ -492,7 +507,7 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         annual_extractions=annual_extractions, directory_index=directory,
         annual_identity_people=annual_people,
         native_classification_sources=classification_sources,
-        **({"source_bindings": bindings} if exact_source_copies else {}))
+        **({"source_bindings": bindings, "exact_duplicate_sources": duplicate_sources} if exact_source_copies else {}))
     if native_inputs is not None:
         from unison_snapshot.oge_cross_source_replacements import apply_cross_source_native_replacements
         wh_inputs={"base":base,"extractions":extractions,"oge_whitehouse_coverage":oge_coverage,
