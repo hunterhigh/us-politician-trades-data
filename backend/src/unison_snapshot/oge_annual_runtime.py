@@ -156,7 +156,8 @@ def _replay_scan_sources(pdf: Path, *, roles: dict, document: str, sha: str,
 def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
                                     code_commit: str, started_at: str,
                                     document_ids: list[str] | None = None,
-                                    include_saved_scans: bool = False) -> dict:
+                                    include_saved_scans: bool = False,
+                                    parser_version: str | None = None) -> dict:
     """Discover saved source caches, verify all dependencies, then return input."""
     review, evidence = review_root.resolve(strict=True), evidence_root.resolve(strict=True)
     if not review.is_dir() or not evidence.is_dir():
@@ -166,18 +167,31 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
     timestamp(started_at)
     if type(include_saved_scans) is not bool:
         raise ValueError('Annual controlled scan preparation flag must be boolean')
+    if parser_version is not None and (not isinstance(parser_version, str) or
+                                       parser_version not in _VERSIONS):
+        raise ValueError('Annual controlled runtime parser selection is unsupported')
     if document_ids is not None and (not isinstance(document_ids, list) or not document_ids or
             len(document_ids) > MAX_DOCUMENTS or len(set(document_ids)) != len(document_ids) or
             any(not isinstance(item, str) or not _ID.fullmatch(item) for item in document_ids)):
         raise ValueError("Annual controlled runtime document selection is invalid")
     base = review / 'oge/annual/extractions'
     paths = []
+    available_documents = set()
     for path in base.glob('*/*/*.json'):
         if document_ids is None or path.parent.parent.name in document_ids:
+            available_documents.add(path.parent.parent.name)
+            if len(available_documents) > MAX_DOCUMENTS:
+                raise ValueError('Annual controlled runtime document selection exceeds budget')
+            # Select an existing cache, never relabel or regenerate it. The
+            # selected file's payload/path/source are still checked below.
+            if parser_version is not None and path.name != parser_version.replace('/', '-') + '.json':
+                continue
             paths.append(path)
             if len(paths) > MAX_DOCUMENTS:
                 raise ValueError("Annual controlled runtime document/version selection exceeds budget")
     paths.sort()
+    if parser_version is not None and available_documents != {path.parent.parent.name for path in paths}:
+        raise ValueError('Annual controlled runtime selected parser is missing for a selected document')
     scans = _saved_scans(review, document_ids) if include_saved_scans else {}
     if not paths and not scans:
         raise ValueError("Annual controlled runtime has no selected saved extractions")
@@ -197,6 +211,8 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
         _validate_source(value)
         document, sha = value['source_document_id'], value['source_sha256']
         parser = value['parser_version']
+        if parser_version is not None and parser != parser_version:
+            raise ValueError('Annual controlled runtime selected parser differs from saved extraction')
         if parser not in _VERSIONS or relative != (
                 f"oge/annual/extractions/{document}/{sha}/{parser.replace('/', '-')}.json"):
             raise ValueError("Annual controlled runtime extraction path or parser version differs")
@@ -288,6 +304,7 @@ def prepare_controlled_annual_input(review_root: Path, evidence_root: Path, *,
             'code_commit': code_commit, 'started_at': started_at,
             'controlled_annual_runtime': {'schema_version': RECEIPT_SCHEMA,
                 'mode': 'saved_native_and_scan_inputs' if include_saved_scans else 'saved_native_extractions',
+                **({'selected_parser_version': parser_version} if parser_version is not None else {}),
                 'documents': documents,
                 'files': sorted(files, key=lambda item: (item['root'], item['path'])),
                 'total_bytes': total, 'python_minimum': '3.11', 'recognizer_started': False}}
@@ -303,9 +320,12 @@ def verify_controlled_annual_input(value: dict, *, review_root: Path, evidence_r
     if sys.version_info < (3, 11):
         raise ValueError("Annual controlled runtime requires Python 3.11")
     docs = [item.get('document_id') if isinstance(item, dict) else None for item in receipt['documents']]
+    if 'selected_parser_version' in receipt and receipt['selected_parser_version'] is None:
+        raise ValueError('Annual controlled runtime parser selection must not be null')
     expected = prepare_controlled_annual_input(review_root, evidence_root,
         code_commit=value.get('code_commit'), started_at=value.get('started_at'), document_ids=docs,
-        include_saved_scans=receipt['mode']=='saved_native_and_scan_inputs')
+        include_saved_scans=receipt['mode']=='saved_native_and_scan_inputs',
+        parser_version=receipt.get('selected_parser_version'))
     if expected != value:
         raise ValueError("Annual controlled runtime saved input or dependency hash differs")
     return receipt

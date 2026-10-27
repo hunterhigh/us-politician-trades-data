@@ -26,6 +26,10 @@ on:
         description: Optional saved annual document ID; empty uses the bounded available set
         required: false
         default: ''
+      oge_annual_parser_version:
+        description: Optional existing saved native annual parser version; requires saved annual preparation
+        required: false
+        default: ''
 permissions:
   contents: write
 
@@ -369,6 +373,7 @@ jobs:
           INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
           INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
           OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
+          OGE_ANNUAL_PARSER_VERSION: ${{ inputs.oge_annual_parser_version }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
@@ -500,6 +505,9 @@ jobs:
           fi
           if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" = true ]; then
             selection_args=()
+            if [ -n "${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+              selection_args+=(--parser-version "$OGE_ANNUAL_PARSER_VERSION")
+            fi
             if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ]; then
               selection_args+=(--include-saved-scans)
             fi
@@ -514,8 +522,8 @@ jobs:
               "${selection_args[@]}"
             annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
               --oge-annual-runtime-root "$EVIDENCE_ROOT")
-          elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
-            echo 'A saved annual document selection requires the explicit preparation switch.' >&2
+          elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+            echo 'Saved annual document/parser selection requires the explicit preparation switch.' >&2
             exit 2
           fi
           # END bounded saved annual preparation

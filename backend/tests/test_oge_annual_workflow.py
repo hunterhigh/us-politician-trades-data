@@ -27,7 +27,7 @@ def bash_binary():
 
 
 class AnnualWorkflowTests(unittest.TestCase):
-    def run_branch(self, enabled='false', document='', *, fail=False, scans='false'):
+    def run_branch(self, enabled='false', document='', *, fail=False, scans='false', parser=''):
         shell = bash_binary()
         if shell is None:
             self.skipTest('Bash is required to execute the actual workflow branch')
@@ -51,6 +51,7 @@ class AnnualWorkflowTests(unittest.TestCase):
                 TEST_CALL_LOG=str(log), TEST_FAIL_PREPARE='1' if fail else '0',
                 INCLUDE_SAVED_OGE_ANNUAL=enabled, OGE_ANNUAL_DOCUMENT_ID=document,
                 INCLUDE_SAVED_OGE_ANNUAL_SCANS=scans,
+                OGE_ANNUAL_PARSER_VERSION=parser,
                 REVIEW_ROOT=str(folder / 'review root'), EVIDENCE_ROOT=str(folder / 'evidence root'),
                 RUNNER_TEMP=str(folder / 'runtime output'), MSYS_NO_PATHCONV='1')
             result = subprocess.run([shell, '-c', script], cwd=ROOT, env=env,
@@ -110,6 +111,15 @@ class AnnualWorkflowTests(unittest.TestCase):
         overlay = content.split('python backend/scripts/overlay_whitehouse_annual_candidate.py', 1)[1].split(
             'test "$MARKET_DISTRIBUTION_AUTHORIZED"', 1)[0]
         self.assertIn('"${annual_args[@]}"', overlay)
+
+    def test_native_parser_selection_is_explicit_and_cannot_enable_annual_preparation(self):
+        selected = 'oge-278e-tables/v3'
+        result, calls = self.run_branch('true', 'a'*32, parser=selected)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls[0][-4:], ['--parser-version', selected, '--document-id', 'a'*32])
+        result, calls = self.run_branch(parser=selected)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls, [])
 
 
 if __name__ == '__main__':

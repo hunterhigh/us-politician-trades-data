@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from unison_snapshot.oge_annual_runtime import prepare_controlled_annual_input
+from unison_snapshot.oge_annual import PARSER_VERSION, SHADOW_PARSER_VERSION, QUALIFIED_PARSER_VERSION
 from overlay_whitehouse_annual_candidate import _write
 
 
@@ -15,6 +16,9 @@ def main():
     parser.add_argument('--code-commit', required=True)
     parser.add_argument('--started-at', required=True)
     parser.add_argument('--document-id', action='append')
+    parser.add_argument('--parser-version', choices=sorted({PARSER_VERSION, SHADOW_PARSER_VERSION,
+                                                          QUALIFIED_PARSER_VERSION}),
+                        help='Select an existing saved native extraction version; never upgrade or reparse')
     parser.add_argument('--include-saved-scans', action='store_true',
                         help='Also prepare complete source-bound saved scan observations; never run OCR/models')
     args = parser.parse_args()
@@ -23,7 +27,7 @@ def main():
         parser.error('--output must be outside controlled review and evidence trees')
     value = prepare_controlled_annual_input(args.review_root, args.evidence_root,
         code_commit=args.code_commit, started_at=args.started_at, document_ids=args.document_id,
-        include_saved_scans=args.include_saved_scans)
+        include_saved_scans=args.include_saved_scans, parser_version=args.parser_version)
     _write(args.output, value)
     print(json.dumps(value['controlled_annual_runtime'], sort_keys=True))
 

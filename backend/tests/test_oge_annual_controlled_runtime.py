@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 from test_oge_annual_candidate import source, inputs, base, CONTENT, DOC, SHA
-from unison_snapshot.oge_annual import PARSER_VERSION
+from unison_snapshot.oge_annual import PARSER_VERSION, SHADOW_PARSER_VERSION, QUALIFIED_PARSER_VERSION
 from unison_snapshot.oge_annual_runtime import prepare_controlled_annual_input
 from unison_snapshot.whitehouse_annual_candidate import overlay_oge_annual_candidate
 
@@ -111,6 +111,77 @@ class ControlledAnnualRuntimeTests(unittest.TestCase):
         actual = json.loads(self.candidate.read_bytes())
         self.assertEqual(actual['reported_holdings'], previous['reported_holdings'])
         self.assertEqual(actual['transactions'], previous['transactions'])
+
+    def add_legacy_version(self):
+        legacy = dict(deepcopy(self.extraction), parser_version=PARSER_VERSION, filing_date=None)
+        legacy.pop('cover_date_evidence', None)
+        legacy.pop('source_coverage_evidence', None)
+        return self.save_extraction(legacy)
+
+    def test_explicit_version_resolves_two_existing_caches_through_normal_overlay(self):
+        legacy = self.add_legacy_version()
+        originals = {p:p.read_bytes() for p in (legacy, self.extraction_path, self.meta_path, self.pdf_path)}
+        self.output.write_bytes(b'input sentinel')
+        self.assertNotEqual(self.prepare().returncode, 0)
+        self.assertEqual(self.output.read_bytes(), b'input sentinel')
+        result = self.prepare('--parser-version', QUALIFIED_PARSER_VERSION, '--document-id', DOC)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prepared = json.loads(self.output.read_bytes())
+        self.assertEqual(prepared['extractions'], [self.extraction])
+        self.assertEqual(prepared['controlled_annual_runtime']['selected_parser_version'], QUALIFIED_PARSER_VERSION)
+        expected = self.output.read_bytes()
+        self.write(self.candidate, base())
+        result = self.overlay()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        actual = json.loads(self.candidate.read_bytes())
+        self.assertEqual(len(actual['reported_holdings']), 2)
+        expected_candidate, _ = overlay_oge_annual_candidate(base(), self.request)
+        self.assertEqual(actual['transactions'], expected_candidate['transactions'])
+        self.assertEqual(actual['reported_holdings'], expected_candidate['reported_holdings'])
+        again = self.prepare('--parser-version', QUALIFIED_PARSER_VERSION, '--document-id', DOC)
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(self.output.read_bytes(), expected)
+        for path, raw in originals.items(): self.assertEqual(path.read_bytes(), raw)
+        # Consumption must bind the same version, not trust an edited receipt.
+        prepared['controlled_annual_runtime']['selected_parser_version'] = PARSER_VERSION
+        self.write(self.output, prepared)
+        previous = self.candidate.read_bytes()
+        self.assertNotEqual(self.overlay().returncode, 0)
+        self.assertEqual(self.candidate.read_bytes(), previous)
+
+    def test_explicit_legacy_selection_cannot_upgrade_qualification(self):
+        self.add_legacy_version()
+        result = self.prepare('--parser-version', PARSER_VERSION)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(self.output.read_bytes())['extractions'][0]['parser_version'], PARSER_VERSION)
+        self.write(self.candidate, base())
+        result = self.overlay()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(self.candidate.read_bytes())['reported_holdings'], [])
+
+    def test_absent_invalid_or_mislabeled_selected_version_does_not_fallback_or_write(self):
+        self.add_legacy_version()
+        self.output.write_bytes(b'input sentinel')
+        for version in (SHADOW_PARSER_VERSION, 'latest', ''):
+            with self.subTest(version=version):
+                self.assertNotEqual(self.prepare('--parser-version', version).returncode, 0)
+                self.assertEqual(self.output.read_bytes(), b'input sentinel')
+        self.write(self.extraction_path, dict(self.extraction, parser_version=PARSER_VERSION))
+        self.assertNotEqual(self.prepare('--parser-version', QUALIFIED_PARSER_VERSION).returncode, 0)
+        self.assertEqual(self.output.read_bytes(), b'input sentinel')
+
+    def test_version_selection_never_silently_drops_another_selected_document(self):
+        other = dict(deepcopy(self.extraction), source_document_id='b'*32,
+                     parser_version=PARSER_VERSION)
+        self.save_extraction(other)
+        self.output.write_bytes(b'input sentinel')
+        result = self.prepare('--parser-version', QUALIFIED_PARSER_VERSION)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'selected parser is missing', result.stderr)
+        self.assertEqual(self.output.read_bytes(), b'input sentinel')
+        result = self.prepare('--parser-version', QUALIFIED_PARSER_VERSION, '--document-id', DOC)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([r['source_document_id'] for r in json.loads(self.output.read_bytes())['extractions']], [DOC])
 
     def test_missing_wrong_source_and_wrong_metadata_fail_before_prepared_output(self):
         self.output.write_bytes(b'input sentinel')
