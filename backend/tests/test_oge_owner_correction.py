@@ -289,6 +289,40 @@ class OgeOwnerCorrectionTests(unittest.TestCase):
             current={other['id']: {**other, 'owner': 'Undisclosed'}}, repo=None,
             evidence_commit=None, review_commit=None), [])
 
+    def test_historical_source_keeps_original_catalog_membership_and_full_identity_context(self):
+        def historical(data, current_rows=None):
+            old, current, review, evidence, board = deepcopy(data)
+            normalized = next(path for path in evidence if '/catalog/normalized/' in path)
+            old_sha = Path(normalized).stem
+            catalog = json.loads(evidence[normalized])
+            metadata = json.loads(evidence[f'oge/catalog/{old_sha}.json'])
+            review[f'oge/discoveries/{old_sha}.json'] = encoded({**catalog, 'metadata': metadata})
+            payload = {'draw':1, 'recordsTotal':len(current_rows or []),
+                'recordsFiltered':len(current_rows or []), 'data':current_rows or []}
+            current_catalog = build_catalog([parse_catalog_page(payload, start=0, length=1)])
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                current_meta = archive_catalog(root, [(0,1,encoded(payload),{'content-type':'application/json'})],
+                    current_catalog, retrieved_at=CUTOFF)
+                evidence.update({path.relative_to(root).as_posix():path.read_bytes()
+                                 for path in root.rglob('*') if path.is_file()})
+            review['status/oge.json'] = encoded({'catalog_sha256':current_meta['sha256']})
+            return old, current, review, evidence, board
+        data = historical(self.data)
+        self.assertEqual(self.verify(data)[0]['changed_fields'], ['owner'])
+        forged = deepcopy(data)
+        path = next(path for path in forged[2] if path.startswith('oge/discoveries/'))
+        wrapper = json.loads(forged[2][path]); wrapper['transactions'][0]['agency'] = 'Forged Agency'
+        forged[2][path] = encoded(wrapper)
+        with self.assertRaisesRegex(InventoryError, 'historical discovery'):
+            self.verify(forged)
+        original_page = json.loads(next(raw for path,raw in self.data[3].items() if '/catalog/pages/' in path))
+        variant = original_page['data'][0]
+        variant['type'] = variant['type'].replace(DOCUMENT, 'f'*32)
+        variant['agency'] = 'Another Agency'
+        with self.assertRaisesRegex(InventoryError, 'identity is ambiguous'):
+            self.verify(historical(self.data, [variant]))
+
 
 if __name__ == '__main__':
     unittest.main()

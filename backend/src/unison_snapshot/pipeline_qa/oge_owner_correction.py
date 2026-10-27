@@ -146,7 +146,7 @@ def _source_scope(pdf, metadata, record):
     return inventory
 
 
-def _replay(sources, evidence, review, catalog, document, url):
+def _replay(sources, evidence, review, catalog, catalog_history, document, url):
     from .oge_catalog_source import load_fixed_oge_direct_source
     from ..oge_reports import (MAX_PDF_BYTES, PARSER_VERSION, GENERIC_PARSER_VERSION,
         parse_archived_pdf, selected_parser_version, collapse_direct_catalog_records)
@@ -154,9 +154,10 @@ def _replay(sources, evidence, review, catalog, document, url):
     import pdfplumber
 
     record, metadata, raw = load_fixed_oge_direct_source(sources, evidence,
-        catalog=catalog, document_id=document, source_url=url)
+        catalog=catalog, catalog_history=catalog_history, document_id=document, source_url=url)
     direct, _ = collapse_direct_catalog_records([
-        item for item in catalog['transactions'] if item.get('access_method') == 'direct_pdf'])
+        item for selected in [catalog, *catalog_history] for item in selected['transactions']
+        if item.get('access_method') == 'direct_pdf'])
     key = _identity_key(record)
     if len({_identity_key(item) for item in direct if _identity_key(item)[0] == key[0]}) != 1:
         raise InventoryError('Direct OGE correction catalog identity is ambiguous')
@@ -192,10 +193,18 @@ def _replay(sources, evidence, review, catalog, document, url):
         raise InventoryError('Direct OGE correction source row count exceeds budget')
     # Full catalog ambiguity was checked before limiting the normal receiver
     # to the one source whose old fact is being corrected.
-    return actual[0], actual[1], {**catalog, 'transactions': [record]}, record
+    # Keep current/history membership distinct in the one-document receiver.
+    # Full archives/counts/identity context were already proved above; these
+    # scoped views are not serialized as replacement catalog observations.
+    selected_rows = lambda selected: [item for item in selected['transactions']
+        if item.get('access_method') == 'direct_pdf' and item.get('source_document_id') == document]
+    scoped_current = {**catalog, 'transactions': selected_rows(catalog)}
+    scoped_history = [{**selected, 'transactions': selected_rows(selected)}
+                      for selected in catalog_history if selected_rows(selected)]
+    return actual[0], actual[1], scoped_current, record, scoped_history
 
 
-def _prove(legacy, generic, scoped_catalog, record, prior, replacement, person):
+def _prove(legacy, generic, scoped_catalog, record, scoped_history, prior, replacement, person):
     from ..oge_candidate import (build_oge_candidate, _identity_key, _person_id,
         _legacy_default_owner_evidence, _instrument)
     from ..oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
@@ -210,7 +219,8 @@ def _prove(legacy, generic, scoped_catalog, record, prior, replacement, person):
     cutoff = generic['filed_at'] + 'T23:59:59Z' if generic.get('filed_at') else None
     if cutoff is None:
         raise InventoryError('Direct OGE owner correction has no qualified filed date')
-    normal, _ = build_oge_candidate(scoped_catalog, [legacy], _empty(cutoff), data_cutoff_at=cutoff)
+    normal, _ = build_oge_candidate(scoped_catalog, [legacy], _empty(cutoff),
+        data_cutoff_at=cutoff, catalog_history=scoped_history)
     pid = _person_id(_identity_key(record))
     source_person = [row for row in normal['people'] if row['id'] == pid]
     identity_fields = ('id', 'display_name', 'role', 'office_type', 'disclosure_authority')
@@ -238,7 +248,8 @@ def _prove(legacy, generic, scoped_catalog, record, prior, replacement, person):
     base = _empty(cutoff)
     base.update(people=[deepcopy(person)], transactions=[deepcopy(prior)])
     current, audit = build_oge_candidate(scoped_catalog, [generic], base,
-        data_cutoff_at=cutoff, legacy_extractions_by_document={legacy['document_id']: legacy})
+        data_cutoff_at=cutoff, catalog_history=scoped_history,
+        legacy_extractions_by_document={legacy['document_id']: legacy})
     target = [row for row in current['transactions'] if row['id'] == prior['id']]
     report = audit['reports'][0]
     expected_correction = {'extraction_id': prior['id'], 'field': 'owner', 'old_value': 'Self',
@@ -261,13 +272,13 @@ def verified_oge_owner_corrections(*, old, current, repo, evidence_commit, revie
     if repo is None or not all(re.fullmatch('[0-9a-f]{40}', str(ref))
                               for ref in (main_commit, evidence_commit, review_commit)):
         raise InventoryError('Direct OGE correction needs fixed main, review and evidence commits')
-    from .oge_catalog_source import load_fixed_oge_catalog
+    from .oge_catalog_source import load_fixed_oge_catalogs
     from ..oge import OgeCatalogError
     sources = _Sources(repo, _git_read if read_object is git_object else read_object,
                        preflight_git=read_object is git_object)
     try:
         pinned, people = _fixed_board(sources, repo, main_commit)
-        catalog, _ = load_fixed_oge_catalog(sources, evidence_commit, review_commit)
+        catalog, catalog_history = load_fixed_oge_catalogs(sources, evidence_commit, review_commit)
         cache, result = {}, []
         for key in sorted(possible):
             prior, replacement = old[key], current[key]
@@ -281,7 +292,8 @@ def verified_oge_owner_corrections(*, old, current, repo, evidence_commit, revie
             if document not in cache:
                 if len(cache) >= MAX_DOCUMENTS:
                     raise InventoryError('Direct OGE correction document count exceeds budget')
-                cache[document] = _replay(sources, evidence_commit, review_commit, catalog, document, url)
+                cache[document] = _replay(sources, evidence_commit, review_commit,
+                                         catalog, catalog_history, document, url)
             _prove(*cache[document], prior, replacement, person)
             result.append({'entity': 'transactions', 'kind': 'corrected', 'old_id': key, 'new_id': key,
                 'reason': 'source_identity_correction', 'evidence_url': url,

@@ -294,6 +294,132 @@ class OgeCatalogSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'path inventory exceeds budget'):
             loader._git_paths(self.root, commit, folder.relative_to(self.root).as_posix())
 
+    def add_discovery(self, catalog=None, metadata=None):
+        catalog = self.catalog if catalog is None else catalog
+        metadata = self.meta if metadata is None else metadata
+        path = f'oge/discoveries/{metadata["sha256"]}.json'
+        self.objects[(REVIEW, path)] = encoded({**catalog, 'metadata': metadata})
+        return path
+
+    def catalogs(self):
+        return loader.load_fixed_oge_catalogs(self.sources(), EVIDENCE, REVIEW, list_paths=self.paths)
+
+    def test_full_verified_history_retains_removed_document_without_falsifying_current_counts(self):
+        old_catalog, old_meta = deepcopy(self.catalog), deepcopy(self.meta)
+        old_record = old_catalog['transactions'][0]
+        self.add_discovery(old_catalog, old_meta)
+        self.archive([row()])  # Actual new raw catalog has no direct document.
+        self.add_discovery()  # Normal workflow also saves the current discovery.
+        current, history = self.catalogs()
+        self.assertEqual(current, self.catalog)
+        self.assertEqual(current['records_total'], 1)
+        self.assertFalse(any(r['access_method'] == 'direct_pdf' for r in current['transactions']))
+        self.assertEqual(history, [{**old_catalog, 'metadata': old_meta}])
+        record, meta, _ = loader.load_fixed_oge_direct_source(self.sources(), EVIDENCE,
+            catalog=current, catalog_history=history, document_id=old_record['source_document_id'],
+            source_url=old_record['document_url'], list_paths=self.paths)
+        self.assertEqual(record, old_record)
+        self.assertEqual(meta, self.report)
+        self.assertEqual(self.catalogs(), (current, history))
+
+    def test_history_wrapper_filename_metadata_and_entire_body_must_match_original(self):
+        path = self.add_discovery()
+        original = deepcopy(self.objects)
+        for kind in ('no_metadata', 'filename', 'metadata', 'body', 'extra', 'typed_count'):
+            with self.subTest(kind=kind):
+                self.objects = deepcopy(original)
+                wrapper = json.loads(self.objects[(REVIEW, path)])
+                if kind == 'no_metadata': wrapper.pop('metadata')
+                elif kind == 'filename': wrapper['metadata']['sha256'] = 'e'*64
+                elif kind == 'metadata': wrapper['metadata']['retrieved_at'] = 'other observation'
+                elif kind == 'body': wrapper['transactions'][0]['filer_name'] = 'Forged, Person'
+                elif kind == 'extra': wrapper['passed'] = True
+                else: wrapper['catalog_rows_covered'] = float(wrapper['catalog_rows_covered'])
+                self.objects[(REVIEW, path)] = encoded(wrapper)
+                with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'discovery'):
+                    self.catalogs()
+
+    def test_complete_history_set_does_not_stop_after_a_valid_target_or_ignore_missing_evidence(self):
+        target_path = self.add_discovery()
+        bad_path = 'oge/discoveries/'+'f'*64+'.json'
+        self.objects[(REVIEW, bad_path)] = encoded({'metadata': {'sha256': 'f'*64}})
+        self.calls.clear()
+        with self.assertRaises(KeyError):
+            self.catalogs()
+        self.assertIn((REVIEW, target_path), self.calls)
+        self.assertIn((REVIEW, bad_path), self.calls)
+        self.assertIn((EVIDENCE, 'oge/catalog/'+'f'*64+'.json'), self.calls)
+        del self.objects[(REVIEW, bad_path)]
+        # A historical discovery declares a source dependency; normalized JSON
+        # on its own cannot replace a missing original page.
+        del self.objects[(EVIDENCE, self.meta['pages'][1]['archive_path'])]
+        with self.assertRaises(KeyError):
+            self.catalogs()
+
+    def test_history_path_inventory_is_complete_validated_and_bounded_before_wrapper_reads(self):
+        self.add_discovery()
+        name = self.meta['sha256']+'.json'
+        for names in ([name, name], [name.upper()], ['./'+name], ['nested/'+name],
+                      ['..\\'+name], [name]*129):
+            with self.subTest(names=names[:2]):
+                self.calls.clear()
+                with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'discovery path inventory'):
+                    loader.load_fixed_oge_catalogs(self.sources(), EVIDENCE, REVIEW,
+                                                  list_paths=lambda *args: names)
+                self.assertFalse(any('/discoveries/' in path for _, path in self.calls))
+        with patch.object(loader, 'MAX_CATALOG_HISTORY', 0):
+            with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'discovery path inventory'):
+                self.catalogs()
+
+    def test_all_history_identity_conflicts_reject_and_exact_duplicates_use_normal_collapse(self):
+        current_sha = self.meta['sha256']
+        self.archive([row(DIRECT)])
+        historical_path = self.add_discovery()
+        self.objects[(REVIEW, 'status/oge.json')] = encoded({'catalog_sha256': current_sha})
+        current, history = self.catalogs()
+        self.assertEqual(len(current['transactions']), 2)
+        self.assertEqual(len(history), 1)
+        with patch.object(loader, 'MAX_DIRECT_OCCURRENCES', 1):
+            with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'direct occurrences exceed budget'):
+                self.catalogs()
+        changed = row(DIRECT); changed['agency'] = 'Conflicting Agency'
+        self.archive([changed]); self.add_discovery()
+        self.objects[(REVIEW, 'status/oge.json')] = encoded({'catalog_sha256': current_sha})
+        self.assertIn((REVIEW, historical_path), self.objects)
+        with self.assertRaisesRegex(loader.OgeCatalogSourceError, 'catalog identity is invalid'):
+            self.catalogs()
+
+    def test_actual_fixed_Git_missing_history_is_empty_and_declared_history_is_replayed(self):
+        old_catalog, old_meta = deepcopy(self.catalog), deepcopy(self.meta)
+        old_record = old_catalog['transactions'][0]
+        for args in (('init', '-q'), ('config', 'user.name', 'History Contract'),
+                     ('config', 'user.email', 'history@example.invalid')):
+            subprocess.run(['git', '-C', str(self.root), *args], check=True, capture_output=True)
+        def commit():
+            for (ref, path), raw in self.objects.items():
+                if ref == REVIEW:
+                    target = self.root/path; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(raw)
+            subprocess.run(['git', '-C', str(self.root), 'add', '.'], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(self.root), 'commit', '-qm', 'fixed historical catalog'],
+                           check=True, capture_output=True)
+            return subprocess.check_output(['git', '-C', str(self.root), 'rev-parse', 'HEAD'], text=True).strip()
+        first = commit()
+        sources = _Sources(self.root, git_object)
+        self.assertEqual(loader.load_fixed_oge_catalogs(sources, first, first), (old_catalog, []))
+        self.add_discovery(old_catalog, old_meta)
+        self.archive([row()]); self.add_discovery()
+        second = commit()
+        sources = _Sources(self.root, git_object)
+        current, history = loader.load_fixed_oge_catalogs(sources, second, second)
+        self.assertEqual(current, self.catalog)
+        self.assertEqual(history, [{**old_catalog, 'metadata': old_meta}])
+        record, metadata, raw = loader.load_fixed_oge_direct_source(sources, second,
+            catalog=current, catalog_history=history, document_id=old_record['source_document_id'],
+            source_url=old_record['document_url'])
+        self.assertEqual((record, metadata), (old_record, self.report))
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), metadata['sha256'])
+        self.assertEqual(subprocess.check_output(['git', '-C', str(self.root), 'status', '--porcelain']), b'')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -13,12 +13,14 @@ import subprocess
 
 from .migration_inventory import InventoryError
 from ..oge import (API_URL, MAX_CATALOG_ROWS, MAX_RESPONSE_BYTES, OgeCatalogError,
-                   parse_catalog_page, build_catalog)
+                   SCHEMA as CATALOG_SCHEMA, parse_catalog_page, build_catalog)
 from ..oge_reports import (MAX_PDF_BYTES, REPORT_ARCHIVE_SCHEMA, _validate_pdf,
                            collapse_direct_catalog_records)
 
 MAX_JSON_BYTES = 16 * 1024 * 1024
 MAX_SOURCE_PATHS = 128
+MAX_CATALOG_HISTORY = 128
+MAX_DIRECT_OCCURRENCES = 100_000
 MAX_PATH_BYTES = 64 * 1024
 _SHA = re.compile(r'[a-f0-9]{64}')
 _REF = re.compile(r'[a-f0-9]{40}')
@@ -84,6 +86,10 @@ def load_fixed_oge_catalog(sources, evidence_commit, review_commit):
     digest = status.get('catalog_sha256')
     _need(isinstance(digest, str) and _SHA.fullmatch(digest) is not None,
           'OGE review catalog selection is unavailable')
+    return _load_catalog_archive(sources, evidence_commit, digest)
+
+
+def _load_catalog_archive(sources, evidence_commit, digest):
     archive = _object(sources, evidence_commit, f'oge/catalog/{digest}.json')
     _need(archive.get('schema_version') == 'oge-catalog-archive/v1'
           and archive.get('source_id') == 'oge' and archive.get('source_url') == API_URL
@@ -137,7 +143,10 @@ def load_fixed_oge_catalog(sources, evidence_commit, review_commit):
 
 
 def _git_paths(repo, ref, directory):
-    process = subprocess.Popen(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', f'{ref}:{directory}'],
+    # A missing optional history directory is an empty set, just as the normal
+    # CLI's glob. Missing commits/trees still fail; no latest ref is consulted.
+    prefix = directory + '/'
+    process = subprocess.Popen(['git', '-C', str(repo), 'ls-tree', '-r', '--name-only', ref, '--', prefix],
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=dict(os.environ, GIT_NO_LAZY_FETCH='1'))
     try:
         chunks, length, names = [], 0, 0
@@ -151,29 +160,85 @@ def _git_paths(repo, ref, directory):
             _need(names <= MAX_SOURCE_PATHS, 'OGE direct source path inventory exceeds budget')
             chunks.append(chunk)
         _need(process.wait() == 0, 'OGE fixed direct source directory is unavailable')
-        return b''.join(chunks).decode('utf-8').splitlines()
+        paths = b''.join(chunks).decode('utf-8').splitlines()
+        _need(all(path.startswith(prefix) for path in paths), 'OGE fixed directory paths escape selection')
+        return [path[len(prefix):] for path in paths]
     finally:
         if process.poll() is None:
             process.kill(); process.wait()
         process.stdout.close()
 
 
+def _combined_direct_records(catalog, catalog_history):
+    _need(isinstance(catalog_history, list) and len(catalog_history) <= MAX_CATALOG_HISTORY,
+          'OGE catalog history inventory exceeds budget or is invalid')
+    direct = []
+    for selected in [catalog, *catalog_history]:
+        _need(isinstance(selected, dict) and selected.get('schema_version') == CATALOG_SCHEMA
+              and isinstance(selected.get('transactions'), list)
+              and len(selected['transactions']) <= MAX_CATALOG_ROWS, 'OGE catalog history input is invalid')
+        for row in selected['transactions']:
+            if isinstance(row, dict) and row.get('access_method') == 'direct_pdf':
+                _need(len(direct) < MAX_DIRECT_OCCURRENCES,
+                      'OGE combined catalog direct occurrences exceed budget')
+                direct.append(row)
+    try:
+        return collapse_direct_catalog_records(direct)[0]
+    except OgeCatalogError as error:
+        raise OgeCatalogSourceError('OGE direct catalog identity is invalid') from error
+
+
+def load_fixed_oge_catalogs(sources, evidence_commit, review_commit, *, list_paths=None):
+    """Return (current catalog, complete verified normal-CLI history list).
+
+    Every fixed ``oge/discoveries/<normalizedSHA>.json`` is inventoried before
+    history is read. Its whole workflow wrapper and metadata must reproduce the
+    corresponding original-page archive. We do not stop on a target document or
+    discard inconvenient versions. Absent history retains the old empty-set
+    behavior; missing evidence for a declared history member is an error.
+    """
+    current, current_archive = load_fixed_oge_catalog(sources, evidence_commit, review_commit)
+    names = (list_paths or _git_paths)(sources.repo, review_commit, 'oge/discoveries')
+    _need(isinstance(names, list) and len(names) <= MAX_CATALOG_HISTORY
+          and sum(len(name) for name in names if isinstance(name, str)) <= MAX_PATH_BYTES
+          and all(isinstance(name, str) and re.fullmatch(r'[a-f0-9]{64}\.json', name) for name in names)
+          and len(set(names)) == len(names), 'OGE fixed discovery path inventory is invalid or exceeds budget')
+    history, direct_count = [], sum(row['access_method'] == 'direct_pdf' for row in current['transactions'])
+    for name in sorted(names):
+        wrapper = _object(sources, review_commit, 'oge/discoveries/' + name)
+        digest = name[:-5]
+        _need(isinstance(wrapper.get('metadata'), dict) and wrapper['metadata'].get('sha256') == digest,
+              'OGE discovery filename differs from its catalog metadata')
+        if digest == current_archive['sha256']:
+            catalog, archive = current, current_archive
+        else:
+            catalog, archive = _load_catalog_archive(sources, evidence_commit, digest)
+        expected = {**catalog, 'metadata': archive}
+        canonical = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                             separators=(',', ':'), allow_nan=False)
+        _need(canonical(wrapper) == canonical(expected),
+              'OGE historical discovery differs from complete original-page replay')
+        if digest != current_archive['sha256']:
+            direct_count += sum(row['access_method'] == 'direct_pdf' for row in catalog['transactions'])
+            _need(direct_count <= MAX_DIRECT_OCCURRENCES, 'OGE combined catalog direct occurrences exceed budget')
+            history.append(wrapper)
+    _combined_direct_records(current, history)
+    return current, history
+
+
 def load_fixed_oge_direct_source(sources, evidence_commit, *, catalog, document_id,
-                                 source_url, source_sha256=None, list_paths=None):
+                                 source_url, source_sha256=None, list_paths=None, catalog_history=None):
     """Return (record, metadata, PDF bytes) for one unambiguous fixed source.
 
-    The catalog must come from ``load_fixed_oge_catalog``. The caller's SHA is
+    Catalogs must come from ``load_fixed_oge_catalog`` or ``load_fixed_oge_catalogs``.
+    Historical records use the normal whole-union collapse contract. The caller's SHA is
     a cross-check, never permission to choose among multiple evidence versions.
     Financial/owner proof and exact parser selection belong to the consumer.
     """
     _fixed(evidence_commit)
     _need(isinstance(document_id, str) and _DOCUMENT.fullmatch(document_id) is not None,
           'OGE direct document ID is invalid')
-    try:
-        records, _ = collapse_direct_catalog_records([row for row in catalog['transactions']
-                                                     if row.get('access_method') == 'direct_pdf'])
-    except (OgeCatalogError, KeyError, TypeError, AttributeError) as error:
-        raise OgeCatalogSourceError('OGE direct catalog identity is invalid') from error
+    records = _combined_direct_records(catalog, [] if catalog_history is None else catalog_history)
     selected = [row for row in records if row['source_document_id'] == document_id and row['document_url'] == source_url]
     _need(len(selected) == 1, 'OGE selected direct record is missing or conflicting')
     directory = f'oge/reports/{document_id}'
