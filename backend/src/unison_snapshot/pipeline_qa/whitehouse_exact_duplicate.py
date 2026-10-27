@@ -9,9 +9,11 @@ from .house_revision_supersession import _git_read
 from ..whitehouse_native_correction import NativeCorrectionError, _Sources
 
 
-def _semantic(fact):
+def _comparison_fields(fact):
+    """Find possible peers; source replay must still verify every full field."""
     from ..oge_native_owner_scope import NULLABLE
-    return {key:value for key,value in fact.items() if key not in {'id','filing_id','source_url'}
+    return {key:value for key,value in fact.items() if key not in {
+            'id','filing_id','source_url','owner','asset_name','instrument_type'}
             and not (key in NULLABLE and value is None)}
 
 
@@ -26,7 +28,7 @@ def verified_exact_source_duplicates(*, old, current, repo, evidence_commit, rev
         peers = [fact for identifier,fact in current.items() if identifier in old and
             old[identifier] == fact and fact.get('source_id') == 'oge' and
             re.fullmatch(r'[0-9a-f]{32}',str(fact.get('filing_id'))) and
-            _semantic(fact) == _semantic(duplicate)]
+            _comparison_fields(fact) == _comparison_fields(duplicate)]
         # Source row/ID replay below selects the peer. Equal amounts, dates
         # and assets are not a unique identity and may legitimately repeat.
         possible.extend((duplicate,peer) for peer in peers)
@@ -92,7 +94,9 @@ def verified_exact_source_duplicates(*, old, current, repo, evidence_commit, rev
                 continue
             results.append({'entity':'transactions','kind':'duplicate','old_id':duplicate['id'],
                 'new_id':canonical['id'],'reason':'duplicate_resolution',
-                'evidence_url':canonical['source_url'],'source_sha256':proof['record']['source_sha256']})
+                'evidence_url':canonical['source_url'],'source_sha256':proof['record']['source_sha256'],
+                **({'source_correction_fields':proof['record']['source_correction_fields']}
+                   if proof['record'].get('source_correction_fields') else {})})
         return results
     except (NativeCorrectionError,OSError,ValueError,KeyError,TypeError,AttributeError) as error:
         raise InventoryError(f'Exact-source duplicate verification failed: {error}') from error

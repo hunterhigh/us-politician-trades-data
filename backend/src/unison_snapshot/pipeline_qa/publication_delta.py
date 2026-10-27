@@ -101,6 +101,8 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
     return {"entity": entity, "kind": kind, "old_id": old_id, "new_id": new_id,
             "reason": item["reason"], "evidence_url": url,
             "source_sha256": item["source_sha256"],
+            **({'source_correction_fields':verified_duplicates[old_id]['source_correction_fields']}
+               if kind == 'duplicate' and verified_duplicates[old_id].get('source_correction_fields') else {}),
             **({"changed_fields": item["changed_fields"]} if kind in {"corrected", "superseded"} else {})}
 
 

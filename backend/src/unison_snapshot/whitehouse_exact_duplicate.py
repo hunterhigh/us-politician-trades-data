@@ -1,7 +1,9 @@
 """Original-source proof for one existing WH/direct native duplicate mechanism.
 
 This conserves an already published direct object and its person. It cannot
-qualify a new direct fact/person, correct fields, or authorize general rekeys.
+qualify a new direct fact/person, change the canonical fields, or authorize
+general rekeys. Existing owner, Endnote and account-display source proofs may
+explain the WH predecessor before its redundant object is removed.
 Only ordinary direct v7's fresh Undisclosed ID and native WH v5's inherited
 Self ID with the existing owner normalization are supported. Unsupported
 complete projections remain pending; saved receipts never grant this proof.
@@ -18,10 +20,11 @@ from urllib.parse import urlsplit
 
 from .whitehouse_native_correction import (
     MAX_DOCUMENTS, NativeCorrectionError, _RootSources,
-    _replay, prove_native_row,
+    _replay, prove_native_row, prove_native_account_display, _historical_projection,
 )
 
-POLICY_VERSION = 'whitehouse-exact-duplicate/v1'
+LEGACY_POLICY_VERSION = 'whitehouse-exact-duplicate/v1'
+POLICY_VERSION = 'whitehouse-exact-duplicate/v2'
 MAX_SOURCE_ROWS = 4096
 PERSON_FIELDS = ('id', 'display_name', 'role', 'office_type', 'chamber',
                  'party', 'state', 'disclosure_authority')
@@ -118,16 +121,26 @@ class ExactDuplicateSources:
         self._contexts = {}
         self._pending = set()
         self._base = None
+        self._policy_version = POLICY_VERSION
 
     @property
     def pending_ids(self):
         return set(self._pending)
 
+    @property
+    def resolved_ids(self):
+        return {entry['duplicate_fact']['id'] for context in self._contexts.values()
+                for entry in context['rows']}
+
+    @property
+    def has_resolutions(self):
+        return bool(self.resolved_ids)
+
     def provenance(self):
         dependencies = [] if self._sources is None else sorted(
             (role, path, hashlib.sha256(raw).hexdigest())
             for (role, path), raw in self._sources.cache.items())
-        return {'exact_duplicate_policy_version': POLICY_VERSION,
+        return {'exact_duplicate_policy_version': self._policy_version,
                 'exact_duplicate_dependency_sha256': _digest(dependencies)}
 
     def resolve(self, report, row, *, canonical_fact, duplicate_fact):
@@ -148,7 +161,56 @@ class ExactDuplicateSources:
                     'page_number': row['page_number'], 'row_number': row['row_number'],
                     'old_fact_sha256': _digest(duplicate_fact),
                     'canonical_fact_sha256': _digest(canonical_fact),
-                    'source_proof_rule': POLICY_VERSION}}
+                    'source_proof_rule': self._policy_version,
+                    **({'source_correction_fields': list(proof['source_correction_fields'])}
+                       if proof['source_correction_fields'] else {})}}
+
+
+def _source_states(sources, evidence, review, report, conventional, coverage, directory,
+                   row, person, people, classification_sources, policy_version):
+    """Derive H/Howner/F only from already replayed original source fields.
+
+    Existing helpers retain their strict predecessor contract: their supplied
+    H is reconstructed from source, never edited out of the proposed old fact.
+    The actual old WH object is compared with the resulting states afterwards.
+    """
+    from .whitehouse_native_correction import (
+        NativeClassificationSources, native_classification_target,
+        reconcile_native_classification,
+    )
+    raw = [item for item in conventional if item.get('extraction_id') == row['extraction_id']]
+    if len(raw) != 1:
+        return None
+    source_historical = _historical_projection(report, raw[0], person)
+    account = row.get('account_title')
+    endnote = native_classification_target(report, row)
+    if policy_version == LEGACY_POLICY_VERSION and (
+            account or endnote or re.search(r'\bEndnote\b', str(row.get('asset_name')), re.I)):
+        return None
+    if account:
+        # Those are two independently supported mechanisms, not an approved
+        # arbitrary combination of classifier and account display changes.
+        if endnote or re.search(r'\bEndnote\b', str(row.get('asset_name')), re.I):
+            return None
+        return prove_native_account_display(report, conventional, coverage, directory,
+            row['extraction_id'], people, source_historical)
+    historical, normalized, checked = prove_native_row(report, conventional, coverage,
+        directory, row['extraction_id'], people, source_historical)
+    if checked != row:
+        return None
+    if endnote:
+        if classification_sources[0] is None:
+            classification_sources[0] = NativeClassificationSources(
+                sources, evidence_ref=evidence, review_ref=review)
+            classification_sources[0]._load(report['document_id'], report['source_url'])
+        projected = reconcile_native_classification(report, row, historical,
+            person_id=person, source_people=people, sources=classification_sources[0])
+        if projected is None:
+            return None
+        return historical, normalized, projected['fact']
+    if historical['instrument_type'] != 'Stock' or normalized['instrument_type'] != 'Stock':
+        return None
+    return historical, normalized, normalized
 
 
 def _prepare_context(context, sources, evidence, review, report, binding, base):
@@ -180,8 +242,8 @@ def _prepare_context(context, sources, evidence, review, report, binding, base):
     _need(wh_legacy.get('transactions') == old_good and wh_legacy.get('quarantined') == old_bad,
           'WH legacy financial inventory differs from original raw cells')
     legacy, direct, metadata = _direct_replay(sources, evidence, review, binding, replay)
-    # This first policy does not interpret amendments, accounts, open amounts,
-    # or classifier migrations. It cannot grant a new direct source identity.
+    # This policy does not interpret amendments or open amounts, and cannot
+    # grant a new direct source identity.
     if metadata.get('amended_label') or metadata.get('pending_final_oge_disposition'):
         return
     key = _identity_key(metadata)
@@ -198,6 +260,7 @@ def _prepare_context(context, sources, evidence, review, report, binding, base):
     if not matching_identities:
         return
     rows = []
+    classification_sources = [None]  # One bounded accessor per actual report.
     for wh_row in replay['transactions']:
         locator = wh_row.get('source_rows_index')
         if type(locator) is not int or not 0 <= locator < len(replay['source_rows']):
@@ -218,9 +281,8 @@ def _prepare_context(context, sources, evidence, review, report, binding, base):
         if (direct_row not in direct['transactions'] or raw_row not in legacy['transactions'] or
                 wh_row.get('reasons') or direct_row.get('reasons') or raw_row.get('reasons') or
                 wh_row.get('owner') != 'Undisclosed' or direct_row.get('owner') != 'Undisclosed' or
-                raw_row.get('owner') != 'Self' or any(item.get('account_title') or
-                    item.get('amount_low_exclusive') for item in (wh_row, direct_row, raw_row)) or
-                re.search(r'\bEndnote\b', str(wh_row.get('asset_name')), re.I) or
+                raw_row.get('owner') != 'Self' or
+                any(item.get('amount_low_exclusive') for item in (wh_row, direct_row, raw_row)) or
                 # Conventional v2 proves original cells and the historical
                 # Self ID only. Its old whole-text signature reader need not
                 # resolve the cover date: the complete formal dates below
@@ -238,30 +300,35 @@ def _prepare_context(context, sources, evidence, review, report, binding, base):
         if len(canonical) != 1 or len(duplicates) != 1:
             continue
         try:
-            historical, normalized, checked_row = prove_native_row(replay, conventional,
-                coverage, directory, wh_row['extraction_id'], base['people'], duplicates[0])
+            states = _source_states(sources, evidence, review, replay, conventional,
+                coverage, directory, wh_row, person['id'], base['people'], classification_sources,
+                context._policy_version)
         except NativeCorrectionError:
             # Valid sources may be outside the supported identity/row contract.
             # No partial old/current field comparison authorizes deletion.
             continue
+        if states is None:
+            continue
+        historical, normalized, final = states
         expected_direct = _transaction_projection(direct, direct_row, person['id'])
-        if (checked_row != wh_row or historical['instrument_type'] != 'Stock' or
-                normalized['instrument_type'] != 'Stock' or expected_direct['instrument_type'] != 'Stock' or
-                normalized['id'] == expected_direct['id'] or
-                {key: value for key, value in normalized.items() if key not in _IDENTITY_FIELDS} !=
+        if (final['id'] == expected_direct['id'] or
+                {key: value for key, value in final.items() if key not in _IDENTITY_FIELDS} !=
                 {key: value for key, value in expected_direct.items() if key not in _IDENTITY_FIELDS} or
                 _represented(expected_direct, canonical[0]) != canonical[0]):
             continue
-        if _represented(normalized, duplicates[0]) == duplicates[0]:
+        allowed = (normalized,) if context._policy_version == LEGACY_POLICY_VERSION else states
+        if any(_represented(projection, duplicates[0]) == duplicates[0] for projection in allowed):
+            changed = sorted(key for key in final.keys() | duplicates[0].keys()
+                if key not in _IDENTITY_FIELDS and final.get(key) != duplicates[0].get(key))
             rows.append({'row': deepcopy(wh_row), 'canonical_fact': deepcopy(canonical[0]),
-                         'duplicate_fact': deepcopy(duplicates[0])})
+                         'duplicate_fact': deepcopy(duplicates[0]), 'source_correction_fields': changed})
             context._pending.discard(duplicates[0]['id'])
     context._contexts[document] = {'report': deepcopy(replay), 'rows': rows}
 
 
 def prepare_whitehouse_exact_duplicate_sources(base, extractions, source_bindings, *,
         evidence_root=None, review_root=None, coverage_input=None, extraction_status_input=None,
-        _sources=None, evidence_ref='evidence', review_ref='review'):
+        _sources=None, evidence_ref='evidence', review_ref='review', policy_version=POLICY_VERSION):
     """Prepare bounded originals before normal candidate cache fast returns.
 
     The private source-reader injection is also used by fixed-Git publication;
@@ -269,6 +336,8 @@ def prepare_whitehouse_exact_duplicate_sources(base, extractions, source_binding
     Publication must first independently pin both full old objects and people.
     """
     context = ExactDuplicateSources()
+    _need(policy_version in {LEGACY_POLICY_VERSION, POLICY_VERSION}, 'policy version is unsupported')
+    context._policy_version = policy_version
     _need(isinstance(base, dict) and base.get('meta', {}).get('is_demo') is False and
           isinstance(base.get('transactions'), list) and isinstance(base.get('people'), list),
           'needs actual non-demo formal objects and people')

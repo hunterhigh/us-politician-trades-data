@@ -429,7 +429,10 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
                     extractions, bindings, evidence_root=evidence_root, review_root=review_root,
                     coverage_input=coverage_input, extraction_status_input=extraction_status_input)
                 provenance.update(duplicate_sources.provenance())
-            if prior.get("review_input_sha256")==provenance and current_classification(base):
+            pending_duplicates = (exact_source_copies and bool(duplicate_sources.resolved_ids &
+                {row['id'] for row in base['transactions']}))
+            if (prior.get("review_input_sha256")==provenance and current_classification(base)
+                    and not pending_duplicates):
                 return {"idempotent":True,"report_count":prior["report_count"],
                     "promoted_transaction_count":prior["promoted_transaction_count"],
                     "quarantined_row_count":prior["quarantined_row_count"],
@@ -453,7 +456,7 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
         prior, _ = _read_object(audit_out)
         if (prior.get("schema_version") == EXACT_COPY_SCHEMA and
                 prior.get("candidate_sha256") == base_sha and prior.get("review_input_sha256") == provenance
-                and current_classification(base)):
+                and current_classification(base) and not duplicate_sources.has_resolutions):
             normalize(base, allow_production=True, allow_market=bool(base.get("security_market_data")))
             return {"idempotent": True, "audit_schema": EXACT_COPY_SCHEMA,
                     "report_count": prior["report_count"],
@@ -516,6 +519,9 @@ def _run(*, oge_candidate: Path, review_root: Path, candidate_out: Path,
             "source_bindings":bindings}
         from unison_snapshot.whitehouse_native_correction import POLICY_VERSION
         wh_inputs['native_classification_policy_version'] = POLICY_VERSION
+        if exact_source_copies:
+            from unison_snapshot.whitehouse_exact_duplicate import POLICY_VERSION as DUPLICATE_POLICY
+            wh_inputs['exact_duplicate_policy_version'] = DUPLICATE_POLICY
         selection = {}
         for name, path in (('coverage_input', coverage_input), ('extraction_status_input', extraction_status_input)):
             if path is not None:

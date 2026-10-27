@@ -156,9 +156,9 @@ class WhiteHouseExactDuplicateConsumptionTests(unittest.TestCase):
             'old_id': duplicate['id'], 'new_id': canonical['id'],
             'reason': 'duplicate_resolution', 'evidence_url': canonical['source_url'],
             'source_sha256': self.data['source_sha256'],
-        }], scopes, check_native=True)
+        }], scopes, check_empty_selection=True)
 
-    def assert_publication_cycle(self, candidate, expected_proofs, scopes, *, check_native=False):
+    def assert_publication_cycle(self, candidate, expected_proofs, scopes, *, check_empty_selection=False):
         expected = candidate['transactions']
         before = {path: path.read_bytes() for path in (
             self.evidence / self.data['oge_archive']['archive_path'],
@@ -216,14 +216,14 @@ class WhiteHouseExactDuplicateConsumptionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(repeated, (self.candidate.read_bytes(), self.audit.read_bytes()))
         self.assertTrue(all(path.read_bytes() == raw for path, raw in before.items()))
-        if check_native:
-            # A valid empty saved selection enters the real native-context path
-            # without adding facts. Its early return must bind the same exact-copy
-            # policy and dependencies as the ordinary exact-source branch.
+        if check_empty_selection:
+            # An explicit empty selection uses the ordinary exact-source cache;
+            # the native replacement consumer returns no application/context.
             exhibits = self.root / 'empty-exhibits.json'
             save(exhibits, {})
             result = self.normal(next_base=True, exhibits=exhibits)
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIsNone(json.loads(self.audit.read_bytes()).get('native_cross_source_applications'))
             native_pair = self.candidate.read_bytes(), self.audit.read_bytes()
             result = self.normal(next_base=True, exhibits=exhibits)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -321,6 +321,72 @@ class WhiteHouseExactDuplicateConsumptionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         proof, = json.loads((self.root / 'delta.json').read_bytes())['changes']
         self.assertEqual((proof['kind'], proof['new_id']), ('duplicate', canonical['id']))
+
+    def test_existing_endnote_and_account_states_use_one_duplicate_event_without_intermediate_publication(self):
+        outer = self.root
+        for profile in ('endnote', 'account'):
+            for historical in (False, True):
+                with self.subTest(profile=profile, historical_wh=historical):
+                    name = f'{profile}-{"historical" if historical else "final"}'
+                    data = make_exact_duplicate_inputs(outer / f'source-{name}',
+                        profile=profile, historical_wh=historical)
+                    self.root = outer / f'consumer-{name}'
+                    self.install_fixture(data)
+                    canonical, duplicate = data['canonical_fact'], data['duplicate_fact']
+                    source_board = json.loads((data['root'] / (
+                        'legacy-base.json' if historical else 'whitehouse-corrected.json')).read_bytes())
+                    actual_prior = next(row for row in source_board['transactions']
+                                        if row['id'] == duplicate['id'])
+                    self.assertEqual(duplicate, actual_prior)
+                    self.assertEqual(len(self.previous['transactions']), 2)
+                    self.assertNotEqual(canonical['id'], duplicate['id'])
+                    result = self.normal()
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    candidate = json.loads(self.candidate.read_bytes())
+                    self.assertEqual(candidate['transactions'], [canonical])
+                    self.assertEqual(candidate['people'], self.previous['people'])
+                    audit = json.loads(self.audit.read_bytes())
+                    self.assertEqual(audit['review_input_sha256']['exact_duplicate_policy_version'],
+                                     'whitehouse-exact-duplicate/v2')
+                    record, = audit['removed_duplicate_formal_rows']
+                    fields = data['pairs'][0]['source_correction_fields']
+                    expected_fields = ([] if not historical else
+                        ['instrument_type', 'owner'] if profile == 'endnote' else ['asset_name', 'owner'])
+                    self.assertEqual(fields, expected_fields)
+                    if fields:
+                        self.assertEqual(record['source_correction_fields'], fields)
+                    else:
+                        self.assertNotIn('source_correction_fields', record)
+                    scopes = build_oge_status(self.evidence, self.review, candidate['transactions'], [])
+                    records = [row for scope in scopes for row in scope['reports']]
+                    direct = next(row for row in records
+                                  if row['report_id'] == data['oge_archive']['document_id'])
+                    self.assertEqual(direct['publication_transaction_ids'], [canonical['id']])
+                    self.assertEqual(direct['qualified_transaction_count'], 1)
+                    self.assertNotIn(duplicate['id'], [row_id for row in records
+                        for row_id in row['publication_transaction_ids']])
+                    proof = {'entity': 'transactions', 'kind': 'duplicate',
+                        'old_id': duplicate['id'], 'new_id': canonical['id'],
+                        'reason': 'duplicate_resolution', 'evidence_url': canonical['source_url'],
+                        'source_sha256': data['source_sha256']}
+                    if fields:
+                        proof['source_correction_fields'] = fields
+                    self.assert_publication_cycle(candidate, [proof], scopes)
+
+    def test_composed_source_policy_does_not_accept_other_complete_fact_changes(self):
+        data = make_exact_duplicate_inputs(self.root / 'composed-negative-source',
+            profile='endnote', historical_wh=True)
+        self.root = self.root / 'composed-negative-consumer'
+        self.install_fixture(data)
+        for field, value in (('amount_low', 1002), ('ticker', 'FORGE'),
+                             ('transaction_date', '2026-06-02'), ('unknown_extra', None)):
+            with self.subTest(field=field):
+                original = deepcopy(self.previous)
+                duplicate = next(row for row in original['transactions']
+                                 if row['id'] == data['duplicate_fact']['id'])
+                duplicate[field] = value
+                save(self.base, original)
+                self.assert_preserved_or_refused(original)
 
     def test_additional_full_fact_instrument_or_amount_difference_is_not_a_duplicate(self):
         for field, value in (('instrument_type', 'Bond'), ('amount_low', 1002)):

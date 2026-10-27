@@ -14,7 +14,8 @@ import unittest
 from unittest.mock import patch
 
 from unison_snapshot.whitehouse_exact_duplicate import (
-    ExactDuplicateSources, POLICY_VERSION, prepare_whitehouse_exact_duplicate_sources,
+    ExactDuplicateSources, LEGACY_POLICY_VERSION, POLICY_VERSION,
+    prepare_whitehouse_exact_duplicate_sources,
 )
 from unison_snapshot.whitehouse_native_correction import NativeCorrectionError, _Sources
 from whitehouse_exact_duplicate_fixture import make_exact_duplicate_inputs
@@ -78,6 +79,11 @@ class WhiteHouseExactDuplicateSourceTests(unittest.TestCase):
         self.assertEqual(proof['record']['source_proof_rule'], POLICY_VERSION)
         self.assertEqual(proof['record']['source_sha256'], hashlib.sha256(original).hexdigest())
         self.assertEqual(proof['record']['old_fact_sha256'], hashlib.sha256(encoded(data['duplicate_fact'])).hexdigest())
+        self.assertNotIn('source_correction_fields', proof['record'])
+        self.assertEqual(context.resolved_ids, {data['duplicate_fact']['id']})
+        self.assertTrue(context.has_resolutions)
+        exposed = context.resolved_ids; exposed.clear()
+        self.assertEqual(context.resolved_ids, {data['duplicate_fact']['id']})
         self.assertFalse(context.pending_ids)
         # A caller cannot transplant this runtime proof to an edited report,
         # another row, or a partially equal formal object.
@@ -95,6 +101,7 @@ class WhiteHouseExactDuplicateSourceTests(unittest.TestCase):
         self.assertIsNone(self.resolve(repeated))
         self.assertEqual(repeated.provenance(), context.provenance())
         self.assertFalse(repeated.pending_ids)
+        self.assertFalse(repeated.has_resolutions)
         self.assertEqual(before, encoded({key: data[key] for key in
                          ('base', 'extractions', 'source_bindings', 'canonical_fact', 'duplicate_fact')}))
         self.assertEqual(original, data['source'].read_bytes())
@@ -140,6 +147,87 @@ class WhiteHouseExactDuplicateSourceTests(unittest.TestCase):
         self.assertIsNone(self.resolve(context))
         self.assertIn(self.data['duplicate_fact']['id'], context.pending_ids)
         self.assertIsNone(self.resolve(ExactDuplicateSources()))
+
+    def test_plain_historical_and_legacy_policy_preserve_their_separate_scopes(self):
+        historical = json.loads((self.data['root'] / 'legacy-base.json').read_bytes())['transactions'][0]
+        data = deepcopy(self.data)
+        data['duplicate_fact'] = historical
+        data['base']['transactions'] = [deepcopy(data['canonical_fact']), deepcopy(historical)]
+        context = self.prepare(data)
+        proof = self.resolve(context, data)
+        self.assertIsNotNone(proof)
+        self.assertEqual(proof['record']['source_correction_fields'], ['owner'])
+        legacy = self.prepare(data, policy_version=LEGACY_POLICY_VERSION)
+        self.assertIsNone(self.resolve(legacy, data))
+        self.assertFalse(legacy.has_resolutions)
+        original = self.prepare(policy_version=LEGACY_POLICY_VERSION)
+        old_proof = self.resolve(original)
+        self.assertIsNotNone(old_proof)
+        self.assertEqual(old_proof['record']['source_proof_rule'], LEGACY_POLICY_VERSION)
+        self.assertNotIn('source_correction_fields', old_proof['record'])
+        self.assertNotEqual(original.provenance(), context.provenance())
+        with self.assertRaisesRegex(NativeCorrectionError, 'policy version'):
+            self.prepare(policy_version='self-signed-policy')
+
+    def test_existing_source_corrections_compose_with_preserving_the_actual_canonical(self):
+        # Each source is generated once with actual normal direct/WH producers;
+        # source-owned H comes from the real preliminary legacy-base object.
+        # Only this test's middle state applies the already approved owner-only
+        # rule to that complete source H; no financial field is copied from F.
+        for profile, field in [('endnote', 'instrument_type'), ('account', 'asset_name')]:
+            with self.subTest(profile=profile), tempfile.TemporaryDirectory(prefix='wh-exact-mature-') as temp:
+                source = make_exact_duplicate_inputs(Path(temp), profile=profile, historical_wh=True)
+                historical = source['historical_duplicate_facts'][0]
+                normalized = {**deepcopy(historical), 'owner': 'Undisclosed'}
+                final = source['final_duplicate_facts'][0]
+                inputs = [('historical', historical, sorted([field, 'owner'])),
+                          ('owner_normalized', normalized, [field]), ('final', final, [])]
+                original_source = source['source'].read_bytes()
+                for state, fact, correction_fields in inputs:
+                    data = deepcopy(source)
+                    data['duplicate_fact'] = deepcopy(fact)
+                    data['base']['transactions'] = [deepcopy(data['canonical_fact']), deepcopy(fact)]
+                    before = deepcopy(data['base'])
+                    with self.subTest(state=state):
+                        context = self.prepare(data)
+                        proof = self.resolve(context, data)
+                        self.assertIsNotNone(proof)
+                        self.assertEqual(proof['canonical_fact'], source['canonical_fact'])
+                        self.assertEqual(proof['duplicate_fact'], fact)
+                        self.assertEqual(proof['record'].get('source_correction_fields', []), correction_fields)
+                        self.assertEqual(context.resolved_ids, {fact['id']})
+                        self.assertEqual(data['base'], before)
+                        legacy = self.prepare(data, policy_version=LEGACY_POLICY_VERSION)
+                        self.assertIsNone(self.resolve(legacy, data))
+                        self.assertFalse(legacy.has_resolutions)
+                self.assertEqual(original_source, source['source'].read_bytes())
+
+    def test_source_states_do_not_authorize_extra_or_wrong_old_fields(self):
+        with tempfile.TemporaryDirectory(prefix='wh-exact-mature-old-') as temp:
+            source = make_exact_duplicate_inputs(Path(temp), profile='endnote', historical_wh=True)
+            for field, value in [('amount_low', 1002), ('transaction_date', '2026-06-02'),
+                                 ('instrument_type', 'ETF'), ('unknown_optional', None)]:
+                data = deepcopy(source)
+                data['duplicate_fact'][field] = value
+                data['base']['transactions'] = [deepcopy(data['canonical_fact']), deepcopy(data['duplicate_fact'])]
+                before = deepcopy(data['base'])
+                with self.subTest(field=field):
+                    context = self.prepare(data)
+                    self.assertIsNone(self.resolve(context, data))
+                    self.assertFalse(context.has_resolutions)
+                    self.assertIn(data['duplicate_fact']['id'], context.pending_ids)
+                    self.assertEqual(data['base'], before)
+            # Nullable omission survives both the prior-state source match and
+            # canonical conservation, including the record's semantic diff.
+            data = deepcopy(source)
+            for fact in (data['canonical_fact'], data['duplicate_fact']):
+                fact.pop('option_type')
+                fact.pop('strike_price')
+            data['base']['transactions'] = [deepcopy(data['canonical_fact']), deepcopy(data['duplicate_fact'])]
+            proof = self.resolve(self.prepare(data), data)
+            self.assertIsNotNone(proof)
+            self.assertEqual(proof['record']['source_correction_fields'], ['instrument_type', 'owner'])
+            self.assertEqual(proof['canonical_fact'], data['canonical_fact'])
 
     def test_source_cache_and_metadata_tampering_is_strict_not_pending(self):
         data = self.data

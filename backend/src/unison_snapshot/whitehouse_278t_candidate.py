@@ -129,16 +129,16 @@ def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
                            (row.get("ticker") is None or old.get("ticker") == row.get("ticker")) and
                            all(old.get(key) == proposed[key] for key in core)]
                 direct_matches = [old for old in matches if old["id"] in bound_old_ids]
-                if len(matches) > 1 and len(direct_matches) == 1:
+                if len(direct_matches) == 1:
                     keep = direct_matches[0]
                     # Equal financial values can belong to other disclosed
                     # rows. Only this row's actual WH ID can be removed, and
                     # its complete source replay must prove that exact pair.
-                    duplicate_ids = {old["id"] for old in matches
+                    duplicate_ids = {old["id"] for old in base['transactions']
                                      if old is not keep and old['id'] == row['extraction_id']}
                     proofs = [exact_duplicate_sources.resolve(report, row, canonical_fact=keep,
                                 duplicate_fact=old) if exact_duplicate_sources is not None else None
-                              for old in matches if old["id"] in duplicate_ids]
+                              for old in base['transactions'] if old["id"] in duplicate_ids]
                     if proofs and all(proof is not None for proof in proofs):
                         removed_duplicates.extend(proof['record'] for proof in proofs)
                         base["transactions"] = [old for old in base["transactions"] if old["id"] not in duplicate_ids]
