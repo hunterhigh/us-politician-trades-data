@@ -120,7 +120,12 @@ def _harmonize_projections(projections: list[dict], source_hashes: dict[str, str
     """Align date-precision disclosures to the last complete shared UTC day."""
     native_times = [timestamp(item["data_cutoff_at"]) for item in projections]
     if max(native_times) - min(native_times) > MAX_HARMONIZATION_LAG:
-        raise DisclosureCandidateError("Source candidate cutoffs are too stale to harmonize")
+        waterlines = ", ".join(
+            f"{item['source_id']}={item['data_cutoff_at']}"
+            for item in sorted(projections, key=lambda item: item['source_id']))
+        raise DisclosureCandidateError(
+            f"Source candidate cutoffs are too stale to harmonize "
+            f"(maximum lag {MAX_HARMONIZATION_LAG.days} days; {waterlines})")
     earliest = min(native_times).astimezone(timezone.utc)
     complete_day = earliest.date() - timedelta(days=1)
     cutoff_time = datetime.combine(complete_day, time(23, 59, 59), tzinfo=timezone.utc)
