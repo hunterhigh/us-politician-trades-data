@@ -50,9 +50,9 @@
       "record_id": "oge-278t:dee002ed6a980788267295a2"
     }
   ],
-  "asset_master_sha256": "3c83483a467c46132f0ef35b37be72ed2a0ac61411fa976f1971ce3bbb1f688e",
+  "asset_master_sha256": "8c93b6121dad08a1b3caf433476e00aba3317cab8d2c99c15cf8227464fc80ab",
   "candidate_before_sha256": "72ac887ea82647f89477a51a4c712238bb57ca5777ff5e158718d69c288b475c",
-  "checked_at": "2026-10-27T10:06:11Z",
+  "checked_at": "2026-10-27T21:01:59Z",
   "correction_count": 3,
   "correction_ids": [
     "oge-278t:6edb6800bfd420ed027f7f1c",
@@ -8527,17 +8527,8 @@
   ],
   "new_mapping_count": 0,
   "retained_mapping_count": 924,
-  "retained_ticker_conflict_count": 1,
-  "retained_ticker_conflicts": [
-    {
-      "asset_name": "MADISON SQUARE GARDEN SPORTS CORP",
-      "disposition": "proposal_quarantined_prior_mapping_retained",
-      "proposed_ticker": "MSGK",
-      "reason": "provider_name_match_changed_ticker",
-      "record_id": "oge-278t:7f0cc29db06aa75225a86959",
-      "retained_ticker": "MSGS"
-    }
-  ],
+  "retained_ticker_conflict_count": 0,
+  "retained_ticker_conflicts": [],
   "schema_version": "whitehouse-trump-2026-278t-ticker-mapping/v1",
   "semantic_mapping_count": 67,
   "source_directory_mapping_count": 155,
