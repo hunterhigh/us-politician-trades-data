@@ -34,7 +34,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/pyproject.toml
       - name: Install pinned PDF dependency
-        run: python -m pip install -e "backend[house-ingest]"
+        run: python -m pip install -e "backend[house-ingest,native-source-proof]"
       - name: Prepare production branches
         id: trees
         run: |
@@ -263,7 +263,8 @@ jobs:
             candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           fi
           PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
-            --review-root "$REVIEW_ROOT" --state-status "$STATE_ROOT/status/house_clerk.json" \
+            --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+            --state-status "$STATE_ROOT/status/house_clerk.json" \
             --base "$candidate_base" \
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
