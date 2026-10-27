@@ -364,6 +364,8 @@ def main() -> None:
     oge_candidate.add_argument("--generic", action="store_true")
     oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
     oge_candidate.add_argument("--saved-exhibit-observations", type=Path)
+    oge_candidate.add_argument("--saved-observations", type=Path,
+                               help="Explicit portable saved 278-T readings; requires --evidence-root")
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
     oge_candidate.add_argument("--output", type=Path, required=True)
@@ -1013,6 +1015,16 @@ def main() -> None:
         elif args.command == "build-oge-candidate":
             from .oge_native_partition import DEFAULT_VERSIONS as VISIBLE_DEFAULTS, GENERIC_VERSIONS as VISIBLE_GENERICS
             from .oge_reports import selected_parser_version, _read_archived_source
+            if args.saved_observations is not None:
+                from .oge_saved_observations import guard_saved_oge_outputs
+                if args.evidence_root is None:
+                    raise OgeCatalogError("Saved OGE observations require --evidence-root")
+                guard_saved_oge_outputs([args.output, args.audit_output],
+                    inputs=[args.saved_observations, args.catalog, args.base,
+                            *([args.saved_exhibit_observations] if args.saved_exhibit_observations else [])],
+                    protected_roots=[args.evidence_root, args.extractions_dir,
+                                     args.legacy_extractions_dir, args.catalog_history_dir,
+                                     args.manual_cover_dates_dir])
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
             selected_extractions = {}
             required_current_documents = set()
@@ -1098,10 +1110,21 @@ def main() -> None:
                     if encode(value) != current_bytes:
                         catalog_history.append(value)
             base = json.loads(args.base.read_text(encoding="utf-8"))
+            saved_observations = {}
+            if args.saved_observations is not None:
+                from .oge_saved_observations import load_saved_oge_observations
+                saved_observations = load_saved_oge_observations(args.saved_observations,
+                    evidence_root=args.evidence_root, extractions=extractions)
+                source_inputs = []
+                for document, request in saved_observations.items():
+                    source_inputs.extend([Path(request["archived_pdf_path"]),
+                        args.evidence_root / f"oge/reports/{document}/{request['observations'][0]['source_sha256']}.json"])
+                guard_saved_oge_outputs([args.output, args.audit_output], inputs=source_inputs)
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
                 evidence_root=args.evidence_root,
                 catalog_history=catalog_history,
+                **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
                    if args.saved_exhibit_observations else {}))
