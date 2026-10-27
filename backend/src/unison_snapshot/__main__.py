@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timezone
 import json
@@ -1101,6 +1102,9 @@ def main() -> None:
             if required_current_documents - set(selected_extractions):
                 raise OgeCatalogError('A current source-selected OGE extraction is missing')
             extractions = list(selected_extractions.values())
+            # Bind the selected cache before an existing interpretation layer
+            # (such as the manual cover-date sidecar) changes the receiver view.
+            source_extractions = {row['document_id']: deepcopy(row) for row in extractions}
             if args.manual_cover_dates_dir:
                 from .oge_manual_dates import apply_manual_cover_dates
                 extractions = apply_manual_cover_dates(
@@ -1126,6 +1130,7 @@ def main() -> None:
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
                 evidence_root=args.evidence_root,
+                source_extractions_by_document=source_extractions,
                 catalog_history=catalog_history,
                 **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}),

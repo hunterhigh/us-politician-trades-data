@@ -215,7 +215,7 @@ class LegacyAmountMaterializationTests(unittest.TestCase):
         _apply_audit(record, audit['reports'][0])
         self.assertEqual(record['qualified_transaction_count'], 2)
 
-    def test_legacy_generic_approved_owner_correction_keeps_existing_contract(self):
+    def test_unrooted_legacy_owner_is_deferred_without_blocking_independent_saved_rows(self):
         old = original()
         prior, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at=CUTOFF)
         prior['transactions'][0]['source_optional_annotation'] = {'preserve':'outside approved correction'}
@@ -224,13 +224,19 @@ class LegacyAmountMaterializationTests(unittest.TestCase):
             legacy_extractions_by_document={DOCUMENT_ID:old},
             saved_observations_by_document={DOCUMENT_ID:request()})
         for row in before:
-            self.assertIn({**row, 'owner':'Undisclosed'}, result['transactions'])
+            self.assertIn(row, result['transactions'])
             self.assertNotIn(row['id'], audit['reports'][0]['amount_recompute_current_qualified_ids'])
-        corrections = audit['reports'][0]['legacy_inheritance']['field_corrections']
-        self.assertEqual(len(corrections), 1)
-        self.assertEqual(corrections[0]['rule'], 'approved_v2_default_self_to_undisclosed/v1')
-        self.assertEqual(corrections[0]['source_reference']['basis'],
-                         'whole_saved_source_input_replayed_with_two_defaults_no_explicit_owner')
+        inheritance = audit['reports'][0]['legacy_inheritance']
+        self.assertEqual(inheritance['field_corrections'], [])
+        self.assertEqual(inheritance['owner_scope_deferred_ids'], [row['id'] for row in before])
+        self.assertEqual(len(inheritance['deferred_field_corrections']), 1)
+        self.assertEqual(inheritance['deferred_field_corrections'][0]['rule'],
+                         'approved_v2_default_self_to_undisclosed/v1')
+        independent = next(row for row in result['transactions'] if row['asset_name'] == 'INDEPENDENT')
+        self.assertEqual(independent['owner'], 'Undisclosed')
+        self.assertIn(independent['id'], audit['reports'][0]['amount_recompute_current_qualified_ids'])
+        self.assertFalse(any(row['asset_name'] == 'AFFECTED' for row in result['transactions']))
+        self.assertEqual(prior['transactions'], before)
 
     def test_status_cannot_count_preserved_conflict_as_current_or_erase_diagnostics(self):
         _, audit = consume()

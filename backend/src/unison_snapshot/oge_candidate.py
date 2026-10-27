@@ -155,7 +155,8 @@ def _legacy_default_owner_evidence(legacy: dict, old: dict) -> dict | None:
 
 
 def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
-                            formal: list[dict], record: dict) -> tuple[dict, dict]:
+                            formal: list[dict], record: dict, *, evidence_root=None,
+                            source_extraction=None, _owner_scope=None) -> tuple[dict, dict]:
     """Only an exact source row can carry an old formal identity into v7."""
     from .oge_transaction_adapter import _row_key, adapt_oge_278t_extraction
     result = deepcopy(extraction)
@@ -165,6 +166,15 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
         raise OgeCatalogError("existing formal report repeats an identity")
     if not formal:
         return result, receipt
+    from .oge_native_owner_scope import prepare_native_owner_scope
+    owner_scope = _owner_scope or prepare_native_owner_scope(extraction, legacy, record,
+        evidence_root=None if _fixed_trump_sept_source(extraction, record) else evidence_root,
+        source_extraction=source_extraction)
+    actual_formal = {fact['id']: fact for fact in formal}
+    # A complete source-projected successor identifies the same physical row.
+    # Normalize before the unbound scan, while keeping the actual old object
+    # for publication and deciding qualification separately below.
+    formal = [owner_scope.alias(fact) or fact for fact in formal]
     bound = {}
     if legacy is not None:
         if (not isinstance(legacy, dict) or any(legacy.get(field) != extraction.get(field)
@@ -257,10 +267,20 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
                     correction = {"extraction_id": retained["extraction_id"], "field": "owner",
                         "old_value": "Self", "new_value": "Undisclosed",
                         "rule": "approved_v2_default_self_to_undisclosed/v1", "source_reference": proof}
-                    retained["owner"] = "Undisclosed"
-                    retained["owner_disclosure_basis"] = row["owner_disclosure_basis"]
-                    retained["legacy_inheritance"]["field_corrections"] = [correction]
-                    receipt["field_corrections"].append(correction)
+                    decision = owner_scope.decision(actual_formal[retained['extraction_id']])
+                    if decision['status'] == 'approved':
+                        retained["owner"] = "Undisclosed"
+                        retained["owner_disclosure_basis"] = row["owner_disclosure_basis"]
+                        retained["legacy_inheritance"]["field_corrections"] = [correction]
+                        receipt["field_corrections"].append(correction)
+                    elif decision['status'] == 'alias':
+                        retained['owner'] = actual_formal[retained['extraction_id']]['owner']
+                        retained['owner_disclosure_basis'] = row['owner_disclosure_basis']
+                    else:
+                        receipt.setdefault('deferred_field_corrections', []).append(correction)
+                    if decision['status'] != 'approved' and not (
+                            decision['status'] == 'alias' and owner_scope.status == 'observed'):
+                        receipt.setdefault('owner_scope_deferred_ids', []).append(retained['extraction_id'])
                 qualified.append(retained)
             elif receipt["unbound_formal_ids"] or legacy is None or row.get("page_number") in unmatched_pages:
                 reason = "legacy_source_binding_missing" if receipt["unbound_formal_ids"] or legacy is None else "legacy_row_correspondence_unresolved"
@@ -278,7 +298,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         saved_observations_by_document: dict | None = None,
                         legacy_extractions_by_document: dict | None = None,
                         saved_exhibit_observations_by_document: dict | None = None,
-                        evidence_root=None) -> tuple[dict, dict]:
+                        evidence_root=None,
+                        source_extractions_by_document=None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -332,6 +353,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     legacy_inputs = legacy_extractions_by_document or {}
     if not isinstance(legacy_inputs, dict) or set(legacy_inputs) - set(direct_by_id):
         raise OgeCatalogError("legacy extraction documents are outside the catalog")
+    raw_inputs = source_extractions_by_document or {}
+    if not isinstance(raw_inputs, dict) or set(raw_inputs) - set(direct_by_id):
+        raise OgeCatalogError('selected raw extraction documents are outside the catalog')
 
     identity_variants: dict[str, set[tuple[str, str, str]]] = {}
     for record in direct_by_id.values():
@@ -354,6 +378,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("OGE candidate extraction document ID is missing or duplicated")
         seen_document_ids.add(document_id)
         record = direct_by_id.get(document_id)
+        source_extraction = raw_inputs.get(document_id, extraction)
+        from .oge_native_owner_scope import source_interpretation_binding, prepare_native_owner_scope
+        interpretation_binding = source_interpretation_binding(source_extraction)
+        owner_scope = None
         from .oge_native_partition import VERSIONS as VISIBLE_VERSIONS, GENERIC_VERSIONS as VISIBLE_GENERICS, replay_partitioned_oge
         visible = extraction.get('parser_version') in VISIBLE_VERSIONS
         if evidence_root is not None and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION, *VISIBLE_VERSIONS}:
@@ -384,7 +412,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             raise OgeCatalogError("existing formal facts differ from generic report URL")
         inheritance = None
         if generic and not visible and record is not None:
-            extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record)
+            owner_scope = prepare_native_owner_scope(extraction, legacy_inputs.get(document_id), record,
+                evidence_root=None if _fixed_trump_sept_source(extraction, record) else evidence_root,
+                source_extraction=source_extraction)
+            extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record,
+                evidence_root=evidence_root, source_extraction=source_extraction, _owner_scope=owner_scope)
+        owner_mechanisms = set(owner_scope.owner_decisions(retained)['mechanism_ids']) if owner_scope else set()
         if document_id in native_views:
             extraction = native_views[document_id]
         legacy_reference_rows = {}
@@ -503,6 +536,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             source_rows, source_quarantine = [], []
         report_promoted = 0
         amount_current_qualified_ids = set()
+        current_qualified_ids = set()
         retained_by_id = {row["id"]: row for row in retained}
         visible_retained_positions = set()
         visible_unbound_formal = False
@@ -569,8 +603,35 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     if (correction["rule"] != "approved_v2_default_self_to_undisclosed/v1" or
                             correction["field"] != "owner" or retained_fact["owner"] != correction["old_value"]):
                         raise OgeCatalogError("unsupported inherited formal field correction")
-                    retained_fact["owner"] = correction["new_value"]
+                    source_person = {'id': _person_id(key), 'display_name': record['filer_name'],
+                        'role': record['position_title'], 'office_type': record['agency'],
+                        'disclosure_authority': 'oge'} if key is not None and record is not None else None
+                    actual_people = [person for person in base.get('people', [])
+                                     if person.get('id') == retained_fact['person_id']]
+                    identity_matches = (source_person is not None and len(actual_people) == 1
+                        and all(actual_people[0].get(field) == value for field, value in source_person.items()))
+                    if row_reasons or not identity_matches:
+                        if inheritance is None:
+                            inheritance = {'retained_formal_ids': [fact['id'] for fact in retained],
+                                           'field_corrections': []}
+                        if correction in inheritance.get('field_corrections', []):
+                            inheritance['field_corrections'].remove(correction)
+                        inheritance.setdefault('deferred_field_corrections', []).append(correction)
+                        inheritance.setdefault('owner_scope_deferred_ids', []).append(extraction_id)
+                        if not identity_matches:
+                            inheritance.setdefault('owner_scope_deferred_reasons', {})[extraction_id] = (
+                                'formal_person_identity_differs_from_source')
+                    else:
+                        retained_fact["owner"] = correction["new_value"]
                 transactions.append(retained_fact)
+                if not row_reasons and owner_scope is not None and extraction_id in owner_mechanisms:
+                    if extraction_id in owner_scope.owner_decisions([retained_fact])['current_ids']:
+                        current_qualified_ids.add(extraction_id)
+                elif not row_reasons and inheritance and extraction_id in inheritance.get('current_source_inherited_ids', []):
+                    current_qualified_ids.add(extraction_id)
+                elif (not row_reasons and owner_scope is not None and not observed
+                      and document_id not in native_views and owner_scope.ordinary_legacy_current(retained_fact)):
+                    current_qualified_ids.add(extraction_id)
                 promoted_ids.add(extraction_id)
                 report_promoted += 1
                 continue
@@ -587,6 +648,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     and (generic and generic_cover_evidence_valid(extraction) or
                          row.get("observation_reference", {}).get("source_sha256") == extraction.get("source_sha256"))):
                 row_reasons.append("owner_not_supported")
+            if (owner_mechanisms and not observed and not visible and document_id not in native_views
+                    and owner_scope.status != 'observed' and row.get('owner') == 'Undisclosed'):
+                row_reasons.append('owner_scope_unresolved')
             is_open = open_amount_qualified(row, extraction.get("parser_version"))
             if not is_open and (type(row.get("amount_low")) is not int or type(row.get("amount_high")) is not int):
                 row_reasons.append("amount_range_invalid")
@@ -654,6 +718,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     raise OgeCatalogError("existing native replacement differs from current source facts")
                 fact = deepcopy(prior_fact)
             transactions.append(fact)
+            if not amount_recompute or fact_id in amount_current_qualified_ids:
+                current_qualified_ids.add(fact_id)
             report_promoted += 1
         for fact in retained_by_id.values():
             if fact["id"] in promoted_ids:
@@ -674,8 +740,25 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         if visible:
             reasons = sorted(set(reasons + extraction.get('document_reasons', [])))
         from .native_partition_rows import partition_binding
+        owner_audit = {}
+        if owner_mechanisms:
+            published = [row for row in transactions if row.get('filing_id') == document_id
+                         and row.get('source_url') == extraction['source_url']]
+            decisions = owner_scope.owner_decisions(published)
+            current_qualified_ids.difference_update(decisions['deferred_ids'])
+            amount_current_qualified_ids.difference_update(decisions['deferred_ids'])
+            owner_audit = {'owner_scope_binding': owner_scope.binding,
+                'owner_scope_decisions': decisions,
+                'owner_scope_current_qualified_ids': sorted(current_qualified_ids)}
+            if not observed and not visible and document_id not in native_views:
+                view = owner_scope.ordinary_native_view(published)
+                view['current_ids'] = sorted(set(view['current_ids']) & current_qualified_ids)
+                view['deferred_ids'] = sorted(set(view['published_ids']) - set(view['current_ids']))
+                owner_audit['owner_scope_view'] = view
         audit_reports.append({
             "document_id": document_id,
+            'source_interpretation_binding': interpretation_binding,
+            **owner_audit,
             **({'source_sha256': extraction['source_sha256'],
                 'parser_version': extraction['parser_version'],
                 'native_partition_published_ids': sorted(row['id'] for row in transactions
@@ -748,6 +831,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
     if relations:
         candidate["meta"]["transaction_disclosure_relations"] = relations
     candidate["security_market_data"] = []
+    owner_current_count = (sum(len(report['owner_scope_current_qualified_ids'])
+        if 'owner_scope_current_qualified_ids' in report else report['promoted_count']
+        for report in audit_reports) if any('owner_scope_current_qualified_ids' in report
+                                            for report in audit_reports) else None)
     health = {
         "source_id": "oge",
         "source": "U.S. Office of Government Ethics",
@@ -757,8 +844,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "last_checked_at": data_cutoff_at,
         "last_successful_sync_at": data_cutoff_at,
         "data_cutoff_at": data_cutoff_at,
-        "detail": (f"{len(direct_by_id)} direct 278-T documents; {len(extractions)} PDFs extracted; "
-                   f"{len(transactions)-len(deferred_formal_ids)} transactions qualified; {request_required} request-required "
+        "detail": (f"{len(direct_by_id)} direct 278-T documents; {len(extractions)} PDFs extracted; " +
+                   (f"{owner_current_count} transactions currently qualified; "
+                    f"{len(transactions)-len(deferred_formal_ids)} published facts preserved; "
+                    if owner_current_count is not None else
+                    f"{len(transactions)-len(deferred_formal_ids)} transactions qualified; ") +
+                   f"{request_required} request-required "
                    f"catalog entries were not automated; {retained_from_history} direct documents "
                    "were retained from archived catalog history."),
     }
@@ -783,6 +874,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "request_required_count": request_required,
         "extraction_count": len(extractions),
         "promoted_transaction_count": len(transactions)-len(deferred_formal_ids),
+        **({'current_qualified_transaction_count': owner_current_count}
+           if owner_current_count is not None else {}),
         "quarantined_row_count": sum(row["quarantined_count"] for row in audit_reports),
         "reports": audit_reports,
     }

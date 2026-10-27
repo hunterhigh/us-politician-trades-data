@@ -101,7 +101,7 @@ def fixture(*, asset='Example Common Stock (EXM)', heading=None, historical=True
         expected = {**old, 'owner': 'Undisclosed'}
         current, audit = build_oge_candidate(catalog, [native], prior, data_cutoff_at=CUTOFF,
             evidence_root=root, legacy_extractions_by_document={DOCUMENT: legacy})
-        if heading is None and [row for row in current['transactions'] if row['id'] == old['id']] != [expected]:
+        if heading is None and pdf_mutator is None and [row for row in current['transactions'] if row['id'] == old['id']] != [expected]:
             raise AssertionError('Normal native candidate must independently approve this correction')
         evidence = {path.relative_to(root).as_posix(): path.read_bytes()
                     for path in root.rglob('*') if path.is_file()}

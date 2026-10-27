@@ -677,8 +677,179 @@ def _legacy_amount_current_count(audit: dict) -> int | None:
     return len(current)
 
 
+def _source_receiver_is_ordinary(audit: dict) -> bool:
+    return not (isinstance(audit.get('observation_receipt'), dict) or
+                'native_source_partition_binding' in audit or
+                'native_exhibit_application_context' in audit)
+
+
+def _owner_scope_hint(audit: dict) -> bool:
+    inheritance = audit.get('legacy_inheritance') or {}
+    return any(key in audit for key in ('owner_scope_binding', 'owner_scope_view',
+               'owner_scope_deferred_ids', 'owner_scope_decisions')) or any(
+        item.get('rule') == 'approved_v2_default_self_to_undisclosed/v1'
+        for item in inheritance.get('field_corrections', []) +
+                    inheritance.get('deferred_field_corrections', []))
+
+
+def _selected_source_input(record, audit, *, review, evidence, catalog_record):
+    """Bind execution selection without guessing it from cache existence."""
+    from .oge_reports import (PARSER_VERSION, GENERIC_PARSER_VERSION, MAX_PDF_BYTES,
+        TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION, TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
+        _read_archived_source, selected_parser_version, parse_archived_pdf)
+    from .oge_native_partition import VERSIONS, GENERIC_VERSIONS
+    selected = audit.get('source_interpretation_binding')
+    ordinary = _source_receiver_is_ordinary(audit)
+    if selected is None:
+        owner_hint = _owner_scope_hint(audit)
+        if owner_hint or ordinary and review is not None and any(all((review / 'oge/extractions' /
+                record['report_id'] / sha / (version.replace('/', '-') + '.json')).is_file()
+                for version in (PARSER_VERSION, GENERIC_PARSER_VERSION))
+                for sha in record.get('source_versions', [])):
+            _unbound_qualification(record, 'source_interpretation_selection_unknown')
+        return None
+    if review is None or evidence is None or not isinstance(selected, dict):
+        raise ValueError('OGE source interpretation requires its controlled roots and selection')
+    sha, version = selected.get('source_sha256'), selected.get('parser_version')
+    supported = {PARSER_VERSION, GENERIC_PARSER_VERSION, *VERSIONS,
+        TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
+        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION, TRUMP_SEPT_2026_PAGE7_PASS_VERSION}
+    if (version not in supported or
+            sha not in record.get('source_versions', []) or
+            selected.get('document_id') != record.get('report_id')):
+        raise ValueError('OGE source interpretation selection differs from report identity')
+    cache_path = review / 'oge/extractions' / record['report_id'] / sha / (version.replace('/', '-') + '.json')
+    if (not cache_path.resolve().is_relative_to(review.resolve()) or not cache_path.is_file()
+            or cache_path.stat().st_size > 16 * 1024 * 1024):
+        raise ValueError('OGE selected source cache is unavailable or exceeds budget')
+    raw = _read(cache_path)
+    from .oge_native_owner_scope import source_interpretation_binding
+    if (source_interpretation_binding(raw) != selected or
+            raw.get('source_url') != record.get('source_url')):
+        raise ValueError('OGE selected source cache differs from its whole-input binding')
+    relative = f'oge/reports/{record["report_id"]}/{sha}.pdf'
+    source, meta = evidence / relative, (evidence / relative).with_suffix('.json')
+    if (not source.resolve().is_relative_to(evidence.resolve()) or
+            not meta.resolve().is_relative_to(evidence.resolve()) or
+            not source.is_file() or source.stat().st_size > MAX_PDF_BYTES or
+            not meta.is_file() or meta.stat().st_size > 16 * 1024 * 1024):
+        raise ValueError('OGE selected original is unavailable or exceeds budget')
+    metadata, path, actual_sha = _read_archived_source(evidence, meta)
+    generic = version == GENERIC_PARSER_VERSION or version in GENERIC_VERSIONS
+    if (actual_sha != sha or metadata.get('archive_path') != relative or
+            metadata.get('document_id') != record['report_id'] or
+            metadata.get('document_url') != record['source_url'] or
+            selected_parser_version(metadata, path, sha, generic=generic) != version):
+        raise ValueError('OGE selected original or parser differs from its source interpretation')
+    if catalog_record is not None and any(metadata.get(field) != catalog_record.get(field)
+            for field in ('filer_name', 'agency', 'position_title', 'catalog_added_date',
+                          'amended_label', 'pending_final_oge_disposition')):
+        raise ValueError('OGE selected source metadata differs from catalog identity')
+    # Saved/native replacement receivers have their own source-bound field
+    # contract. Their old normalized input may be reference-only; do not turn
+    # the ordinary-native owner profile into a new global qualification gate.
+    if ordinary and parse_archived_pdf(evidence, meta, generic=generic) != raw:
+        raise ValueError('OGE selected source cache differs from complete original replay')
+    record['source_interpretation_binding'] = selected
+    return raw
+
+
+def _apply_source_interpretation(record, audit, *, review, evidence, catalog_record, transactions):
+    raw = _selected_source_input(record, audit, review=review, evidence=evidence,
+        catalog_record=catalog_record)
+    if raw is None:
+        return
+    from .oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
+    if raw['parser_version'] != GENERIC_PARSER_VERSION:
+        if _owner_scope_hint(audit):
+            raise ValueError('OGE owner source request differs from selected receiver parser')
+        return  # Default v2 keeps its existing manual-date qualification layer.
+    from .oge_candidate import _fixed_trump_sept_source
+    if catalog_record is not None and _fixed_trump_sept_source(raw, catalog_record):
+        return  # The existing exact-source lane has its independent contract.
+    legacy_path = (review / 'oge/extractions' / record['report_id'] / raw['source_sha256'] /
+                   (PARSER_VERSION.replace('/', '-') + '.json'))
+    if not legacy_path.is_file():
+        if any(key in audit for key in ('owner_scope_binding', 'owner_scope_view', 'owner_scope_decisions')):
+            raise ValueError('OGE owner qualification lacks its selected legacy source input')
+        return  # Fresh generic facts do not require a historical migration input.
+    if (not legacy_path.resolve().is_relative_to(review.resolve()) or
+            legacy_path.stat().st_size > 16 * 1024 * 1024 or catalog_record is None):
+        raise ValueError('OGE owner qualification legacy input or catalog is unavailable')
+    legacy = _read(legacy_path)
+    facts = [row for row in transactions if row.get('source_id') == 'oge'
+             and row.get('verification_status') == 'official_matched'
+             and row.get('filing_id') == record['report_id']
+             and row.get('source_url') == record['source_url']]
+    owner_hint = any(key in audit for key in ('owner_scope_binding', 'owner_scope_view',
+                                             'owner_scope_decisions', 'owner_scope_deferred_ids'))
+    possible = ({row.get('extraction_id') for row in legacy.get('transactions', [])
+                 if row.get('owner') == 'Self' and not row.get('owner_observation_reference')
+                 and not row.get('owner_disclosure_basis')}
+                if isinstance(legacy.get('source_rows'), list) else set())
+    if not owner_hint and not possible & {row['id'] for row in facts}:
+        return  # A historical owner profile is not a fresh-financial gate.
+    from .oge_native_owner_scope import prepare_native_owner_scope
+    scope = prepare_native_owner_scope(raw, legacy, catalog_record, evidence_root=evidence)
+    decisions = scope.owner_decisions(facts)
+    mechanisms = set(decisions['mechanism_ids'])
+    if not mechanisms and not any(key in audit for key in ('owner_scope_view', 'owner_scope_decisions')):
+        return
+    if 'owner_scope_binding' in audit and audit['owner_scope_binding'] != scope.binding:
+        raise ValueError('OGE owner source binding differs from original replay')
+    stored_decisions = audit.get('owner_scope_decisions')
+    if stored_decisions is not None and any(stored_decisions.get(key) != decisions[key]
+            for key in ('current_ids', 'mechanism_ids', 'published_ids', 'deferred_ids')):
+        raise ValueError('OGE owner decisions differ from original source')
+    rejected = {row.get('extraction_id') for row in audit.get('quarantined', [])}
+    if _source_receiver_is_ordinary(audit):
+        view = scope.ordinary_native_view(facts)
+        current = set(view['current_ids']) - rejected
+        if audit.get('document_reasons'):
+            current.clear()
+        view['current_ids'] = sorted(current)
+        stored = audit.get('owner_scope_view')
+        if stored is not None and any(stored.get(key) != view[key]
+                for key in ('current_ids', 'mechanism_ids', 'published_ids')):
+            raise ValueError('OGE owner current/deferred identities differ from original source')
+        if _count(audit.get('promoted_count')) != len(view['published_ids']):
+            raise ValueError('OGE owner publication count differs from actual output facts')
+        record['qualified_transaction_count'] = len(current)
+        record['owner_scope_view'] = view
+        complete = len(current) == len(facts) and not audit.get('document_reasons') and not rejected
+        record['qualification_state'] = ('qualified' if current and complete else
+                                         'partial' if current else 'unknown')
+    else:
+        # This is an intersection with the receiver's established financial
+        # qualification, never a native-table replacement for saved/new rows.
+        collected = audit.get('owner_scope_current_qualified_ids')
+        published = {row['id'] for row in facts}
+        if (not isinstance(collected, list) or any(not isinstance(value, str) for value in collected)
+                or collected != sorted(set(collected)) or not set(collected) <= published
+                or set(collected) & (rejected | set(decisions['deferred_ids']))):
+            raise ValueError('OGE receiver owner qualification identities do not close')
+        current = set(collected)
+        if audit.get('document_reasons') and current:
+            raise ValueError('OGE owner qualification erased receiver document blockers')
+        if 'amount_recompute_current_qualified_ids' in audit and not current <= set(
+                audit['amount_recompute_current_qualified_ids']):
+            raise ValueError('OGE owner qualification cannot restore an unresolved amount')
+        if record.get('qualified_transaction_count') is None:
+            return  # The independent financial receiver has no current count.
+        if len(current) > record['qualified_transaction_count']:
+            raise ValueError('OGE owner qualification exceeds the independent receiver count')
+        record['qualified_transaction_count'] = len(current)
+        record['owner_scope_decisions'] = decisions
+        if len(current) < len(published):
+            record['qualification_state'] = 'partial' if current else 'unknown'
+    if scope.status != 'observed':
+        record['reason_codes'].append('owner_migration_source_scope_unknown')
+
+
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
-                 evidence: Path | None = None, catalog_record: dict | None = None) -> None:
+                 evidence: Path | None = None, catalog_record: dict | None = None,
+                 transactions: list[dict] | None = None) -> None:
     application_view = None
     if audit.get("native_exhibit_application_context") is not None:
         if review is None or evidence is None:
@@ -758,6 +929,9 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
             'current_qualified_transaction_ids':audit['amount_recompute_current_qualified_ids'],
             'retained_formal_transaction_ids':audit['amount_recompute_retained_formal_ids'],
             'published_transaction_ids':audit['amount_recompute_published_ids']}
+    if transactions is not None:
+        _apply_source_interpretation(record, audit, review=review, evidence=evidence,
+            catalog_record=catalog_record, transactions=transactions)
     if application_view is not None and not promoted and not quarantined and (
             record.get("superseded_transaction_ids") or any(
                 row.get("native_replacement_disposition") == "superseded" for row in application_view["transactions"])):
@@ -1167,7 +1341,7 @@ def build_oge_status(evidence_root: Path, review_root: Path,
         _add_archive_state(record, archives.get(report_id, []), review, "oge/extractions", False)
         if report_id in audit_by_id:
             _apply_audit(record, audit_by_id[report_id], review=review, evidence=evidence,
-                         catalog_record=catalog_direct.get(report_id))
+                         catalog_record=catalog_direct.get(report_id), transactions=transactions)
             _bind_direct_audit(record, audit_by_id[report_id], review)
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:

@@ -99,15 +99,19 @@ class GenericCandidateTests(unittest.TestCase):
         production, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
         before = deepcopy(production)
         result, audit = build(generic(), production, {DOCUMENT_ID: old})
-        expected = deepcopy(production["transactions"])
-        expected[0]["owner"] = "Undisclosed"
-        self.assertEqual(result["transactions"], expected)
+        # Saved cells still bind the inherited ID, but without the original
+        # source they no longer authorize changing a published owner.
+        self.assertEqual(result["transactions"], production["transactions"])
         self.assertEqual(production, before)
-        self.assertEqual(audit["reports"][0]["legacy_inheritance"]["inherited_ids"],
+        inheritance = audit["reports"][0]["legacy_inheritance"]
+        self.assertEqual(inheritance["inherited_ids"],
                          [old["transactions"][0]["extraction_id"]])
-        correction = audit["reports"][0]["legacy_inheritance"]["field_corrections"][0]
+        self.assertEqual(inheritance["field_corrections"], [])
+        self.assertEqual(inheritance["owner_scope_deferred_ids"], [production["transactions"][0]["id"]])
+        self.assertEqual(len(inheritance["deferred_field_corrections"]), 1)
+        correction = inheritance["deferred_field_corrections"][0]
         self.assertEqual((correction["old_value"], correction["new_value"]), ("Self", "Undisclosed"))
-        self.assertEqual(correction["source_reference"]["source_rows_index"], 0)
+        self.assertEqual(correction["extraction_id"], old["transactions"][0]["extraction_id"])
 
     def test_explicit_self_and_unknown_prior_scope_are_not_default_corrections(self):
         for heading in ["Filer assets", "Unclear owner assets"]:
@@ -362,13 +366,35 @@ class GenericCandidateTests(unittest.TestCase):
                           candidate_base_path=paths["base"], legacy_extractions_path=paths["legacy"],
                           data_cutoff_at="2025-06-04T00:00:00Z")
             actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf-8"))
-            expected = deepcopy(production["transactions"])
-            expected[0]["owner"] = "Undisclosed"
-            self.assertEqual(actual["transactions"], expected)
+            self.assertEqual(actual["transactions"], production["transactions"])
+            audit = json.loads((inputs["output_dir"] / "candidate_audit.json").read_text(encoding="utf-8"))
+            inheritance = audit["reports"][0]["legacy_inheritance"]
+            self.assertEqual(inheritance["field_corrections"], [])
+            self.assertEqual(inheritance["owner_scope_deferred_ids"], [production["transactions"][0]["id"]])
+            self.assertEqual(len(inheritance["deferred_field_corrections"]), 1)
             ledger = json.loads((inputs["output_dir"] / "candidate_rows.json").read_text(encoding="utf-8"))
             self.assertEqual(ledger[0]["disposition"], "qualified")
+            self.assertEqual(next(item["normalized_value"] for item in ledger[0]["observations"]
+                                  if item["field"] == "owner"), "Self")
             self.assertTrue(any(row["artifact_type"] == "legacy_extractions" for row in manifest["input_artifacts"]))
             self.assertTrue((inputs["output_dir"] / "snapshot/manifest.json").is_file())
+            from test_public_repo import FakeTransport
+            from unison_snapshot.public_repo import PublicSnapshotRepository
+            snapshot_root = inputs["output_dir"] / "snapshot"
+            snapshot = {path.relative_to(snapshot_root).as_posix(): path.read_bytes()
+                        for path in snapshot_root.rglob("*") if path.is_file()}
+            public = PublicSnapshotRepository('contract', 'data', transport=FakeTransport(snapshot))
+            self.assertEqual(public.fetch().snapshot['transactions'], production['transactions'])
+            repeated_inputs = {**inputs, 'output_dir': root / 'repeated-output'}
+            repeated_manifest = build_oge_shadow_run(**repeated_inputs, saved_observations_path=paths["saved"],
+                candidate_base_path=paths["base"], legacy_extractions_path=paths["legacy"],
+                data_cutoff_at="2025-06-04T00:00:00Z")
+            self.assertEqual(repeated_manifest, manifest)
+            first_files = {path.relative_to(inputs['output_dir']).as_posix(): path.read_bytes()
+                           for path in inputs['output_dir'].rglob('*') if path.is_file()}
+            second_files = {path.relative_to(repeated_inputs['output_dir']).as_posix(): path.read_bytes()
+                            for path in repeated_inputs['output_dir'].rglob('*') if path.is_file()}
+            self.assertEqual(second_files, first_files)
 
     def test_cli_forwards_optional_legacy_map(self):
         with patch("unison_snapshot.pipeline_qa.oge_run_cli.build_oge_shadow_run", return_value={
@@ -379,6 +405,34 @@ class GenericCandidateTests(unittest.TestCase):
                             "--started-at", "s", "--completed-at", "t", "--legacy-extractions", "old.json"])
         self.assertEqual(code, 0)
         self.assertEqual(call.call_args.kwargs["legacy_extractions_path"], "old.json")
+
+    def test_scoped_adapter_forwards_original_source_and_root_to_shared_owner_guard(self):
+        # A real generated PDF exercises the private adapter route; wrapping
+        # the call records its arguments without replacing the source proof.
+        from test_oge_owner_correction import fixture, write_files
+        from unison_snapshot.oge_candidate import _inherit_generic_legacy
+        old_fact, _, review, evidence, prior = fixture(historical=False)
+        source = json.loads(next(raw for path, raw in review.items() if path.endswith('/oge-278t-pdf-v7.json')))
+        legacy = json.loads(next(raw for path, raw in review.items() if path.endswith('/oge-278t-pdf-v2.json')))
+        catalog_sha = json.loads(review['status/oge.json'])['catalog_sha256']
+        record = json.loads(evidence[f'oge/catalog/normalized/{catalog_sha}.json'])['transactions'][0]
+        before = deepcopy(source)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_files(root, evidence)
+            for evidence_root, expected_owner in ((root, 'Undisclosed'), (None, 'Self')):
+                with self.subTest(rooted=evidence_root is not None), patch(
+                        'unison_snapshot.oge_candidate._inherit_generic_legacy', wraps=_inherit_generic_legacy) as call:
+                    ledger = adapt_oge_278t_extraction(source, record, legacy_extraction=legacy,
+                        formal_reference_facts=prior['transactions'], evidence_root=evidence_root)
+                    self.assertEqual(call.call_count, 1)
+                    self.assertIs(call.call_args.kwargs['source_extraction'], source)
+                    self.assertEqual(call.call_args.kwargs['evidence_root'], evidence_root)
+                    owners = [item['normalized_value'] for row in ledger['rows']
+                              for item in row['observations'] if item['field'] == 'owner' and item['selected']]
+                    self.assertEqual(owners, [expected_owner])
+            self.assertEqual(source, before)
+            self.assertEqual(prior['transactions'], [old_fact])
 
 
 if __name__ == "__main__":

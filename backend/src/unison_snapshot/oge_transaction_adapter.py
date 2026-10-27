@@ -696,6 +696,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             any(not isinstance(row, dict) for row in formal_reference_facts)):
         raise OgeCatalogError("formal scope binding facts must be an array of objects")
     if scoped:
+        source_view = extraction
         if context is not None:
             source_view = next(row for row in context["extractions"]
                                if row["document_id"] == extraction["document_id"])
@@ -707,7 +708,8 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
             # Source interpretation is verified before applying the separate
             # formal-ID/field-correction view; no inherited view is cached.
             extraction, _ = _inherit_generic_legacy(extraction, legacy_extraction,
-                                                     formal_reference_facts, catalog_record)
+                formal_reference_facts, catalog_record, evidence_root=evidence_root,
+                source_extraction=source_view)
     elif formal_reference_facts is not None or legacy_extraction is not None:
         raise OgeCatalogError("formal scope binding requires the explicit generic row interpretation")
     source_rows = extraction.get("source_rows")

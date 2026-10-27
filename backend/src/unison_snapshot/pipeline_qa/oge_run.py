@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -92,6 +93,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
         raise OgeShadowInputError("legacy extraction input must map document IDs to extractions")
     candidate_base = _read_json(Path(candidate_base_path)) if integration else None
     original_extractions = []
+    source_extractions = {}
     catalog, archive_batch, extraction_batch = (
         values["catalog"], values["archive_batch"], values["extraction_batch"])
     if not all(isinstance(item, dict) for item in values.values()):
@@ -209,6 +211,9 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                     extraction.get("document_id") != document_id or
                     extraction.get("source_sha256") != source_sha):
                 raise OgeShadowInputError(f"{document_id}: extraction differs from archived document")
+            # Later preparation may add an empty inventory or recover cells.
+            # The source choice still names the exact JSON that was loaded.
+            source_extractions[document_id] = deepcopy(extraction)
             if document_id in saved or document_id in exhibits:
                 extraction = _observation_input_extraction(extraction)
                 if "source_rows" not in extraction:
@@ -249,7 +254,8 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
                     if extraction.get("row_interpretation_mode") == GENERIC_ROW_INTERPRETATION_MODE:
                         scoped_formal = formal
                     else:
-                        extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record)
+                        extraction, _ = _inherit_generic_legacy(extraction, legacy.get(document_id), formal, record,
+                            evidence_root=evidence_path_root, source_extraction=source_extractions[document_id])
                 if document_id in saved:
                     formal_ids = [row["id"] for row in candidate_base.get("transactions", [])
                                   if row.get("source_id") == "oge" and row.get("filing_id") == document_id
@@ -323,7 +329,7 @@ def build_oge_shadow_run(*, catalog_path: str | Path,
             catalog, original_extractions, candidate_base,
             data_cutoff_at=data_cutoff_at, saved_observations_by_document=saved,
             legacy_extractions_by_document=legacy,saved_exhibit_observations_by_document=exhibits,
-            evidence_root=evidence_path_root)
+            evidence_root=evidence_path_root, source_extractions_by_document=source_extractions)
         for name, value in (("candidate.json", candidate), ("candidate_audit.json", audit)):
             artifacts[name] = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
         # Exercise the existing final builder locally; no publication or refs.

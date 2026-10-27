@@ -6,7 +6,6 @@ v2/v7 only, and does not migrate instruments, accounts, amounts or identities.
 from __future__ import annotations
 
 from copy import deepcopy
-from collections import Counter
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
@@ -27,13 +26,8 @@ MAX_SCOPE_COMPARISONS = 200_000  # Per page; document page count is bounded too.
 
 
 def _represented(projection, prior):
-    """Allow only omission of known, source-proved nulls in public shards."""
-    if set(prior) - set(projection):
-        return None
-    if any(key not in prior and (key not in NULLABLE or value is not None)
-           or key in prior and prior[key] != value for key, value in projection.items()):
-        return None
-    return {key: value for key, value in projection.items() if key in prior}
+    from ..oge_native_owner_scope import _represented as represent
+    return represent(projection, prior)
 
 
 def _empty(cutoff):
@@ -42,108 +36,16 @@ def _empty(cutoff):
             'source_health': []}
 
 
-def _explained_row(cells, number, sha):
-    """Positive source roles for every nonempty cell, not an owner blacklist."""
-    from ..oge_reports import classify_table_structure, parse_table_rows, _ROW_NUMBER
-    structure = classify_table_structure(cells)
-    kind = structure.get('kind') if structure else None
-    if kind == 'blank':
-        return True
-    if kind == 'header':
-        partial = not any(cells[1:4])
-        return not cells[0] if partial else cells[0].casefold() in {'', '#', 'no', 'no.'}
-    if kind in {'owner_heading', 'owner_account_heading', 'account_heading', 'blank_notice'}:
-        return not any(cells[index] for index in (0, 2, 3, 4, 5))
-    if kind is not None:
-        return False  # Broad footer/marker text is not a complete content role.
-    if not _ROW_NUMBER.fullmatch(cells[0]) or not cells[1]:
-        return False
-    good, bad = parse_table_rows([(number, cells)], source_sha=sha,
-        default_owner='Undisclosed', allow_exchange=True)
-    return len(good + bad) == 1 and any((
-        (good + bad)[0].get('transaction_type'), (good + bad)[0].get('transaction_date'),
-        (good + bad)[0].get('amount_low') is not None))
 
 
 def _source_scope(pdf, metadata, record):
-    """Close every page before inferring the absence of explicit owner scope.
-
-    This finite route explains known administrative pages and visible ruled
-    six-column tables. Unknown external text is not an owner keyword problem:
-    it means this migration has no absence proof, while ordinary rows remain
-    on their existing candidate path.
-    """
-    from ..native_source_visibility import (inspect_standard_visible_page, CATALOG_KEYS)
-    from ..oge_278t_page_roles import observe_native_page_role
-    from ..oge_reports import _compact, _looks_like_transaction_table
-
-    if set(pdf.doc.catalog) - CATALOG_KEYS:
-        raise InventoryError('Direct OGE owner source has unexplained document objects')
-    context = {'schema_version': 'oge-278t-cover-identity-context/v1',
-        'source_sha256': metadata['sha256'],
-        **{field: record[field] for field in ('filer_name', 'agency', 'position_title')}}
-    inventory = []
-    for number, page in enumerate(pdf.pages, 1):
-        role = observe_native_page_role(page, number, source_sha256=metadata['sha256'],
-                                        cover_identity_context=context)
-        if role['status'] == 'non_table' and role.get('native_objects_fully_accounted') is True:
-            continue
-        visible = inspect_standard_visible_page(page)
-        if visible['status'] != 'observed':
-            raise InventoryError('Direct OGE owner source visibility/object scope is unknown: ' + str(visible['reason']))
-        tables = []
-        page_cells = []
-        for table in page.find_tables():
-            physical_rows = table.rows
-            if len(inventory) + len(physical_rows) > MAX_SOURCE_ROWS:
-                raise InventoryError('Direct OGE owner source row count exceeds budget')
-            rows = [[_compact(cell) for cell in row] for row in table.extract()
-                    if isinstance(row, list)]
-            signature = ' '.join(cell.lower() for row in rows for cell in row)
-            has_headers = all(value in signature for value in
-                              ('description', 'type', 'date', 'amount', 'notification'))
-            if not rows or any(len(row) != 6 for row in rows) or not (
-                    has_headers or _looks_like_transaction_table(rows)):
-                continue
-            if len(physical_rows) != len(rows) or any(
-                    len(row.cells) != 6 or any(cell is None for cell in row.cells)
-                    for row in physical_rows):
-                raise InventoryError('Direct OGE owner source table has unsupported merged or missing cells')
-            if any(not _explained_row(row, number, metadata['sha256']) for row in rows):
-                raise InventoryError('Direct OGE owner source has unexplained nonfinancial table content')
-            tables.append(table)
-            inventory.extend({'page_number': number, 'cells': row} for row in rows)
-            page_cells.extend(cell for row in physical_rows for cell in row.cells)
-        if not tables:
-            raise InventoryError('Direct OGE owner source page has no complete administrative/table role')
-        words = page.extract_words(return_chars=True)
-        if len(words) * (len(tables) + len(page_cells)) > MAX_SCOPE_COMPARISONS:
-            raise InventoryError('Direct OGE owner source geometry comparison budget exceeded')
-        def char_key(char):
-            return (char['text'], char['x0'], char['x1'], char['top'], char['bottom'])
-        if Counter(char_key(char) for word in words for char in word['chars']
-                   if not char['text'].isspace()) != Counter(
-                       char_key(char) for char in page.chars if not char['text'].isspace()):
-            raise InventoryError('Direct OGE owner source words omit or repeat native characters')
-        outside = [word for word in words if not any(
-            table.bbox[0] <= word['x0'] < word['x1'] <= table.bbox[2]
-            and table.bbox[1] <= word['top'] < word['bottom'] <= table.bbox[3]
-            for table in tables)]
-        outside_ids = {id(word) for word in outside}
-        for word in words:
-            if id(word) in outside_ids:
-                continue
-            cells = [cell for cell in page_cells
-                     if cell[0] <= word['x0'] < word['x1'] <= cell[2]
-                     and cell[1] <= word['top'] < word['bottom'] <= cell[3]]
-            if len(cells) != 1:
-                raise InventoryError('Direct OGE owner source word crosses or ambiguously binds table cells')
-        # This is the sole supported transaction-page title, not a general
-        # header/footer classifier. All other external words stay unknown.
-        if outside and not (len(outside) == 1 and outside[0]['text'] == 'Transactions'
-                            and outside[0]['bottom'] < min(table.bbox[1] for table in tables)):
-            raise InventoryError('Direct OGE owner source has unexplained words outside transaction tables')
-    return inventory
+    """Use the same finite source inventory as the normal receiver."""
+    from ..oge_native_owner_scope import _source_scope as observe, InventoryError as SourceError
+    try:
+        return observe(pdf, metadata, record, max_source_rows=MAX_SOURCE_ROWS,
+                       max_scope_comparisons=MAX_SCOPE_COMPARISONS)
+    except SourceError as error:
+        raise InventoryError(str(error)) from error
 
 
 def _replay(sources, evidence, review, catalog, catalog_history, document, url):
@@ -201,10 +103,24 @@ def _replay(sources, evidence, review, catalog, catalog_history, document, url):
     scoped_current = {**catalog, 'transactions': selected_rows(catalog)}
     scoped_history = [{**selected, 'transactions': selected_rows(selected)}
                       for selected in catalog_history if selected_rows(selected)]
-    return actual[0], actual[1], scoped_current, record, scoped_history
+    return actual[0], actual[1], scoped_current, record, scoped_history, metadata, raw
 
 
-def _prove(legacy, generic, scoped_catalog, record, scoped_history, prior, replacement, person):
+def _prove(legacy, generic, scoped_catalog, record, scoped_history, metadata, raw, prior, replacement, person):
+    # The receiver must independently consume its original while the temporary
+    # canonical archive still exists. No saved success assertion crosses layers.
+    with TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        path = root / metadata['archive_path']
+        path.parent.mkdir(parents=True)
+        path.write_bytes(raw)
+        import json
+        path.with_suffix('.json').write_text(json.dumps(metadata), encoding='utf-8')
+        return _prove_source(legacy, generic, scoped_catalog, record, scoped_history,
+                             prior, replacement, person, evidence_root=root)
+
+
+def _prove_source(legacy, generic, scoped_catalog, record, scoped_history, prior, replacement, person, *, evidence_root):
     from ..oge_candidate import (build_oge_candidate, _identity_key, _person_id,
         _legacy_default_owner_evidence, _instrument)
     from ..oge_reports import PARSER_VERSION, GENERIC_PARSER_VERSION
@@ -220,7 +136,7 @@ def _prove(legacy, generic, scoped_catalog, record, scoped_history, prior, repla
     if cutoff is None:
         raise InventoryError('Direct OGE owner correction has no qualified filed date')
     normal, _ = build_oge_candidate(scoped_catalog, [legacy], _empty(cutoff),
-        data_cutoff_at=cutoff, catalog_history=scoped_history)
+        data_cutoff_at=cutoff, catalog_history=scoped_history, evidence_root=evidence_root)
     pid = _person_id(_identity_key(record))
     source_person = [row for row in normal['people'] if row['id'] == pid]
     identity_fields = ('id', 'display_name', 'role', 'office_type', 'disclosure_authority')
@@ -249,7 +165,7 @@ def _prove(legacy, generic, scoped_catalog, record, scoped_history, prior, repla
     base.update(people=[deepcopy(person)], transactions=[deepcopy(prior)])
     current, audit = build_oge_candidate(scoped_catalog, [generic], base,
         data_cutoff_at=cutoff, catalog_history=scoped_history,
-        legacy_extractions_by_document={legacy['document_id']: legacy})
+        legacy_extractions_by_document={legacy['document_id']: legacy}, evidence_root=evidence_root)
     target = [row for row in current['transactions'] if row['id'] == prior['id']]
     report = audit['reports'][0]
     expected_correction = {'extraction_id': prior['id'], 'field': 'owner', 'old_value': 'Self',
