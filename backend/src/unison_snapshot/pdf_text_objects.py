@@ -13,6 +13,27 @@ import json
 import math
 from pathlib import Path
 
+MAX_SOURCE_BYTES = 50 * 1024 * 1024
+MAX_RENDER_PIXELS = 16_000_000
+MAX_RENDER_DIMENSION = 10_000
+
+
+def _bounded_source_bytes(source: Path) -> bytes:
+    if source.stat().st_size > MAX_SOURCE_BYTES:
+        raise ValueError("source PDF exceeds byte budget")
+    with source.open("rb") as handle:
+        data = handle.read(MAX_SOURCE_BYTES + 1)
+    if len(data) > MAX_SOURCE_BYTES:
+        raise ValueError("source PDF exceeds byte budget")
+    return data
+
+
+def _check_pixel_budget(width, height):
+    if (not all(math.isfinite(v) and v > 0 for v in (width, height)) or
+            max(width, height) > MAX_RENDER_DIMENSION or
+            width * height > MAX_RENDER_PIXELS):
+        raise ValueError("source render/crop exceeds pixel budget")
+
 
 def _canonical_sha(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
@@ -38,7 +59,7 @@ def render_pdf_text_objects(source: Path, *, expected_sha256: str,
     if type(resolution) is not int or not 72 <= resolution <= 600:
         raise ValueError("resolution must be an integer within 72..600 DPI")
     source = Path(source)
-    original_bytes = source.read_bytes()
+    original_bytes = _bounded_source_bytes(source)
     original_sha = hashlib.sha256(original_bytes).hexdigest()
     if original_sha != expected_sha256:
         raise ValueError("source PDF SHA differs")
@@ -92,6 +113,13 @@ def render_pdf_text_objects(source: Path, *, expected_sha256: str,
                     raise ValueError("import changed source object geometry or rendering mode")
 
                 def render(target=page):
+                    # PDFium includes the page's own rotation in get_size().
+                    # Check the actual media-view canvas before allocating it.
+                    width_pt, height_pt = target.get_size()
+                    if not all(math.isfinite(v) and v > 0 for v in (width_pt, height_pt)):
+                        raise ValueError("nonfinite/empty source render geometry")
+                    _check_pixel_budget(math.ceil(width_pt * resolution / 72),
+                                        math.ceil(height_pt * resolution / 72))
                     bitmap = target.render(scale=resolution / 72, grayscale=True,
                                          draw_annots=False, may_draw_forms=False)
                     try:
@@ -136,7 +164,7 @@ def render_pdf_text_objects(source: Path, *, expected_sha256: str,
                     raise ValueError("PDFium cannot count original annotations")
                 page_count = len(original)
 
-    if hashlib.sha256(source.read_bytes()).hexdigest() != original_sha:
+    if hashlib.sha256(_bounded_source_bytes(source)).hexdigest() != original_sha:
         raise ValueError("source PDF changed while rendering")
     full, text, nontext = [np.asarray(image) for image in (all_image, text_image, nontext_image)]
     # Diagnostic masks only. No threshold here grants field or page coverage.

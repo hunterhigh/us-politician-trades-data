@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import json
+import math
 import re
 from pathlib import Path
 
@@ -58,10 +59,17 @@ def source_quad_cell(rendered, page, slot, field, *, layer, padding=20, content_
     import numpy as np
     import cv2
     from .oge_278t_raster_slots import slot_quad
+    from .pdf_text_objects import _check_pixel_budget
     if field not in _FIELDS or layer not in _LAYERS or type(padding) is not int or padding != 20:
         raise ValueError("unsupported source quad field/layer/padding")
     receipt=rendered["receipt"];a=receipt["pixel_edge_to_source_pdf_affine"]
     media=receipt["source_mediabox_pdf_bottom_left"]
+    image=rendered[_LAYERS[layer]]
+    _check_pixel_budget(*image.size)
+    if (len(a)!=6 or len(media)!=4 or
+            any(not isinstance(v,(int,float)) or not math.isfinite(v) for v in [*a,*media]) or
+            media[2]<=media[0] or media[3]<=media[1] or a[0]*a[3]-a[1]*a[2]==0):
+        raise ValueError("nonfinite/singular source quad mapping")
     if receipt.get("source_rotation_degrees") != 0:
         raise ValueError("source quad displayed rotation is unsupported")
     frame=page.get("column_geometry_observation",{}).get("render_page_bbox")
@@ -73,16 +81,22 @@ def source_quad_cell(rendered, page, slot, field, *, layer, padding=20, content_
     affine=np.array([[a[0],a[2],a[4]],[a[1],a[3],a[5]],[0.,0.,1.]])
     inverse=np.linalg.inv(affine);column=_FIELDS[field]
     quad=slot_quad(page,slot,column,6 if field=="amount" else column+1)
+    if (len(quad)!=4 or any(len(p)!=2 or any(not math.isfinite(v) for v in p) for p in quad)):
+        raise ValueError("nonfinite source quad geometry")
     points=[]
     for x,y in quad:
         p=inverse@np.array([x+media[0],media[3]-y,1.])
         points.append(p[:2]/p[2])
     points=np.array(points,dtype="float32")
+    if not np.isfinite(points).all():
+        raise ValueError("nonfinite source quad pixel mapping")
     width=round(max(np.linalg.norm(points[1]-points[0]),np.linalg.norm(points[2]-points[3])))
     height=round(max(np.linalg.norm(points[3]-points[0]),np.linalg.norm(points[2]-points[1])))
     if width < 2 or height < 2:raise ValueError("source quad cell has no usable area")
+    _check_pixel_budget(width,height)
+    _check_pixel_budget(width+2*padding,height+2*padding)
     matrix=cv2.getPerspectiveTransform(points,np.array([[0,0],[width-1,0],[width-1,height-1],[0,height-1]],dtype="float32"))
-    pixels=np.pad(cv2.warpPerspective(np.asarray(rendered[_LAYERS[layer]]),matrix,(width,height),borderValue=255),padding,constant_values=255)
+    pixels=np.pad(cv2.warpPerspective(np.asarray(image),matrix,(width,height),borderValue=255),padding,constant_values=255)
     content_proof={}
     if content_crop_mode is not None:
         if content_crop_mode!=NUMBER_CONTENT_MODE or field!='printed_number' or layer!='full_source' or receipt['resolution']!=300:
@@ -122,7 +136,8 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
     if (field not in _FIELDS or layer not in _LAYERS or type(resolution) is not int or not 200 <= resolution <= 400
             or not isinstance(ocr_engine,str) or not ocr_engine.strip()):
         raise ValueError("source quad read parameters are invalid")
-    sha=hashlib.sha256(Path(source_pdf_path).read_bytes()).hexdigest()
+    from .pdf_text_objects import _bounded_source_bytes
+    sha=hashlib.sha256(_bounded_source_bytes(Path(source_pdf_path))).hexdigest()
     if sha != slots_observation["source_sha256"]:raise ValueError("source quad PDF SHA differs")
     pages={p["page_number"]:p for p in slots_observation["pages"]}
     if (not isinstance(saved_pages,list) or not 1 <= len(saved_pages) <= 8 or
