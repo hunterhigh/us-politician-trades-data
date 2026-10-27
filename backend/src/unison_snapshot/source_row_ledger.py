@@ -266,9 +266,10 @@ def add_non_transaction_region(page, proof):
            slot['bounds'][0] < box[3] and slot['bounds'][1] > box[1] for slot in page['slots']):
         return None
     regions = deepcopy(page['unresolved_regions'])
-    # This source profile explains the entire page width, including its footer.
-    # Subtract its vertical extent only; upper unknown areas remain unknown.
-    if box[0] == 0 and proof.get('role') == 'fixed_native_summary_of_contents_2019':
+    # These profiles explain source-defined full-width regions. Subtract only
+    # those vertical extents; remaining gaps and unknown areas stay unknown.
+    if box[0] == 0 and proof.get('role') in {
+            'fixed_native_summary_of_contents_2019', 'native_referential_endnotes'}:
         remainder = []
         for top, bottom in regions:
             if top < box[1]:
@@ -417,9 +418,10 @@ def oge_278t_shadow_pages(report: dict, *, source_id: str, archived_pdf_path=Non
             coverage_reason=role_reason or (None if physical else row_state),
             unresolved_regions=regions, coordinate_frame="pdf_points")
         for region in page.get('non_transaction_regions', []):
-            from .oge_278t_summary_region import replay_native_summary_region
-            if (archived_pdf_path is None or not replay_native_summary_region(archived_pdf_path,
-                    region, source_sha256=report['source_sha256'], page_number=page['page_number'])):
+            from .oge_278t_region_roles import replay_native_region
+            if (archived_pdf_path is None or not replay_native_region(archived_pdf_path,
+                    region, source_sha256=report['source_sha256'], page_number=page['page_number'],
+                    cover_identity_context=cover_identity_context)):
                 raise ValueError('non-transaction region differs from original source replay')
             normalized = add_non_transaction_region(normalized, region) or normalized
         output.append(normalized)

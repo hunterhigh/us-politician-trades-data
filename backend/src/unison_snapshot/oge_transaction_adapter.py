@@ -1011,7 +1011,7 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
         import io
         import pdfplumber
         from .oge_278t_page_roles import observe_native_page_role
-        from .oge_278t_summary_region import observe_native_summary_region
+        from .oge_278t_region_roles import observe_native_regions
         raw = Path(archived_pdf_path).read_bytes()
         if hashlib.sha256(raw).hexdigest() != sha:
             raise OgeCatalogError('source page roles differ from archived PDF')
@@ -1021,11 +1021,13 @@ def _audit_content_source(content: dict, sha: str, page_count: int,
             for number in role_candidates:
                 proof = observe_native_page_role(document.pages[number-1], number, source_sha256=sha,
                     cover_identity_context=cover_identity_context)
-                region = observe_native_summary_region(document.pages[number-1], number, source_sha256=sha)
-                if region['status'] == 'observed' and number in by_number:
-                    updated = add_non_transaction_region(by_number[number], region)
-                    if updated is not None:
-                        by_number[number] = updated
+                regions = observe_native_regions(document.pages[number-1], number, source_sha256=sha,
+                    cover_identity_context=cover_identity_context)
+                if number in by_number:
+                    for region in regions:
+                        updated = add_non_transaction_region(by_number[number], region)
+                        if updated is not None:
+                            by_number[number] = updated
                 if proof['status'] != 'non_table':
                     continue
                 existing = by_number.get(number)

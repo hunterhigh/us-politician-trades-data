@@ -1127,34 +1127,41 @@ def _apply_default_owner_conservation(record, audit, raw, *, review, evidence,
         record['reason_codes'].append('default_owner_conservation_current_unresolved')
 
 
-def _verified_summary_regions(record, receipt, evidence):
+def _verified_non_transaction_regions(record, receipt, evidence, catalog_record):
     regions = _rows(receipt, 'non_transaction_regions')
     if not regions:
         return []
     if evidence is None or not _DIRECT_ID.fullmatch(record.get('report_id') or ''):
-        raise ValueError('OGE Summary region proof requires its controlled original')
+        raise ValueError('OGE non-transaction region proof requires its controlled original')
     sha = receipt.get('source_sha256')
     if not isinstance(sha, str) or not _SHA.fullmatch(sha):
-        raise ValueError('OGE Summary region source SHA is invalid')
+        raise ValueError('OGE non-transaction region source SHA is invalid')
     relative = f"oge/reports/{record['report_id']}/{sha}.pdf"
     path = (Path(evidence) / relative).resolve()
     if not path.is_relative_to(Path(evidence).resolve()):
-        raise ValueError('OGE Summary source escapes its controlled original root')
+        raise ValueError('OGE region source escapes its controlled original root')
     metadata = _read(path.with_suffix('.json'))
     from .pdf_text_objects import _bounded_source_bytes
     raw = _bounded_source_bytes(path)
     if (metadata.get('document_id') != record['report_id'] or metadata.get('sha256') != sha or
             metadata.get('archive_path') != relative or metadata.get('document_url') != record['source_url'] or
             metadata.get('byte_length') != len(raw) or hashlib.sha256(raw).hexdigest() != sha):
-        raise ValueError('OGE Summary region original source metadata or bytes differ')
-    from .oge_278t_summary_region import replay_native_summary_region
+        raise ValueError('OGE region original source metadata or bytes differ')
+    from .oge_transaction_adapter import _cover_identity_context
+    context = _cover_identity_context({'source_id':metadata.get('source_id'), 'source_sha256':sha,
+        'document_id':metadata.get('document_id'), 'source_url':metadata.get('document_url'),
+        'catalog_filer_name':metadata.get('filer_name'), 'agency':metadata.get('agency'),
+        'position_title':metadata.get('position_title')}, catalog_record)
+    from .oge_278t_region_roles import replay_native_region
     seen = set()
     for proof in regions:
         number = proof.get('page_number')
-        if (type(number) is not int or number in seen or
-                not replay_native_summary_region(path, proof, source_sha256=sha, page_number=number)):
-            raise ValueError('OGE Summary region differs from complete original source replay')
-        seen.add(number)
+        key = (number, proof.get('rule_version'))
+        if (type(number) is not int or key in seen or
+                not replay_native_region(path, proof, source_sha256=sha, page_number=number,
+                                         cover_identity_context=context)):
+            raise ValueError('OGE region differs from complete original source replay')
+        seen.add(key)
     return regions
 
 
@@ -1187,7 +1194,7 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
             for item in application_view.get("native_exhibit_replacement_applications", [])]
     receipt = audit.get("observation_receipt")
     if isinstance(receipt, dict) and receipt.get('non_transaction_regions'):
-        record['non_transaction_regions'] = _verified_summary_regions(record, receipt, evidence)
+        record['non_transaction_regions'] = _verified_non_transaction_regions(record, receipt, evidence, catalog_record)
     native_exhibit = isinstance(receipt, dict) and receipt.get("mode") == "native_exhibit_substitution"
     if (isinstance(receipt, dict) and receipt.get("legacy_inventory_basis") ==
             "normalized_disposition_reference_without_physical_inventory" and "quarantine_count_unit" not in audit):
