@@ -748,6 +748,7 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         raise ValueError("A sticky Trump 2026 ticker mapping is now ambiguous")
     rows_by_id = {row["id"]: row for row in proposed["transactions"] if _source_row(row)}
     mappings = []
+    retained_ticker_conflicts = []
     for record_id, old in prior_by_id.items():
         row = rows_by_id.get(record_id)
         if row is None or row["asset_name"] != old["asset_name"]:
@@ -790,10 +791,23 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
                     "security_directory_url", "security_directory_checked_on")
                             if current_mapping.get(key) != old.get(key)]
             if changed_keys:
-                raise ValueError(
-                    "Alpaca identity conflicts with a sticky Trump 2026 mapping: "
-                    f"record_id={record_id}, fields={','.join(changed_keys)}"
-                )
+                if (changed_keys == ['ticker'] and old['mapping_basis'] in {
+                        'alpaca_unique_asset_name', 'alpaca_unique_classless_asset_name'}):
+                    # A current name match cannot rewrite a historical mapping.
+                    # Quarantine the new proposal; do not infer a rename, split,
+                    # price-history alias or successor security from its name.
+                    retained_ticker_conflicts.append({
+                        'record_id': record_id, 'asset_name': old['asset_name'],
+                        'retained_ticker': old['ticker'],
+                        'proposed_ticker': current_mapping['ticker'],
+                        'reason': 'provider_name_match_changed_ticker',
+                        'disposition': 'proposal_quarantined_prior_mapping_retained',
+                    })
+                else:
+                    raise ValueError(
+                        "Alpaca identity conflicts with a sticky Trump 2026 mapping: "
+                        f"record_id={record_id}, fields={','.join(changed_keys)}"
+                    )
         row["ticker"] = old["ticker"]
         row["ticker_mapping_basis"] = old["mapping_basis"]
         mappings.append(dict(old))
@@ -842,6 +856,9 @@ def enrich_trump_2026_tickers(candidate: dict, assets: object, *,
         "source_directory_mapping_count": sum(
             row["mapping_basis"] == SOURCE_DIRECTORY_BASIS for row in mappings),
         "retained_mapping_count": len(prior_by_id),
+        "retained_ticker_conflict_count": len(retained_ticker_conflicts),
+        "retained_ticker_conflicts": sorted(retained_ticker_conflicts,
+                                            key=lambda row: row['record_id']),
         "new_mapping_count": len(mappings) - len(prior_by_id),
         "ambiguous_record_count": len(ambiguous),
         "ambiguous_records": ambiguous,

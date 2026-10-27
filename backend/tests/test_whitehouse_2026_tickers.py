@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
@@ -112,6 +113,67 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
             previous=audit)
         self.assertEqual(repeated["transactions"], enriched["transactions"])
         self.assertEqual(repeated_audit["mappings"], audit["mappings"])
+
+    def test_current_name_ticker_proposal_is_quarantined_without_rewriting_history(self):
+        record_id = 'oge-278t:' + 'a' * 24
+        original = {'meta': {'is_demo': False},
+                    'transactions': [self.target(record_id, 'EXAMPLE TECHNOLOGIES INC')],
+                    'reported_holdings': []}
+        old_result, old_audit = enrich_trump_2026_tickers(
+            original, [self.asset('OLD', 'Example Technologies Inc')],
+            checked_at='2026-09-28T00:00:00Z')
+        # A provider name match alone supplies no historical rename/split proof.
+        changed_assets = [self.asset('NEW', 'Example Technologies Inc'),
+                          self.asset('OTHER', 'Other Corp')]
+        rebuilt = restore_pre_enrichment(old_result, old_audit)
+        rebuilt['transactions'].append(self.target('oge-278t:' + 'b' * 24, 'OTHER CORP'))
+        before = deepcopy(rebuilt)
+        result, audit = enrich_trump_2026_tickers(
+            rebuilt, changed_assets, checked_at='2026-10-27T00:00:00Z', previous=old_audit)
+        self.assertEqual(rebuilt, before)
+        self.assertEqual(result['transactions'][0], old_result['transactions'][0])
+        self.assertEqual(result['transactions'][1]['ticker'], 'OTHER')
+        self.assertEqual(audit['mappings'][0], old_audit['mappings'][0])
+        self.assertEqual(audit['new_mapping_count'], 1)
+        self.assertEqual(audit['retained_ticker_conflict_count'], 1)
+        self.assertEqual(audit['retained_ticker_conflicts'][0], {
+            'record_id': record_id, 'asset_name': 'EXAMPLE TECHNOLOGIES INC',
+            'retained_ticker': 'OLD', 'proposed_ticker': 'NEW',
+            'reason': 'provider_name_match_changed_ticker',
+            'disposition': 'proposal_quarantined_prior_mapping_retained'})
+        repeated, repeated_audit = enrich_trump_2026_tickers(
+            restore_pre_enrichment(result, audit), changed_assets,
+            checked_at='2026-10-27T00:00:00Z', previous=audit)
+        self.assertEqual(repeated, result)
+        self.assertEqual(repeated_audit['mappings'], audit['mappings'])
+        self.assertEqual(repeated_audit['retained_ticker_conflicts'],
+                         audit['retained_ticker_conflicts'])
+
+    def test_ticker_proposal_does_not_relax_other_sticky_identity_guards(self):
+        record_id = 'oge-278t:' + 'a' * 24
+        original = {'meta': {'is_demo': False},
+                    'transactions': [self.target(record_id, 'EXAMPLE TECHNOLOGIES INC')],
+                    'reported_holdings': []}
+        result, audit = enrich_trump_2026_tickers(
+            original, [self.asset('OLD', 'Example Technologies Inc')],
+            checked_at='2026-09-28T00:00:00Z')
+        restored = restore_pre_enrichment(result, audit)
+        changed_basis = deepcopy(audit)
+        changed_basis['mappings'][0]['mapping_basis'] = 'alpaca_unique_classless_asset_name'
+        with self.assertRaisesRegex(ValueError, 'identity conflicts'):
+            enrich_trump_2026_tickers(restored,
+                [self.asset('NEW', 'Example Technologies Inc')],
+                checked_at='2026-10-27T00:00:00Z', previous=changed_basis)
+        with self.assertRaisesRegex(ValueError, 'now ambiguous'):
+            enrich_trump_2026_tickers(restored,
+                [self.asset('NEW', 'Example Technologies Inc'),
+                 self.asset('OTHER', 'Example Technologies Inc')],
+                checked_at='2026-10-27T00:00:00Z', previous=audit)
+        restored['transactions'][0]['asset_name'] = 'UNRELATED INC'
+        with self.assertRaisesRegex(ValueError, 'lost its source row'):
+            enrich_trump_2026_tickers(restored,
+                [self.asset('NEW', 'Unrelated Inc')],
+                checked_at='2026-10-27T00:00:00Z', previous=audit)
 
     def test_fixed_september_kroger_false_explicit_ticker_is_corrected_only_on_its_row(self):
         kroger_id = "oge-278t:6edb6800bfd420ed027f7f1c"

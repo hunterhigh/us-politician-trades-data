@@ -430,7 +430,8 @@ jobs:
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
             --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
-            --checked-at "$cutoff" --assets-url "$assets_url" --distribution-authorized
+            --checked-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --assets-url "$assets_url" --distribution-authorized
           REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
           import json, os
           from datetime import datetime, timezone
@@ -443,6 +444,7 @@ jobs:
           whitehouse = json.loads((review / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
           annual = json.loads((review / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
           combined = json.loads((review / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
+          ticker_audit = json.loads((review / 'whitehouse/278t/trump-2026-ticker-mapping-current.json').read_text(encoding='utf-8'))
           value = {
               'schema_version': 'oge-review-run/v1', 'source_id': 'oge',
               'generated_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
@@ -467,6 +469,7 @@ jobs:
               'whitehouse_public_qualified_annual_report_count': annual['annual_qualified_report_count'],
               'whitehouse_public_qualified_holding_count': annual['annual_holding_count'],
               'qualified_holding_count': len(combined['reported_holdings']),
+              'retained_ticker_conflict_count': ticker_audit['retained_ticker_conflict_count'],
               'quarantined_row_count': (audit['quarantined_row_count'] +
                                         whitehouse['quarantined_row_count']),
           }
