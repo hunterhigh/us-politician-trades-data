@@ -7,7 +7,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes
+from unison_snapshot.oge_278t_field_shadow import (
+    LEGACY_AMOUNT_INTERPRETATION_MODE, observe_content_rows, observe_field_shapes,
+)
 
 
 def _preparation_outputs(args, saved):
@@ -45,11 +47,17 @@ def main() -> None:
     parser.add_argument("--evidence-root", type=Path)
     parser.add_argument("--metadata", type=Path,
                         help="Canonical archived OGE report metadata; requires both roots")
+    parser.add_argument("--field-interpretation-mode", choices=[LEGACY_AMOUNT_INTERPRETATION_MODE],
+                        help="Explicitly isolate unresolved legacy amount derivations; requires saved-input preparation")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     preparation = any(value is not None for value in (args.review_root, args.evidence_root, args.metadata))
     if preparation and not all(value is not None for value in (args.review_root, args.evidence_root, args.metadata)):
         parser.error("--review-root, --evidence-root and --metadata must be provided together")
+    if args.field_interpretation_mode is not None and not preparation:
+        parser.error("--field-interpretation-mode requires saved-input preparation with bound original")
+    interpretation = ({"field_interpretation_mode": args.field_interpretation_mode}
+                      if args.field_interpretation_mode is not None else {})
     if preparation and any(value is not None for value in (
             args.read_description_pdf, args.description_output, args.description_executable,
             args.description_pages)):
@@ -95,14 +103,14 @@ def main() -> None:
         saved = prepare_saved_oge_observations(
             evidence_root=args.evidence_root, metadata_path=args.metadata,
             observations=inputs, secondary_observations=secondary,
-            document_page_count=args.document_page_count)
+            document_page_count=args.document_page_count, **interpretation)
         package = _preparation_outputs(args, saved)
         args.document_page_count = next(iter(saved.values()))["document_page_count"]
     if args.document_page_count is None:
-        result = observe_field_shapes(inputs, secondary_observations=secondary)
+        result = observe_field_shapes(inputs, secondary_observations=secondary, **interpretation)
     else:
         content = observe_content_rows(inputs, document_page_count=args.document_page_count,
-                                       secondary_observations=secondary)
+                                       secondary_observations=secondary, **interpretation)
         result = content.pop("field_observations")
         result.update(content)
     ledger_content = json.dumps(result, ensure_ascii=False, sort_keys=True,

@@ -19,12 +19,12 @@ MAX_JSON_BYTES = 16 * 1024 * 1024
 MAX_DOCUMENTS = 12
 _DOCUMENT = re.compile(r"[0-9a-f]{32}\Z")
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
-_KEYS = {"observations", "document_page_count", "secondary_observations"}
+_KEYS = {"observations", "document_page_count", "secondary_observations", "field_interpretation_mode"}
 _SECONDARY = {
     f"oge-278t-{field}-column-observation/v{version}"
     for field, versions in (("printed-number", (1,)), ("type", (1,)),
                             ("description", (1,)), ("date", (1,)),
-                            ("amount", (1, 2)))
+                            ("amount", (1, 2, 3)))
     for version in versions
 }
 
@@ -88,7 +88,7 @@ def _source(evidence_root, metadata_path):
     return archive, source, count
 
 
-def _request(observations, secondary, page_count, sha):
+def _request(observations, secondary, page_count, sha, *, field_interpretation_mode=None):
     if (not isinstance(observations, list) or not observations
             or any(not isinstance(item, dict) or item.get("source_sha256") != sha
                    or item.get("schema_version") not in {
@@ -102,6 +102,11 @@ def _request(observations, secondary, page_count, sha):
     request = {"observations": deepcopy(observations), "document_page_count": page_count}
     if secondary is not None:
         request["secondary_observations"] = deepcopy(secondary)
+    if field_interpretation_mode is not None:
+        from .oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE
+        if field_interpretation_mode != LEGACY_AMOUNT_INTERPRETATION_MODE:
+            raise ValueError("Saved OGE field interpretation mode is unsupported")
+        request["field_interpretation_mode"] = field_interpretation_mode
     _bounded(request)
     # Use exactly the existing materializer's supported shape/provenance modes.
     # In particular, do not enable source_quad_cells or source glyph/date modes.
@@ -111,7 +116,8 @@ def _request(observations, secondary, page_count, sha):
 
 
 def prepare_saved_oge_observations(*, evidence_root, metadata_path, observations,
-                                   secondary_observations=None, document_page_count=None) -> dict:
+                                   secondary_observations=None, document_page_count=None,
+                                   field_interpretation_mode=None) -> dict:
     """Return the existing document-to-kwargs mapping without machine paths."""
     _bounded({"observations": observations, "secondary_observations": secondary_observations})
     metadata, _, count = _source(evidence_root, metadata_path)
@@ -119,7 +125,8 @@ def prepare_saved_oge_observations(*, evidence_root, metadata_path, observations
             type(document_page_count) is not int or document_page_count != count):
         raise ValueError("Saved OGE page count differs from archived original")
     result = {metadata["document_id"]: _request(
-        observations, secondary_observations, count, metadata["sha256"])}
+        observations, secondary_observations, count, metadata["sha256"],
+        field_interpretation_mode=field_interpretation_mode)}
     _bounded(result)
     return result
 
@@ -147,6 +154,8 @@ def load_saved_oge_observations(path, *, evidence_root, extractions) -> dict:
                 or not isinstance(request, dict) or set(request) - _KEYS
                 or not {"observations", "document_page_count"} <= request.keys()):
             raise ValueError("Saved OGE document is unselected or portable input keys are invalid")
+        if "field_interpretation_mode" in request and request["field_interpretation_mode"] is None:
+            raise ValueError("Saved OGE field interpretation mode must be explicit when present")
         extraction = indexed[document]
         sha = extraction.get("source_sha256")
         if (not isinstance(sha, str) or not _SHA.fullmatch(sha)
@@ -161,7 +170,8 @@ def load_saved_oge_observations(path, *, evidence_root, extractions) -> dict:
             raise ValueError("Saved OGE selected extraction differs from original archive identity")
         if type(request["document_page_count"]) is not int or request["document_page_count"] != count:
             raise ValueError("Saved OGE page count differs from archived original")
-        bound = _request(request["observations"], request.get("secondary_observations"), count, sha)
+        bound = _request(request["observations"], request.get("secondary_observations"), count, sha,
+                         field_interpretation_mode=request.get("field_interpretation_mode"))
         result[document] = {**bound, "archived_pdf_path": str(source)}
     return result
 

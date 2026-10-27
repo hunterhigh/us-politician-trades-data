@@ -373,7 +373,9 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             from .oge_reports import validate_generic_table_interpretation
             validate_generic_table_interpretation(extraction)
         observed = document_id in saved or document_id in exhibits
+        amount_recompute = document_id in saved and saved[document_id].get('field_interpretation_mode') is not None
         retained = [row for row in base.get("transactions", []) if (visible or generic or document_id in exhibits or
+                    amount_recompute or
                     document_id in native_views and native_views[document_id].get("native_exhibit_preserved_target_ids") or
                     observed and "source_rows" not in extraction) and
                     row.get("source_id") == "oge" and row.get("filing_id") == document_id
@@ -403,7 +405,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                     # rows from a previous saved-observation run. Those rows
                     # are replayed below, not missing legacy parser references.
                     formal_reference_ids=[row["id"] for row in source_formal
-                        if "source_rows" not in extraction or row["id"] in parser_reference_ids],
+                        if amount_recompute or "source_rows" not in extraction or row["id"] in parser_reference_ids],
                     **saved[document_id])
                 # Only this call's source-replayed contradiction can select
                 # these predecessors. Page roles cannot silently reproject an
@@ -445,7 +447,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 inheritance = {"basis": "existing_formal_base_preserved_without_requalifying_normalized_reference",
                     "retained_formal_ids": [row["id"] for row in retained], "unbound_formal_ids": unbound,
                     "legacy_normalized_transaction_count": len(legacy_reference_rows)}
-                if unbound:
+                if unbound and not amount_recompute:
                     for row in extraction["transactions"]:
                         if row.get("extraction_id") not in referenced_ids:
                             row["reasons"] = sorted(set(row.get("reasons", []) + ["legacy_formal_reference_unbound"]))
@@ -500,6 +502,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             reasons.append("extraction_rows_invalid")
             source_rows, source_quarantine = [], []
         report_promoted = 0
+        amount_current_qualified_ids = set()
         retained_by_id = {row["id"]: row for row in retained}
         visible_retained_positions = set()
         visible_unbound_formal = False
@@ -627,6 +630,24 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                 raise OgeCatalogError("OGE candidate duplicates a promoted transaction ID")
             promoted_ids.add(fact_id)
             fact = _transaction_projection(extraction, row, person_id)
+            if amount_recompute and fact_id in retained_by_id:
+                prior_fact = retained_by_id.pop(fact_id)
+                # Public shards can omit nullable cells. Their absence and an
+                # explicit null have the existing generic consumer's same
+                # meaning; retain the predecessor's exact key presence.
+                if any(fact.get(field) != prior_fact.get(field)
+                       for field in fact.keys() | prior_fact.keys()):
+                    # This compatibility mode does not migrate any formal
+                    # field, optional key, or identity. Preserve the entire
+                    # predecessor on a separate current-qualification path.
+                    row_quarantines.append({'extraction_id':fact_id,
+                        'reasons':['legacy_amount_formal_projection_differs']})
+                    fact = deepcopy(prior_fact)
+                else:
+                    amount_current_qualified_ids.add(fact_id)
+                    fact = deepcopy(prior_fact)
+            elif amount_recompute:
+                amount_current_qualified_ids.add(fact_id)
             if row.get("native_exhibit_reference", {}).get("replacement_application") and fact_id in retained_by_id:
                 prior_fact = retained_by_id.pop(fact_id)
                 if any(prior_fact.get(key) != fact.get(key) for key in set(prior_fact) | set(fact)):
@@ -668,6 +689,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             **({"source_sha256": extraction["source_sha256"],
                 "observation_receipt": extraction["observation_receipt"]}
                if observed else {}),
+            **({'field_interpretation_mode':saved[document_id]['field_interpretation_mode'],
+                'amount_recompute_current_qualified_ids':sorted(amount_current_qualified_ids),
+                'amount_recompute_retained_formal_ids':sorted(row['id'] for row in retained),
+                'amount_recompute_published_ids':sorted(row['id'] for row in transactions
+                    if row.get('filing_id') == document_id and row.get('source_url') == extraction['source_url'])}
+               if amount_recompute else {}),
             **({"native_exhibit_application_replay": extraction["native_exhibit_application_replay"]}
                if "native_exhibit_application_replay" in extraction else {}),
             **({field: extraction[field] for field in ("native_exhibit_application_context",

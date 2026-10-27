@@ -167,7 +167,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                      observations: list[dict], document_page_count: int,
                                      secondary_observations: list[dict] | None = None,
                                      archived_pdf_path: str | None = None,
-                                     formal_reference_ids: list[str] | None = None) -> dict:
+                                     formal_reference_ids: list[str] | None = None,
+                                     field_interpretation_mode: str | None = None) -> dict:
     """Interpret saved source-bound readings without scanning or replacing old facts.
 
     The candidate builder calls this function itself. A serialized version label
@@ -210,7 +211,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         raise OgeCatalogError("saved observations differ from extraction source")
     try:
         content = observe_content_rows(observations, document_page_count=document_page_count,
-                                       secondary_observations=secondary_observations)
+                                       secondary_observations=secondary_observations,
+                                       field_interpretation_mode=field_interpretation_mode)
     except ValueError as exc:
         raise OgeCatalogError(f"saved observation contract is invalid: {exc}") from exc
     raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
@@ -221,7 +223,8 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         # Rebuild dependencies using the original saved readings after source
         # replay established the scope. Never remove a generic blocker by name.
         content = observe_content_rows(observations, document_page_count=document_page_count,
-            secondary_observations=secondary_observations, source_role_conflict_pages=verified_conflicts)
+            secondary_observations=secondary_observations, source_role_conflict_pages=verified_conflicts,
+            field_interpretation_mode=field_interpretation_mode)
         raster_inventory = _audit_content_source(content, sha, document_page_count, archived_pdf_path,
             parser_claimed_pages=_parser_claimed_pages(extraction),
             cover_identity_context=_cover_identity_context(extraction, catalog_record))
@@ -258,6 +261,29 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
         old_by_key.setdefault(_row_key(row), []).append(row)
     dispositions = {(row["page_number"], row["slot_key"]): row
                     for row in content["slot_content"]}
+    interpretation_conflicts = []
+    interpretation_unbound_parser_ids = []
+    if field_interpretation_mode is not None:
+        field_names = ('printed_number', 'description', 'type', 'transaction_date', 'notification', 'amount')
+        physical_keys = {}
+        affected_pages = set()
+        for page in content['field_observations']['pages']:
+            for slot in page.get('slots', []):
+                key = _row_key({'page_number':page['page_number'],
+                    'cells':[slot['raw_columns'].get(name, '') for name in field_names]})
+                physical_keys[key] = physical_keys.get(key, 0) + 1
+                if slot.get('interpretation_blockers'):
+                    affected_pages.add(page['page_number'])
+        unbound = [row for row in result['transactions'] if row.get('page_number') in affected_pages
+                   and physical_keys.get(_row_key(row)) != 1]
+        # A differently read parser row on the same physical page may be the
+        # affected disclosure. Do not use asset/printed-number similarity to
+        # qualify or rekey it. Actual base facts are conserved by the caller.
+        for row in unbound:
+            interpretation_unbound_parser_ids.append(row['extraction_id'])
+            result['quarantined'].append({**deepcopy(row), 'reasons':sorted(set([
+                *row.get('reasons', []), 'legacy_amount_source_correspondence_unresolved']))})
+        result['transactions'] = [row for row in result['transactions'] if row not in unbound]
     receipt_rows = []
     owner = None
     owner_reference = None
@@ -313,6 +339,46 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             receipt = {**reference, "disposition": "unresolved", "reasons": []}
             receipt_rows.append(receipt)
             matches = old_by_key.get(_row_key(physical), [])
+            blockers = slot.get('interpretation_blockers', [])
+            if blockers:
+                # A historical derived shape is diagnostic evidence, never a
+                # current field reading. This precedes every legacy/primary/
+                # template fallback, including a previously eligible cache row.
+                reasons = sorted({item['reason'] for item in blockers})
+                receipt.update(reasons=reasons, interpretation_blockers=deepcopy(blockers))
+                interpretation_conflicts.append({**reference, 'interpretation_blockers':deepcopy(blockers)})
+                matched_ids = {row.get('extraction_id') for row in matches}
+                cached = [row for row in result['transactions']
+                          if row.get('extraction_id') in matched_ids]
+                result['transactions'] = [row for row in result['transactions'] if row not in cached]
+                for row in result['quarantined']:
+                    if _row_key(row) == _row_key(physical):
+                        row.update(observation_reference=reference, interpretation_blockers=deepcopy(blockers),
+                            reasons=sorted(set([*row.get('reasons', []), *reasons])))
+                for row in cached:
+                    result['quarantined'].append({**deepcopy(row), 'observation_reference':reference,
+                        'interpretation_blockers':deepcopy(blockers),
+                        'reasons':sorted(set([*row.get('reasons', []), *reasons]))})
+                if len(matches) == 1:
+                    receipt['extraction_id'] = matches[0].get('extraction_id')
+                    used_old_ids.add(matches[0].get('extraction_id'))
+                if not cached:
+                    # Existing physical rows also require an explicit rejected
+                    # disposition; defer() intentionally skips their inventory.
+                    if _row_key(physical) in old_source_keys:
+                        if not any(_row_key(row) == _row_key(physical) for row in result['quarantined']):
+                            result['quarantined'].append({**physical, 'observation_reference':reference,
+                                'interpretation_blockers':deepcopy(blockers), 'reasons':reasons})
+                    else:
+                        defer(physical, reference, reasons)
+                if legacy_reference is not None and _row_key(physical) not in {
+                        _row_key(row) for row in result['source_rows']}:
+                    result['source_rows'].append(physical)
+                if re.search(r'\b(?:account|assets|continued|continuation)\b', cells[1], re.I):
+                    owner_conflicted = True
+                    owner = owner_reference = None
+                    account_scope_lost = True
+                continue
             if page_number in role_conflict_pages and not (len(matches) == 1 and
                     matches[0].get('extraction_id') in protected_ids and
                     matches[0].get('extraction_id') not in used_old_ids):
@@ -460,7 +526,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             if matches or any(row.get("page_number") == page_number and
                               row.get("extraction_id") not in used_old_ids for row in old_rows):
                 reasons.append("legacy_row_correspondence_unresolved")
-            if protected_ids - all_reference_ids:
+            if protected_ids - all_reference_ids and field_interpretation_mode is None:
                 reasons.append("legacy_formal_reference_unbound")
             amount = values.get("amount")
             if not isinstance(amount, list) or (tuple(amount) not in _AMOUNT_RANGES and not open_amount):
@@ -476,6 +542,11 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
                                          default_owner=owner or "Undisclosed", allow_open_amounts=True,
                                          account_title=account_title, allow_exchange=True)
             row = (good + bad)[0]
+            if (field_interpretation_mode is not None and protected_ids - all_reference_ids
+                    and row.get('extraction_id') not in protected_ids):
+                receipt['reasons'] = ['legacy_formal_reference_unbound']
+                defer(physical, reference, receipt['reasons'])
+                continue
             row["cells"] = cells
             row["observation_reference"] = reference
             row["field_observation_references"] = field_evidence
@@ -515,6 +586,11 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
             "unique_source_row_count": None} if legacy_reference else {}),
         "legacy_document_reasons": result.get("legacy_document_reasons", []),
         "initial_account_scope_basis": "optional_account_title_not_observed_no_absence_claim",
+        **({'field_interpretation_mode':field_interpretation_mode,
+            'interpretation_conflicts':interpretation_conflicts,
+            'interpretation_unbound_parser_ids':sorted(interpretation_unbound_parser_ids),
+            'protected_formal_reference_ids':sorted(protected_ids)}
+           if field_interpretation_mode is not None else {}),
         "raster_source_inventory": raster_inventory,
         "non_table_page_proofs": content["non_table_page_proofs"],
         "page_role_conflicts": content["page_role_conflicts"],

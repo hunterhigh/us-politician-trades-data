@@ -6,12 +6,12 @@ from collections import Counter
 from pathlib import Path
 
 from .oge_278t_amount_categories import observe_template_amount
-from .oge_278t_field_shadow import _amount_shape
+from .oge_278t_field_shadow import _amount_shape, AMOUNT_SHAPE_RULES_VERSION
 from .oge_278t_rapid_column_shadow import observe_rapid_column
 from .oge_278t_field_shadow import _dual_geometry, _secondary_slot_geometry
 
 
-SCHEMA = "oge-278t-amount-column-observation/v2"
+SCHEMA = "oge-278t-amount-column-observation/v3"
 
 
 def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
@@ -75,7 +75,8 @@ def observe_amount_column(pdf_path: Path, *, slots_observation: dict,
                         "slot_count": len(row_results),
                         "detections_outside_slots": page["detections_outside_slots"],
                         "slots": row_results})
-    return {"schema_version": SCHEMA, "source_sha256": reading["source_sha256"],
+    return {"schema_version": SCHEMA, "shape_rule_version": AMOUNT_SHAPE_RULES_VERSION,
+            "source_sha256": reading["source_sha256"],
             **({"input_column_geometry_sha256": reading["input_column_geometry_sha256"]}
                if "input_column_geometry_sha256" in reading else {}),
             "ocr_engine": reading["ocr_engine"],

@@ -622,6 +622,61 @@ def _native_partition_counts(record, audit, review, evidence):
                if current_qualified_count is not None else {})}
 
 
+def _legacy_amount_current_count(audit: dict) -> int | None:
+    """Conserved predecessors are publication facts, not current OCR approvals."""
+    from .oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE
+    receipt = audit.get('observation_receipt') or {}
+    mode = audit.get('field_interpretation_mode')
+    if mode is None and receipt.get('field_interpretation_mode') is None:
+        return None
+    if (mode != LEGACY_AMOUNT_INTERPRETATION_MODE or receipt.get('field_interpretation_mode') != mode
+            or receipt.get('coverage_complete') is not False):
+        raise ValueError('OGE legacy amount interpretation mode differs from its receipt')
+    sets = []
+    for field in ('amount_recompute_current_qualified_ids', 'amount_recompute_retained_formal_ids',
+                  'amount_recompute_published_ids'):
+        values = audit.get(field)
+        if (not isinstance(values, list) or any(not isinstance(value, str) for value in values)
+                or values != sorted(set(values))):
+            raise ValueError('OGE legacy amount qualification identities are not unique')
+        sets.append(set(values))
+    current, retained, published = sets
+    rejected_ids = {row.get('extraction_id') for row in audit.get('quarantined', [])
+                    if isinstance(row.get('extraction_id'), str)}
+    unresolved_ids = {row.get('extraction_id') for row in receipt.get('rows', [])
+                      if row.get('disposition') in {'unresolved', 'quarantined'}
+                      and isinstance(row.get('extraction_id'), str)}
+    normalized_reference = receipt.get('legacy_inventory_basis') == \
+        'normalized_disposition_reference_without_physical_inventory'
+    materialized_ids = {row.get('extraction_id') for row in receipt.get('rows', [])
+                        if row.get('disposition') == 'materialized'}
+    normalized_only_ids = retained - materialized_ids if normalized_reference else set()
+    if (not current <= published or not retained <= published or published != current | retained
+            or current & (rejected_ids | unresolved_ids | normalized_only_ids)
+            or _count(audit.get('promoted_count')) != len(published)
+            or _count(audit.get('quarantined_count')) != len(audit.get('quarantined', []))
+            or receipt.get('protected_formal_reference_ids') != sorted(retained)):
+        raise ValueError('OGE legacy amount qualification counts do not close')
+    conflicts = []
+    for row in receipt.get('rows', []):
+        blockers = row.get('interpretation_blockers')
+        if not blockers:
+            continue
+        reference = {key:row.get(key) for key in
+            ('source_sha256', 'page_number', 'slot_key', 'field_observation_ref')}
+        conflicts.append({**reference, 'interpretation_blockers':blockers})
+        if (row.get('disposition') != 'unresolved' or row.get('extraction_id') in current or
+                not {item['reason'] for item in blockers} <= set(row.get('reasons', []))):
+            raise ValueError('OGE unresolved legacy amount row was qualified')
+        if not any(rejection.get('observation_reference') == reference and
+                {item['reason'] for item in blockers} <= set(rejection.get('reasons', []))
+                for rejection in audit.get('quarantined', [])):
+            raise ValueError('OGE legacy amount conflict lacks its rejected source row')
+    if receipt.get('interpretation_conflicts') != conflicts:
+        raise ValueError('OGE legacy amount conflicts differ from their receipt rows')
+    return len(current)
+
+
 def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
                  evidence: Path | None = None, catalog_record: dict | None = None) -> None:
     application_view = None
@@ -676,6 +731,9 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
         record["qualified_retained_transaction_ids"] = retained
     if 'native_partition_current_qualified_count' in separate_counts:
         promoted = separate_counts.pop('native_partition_current_qualified_count')
+    amount_current = _legacy_amount_current_count(audit)
+    if amount_current is not None:
+        promoted = amount_current
     record["qualified_transaction_count"] = promoted
     record["quarantined_row_count"] = quarantined
     record["reason_codes"].extend(_reasons(audit))
@@ -694,6 +752,12 @@ def _apply_audit(record: dict, audit: dict, *, review: Path | None = None,
     else:
         record["qualification_state"] = "zero_transactions"
     record.update(separate_counts)
+    if amount_current is not None:
+        record['source_observation_coverage'] = {**record.get('source_observation_coverage', {}),
+            'coverage_complete':False, 'field_interpretation_mode':audit['field_interpretation_mode'],
+            'current_qualified_transaction_ids':audit['amount_recompute_current_qualified_ids'],
+            'retained_formal_transaction_ids':audit['amount_recompute_retained_formal_ids'],
+            'published_transaction_ids':audit['amount_recompute_published_ids']}
     if application_view is not None and not promoted and not quarantined and (
             record.get("superseded_transaction_ids") or any(
                 row.get("native_replacement_disposition") == "superseded" for row in application_view["transactions"])):

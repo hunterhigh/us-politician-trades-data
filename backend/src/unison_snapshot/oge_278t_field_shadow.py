@@ -40,8 +40,12 @@ _SECONDARY = {"oge-278t-printed-number-column-observation/v1": ("printed_number"
               "oge-278t-description-column-observation/v1": ("description", "description_column_observed"),
               "oge-278t-date-column-observation/v1": ("transaction_date", "date_column_observed"),
               "oge-278t-amount-column-observation/v1": ("amount", "amount_column_observed"),
-              "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed")}
+              "oge-278t-amount-column-observation/v2": ("amount", "amount_column_observed"),
+              "oge-278t-amount-column-observation/v3": ("amount", "amount_column_observed")}
 _CONTENT_RULES = "oge-278t-content-rows/v4"
+LEGACY_AMOUNT_INTERPRETATION_MODE = "legacy-amount-shape-recompute/v1"
+AMOUNT_SHAPE_RULES_VERSION = "oge-278t-amount-shape/whole-read-v1"
+_LEGACY_AMOUNT_BLOCKER = "legacy_amount_shape_current_unresolved"
 
 
 def _official_type_shape(raw: str, *, bound_role: bool, source_ref: str) -> dict:
@@ -346,7 +350,8 @@ def _validate_type_cell_crop(reading: dict, slot: dict, original: dict, page: di
             raise ValueError("Type cell detection escaped its source crop")
 
 
-def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict], *, source_pdf_path=None) -> None:
+def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[dict], *,
+                            source_pdf_path=None, field_interpretation_mode=None) -> None:
     """Join saved reads by source/page/slot/band, never by equal row totals."""
     source_pages = {page["page_number"]: (item, page)
                     for item in originals for page in item["pages"]}
@@ -358,6 +363,12 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
     source_render_cache = {}
     for read_index, reading in enumerate(readings):
         quad_mode = reading.get("read_mode") == "source_quad_cells/v1"
+        schema = reading.get("schema_version")
+        if field_interpretation_mode and quad_mode:
+            raise ValueError("legacy amount interpretation does not support source quad readings")
+        if schema == "oge-278t-amount-column-observation/v3" and (
+                reading.get("shape_rule_version") != AMOUNT_SHAPE_RULES_VERSION or quad_mode):
+            raise ValueError("amount v3 requires its exact whole-read rules and non-quad geometry")
         if quad_mode:
             from .oge_278t_source_quad_cells import validate_source_quad_reading
             validate_source_quad_reading(reading, originals, source_pdf_path, render_cache=source_render_cache)
@@ -539,7 +550,22 @@ def _attach_secondary_reads(result: dict, originals: list[dict], readings: list[
                     value = value if len(detections) == 1 and value in _TYPE else None
                     shape = {"status": "ocr_shape_only" if value else "unknown", "value": value}
                 if (slot.get("column_shape") != (shape["value"] if field == "type" else shape)):
-                    raise ValueError("secondary field shape differs from its raw text")
+                    if (field_interpretation_mode == LEGACY_AMOUNT_INTERPRETATION_MODE
+                            and field == "amount" and shape["status"] == "unknown"
+                            and schema == "oge-278t-amount-column-observation/v2"
+                            and "shape_rule_version" not in reading
+                            and slot.get("column_shape") == _legacy_amount_shape(raw)
+                            and type(slot["column_shape"].get("values")) is list
+                            and all(type(value) is int for value in slot["column_shape"]["values"])
+                            and slot["column_shape"]["status"] == "ocr_shape_only"):
+                        rows[(number, slot_index)].setdefault("interpretation_blockers", []).append({
+                            "reason": _LEGACY_AMOUNT_BLOCKER,
+                            "source_ref": f"secondary_observations/{read_index}/pages/{page_index}/slots/"
+                                          f"{page['slots'].index(slot)}",
+                            "stored_shape": deepcopy(slot["column_shape"]),
+                            "current_shape": deepcopy(shape)})
+                    else:
+                        raise ValueError("secondary field shape differs from its raw text")
                 # First validate the producer's unchanged literal read. Interpret
                 # the exact source variant only after its Type geometry binds.
                 if field == "type" and len(detections) == 1 and not geometry_issues:
@@ -719,6 +745,15 @@ def _amount_shape(raw: str) -> dict:
                 "reason": "not_exactly_two_ordered_money_shapes"}
     return {"status": "ocr_shape_only", "values": values,
             "reason": None}
+
+
+def _legacy_amount_shape(raw: str) -> dict:
+    """Validate only an old derived claim; never qualify its money values."""
+    values = [int(match[1].replace(",", "")) for match in _MONEY.finditer(raw)]
+    if len(values) != 2 or values[0] >= values[1]:
+        return {"status": "unknown", "values": None,
+                "reason": "not_exactly_two_ordered_money_shapes"}
+    return {"status": "ocr_shape_only", "values": values, "reason": None}
 
 
 
@@ -906,10 +941,15 @@ def _description_shape(reading: dict) -> dict:
 
 def observe_field_shapes(observations: list[dict], *,
                          secondary_observations: list[dict] | None = None, source_pdf_path=None,
-                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None) -> dict:
+                         source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None,
+                         field_interpretation_mode: str | None = None) -> dict:
     """Summarize saved OCR observations; never turn shapes into facts."""
     if not observations:
         raise ValueError("expected saved 278-T raster slot observations v2/v3")
+    if field_interpretation_mode not in (None, LEGACY_AMOUNT_INTERPRETATION_MODE):
+        raise ValueError("unsupported field interpretation mode")
+    if field_interpretation_mode and (source_glyph_mode or source_date_sequence_mode):
+        raise ValueError("legacy amount interpretation cannot combine with source glyph/date modes")
     from .oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
     from .oge_278t_source_date_sequence_fields import MODE as SEQUENCE_MODE
     if source_date_sequence_mode not in (None, SEQUENCE_MODE):
@@ -1017,10 +1057,13 @@ def observe_field_shapes(observations: list[dict], *,
             "page_count": len(pages), "summary": dict(sorted(counts.items())),
             "field_evidence_summary": dict(sorted(evidence_counts.items())),
             "pages": pages, "production_mutation_authorized": False}
+    if field_interpretation_mode:
+        result["field_interpretation_mode"] = field_interpretation_mode
     if secondary_observations is not None:
         if not isinstance(secondary_observations, list):
             raise ValueError("secondary field observations must be an array")
-        _attach_secondary_reads(result, observations, secondary_observations, source_pdf_path=source_pdf_path)
+        _attach_secondary_reads(result, observations, secondary_observations, source_pdf_path=source_pdf_path,
+                                field_interpretation_mode=field_interpretation_mode)
     if source_glyph_mode:
         from .oge_278t_source_glyph_fields import attach_source_glyph_dates
         attach_source_glyph_dates(result, observations, source_pdf_path=source_pdf_path)
@@ -1398,7 +1441,7 @@ def _row_relation_evidence(row: dict, *, rounding_ambiguous: bool,
 def observe_content_rows(observations: list[dict], *, document_page_count: int,
                          secondary_observations: list[dict] | None = None, source_pdf_path=None,
                          source_glyph_mode: str | None = None, source_date_sequence_mode: str | None = None,
-                         source_role_conflict_pages=None) -> dict:
+                         source_role_conflict_pages=None, field_interpretation_mode: str | None = None) -> dict:
     """Account for saved grids and single-row observations, without qualification.
 
     The whole-document page count must come from the bound source metadata,
@@ -1411,7 +1454,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
         raise ValueError("bound document page count is required")
     fields = observe_field_shapes(observations, secondary_observations=secondary_observations,
                                   source_pdf_path=source_pdf_path, source_glyph_mode=source_glyph_mode,
-                                  source_date_sequence_mode=source_date_sequence_mode)
+                                  source_date_sequence_mode=source_date_sequence_mode,
+                                  field_interpretation_mode=field_interpretation_mode)
     content_rules = ("oge-278t-content-rows/v5-type-cells" if any(
         reading.get("read_mode") == "bound_single_type_cells/v1"
         for reading in secondary_observations or []) else _CONTENT_RULES)
@@ -1419,6 +1463,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
         content_rules = "oge-278t-content-rows/v6-source-glyph-dates"
     if source_date_sequence_mode:
         content_rules = "oge-278t-content-rows/v7-source-date-sequences"
+    if field_interpretation_mode:
+        content_rules = "oge-278t-content-rows/v8-legacy-amount-recompute"
     sha = fields["source_sha256"]
     originals = {}
     for item in observations:
@@ -1477,6 +1523,9 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
             previous_bottom=band[1]
             disposition, reason = _content_disposition(row)
             structural = None
+            blockers = row.get("interpretation_blockers", [])
+            if blockers and disposition != "data_candidate":
+                disposition, reason = "unknown", _LEGACY_AMOUNT_BLOCKER
             if disposition in {"heading", "note", "blank"}:
                 structural = _structural_evidence(row, raw_slot, rounding=rounding_ambiguous[index - 1])
                 if structural["status"] != "supported_label":
@@ -1499,6 +1548,8 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                            "word_center_rounding_ambiguous": rounding_ambiguous[index - 1],
                            "field_observation_ref": observation_ref,
                            "account_context": deepcopy(account)}
+            if blockers:
+                content_row["interpretation_blockers"] = deepcopy(blockers)
             if original.get("partial_row_geometry") or region_before:
                 content_row.update(unresolved_region_before=region_before,unresolved_region_scope_signal=scope_signal)
             if structural is not None:
@@ -1510,6 +1561,10 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
                 continue
             relation = _row_relation_evidence(row, rounding_ambiguous=rounding_ambiguous[index - 1],
                                                source_slot=raw_slot, source_page=original)
+            if blockers:
+                relation["status"] = "unresolved"
+                relation["blocking_reasons"] = sorted(set(relation["blocking_reasons"] + [
+                    item["reason"] for item in blockers]))
             if raw_slot.get("unresolved_region_crossing_word_indices"):
                 relation["status"]="unresolved"
                 relation["blocking_reasons"]=sorted(set(relation["blocking_reasons"]+[
@@ -1556,6 +1611,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
     from .oge_278t_printed_number_shadow import observe_printed_number_sequence
     printed = observe_printed_number_sequence(observations)
     return {"field_observations": fields, "slot_content": content,
+            **({"field_interpretation_mode": field_interpretation_mode} if field_interpretation_mode else {}),
             **({"partial_geometry_pages":partial_pages} if partial_pages else {}),
             "logical_row_field_evidence": logical_evidence,
             "fragment_relations": fragments,
