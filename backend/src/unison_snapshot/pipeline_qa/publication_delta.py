@@ -20,6 +20,7 @@ from .senate_account_correction import verified_account_corrections
 from .whitehouse_owner_correction import verified_owner_corrections
 from .whitehouse_classification_correction import verified_classification_corrections
 from .whitehouse_account_display_correction import verified_account_display_corrections
+from .house_revision_supersession import verified_house_revision_supersessions
 
 ENTITIES = ("people", "transactions", "reported_holdings")
 SOURCES = ("house_clerk", "oge", "senate_efd")
@@ -43,9 +44,9 @@ def _source_id(row, entity):
 
 
 def _decision(item, entity, old, current, *, repo, evidence_commit, verified_replacements,
-              verified_corrections):
+              verified_corrections, verified_supersessions):
     kind, old_id, new_id = (item.get(key) for key in ("kind", "old_id", "new_id"))
-    if (item.get("entity") != entity or kind not in {"rekey", "corrected", "withdrawn"} or
+    if (item.get("entity") != entity or kind not in {"rekey", "corrected", "withdrawn", "superseded"} or
             not isinstance(old_id, str) or old_id not in old or item.get("reason") not in REASONS or
             not re.fullmatch(r"[0-9a-f]{64}", str(item.get("source_sha256")))):
         raise InventoryError("invalid fact transition")
@@ -81,12 +82,16 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
         verified = verified_corrections.get(old_id)
         if verified is None or any(item.get(key) != value for key, value in verified.items()):
             raise InventoryError("correction needs a matching source-specific evidence verifier")
+    elif kind == "superseded":
+        verified = verified_supersessions.get(old_id)
+        if verified is None or any(item.get(key) != value for key, value in verified.items()):
+            raise InventoryError("supersession needs matching original source scope and revision chain")
     else:
         raise InventoryError("withdrawal needs a source-specific evidence verifier")
     return {"entity": entity, "kind": kind, "old_id": old_id, "new_id": new_id,
             "reason": item["reason"], "evidence_url": url,
             "source_sha256": item["source_sha256"],
-            **({"changed_fields": item["changed_fields"]} if kind == "corrected" else {})}
+            **({"changed_fields": item["changed_fields"]} if kind in {"corrected", "superseded"} else {})}
 
 
 def build_publication_delta(*, previous_board, unified, prepared, sources,
@@ -111,6 +116,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
     changes, counts, used, verified_replacements = [], {}, set(), set()
     verified_amendments = 0
     correction_count = 0
+    house_supersession_count = 0
     correction_levels = set()
     for entity in ENTITIES:
         old = _index(previous_board.get(entity), f"previous {entity}")
@@ -162,17 +168,42 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         if len({item['old_id'] for item in corrections}) != len(corrections):
             raise InventoryError('source correction verifiers repeat an old ID')
         verified_corrections = {item["old_id"]: item for item in corrections}
+        house_supersessions = (verified_house_revision_supersessions(old=old, current=current,
+            repo=repo, evidence_commit=evidence_commit, review_commit=review_commit,
+            main_commit=main_commit, previous_people=previous_board.get('people'))
+            if entity == 'transactions' else [])
+        if (len({item['old_id'] for item in house_supersessions}) != len(house_supersessions)
+                or len({item['new_id'] for item in house_supersessions}) != len(house_supersessions)):
+            raise InventoryError('House supersession verifier repeats an old or new ID')
+        for item in house_supersessions:
+            old_id, new_id = item['old_id'], item['new_id']
+            if (item.get('entity') != entity or item.get('kind') != 'superseded'
+                    or item.get('reason') != 'official_amendment'
+                    or old_id not in old or old_id in current
+                    or new_id not in current or new_id in old
+                    or item.get('changed_fields') != _differences(old[old_id], current[new_id])
+                    or item.get('evidence_url') != current[new_id].get('source_url')
+                    or old[old_id].get('source_id') != 'house_clerk'
+                    or current[new_id].get('source_id') != 'house_clerk'
+                    or old[old_id].get('person_id') != current[new_id].get('person_id')):
+                raise InventoryError('House supersession verifier returned an invalid fact transition')
+        verified_supersessions = {item['old_id']: item for item in house_supersessions}
+        for item in house_supersessions:
+            _decision(item, entity, old, current, repo=repo, evidence_commit=evidence_commit,
+                verified_replacements=verified_replacements, verified_corrections=verified_corrections,
+                verified_supersessions=verified_supersessions)
         old_seen, new_seen = set(), set()
         for item in selected:
             checked = _decision(item, entity, old, current, repo=repo,
                                 evidence_commit=evidence_commit,
                                 verified_replacements=verified_replacements,
-                                verified_corrections=verified_corrections)
+                                verified_corrections=verified_corrections,
+                                verified_supersessions=verified_supersessions)
             old_id, new_id = checked["old_id"], checked["new_id"]
-            if old_id in old_seen or (checked["kind"] == "rekey" and new_id in new_seen):
+            if old_id in old_seen or (checked["kind"] in {"rekey", "superseded"} and new_id in new_seen):
                 raise InventoryError("transition repeats an old or new ID")
             old_seen.add(old_id)
-            if checked["kind"] == "rekey":
+            if checked["kind"] in {"rekey", "superseded"}:
                 new_seen.add(new_id)
             changes.append(checked)
             used.add(id(item))
@@ -180,6 +211,18 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
         selected += automatic_corrections
         changes.extend(automatic_corrections)
         correction_count += len(corrections)
+        for item in house_supersessions:
+            if item['old_id'] in old_seen:
+                if not any(all(decision.get(key) == value for key, value in item.items())
+                           for decision in selected if decision.get('kind') == 'superseded'):
+                    raise InventoryError('House supersession conflicts with an explicit transition')
+                continue
+            if item['new_id'] in new_seen:
+                raise InventoryError('House supersession target conflicts with a transition')
+            old_seen.add(item['old_id']); new_seen.add(item['new_id'])
+            changes.append(item)
+            selected.append(item)
+        house_supersession_count += len(house_supersessions)
         if entity == "reported_holdings":
             automatic = verified_amendment_rekeys(
                 old=old, current=current, repo=repo,
@@ -194,7 +237,7 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             selected = selected + automatic
         missing = old.keys() - current.keys()
         changed = {key for key in old.keys() & current.keys() if old[key] != current[key]}
-        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn"}} or
+        if (missing != {item["old_id"] for item in selected if item["kind"] in {"rekey", "withdrawn", "superseded"}} or
                 changed != {item["old_id"] for item in selected if item["kind"] == "corrected"}):
             raise InventoryError(f"{entity} has an unexplained removal or field change")
         added = current.keys() - old.keys() - new_seen
@@ -213,6 +256,10 @@ def build_publication_delta(*, previous_board, unified, prepared, sources,
             "changes": changes, "canonical_source_alignment_complete": True,
             "snapshot_changes_disposed": True,
             "source_verified_correction_count": correction_count,
+            "source_verified_house_supersession_count": house_supersession_count,
+            "house_supersession_verification_level": (
+                "archived_person_scope_native_ID_inventory_and_complete_revision_projection"
+                if house_supersession_count else "not_applicable_no_house_supersessions"),
             "correction_verification_level": ('+'.join(sorted(correction_levels))
                 if correction_count else "not_applicable_no_corrections"),
             "transition_verification_level": (

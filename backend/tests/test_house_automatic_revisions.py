@@ -52,7 +52,7 @@ def fixture(root,inputs):
 class AutomaticRevisionTests(unittest.TestCase):
     def inputs(self):return [source(),source('20000002','b'*64,'Amended','2026-09-15',high='$2,000,000')]
 
-    def test_source_replay_unique_official_id_replaces_and_normal_candidate_status_repeat(self):
+    def test_cached_word_replay_without_original_scope_keeps_pending_and_normal_repeat(self):
         inputs=self.inputs();old=inputs[0][0]['transactions'][0]
         with tempfile.TemporaryDirectory() as d:
             review,evidence,state=fixture(Path(d),inputs)
@@ -60,17 +60,16 @@ class AutomaticRevisionTests(unittest.TestCase):
             candidate=build_house_candidate(review,state,base)
             self.assertEqual(len(candidate['transactions']),1)
             new=candidate['transactions'][0]
-            self.assertEqual(new['id'],inputs[1][1]['transactions'][0]['extraction_id'])
-            self.assertEqual(new['amount_high'],2000000)
+            self.assertEqual(new,old)
             self.assertEqual(build_house_candidate(review,state,candidate),candidate)
             status=build_house_status(evidence,review,candidate['transactions'],[])[0]
             reports={r['document_id']:r for r in status['reports']}
-            self.assertEqual(reports['20000001']['qualification_state'],'superseded')
-            self.assertEqual(reports['20000001']['qualified_transaction_count'],0)
-            self.assertEqual(reports['20000001']['superseded_transaction_ids'],[old['id']])
-            self.assertEqual(reports['20000002']['qualified_transaction_count'],1)
-            self.assertEqual(reports['20000002']['quarantined_row_count'],0)
-            self.assertEqual(reports['20000002']['revision_reference_dispositions'][0]['action'],'replace_prior')
+            self.assertNotEqual(reports['20000001']['qualification_state'],'superseded')
+            self.assertEqual(reports['20000001']['qualified_transaction_count'],1)
+            self.assertNotIn('superseded_transaction_ids',reports['20000001'])
+            self.assertEqual(reports['20000002']['qualified_transaction_count'],0)
+            self.assertEqual(reports['20000002']['quarantined_row_count'],1)
+            self.assertEqual(reports['20000002']['revision_reference_dispositions'][0]['action'],'retain_prior')
             self.assertEqual(status['unmatched_publication_transaction_ids'],[])
             snapshot=build(candidate,generated_at=candidate['meta']['data_cutoff_at'],allow_production=True)
             self.assertTrue(snapshot)
@@ -123,7 +122,7 @@ class AutomaticRevisionTests(unittest.TestCase):
         inputs[-1]=source('20000003','c'*64,'Amended','2026-09-15',high='$3,000,000')
         self.assertEqual(resolve_automatic_revisions(inputs,inputs[0][0]['transactions'])['replacements'],[])
 
-    def test_annual_reference_redirects_to_verified_replacement_without_deleting_disclosure(self):
+    def test_annual_reference_keeps_retained_PTR_when_original_scope_is_unproven(self):
         inputs=self.inputs();old=inputs[0][0]['transactions'][0];sha='d'*64
         annual={**old,'id':'house-annual-b:'+hashlib.sha256(f'{sha}:2:100.00'.encode()).hexdigest()[:24],
                 'filing_id':'10000001','source_url':document_url(2026,'F','10000001')}
@@ -137,6 +136,7 @@ class AutomaticRevisionTests(unittest.TestCase):
             candidate=build_house_candidate(review,state,base)
             self.assertIn(annual,candidate['transactions'])
             new=next(r for r in candidate['transactions'] if r['id']!=annual['id'])
+            self.assertEqual(new,old)
             self.assertEqual(candidate['meta']['transaction_disclosure_relations'][0]['possible_ptr_transaction_ids'],[new['id']])
             self.assertEqual(build_house_candidate(review,state,candidate),candidate)
             build(candidate,generated_at=candidate['meta']['data_cutoff_at'],allow_production=True)

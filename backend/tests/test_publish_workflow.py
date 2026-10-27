@@ -16,9 +16,11 @@ class PublishWorkflowTests(unittest.TestCase):
         project = tomllib.loads((ROOT / 'backend/pyproject.toml').read_text(encoding='utf-8'))
         extras = project['project']['optional-dependencies']
         requirements = extras['native-source-proof']
-        self.assertEqual({item.split('==')[0] for item in requirements}, {'pdfplumber', 'PyMuPDF'})
+        self.assertEqual({item.split('==')[0] for item in requirements}, {'pdfplumber', 'PyMuPDF', 'fonttools'})
+        self.assertIn('fonttools==4.62.1', requirements)
         for requirement in requirements:
-            self.assertIn(requirement, extras['oge-raster-ocr'])
+            if requirement.split('==')[0] in {'pdfplumber', 'PyMuPDF'}:
+                self.assertIn(requirement, extras['oge-raster-ocr'])
         publish = (ROOT / '.github/workflows/publish-complete.yml').read_text(encoding='utf-8')
         publish = publish.split('  publish:\n', 1)[1]
         install = publish.index("python -m pip install -e 'backend[native-source-proof]'")

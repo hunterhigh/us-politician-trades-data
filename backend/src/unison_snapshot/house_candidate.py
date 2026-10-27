@@ -327,10 +327,10 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
     if len(transactions) != summary.get("qualified_transaction_count") or \
             quarantined_count != summary.get("quarantined_row_count"):
         raise HouseIndexError("House qualification row counts do not match their summary")
-    from .house_ptr import resolve_automatic_revisions
-    revision_resolution = resolve_automatic_revisions(revision_sources, transactions,
+    from .house_source_revisions import resolve_source_bound_house_revisions
+    revision_resolution = resolve_source_bound_house_revisions(revision_sources, transactions,
         prior_transactions=base.get("transactions", []),
-        **({'evidence_root':evidence_root} if evidence_root is not None else {}))
+        evidence_root=evidence_root, review_root=review_root, state_status=state_status)
     transactions = revision_resolution["transactions"]
     selected = {row['id']:row for row in transactions}
     for extraction, qualification in contrast_sources:

@@ -85,7 +85,7 @@ class MixedRevisionTests(unittest.TestCase):
         with self.assertRaises(HouseIndexError):
             resolve_automatic_revisions(tampered, original[0]['transactions'])
 
-    def test_normal_candidate_status_builder_and_repeat_share_mixed_native_revision(self):
+    def test_normal_candidate_status_builder_do_not_replace_from_unproved_mixed_caches(self):
         inputs = [mixed(pair) for pair in self.sources()]
         old = inputs[0][0]['transactions'][0]
         with tempfile.TemporaryDirectory() as folder:
@@ -93,14 +93,13 @@ class MixedRevisionTests(unittest.TestCase):
             base = deepcopy(revisions.BASE); base['transactions'] = [old]
             candidate = build_house_candidate(review, state, base)
             self.assertEqual(len(candidate['transactions']), 1)
-            self.assertEqual(candidate['transactions'][0]['amount_high'], 2_000_000)
-            self.assertEqual(candidate['transactions'][0]['id'], inputs[1][1]['transactions'][0]['extraction_id'])
+            self.assertEqual(candidate['transactions'], [old])
             self.assertEqual(build_house_candidate(review, state, candidate), candidate)
             reports = {row['document_id']: row for row in
                        build_house_status(evidence, review, candidate['transactions'], [])[0]['reports']}
-            self.assertEqual(reports['20000001']['qualification_state'], 'superseded')
-            self.assertEqual(reports['20000002']['qualified_transaction_count'], 1)
-            self.assertEqual(reports['20000002']['quarantined_row_count'], 0)
+            self.assertNotEqual(reports['20000001']['qualification_state'], 'superseded')
+            self.assertEqual(reports['20000002']['qualified_transaction_count'], 0)
+            self.assertEqual(reports['20000002']['quarantined_row_count'], 1)
             self.assertTrue(build(candidate, generated_at=candidate['meta']['data_cutoff_at'],
                                   allow_production=True).manifest['snapshot_id'])
 

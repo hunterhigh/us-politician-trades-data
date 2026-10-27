@@ -157,7 +157,7 @@ def _build_house_status(evidence_root: Path, review_root: Path,
                 raise ValueError(f"House review source binding mismatch: {path}")
             artifacts[kind][key] = value
             discovered.add(key[:2])
-    from .house_ptr import resolve_automatic_revisions
+    from .house_source_revisions import resolve_source_bound_house_revisions
     from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
     for key, qualification in artifacts['qualifications'].items():
         if qualification.get('parser_version') not in CONTRAST_VERSIONS:
@@ -173,9 +173,9 @@ def _build_house_status(evidence_root: Path, review_root: Path,
         for key, qualification in artifacts["qualifications"].items()
         if key in artifacts["extractions"] and len(versions.get(key[:2], {})) == 1
         and key[2] in versions[key[:2]]]
-    revision_resolution = resolve_automatic_revisions(revision_inputs,
+    revision_resolution = resolve_source_bound_house_revisions(revision_inputs,
         [row for q, _ in revision_inputs for row in q.get("transactions", [])],
-        prior_transactions=transactions, evidence_root=evidence_root)
+        prior_transactions=transactions, evidence_root=evidence_root, review_root=review_root)
     superseded = {r["prior_transaction_id"]: r for r in revision_resolution["replacements"]}
     keys = discovered | set(versions)
     records = []
