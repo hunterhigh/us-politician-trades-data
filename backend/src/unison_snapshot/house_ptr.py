@@ -951,6 +951,12 @@ def qualify_automatic(extraction: dict, identity: dict, *,
                       verified_blank_paper_owner_ids: frozenset[str] = frozenset(),
                       _source_bound_revision_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
+    from .house_native_financial import PROFILE_KEY, qualify_source_financial
+    if PROFILE_KEY in extraction:
+        if verified_blank_paper_owner_ids:
+            raise HouseIndexError('House source financial proof cannot grant paper blank owners')
+        return qualify_source_financial(extraction, identity, evidence_root=evidence_root,
+                                        revision_ids=_source_bound_revision_ids)
     from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS, qualify_native_contrast
     if extraction.get('parser_version') in CONTRAST_VERSIONS or any(k.startswith('native_contrast_') for k in extraction):
         if verified_blank_paper_owner_ids:
@@ -1318,7 +1324,8 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
     except SourceInventoryUnavailable:
         return bounded_legacy_unknown(archive_root, metadata_path)
     if contrast is not None:
-        return contrast
+        from .house_native_financial import augment_selected_native_contrast
+        return augment_selected_native_contrast(archive_root, metadata_path, contrast)
     try:
         with pdfplumber.open(pdf_path) as document:
             copy_allowed = getattr(document.doc, "is_extractable", None)
@@ -1705,6 +1712,8 @@ def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transac
     for document, identifiers in resolved_ids.items():
         entry = resolved_sources[document]
         effective[document] = qualify_automatic(entry['extraction'], entry['qualification']['identity'],
+            **({'evidence_root': evidence_root}
+               if entry['extraction'].get('parser_version') in CONTRAST_VERSIONS else {}),
             _source_bound_revision_ids=frozenset(identifiers))
     return {'transactions': sorted(facts.values(), key=lambda r:r['id']), 'qualifications': effective,
             'identities': identities, 'dispositions': observations, 'replacements': mappings}

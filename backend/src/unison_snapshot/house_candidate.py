@@ -333,6 +333,8 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
         evidence_root=evidence_root, review_root=review_root, state_status=state_status)
     transactions = revision_resolution["transactions"]
     selected = {row['id']:row for row in transactions}
+    superseded_ids = {mapping['prior_transaction_id']
+                      for mapping in revision_resolution['replacements']}
     for extraction, qualification in contrast_sources:
         source = extraction['source']
         raw_ids = {row['extraction_id'] for row in extraction['transactions']}
@@ -345,6 +347,8 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
             if (prior.get('source_url') != source['source_url'] or identifier not in raw_ids or
                     prior.get('person_id') != qualification['identity'].get('person_id')):
                 raise HouseIndexError('Existing House contrast fact has no unique current physical source row')
+            if identifier in superseded_ids:
+                continue
             if identifier in selected and selected[identifier] != prior:
                 raise HouseIndexError('Changed House contrast fact requires a separate source correction')
             selected[identifier] = deepcopy(prior)

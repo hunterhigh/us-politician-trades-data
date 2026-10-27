@@ -185,11 +185,15 @@ jobs:
                   retries.append(metadata_path)
                   continue
               if contrast_plan['parser_version'] in CONTRAST_VERSIONS and extraction.is_file():
+                  from unison_snapshot.house_native_financial import requires_source_financial_upgrade
                   try:
                       selected = json.loads(extraction.read_text(encoding='utf-8'))
                   except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                       selected = {}
                   if selected.get('parser_version') != contrast_plan['parser_version']:
+                      retries.append(metadata_path)
+                      continue
+                  if requires_source_financial_upgrade(evidence, metadata_path, selected):
                       retries.append(metadata_path)
                       continue
               if extraction.is_file() and failure.is_file():

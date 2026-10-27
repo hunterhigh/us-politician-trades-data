@@ -108,6 +108,11 @@ def _group_domain(occurrences, indices, inventory, *, allow_header_background=Fa
 
 
 def inspect_native_house_revision_source(source):
+    """Reopen the selected original and prove the native official-ID scope."""
+    return _inspect_native_house_source(source, financial=False)
+
+
+def _inspect_native_house_source(source, *, financial):
     """Reopen an immutable context document and prove its native ID inventory.
 
     The context loader authenticates official identity/index selection. This
@@ -146,9 +151,21 @@ def inspect_native_house_revision_source(source):
             _need(sum(len(v["chars"]) for v in bound) <= MAX_CHARACTERS, "source_character_budget_exceeded")
             pages = observe_native_word_pages(document, source.source_sha256)
             _need(not planned_ocr_pages(pages), "opaque_source_cannot_prove_competitor_absence")
+            row_members = []
             replay = parse_word_pages(metadata, source.source_sha256, pages,
-                                      copy_allowed=getattr(document.doc, "is_extractable", None))
-            _need(replay == saved, "selected_extraction_differs_from_original_native_projection")
+                                      copy_allowed=getattr(document.doc, "is_extractable", None),
+                                      **({'_row_member_sink': row_members} if financial else {}))
+            if financial:
+                _need([item['raw_row_id'] for item in row_members]
+                      == [row['extraction_id'] for row in replay['transactions']],
+                      'financial_row_member_inventory_differs')
+            selected = saved
+            if isinstance(saved.get('native_contrast_financial_profile'), dict):
+                profile = saved['native_contrast_financial_profile']
+                _need(profile.get('profile_version') == FINANCIAL_PROFILE,
+                      'selected_financial_profile_version_unsupported')
+                selected = profile.get('source', {}).get('raw_projection')
+            _need(replay == selected, "selected_extraction_differs_from_original_native_projection")
             ledger = replay.get("source_report_ledger", {})
             _need(ledger.get("relation_coverage") == "accounted"
                   and len(ledger.get("pages", [])) == len(pages)
@@ -283,6 +300,10 @@ def inspect_native_house_revision_source(source):
                     "anchors": anchors,
                     "paint_event_count": len(paint["paint_inventory"]),
                     "font_profiles": sorted({v[1]["reference_profile"] for v in fonts.values()})})
+                if financial:
+                    result.setdefault('financial_rows', []).extend(_financial_page_rows(
+                        page, number, replay, row_members, members, chars, occurrences,
+                        paint['paint_inventory'], budget))
             result.update(status="observed_scope", scope_complete=True)
     except _Unknown as error:
         result["reasons"] = [str(error)]
@@ -290,4 +311,97 @@ def inspect_native_house_revision_source(source):
         result["reasons"] = ["source_scope_dependencies_unavailable"]
     except Exception as error:
         result["reasons"] = ["source_scope_observation_failed:" + type(error).__name__]
+    return result
+
+
+FINANCIAL_PROFILE = 'house-native-source-financial/v1'
+
+
+def _financial_page_rows(page, number, replay, row_members, members, chars,
+                         occurrences, inventory, budget):
+    """Prove the exact words consumed by the established financial grammar."""
+    from .house_native_owner_cell import prove_native_owner_cell
+    result = []
+    for row, membership in zip(replay['transactions'], row_members):
+        _need(membership['raw_row_id'] == row['extraction_id'],
+              'financial_row_source_membership_differs')
+        blocks = [block for block in membership['blocks'] if block['page_number'] == number]
+        if not blocks:
+            continue
+        _need(len(blocks) == 1, 'financial_page_membership_ambiguous')
+        item = {'raw_row_id': row['extraction_id'], 'page_number': number,
+                'status': 'unknown', 'proof': {}, 'reasons': []}
+        try:
+            indices = blocks[0]['field_word_indices']
+            _need(bool(indices) and len(set(indices)) == len(indices),
+                  'financial_field_membership_unavailable')
+            proven = []
+            for index in indices:
+                # A word can contain a nonblack but opaque source-proven fill.
+                # This is the existing source color primitive, with its exact
+                # glyph, clip and other-paint guards; no new color heuristic.
+                domain = _group_domain(occurrences, members[index], inventory,
+                                       allow_status_color=True, budget=budget)
+                proven.append({'word_index': index, 'source_character_indices': members[index],
+                               'source_paint_domain': domain})
+            owner = prove_native_owner_cell(page, number, row, blocks[0], chars,
+                                             occurrences, inventory, budget=budget)
+            _need(owner.get('status') == 'observed', owner.get('reason', 'owner_cell_unproven'))
+            item.update(status='observed', proof={'word_members': proven, 'owner_cell': owner})
+        except _Unknown as error:
+            item['reasons'] = [str(error)]
+        result.append(item)
+    return result
+
+
+def replay_native_house_financial_source(root, metadata_path, base):
+    """Read source bytes; a saved contrast result never certifies new fields."""
+    from types import SimpleNamespace
+    from .house_native_contrast import _load, _selected_source
+    from .house_ptr import observe_native_word_pages, parse_word_pages, planned_ocr_pages
+    result = {'profile_version': FINANCIAL_PROFILE, 'status': 'unknown',
+              'source_sha256': base.get('source_sha256'),
+              'document_id': base.get('source', {}).get('document_id'),
+              'raw_projection': None, 'rows': [], 'scope': None, 'reasons': []}
+    try:
+        import pdfplumber
+        metadata, path, content = _load(root, metadata_path)
+        _selected_source(metadata, root, metadata_path, path, content)
+        _need(metadata['sha256'] == result['source_sha256']
+              and metadata['document_id'] == result['document_id'],
+              'financial_source_identity_differs')
+        with pdfplumber.open(io.BytesIO(content)) as document:
+            _need(1 <= len(document.pages) <= MAX_PAGES, 'source_page_budget_exceeded')
+            pages = observe_native_word_pages(document, metadata['sha256'])
+            _need(not planned_ocr_pages(pages), 'financial_source_requires_OCR')
+            raw = parse_word_pages(metadata, metadata['sha256'], pages,
+                                   copy_allowed=getattr(document.doc, 'is_extractable', None))
+        _need(raw['transactions'] == base.get('transactions'),
+              'financial_source_raw_rows_differ_from_selected_contrast')
+        source = SimpleNamespace(document_id=metadata['document_id'], source_sha256=metadata['sha256'],
+            metadata=metadata, pdf_bytes=content, extraction=raw, planned_ocr_pages=())
+        scope = _inspect_native_house_source(source, financial=True)
+        result['scope'] = scope
+        _need(scope['status'] == 'observed_scope' and scope['scope_complete'] is True,
+              'financial_source_scope_unknown')
+        # Every physical block of a logical row must have been independently
+        # observed. A passing block does not stand in for a continuation page.
+        rows = []
+        for row in raw['transactions']:
+            proofs = [item for item in scope.get('financial_rows', [])
+                      if item['raw_row_id'] == row['extraction_id']]
+            expected_pages = sorted({s['page'] for s in row['evidence']['segments']})
+            good = (sorted(item['page_number'] for item in proofs) == expected_pages
+                    and all(item['status'] == 'observed' for item in proofs))
+            rows.append({'raw_row_id': row['extraction_id'],
+                         'status': 'observed' if good else 'unknown',
+                         'proof': {'pages': proofs},
+                         'reasons': [] if good else ['financial_row_source_membership_unproven']})
+        result.update(status='observed', raw_projection=raw, rows=rows)
+    except _Unknown as error:
+        result['reasons'] = [str(error)]
+    except ImportError:
+        result['reasons'] = ['financial_source_dependencies_unavailable']
+    except Exception as error:
+        result['reasons'] = ['financial_source_observation_failed:' + type(error).__name__]
     return result
