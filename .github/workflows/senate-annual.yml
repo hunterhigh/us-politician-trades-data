@@ -96,6 +96,7 @@ jobs:
             git -C "$review" push origin HEAD:refs/heads/review
           fi
       - name: Build and validate unified candidate
+        id: assembly
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
           source_args=(--source "senate_efd=$review/candidates/sources/senate_efd-current.json")
@@ -104,16 +105,31 @@ jobs:
             if [ -f "$source" ]; then source_args+=(--source "$source_id=$source"); fi
           done
           python -m unison_snapshot build-disclosure-candidate \
+            --defer-stale-sources \
+            --assembly-status-output "$review/status/disclosure_assembly.json" \
             --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$review/candidates/disclosure-current.json" \
             --audit-output "$review/status/disclosure_cutoff.json"
+          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+            --status "$review/status/disclosure_assembly.json")"
+          if [ "$assembly_status" = deferred ]; then
+            git -C "$review" add status/disclosure_assembly.json
+            if ! git -C "$review" diff --cached --quiet; then
+              git -C "$review" config user.name 'github-actions[bot]'
+              git -C "$review" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git -C "$review" commit -m "review: deferred source assembly ${{ github.run_id }}"
+              git -C "$review" push origin HEAD:refs/heads/review
+            fi
+            exit 0
+          fi
           python -m unison_snapshot verify-first-launch \
             --review-root "$review" --input "$review/candidates/disclosure-current.json" \
             --output "$RUNNER_TEMP/senate-annual-readiness.json"
       - name: Publish verified unified candidate
+        if: ${{ steps.assembly.outputs.assembly_status == 'ready' }}
         run: |
           review="$RUNNER_TEMP/senate-annual-review"
-          git -C "$review" add candidates/disclosure-current.json status/disclosure_cutoff.json
+          git -C "$review" add candidates/disclosure-current.json status/disclosure_cutoff.json status/disclosure_assembly.json
           if ! git -C "$review" diff --cached --quiet; then
             git -C "$review" config user.name 'github-actions[bot]'
             git -C "$review" config user.email '41898282+github-actions[bot]@users.noreply.github.com'

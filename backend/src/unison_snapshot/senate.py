@@ -40,18 +40,30 @@ class SenateEfdError(RuntimeError):
     """The supplied eFD data or access configuration is unsafe to use."""
 
 
+def _request_stage(request: urllib.request.Request) -> str:
+    path = urlsplit(request.full_url).path
+    return ("agreement_page" if path == "/search/home/" and request.get_method() == "GET"
+            else "agreement_submit" if path == "/search/home/"
+            else "catalog_search" if path == "/search/report/data/"
+            else "report_download")
+
+
+class SenateTransportError(SenateEfdError):
+    """A source connection failed before a response could be read."""
+
+    def __init__(self, request: urllib.request.Request):
+        self.diagnostic = {"request_stage": _request_stage(request),
+                           "error_code": "network_unavailable"}
+        super().__init__(f"Senate eFD is unavailable at {self.diagnostic['request_stage']}")
+
+
 class SenateHttpError(SenateEfdError):
     """Bounded HTTP diagnostics without response bodies, URLs or cookies."""
 
     def __init__(self, status: int, request: urllib.request.Request, *, edge_denied=False):
-        path = urlsplit(request.full_url).path
         self.diagnostic = {
             "http_status": status,
-            "request_stage": (
-                "agreement_page" if path == "/search/home/" and request.get_method() == "GET"
-                else "agreement_submit" if path == "/search/home/"
-                else "catalog_search" if path == "/search/report/data/"
-                else "report_download"),
+            "request_stage": _request_stage(request),
             "error_code": "edge_access_denied" if edge_denied else "http_error",
         }
         super().__init__(f"Senate eFD returned HTTP {status} at "
@@ -237,7 +249,7 @@ class SenateEfdClient:
                 exc.close()
             raise error from None
         except (urllib.error.URLError, TimeoutError):
-            raise SenateEfdError("Senate eFD is unavailable") from None
+            raise SenateTransportError(request) from None
         if len(content) > maximum:
             raise SenateEfdError("Senate eFD response exceeds its size limit")
         return content, headers
