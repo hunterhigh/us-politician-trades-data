@@ -29,7 +29,7 @@ from .congress_members import (
     discover_congress_senate_members,
 )
 from .legacy import load, PROCESSOR_V2_SHA256
-from .senate import SenateEfdError, collection_gate_status, discover_ptrs, parse_search_page, \
+from .senate import SenateEfdError, SenateHttpError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
     discover_members as discover_senate_members
@@ -272,6 +272,7 @@ def main() -> None:
     senate_discovery = sub.add_parser("discover-senate-efd")
     senate_discovery.add_argument("--archive", type=Path, required=True)
     senate_discovery.add_argument("--output", type=Path, required=True)
+    senate_discovery.add_argument("--failure-output", type=Path)
     senate_discovery.add_argument("--submitted-start-date", required=True)
     senate_discovery.add_argument("--page-size", type=int, default=100)
     senate_discovery.add_argument("--enabled-env", default="SENATE_EFD_COLLECTION_ENABLED")
@@ -797,6 +798,8 @@ def main() -> None:
                               "terms_acknowledged": result["terms_acknowledged"],
                               "output": str(args.output.resolve())}))
         elif args.command == "discover-senate-efd":
+            if args.failure_output and args.failure_output.resolve() == args.output.resolve():
+                raise SenateEfdError("Discovery and failure outputs must be different paths")
             config = source_config_from_environment(
                 enabled_name=args.enabled_env, terms_name=args.terms_env)
             result = discover_ptrs(
@@ -1074,6 +1077,14 @@ def main() -> None:
             CongressMemberError, OgeCatalogError, ReleaseReadinessError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
+        if (args.command == "discover-senate-efd" and args.failure_output and
+                isinstance(exc, SenateHttpError)):
+            _write_atomic(args.failure_output, {
+                "schema_version": "senate-collection-failure/v1",
+                "source_id": "senate_efd", "status": "failed",
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+                **exc.diagnostic,
+            })
         parser.exit(2, f"Snapshot operation failed: {exc}\n")
 
 

@@ -40,6 +40,25 @@ class SenateEfdError(RuntimeError):
     """The supplied eFD data or access configuration is unsafe to use."""
 
 
+class SenateHttpError(SenateEfdError):
+    """Bounded HTTP diagnostics without response bodies, URLs or cookies."""
+
+    def __init__(self, status: int, request: urllib.request.Request, *, edge_denied=False):
+        path = urlsplit(request.full_url).path
+        self.diagnostic = {
+            "http_status": status,
+            "request_stage": (
+                "agreement_page" if path == "/search/home/" and request.get_method() == "GET"
+                else "agreement_submit" if path == "/search/home/"
+                else "catalog_search" if path == "/search/report/data/"
+                else "report_download"),
+            "error_code": "edge_access_denied" if edge_denied else "http_error",
+        }
+        super().__init__(f"Senate eFD returned HTTP {status} at "
+                         f"{self.diagnostic['request_stage']} "
+                         f"({self.diagnostic['error_code']})")
+
+
 @dataclass(frozen=True)
 class SenateSourceConfig:
     """Collection gate; the default cannot perform a production collection."""
@@ -210,7 +229,13 @@ class SenateEfdClient:
                 headers = {name.lower(): value for name, value in response.headers.items()
                            if name.lower() in {"etag", "last-modified", "content-type"}}
         except urllib.error.HTTPError as exc:
-            raise SenateEfdError(f"Senate eFD returned HTTP {exc.code}") from None
+            try:
+                edge_denied = (exc.code == 403 and
+                               (exc.headers or {}).get("Server", "").lower() == "akamaighost")
+                error = SenateHttpError(exc.code, request, edge_denied=edge_denied)
+            finally:
+                exc.close()
+            raise error from None
         except (urllib.error.URLError, TimeoutError):
             raise SenateEfdError("Senate eFD is unavailable") from None
         if len(content) > maximum:
