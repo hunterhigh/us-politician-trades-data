@@ -254,6 +254,7 @@ class SenateEfdClient:
         agreement = urllib.request.Request(HOME_URL, data=payload, headers={
             "Accept": "text/html,application/xhtml+xml",
             "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://efdsearch.senate.gov",
             "Referer": HOME_URL,
             "User-Agent": "unison-senate-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
         }, method="POST")
@@ -276,6 +277,7 @@ class SenateEfdClient:
         }).encode("ascii")
         request = urllib.request.Request(SEARCH_URL, data=payload, headers={
             "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "https://efdsearch.senate.gov",
             "Referer": SEARCH_PAGE_URL, "X-CSRFToken": self.csrf_token,
             "X-Requested-With": "XMLHttpRequest",
             "User-Agent": "unison-senate-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",

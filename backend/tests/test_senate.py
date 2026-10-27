@@ -162,6 +162,8 @@ class SenateDiscoveryTests(unittest.TestCase):
         self.assertEqual([request.get_method() for request in opener.requests], ["GET", "POST", "POST"])
         self.assertIn(b"prohibition_agreement=1", opener.requests[1].data)
         self.assertIn(b"report_types=%5B11%5D", opener.requests[2].data)
+        for request in opener.requests[1:]:
+            self.assertEqual(request.get_header('Origin'), 'https://efdsearch.senate.gov')
 
     def test_classifies_electronic_and_paper_ptr_without_inventing_filed_at(self):
         page = parse_search_page(payload([row(), row("paper", PAPER_ID)]), start=0, length=2)
