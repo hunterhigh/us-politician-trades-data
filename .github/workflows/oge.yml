@@ -10,6 +10,10 @@ on:
         description: Optional existing ordinary native PTR document ID to prepare and interpret with the generic parser
         required: false
         default: ''
+      oge_ptr_document_source:
+        description: Optional DOC:SHA archived input selection for a prepared generic PTR; does not assert latest version or replacement
+        required: false
+        default: ''
       include_saved_oge_observations:
         description: Include an explicitly selected existing saved 278-T observation input in the review candidate
         type: boolean
@@ -392,6 +396,8 @@ jobs:
           OGE_SAVED_OBSERVATIONS_PATH: ${{ inputs.oge_saved_observations_path }}
           OGE_GENERIC_DOCUMENT_ID: ${{ inputs.oge_generic_document_id }}
           OGE_GENERIC_DOCUMENT_IDS: ${{ vars.OGE_GENERIC_DOCUMENT_IDS }}
+          OGE_PTR_DOCUMENT_SOURCE: ${{ inputs.oge_ptr_document_source }}
+          OGE_PTR_DOCUMENT_SOURCES: ${{ vars.OGE_PTR_DOCUMENT_SOURCES }}
           INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
           INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
           OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
@@ -499,8 +505,10 @@ jobs:
           fi
           # BEGIN scoped native PTR preparation
           generic_document_args=()
-          generic_document_selection="$(python - <<'PY'
+          document_source_args=()
+          generic_document_selection="$(PYTHONPATH=backend/src python - <<'PY'
           import os, re, sys
+          from unison_snapshot.oge_source_selection import parse_document_sources
           configured = os.environ.get('OGE_GENERIC_DOCUMENT_IDS', '')
           dispatched = os.environ.get('OGE_GENERIC_DOCUMENT_ID', '')
           if len(configured) > 32 * 33 or len(dispatched) > 32:
@@ -513,16 +521,31 @@ jobs:
           ids = sorted(set(ids))
           if len(ids) > 32:
               raise SystemExit('At most 32 generic PTR document IDs may be selected')
-          sys.stdout.buffer.write('\n'.join(ids).encode('ascii'))
+          configured_sources = os.environ.get('OGE_PTR_DOCUMENT_SOURCES', '')
+          dispatched_source = os.environ.get('OGE_PTR_DOCUMENT_SOURCE', '')
+          if len(configured_sources) > 32 * 98 or len(dispatched_source) > 97:
+              raise SystemExit('PTR archived input selection exceeds its budget')
+          values = configured_sources.split(',') if configured_sources else []
+          if dispatched_source:
+              values.append(dispatched_source)
+          sources = parse_document_sources(sorted(set(values)))
+          if sources.keys() - set(ids):
+              raise SystemExit('An archived PTR input requires its explicit generic document selection')
+          sys.stdout.buffer.write('\n'.join(doc + ':' + sources.get(doc, '') for doc in ids).encode('ascii'))
           PY
           )"
           if [[ -n "$generic_document_selection" ]]; then
-            while IFS= read -r document_id; do
+            while IFS=: read -r document_id source_sha; do
+              source_prepare_args=()
+              if [[ -n "$source_sha" ]]; then
+                source_prepare_args=(--source-sha256 "$source_sha")
+                document_source_args+=(--document-source "$document_id:$source_sha")
+              fi
               PYTHONPATH=backend/src python backend/scripts/prepare_oge_ptr_generic.py \
                 --document-id "$document_id" \
                 --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
                 --catalog .local/oge-catalog.json \
-                --catalog-history-dir "$REVIEW_ROOT/oge/discoveries"
+                --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" "${source_prepare_args[@]}"
               generic_document_args+=(--generic-document-id "$document_id")
             done <<< "$generic_document_selection"
           fi
@@ -538,7 +561,7 @@ jobs:
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
-            "${saved_observation_args[@]}" "${generic_document_args[@]}"
+            "${saved_observation_args[@]}" "${generic_document_args[@]}" "${document_source_args[@]}"
           PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \

@@ -22,6 +22,7 @@ MAX_JSON_BYTES = 16 * 1024 * 1024
 MAX_CATALOG_FILES = 128
 MAX_CATALOG_BYTES = 64 * 1024 * 1024
 MAX_CATALOG_ROWS = 100_000
+MAX_ARCHIVE_VERSIONS = 32
 _ID = re.compile(r'[0-9a-f]{32}')
 _SHA = re.compile(r'[0-9a-f]{64}')
 
@@ -91,7 +92,8 @@ def _catalog_record(document_id, catalog, history, review):
 
 def prepare_oge_ptr_generic(*, document_id: str, evidence_root: Path,
                             review_root: Path, catalog: Path,
-                            catalog_history_dir: Path | None = None) -> dict:
+                            catalog_history_dir: Path | None = None,
+                            source_sha256: str | None = None) -> dict:
     """Rebuild and immutably prepare exactly one canonical native v2/v7 pair.
 
     All source, interpretation and existing-output checks finish before any
@@ -100,6 +102,9 @@ def prepare_oge_ptr_generic(*, document_id: str, evidence_root: Path,
     """
     if not isinstance(document_id, str) or not _ID.fullmatch(document_id):
         _error('document ID must be 32 lowercase hexadecimal characters')
+    if source_sha256 is not None and (
+            not isinstance(source_sha256, str) or not _SHA.fullmatch(source_sha256)):
+        _error('explicit source SHA must be 64 lowercase hexadecimal characters')
     evidence, review = Path(evidence_root).resolve(), Path(review_root).resolve()
     if (not evidence.is_dir() or not review.is_dir() or
             evidence.is_relative_to(review) or review.is_relative_to(evidence)):
@@ -111,13 +116,32 @@ def prepare_oge_ptr_generic(*, document_id: str, evidence_root: Path,
         _error('canonical archived source is missing')
     entries = []
     for path in folder.iterdir():
-        if len(entries) >= 2:
-            _error('multiple or noncanonical archived source versions')
-        entries.append(_inside(evidence, path))
+        if source_sha256 is None:
+            if len(entries) >= 2:
+                _error('multiple or noncanonical archived source versions')
+        elif len(entries) >= 2 * MAX_ARCHIVE_VERSIONS:
+            _error('archived source version inventory exceeds budget')
+        path = _inside(evidence, path)
+        if source_sha256 is not None and (
+                not path.is_file() or not _SHA.fullmatch(path.stem) or
+                path.suffix not in {'.json', '.pdf'}):
+            _error('explicit source inventory contains a noncanonical entry')
+        entries.append(path)
     metadata_paths = [path for path in entries if path.suffix == '.json']
-    if len(entries) != 2 or len(metadata_paths) != 1:
-        _error('one canonical metadata/PDF pair is required')
-    metadata_path = metadata_paths[0]
+    if source_sha256 is None:
+        if len(entries) != 2 or len(metadata_paths) != 1:
+            _error('one canonical metadata/PDF pair is required')
+        metadata_path = metadata_paths[0]
+    else:
+        metadata_shas = {path.stem for path in metadata_paths}
+        pdf_shas = {path.stem for path in entries if path.suffix == '.pdf'}
+        if not metadata_shas or metadata_shas != pdf_shas:
+            _error('explicit source inventory lacks canonical metadata/PDF pairs')
+        if source_sha256 not in metadata_shas:
+            _error('explicit archived source SHA is unavailable')
+        # This is an interpretation input, never an assertion of official
+        # currency or a relationship between the retained original versions.
+        metadata_path = folder / f'{source_sha256}.json'
     sha = metadata_path.stem
     if not _SHA.fullmatch(sha):
         _error('noncanonical archive metadata filename')
@@ -144,7 +168,7 @@ def prepare_oge_ptr_generic(*, document_id: str, evidence_root: Path,
     values = [parse_archived_pdf(evidence, metadata_path),
               parse_archived_pdf(evidence, metadata_path, generic=True)]
     prepared = []
-    dependencies += [metadata_path, pdf]
+    dependencies += entries
     for value, version in zip(values, versions):
         if (value.get('parser_version') != version or value.get('document_id') != document_id or
                 value.get('source_sha256') != sha or value.get('source_url') != record['document_url']):
@@ -180,6 +204,7 @@ def prepare_oge_ptr_generic(*, document_id: str, evidence_root: Path,
         raise
     return {'schema_version': 'oge-native-ptr-preparation/v1',
         'document_id': document_id, 'source_sha256': sha,
+        **({'source_selection': 'explicit_archived_input'} if source_sha256 is not None else {}),
         'parser_versions': list(versions),
         'created_paths': [path.relative_to(review).as_posix() for path in created],
         'extractions': [{'path': target.relative_to(review).as_posix(),

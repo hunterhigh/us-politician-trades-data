@@ -1233,6 +1233,14 @@ def _unbound_qualification(record: dict, reason: str) -> None:
 def _bind_direct_audit(record: dict, audit: dict, review: Path) -> None:
     versions = record["source_versions"]
     sha = audit.get("source_sha256")
+    # Only _selected_source_input sets this record field, after authenticating
+    # the whole selected cache and original. An audit token alone is not enough.
+    selected = record.get('source_interpretation_binding')
+    if isinstance(selected, dict):
+        selected_sha = selected.get('source_sha256')
+        if sha is not None and sha != selected_sha:
+            raise ValueError('OGE qualification source differs from its authenticated input selection')
+        sha = selected_sha
     if sha is not None:
         if not isinstance(sha, str) or not _SHA.fullmatch(sha):
             raise ValueError("OGE qualification source version is invalid")

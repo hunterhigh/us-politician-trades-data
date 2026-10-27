@@ -14,6 +14,8 @@ def main():
     parser.add_argument('--review-root', required=True, type=Path)
     parser.add_argument('--catalog', required=True, type=Path)
     parser.add_argument('--catalog-history-dir', type=Path)
+    parser.add_argument('--source-sha256',
+                        help='Select this existing archived input; does not attest latest version or supersession')
     args = parser.parse_args()
     try:
         receipt = prepare_oge_ptr_generic(**vars(args))

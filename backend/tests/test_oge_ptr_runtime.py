@@ -210,6 +210,88 @@ class OgePtrRuntimeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode,0)
         self.assertEqual(self.files(),before)
 
+    def additional_archived_version(self):
+        # A second real, parseable immutable PDF version, not a renamed fake
+        # SHA. Only a trailing comment changes; its source bytes have a new hash.
+        raw = self.pdf.read_bytes() + b'\n% second archived input for explicit selection\n'
+        sha = hashlib.sha256(raw).hexdigest()
+        pdf = self.pdf.with_name(sha + '.pdf')
+        pdf.write_bytes(raw)
+        metadata = pdf.with_suffix('.json')
+        metadata.write_bytes(encoded({**self.meta, 'sha256': sha, 'byte_length': len(raw),
+            'archive_path': pdf.relative_to(self.evidence).as_posix(),
+            'retrieved_at': '2026-06-21T00:00:00Z'}))
+        return sha, pdf, metadata
+
+    def test_explicit_archived_sha_prepares_only_that_pair_and_preserves_other_versions(self):
+        sha, _, _ = self.additional_archived_version()
+        original = {path:path.read_bytes() for path in [*self.evidence.rglob('*'), *self.targets]
+                    if path.is_file()}
+        self.rejected_unchanged()  # No explicit choice retains the old contract.
+        receipt = self.prepare(source_sha256=sha)
+        self.assertEqual(receipt['source_sha256'], sha)
+        self.assertEqual(receipt['source_selection'], 'explicit_archived_input')
+        self.assertEqual(len(receipt['created_paths']), 2)
+        self.assertTrue(all('/' + sha + '/' in path for path in receipt['created_paths']))
+        for item in receipt['extractions']:
+            value = json.loads((self.review / item['path']).read_bytes())
+            self.assertEqual(value['source_sha256'], sha)
+            self.assertEqual(value['parser_version'], item['parser_version'])
+        self.assertEqual({path:path.read_bytes() for path in original}, original)
+        before = self.files()
+        self.assertEqual(self.prepare(source_sha256=sha)['created_paths'], [])
+        self.assertEqual(self.prepare(source_sha256=self.sha)['created_paths'], [])
+        self.assertEqual(self.files(), before)
+
+    def test_explicit_selection_rejects_invalid_missing_or_unpaired_source_before_writes(self):
+        sha, pdf, _ = self.additional_archived_version()
+        for invalid in ('', 'F' * 64, '0' * 64, sha + ' ', '../' + sha, 7):
+            with self.subTest(source_sha256=invalid):
+                self.rejected_unchanged(source_sha256=invalid)
+        content = pdf.read_bytes()
+        pdf.unlink()
+        self.rejected_unchanged(source_sha256=self.sha)
+        pdf.write_bytes(content)
+        extra = pdf.with_name('notes.txt'); extra.write_bytes(b'not a source version')
+        self.rejected_unchanged(source_sha256=self.sha)
+        extra.unlink()
+        with patch('unison_snapshot.oge_ptr_runtime.MAX_ARCHIVE_VERSIONS', 1):
+            self.rejected_unchanged(source_sha256=self.sha)
+
+    def test_selected_original_and_all_selected_caches_remain_strictly_immutable(self):
+        sha, pdf, metadata = self.additional_archived_version()
+        original = metadata.read_bytes()
+        changed = json.loads(original); changed['agency'] = 'Different source identity'
+        metadata.write_bytes(encoded(changed))
+        self.rejected_unchanged(source_sha256=sha)
+        metadata.write_bytes(original)
+        raw = pdf.read_bytes(); pdf.write_bytes(raw + b'\n% changed source')
+        self.rejected_unchanged(source_sha256=sha)
+        pdf.write_bytes(raw)
+        self.prepare(source_sha256=sha)
+        selected = self.review / f'oge/extractions/{DOCUMENT}/{sha}'
+        default = selected / 'oge-278t-pdf-v2.json'
+        generic = selected / 'oge-278t-pdf-v7.json'
+        default.unlink()
+        value = json.loads(generic.read_bytes()); value['transactions'][0]['asset_name'] = 'Altered cache'
+        generic.write_bytes(encoded(value))
+        self.rejected_unchanged(source_sha256=sha)
+        self.assertFalse(default.exists())
+
+    def test_prepare_script_accepts_explicit_input_without_changing_default_multisha_behavior(self):
+        sha, _, _ = self.additional_archived_version()
+        args = [sys.executable, str(ROOT/'backend/scripts/prepare_oge_ptr_generic.py'),
+            '--document-id', DOCUMENT, '--evidence-root', str(self.evidence),
+            '--review-root', str(self.review), '--catalog', str(self.catalog)]
+        env = dict(os.environ, PYTHONPATH=str(ROOT/'backend/src'))
+        before = self.files()
+        missing = subprocess.run(args, env=env, capture_output=True, text=True)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertEqual(self.files(), before)
+        chosen = subprocess.run([*args, '--source-sha256', sha], env=env, capture_output=True, text=True)
+        self.assertEqual(chosen.returncode, 0, chosen.stderr)
+        self.assertEqual(json.loads(chosen.stdout)['source_sha256'], sha)
+
 
 if __name__ == '__main__':
     unittest.main()

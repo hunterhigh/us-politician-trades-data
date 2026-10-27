@@ -368,6 +368,8 @@ def main() -> None:
     oge_candidate_mode.add_argument("--generic", action="store_true")
     oge_candidate_mode.add_argument("--generic-document-id", action="append", default=[],
         help="Select this document's existing source-planned generic cache only; repeat up to 32 times (native v7 requires its v2 pair)")
+    oge_candidate.add_argument("--document-source", action="append", default=[], metavar="DOC:SHA",
+        help="Select one archived ordinary native input by document and SHA; repeat up to 32 times, without asserting recency or replacement")
     oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
     oge_candidate.add_argument("--saved-exhibit-observations", type=Path)
     oge_candidate.add_argument("--saved-observations", type=Path,
@@ -1021,6 +1023,18 @@ def main() -> None:
                 "parsed_extraction_count", "failure_count", "transaction_count",
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
+            from .oge_source_selection import parse_document_sources, verify_selected_native_cache
+            document_sources = parse_document_sources(args.document_source)
+            if document_sources and args.evidence_root is None:
+                raise OgeCatalogError('Explicit OGE document sources require --evidence-root')
+            pinned_source_inputs = [args.catalog, args.base]
+            if document_sources:
+                from .oge_saved_observations import guard_saved_oge_outputs
+                guard_saved_oge_outputs([args.output, args.audit_output],
+                    inputs=pinned_source_inputs,
+                    protected_roots=[args.evidence_root, args.extractions_dir,
+                                     args.legacy_extractions_dir, args.catalog_history_dir,
+                                     args.manual_cover_dates_dir])
             from .oge_native_partition import DEFAULT_VERSIONS as VISIBLE_DEFAULTS, GENERIC_VERSIONS as VISIBLE_GENERICS
             from .oge_reports import selected_parser_version, _read_archived_source
             scoped_generic_ids = args.generic_document_id
@@ -1052,6 +1066,11 @@ def main() -> None:
                     if value.get("parser_version") != OGE_REPORT_PARSER_VERSION:
                         continue
                     key = value.get("document_id")
+                    if isinstance(key, str) and key in document_sources:
+                        if value.get('source_sha256') != document_sources[key]:
+                            continue
+                        pinned_source_inputs.extend(verify_selected_native_cache(
+                            path, args.legacy_extractions_dir, value, args.evidence_root))
                     if not isinstance(key, str) or key in legacy_extractions:
                         raise OgeCatalogError("Legacy extraction document identity is missing or duplicated")
                     legacy_extractions[key] = value
@@ -1059,6 +1078,9 @@ def main() -> None:
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
                 document_id = value.get("document_id")
+                if isinstance(document_id, str) and document_id in document_sources:
+                    if value.get('source_sha256') != document_sources[document_id]:
+                        continue
                 use_generic = args.generic or document_id in scoped_generic_ids
                 if version not in {OGE_REPORT_PARSER_VERSION, *VISIBLE_DEFAULTS,
                                    TRUMP_SEPT_2026_PARSER_VERSION,
@@ -1074,6 +1096,9 @@ def main() -> None:
                     required_current_documents.add(document_id)
                     if version != expected:
                         continue
+                if document_id in document_sources:
+                    pinned_source_inputs.extend(verify_selected_native_cache(
+                        path, args.extractions_dir, value, args.evidence_root))
                 if version in {TRUMP_SEPT_2026_PARSER_VERSION,
                                TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
@@ -1113,6 +1138,8 @@ def main() -> None:
                 selected_extractions[document_id] = value
             if required_current_documents - set(selected_extractions):
                 raise OgeCatalogError('A current source-selected OGE extraction is missing')
+            if document_sources.keys() - selected_extractions.keys():
+                raise OgeCatalogError('A requested archived OGE document source was not selected')
             if scoped_generic_ids - set(selected_extractions):
                 raise OgeCatalogError('A requested scoped generic document was not selected')
             for document_id in sorted(scoped_generic_ids):
@@ -1130,6 +1157,9 @@ def main() -> None:
                 if not legacy_path.is_file():
                     raise OgeCatalogError('Scoped generic selection lacks its canonical same-SHA v2 predecessor')
                 older = json.loads(legacy_path.read_text(encoding='utf-8'))
+                if document_id in document_sources:
+                    pinned_source_inputs.extend(verify_selected_native_cache(
+                        legacy_path, legacy_root, older, args.evidence_root))
                 if (older.get('parser_version') != OGE_REPORT_PARSER_VERSION or any(
                         older.get(field) != selected.get(field) for field in
                         ('document_id', 'source_sha256', 'source_url', 'source_id',
@@ -1177,6 +1207,8 @@ def main() -> None:
                                   generated_at=args.data_cutoff_at)
             audit["candidate_snapshot_id"] = bundle.manifest["snapshot_id"]
             audit["candidate_sha256"] = digest(encode(result))
+            if document_sources:
+                guard_saved_oge_outputs([args.output, args.audit_output], inputs=pinned_source_inputs)
             _write_atomic(args.output, result)
             _write_atomic(args.audit_output, audit)
             print(json.dumps({"people": len(result["people"]),
