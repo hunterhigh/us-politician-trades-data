@@ -590,6 +590,12 @@ jobs:
           annual = json.loads((review / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
           combined = json.loads((review / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
           ticker_audit = json.loads((review / 'whitehouse/278t/trump-2026-ticker-mapping-current.json').read_text(encoding='utf-8'))
+          direct_published = audit['promoted_transaction_count']
+          direct_current = audit.get('current_qualified_transaction_count', direct_published)
+          # Later overlays can replace identities. Without their complete
+          # current-ID intersection, a retained projection is not a qualified total.
+          qualified_total = (len(combined['transactions'])
+                             if direct_current == direct_published else None)
           value = {
               'schema_version': 'oge-review-run/v1', 'source_id': 'oge',
               'generated_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
@@ -604,8 +610,10 @@ jobs:
               'pending_direct_count': 0,
               'extraction_count': audit['extraction_count'],
               'extraction_failure_count': extraction['failure_count'],
-              'qualified_transaction_count': len(combined['transactions']),
-              'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
+              'qualified_transaction_count': qualified_total,
+              'publication_transaction_count': len(combined['transactions']),
+              'oge_direct_qualified_transaction_count': direct_current,
+              'oge_direct_publication_transaction_count': direct_published,
               'oge_direct_quarantined_row_count': audit['quarantined_row_count'],
               'whitehouse_public_qualified_transaction_count': whitehouse['promoted_transaction_count'],
               'whitehouse_public_qualified_annual_transaction_count': annual.get(

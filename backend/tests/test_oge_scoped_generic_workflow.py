@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 
 from test_oge_annual_workflow import bash_binary
@@ -174,6 +175,58 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.assertEqual(self.audit.read_bytes(), b'audit sentinel')
         self.assertEqual(json.loads(cache.read_bytes()), wrong)
         self.assertFalse((cache.parent/'oge-278t-pdf-v7.json').exists())
+
+    def test_source_run_summary_separates_current_qualification_from_retained_publication(self):
+        from test_oge_owner_correction import fixture, write_files, DOCUMENT, CUTOFF
+        from test_oge_owner_scope_cli import unknown_context
+        _, _, review, evidence, previous = fixture(historical=False, pdf_mutator=unknown_context)
+        self.root = self.root/'retained-source'; self.root.mkdir()
+        self.review = self.root/'review'
+        evidence_root = self.root/'evidence'
+        write_files(evidence_root, evidence); write_files(self.review, review)
+        catalog = json.loads(next(raw for path, raw in evidence.items()
+                                  if '/catalog/normalized/' in path))
+        catalog['metadata'] = {
+            'sha256': json.loads(review['status/oge.json'])['catalog_sha256'],
+            'request_required_count': 0}
+        self.write(self.root/'.local/oge-catalog.json', catalog)
+        self.write(self.root/'ingest/current.json', previous)
+        script = self.root/'backend/scripts/prepare_oge_ptr_generic.py'
+        script.parent.mkdir(parents=True)
+        shutil.copyfile(ROOT/'backend/scripts/prepare_oge_ptr_generic.py', script)
+        self.env.update(REVIEW_ROOT=str(self.review), EVIDENCE_ROOT=str(evidence_root),
+                        TEST_CUTOFF=CUTOFF)
+        self.output = self.review/'candidates/sources/oge-current.json'
+        self.audit = self.review/'oge/qualifications/current.json'
+        result = self.execute(configured=DOCUMENT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        candidate, audit = self.result()
+        self.assertEqual(candidate['transactions'], previous['transactions'])
+        self.assertEqual(audit['current_qualified_transaction_count'], 0)
+        self.assertEqual(audit['promoted_transaction_count'], 1)
+        # The other pipeline stages have no financial facts in this control;
+        # these are run observations, not substituted source qualifications.
+        self.write(self.root/'.local/oge-report-batch.json', {
+            'catalog_direct_occurrence_count': 1, 'duplicate_catalog_occurrence_count': 0})
+        self.write(self.root/'.local/oge-extraction-batch.json', {'failure_count': 0})
+        self.write(self.review/'whitehouse/qualifications/candidate-current.json', {
+            'promoted_transaction_count': 0, 'extraction_failure_count': 0, 'quarantined_row_count': 0})
+        self.write(self.review/'whitehouse/annual/candidate-current.json', {
+            'annual_transaction_count': 0, 'annual_qualified_report_count': 0, 'annual_holding_count': 0})
+        self.write(self.review/'whitehouse/278t/trump-2026-ticker-mapping-current.json', {
+            'retained_ticker_conflict_count': 0})
+        workflow = (ROOT/'.github/workflows/oge.yml').read_text(encoding='utf-8')
+        before_commit = workflow.split('          # Persist the validated source', 1)[0]
+        summary = before_commit.rsplit('          REVIEW_ROOT="$REVIEW_ROOT" python - <<\'PY\'\n', 1)[1]
+        summary = textwrap.dedent(summary.rsplit('          PY\n', 1)[0])
+        result = subprocess.run([sys.executable, '-c', summary], cwd=self.root,
+                                env=self.env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads((self.review/'status/oge.json').read_bytes())
+        self.assertEqual(state['oge_direct_qualified_transaction_count'], 0)
+        self.assertEqual(state['oge_direct_publication_transaction_count'], 1)
+        self.assertEqual(state['publication_transaction_count'], 1)
+        self.assertIsNone(state['qualified_transaction_count'])
 
 
 if __name__ == '__main__':
