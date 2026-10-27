@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 
 from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_validation
@@ -363,7 +364,10 @@ def main() -> None:
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
     oge_candidate.add_argument("--evidence-root", type=Path)
     oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
-    oge_candidate.add_argument("--generic", action="store_true")
+    oge_candidate_mode = oge_candidate.add_mutually_exclusive_group()
+    oge_candidate_mode.add_argument("--generic", action="store_true")
+    oge_candidate_mode.add_argument("--generic-document-id", action="append", default=[],
+        help="Select this document's existing source-planned generic cache only; repeat up to 32 times (native v7 requires its v2 pair)")
     oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
     oge_candidate.add_argument("--saved-exhibit-observations", type=Path)
     oge_candidate.add_argument("--saved-observations", type=Path,
@@ -1019,6 +1023,13 @@ def main() -> None:
         elif args.command == "build-oge-candidate":
             from .oge_native_partition import DEFAULT_VERSIONS as VISIBLE_DEFAULTS, GENERIC_VERSIONS as VISIBLE_GENERICS
             from .oge_reports import selected_parser_version, _read_archived_source
+            scoped_generic_ids = args.generic_document_id
+            if (len(scoped_generic_ids) > 32 or len(set(scoped_generic_ids)) != len(scoped_generic_ids)
+                    or any(re.fullmatch(r'[0-9a-f]{32}', value) is None for value in scoped_generic_ids)):
+                raise OgeCatalogError('Scoped generic document IDs must be unique canonical IDs, at most 32')
+            scoped_generic_ids = set(scoped_generic_ids)
+            if scoped_generic_ids and args.evidence_root is None:
+                raise OgeCatalogError('Scoped generic selection requires --evidence-root')
             if args.saved_observations is not None:
                 from .oge_saved_observations import guard_saved_oge_outputs
                 if args.evidence_root is None:
@@ -1033,7 +1044,7 @@ def main() -> None:
             selected_extractions = {}
             required_current_documents = set()
             legacy_extractions = {}
-            if args.legacy_extractions_dir:
+            if args.legacy_extractions_dir and not scoped_generic_ids:
                 if not args.generic:
                     raise OgeCatalogError("Legacy inheritance input requires explicit generic mode")
                 for path in sorted(args.legacy_extractions_dir.rglob("*.json")):
@@ -1048,17 +1059,18 @@ def main() -> None:
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
                 document_id = value.get("document_id")
+                use_generic = args.generic or document_id in scoped_generic_ids
                 if version not in {OGE_REPORT_PARSER_VERSION, *VISIBLE_DEFAULTS,
                                    TRUMP_SEPT_2026_PARSER_VERSION,
                                    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
                                    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
                                    TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
-                        args.generic and version in {OGE_GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}):
+                        use_generic and version in {OGE_GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}):
                     continue
                 if args.evidence_root is not None:
                     metadata_path = args.evidence_root / f"oge/reports/{document_id}/{value.get('source_sha256')}.json"
                     metadata, source_path, source_sha = _read_archived_source(args.evidence_root, metadata_path)
-                    expected = selected_parser_version(metadata, source_path, source_sha, generic=args.generic)
+                    expected = selected_parser_version(metadata, source_path, source_sha, generic=use_generic)
                     required_current_documents.add(document_id)
                     if version != expected:
                         continue
@@ -1072,7 +1084,7 @@ def main() -> None:
                     raise OgeCatalogError("Source-bound OGE extraction is not the fixed report")
                 previous = selected_extractions.get(document_id)
                 if previous is not None:
-                    if args.generic and OGE_GENERIC_PARSER_VERSION in {version, previous.get("parser_version")}:
+                    if use_generic and OGE_GENERIC_PARSER_VERSION in {version, previous.get("parser_version")}:
                         if version == previous.get("parser_version") or any(
                                 value.get(field) != previous.get(field)
                                 for field in ("source_sha256", "source_url", "document_id")):
@@ -1101,6 +1113,29 @@ def main() -> None:
                 selected_extractions[document_id] = value
             if required_current_documents - set(selected_extractions):
                 raise OgeCatalogError('A current source-selected OGE extraction is missing')
+            if scoped_generic_ids - set(selected_extractions):
+                raise OgeCatalogError('A requested scoped generic document was not selected')
+            for document_id in sorted(scoped_generic_ids):
+                selected = selected_extractions[document_id]
+                sha = selected.get('source_sha256')
+                metadata, source_path, actual_sha = _read_archived_source(args.evidence_root,
+                    args.evidence_root / f'oge/reports/{document_id}/{sha}.json')
+                if (selected.get('parser_version') != OGE_GENERIC_PARSER_VERSION
+                        or selected_parser_version(metadata, source_path, actual_sha) != OGE_REPORT_PARSER_VERSION):
+                    # Other cached families retain their existing source-plan
+                    # contract; do not manufacture an ordinary v2 predecessor.
+                    continue
+                legacy_root = args.legacy_extractions_dir or args.extractions_dir
+                legacy_path = legacy_root / document_id / str(sha) / (OGE_REPORT_PARSER_VERSION.replace('/', '-') + '.json')
+                if not legacy_path.is_file():
+                    raise OgeCatalogError('Scoped generic selection lacks its canonical same-SHA v2 predecessor')
+                older = json.loads(legacy_path.read_text(encoding='utf-8'))
+                if (older.get('parser_version') != OGE_REPORT_PARSER_VERSION or any(
+                        older.get(field) != selected.get(field) for field in
+                        ('document_id', 'source_sha256', 'source_url', 'source_id',
+                         'catalog_filer_name', 'agency', 'position_title', 'catalog_added_date'))):
+                    raise OgeCatalogError('Scoped generic v2 predecessor differs from the selected source')
+                legacy_extractions[document_id] = older
             extractions = list(selected_extractions.values())
             # Bind the selected cache before an existing interpretation layer
             # (such as the manual cover-date sidecar) changes the receiver view.
@@ -1133,7 +1168,7 @@ def main() -> None:
                 source_extractions_by_document=source_extractions,
                 catalog_history=catalog_history,
                 **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
-                **({"legacy_extractions_by_document": legacy_extractions} if args.generic else {}),
+                **({"legacy_extractions_by_document": legacy_extractions} if args.generic or scoped_generic_ids else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
                    if args.saved_exhibit_observations else {}))
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,

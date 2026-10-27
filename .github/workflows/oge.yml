@@ -6,6 +6,10 @@ on:
     - cron: '43 4,10,16,22 * * *'
   workflow_dispatch:
     inputs:
+      oge_generic_document_id:
+        description: Optional existing ordinary native PTR document ID to prepare and interpret with the generic parser
+        required: false
+        default: ''
       include_saved_oge_observations:
         description: Include an explicitly selected existing saved 278-T observation input in the review candidate
         type: boolean
@@ -370,6 +374,8 @@ jobs:
           EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence
           INCLUDE_SAVED_OGE_OBSERVATIONS: ${{ inputs.include_saved_oge_observations || false }}
           OGE_SAVED_OBSERVATIONS_PATH: ${{ inputs.oge_saved_observations_path }}
+          OGE_GENERIC_DOCUMENT_ID: ${{ inputs.oge_generic_document_id }}
+          OGE_GENERIC_DOCUMENT_IDS: ${{ vars.OGE_GENERIC_DOCUMENT_IDS }}
           INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
           INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
           OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
@@ -471,6 +477,36 @@ jobs:
             echo 'A saved PTR input requires its explicit switch.' >&2
             exit 2
           fi
+          # BEGIN scoped native PTR preparation
+          generic_document_args=()
+          generic_document_selection="$(python - <<'PY'
+          import os, re, sys
+          configured = os.environ.get('OGE_GENERIC_DOCUMENT_IDS', '')
+          dispatched = os.environ.get('OGE_GENERIC_DOCUMENT_ID', '')
+          if len(configured) > 32 * 33 or len(dispatched) > 32:
+              raise SystemExit('Generic PTR document selection exceeds its budget')
+          ids = configured.split(',') if configured else []
+          if dispatched:
+              ids.append(dispatched)
+          if any(not re.fullmatch('[0-9a-f]{32}', item) for item in ids):
+              raise SystemExit('Generic PTR document IDs must be lowercase 32-character hex values')
+          ids = sorted(set(ids))
+          if len(ids) > 32:
+              raise SystemExit('At most 32 generic PTR document IDs may be selected')
+          sys.stdout.buffer.write('\n'.join(ids).encode('ascii'))
+          PY
+          )"
+          if [[ -n "$generic_document_selection" ]]; then
+            while IFS= read -r document_id; do
+              PYTHONPATH=backend/src python backend/scripts/prepare_oge_ptr_generic.py \
+                --document-id "$document_id" \
+                --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+                --catalog .local/oge-catalog.json \
+                --catalog-history-dir "$REVIEW_ROOT/oge/discoveries"
+              generic_document_args+=(--generic-document-id "$document_id")
+            done <<< "$generic_document_selection"
+          fi
+          # END scoped native PTR preparation
           # END bounded saved PTR selection
           mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
           PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate \
@@ -482,7 +518,7 @@ jobs:
             --base ingest/current.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
-            "${saved_observation_args[@]}"
+            "${saved_observation_args[@]}" "${generic_document_args[@]}"
           PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \
