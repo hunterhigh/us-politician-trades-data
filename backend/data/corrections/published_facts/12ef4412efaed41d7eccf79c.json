@@ -1,0 +1,58 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-published-fact/v1",
+  "source": "oge",
+  "document_id": "wh-url:12ef4412efaed41d7eccf79c",
+  "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/02/Burrows-Daniel-Periodic-Transaction-Report-10.30.25.pdf",
+  "source_sha256": "ba85f6c3fe9542415dbe91e128ea2b752d1372513b61ffde0609ba92445865fe",
+  "reviewed_at": "2026-10-28",
+  "source_review": {
+    "method": "complete_native_pdf_and_historical_projection_replay",
+    "code_commit": "ba7463062058a4d940a9bcb9669ec187c8468683",
+    "evidence_commit": "3204ca622066159cebcad2e84035857878668601",
+    "review_commit": "9894a86b7dcd5b86341f28b230dc340ec4392ff1",
+    "classification_basis": "Common Stock in the original asset cell; Endnote is a reference, not a debt instrument"
+  },
+  "assertions": {
+    "row_inventory": [
+      "oge-278t:1d78af2fd95096e693041808"
+    ],
+    "source_rows": {
+      "oge-278t:1d78af2fd95096e693041808": {
+        "page_number": 2,
+        "row_number": 1,
+        "cells": [
+          "1",
+          "Meta Platforms Inc. Class A Common Stock See Endnote (META)",
+          "Purchase",
+          "10/27/2025",
+          "No",
+          "$1,001 - $15,000"
+        ]
+      }
+    },
+    "predecessor_sha256": {
+      "oge-278t:1d78af2fd95096e693041808": [
+        "e079cf5f27cebfb293b3d95c1cf192e380de0c107626b11d064a1c5dc85ee74d",
+        "63b6313de4ad9c65efeefab2c0b87c09265c007c8526cf36859a61d1055e6394"
+      ]
+    },
+    "output_sha256": {
+      "oge-278t:1d78af2fd95096e693041808": "1b0a9856316b1b8b118a57caf51e042de73cdddac456336c15468be88498c55c"
+    }
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "oge-278t:1d78af2fd95096e693041808",
+      "field": "instrument_type",
+      "expect": "Bond",
+      "value": "Stock",
+      "evidence": {
+        "page": 2,
+        "row_number": 1,
+        "asset_cell": "Meta Platforms Inc. Class A Common Stock See Endnote (META)"
+      }
+    }
+  ]
+}

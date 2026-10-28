@@ -56,7 +56,8 @@ class CorrectionTests(unittest.TestCase):
             with self.subTest(path=str(path)):
                 correction = load_correction(path)
                 self.assertEqual(path.stem, correction['document_id'].removeprefix('wh-url:'))
-                self.assertEqual('oge' if correction['document_id'].startswith('wh-url:') else path.parent.name,
+                self.assertEqual('oge' if correction['document_id'].startswith('wh-url:') or
+                    path.parent.name == 'oge_cover_dates' else path.parent.name,
                     correction['source'])
                 review = correction['source_review']
                 if correction['source']=='house_clerk':
@@ -102,6 +103,17 @@ class CorrectionTests(unittest.TestCase):
                         for action in application['actions']:
                             self.assertIn('expect',action)
                             self.assertTrue(action['op']=='set_report' or action['row'] in guards['row_inventory'])
+                elif correction['profile']=='reviewed-cover-date/v1':
+                    observation = correction['observation']
+                    self.assertEqual(observation['source_sha256'], correction['source_sha256'])
+                    self.assertEqual(observation['qualification_effect'], 'none')
+                    self.assertEqual(observation['status'], 'observation_only')
+                    if observation['field_role'] != 'filer_signature_date':
+                        self.assertEqual(correction['actions'], [])
+                        self.assertIsNone(observation['filed_at'])
+                    else:
+                        self.assertEqual({a['field'] for a in correction['actions']},
+                            {'filed_at','document_reasons','evidence_complete','manual_filing_date_evidence'})
                 for action in correction['actions']:
                     if action['op'] in {'set_field','set_report','drop_row','quarantine','relate'}:
                         self.assertIn('expect',action)

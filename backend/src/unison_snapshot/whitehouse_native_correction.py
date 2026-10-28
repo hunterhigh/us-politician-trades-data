@@ -413,10 +413,13 @@ class NativeClassificationSources:
                     sum(item == row for item in context[0]['transactions']) == 1)
 
     def provenance(self):
+        from .reviewed_fact_corrections import correction_dependencies
         dependencies = [] if self._sources is None else sorted(
             (role, path, hashlib.sha256(raw).hexdigest())
             for (role, path), raw in self._sources.cache.items())
         return {'native_endnote_classification_policy_version': POLICY_VERSION,
+                'reviewed_fact_corrections_sha256': correction_dependencies(
+                    [context[0] for context in self._reports.values()]),
                 'native_endnote_classification_dependency_sha256': hashlib.sha256(
                     json.dumps(dependencies, separators=(',', ':')).encode()).hexdigest()}
 
@@ -538,10 +541,13 @@ def reconcile_native_classification(report, row, prior, *, person_id, source_peo
     if historical['person_id'] != person_id:
         raise NativeCorrectionError('White House classification source person differs')
     final = _current_projection(original, fresh_row, person_id)
+    from .reviewed_fact_corrections import apply_verified_fact_correction
     if prior == final:
+        apply_verified_fact_correction(original, row, prior, final)
         return None
     if prior != historical and prior != normalized:
         raise NativeCorrectionError('White House classification does not reproduce complete predecessor')
+    final = apply_verified_fact_correction(original, row, prior, final)
     corrections = [{'field': field, 'old_value': prior[field], 'new_value': final[field],
         'rule': POLICY_VERSION, 'formal_id': prior['id'], 'source_sha256': report['source_sha256'],
         'page_number': row['page_number'], 'cells': row['cells']}

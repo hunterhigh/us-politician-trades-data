@@ -1,0 +1,94 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-cover-date/v1",
+  "source": "oge",
+  "document_id": "2c89623dc721f62585258d430031a32a",
+  "source_sha256": "41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf",
+  "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/2C89623DC721F62585258D430031A32A/$FILE/Donald%20J.%20Trump%2010.20.2025%20278-T.pdf",
+  "reviewed_at": "2026-10-28",
+  "parser_version": "oge-278t-pdf/v2",
+  "observation": {
+    "schema_version": "oge-manual-cover-date/v1",
+    "status": "observation_only",
+    "qualification_effect": "none",
+    "source_id": "oge",
+    "document_id": "2c89623dc721f62585258d430031a32a",
+    "source_sha256": "41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf",
+    "page_number": 1,
+    "field_role": "filer_signature_date",
+    "raw_reading": "10/20/25",
+    "observed_date": "2025-10-20",
+    "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/2C89623DC721F62585258D430031A32A/$FILE/Donald%20J.%20Trump%2010.20.2025%20278-T.pdf",
+    "recognition_method": "human_visual_reading_of_pdf_cover",
+    "filed_at": "2025-10-20",
+    "extraction_parser_version": "oge-278t-pdf/v2"
+  },
+  "source_review": {
+    "method": "preserved_human_visual_cover_observation",
+    "manifest_sha256": "64b9f4d94c3631315062a519449e232ca1064c42a0004b2b9a8dd3809c82965d",
+    "review_path": "oge/manual_cover_dates/2c89623dc721f62585258d430031a32a/41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf.json"
+  },
+  "assertions": {
+    "row_inventory": []
+  },
+  "actions": [
+    {
+      "op": "set_report",
+      "field": "filed_at",
+      "expect": null,
+      "value": "2025-10-20",
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "10/20/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "document_reasons",
+      "expect": [
+        "filer_signature_date_not_unique",
+        "transaction_table_not_found",
+        "no_transaction_rows_found"
+      ],
+      "value": [
+        "transaction_table_not_found",
+        "no_transaction_rows_found"
+      ],
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "10/20/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "evidence_complete",
+      "expect": false,
+      "value": false,
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "10/20/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "manual_filing_date_evidence",
+      "expect": null,
+      "value": {
+        "review_path": "oge/manual_cover_dates/2c89623dc721f62585258d430031a32a/41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf.json",
+        "page_number": 1,
+        "source_sha256": "41405584cccf872fc6aca4d2111243cef92427ea5948ae2e97459dfb3b968ebf",
+        "raw_reading": "10/20/25",
+        "observed_date": "2025-10-20"
+      },
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "10/20/25"
+      },
+      "expect_present": false
+    }
+  ]
+}

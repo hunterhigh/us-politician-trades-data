@@ -15,6 +15,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge_reports import _read_archived_source
+from unison_snapshot.oge_manual_dates import load_observations
 
 
 SCHEMA = "oge-manual-cover-date-observations/v1"
@@ -26,7 +27,7 @@ _ROLES = {"filer_signature_date", "amendment_signature_date"}
 
 def build(*, observations_path: Path, evidence_root: Path,
           review_root: Path) -> dict:
-    manifest = json.loads(observations_path.read_text(encoding="utf-8"))
+    manifest = load_observations(observations_path)
     if (manifest.get("schema_version") != SCHEMA or
             manifest.get("status") != "observation_only" or
             not isinstance(manifest.get("observations"), list)):

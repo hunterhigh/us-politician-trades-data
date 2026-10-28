@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from test_whitehouse_owner_correction import fixture, encoded
 from scripts import build_whitehouse_278t_candidate as cli
@@ -118,6 +119,35 @@ class NativeClassificationConsumptionTests(unittest.TestCase):
         first = self.candidate.read_bytes(), self.audit.read_bytes()
         self.assertTrue(self.run_cli()['idempotent'])
         self.assertEqual(first, (self.candidate.read_bytes(), self.audit.read_bytes()))
+
+    def test_correction_data_uses_source_proof_and_invalidates_completed_cache(self):
+        from unison_snapshot import reviewed_fact_corrections as reviewed
+        from unison_snapshot.codec import encode, digest
+        report = json.loads(next(self.review.rglob('whitehouse-278t-native-roles-v5.json')).read_bytes())
+        row = report['transactions'][0]; old = self.base['transactions'][0]
+        final = {**old, 'owner': 'Undisclosed', 'instrument_type': 'Stock'}
+        correction = {'schema_version': 'source-correction/v1', 'profile': reviewed.PROFILE,
+            'source': 'oge', 'document_id': report['document_id'], 'source_url': report['source_url'],
+            'source_sha256': report['source_sha256'], 'reviewed_at': '2026-10-28',
+            'assertions': {'row_inventory': [old['id']],
+                'source_rows': {old['id']: {k: row[k] for k in ('page_number','row_number','cells')}},
+                'predecessor_sha256': {old['id']: [digest(encode(old))]},
+                'output_sha256': {old['id']: digest(encode(final))}},
+            'actions': [{'op': 'set_field', 'row': old['id'], 'field': 'instrument_type',
+                'expect': 'Bond', 'value': 'Stock', 'evidence': {'page': row['page_number']}}]}
+        rules = self.root/'corrections';rules.mkdir()
+        path = rules/(report['document_id'][7:]+'.json')
+        path.write_bytes(encode(correction))
+        with patch.object(reviewed, 'ROOT', rules):
+            self.run_cli()
+            self.assertEqual(self.read_candidate()['transactions'], [final])
+            stable = self.candidate.read_bytes(), self.audit.read_bytes()
+            self.assertTrue(self.run_cli()['idempotent'])
+            correction['assertions']['output_sha256'][old['id']] = 'f'*64
+            path.write_bytes(encode(correction))
+            with self.assertRaisesRegex(ValueError, 'verified source output'):
+                self.run_cli()
+            self.assertEqual(stable, (self.candidate.read_bytes(), self.audit.read_bytes()))
 
     def test_dependency_mutation_and_missing_roots_fail_before_both_outputs(self):
         self.run_cli(); before = self.candidate.read_bytes(), self.audit.read_bytes()
