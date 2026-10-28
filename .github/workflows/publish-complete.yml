@@ -457,6 +457,14 @@ jobs:
           fi
           main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
           echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+      - name: Reject content already rejected by the published client
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot.publication_smoke \
+            --manifest "$MAIN_ROOT/manifest.json" --repository "$REPOSITORY"
       - name: Publish immutable preflight commits without moving production
         id: preflight
         env:

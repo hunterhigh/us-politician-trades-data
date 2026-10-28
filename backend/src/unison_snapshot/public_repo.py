@@ -31,9 +31,17 @@ class PublicSnapshotError(RuntimeError):
     pass
 
 
+class PublicSnapshotTransportError(PublicSnapshotError):
+    """No trustworthy object was obtained; never evidence for data rollback."""
+
+
+class PublicSnapshotChanged(PublicSnapshotError):
+    """The mutable head advanced beyond the commit the caller is checking."""
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise PublicSnapshotError("Repository transport returned a redirect")
+        raise PublicSnapshotTransportError("Repository transport returned a redirect")
 
 
 def _read_response(response, limit: int) -> bytes:
@@ -85,15 +93,20 @@ class HTTPTransport:
             try:
                 with self.opener.open(request, timeout=self.timeout) as response:
                     if response.status != 200:
-                        raise PublicSnapshotError(f"Repository returned HTTP {response.status}")
+                        raise PublicSnapshotTransportError(f"Repository returned HTTP {response.status}")
                     data = _read_response(response, limit)
                 break
             except urllib.error.HTTPError as exc:
                 if exc.code not in retryable_http or attempt == self.retries:
-                    raise PublicSnapshotError(f"Repository returned HTTP {exc.code}") from None
+                    raise PublicSnapshotTransportError(f"Repository returned HTTP {exc.code}") from None
+            except PublicSnapshotTransportError:
+                # Retry the same frozen URL; do not follow an unexpected redirect
+                # or reinterpret a failed transport as corrupt stored content.
+                if attempt == self.retries:
+                    raise
             except network_errors:
                 if attempt == self.retries:
-                    raise PublicSnapshotError("Public repository is unavailable") from None
+                    raise PublicSnapshotTransportError("Public repository is unavailable") from None
             if self.backoff:
                 time.sleep(self.backoff * (2 ** attempt))
         if len(data) > limit:
@@ -109,10 +122,14 @@ class SnapshotSelection:
 
 class PublicSnapshotRepository:
     def __init__(self, owner: str, repo: str, *, ref: str = "main", transport=None,
-                 cache_bytes: int = 32 * 1024 * 1024, read_workers: int = 4):
+                 cache_bytes: int = 32 * 1024 * 1024, read_workers: int = 4,
+                 expected_commit: str | None = None):
         if not NAME.fullmatch(owner) or not NAME.fullmatch(repo) or ref not in {"main", "demo"}:
             raise ValueError("Invalid fixed public repository identity or ref")
         self.owner, self.repo, self.ref = owner, repo, ref
+        if expected_commit is not None and not SHA1.fullmatch(expected_commit):
+            raise ValueError('Expected snapshot commit is invalid')
+        self.expected_commit = expected_commit
         self.transport = transport or HTTPTransport()
         if type(cache_bytes) is not int or cache_bytes < 0:
             raise ValueError("Cache size must be a nonnegative integer")
@@ -136,11 +153,17 @@ class PublicSnapshotRepository:
     def resolve(self) -> str:
         ref = urllib.parse.quote(self.ref, safe="")
         url = f"https://api.github.com/repos/{self.owner}/{self.repo}/git/ref/heads/{ref}"
-        value = self._json(self.transport.get(url, LIMITS["manifest"], api=True), "commit response")
+        raw = self.transport.get(url, LIMITS["manifest"], api=True)
+        try:
+            value = self._json(raw, "commit response")
+        except PublicSnapshotError as error:
+            raise PublicSnapshotTransportError('Repository head lookup returned an invalid API response') from error
         reference = value.get("object")
         commit = reference.get("sha") if isinstance(reference, dict) and reference.get("type") == "commit" else None
         if not isinstance(commit, str) or not SHA1.fullmatch(commit):
-            raise PublicSnapshotError("GitHub did not return a frozen commit")
+            raise PublicSnapshotTransportError("GitHub did not return a frozen commit")
+        if self.expected_commit is not None and commit != self.expected_commit:
+            raise PublicSnapshotChanged('Snapshot head advanced beyond the checked publication')
         return commit
 
     def _read(self, commit: str, path: str, limit: int) -> bytes:
