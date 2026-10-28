@@ -63,3 +63,15 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         failure.unlink();extraction.write_text(json.dumps(legacy),encoding='utf-8')
         pdf=root/legacy['source']['archive_path'];pdf.write_bytes(pdf.read_bytes()+b'\n% changed source')
         self.assertEqual(selected(),[str(metadata)])
+        # The normal run's archive year bounds its parse queue too. A 2025
+        # backlog must not consume the current run's bounded batch slots.
+        old_metadata=root/'house_clerk/documents/2025/50000001'/metadata.name
+        old_metadata.parent.mkdir(parents=True)
+        old_metadata.write_text(json.dumps({**json.loads(metadata.read_bytes()),
+                                            'filing_year': 2025, 'document_id': '50000001'}))
+        environment.update(SELECT_YEAR='', UNISON_HOUSE_FILING_YEAR='2026')
+        self.assertEqual(selected(),[str(metadata)])
+        environment['UNISON_HOUSE_FILING_YEAR']='2025'
+        self.assertEqual(selected(),[str(old_metadata)])
+        environment['SELECT_YEAR']='2026'
+        self.assertEqual(selected(),[str(metadata)])

@@ -292,7 +292,8 @@ def main():
     parser.add_argument('--review-root', type=Path, default=os.environ.get('REVIEW_ROOT'))
     parser.add_argument('--parser-commit', default=os.environ.get('PARSER_COMMIT'))
     parser.add_argument('--batch-size', type=int, default=os.environ.get('BATCH_SIZE', '25'))
-    parser.add_argument('--year', default=os.environ.get('SELECT_YEAR', ''))
+    parser.add_argument('--year', default=(os.environ.get('SELECT_YEAR') or
+                                          os.environ.get('UNISON_HOUSE_FILING_YEAR', '')))
     parser.add_argument('--paper-document-id', default=os.environ.get('PAPER_DOCUMENT_ID', ''))
     parser.add_argument('--github-output', type=Path, default=os.environ.get('GITHUB_OUTPUT'))
     parser.add_argument('--run-dir', type=Path, default=os.environ.get('RUNNER_TEMP', '.local'))
