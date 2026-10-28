@@ -18,7 +18,7 @@ from unison_snapshot.house_holdings import qualify_financial_report
 from unison_snapshot.disclosure_status_house import build_house_status
 
 ROOT=Path(__file__).resolve().parents[2]
-WORKFLOW=ROOT/'.github/workflows/house-holdings.yml'
+WORKFLOW=ROOT/'.github/workflows/house.yml'
 
 
 class HouseHoldingsSourceRootWorkflowTests(unittest.TestCase):
@@ -76,9 +76,9 @@ class HouseHoldingsSourceRootWorkflowTests(unittest.TestCase):
         return data
 
     def candidate_branch(self):
-        text=WORKFLOW.read_text(encoding='utf-8')
+        text=WORKFLOW.read_text(encoding='utf-8').split('  annual-holdings:',1)[1]
         start=text.index('          mkdir -p "$REVIEW_ROOT/candidates/sources"')
-        end=text.index('          source_args=',start)
+        end=text.index('          PYTHONPATH=backend/src python -m unison_snapshot assemble-source',start)
         return textwrap.dedent(text[start:end])
 
     def run_branch(self,data,*,historical_without_root=False,evidence=None,without_dependency=False):

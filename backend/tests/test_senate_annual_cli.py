@@ -33,10 +33,10 @@ class SenateAnnualCliTests(unittest.TestCase):
                 self.assertEqual(build.call_args.kwargs, {"structured_asset_labels": True} if enabled else {})
 
     def test_workflow_reuses_activated_mode_without_unrequested_collection(self):
-        text = (Path(__file__).resolve().parents[2] / ".github/workflows/senate-annual.yml").read_text(encoding="utf-8")
+        text = (Path(__file__).resolve().parents[2] / ".github/workflows/senate.yml").read_text(encoding="utf-8")
         for name in ("Discover and archive latest annual versions", "Publish official originals and catalog"):
             step = text.split("- name: " + name, 1)[1].split("- name:", 1)[0]
-            self.assertIn("if: inputs.structured_asset_labels != true", step)
+            self.assertIn("if: inputs.collect_annual == true && inputs.structured_asset_labels != true", step)
         self.assertIn('"$active_mode" = "structured_v4"', text)
         self.assertIn('annual_args+=(--structured-asset-labels)', text)
         self.assertIn('"${annual_args[@]}"', text)

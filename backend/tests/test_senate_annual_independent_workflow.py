@@ -22,18 +22,15 @@ from unison_snapshot.senate_members import build_roster
 
 
 ROOT=Path(__file__).resolve().parents[2]
-WORKFLOW=ROOT/'.github/workflows/senate-annual.yml'
+WORKFLOW=ROOT/'.github/workflows/senate.yml'
 MODE='independent_part4b/v1'
 
 
 def workflow_build_body():
-    content=WORKFLOW.read_text(encoding='utf-8')
-    step=content.split('      - name: Extract and qualify latest annual holdings\n',1)[1].split(
-        '\n      - name:',1)[0]
-    body=textwrap.dedent(step.split('        run: |\n',1)[1])
-    # Preserve the actual YAML build/overlay statements. The explicit existing
-    # publication marker is the end of this local exercise, not a Git mock.
+    from test_senate_production_recovery import step_script
+    body=step_script('senate.yml','Extract and qualify latest annual holdings')
     return body.split('# Keep the validated Senate source current',1)[0]
+
 
 
 def write(path,value):
@@ -83,6 +80,7 @@ class SenateAnnualIndependentWorkflowTests(unittest.TestCase):
                 'git() { echo "Git publication is outside this test" >&2; return 90; }\n'+body)
         env=dict(os.environ,REAL_PYTHON=sys.executable,PYTHONPATH=str(ROOT/'backend/src'),
             RUNNER_TEMP=str(data['root']),ROSTER=str(data['roster_path']),
+            EVIDENCE_ROOT=str(data['evidence']),REVIEW_ROOT=str(data['review']),
             STRUCTURED_ASSET_LABELS='true' if structured else 'false',
             INDEPENDENT_TRANSACTIONS='true' if independent else 'false',
             MSYS_NO_PATHCONV='1',PYTHONIOENCODING='utf-8')
@@ -101,7 +99,7 @@ class SenateAnnualIndependentWorkflowTests(unittest.TestCase):
         self.assertIn('INDEPENDENT_TRANSACTIONS: ${{ inputs.independent_transactions }}',content)
         for step in ('Discover and archive latest annual versions','Publish official originals and catalog'):
             block=content.split('      - name: '+step+'\n',1)[1].split('\n      - name:',1)[0]
-            self.assertIn('if: inputs.structured_asset_labels != true && inputs.independent_transactions != true',block)
+            self.assertIn('if: inputs.collect_annual == true && inputs.structured_asset_labels != true && inputs.independent_transactions != true',block)
         default,current=self.succeeded()
         self.assertNotIn('transaction_mode',current)
         self.assertEqual(default['transactions'],[])

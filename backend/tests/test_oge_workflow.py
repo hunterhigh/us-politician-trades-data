@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class OgeWorkflowTests(unittest.TestCase):
     def test_shared_writer_source_schedules_do_not_compete_for_pending_slot(self):
         slots = set()
-        for name in ("house.yml", "senate-efd.yml", "oge.yml"):
+        for name in ("house.yml", "senate.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
             match = re.search(r"cron: '(\d+) ([\d,*/]+) \* \* \*'", content)
             self.assertIsNotNone(match, name)
@@ -17,7 +17,7 @@ class OgeWorkflowTests(unittest.TestCase):
             hour_spec = match.group(2)
             hours = (set(range(0, 24, 6)) if hour_spec == "*/6" else
                      {int(hour) for hour in hour_spec.split(",")})
-            self.assertEqual(len(hours), 1 if name == "senate-efd.yml" else 4, name)
+            self.assertEqual(len(hours), 1 if name == "senate.yml" else 4, name)
             for hour in hours:
                 scheduled = hour * 60 + minute
                 self.assertTrue(all(min((scheduled - other) % 1440,
@@ -112,9 +112,13 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertNotIn("continue-on-error", content[build:staged])
 
     def test_all_source_workflows_include_oge_when_available(self):
-        for name in ("house.yml", "senate-efd.yml", "oge.yml"):
+        for name in ("house.yml", "senate.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
-            self.assertIn("candidates/sources/oge-current.json", content)
+            if 'assemble-source' in content:
+                from unison_snapshot.commands.assemble_source import SOURCES
+                self.assertIn('oge',SOURCES)
+            else:
+                self.assertIn("candidates/sources/oge-current.json", content)
 
     def test_archived_whitehouse_candidate_rebuild_is_manual_and_review_only(self):
         content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(

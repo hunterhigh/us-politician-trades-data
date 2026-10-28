@@ -133,12 +133,16 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
 
     def run_shell(self, script):
         path = self.root / 'step.sh'
+        # Match the workflow's code checkout while retaining each test's local roots.
+        target=self.root/'backend/src'
+        if not target.exists():
+            shutil.copytree(ROOT/'backend/src',target,ignore=shutil.ignore_patterns('__pycache__','*.egg-info'))
         path.write_text(script, encoding='utf-8', newline='\n')
         return subprocess.run([bash_path(), '-e', path.as_posix()], cwd=self.root,
                               env=self.env, text=True, encoding='utf-8',
                               capture_output=True, timeout=60)
 
-    def test_failed_collection_is_pushed_without_changing_last_complete_source(self):
+    def test_failure_writer_retains_last_complete_source_for_shared_publication(self):
         prior = {'schema_version': 'senate-source-run/v1',
                  'status': 'catalog_ready_for_review',
                  'catalog': {'status': 'ok', 'retrieved_at': '2026-10-23T07:42:50Z',
@@ -155,12 +159,11 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         (local / 'senate-efd-failure.json').write_text(json.dumps({
             'http_status': 403, 'request_stage': 'agreement_page',
             'error_code': 'edge_access_denied', 'unexpected': 'do not publish'}), encoding='utf-8')
-        script = step_script('senate-efd.yml',
+        script = step_script('senate.yml',
                              'Record failed catalog collection without advancing source data')
         result = self.run_shell(script)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        saved = json.loads(self.git('--git-dir', str(self.remote),
-                                    'show', 'state:status/senate_efd.json'))
+        saved = json.loads((self.review / 'status/senate_efd.json').read_bytes())
         self.assertEqual(saved['status'], 'failed')
         for key in ('catalog', 'reports', 'roster', 'historical_roster'):
             self.assertEqual(saved[key], prior[key])
@@ -207,7 +210,7 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         ingest = self.root / 'backend/data'
         ingest.mkdir(parents=True)
         (ingest / 'empty-disclosure.json').write_bytes((ROOT / 'backend/data/empty-disclosure.json').read_bytes())
-        shutil.copytree(ROOT / 'backend/src', self.root / 'backend/src',
+        shutil.copytree(ROOT / 'backend/src', self.root / 'backend/src', dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__', '*.egg-info'))
         shutil.copytree(ROOT / 'frontend-contract-v2/scripts',
                         self.root / 'frontend-contract-v2/scripts',

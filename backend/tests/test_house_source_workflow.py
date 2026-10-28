@@ -15,6 +15,7 @@ class HouseSourceWorkflowTests(unittest.TestCase):
     def test_one_locked_workflow_persists_evidence_before_state_and_qualification(self):
         text=(ROOT/'.github/workflows/house.yml').read_text(encoding='utf-8')
         self.assertIn('group: disclosure-source-writer',text)
+        self.assertNotIn('    concurrency:',text)
         self.assertIn('uses: ./.github/actions/data-trees',text)
         names=('Publish immutable evidence first','Save archive checkpoint and collection state',
                'Persist collection state after evidence','Select unprocessed evidence',
@@ -25,8 +26,8 @@ class HouseSourceWorkflowTests(unittest.TestCase):
         self.assertNotIn('download-artifact',text)
         self.assertIn('drain-house-ptr',text)
         self.assertNotIn('HOUSE_ARCHIVE_BATCH_SIZE',text)
-        self.assertIn('echo "assembly_status=$assembly_status" >> "$GITHUB_OUTPUT"', text)
-        self.assertIn("steps.candidate.outputs.assembly_status == 'ready'", text)
+        self.assertIn("python -m unison_snapshot assemble-source", text)
+        self.assertIn("--source house_clerk", text)
         self.assertNotIn('9115820',text);self.assertNotIn('9116141',text)
 
     def test_historical_checkpoint_cannot_advance_the_current_source_waterline(self):

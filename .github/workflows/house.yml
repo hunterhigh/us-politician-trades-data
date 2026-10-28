@@ -4,6 +4,11 @@ on:
     - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
+      mode:
+        description: Normal PTR processing, or existing annual-report support
+        type: choice
+        options: [ptr, annual]
+        default: ptr
       filing_year:
         description: Current filing year, or the authorized fixed 2025 PTR scope
         default: ''
@@ -27,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   source:
-    if: github.event_name != 'schedule' || github.ref == 'refs/heads/code'
+    if: inputs.mode != 'annual' && (github.event_name != 'schedule' || github.ref == 'refs/heads/code')
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -536,66 +541,251 @@ jobs:
             --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             "$REVIEW_ROOT/candidates/house-current.json"
-          # Persist the validated House projection before cross-source assembly.
-          # A stale peer defers assembly without stranding the House waterline.
-          PYTHONPATH=backend/src python -m unison_snapshot data-trees publish \
-            --workspace "$RUNNER_TEMP/house-source" --role review \
-            --message "House source candidate $GITHUB_RUN_ID"
-          echo "House source candidate saved; unified candidate advances only after harmonization succeeds." >> "$GITHUB_STEP_SUMMARY"
-          source_args=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
-          if [ -f "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" ]; then
-            source_args+=(--source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json")
-          fi
-          if [ -f "$REVIEW_ROOT/candidates/sources/oge-current.json" ]; then
-            source_args+=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
-          fi
-          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --defer-stale-sources \
-            --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
-            --base backend/data/empty-disclosure.json \
-            --harmonize-cutoffs \
-            "${source_args[@]}" \
-            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
+          # Persist the validated House projection through the shared assembler.
+          PYTHONPATH=backend/src python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/house-source" --source house_clerk \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
-          assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \
-            --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
-          echo "assembly_status=$assembly_status" >> "$GITHUB_OUTPUT"
-          if [ "$assembly_status" = deferred ]; then
-            PYTHONPATH=backend/src python -m unison_snapshot data-trees publish \
-              --workspace "$RUNNER_TEMP/house-source" --role review \
-              --message "deferred House source assembly $GITHUB_RUN_ID"
-            exit 0
-          fi
-          CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
-            PARSER_COMMIT="${{ github.sha }}" python - <<'PY'
+
+  annual-holdings:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'annual'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install pinned PDF dependency
+        run: python -m pip install -e "backend[house-ingest,native-source-proof]"
+      - name: Prepare controlled annual source data
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: house
+          workspace: ${{ runner.temp }}/house-annual
+      - name: Discover and archive a bounded annual-report batch
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          FILING_YEAR: ${{ inputs.filing_year || '2025' }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          PYTHONPATH: backend/src
+        run: |
+          case "$FILING_YEAR:$BATCH_SIZE" in
+            *[!0-9:]*) echo "filing_year and batch_size must be integers" >&2; exit 2 ;;
+          esac
+          test "$FILING_YEAR" -ge 2008 && test "$FILING_YEAR" -le 2100
+          test "$BATCH_SIZE" -ge 1 && test "$BATCH_SIZE" -le 25
+          discovery="$RUNNER_TEMP/house-financial-$FILING_YEAR.json"
+          PYTHONPATH=backend/src python -m unison_snapshot discover-house-index \
+            --year "$FILING_YEAR" --archive "$EVIDENCE_ROOT" --output "$discovery"
+          DISCOVERY="$discovery" python - <<'PY'
           import json, os
           from pathlib import Path
-          candidate = json.loads(Path(os.environ['CANDIDATE']).read_text(encoding='utf-8'))
-          disclosure_sources = {'house_clerk', 'senate_efd', 'oge'}
-          included = sorted(row['source_id'] for row in candidate['source_health']
-                            if row.get('source_id') in disclosure_sources
-                            and row.get('status') in {'ok', 'partial'})
-          value = {
-              'schema_version': 'disclosure-candidate-run/v1',
-              'builder_commit': os.environ['PARSER_COMMIT'],
-              'data_cutoff_at': candidate['meta']['data_cutoff_at'],
-              'included_sources': included,
-              'pending_sources': sorted(disclosure_sources - set(included)),
-              'people_count': len(candidate['people']),
-              'transaction_count': len(candidate['transactions']),
-              'reported_holding_count': len(candidate['reported_holdings']),
-              'status': 'partial',
-              'cutoff_audit': 'status/disclosure_cutoff.json',
-          }
-          target = Path(os.environ['REVIEW_ROOT']) / 'status' / 'disclosure_candidate.json'
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
-                            encoding='utf-8')
+          from unison_snapshot.house_members import suggest_identity
+          discovery = json.loads(Path(os.environ['DISCOVERY']).read_text(encoding='utf-8'))
+          root = Path(os.environ['EVIDENCE_ROOT'])
+          roster_path = sorted((root / 'house_clerk' / 'members').glob('*.roster.json'))[-1]
+          roster = json.loads(roster_path.read_text(encoding='utf-8'))
+          annual = [row for row in discovery['filings'] if row['filing_type'] == 'O'
+                    and suggest_identity({'source': row}, roster).get('status') == 'matched_automatically']
+          pending = [row for row in annual if not any(
+              (root / 'house_clerk' / 'financial-reports' / str(row['filing_year']) /
+               row['document_id']).glob('*.json'))]
+          pending.sort(key=lambda row: (row.get('filed_date') or '', row['document_id']), reverse=True)
+          selected = pending[:int(os.environ['BATCH_SIZE'])]
+          Path(os.environ['RUNNER_TEMP'], 'house-holding-batch.json').write_text(
+              json.dumps({'index_sha': discovery['metadata']['sha256'],
+                          'current_member_annual_count': len(annual),
+                          'unarchived_before_count': len(pending),
+                          'selected_count': len(selected), 'rows': selected},
+                         sort_keys=True, separators=(',', ':')), encoding='utf-8')
           PY
-      - name: Publish unified candidate after successful harmonization
-        if: ${{ steps.candidate.outputs.assembly_status == 'ready' }}
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          batch = json.loads(Path(os.environ['RUNNER_TEMP'], 'house-holding-batch.json').read_text())
+          for row in batch['rows']:
+              subprocess.run(['python', '-m', 'unison_snapshot', 'archive-house-holding-report',
+                  '--year', str(row['filing_year']), '--index-sha', batch['index_sha'],
+                  '--document-id', row['document_id'], '--archive', os.environ['EVIDENCE_ROOT'],
+                  '--output', str(Path(os.environ['RUNNER_TEMP'], 'last-house-holding.json'))],
+                  check=True, env={**os.environ, 'PYTHONPATH': 'backend/src'})
+          PY
+      - name: Publish immutable annual evidence first
         uses: ./.github/actions/publish-data
         with:
-          workspace: ${{ runner.temp }}/house-source
-          roles: review
-          message: House unified candidate ${{ github.run_id }}
+          workspace: ${{ runner.temp }}/house-annual
+          roles: evidence
+          message: House annual evidence ${{ github.run_id }}
+      - name: Parse, match and qualify annual reports
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          PARSER_COMMIT: ${{ github.sha }}
+        run: |
+          export HOLDING_PARSER_VERSION="$(PYTHONPATH=backend/src python -c 'from unison_snapshot.house_holdings import PARSER_VERSION; print(PARSER_VERSION)')"
+          roster="$(find "$EVIDENCE_ROOT/house_clerk/members" -name '*.roster.json' -type f | sort | tail -n 1)"
+          test -n "$roster" && test -f "$roster"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
+          parser_version=os.environ['HOLDING_PARSER_VERSION']
+          pending=[]
+          for path in evidence.glob('house_clerk/financial-reports/*/*/*.json'):
+              value=json.loads(path.read_text(encoding='utf-8'))
+              relative=Path(str(value['filing_year']))/value['document_id']/f"{value['sha256']}.json"
+              extraction=review/'house_clerk/holding_extractions'/relative
+              qualification=review/'house_clerk/holding_qualifications'/relative
+              failure=review/'house_clerk/holding_failures'/relative
+              if qualification.is_file() and extraction.is_file():
+                  try:
+                      if json.loads(extraction.read_text(encoding='utf-8')).get('parser_version') == parser_version:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
+              elif failure.is_file():
+                  try:
+                      if json.loads(failure.read_text(encoding='utf-8')).get('parser_version') == parser_version:
+                          continue
+                  except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                      pass
+              pending.append((value.get('filed_date') or '', value['document_id'], path))
+          pending.sort(reverse=True)
+          Path(os.environ['RUNNER_TEMP'], 'holding-metadata.txt').write_text(
+              ''.join(f'{item[2]}\n' for item in pending[:int(os.environ['BATCH_SIZE'])]),
+              encoding='utf-8')
+          PY
+          while IFS= read -r metadata; do
+            [ -n "$metadata" ] || continue
+            read -r year document_id sha <<< "$(python - "$metadata" <<'PY'
+          import json, sys
+          value=json.load(open(sys.argv[1], encoding='utf-8'))
+          print(value['filing_year'], value['document_id'], value['sha256'])
+          PY
+          )"
+            relative="$year/$document_id/$sha.json"
+            extraction="$REVIEW_ROOT/house_clerk/holding_extractions/$relative"
+            identity="$REVIEW_ROOT/house_clerk/holding_identities/$relative"
+            qualification="$REVIEW_ROOT/house_clerk/holding_qualifications/$relative"
+            failure="$REVIEW_ROOT/house_clerk/holding_failures/$relative"
+            mkdir -p "$(dirname "$extraction")" "$(dirname "$identity")" \
+              "$(dirname "$qualification")" "$(dirname "$failure")"
+            if output="$(PYTHONPATH=backend/src python -m unison_snapshot parse-house-holding-report \
+                --archive "$EVIDENCE_ROOT" --metadata "$metadata" --output "$extraction" 2>&1)"; then
+              rm -f "$failure"
+              PYTHONPATH=backend/src python -m unison_snapshot suggest-house-identity \
+                --extraction "$extraction" --members "$roster" --output "$identity"
+              PYTHONPATH=backend/src python -m unison_snapshot qualify-house-holding-report \
+                --extraction "$extraction" --identity "$identity" --output "$qualification"
+            else
+              rm -f "$extraction" "$identity" "$qualification"
+              error="$(printf '%s' "$output" | tr '\n' ' ' | tail -c 480)"
+              METADATA="$metadata" FAILURE="$failure" PARSER_COMMIT="$PARSER_COMMIT" \
+                PARSER_VERSION="$HOLDING_PARSER_VERSION" ERROR="$error" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          metadata=json.loads(Path(os.environ['METADATA']).read_text(encoding='utf-8'))
+          value={'schema_version':'house-holding-parse-failure/v1',
+                 'document_id':metadata['document_id'], 'filing_year':metadata['filing_year'],
+                 'source_sha256':metadata['sha256'], 'parser_commit':os.environ['PARSER_COMMIT'],
+                 'parser_version':os.environ['PARSER_VERSION'], 'error':os.environ['ERROR'],
+                 'last_attempt_at':datetime.now(timezone.utc).isoformat()}
+          Path(os.environ['FAILURE']).write_text(json.dumps(value,sort_keys=True,separators=(',',':')),
+                                                 encoding='utf-8')
+          PY
+            fi
+          done < "$RUNNER_TEMP/holding-metadata.txt"
+      - name: Observe annual sections without changing holding qualification
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          mkdir -p "$REVIEW_ROOT/house_clerk/holding_section_observations" \
+            "$REVIEW_ROOT/house_clerk/holding_section_failures"
+          python -m unison_snapshot run-house-annual-sections \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --new-metadata-list "$RUNNER_TEMP/holding-metadata.txt" --old-limit 2
+      - name: Build holding status and candidates
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+          PARSER_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
+          metadata=list(evidence.glob('house_clerk/financial-reports/*/*/*.json'))
+          extractions=list(review.glob('house_clerk/holding_extractions/*/*/*.json'))
+          failures=list(review.glob('house_clerk/holding_failures/*/*/*.json'))
+          identities=list(review.glob('house_clerk/holding_identities/*/*/*.json'))
+          qualifications=list(review.glob('house_clerk/holding_qualifications/*/*/*.json'))
+          section_observations=list(review.glob('house_clerk/holding_section_observations/*/*/*.json'))
+          section_failures=list(review.glob('house_clerk/holding_section_failures/*/*/*.json'))
+          def keys(paths, root):
+              return {path.relative_to(root).as_posix() for path in paths}
+          metadata_keys=keys(metadata, evidence/'house_clerk/financial-reports')
+          extraction_keys=keys(extractions, review/'house_clerk/holding_extractions')
+          failure_keys=keys(failures, review/'house_clerk/holding_failures')
+          identity_keys=keys(identities, review/'house_clerk/holding_identities')
+          qualification_keys=keys(qualifications, review/'house_clerk/holding_qualifications')
+          if (extraction_keys != identity_keys or extraction_keys != qualification_keys or
+                  failure_keys & extraction_keys or
+                  (extraction_keys | failure_keys) - metadata_keys):
+              raise SystemExit('House holding artifact states are inconsistent')
+          pending_count=len(metadata_keys - (qualification_keys | failure_keys))
+          batch=json.loads(Path(os.environ['RUNNER_TEMP'], 'house-holding-batch.json').read_text(
+              encoding='utf-8'))
+          eligible=holdings=quarantined=excluded=0
+          for path in qualifications:
+              value=json.loads(path.read_text(encoding='utf-8'))
+              eligible += int(value.get('production_eligible') is True)
+              holdings += len(value.get('holdings', []))
+              quarantined += len(value.get('quarantined', []))
+              excluded += len(value.get('excluded', []))
+          value={'schema_version':'house-holding-run/v1',
+                 'generated_at':datetime.now(timezone.utc).isoformat(),
+                 'parser_commit':os.environ['PARSER_COMMIT'], 'evidence_count':len(metadata),
+                 'extraction_count':len(extractions), 'failure_count':len(failures),
+                 'qualification_count':len(qualifications), 'eligible_report_count':eligible,
+                 'section_observation_count':len(section_observations),
+                 'section_failure_count':len(section_failures),
+                 'qualified_holding_count':holdings, 'excluded_row_count':excluded,
+                 'quarantined_row_count':quarantined, 'pending_parse_count':pending_count,
+                 'current_member_annual_count':batch['current_member_annual_count'],
+                 'remaining_archive_count':max(batch['unarchived_before_count']-
+                                               batch['selected_count'], 0),
+                 'archived_this_run':batch['selected_count'],
+                 'status':'attention' if failures or quarantined or pending_count or
+                                           batch['unarchived_before_count'] > batch['selected_count'] else 'ok'}
+          target=review/'status/house_holdings.json'; target.parent.mkdir(parents=True,exist_ok=True)
+          target.write_text(json.dumps(value,sort_keys=True,separators=(',',':')),encoding='utf-8')
+          PY
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          candidate_base=backend/data/empty-disclosure.json
+          if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
+            candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot build-house-candidate \
+            --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+            --state-status "$STATE_ROOT/status/house_clerk.json" \
+            --base "$candidate_base" \
+            --output "$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
+          cp "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            "$REVIEW_ROOT/candidates/house-current.json"
+          PYTHONPATH=backend/src python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/house-annual" --source house_clerk \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
+            --html-output "$RUNNER_TEMP/house-annual.html"

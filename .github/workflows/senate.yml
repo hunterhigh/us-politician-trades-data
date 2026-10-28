@@ -1,0 +1,460 @@
+name: Senate source pipeline
+on:
+  schedule:
+    # One normal daily fetch discovers source recovery. Access diagnosis stays paused.
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Normal PTR collection, archived annual interpretation, or identity refresh
+        type: choice
+        options: [ptr, annual, roster]
+        default: ptr
+      limit:
+        description: Maximum annual originals when explicit annual collection is selected
+        default: '200'
+      collect_annual:
+        description: Explicit bounded normal annual collection; false reuses archived originals
+        type: boolean
+        default: false
+      structured_asset_labels:
+        description: Activate the existing structured annual asset interpretation
+        type: boolean
+        default: false
+      independent_transactions:
+        description: Activate existing independent annual Part 4b disclosures
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: disclosure-source-writer
+  cancel-in-progress: false
+jobs:
+  source:
+    needs: roster
+    if: always() && (inputs.mode == '' || inputs.mode == 'ptr') && (github.event_name != 'schedule' || github.ref == 'refs/heads/code')
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      SENATE_EFD_START_DATE: ${{ vars.SENATE_EFD_START_DATE }}
+      SENATE_EFD_REPORT_BATCH_SIZE: ${{ vars.SENATE_EFD_REPORT_BATCH_SIZE }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare controlled source data
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          workspace: ${{ runner.temp }}/senate-source
+      - name: Evaluate default-closed source gate
+        id: gate
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-efd-gate.json
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          gate = json.loads(Path('.local/senate-efd-gate.json').read_text(encoding='utf-8'))
+          print(f"status={gate['status']}")
+          PY
+      - name: Record authorization gate state
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot senate-source-state gate \
+            --run-root .local --state-root "$STATE_ROOT"
+
+      - name: Persist authorization state
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-source
+          roles: state
+          message: Senate Persist authorization state ${{ github.run_id }}
+      - name: Fail a partially enabled gate
+        run: |
+          echo "Senate eFD collection was enabled without the required terms acknowledgement." >&2
+          exit 2
+      - name: Verify authorization gate and collect PTR catalog
+        if: ${{ steps.gate.outputs.status == 'enabled' }}
+        id: collect
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
+            --output .local/senate-efd-gate.json
+          start_date="$SENATE_EFD_START_DATE"
+          if [ -z "$start_date" ]; then
+            start_date="$(date -u -d '6 years ago' +%F)"
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
+            --archive "$EVIDENCE_ROOT" \
+            --submitted-start-date "$start_date" \
+            --isolate-source-unavailable \
+            --attempt-output .local/senate-efd-attempt.json \
+            --failure-output .local/senate-efd-failure.json \
+            --output .local/senate-efd-discovery.json
+          source_status="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          value = json.loads(Path('.local/senate-efd-attempt.json').read_text(encoding='utf-8'))
+          if value['status'] not in {'ready', 'blocked', 'unavailable'}:
+              raise ValueError('Unexpected Senate source attempt status')
+          print(value['status'])
+          PY
+          )"
+          echo "source_status=$source_status" >> "$GITHUB_OUTPUT"
+          if [ "$source_status" != ready ]; then
+            echo "::warning::Senate source $source_status; recording the failed attempt and retaining prior source data."
+            exit 0
+          fi
+          roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          state = json.loads((Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          print(state['roster']['sha256'])
+          PY
+          )"
+          congress_roster_sha="$(STATE_ROOT="$STATE_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          state = json.loads((Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json').read_text(encoding='utf-8'))
+          history = state.get('historical_roster', {})
+          print(history.get('sha256', '') if history.get('status') == 'ok' else '')
+          PY
+          )"
+          identity_args=()
+          if [ -n "$congress_roster_sha" ]; then
+            congress_roster="$EVIDENCE_ROOT/senate_efd/congress_members/$congress_roster_sha/roster.json"
+            test -f "$congress_roster"
+            identity_args+=(--congress-roster "$congress_roster")
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot match-senate-catalog \
+            --discovery .local/senate-efd-discovery.json \
+            --roster "$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json" \
+            "${identity_args[@]}" \
+            --output .local/senate-efd-identities.json
+          report_batch_size="$SENATE_EFD_REPORT_BATCH_SIZE"
+          if [ -z "$report_batch_size" ]; then
+            report_batch_size=2
+          fi
+          PYTHONPATH=backend/src python -m unison_snapshot archive-senate-report-entrypoints \
+            --discovery .local/senate-efd-discovery.json \
+            --archive "$EVIDENCE_ROOT" \
+            --limit "$report_batch_size" \
+            --output .local/senate-efd-report-batch.json
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-report-entrypoints \
+            --batch .local/senate-efd-report-batch.json \
+            --archive "$EVIDENCE_ROOT" \
+            --output .local/senate-efd-extraction-batch.json
+      - name: Publish immutable catalog evidence
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        id: publish_evidence
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-source
+          roles: evidence
+          message: Senate Publish immutable catalog evidence ${{ github.run_id }}
+      - name: Record failed catalog collection without advancing source data
+        if: ${{ always() && steps.trees.outcome == 'success' && (steps.collect.outcome == 'failure' || steps.publish_evidence.outcome == 'failure' || steps.collect.outputs.source_status == 'blocked' || steps.collect.outputs.source_status == 'unavailable') }}
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          SOURCE_STATUS: ${{ steps.collect.outputs.source_status }}
+          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot senate-source-state failure \
+            --run-root .local --state-root "$STATE_ROOT" \
+            --source-status "$SOURCE_STATUS" --collect-outcome "$COLLECT_OUTCOME" \
+            --run-url "$WORKFLOW_RUN_URL" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist collection failure without advancing source data
+        if: ${{ always() && steps.trees.outcome == 'success' && (steps.collect.outcome == 'failure' || steps.publish_evidence.outcome == 'failure' || steps.collect.outputs.source_status == 'blocked' || steps.collect.outputs.source_status == 'unavailable') }}
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-source
+          roles: state
+          message: Senate Persist collection failure without advancing source data ${{ github.run_id }}
+      - name: Record catalog source state
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot senate-source-state collected \
+            --run-root .local --state-root "$STATE_ROOT"
+
+      - name: Persist collected source waterline
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-source
+          roles: state
+          message: Senate Persist collected source waterline ${{ github.run_id }}
+      - name: Publish normalized catalog to review branch
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot senate-source-state review \
+            --run-root .local --review-root "$REVIEW_ROOT"
+
+      - name: Build and validate frontend candidate
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        id: candidate
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          status="$REVIEW_ROOT/status/senate_efd.json"
+          catalog_sha="$(python -c "import json; print(json.load(open('$status'))['catalog_sha256'])")"
+          roster_sha="$(python -c "import json; print(json.load(open('$status'))['identity_roster_sha256'])")"
+          congress_roster_sha="$(python -c "import json; print(json.load(open('$status')).get('identity_congress_roster_sha256', ''))")"
+          identity_binding="$(python -c "import json; print(json.load(open('$status'))['identity_binding_sha256'])")"
+          parser_version="$(python -c "import json; print(json.load(open('$status'))['report_parser_version'])")"
+          audit_temp="$RUNNER_TEMP/senate-efd-qualification.json"
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --state-status .local/senate-efd-state.json \
+            --base backend/data/empty-disclosure.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$audit_temp" \
+            --html-output "$RUNNER_TEMP/senate-efd-current.html"
+          builder_version="$(python -c "import json; print(json.load(open('$audit_temp'))['builder_version'])")"
+          candidate_snapshot="$(python -c "import json; print(json.load(open('$audit_temp'))['candidate_snapshot_id'])")"
+          audit="$REVIEW_ROOT/senate_efd/qualifications/$catalog_sha/$identity_binding/$parser_version/$builder_version/$candidate_snapshot.json"
+          mkdir -p "$(dirname "$audit")"
+          if [ -e "$audit" ] && ! cmp -s "$audit_temp" "$audit"; then
+            echo "Immutable Senate qualification audit collision: $audit" >&2
+            exit 1
+          fi
+          cp "$audit_temp" "$audit"
+          cp "$audit_temp" "$REVIEW_ROOT/senate_efd/qualifications/current.json"
+          PYTHONPATH=backend/src python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/senate-source" --source senate_efd \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
+            --html-output "$RUNNER_TEMP/disclosure-current.html"
+
+  annual:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'annual'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: backend/src
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+      REPORT_LIMIT: ${{ inputs.limit || '200' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check bounded authorized run
+        env:
+          COLLECT_ANNUAL: ${{ inputs.collect_annual }}
+        run: |
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+          if [ "$COLLECT_ANNUAL" = true ]; then
+            test "$SENATE_EFD_COLLECTION_ENABLED" = true
+            test "$SENATE_EFD_TERMS_ACKNOWLEDGED" = true
+          fi
+          case "$REPORT_LIMIT" in *[!0-9]*|'') exit 2 ;; esac
+          test "$REPORT_LIMIT" -ge 1 && test "$REPORT_LIMIT" -le 300
+      - name: Install annual producer
+        run: python -m pip install -e backend
+      - name: Prepare controlled annual source data
+        uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          workspace: ${{ runner.temp }}/senate-annual
+      - name: Select the archived identity roster
+        run: |
+          roster_sha="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['STATE_ROOT'])
+          print(json.loads((root / 'status/senate_efd.json').read_text())['roster']['sha256'])
+          PY
+          )"
+          roster="$EVIDENCE_ROOT/senate_efd/members/$roster_sha.roster.json"
+          test -f "$roster"
+          echo "ROSTER=$roster" >> "$GITHUB_ENV"
+      - name: Discover and archive latest annual versions
+        if: inputs.collect_annual == true && inputs.structured_asset_labels != true && inputs.independent_transactions != true
+        run: |
+          python -m unison_snapshot senate-annual collect \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --roster "$ROSTER" --submitted-start-date 2025-01-01 \
+            --limit "$REPORT_LIMIT"
+      - name: Publish official originals and catalog
+        if: inputs.collect_annual == true && inputs.structured_asset_labels != true && inputs.independent_transactions != true
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-annual
+          roles: evidence
+          message: Senate Publish official originals and catalog ${{ github.run_id }}
+      - name: Extract and qualify latest annual holdings
+        env:
+          STRUCTURED_ASSET_LABELS: ${{ inputs.structured_asset_labels }}
+          INDEPENDENT_TRANSACTIONS: ${{ inputs.independent_transactions }}
+        run: |
+          review="$REVIEW_ROOT"
+          active_mode="$(python - "$review/senate_efd/annual/current.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          if not isinstance(value, dict):
+              raise SystemExit('Annual parser selection is invalid')
+          mode = value.get('asset_label_mode', 'legacy_v3')
+          if mode not in {'legacy_v3', 'structured_v4'}:
+              raise SystemExit('Annual parser selection is unsupported')
+          print(mode)
+          PY
+          )"
+          annual_args=()
+          if [ "$STRUCTURED_ASSET_LABELS" = "true" ] || [ "$active_mode" = "structured_v4" ]; then
+            annual_args+=(--structured-asset-labels)
+          fi
+          active_transactions="$(python - "$review/senate_efd/annual/current.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          mode = value.get('transaction_mode', 'legacy_observations')
+          if mode not in {'legacy_observations', 'independent_part4b/v1'}:
+              raise SystemExit('Annual transaction selection is unsupported')
+          print(mode)
+          PY
+          )"
+          if [ "$INDEPENDENT_TRANSACTIONS" = "true" ] || [ "$active_transactions" = "independent_part4b/v1" ]; then
+            annual_args+=(--independent-transactions)
+          fi
+          python -m unison_snapshot senate-annual build \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --review-root "$review" --roster "$ROSTER" "${annual_args[@]}"
+          python -m unison_snapshot senate-annual overlay \
+            --review-root "$review" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --candidate "$review/candidates/sources/senate_efd-current.json" \
+            --audit-output "$review/senate_efd/annual/candidate-audit-current.json"
+          # Keep the validated Senate source current before attempting peer assembly.
+          python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/senate-annual" --source senate_efd \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
+            --html-output "$RUNNER_TEMP/senate-annual.html"
+
+  roster:
+    if: github.event_name == 'schedule' || inputs.mode == 'roster'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Prepare controlled roster source data
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          roles: evidence state
+          workspace: ${{ runner.temp }}/senate-roster
+      - name: Archive official Senate roster
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          CONGRESS_GOV_API_KEY: ${{ secrets.CONGRESS_GOV_API_KEY }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot discover-senate-members \
+            --archive "$EVIDENCE_ROOT" --output .local/senate-members.json
+          if [ -n "$CONGRESS_GOV_API_KEY" ]; then
+            PYTHONPATH=backend/src python -m unison_snapshot discover-congress-senate-members \
+              --archive "$EVIDENCE_ROOT" --congress 119 \
+              --output .local/congress-senate-members.json
+          else
+            echo "CONGRESS_GOV_API_KEY is unset; historical identity enrichment remains unchanged."
+          fi
+      - name: Publish immutable roster evidence
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-roster
+          roles: evidence
+          message: Senate Publish immutable roster evidence ${{ github.run_id }}
+      - name: Record Senate source state
+        env:
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          roster = json.loads(Path('.local/senate-members.json').read_text(encoding='utf-8'))
+          congress_path = Path('.local/congress-senate-members.json')
+          congress_roster = (json.loads(congress_path.read_text(encoding='utf-8'))
+                             if congress_path.is_file() else None)
+          run_at = datetime.now(timezone.utc).isoformat()
+          target = Path(os.environ['STATE_ROOT']) / 'status' / 'senate_efd.json'
+          prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+          gate = prior.get('gate', {
+              'schema_version': 'senate-efd-source-gate/v1',
+              'source_id': 'senate_efd',
+              'status': 'disabled',
+              'collection_enabled': False,
+              'terms_acknowledged': False,
+              'reasons': ['collection_not_enabled'],
+          })
+          value = {
+              'schema_version': 'senate-source-run/v1',
+              'source_id': 'senate_efd',
+              'run_at': run_at,
+              'status': prior.get('status', gate['status']),
+              'collection_enabled': gate['collection_enabled'],
+              'terms_acknowledged': gate['terms_acknowledged'],
+              'gate': gate,
+              'roster': {
+                  'status': 'ok',
+                  'record_count': len(roster['members']),
+                  'sha256': roster['metadata']['sha256'],
+                  'retrieved_at': roster['metadata']['retrieved_at'],
+              },
+              'detail': prior.get('detail',
+                  'Official Senate identity roster archived. eFD report collection remains disabled.'),
+          }
+          if congress_roster is not None:
+              value['historical_roster'] = {
+                  'status': 'ok',
+                  'source_id': 'congress_gov_members',
+                  'congress': congress_roster['metadata']['congress'],
+                  'record_count': len(congress_roster['members']),
+                  'sha256': congress_roster['metadata']['sha256'],
+                  'retrieved_at': congress_roster['metadata']['retrieved_at'],
+              }
+          elif 'historical_roster' in prior:
+              value['historical_roster'] = prior['historical_roster']
+          for key in ('catalog', 'reports'):
+              if key in prior:
+                  value[key] = prior[key]
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+                            encoding='utf-8')
+          PY
+      - name: Persist identity roster state
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-roster
+          roles: state
+          message: Senate Persist identity roster state ${{ github.run_id }}

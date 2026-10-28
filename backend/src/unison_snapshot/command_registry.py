@@ -2,7 +2,9 @@
 import importlib
 import sys
 
-COMMANDS = {'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
+COMMANDS = {'assemble-source': ('assemble_source', 'Save a qualified source and assemble current peer candidates'),
+'senate-source-state': ('senate_source_state', 'Persist Senate gate, failure, collection and review state'),
+'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
 'data-trees': ('data_trees', 'Prepare or publish fixed source data worktrees'),
 'build-cached-candidate': ('build_cached_candidate',
                             'Publish current disclosures using existing or asynchronously prepared prices.'),

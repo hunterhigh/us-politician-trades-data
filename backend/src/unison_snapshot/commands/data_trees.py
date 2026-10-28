@@ -124,6 +124,11 @@ def publish(workspace,roles,message):
         files+=git(tree,'ls-files','--others','--exclude-standard','-z').split('\0')
         if any(path and path!='README.md' and not any(path.startswith(p+'/') for p in allowed) for path in files):
             raise ValueError('Source worktree contains changes outside its role scope')
+        if role=='review':
+            source={'house':'house_clerk','senate':'senate_efd','oge':'oge','whitehouse':'oge'}[value['scope']]
+            if any(path.startswith('candidates/sources/') and
+                   path!='candidates/sources/'+source+'-current.json' for path in files if path):
+                raise ValueError('Source publication cannot replace a peer projection')
         if role=='evidence' and git(tree,'diff','--name-only','--diff-filter=D','HEAD'):
             raise ValueError('Source publication cannot delete archived originals')
         remote=git(tree,'ls-remote','origin','refs/heads/'+role).split()

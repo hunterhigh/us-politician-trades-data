@@ -151,15 +151,6 @@ class SourceFailureCliTests(unittest.TestCase):
 
 class WorkflowAvailabilityTests(recovery.SourceWorkflowRecoveryTests):
     # Inherited tests execute the source-persistence and deferred-assembly Bash.
-    def test_failure_status_push_error_still_fails_the_workflow_step(self):
-        self.git('-C', str(self.review), 'remote', 'set-url', 'origin',
-                 str(self.root / 'missing-remote.git'))
-        self.env['SOURCE_STATUS'] = 'blocked'
-        result = self.run_shell(step_script('senate-efd.yml',
-                         'Record failed catalog collection without advancing source data'))
-        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('does not appear to be a git repository', result.stderr)
-
     def test_actual_collection_cli_records_refusal_without_touching_old_state_or_discovery(self):
         prior = {'status': 'catalog_ready_for_review',
                  'catalog': {'retrieved_at': '2026-10-23T07:42:50Z', 'sha256': 'a' * 64},
@@ -189,18 +180,17 @@ urllib.request.build_opener = lambda *args: RefusingOpener()
                         GITHUB_OUTPUT=str(self.root / 'github-output'),
                         GITHUB_STEP_SUMMARY=str(self.root / 'github-summary'),
                         EVIDENCE_ROOT=(self.root / 'evidence').as_posix())
-        result = self.run_shell(step_script('senate-efd.yml',
+        result = self.run_shell(step_script('senate.yml',
                                 'Verify authorization gate and collect PTR catalog'))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('source_status=blocked', (self.root / 'github-output').read_text())
         self.assertEqual(discovery.read_bytes(), b'prior discovery retained')
         self.assertFalse((self.root / 'evidence').exists())
         self.env.update(SOURCE_STATUS='blocked', COLLECT_OUTCOME='success')
-        result = self.run_shell(step_script('senate-efd.yml',
+        result = self.run_shell(step_script('senate.yml',
                          'Record failed catalog collection without advancing source data'))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        saved = json.loads(self.git('--git-dir', str(self.remote),
-                                    'show', 'state:status/senate_efd.json'))
+        saved = json.loads((self.review / 'status/senate_efd.json').read_bytes())
         self.assertEqual(saved['status'], 'blocked')
         self.assertEqual(saved['last_collection_attempt']['failed_step'], 'collect_catalog')
         self.assertEqual(saved['last_collection_attempt']['http_status'], 403)

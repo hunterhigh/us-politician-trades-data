@@ -94,12 +94,13 @@ class HouseAnnualIndependentTests(unittest.TestCase):
                 self.assertEqual(out['new_candidate_transaction_count'],0)
 
     def test_workflow_uses_existing_source_candidate_as_base_after_activation(self):
-        for name in ['house.yml', 'house-holdings.yml']:
-            with self.subTest(workflow=name):
-                workflow=(Path(__file__).resolve().parents[2]/'.github/workflows'/name).read_text(encoding='utf-8')
-                self.assertIn('candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"',workflow)
-                self.assertIn('--base "$candidate_base"',workflow)
-                self.assertRegex(workflow, r'--base backend/data/empty-disclosure\.json\s+(?:\\\s+)?--harmonize-cutoffs')
+        workflow=(Path(__file__).resolve().parents[2]/'.github/workflows/house.yml').read_text(encoding='utf-8')
+        for section in workflow.split('  annual-holdings:'):
+            with self.subTest(section='annual' if 'annual reports' in section else 'ptr'):
+                self.assertIn('candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"',section)
+                self.assertIn('--base "$candidate_base"',section)
+                self.assertIn('python -m unison_snapshot assemble-source',section)
+
 
 
 if __name__=='__main__':unittest.main()
