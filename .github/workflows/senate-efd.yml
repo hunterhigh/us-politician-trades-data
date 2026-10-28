@@ -1,9 +1,8 @@
 name: Senate eFD PTR catalog
 on:
   schedule:
-    # Keep the shared disclosure writer's pending slot clear for House's
-    # 00/06/12/18 UTC source and review handoff.
-    - cron: '17 2,8,14,20 * * *'
+    # Daily normal collection discovers recovery; access diagnostics are paused.
+    - cron: '17 2 * * *'
   workflow_dispatch:
 permissions:
   contents: write
