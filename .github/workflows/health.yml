@@ -10,7 +10,7 @@ on:
 permissions:
   contents: write
   issues: write
-  actions: read
+  actions: write
 concurrency:
   # Health has its own branch and never consumes a source writer pending slot.
   group: production-health
@@ -19,7 +19,7 @@ jobs:
   observe:
     if: github.ref == 'refs/heads/code'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
         with:
@@ -48,17 +48,19 @@ jobs:
       - name: Evaluate health and reconcile one Issue per condition
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
           PYTHONPATH=backend/src python -m unison_snapshot.production_health \
             --main-root "$RUNNER_TEMP/health-main" \
             --state-root "$RUNNER_TEMP/health-state" --health-root "$RUNNER_TEMP/health-output" \
             --repository "$REPOSITORY" \
-            --observe-publication-runs --observe-assembly --apply-alerts
+            --observe-publication-runs --observe-assembly --apply-alerts \
+            --smoke-client-root "$GITHUB_WORKSPACE" --apply-content-rollback
       - name: Publish independent health state without moving the formal snapshot
         run: |
           state_root="$RUNNER_TEMP/health-output"
-          git -C "$state_root" add status/production_health.json
+          git -C "$state_root" add status/production_health.json status/publication_smoke.json
           if ! git -C "$state_root" diff --cached --quiet; then
             git -C "$state_root" config user.name "github-actions[bot]"
             git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

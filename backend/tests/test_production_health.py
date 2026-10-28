@@ -38,6 +38,16 @@ class HealthTests(unittest.TestCase):
         now = datetime(2026, 11, 1, 20, tzinfo=timezone.utc)
         self.assertEqual(latest_publication_deadline(now).isoformat(), '2026-10-30T22:31:00+00:00')
 
+    def test_smoke_failure_is_visible_and_only_verified_recovery_clears_it(self):
+        smoke = {'commit':'a'*40,'status':'network_failure','recovery':{'action':'none'}}
+        health = evaluate(self.manifest,self.sources,now=self.now,smoke=smoke)
+        self.assertEqual(next(a for a in health['alerts'] if a['key']=='smoke')['condition']['status'],'network_failure')
+        smoke['status']='content_failure';smoke['recovery']={'action':'requested','target':'b'*40}
+        health = evaluate(self.manifest,self.sources,now=self.now,smoke=smoke)
+        self.assertEqual(next(a for a in health['alerts'] if a['key']=='smoke')['condition']['recovery']['target'],'b'*40)
+        smoke['status']='passed'
+        self.assertFalse(any(a['key']=='smoke' for a in evaluate(self.manifest,self.sources,now=self.now,smoke=smoke)['alerts']))
+
     def test_transient_network_failure_with_fresh_source_does_not_hold_publication(self):
         self.sources['senate_efd'].update(status='unavailable', catalog={'retrieved_at': '2026-10-28T07:00:00Z'},
             last_collection_attempt={'http_status': 503, 'failed_step': 'collect_catalog'})

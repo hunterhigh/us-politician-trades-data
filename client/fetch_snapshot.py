@@ -15,6 +15,7 @@ if str(BACKEND_SRC) not in sys.path:
 
 from unison_snapshot.legacy import PROCESSOR_V2_SHA256, load
 from snapshot_repo import HTTPTransport, PublicSnapshotError, PublicSnapshotRepository
+from unison_snapshot.public_repo import PublicSnapshotChanged, PublicSnapshotTransportError
 
 
 def write_atomic(path: Path, value: dict) -> None:
@@ -37,6 +38,8 @@ def main() -> int:
     parser.add_argument("--ref", choices=["main", "demo"], default="main")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=20.0)
+    parser.add_argument("--expected-commit", help="Require the live head to equal this frozen commit")
+    parser.add_argument("--status-output", type=Path, help="Save a typed operational result alongside the output")
     args = parser.parse_args()
     if not args.owner or not args.repo:
         parser.error("configure --owner/--repo or POLITICIAN_DATA_GITHUB_OWNER/REPO")
@@ -44,7 +47,8 @@ def main() -> int:
         parser.error(f"{args.mode} requires --value")
     try:
         repository = PublicSnapshotRepository(args.owner, args.repo, ref=args.ref,
-            transport=HTTPTransport(os.environ.get("GITHUB_TOKEN"), timeout=args.timeout))
+            expected_commit=args.expected_commit,
+            transport=HTTPTransport(os.environ.get("GITHUB_TOKEN"), timeout=args.timeout, retries=3))
         selected = repository.fetch(args.mode, args.value)
         version = ("v2" if selected.snapshot["meta"].get("processor_sha256")
                    == PROCESSOR_V2_SHA256 else "v1")
@@ -52,7 +56,18 @@ def main() -> int:
         processed["meta"]["snapshot_commit"] = selected.commit
         write_atomic(args.output, processed)
     except (PublicSnapshotError, ValueError, OSError) as exc:
+        if args.status_output:
+            # Local I/O errors and unavailable HTTP objects are operational
+            # failures, never proof that an immutable published fact is corrupt.
+            status = ('superseded' if isinstance(exc, PublicSnapshotChanged) else
+                'network_failure' if isinstance(exc, PublicSnapshotTransportError) else
+                'operational_failure' if isinstance(exc, OSError) else 'content_failure')
+            write_atomic(args.status_output, {'status':status, 'detail':str(exc),
+                'expected_commit':args.expected_commit})
         parser.exit(2, f"snapshot error: {exc}\n")
+    if args.status_output:
+        write_atomic(args.status_output, {'status':'passed', 'commit':selected.commit,
+            'snapshot_id':processed['meta']['snapshot_id']})
     print(json.dumps({"snapshot_id": processed["meta"]["snapshot_id"],
                       "snapshot_commit": selected.commit, "output": str(args.output.resolve())}))
     return 0
