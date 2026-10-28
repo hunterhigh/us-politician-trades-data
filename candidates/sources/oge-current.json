@@ -17287,7 +17287,7 @@
     },
     {
       "data_cutoff_at": "2026-10-24T07:42:53Z",
-      "detail": "Prior direct OGE status: 339 direct 278-T documents; 339 PDFs extracted; 5612 transactions qualified; 4762 request-required catalog entries were not automated; 10 direct documents were retained from archived catalog history.; White House public 278-T: 81 PDFs audited, 1650 new transactions qualified, 8643 rows quarantined; 7262 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
+      "detail": "Prior direct OGE status: 339 direct 278-T documents; 339 PDFs extracted; 5612 transactions qualified; 4754 request-required catalog entries were not automated; 10 direct documents were retained from archived catalog history.; White House public 278-T: 81 PDFs audited, 1650 new transactions qualified, 8643 rows quarantined; 7262 total OGE candidate transactions.; White House annual: 27 complete and 29 partial filer-reported reports, 818 holdings and 6759 transactions",
       "last_checked_at": "2026-10-24T07:42:53Z",
       "last_successful_sync_at": "2026-10-24T07:42:53Z",
       "source": "U.S. Office of Government Ethics",
