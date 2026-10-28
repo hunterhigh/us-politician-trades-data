@@ -765,6 +765,8 @@ def main() -> None:
                     'schema_version': 'disclosure-assembly-status/v1', 'status': 'ready',
                     'attempted_at': datetime.now(timezone.utc).isoformat(),
                     'data_cutoff_at': generated_at,
+                    'source_cutoffs': {key: value['meta']['data_cutoff_at']
+                                       for key, value in sorted(sources.items())},
                     'candidate_sha256': digest(encode(result)),
                 })
             print(json.dumps({"sources": sorted(sources), "people": len(result["people"]),

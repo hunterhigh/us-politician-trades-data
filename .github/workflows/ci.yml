@@ -72,15 +72,8 @@ jobs:
       - name: Check frozen upstream processor contracts
         if: matrix.shard == 0
         run: python -m unittest discover -s review-input/us-politician-trades-watch/tests -v
-      - run: npm ci
+      - uses: ./.github/actions/setup-browser
         if: matrix.shard == 0
-        working-directory: frontend-e2e
-      - name: Install the browser revision paired with the pinned Playwright
-        if: matrix.shard == 0
-        working-directory: frontend-e2e
-        run: |
-          node node_modules/playwright-core/cli.js install --with-deps chromium
-          node --input-type=module -e "import {chromium} from 'playwright-core'; console.log('PLAYWRIGHT_CHROMIUM_EXECUTABLE=' + chromium.executablePath())" >> "$GITHUB_ENV"
       - run: npm test
         if: matrix.shard == 0
         working-directory: frontend-e2e

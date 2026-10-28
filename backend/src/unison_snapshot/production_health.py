@@ -47,8 +47,8 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
         attempted = run.get('run_at')
         catalog = run.get('catalog', {})
         last_success = (catalog.get('retrieved_at') if source in {'senate_efd', 'oge'} else
-            (attempted if run.get('status') == 'ok' else None))
-        last_success = last_success or prior.get('last_successful_collection_at')
+            (attempted if run.get('status') in {'ok', 'attention'} else None))
+        last_success = last_success or run.get('last_successful_collection_at') or prior.get('last_successful_collection_at')
         last_attempt = run.get('last_collection_attempt', {})
         if not last_success:
             published_health = next((h for h in manifest.get('source_health', []) if h.get('source_id') == source), {})
@@ -74,14 +74,16 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
     if assembly is not None:
         if assembly.get('schema_version') != 'disclosure-assembly-status/v1' or assembly.get('status') not in {'ready', 'deferred'}:
             raise ValueError('Unsupported assembly status')
-        if assembly['status'] == 'deferred':
-            cutoffs = assembly.get('source_cutoffs', {})
+        cutoffs = assembly.get('source_cutoffs', {})
+        if assembly['status'] == 'deferred' or cutoffs:
             if set(cutoffs) != set(SOURCES):
                 raise ValueError('Deferred assembly lacks the source waterlines')
             newest = max(timestamp(v) for v in cutoffs.values())
             for source, value in cutoffs.items():
                 if newest - timestamp(value) > timedelta(days=2):
                     blockers.append({'source': source, 'reason': 'candidate_cutoff_lag', 'candidate_cutoff_at': value})
+                elif now - timestamp(value) > timedelta(hours=SOURCES[source]):
+                    blockers.append({'source': source, 'reason': 'candidate_stale', 'candidate_cutoff_at': value})
     published = manifest.get('generated_at')
     candidates = [v for v in (publication_success_at, previous.get('last_successful_publication_check_at'), published) if v]
     last_live = max(candidates, key=timestamp) if candidates else None
@@ -174,16 +176,25 @@ def reconcile_issues(api, health):
 
 
 def successful_publication_at(api):
-    # A successful market-only job or canceled run is not a publication check.
-    runs = api.request('/actions/workflows/publish-complete.yml/runs?branch=code&status=completed&per_page=30')
-    for run in runs['workflow_runs']:
-        if run['conclusion'] != 'success':
+    # Held assessments, legacy bootstrap and market-only runs grant no freshness.
+    completed = []
+    for workflow in ('publish.yml', 'publish-complete.yml'):
+        try:
+            runs = api.request('/actions/workflows/' + workflow + '/runs?branch=code&status=completed&per_page=30')
+        except HTTPError as error:
+            if error.code != 404:
+                raise
             continue
-        jobs = api.request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
-        for job in jobs['jobs']:
-            if job['name'] == 'publish' and job['conclusion'] == 'success':
-                return job['completed_at']
-    return None
+        for run in runs['workflow_runs']:
+            if run['conclusion'] != 'success' or run.get('name') != 'Publish complete production snapshot':
+                continue
+            jobs = api.request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
+            live = [job['completed_at'] for job in jobs['jobs']
+                    if job['name'] == 'publish' and job['conclusion'] == 'success']
+            if live:
+                completed.extend(live)
+                break
+    return max(completed, key=timestamp) if completed else None
 
 
 def main():

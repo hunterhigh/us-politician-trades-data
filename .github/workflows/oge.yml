@@ -548,10 +548,7 @@ jobs:
               selection_args+=(--verify-transaction-blank-slots)
             fi
             if [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
-              if ! command -v tesseract >/dev/null 2>&1; then
-                : # Fixed source runtime supplies these dependencies
-                : # Fixed source runtime supplies these dependencies
-              fi
+              command -v tesseract >/dev/null
               selection_args+=(--replay-cover-ocr)
             fi
             PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-annual-runtime \
@@ -559,9 +556,6 @@ jobs:
               --output "$RUNNER_TEMP/oge-annual-input.json" \
               --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
               "${selection_args[@]}"
-            if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" ]; then
-              : # Fixed source runtime supplies these dependencies
-            fi
             annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
               --oge-annual-runtime-root "$EVIDENCE_ROOT")
           elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}${OGE_ANNUAL_PARSER_VERSION:-}" ]; then

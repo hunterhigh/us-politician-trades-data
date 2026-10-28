@@ -67,18 +67,17 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
             calls = [json.loads(line) for line in log.read_text(encoding='utf-8').splitlines()] if log.exists() else []
         return result, calls
 
-    def test_explicit_blue_prepares_before_pinned_extra_then_real_overlay_call(self):
+    def test_explicit_blue_uses_fixed_dependencies_then_real_overlay_call(self):
         model = 'models/existing blue date'
         result, calls = self.execute(blue=DOCUMENT, model=model, blank='true')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(calls), 3)
-        prepare, install, overlay = calls
+        self.assertEqual(len(calls), 2)
+        prepare, overlay = calls
         self.assertEqual(prepare[0], 'prepare-oge-annual-runtime')
         self.assertEqual(prepare[prepare.index('--blue-date-document-id') + 1], DOCUMENT)
         self.assertEqual(prepare[prepare.index('--blue-date-model-directory') + 1], model)
         self.assertIn('--verify-transaction-blank-slots', prepare)
         self.assertIn('--include-saved-scans', prepare)
-        self.assertEqual(install, ['-m', 'pip', 'install', '-e', 'backend[oge-handwritten-date]'])
         self.assertEqual(overlay[0], 'overlay-whitehouse-annual-candidate')
         self.assertEqual(overlay[overlay.index('--oge-annual-input') + 1],
                          prepare[prepare.index('--output') + 1])
@@ -122,48 +121,30 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
                 self.assertEqual(calls, [])
 
     def test_prepare_or_dependency_failure_prevents_later_operations(self):
-        for failure, expected, count in [('prepare', 9, 1), ('pip', 8, 2)]:
+        for failure, expected, count in [('prepare', 9, 1)]:
             with self.subTest(failure=failure):
                 result, calls = self.execute(blue=DOCUMENT, model='models/existing', fail=failure)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertEqual(len(calls), count)
                 self.assertFalse(any('overlay-whitehouse-annual-candidate' in call[0] for call in calls))
 
-    def test_cover_replay_existing_engine_skips_install_and_missing_engine_installs_before_prepare(self):
+    def test_cover_replay_requires_the_fixed_engine_and_never_installs_dependencies(self):
         for present in (True, False):
             with self.subTest(tesseract_present=present):
                 result, calls = self.execute(cover='true', tesseract_present=present)
-                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.returncode, 0 if present else 1, result.stderr)
                 if present:
-                    self.assertEqual(len(calls), 2)
+                    self.assertEqual([call[0] for call in calls], ['prepare-oge-annual-runtime',
+                        'overlay-whitehouse-annual-candidate'])
+                    self.assertIn('--replay-cover-ocr', calls[0])
                 else:
-                    self.assertEqual(calls[:2], [['sudo', 'apt-get', 'update'],
-                                               ['sudo', 'apt-get', 'install', '-y', 'tesseract-ocr']])
-                    calls = calls[2:]
-                self.assertEqual(calls[0][0], 'prepare-oge-annual-runtime')
-                self.assertIn('--replay-cover-ocr', calls[0])
-                self.assertEqual(calls[1][0], 'overlay-whitehouse-annual-candidate')
-                self.assertFalse(any(call[:2] == ['-m', 'pip'] for call in calls))
+                    self.assertEqual(calls, [])
+                self.assertFalse(any(call[:2] == ['-m', 'pip'] or call[0] == 'sudo' for call in calls))
 
-    def test_cover_dependency_and_prepare_failures_stop_model_extra_and_overlay(self):
-        for failure, code in [('sudo', 7), ('prepare', 9)]:
-            with self.subTest(failure=failure):
-                result, calls = self.execute(cover='true', tesseract_present=False,
-                    blue=DOCUMENT, model='models/existing', fail=failure)
-                self.assertEqual(result.returncode, code, result.stderr)
-                self.assertFalse(any(call[:2] == ['-m', 'pip'] for call in calls))
-                self.assertFalse(any('overlay-whitehouse-annual-candidate' in call[0] for call in calls))
-                self.assertEqual(calls[0], ['sudo', 'apt-get', 'update'])
-                if failure == 'sudo':
-                    self.assertEqual(len(calls), 1)
-                else:
-                    self.assertEqual(calls[2][0], 'prepare-oge-annual-runtime')
-        result, calls = self.execute(cover='true', tesseract_present=False,
-                                    blue=DOCUMENT, model='models/existing')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([call[0] for call in calls], ['sudo', 'sudo',
-            'prepare-oge-annual-runtime', '-m',
-            'overlay-whitehouse-annual-candidate'])
+    def test_cover_prepare_failure_stops_overlay_without_reinstalling_runtime(self):
+        result, calls = self.execute(cover='true', blue=DOCUMENT, model='models/existing', fail='prepare')
+        self.assertEqual(result.returncode, 9, result.stderr)
+        self.assertEqual([call[0] for call in calls], ['prepare-oge-annual-runtime'])
 
     def test_cli_forwards_repeated_selection_without_executing_a_model(self):
         with tempfile.TemporaryDirectory() as directory:

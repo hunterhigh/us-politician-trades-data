@@ -1,6 +1,7 @@
 set -euo pipefail
 git fetch --no-tags --depth=1 --filter=blob:none origin \
   review:refs/remotes/origin/review \
+  state:refs/remotes/origin/state \
   main:refs/remotes/origin/main \
   market:refs/remotes/origin/market \
   evidence:refs/remotes/origin/evidence
@@ -60,3 +61,4 @@ echo "cache_market_root=$cache_market_root" >> "$GITHUB_OUTPUT"
 echo "cache_market_commit=$cache_market_ref" >> "$GITHUB_OUTPUT"
 echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+echo "state_commit=$(git rev-parse origin/state)" >> "$GITHUB_OUTPUT"

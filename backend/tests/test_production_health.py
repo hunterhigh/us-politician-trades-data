@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import unittest
-from unison_snapshot.production_health import evaluate, reconcile_issues, latest_publication_deadline
+from unison_snapshot.production_health import evaluate, reconcile_issues, latest_publication_deadline, successful_publication_at
 
 
 class HealthTests(unittest.TestCase):
@@ -97,3 +97,24 @@ class HealthTests(unittest.TestCase):
         self.sources['house_clerk']['run_at'] = '2026-10-28T06:00:00'
         with self.assertRaises(ValueError):
             evaluate(self.manifest, self.sources, now=self.now)
+
+    def test_aligned_old_qualified_sources_remain_held_after_collection_recovers(self):
+        self.sources['senate_efd'].update(status='ok', catalog={'retrieved_at': '2026-10-28T07:00:00Z'})
+        assembly = {'schema_version': 'disclosure-assembly-status/v1', 'status': 'ready',
+                    'source_cutoffs': {source: '2026-10-23T07:00:00Z' for source in self.sources}}
+        health = evaluate(self.manifest, self.sources, now=self.now, assembly=assembly)
+        self.assertEqual({row['source'] for row in health['blocking_sources']}, set(self.sources))
+        self.assertTrue(all(row['reason'] == 'candidate_stale' for row in health['blocking_sources']))
+
+    def test_publication_history_excludes_bootstrap_and_held_assessment_and_keeps_legacy_success(self):
+        class Api:
+            def request(self, path):
+                if '/workflows/' in path:
+                    ids = (1, 2, 3) if '/publish.yml/' in path else (4,)
+                    return {'workflow_runs': [{'id': i, 'conclusion': 'success',
+                        'name': 'Bootstrap empty snapshot' if i == 1 else 'Publish complete production snapshot'} for i in ids]}
+                run_id = int(path.split('/runs/')[1].split('/')[0])
+                if run_id == 1: raise AssertionError('Bootstrap must not be inspected as publication')
+                return {'jobs': [{'name': 'publish', 'conclusion': 'skipped' if run_id == 2 else 'success',
+                    'completed_at': '2026-10-28T01:00:00Z' if run_id == 3 else '2026-10-27T01:00:00Z'}]}
+        self.assertEqual(successful_publication_at(Api()), '2026-10-28T01:00:00Z')
