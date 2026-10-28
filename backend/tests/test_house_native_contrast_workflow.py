@@ -19,6 +19,10 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         from test_house_native_opacity import HouseNativeOpacityTests
         self.assert_source_selection(HouseNativeOpacityTests(), 'ca0')
 
+    def test_clip_source_selection_requeues_old_cache_before_success_skip(self):
+        from test_house_native_clip import HouseNativeClipTests
+        self.assert_source_selection(HouseNativeClipTests(), 'outside')
+
     def assert_source_selection(self, helper, kind):
         self.addCleanup(helper.doCleanups)
         root,legacy,current=helper.source(kind)

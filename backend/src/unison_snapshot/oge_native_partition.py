@@ -13,12 +13,19 @@ BICHROME_VERSIONS = {BICHROME_DEFAULT_VERSION, BICHROME_GENERIC_VERSION}
 OPACITY_DEFAULT_VERSION = 'oge-278t-native-opacity-default/v1'
 OPACITY_GENERIC_VERSION = 'oge-278t-native-opacity-generic/v1'
 OPACITY_VERSIONS = {OPACITY_DEFAULT_VERSION, OPACITY_GENERIC_VERSION}
-GENERIC_VERSIONS = {GENERIC_VERSION, BICHROME_GENERIC_VERSION, OPACITY_GENERIC_VERSION}
-DEFAULT_VERSIONS = {DEFAULT_VERSION, BICHROME_DEFAULT_VERSION, OPACITY_DEFAULT_VERSION}
+CLIP_DEFAULT_VERSION = 'oge-278t-native-clip-default/v1'
+CLIP_GENERIC_VERSION = 'oge-278t-native-clip-generic/v1'
+CLIP_VERSIONS = {CLIP_DEFAULT_VERSION, CLIP_GENERIC_VERSION}
+GENERIC_VERSIONS = {GENERIC_VERSION, BICHROME_GENERIC_VERSION, OPACITY_GENERIC_VERSION, CLIP_GENERIC_VERSION}
+DEFAULT_VERSIONS = {DEFAULT_VERSION, BICHROME_DEFAULT_VERSION, OPACITY_DEFAULT_VERSION, CLIP_DEFAULT_VERSION}
 VERSIONS = DEFAULT_VERSIONS | GENERIC_VERSIONS
 
 
 def source_plan(path, *, source_sha256, generic=False):
+    from .native_clip_partition import plan_native_clip_partition
+    clipping = plan_native_clip_partition(path, expected_sha256=source_sha256)
+    if clipping.get('activated') is not False:
+        return clipping, CLIP_GENERIC_VERSION if generic else CLIP_DEFAULT_VERSION
     from .native_opacity_partition import plan_native_opacity_partition
     opacity = plan_native_opacity_partition(path, expected_sha256=source_sha256)
     if opacity.get('activated') is not False:
@@ -47,6 +54,9 @@ def parse_partitioned_oge(metadata, path, *, source_sha256, generic=False, parse
     elif parser_version in OPACITY_VERSIONS:
         from .native_opacity_partition import observe_native_opacity_partition
         observer = observe_native_opacity_partition
+    elif parser_version in CLIP_VERSIONS:
+        from .native_clip_partition import observe_native_clip_partition
+        observer = observe_native_clip_partition
     proof = observer(path, expected_sha256=source_sha256)
     if proof.get('activated') is False:
         raise OgeCatalogError('Native visible OGE variant needs an activated source partition')

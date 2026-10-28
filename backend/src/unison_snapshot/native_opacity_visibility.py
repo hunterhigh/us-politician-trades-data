@@ -13,7 +13,7 @@ from .native_source_visibility import (PAGE_KEYS, CATALOG_KEYS, NUMERIC_OPS,
 from .native_bichrome_visibility import (mono, _Budget, _FootprintIndex,
     _path_box, _contains)
 from .pdf_native_observer import (observe_source_characters, _graphics_state_value,
-                                  _resolve_graphics_state)
+                                  _resolve_graphics_state, _clipping_path_weight)
 
 POLICY_VERSION = 'native-opacity-source-paint/v1'
 DISPLAY_DOMAIN = 'opaque_white_paper/v1'
@@ -24,6 +24,9 @@ MAX_PATH_EVENTS = 5_000
 MAX_FILLS = 2_000
 MAX_GRAPHICS_STATE_RESOURCES = 64
 MAX_GRAPHICS_STATE_EVENTS = 5_000
+MAX_CLIPPING_EVENTS = 5_000
+MAX_CLIPPING_PATH_POINTS = 100_000
+LEGACY_CLIP_FLAG = 'source_visibility_active_clipping_unsupported'
 LEGACY_GS_FLAG = 'source_visibility_active_graphics_state_unsupported'
 finite = _finite
 
@@ -58,13 +61,18 @@ def _graphics_state(reference):
     return _graphics_state_value(state), update, legacy_unsupported
 
 
-def _program(page, fonts, graphics_states):
+def _program(page, fonts, graphics_states, *, rectangular_clip=False, clip_budget=None):
     """Close the source program before any default object materialization."""
     from pdfminer.pdfinterp import PDFContentParser
     from pdfminer.psparser import PSKeyword, PSLiteral, PSEOF
     events = []
     nums = {**NUMERIC_OPS, 're': 4}
     noargs = {*NO_ARG_OPS, 'f', 'h'}
+    if rectangular_clip:
+        noargs.update({'W', 'n'})
+        nums['M'] = 1
+        if clip_budget is None:
+            clip_budget = _Budget()
     allowed = {*nums, *noargs, 'Tf', 'Tj', 'TJ', 'gs'}
 
     class Parser(PDFContentParser):
@@ -80,7 +88,7 @@ def _program(page, fonts, graphics_states):
             require(item.name.decode('ascii') in allowed, 'unsupported_op:' + item.name.decode('ascii'))
             return super().do_keyword(pos, item)
     if not page.page_obj.contents:
-        return (b'', [], 0, [])
+        return (b'', [], 0, [], []) if rectangular_clip else (b'', [], 0, [])
     parser = Parser(page.page_obj.contents)
     args = []
     stack = []
@@ -90,7 +98,24 @@ def _program(page, fonts, graphics_states):
     path_count = 0
     fill_count = 0
     gs_events = []
+    clipping_events = []
+    clipping_path_points = 0
+    pending_clip = None
+    path_rectangle = False
+    rectangle_operands = None
     state = {'ca': 1, 'CA': 1, 'BM': 'Normal', 'legacy_visibility_flags': [], 'font': None, 'size': None, 'mode': 0, 'width': 1, 'width_explicit': False, 'stroke_space': 'DeviceGray', 'stroke_color': 0, 'fill_space': 'DeviceGray', 'fill_color': 0}
+    if rectangular_clip:
+        state['clip_box'] = [0, 0, page.width, page.height]
+        state['miter_limit'] = 10
+
+    def clipping_event(phase, operator):
+        nonlocal clipping_path_points
+        require(len(clipping_events) < MAX_CLIPPING_EVENTS, 'clipping_event_budget')
+        weight = _clipping_path_weight(path, maximum=MAX_CLIPPING_PATH_POINTS - clipping_path_points)
+        require(clipping_path_points + weight <= MAX_CLIPPING_PATH_POINTS, 'clipping_path_budget')
+        clipping_path_points += weight
+        clipping_events.append({'phase':phase, 'operator':operator,
+            'raw_path':deepcopy(path), 'before_paint_order':len(events)+1})
 
     def event(kind, **data):
         nonlocal path_count, fill_count
@@ -108,6 +133,8 @@ def _program(page, fonts, graphics_states):
                 continue
             op = item.name.decode('ascii')
             require(op in allowed, 'unsupported_op:' + op)
+            if rectangular_clip and pending_clip is not None:
+                require(op == 'n', 'clipping_commit_must_be_n')
             if op in nums:
                 require(len(args) == nums[op] and all((finite(v) for v in args)), 'bad_arity:' + op)
             if op in noargs:
@@ -123,7 +150,8 @@ def _program(page, fonts, graphics_states):
                                   'before_paint_order': len(events) + 1})
                 state.update(update)
                 if legacy_unsupported:
-                    state['legacy_visibility_flags'] = [LEGACY_GS_FLAG]
+                    state['legacy_visibility_flags'] = (sorted(set(state['legacy_visibility_flags']) | {LEGACY_GS_FLAG})
+                                                        if rectangular_clip else [LEGACY_GS_FLAG])
             elif op in {'q', 'Q'}:
                 require(not text and (not path), 'q_path_or_text')
                 if op == 'q':
@@ -166,17 +194,47 @@ def _program(page, fonts, graphics_states):
             elif op == 'w':
                 require(0 < args[0] <= 2, 'width')
                 state.update(width=args[0], width_explicit=True)
+            elif op == 'M':
+                # Only the explicit clip profile accepts M. Its supported
+                # strokes are one segment (no joins), rectangles only fill,
+                # and Tr0/3 glyphs never stroke, so miter cannot change ink.
+                require(args[0] >= 1, 'miter_limit_unsupported')
+                state['miter_limit'] = args[0]
             elif op == 're':
                 require(not text and (not path), 'compound_path')
                 x, y, w, h = args
                 require(w > 0 and h > 0, 'nonpositive_re')
+                if rectangular_clip:
+                    require(finite(x+w) and finite(y+h), 'derived_rectangle_nonfinite')
+                    path_rectangle = True
+                    rectangle_operands = tuple(args)
                 path = [('m', x, y), ('l', x + w, y), ('l', x + w, y + h), ('l', x, y + h), ('h',)]
             elif op == 'm':
                 require(not text and (not path), 'compound_path')
                 path = [('m', *args)]
+                if rectangular_clip:
+                    path_rectangle = False
             elif op == 'l':
                 require(not text and len(path) == 1 and (path[0][0] == 'm'), 'non_line')
                 path.append(('l', *args))
+            elif op == 'W':
+                require(not text and path_rectangle and len(path) == 5 and path[-1] == ('h',),
+                        'single_rectangle_clip_required')
+                x, y, width, height = rectangle_operands
+                require(all(_clip_exact_number(value) for value in
+                    (*rectangle_operands, x+width, y+height)), 'clipping_numeric_domain_unsupported')
+                pending_clip = _path_box(path, page.height)
+                require(all(finite(value) for value in pending_clip), 'derived_rectangle_nonfinite')
+                clipping_event('request', 'W')
+                state['legacy_visibility_flags'] = sorted(set(state['legacy_visibility_flags']) | {LEGACY_CLIP_FLAG})
+            elif op == 'n':
+                require(pending_clip is not None, 'clipping_request_required')
+                clipping_event('commit', 'n')
+                clip_budget.charge('clipping_state_intersections')
+                state['clip_box'] = _clip_intersection(state['clip_box'], pending_clip)
+                pending_clip = None
+                path = []
+                path_rectangle = False
             elif op == 'S':
                 require(not text and len(path) == 2 and (path[0][1] == path[1][1] or path[0][2] == path[1][2]), 'non_line')
                 require(mono(state['stroke_space'], state['stroke_color']) == 0, 'nonblack_stroke')
@@ -193,7 +251,8 @@ def _program(page, fonts, graphics_states):
     except PSEOF:
         pass
     require(not args and (not text) and (not path) and (not stack), 'incomplete_program')
-    return (bytes(raw), events, parser.count, gs_events)
+    result = (bytes(raw), events, parser.count, gs_events)
+    return (*result, clipping_events) if rectangular_clip else result
 
 
 def _source_domain(page):
@@ -225,16 +284,59 @@ def _source_domain(page):
     return fonts, graphics_states
 
 
-def _inspect(page, maximum, display_domain):
+
+
+def _clip_exact_number(value):
+    """A source rectangle shared exactly by double and binary32 interpreters.
+
+    Merely finite double values can overflow the renderer's binary32 geometry
+    and produce a different visible clip. This is an explicit, new-only source
+    numeric domain, not a coordinate-magnitude threshold or a pixel heuristic.
+    """
+    import struct
+    if not finite(value):
+        return False
+    try:
+        single = struct.unpack('!f', struct.pack('!f', value))[0]
+    except (OverflowError, struct.error):
+        return False
+    return finite(single) and single == value
+
+
+def _clip_intersection(outer, rectangle):
+    if outer is None:
+        return None
+    box = [max(outer[0], rectangle[0]), max(outer[1], rectangle[1]),
+           min(outer[2], rectangle[2]), min(outer[3], rectangle[3])]
+    return box if box[0] < box[2] and box[1] < box[3] else None
+
+
+def _clip_relation(clip, box, budget):
+    budget.charge('clipping_relations')
+    if clip is None:
+        return 'outside'
+    if clip[0] <= box[0] and clip[1] <= box[1] and box[2] <= clip[2] and box[3] <= clip[3]:
+        return 'inside'
+    budget.charge('clipping_intersections')
+    return ('partial' if max(clip[0],box[0]) < min(clip[2],box[2]) and
+            max(clip[1],box[1]) < min(clip[3],box[3]) else 'outside')
+
+def _inspect(page, maximum, display_domain, *, rectangular_clip=False):
     require(type(maximum) is int and 0 <= maximum <= 200_000, 'comparison_budget_invalid')
     require(display_domain == DISPLAY_DOMAIN, 'display_domain_unsupported')
+    budget = _Budget(maximum) if rectangular_clip else None
     fonts, graphics_states = _source_domain(page)
     # Grammar, lexical/character/event limits precede ordinary object layout.
-    raw, events, tokens, gs_events = _program(page, fonts, graphics_states)
+    if rectangular_clip:
+        raw, events, tokens, gs_events, clipping_events = _program(page, fonts, graphics_states, rectangular_clip=True, clip_budget=budget)
+        clip_arguments = {'include_clipping_events':True, 'max_clipping_events':MAX_CLIPPING_EVENTS}
+    else:
+        raw, events, tokens, gs_events = _program(page, fonts, graphics_states)
+        clip_arguments = {}
     chars, modes, flags, paint = observe_source_characters(page,
         max_characters=MAX_CHARACTERS, max_tokens=MAX_TOKENS,
         include_path_events=True, include_graphics_state_events=True,
-        max_paint_events=MAX_PAINT_EVENTS, max_graphics_state_events=MAX_GRAPHICS_STATE_EVENTS)
+        max_paint_events=MAX_PAINT_EVENTS, max_graphics_state_events=MAX_GRAPHICS_STATE_EVENTS, **clip_arguments)
     require(not page.annots and not paint['images'] and not any(
         key not in {'char', 'line', 'rect', 'curve'} and values
         for key, values in page.objects.items()), 'painted_objects_unsupported')
@@ -242,6 +344,8 @@ def _inspect(page, maximum, display_domain):
             len(chars) == len(modes) == len(flags) == len(paint['character_orders']), 'glyph_inventory_differs')
     require(len(events) == paint['paint_event_count'], 'paint_order_differs')
     require(gs_events == paint['graphics_state_events'], 'graphics_state_inventory_differs')
+    if rectangular_clip:
+        require(clipping_events == paint['clipping_events'], 'clipping_inventory_differs')
     expected_orders = []
     for event in events:
         if event['kind'] == 'text':
@@ -299,9 +403,15 @@ def _inspect(page, maximum, display_domain):
                x+ink.x1*size, page.height-y-ink.y0*size]
         require(_within(box, page.width, page.height), 'glyph_ink_outside_page')
         ink_boxes.append(box)
+    clip_states = []
+    if rectangular_clip:
+        for char, box, order in zip(chars, ink_boxes, expected_orders):
+            clip_states.append(_clip_relation(events[order-1]['state']['clip_box'],
+                box if box is not None else [char[key] for key in ('x0','top','x1','bottom')], budget))
     items = []
     for ordinal, box in enumerate(ink_boxes):
-        if box is not None and modes[ordinal] == 0 and events[expected_orders[ordinal]-1]['state']['ca'] == 1:
+        if (box is not None and modes[ordinal] == 0 and events[expected_orders[ordinal]-1]['state']['ca'] == 1 and
+                (not rectangular_clip or clip_states[ordinal] != 'outside')):
             items.append({'kind':'glyph', 'ordinal':ordinal, 'order':expected_orders[ordinal], 'box':box})
     for event in paths:
         box = _path_box(event['path'], page.height)
@@ -310,9 +420,13 @@ def _inspect(page, maximum, display_domain):
         require(_within(box, page.width, page.height), 'path_domain_unsupported')
         if event['state']['CA' if event['kind'] == 'stroke' else 'ca'] == 0:
             continue
+        if rectangular_clip:
+            require(_clip_relation(event['state']['clip_box'], box, budget) == 'inside',
+                    'contributing_path_clip_unproved')
         items.append({'kind':event['kind'], 'order':event['order'], 'box':box,
                       'color':mono(event['state']['fill_space'], event['state']['fill_color'])})
-    budget = _Budget(maximum)
+    if not rectangular_clip:
+        budget = _Budget(maximum)
     index = _FootprintIndex([item['box'] for item in items], budget)
     # Fill edges cannot certify table rules, and no fill may cover a real grid
     # footprint, even if a text extractor still returns that invisible line.
@@ -327,6 +441,12 @@ def _inspect(page, maximum, display_domain):
             continue
         if events[order-1]['state']['ca'] == 0:
             states.append('no_effect'); reasons.append('zero_nonstroking_alpha'); backgrounds.append(None)
+            continue
+        if rectangular_clip and clip_states[ordinal] != 'inside':
+            outside = clip_states[ordinal] == 'outside'
+            states.append('no_effect' if outside else 'unknown')
+            reasons.append('full_ink_outside_clip' if outside else 'partial_ink_clip')
+            backgrounds.append(None)
             continue
         if box is None:
             states.append('spacing'); reasons.append(None); backgrounds.append(None)
@@ -362,7 +482,7 @@ def _inspect(page, maximum, display_domain):
         if later:
             states.append('unknown'); reasons.append('later_intersecting_paint'); continue
         states.append('displayed'); reasons.append(None)
-    return {'status':'observed', 'reason':None, 'policy_version':POLICY_VERSION,
+    result = {'status':'observed', 'reason':None, 'policy_version':POLICY_VERSION,
         'display_domain':display_domain, 'chars':chars, 'render_modes':modes,
         'visibility_flags':flags, 'paint':paint, 'glyph_states':states,
         'glyph_reasons':reasons, 'glyph_ink_boxes':ink_boxes, 'glyph_backgrounds':backgrounds,
@@ -378,6 +498,13 @@ def _inspect(page, maximum, display_domain):
             'paint_event_count':len(events), 'path_event_count':len(paths),
             'fill_count':sum(event['kind']=='fill' for event in paths),
             'graphics_state_event_count':len(gs_events), 'graphics_state_resource_count':len(graphics_states)}}
+    if rectangular_clip:
+        result['glyph_clip_states'] = clip_states
+        result['source_program']['clipping_events'] = clipping_events
+        result['source_program']['clipping_numeric_domain'] = 'float32_exact_source_rectangle/v1'
+        result['budgets'].update(clipping_event_count=len(clipping_events),
+            clipping_path_point_count=sum(_clipping_path_weight(event['raw_path']) for event in clipping_events))
+    return result
 
 
 def inspect_opacity_native_page(page, *, max_comparisons=200_000,

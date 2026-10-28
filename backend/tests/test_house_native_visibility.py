@@ -46,9 +46,14 @@ class NativeVisibilityTests(unittest.TestCase):
         if footer:
             document[-1].insert_text((40, 740), 'Unrelated invisible footer', fontsize=9, render_mode=3)
         raw = document.tobytes(); document.close(); sha = hashlib.sha256(raw).hexdigest()
-        path = root/'source.pdf'; path.write_bytes(raw)
-        metadata = {**META, 'sha256': sha, 'archive_path': 'source.pdf'}
-        meta_path = root/'source.json'; meta_path.write_text(json.dumps(metadata))
+        path = root/f'house_clerk/documents/2026/20000001/{sha}.pdf'
+        path.parent.mkdir(parents=True);path.write_bytes(raw)
+        metadata = {**META, 'sha256': sha, 'archive_path': path.relative_to(root).as_posix(),
+                    'byte_length': len(raw)}
+        meta_path = path.with_suffix('.json');meta_path.write_text(json.dumps(metadata))
+        if not hasattr(self, '_source_roots'):
+            self._source_roots = {}
+        self._source_roots[sha] = root
         with pdfplumber.open(path) as pdf:
             old = [{'width': p.width, 'height': p.height,
                 'words': p.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=['size']),
@@ -56,6 +61,12 @@ class NativeVisibilityTests(unittest.TestCase):
         with patch('unison_snapshot.house_ptr._ocr_pdf_pages', side_effect=AssertionError('must not OCR')):
             current = parse_archived_pdf(root, meta_path)
         return parse_word_pages(metadata, sha, old, copy_allowed=True), current
+
+    def qualify_simple(self, extraction):
+        from unison_snapshot.house_native_contrast import PARSER_VERSIONS
+        roots = ({'evidence_root': self._source_roots[extraction['source_sha256']]}
+                 if extraction.get('parser_version') in PARSER_VERSIONS else {})
+        return qualify_automatic(extraction, IDENTITY, **roots)
 
     def fixture(self, mode='hidden', *, zero=False):
         helper = image_tests.ImageBodyRoutingTests()
@@ -186,7 +197,7 @@ class NativeVisibilityTests(unittest.TestCase):
             with self.subTest(leading=leading):
                 previous, current = self.simple_native(cross_page_fixture_pages(),
                     lambda n, w: 3 if leading and n == 2 and w['top'] == 120 else 0, footer=not leading)
-                old, new = qualify_automatic(previous, IDENTITY), qualify_automatic(current, IDENTITY)
+                old, new = qualify_automatic(previous, IDENTITY), self.qualify_simple(current)
                 self.assertEqual([row['raw_cells'] for row in current['transactions']],
                                  [row['raw_cells'] for row in previous['transactions']])
                 if leading:
@@ -205,7 +216,7 @@ class NativeVisibilityTests(unittest.TestCase):
                 old, current = self.simple_native(source, lambda n, w: 3 if w['top'] == 40 and (
                     hidden == 'title' and w['x0'] < 480 or hidden == 'id' and w['x0'] >= 480) else 0,
                     footer=hidden == 'footer')
-                previous, actual = qualify_automatic(old, IDENTITY), qualify_automatic(current, IDENTITY)
+                previous, actual = qualify_automatic(old, IDENTITY), self.qualify_simple(current)
                 if hidden == 'footer':
                     self.assertEqual(actual['transactions'], previous['transactions'])
                 else:
@@ -218,7 +229,7 @@ class NativeVisibilityTests(unittest.TestCase):
         for options in ({'form_body': True}, {'clip_body': True}):
             with self.subTest(options=options):
                 old, current = self.simple_native(source, lambda n, w: 0, footer=True, **options)
-                previous, actual = qualify_automatic(old, IDENTITY), qualify_automatic(current, IDENTITY)
+                previous, actual = qualify_automatic(old, IDENTITY), self.qualify_simple(current)
                 self.assertTrue(previous['transactions'])
                 self.assertEqual(actual['transactions'], previous['transactions'])
                 self.assertEqual(actual['quarantined'], previous['quarantined'])

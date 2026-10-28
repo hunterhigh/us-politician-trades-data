@@ -4,27 +4,34 @@ Mechanically shared from the House observer; projection, flags, paint order
 and exception values remain the same. Consumers choose their own profile.
 """
 
+MAX_CLIPPING_PATH_POINTS = 100_000
+
+
 def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000,
                               include_path_events=False, max_paint_events=30_000,
                               include_graphics_state_events=False,
-                              max_graphics_state_events=5_000):
+                              max_graphics_state_events=5_000,
+                              include_clipping_events=False, max_clipping_events=5_000):
     from pdfplumber.page import PDFPageAggregatorWithMarkedContent
     from pdfminer.pdfinterp import PDFPageInterpreter, PDFContentParser
     from pdfminer.layout import LTChar, LTContainer, LTFigure
     from pdfminer.pdftypes import resolve1
     from pdfminer.psparser import literal_name, PSEOF
 
-    if (include_path_events or include_graphics_state_events) and (type(max_paint_events) is not int or max_paint_events < 0):
+    if (include_path_events or include_graphics_state_events or include_clipping_events) and (type(max_paint_events) is not int or max_paint_events < 0):
         raise ValueError('source_visibility_paint_budget_invalid')
     if include_graphics_state_events and (type(max_graphics_state_events) is not int or
                                           max_graphics_state_events < 0):
         raise ValueError('source_visibility_graphics_state_budget_invalid')
+    if include_clipping_events and (type(max_clipping_events) is not int or max_clipping_events < 0):
+        raise ValueError('source_visibility_clipping_budget_invalid')
 
     class Interpreter(PDFPageInterpreter):
         def init_state(self, *args, **kwargs):
             super().init_state(*args, **kwargs)
             self.visibility_flags = set(getattr(self, 'inherited_visibility_flags', ()))
             self.visibility_stack = []
+            self.pending_clipping_operator = None
             if include_path_events:
                 self.device.path_visibility_flags = self.visibility_flags
 
@@ -83,13 +90,77 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
                 self.visibility_flags.add('source_visibility_active_graphics_state_unsupported')
             super().do_gs(name)
 
+        def record_clipping(self, phase, operator):
+            from copy import deepcopy
+            if len(self.device.clipping_events) >= max_clipping_events:
+                raise ValueError('source_visibility_clipping_event_budget_exceeded')
+            size = _clipping_path_weight(self.curpath,
+                maximum=MAX_CLIPPING_PATH_POINTS - self.device.clipping_path_points)
+            if self.device.clipping_path_points + size > MAX_CLIPPING_PATH_POINTS:
+                raise ValueError('source_visibility_clipping_path_budget_exceeded')
+            self.device.clipping_path_points += size
+            self.device.clipping_events.append({
+                'phase': phase, 'operator': operator, 'raw_path': deepcopy(self.curpath),
+                'before_paint_order': self.device.paint_order + 1})
+
+        def commit_clipping(self, operator):
+            if include_clipping_events and self.pending_clipping_operator is not None:
+                self.record_clipping('commit', operator)
+                self.pending_clipping_operator = None
+
         def do_W(self):
+            if include_clipping_events:
+                self.record_clipping('request', 'W')
+                self.pending_clipping_operator = 'W'
             self.visibility_flags.add('source_visibility_active_clipping_unsupported')
             super().do_W()
 
         def do_W_a(self):
+            if include_clipping_events:
+                self.record_clipping('request', 'W*')
+                self.pending_clipping_operator = 'W*'
             self.visibility_flags.add('source_visibility_active_clipping_unsupported')
             super().do_W_a()
+
+        def do_n(self):
+            self.commit_clipping('n')
+            return super().do_n()
+
+        def do_S(self):
+            self.commit_clipping('S')
+            return super().do_S()
+
+        def do_s(self):
+            self.commit_clipping('s')
+            return super().do_s()
+
+        def do_f(self):
+            self.commit_clipping('f')
+            return super().do_f()
+
+        def do_F(self):
+            self.commit_clipping('F')
+            return super().do_F()
+
+        def do_f_a(self):
+            self.commit_clipping('f*')
+            return super().do_f_a()
+
+        def do_B(self):
+            self.commit_clipping('B')
+            return super().do_B()
+
+        def do_B_a(self):
+            self.commit_clipping('B*')
+            return super().do_B_a()
+
+        def do_b(self):
+            self.commit_clipping('b')
+            return super().do_b()
+
+        def do_b_a(self):
+            self.commit_clipping('b*')
+            return super().do_b_a()
 
         def do_TJ(self, seq):
             self.device.visibility_flags = set(self.visibility_flags)
@@ -122,9 +193,11 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
             self.image_events = []
             self.path_events = []
             self.graphics_state_events = []
+            self.clipping_events = []
+            self.clipping_path_points = 0
 
         def check_paint_budget(self):
-            if (include_path_events or include_graphics_state_events) and self.paint_order > max_paint_events:
+            if (include_path_events or include_graphics_state_events or include_clipping_events) and self.paint_order > max_paint_events:
                 raise ValueError('source_visibility_paint_event_budget_exceeded')
 
         def render_string(self, textstate, *args, **kwargs):
@@ -203,8 +276,25 @@ def observe_source_characters(page, *, max_characters=25_000, max_tokens=100_000
         paint['path_events'] = device.path_events
     if include_graphics_state_events:
         paint['graphics_state_events'] = device.graphics_state_events
+    if include_clipping_events:
+        paint['clipping_events'] = device.clipping_events
     return records, [char.source_render_mode for char in chars], flags, paint
 
+
+
+
+def _clipping_path_weight(path, *, maximum=None):
+    """Count original control points, stopping before an oversized copy.
+
+    A close command has weight one; a cubic command carries three points.
+    This also bounds unsupported source paths observed before profile rejection.
+    """
+    weight = 0
+    for component in path:
+        weight += max(1, (len(component) - 1) // 2)
+        if maximum is not None and weight > maximum:
+            break
+    return weight
 
 
 def _graphics_state_value(value):

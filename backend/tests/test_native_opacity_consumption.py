@@ -81,7 +81,7 @@ class NativeOpacityConsumptionTests(unittest.TestCase):
     def test_opacity_on_cover_cannot_bypass_white_text_on_a_different_page(self):
         self.assert_normal_routes({'cross_page_white':1})
 
-    def assert_normal_routes(self, expected):
+    def assert_normal_routes(self, expected, *, parser_family='native-opacity'):
         for kind, count in expected.items():
             for generic in (False, True):
                 for whitehouse in (False, True):
@@ -102,7 +102,7 @@ class NativeOpacityConsumptionTests(unittest.TestCase):
                             extraction = self.driver.oge_extract(root,generic)
                             candidate = self.driver.oge_candidate(root,generic)
                             rows = candidate['transactions']
-                        self.assertIn('native-opacity', extraction['parser_version'])
+                        self.assertIn(parser_family, extraction['parser_version'])
                         self.assertEqual(len(rows),count)
                         if count == 1:
                             self.assertIn('Other Visible', rows[0]['asset_name'])

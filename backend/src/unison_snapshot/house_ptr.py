@@ -17,7 +17,7 @@ from .house import HouseIndexError
 SCHEMA = "house-ptr-extraction/v1"
 PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-native-opacity-v1"
+PARSER_RETRY_VERSION = "house-parser-suite-native-clip-v1"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -466,7 +466,10 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                      copy_allowed: bool | None, ocr_engine: str | None = None,
                      page_text_methods: list[str] | None = None,
-                     _row_member_sink: list | None = None) -> dict:
+                     _row_member_sink: list | None = None,
+                     _source_repeated_header_boundaries: bool = False) -> dict:
+    if type(_source_repeated_header_boundaries) is not bool:
+        raise HouseIndexError('House source header boundary selector must be boolean')
     if _row_member_sink is not None and (not isinstance(_row_member_sink, list) or _row_member_sink):
         raise HouseIndexError('House raw member collector must be an empty list')
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
@@ -591,6 +594,15 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                 observed = pages[segment_page_index]
                 cells = _header_cells({**observed, 'words': observed[VISIBILITY_KEY]['original_words']},
                                       observed['native_page_geometry'])
+                if cells is not None:
+                    start = max(start, cells[0][3])
+            if _source_repeated_header_boundaries and segment_page_index > page_index:
+                # Internal source-bound partitioning uses the same original
+                # printed-header geometry as the legacy unknown-page route.
+                # It only bounds raw membership; no header glyph grants a fact.
+                from .house_native_coverage import _header_cells
+                cells = _header_cells(pages[segment_page_index],
+                                      pages[segment_page_index].get('native_page_geometry', {}))
                 if cells is not None:
                     start = max(start, cells[0][3])
             if (page_text_methods is not None and segment_page_index > page_index and
