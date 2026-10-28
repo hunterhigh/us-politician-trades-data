@@ -31,7 +31,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     # The integrated source-proof suite exceeded the previous ten-minute limit.
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -39,6 +39,8 @@ jobs:
           python-version: '3.11'
       - name: Install existing PDF geometry test dependencies
         run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
+      - name: Install pinned saved-source geometry dependencies
+        run: python -m pip install -e 'backend[oge-source-quad]'
       - run: python scripts/verify.py
         working-directory: backend
       - run: python backend/scripts/demo.py

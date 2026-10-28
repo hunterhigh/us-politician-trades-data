@@ -69,6 +69,10 @@ def mocks(data):
     stack=ExitStack();stack.enter_context(patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page',side_effect=data['native']))
     stack.enter_context(patch('pdfplumber.open',side_effect=lambda *a,**k:_Document([_Page('',[data['raw']])])))
     stack.enter_context(patch('unison_snapshot.oge_reports._extract_borderless_transaction_tables',return_value=[]))
+    # These deliberately non-PDF bytes substitute the low-level parser and its
+    # selector together. Real original/version binding has separate source tests.
+    stack.enter_context(patch('unison_snapshot.oge_reports.selected_parser_version',
+        return_value='oge-278t-pdf/v2'))
     return stack
 
 

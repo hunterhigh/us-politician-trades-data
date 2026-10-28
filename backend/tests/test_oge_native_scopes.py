@@ -158,7 +158,7 @@ class NativeScopeTests(unittest.TestCase):
         self.assertEqual(repeated["transactions"],compact["transactions"])
         self.assertEqual(audit["reports"][0]["quarantined_count"],0)
 
-    def test_normal_runner_validates_raw_scope_then_inherits_legacy_id_owner_without_cache_mutation(self):
+    def test_normal_runner_without_original_preserves_legacy_owner_and_cache(self):
         from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run
         source=self.source([(2,ROW)])
         old=self.source([(2,ROW)],generic=False)
@@ -182,7 +182,10 @@ class NativeScopeTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(),before)
             result=json.loads((root/"out/candidate.json").read_bytes())
             self.assertEqual([r["id"] for r in result["transactions"]],[r["id"] for r in prior["transactions"]])
-            self.assertEqual(result["transactions"][0]["owner"],"Undisclosed")
+            # A cached generic owner is not authority to rewrite an old formal fact.
+            self.assertEqual(source["transactions"][0]["owner"],"Undisclosed")
+            self.assertEqual(prior["transactions"][0]["owner"],"Self")
+            self.assertEqual(result["transactions"][0]["owner"],"Self")
             self.assertEqual(manifest["counts"]["qualified_rows"],1)
             self.assertEqual(manifest["counts"]["quarantined_rows"],0)
 

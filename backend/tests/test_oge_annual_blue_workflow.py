@@ -202,7 +202,7 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
         content = WORKFLOW.read_text(encoding='utf-8')
         inputs = content.split('    inputs:\n', 1)[1].split('permissions:', 1)[0]
         self.assertEqual(sum(line.startswith('      ') and not line.startswith('       ') and line.endswith(':')
-                             for line in inputs.splitlines()), 11)
+                             for line in inputs.splitlines()), 12)
         for name in ('oge_annual_blue_date_document_id', 'oge_annual_blue_date_model_directory',
                      'verify_oge_annual_blank_slots', 'replay_oge_annual_cover_ocr'):
             self.assertIn('      ' + name + ':\n', inputs)

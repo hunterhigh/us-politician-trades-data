@@ -117,8 +117,8 @@ class OgeOwnerPublicationCliTests(unittest.TestCase):
     def test_normal_candidate_fixed_git_publication_repeat_and_failed_output_preservation(self):
         from test_oge_owner_correction import fixture, write_files, CUTOFF
         old, expected, review, evidence, previous = fixture(
-            asset='Example Common Stock See Endnote (EXM)')
-        self.assertEqual(old['instrument_type'], 'Bond')
+            asset='Example Common Stock (EXM)')
+        self.assertEqual(old['instrument_type'], 'Stock')
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder); repo = root / 'repo'; repo.mkdir()
             env = dict(os.environ, GIT_NO_LAZY_FETCH='1', PYTHONIOENCODING='utf-8')
@@ -218,7 +218,7 @@ class OgeOwnerPublicationCliTests(unittest.TestCase):
                 self.assertEqual(delta.read_bytes(), b'sentinel')
             # A consistently changed current/source candidate still has no
             # permission to migrate a financial or classification field.
-            for field, value in (('amount_low', 1002), ('instrument_type', 'Stock'),
+            for field, value in (('amount_low', 1002), ('instrument_type', 'Bond'),
                                  ('unknown_optional', None)):
                 altered = deepcopy(candidate); altered['transactions'][0][field] = value
                 save(output, altered); save(source_root / 'oge-current.json', altered)
