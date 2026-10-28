@@ -100,7 +100,7 @@ class SourceFailureCliTests(unittest.TestCase):
                                        ('candidate.json', 'audit.json', 'page.html', 'attempt.json')]
             for file in (out, audit, html):
                 file.write_bytes(b'prior immutable output')
-            args = ['build-disclosure-candidate', '--base', str(ROOT / 'ingest/current.json'),
+            args = ['build-disclosure-candidate', '--base', str(ROOT / 'backend/data/empty-disclosure.json'),
                     *sources, '--harmonize-cutoffs', '--output', str(out),
                     '--audit-output', str(audit), '--html-output', str(html),
                     '--assembly-status-output', str(status)]
@@ -137,7 +137,7 @@ class SourceFailureCliTests(unittest.TestCase):
             self.assertEqual(invoke([*alias_args, '--defer-stale-sources']), 2)
             (root / 'senate_efd.json').write_text(json.dumps(values['senate_efd']))
             for mode in ('duplicate_health', 'invalid_meta'):
-                invalid_base = json.loads((ROOT / 'ingest/current.json').read_text(encoding='utf-8'))
+                invalid_base = json.loads((ROOT / 'backend/data/empty-disclosure.json').read_text(encoding='utf-8'))
                 if mode == 'duplicate_health':
                     invalid_base['source_health'] = [values['senate_efd']['source_health'][0]] * 2
                 else:

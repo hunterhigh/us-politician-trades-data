@@ -204,9 +204,9 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         self.assertNotEqual(committed, old)
         self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
                          'show', 'review:status/oge.json')), {'new_source_status': True})
-        ingest = self.root / 'ingest'
-        ingest.mkdir()
-        (ingest / 'current.json').write_bytes((ROOT / 'ingest/current.json').read_bytes())
+        ingest = self.root / 'backend/data'
+        ingest.mkdir(parents=True)
+        (ingest / 'empty-disclosure.json').write_bytes((ROOT / 'backend/data/empty-disclosure.json').read_bytes())
         shutil.copytree(ROOT / 'backend/src', self.root / 'backend/src',
                         ignore=shutil.ignore_patterns('__pycache__', '*.egg-info'))
         shutil.copytree(ROOT / 'frontend-contract-v2/scripts',

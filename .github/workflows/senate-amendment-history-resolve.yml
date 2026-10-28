@@ -271,7 +271,7 @@ jobs:
             --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
             --audit-output "$audit_temp" \
             --html-output "$RUNNER_TEMP/senate-efd-current.html"
@@ -307,7 +307,7 @@ jobs:
             source_args+=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
           fi
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --harmonize-cutoffs \
             "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \

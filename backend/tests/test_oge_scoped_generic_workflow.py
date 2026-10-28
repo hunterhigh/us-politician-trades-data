@@ -37,7 +37,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.write(self.root/'.local/oge-catalog.json',
                    json.loads(self.data['catalog_path'].read_bytes()))
         self.original = json.loads(self.data['base_path'].read_bytes())
-        self.write(self.root/'ingest/current.json', self.original)
+        self.write(self.root/'backend/data/empty-disclosure.json', self.original)
         # The temporary workflow checkout contains the exact production script.
         script = self.root/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
@@ -136,7 +136,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.public_status(candidate)
         # The actual previous output becomes the next base. Configuration
         # explicitly carries the interpretation choice into a scheduled run.
-        self.write(self.root/'ingest/current.json', candidate)
+        self.write(self.root/'backend/data/empty-disclosure.json', candidate)
         result = self.execute(configured=self.data['a'])
         self.assertEqual(result.returncode, 0, result.stderr)
         next_candidate, _ = self.result()
@@ -190,7 +190,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
             'sha256': json.loads(review['status/oge.json'])['catalog_sha256'],
             'request_required_count': 0}
         self.write(self.root/'.local/oge-catalog.json', catalog)
-        self.write(self.root/'ingest/current.json', previous)
+        self.write(self.root/'backend/data/empty-disclosure.json', previous)
         script = self.root/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
         shutil.copyfile(ROOT/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py', script)

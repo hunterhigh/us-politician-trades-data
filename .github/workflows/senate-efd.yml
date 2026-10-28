@@ -486,7 +486,7 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --state-status .local/senate-efd-state.json \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
             --audit-output "$audit_temp" \
             --html-output "$RUNNER_TEMP/senate-efd-current.html"
@@ -521,7 +521,7 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
             --defer-stale-sources \
             --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --harmonize-cutoffs \
             "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \

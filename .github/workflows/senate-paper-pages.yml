@@ -265,7 +265,7 @@ jobs:
             --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --output "$RUNNER_TEMP/senate-paper-shadow-candidate.json" \
             --audit-output "$RUNNER_TEMP/senate-paper-shadow-audit.json" \
             --html-output "$RUNNER_TEMP/senate-paper-shadow.html"
@@ -301,7 +301,7 @@ jobs:
             --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT" \
             --state-status "$STATE_ROOT/status/senate_efd.json" \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
             --audit-output "$REVIEW_ROOT/senate_efd/qualifications/current.json" \
             --html-output "$RUNNER_TEMP/senate-paper-current.html"
@@ -311,7 +311,7 @@ jobs:
             if [ -f "$path" ]; then source_args+=(--source "$source=$path"); fi
           done
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
@@ -422,7 +422,7 @@ jobs:
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --state-status "$STATE_ROOT/status/senate_efd.json" --base ingest/current.json \
+            --state-status "$STATE_ROOT/status/senate_efd.json" --base backend/data/empty-disclosure.json \
             --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
             --audit-output "$REVIEW_ROOT/senate_efd/qualifications/current.json" \
             --html-output "$RUNNER_TEMP/senate-saved-paper-current.html"
@@ -432,7 +432,7 @@ jobs:
             if [ -f "$path" ]; then source_args+=(--source "$source=$path"); fi
           done
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
             --html-output "$RUNNER_TEMP/senate-saved-disclosure-current.html"

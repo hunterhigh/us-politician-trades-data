@@ -494,7 +494,7 @@ jobs:
           mkdir -p "$REVIEW_ROOT/candidates/sources"
           # Preserve activated annual disclosure rows if a later source
           # observation is unavailable; the builder still requalifies PTRs.
-          candidate_base=ingest/current.json
+          candidate_base=backend/data/empty-disclosure.json
           if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
             candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           fi
@@ -528,7 +528,7 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
             --defer-stale-sources \
             --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
-            --base ingest/current.json \
+            --base backend/data/empty-disclosure.json \
             --harmonize-cutoffs \
             "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \

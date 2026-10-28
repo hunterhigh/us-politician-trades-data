@@ -117,7 +117,7 @@ class SavedOgeWorkflowTests(unittest.TestCase):
         self.assertEqual(writer.returncode, 0, writer.stderr)
         selected = json.loads(writer.stdout)['saved_observations_path']
         write(self.root/'.local/oge-catalog.json', data['catalog'])
-        write(self.root/'ingest/current.json', data['formal'])
+        write(self.root/'backend/data/empty-disclosure.json', data['formal'])
         result, _ = self.execute('true', selected, real=True, evidence=data['evidence'])
         self.assertEqual(result.returncode, 0, result.stderr)
         candidate_path = self.review/'candidates/sources/oge-current.json'

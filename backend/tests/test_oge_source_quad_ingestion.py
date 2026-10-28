@@ -136,7 +136,7 @@ class SourceQuadIngestionTests(unittest.TestCase):
             reading=actual_source_quad_secondary(cls.data,field,render)
             cls.secondary.append(reading);write(cls.root/f'{field}.json',reading)
         from test_oge_candidate import base
-        write(cls.root/'ingest/current.json',base())
+        write(cls.root/'backend/data/empty-disclosure.json',base())
         write(cls.root/'.local/oge-catalog.json',cls.data['catalog'])
         cls.ledger=cls.root/'field-ledger.json'
         cls.package=(cls.data['review']/f'oge/saved_observations/{cls.data["document"]}/'
@@ -210,7 +210,7 @@ class SourceQuadIngestionTests(unittest.TestCase):
         public=PublicSnapshotRepository('contract','data',transport=FakeTransport(bundle.files))
         self.assertEqual(public.fetch().snapshot['transactions'],candidate['transactions'])
         self.assertTrue(public.disclosure_status(public.resolve(),include_records=True))
-        write(self.root/'ingest/current.json',candidate)
+        write(self.root/'backend/data/empty-disclosure.json',candidate)
         result=self.workflow();self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(json.loads(candidate_path.read_bytes())['transactions'],[fact])
         repeated=(candidate_path.read_bytes(),audit_path.read_bytes())

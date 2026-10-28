@@ -469,7 +469,7 @@ jobs:
             --extractions-dir "$REVIEW_ROOT/oge/extractions" \
             --evidence-root "$EVIDENCE_ROOT" \
             --manual-cover-dates-dir "$REVIEW_ROOT/oge/manual_cover_dates" \
-            --base ingest/current.json --data-cutoff-at "$cutoff" \
+            --base backend/data/empty-disclosure.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
             "${saved_observation_args[@]}" "${generic_document_args[@]}" "${document_source_args[@]}"
@@ -650,7 +650,7 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
             --defer-stale-sources \
             --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
           assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \

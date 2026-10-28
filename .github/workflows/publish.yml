@@ -5,7 +5,7 @@ on:
       normalized_path:
         description: Fixed empty bootstrap input; complete production uses publish-complete.yml
         required: true
-        default: ingest/current.json
+        default: backend/data/empty-disclosure.json
       allow_empty_production:
         description: Publish an explicit empty production bootstrap while no rows are approved
         required: true
@@ -34,8 +34,8 @@ jobs:
           INPUT_PATH: ${{ inputs.normalized_path }}
         run: |
           case "$INPUT_PATH" in
-            ingest/*.json) ;;
-            *) echo "Input must be a JSON file below ingest/" >&2; exit 2 ;;
+            backend/data/empty-disclosure.json) ;;
+            *) echo "Input must be the fixed empty disclosure seed" >&2; exit 2 ;;
           esac
           case "$INPUT_PATH" in
             *..*) echo "Input path cannot contain .." >&2; exit 2 ;;
@@ -53,7 +53,7 @@ jobs:
         run: |
           git fetch --no-tags origin main
           base_sha="$(git rev-parse origin/main)"
-          test "$INPUT_PATH" = "ingest/current.json" || {
+          test "$INPUT_PATH" = "backend/data/empty-disclosure.json" || {
             echo "Legacy publisher only accepts the fixed empty bootstrap input." >&2
             exit 2
           }

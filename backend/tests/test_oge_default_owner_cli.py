@@ -24,7 +24,7 @@ class DefaultOwnerCliTests(unittest.TestCase):
         result = p.execute(dispatched=p.data['a'])
         self.assertEqual(result.returncode, 0, result.stderr)
         previous, _ = p.result()
-        p.write(p.root/'ingest/current.json', previous)
+        p.write(p.root/'backend/data/empty-disclosure.json', previous)
         return previous
 
     def test_actual_corrected_output_survives_default_reader_status_and_fixed_git_publication(self):
@@ -81,7 +81,7 @@ class DefaultOwnerCliTests(unittest.TestCase):
             save(p.root/'sources'/f'{name}-current.json', source)
         delta = p.root/'delta.json'
         command = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
-            '--previous-board', str(p.root/'ingest/current.json'),
+            '--previous-board', str(p.root/'backend/data/empty-disclosure.json'),
             '--unified', str(p.output), '--prepared', str(p.output),
             '--source-root', str(p.root/'sources'), '--output', str(delta),
             '--repo', str(repo), '--main-commit', main_ref,

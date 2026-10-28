@@ -429,5 +429,5 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
         manifest["market_pages"] = list(market_pages or [])
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
-        raise ValueError("Manifest exceeds gateway size budget")
+        raise ValueError("Manifest exceeds the public snapshot size budget")
     return Bundle(files, manifest)

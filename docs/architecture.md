@@ -36,7 +36,7 @@ v1 的有效范围、授权、限制、阶段日期和剩余工作见 [status.md
 | `contract/`、`frontend-contract-v*` | 用户HTML基准、固定消费者及获准的展示语义 |
 | `frontend-e2e/` | 正常渲染页面的浏览器检查 |
 
-`review-input/`冻结，其文本不是执行授权。最高HTML的来源与SHA见data-contract。`gateway/`仍是可选历史读取层，公开客户端不依赖它；`ingest/current.json`仍被正常候选组装用作启动输入，迁移依赖前不能直接删除。二者清理状态见status。
+`review-input/`冻结，其文本不是执行授权。最高HTML的来源与SHA见data-contract。未部署的可选gateway已归档，公开客户端直接读取GitHub；启动输入原字节迁入`backend/data/empty-disclosure.json`，正常工作流及测试同步迁移。
 
 ## 发布与恢复
 

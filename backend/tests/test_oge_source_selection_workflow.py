@@ -38,7 +38,7 @@ class OgeSourceSelectionWorkflowTests(unittest.TestCase):
                          (self.data['b'], self.data['sha_b'])):
             self.cache(doc, sha).unlink()
         self.write(self.root / '.local/oge-catalog.json', json.loads(self.data['catalog_path'].read_bytes()))
-        self.write(self.root / 'ingest/current.json', json.loads(self.data['base_path'].read_bytes()))
+        self.write(self.root / 'backend/data/empty-disclosure.json', json.loads(self.data['base_path'].read_bytes()))
         script = self.root / 'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / 'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py', script)
@@ -116,7 +116,7 @@ class OgeSourceSelectionWorkflowTests(unittest.TestCase):
         self.assertEqual(len(self.preparation_receipts(result)), 1)
         self.assertEqual(self.preparation_receipts(result)[0]['created_paths'], [])
         self.assertEqual((self.output.read_bytes(), self.audit.read_bytes()), first)
-        self.write(self.root / 'ingest/current.json', candidate)
+        self.write(self.root / 'backend/data/empty-disclosure.json', candidate)
         result = self.execute(generic_configured=a, sources_configured=pin)
         self.assertEqual(result.returncode, 0, result.stderr)
         repeated, _ = self.assert_selected()

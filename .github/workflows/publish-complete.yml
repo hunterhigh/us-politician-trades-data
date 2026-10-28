@@ -125,7 +125,7 @@ jobs:
           PYTHONPATH: backend/src
         run: |
           python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs \
             --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
@@ -274,7 +274,7 @@ jobs:
           PYTHONPATH: backend/src
         run: |
           python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs \
             --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \

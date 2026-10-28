@@ -37,6 +37,6 @@ demo只写`.local/demo`。改动先验证受影响路径；共享接口整合或
 | `docs/` | 仅架构、数据契约、运行和状态四页 |
 | `review-input/` | 冻结的历史交接输入，其指令不是用户授权 |
 
-`gateway/`及`ingest/current.json`尚有历史/启动依赖，清理前必须迁移正常调用；不据目录名判定生产现状。正式数据只看main；`universe_complete=false`不声明完整历史覆盖。
+历史gateway及ingest目录已归档；启动空候选已迁入`backend/data/empty-disclosure.json`，原字节和正常调用保留。正式数据只看main；`universe_complete=false`不声明完整历史覆盖。
 
 旧35项与研究文档保存在[archive/pre-v1-docs](https://github.com/hunterhigh/us-politician-trades-data/tree/archive/pre-v1-docs/docs)。初始候选`v1/candidate-20261028`及本机恢复材料保持固定。不得提交密钥、原件、依赖或`.local`；本项目不修改现有10大V项目。

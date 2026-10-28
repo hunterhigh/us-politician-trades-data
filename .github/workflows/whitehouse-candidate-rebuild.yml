@@ -107,7 +107,7 @@ jobs:
             if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
           done
           python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
           python -m unison_snapshot verify-first-launch \

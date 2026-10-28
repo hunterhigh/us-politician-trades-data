@@ -258,7 +258,7 @@ jobs:
           target.write_text(json.dumps(value,sort_keys=True,separators=(',',':')),encoding='utf-8')
           PY
           mkdir -p "$REVIEW_ROOT/candidates/sources"
-          candidate_base=ingest/current.json
+          candidate_base=backend/data/empty-disclosure.json
           if [ -f "$REVIEW_ROOT/candidates/sources/house_clerk-current.json" ]; then
             candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"
           fi
@@ -275,7 +275,7 @@ jobs:
             [ ! -f "$path" ] || source_args+=(--source "$source=$path")
           done
           PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
       - name: Publish machine results

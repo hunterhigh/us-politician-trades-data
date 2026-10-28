@@ -129,7 +129,7 @@ npm() {
         self.assertIn('test "$TWELVE_LIMIT" -ge 0', complete)
         self.assertIn('if [ "$TWELVE_LIMIT" -gt 0 ] && [ -z "$TWELVE_KEY" ]', complete)
         self.assertIn('current_snapshot" = "bootstrap_empty"', bootstrap)
-        self.assertIn('test "$INPUT_PATH" = "ingest/current.json"', bootstrap)
+        self.assertIn('test "$INPUT_PATH" = "backend/data/empty-disclosure.json"', bootstrap)
 
     def test_market_cache_uses_a_consistent_published_main_market_pair(self):
         complete = (ROOT / ".github/workflows/publish-complete.yml").read_text(

@@ -99,7 +99,7 @@ class HouseAnnualIndependentTests(unittest.TestCase):
                 workflow=(Path(__file__).resolve().parents[2]/'.github/workflows'/name).read_text(encoding='utf-8')
                 self.assertIn('candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"',workflow)
                 self.assertIn('--base "$candidate_base"',workflow)
-                self.assertRegex(workflow, r'--base ingest/current\.json\s+(?:\\\s+)?--harmonize-cutoffs')
+                self.assertRegex(workflow, r'--base backend/data/empty-disclosure\.json\s+(?:\\\s+)?--harmonize-cutoffs')
 
 
 if __name__=='__main__':unittest.main()
