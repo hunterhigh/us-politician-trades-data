@@ -186,6 +186,10 @@ def main() -> None:
     qualify_paper.add_argument("--tesseract")
     qualify_paper.add_argument("--peer-metadata", type=Path, nargs="+")
     qualify_paper.add_argument("--output", type=Path, required=True)
+    reviewed_paper = sub.add_parser("correct-reviewed-house-paper")
+    reviewed_paper.add_argument("--evidence-root", type=Path, required=True)
+    reviewed_paper.add_argument("--review-root", type=Path, required=True)
+    reviewed_paper.add_argument("--correction", type=Path, required=True)
     bridge_paper = sub.add_parser("bridge-house-paper-batch")
     bridge_paper.add_argument("--evidence-root", type=Path, required=True)
     bridge_paper.add_argument("--review-root", type=Path, required=True)
@@ -592,6 +596,10 @@ def main() -> None:
                               "qualified": 0,
                               "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "correct-reviewed-house-paper":
+            from .reviewed_house_paper import qualify_reviewed_paper_paths
+            result = qualify_reviewed_paper_paths(args.evidence_root, args.review_root, args.correction)
+            print(json.dumps(result, sort_keys=True))
         elif args.command == "bridge-house-paper-batch":
             result = bridge_paper_batch(
                 evidence_root=args.evidence_root, review_root=args.review_root,

@@ -27,7 +27,7 @@ WORKFLOW=ROOT/'.github/workflows/house-review.yml'
 FIXED_STEPS=(
     ('Qualify fixed source reviewed House paper rows','qualify_house_paper_9116141.py'),
     ('Close fixed House paper prior-report relationship','complete_house_paper_9116141.py'),
-    ('Qualify source-reviewed House paper 9115820','qualify_house_paper_9115820.py'),
+    ('Qualify source-reviewed House paper 9115820','-m unison_snapshot correct-reviewed-house-paper'),
 )
 CUTOFF='2026-10-28T00:00:00Z'
 
@@ -85,7 +85,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             'with Path(os.environ["TEST_CALL_LOG"]).open("a",encoding="utf-8") as f:\n'
             ' f.write(json.dumps(args)+"\\n")\n'
             'repo=Path(os.environ["TEST_REPO"])\n'
-            'args=[str(repo/a) if a.startswith(("backend/scripts/","docs/")) else a for a in args]\n'
+            'args=[str(repo/a) if a.startswith(("backend/scripts/","backend/data/","docs/")) else a for a in args]\n'
             'os.environ["PYTHONPATH"]=str(repo/"backend/src")\n'
             'result=subprocess.run([sys.executable,*args])\n'
             'raise SystemExit(result.returncode)\n',encoding='utf-8')
@@ -140,7 +140,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
                 self.assertNotEqual(process.returncode,0)
                 self.assertRegex(process.stdout+process.stderr,'not uniquely archived|not unique')
                 calls=[json.loads(line) for line in self.calls.read_text(encoding='utf-8').splitlines()]
-                self.assertTrue(any(call and call[0]=='backend/scripts/'+script for call in calls))
+                self.assertTrue(any(call[:3]==script.split() if script.startswith('-m ') else (call and call[0]=='backend/scripts/'+script) for call in calls))
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in before.items()))
                 self.assertTrue(all(p.read_bytes()==raw for p,raw in self.original.items()))
 
