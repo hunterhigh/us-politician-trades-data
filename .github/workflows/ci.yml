@@ -2,9 +2,9 @@ name: Offline contract checks
 on:
   push:
     branches: [code]
-    paths: ['backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
+    paths: ['contract/**', 'backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
   pull_request:
-    paths: ['backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
+    paths: ['contract/**', 'backend/**', 'client/**', 'gateway/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
   workflow_dispatch:
     inputs:
       oge_evidence_validation:

@@ -1,0 +1,9 @@
+{
+  "schema_version": "v1-candidate/v1",
+  "parser_base_commit": "58fe31d3a0b2ac4973f6469cbe03b691a4e1f4b7",
+  "production_code_baseline": "d11e95978720dc92cf1ee351f5400acaa38c26a0",
+  "production_data_baseline": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+  "frontend_path": "contract/politician-disclosures.html",
+  "frontend_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
+  "production_switch_approved": false
+}
