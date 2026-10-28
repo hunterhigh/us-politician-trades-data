@@ -5,3 +5,4 @@
 *.pdf binary
 *.zip binary
 review-input/** -text
+backend/data/source_observations/** -text
