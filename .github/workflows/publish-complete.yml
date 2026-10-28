@@ -61,11 +61,11 @@ jobs:
         env:
           ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
         run: test "$ENABLED" = "true"
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
           cache: pip
@@ -195,7 +195,7 @@ jobs:
           (root / 'prices.json.gz').write_bytes(gzip.compress(json.dumps(prices, separators=(',', ':')).encode(), compresslevel=1))
           (root / 'market-base.txt').write_text(os.environ['MARKET_BASE'])
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: prepared-prices-${{ github.run_id }}
           path: |
@@ -222,16 +222,16 @@ jobs:
         env:
           ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
         run: test "$ENABLED" = "true"
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: backend/pyproject.toml
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
@@ -282,7 +282,7 @@ jobs:
             --audit-output "$RUNNER_TEMP/governed-cutoff.json"
       - name: Receive independently prepared prices
         if: needs.refresh.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: prepared-prices-${{ github.run_id }}
           path: ${{ runner.temp }}/prepared-prices
@@ -343,12 +343,12 @@ jobs:
               output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
               output.write(f"source_health_count={len(candidate['source_health'])}\n")
           PY
-      - name: Verify first-launch disclosure completeness
+      - name: Verify v1 disclosure accounting
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PYTHONPATH: backend/src
         run: |
-          python -m unison_snapshot verify-first-launch \
+          python -m unison_snapshot verify-publication-readiness \
             --review-root "$REVIEW_ROOT" \
             --input "$RUNNER_TEMP/governed-disclosure.json" \
             --output "$RUNNER_TEMP/release-readiness.json"
@@ -374,7 +374,7 @@ jobs:
             "${transition_args[@]}" \
             --output "$RUNNER_TEMP/publication-delta.json"
       - name: Keep publication difference report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: publication-delta-${{ github.run_id }}
           path: ${{ runner.temp }}/publication-delta.json

@@ -72,7 +72,7 @@ from .oge_candidate import build_oge_candidate
 from .reviewed_oge_extraction import (approved_extraction as approved_oge_extraction,
     parser_versions as reviewed_oge_versions, version_priority as oge_version_priority)
 from .public_repo import HTTPTransport, PublicSnapshotRepository
-from .release_readiness import ReleaseReadinessError, validate_first_launch
+from .release_readiness import ReleaseReadinessError, validate_publication
 from .store import GitStore, assemble
 
 
@@ -141,7 +141,7 @@ def main() -> None:
     fetch_status.add_argument("--token-env", default="GITHUB_TOKEN")
     fetch_status.add_argument("--output", type=Path, required=True)
     readiness = sub.add_parser(
-        "verify-first-launch",
+        "verify-publication-readiness",
         help="Fail closed unless every in-scope disclosure source is fully accounted for")
     readiness.add_argument("--review-root", type=Path, required=True)
     readiness.add_argument("--input", type=Path, required=True)
@@ -514,8 +514,8 @@ def main() -> None:
                                            "disclosure_status": status}))
             print(json.dumps({"commit": args.commit, "provided": status is not None,
                               "output": str(args.output.resolve())}))
-        elif args.command == "verify-first-launch":
-            result = validate_first_launch(args.review_root, args.input)
+        elif args.command == "verify-publication-readiness":
+            result = validate_publication(args.review_root, args.input)
             if args.output:
                 _write_atomic(args.output, result)
             print(json.dumps({**result, "status": "ready",

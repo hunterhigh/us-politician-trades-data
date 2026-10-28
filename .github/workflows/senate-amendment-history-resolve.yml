@@ -23,11 +23,11 @@ jobs:
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
       HISTORY_START_DATE: ${{ inputs.submitted_start_date }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
       - name: Prepare immutable evidence and current review inputs
@@ -148,7 +148,7 @@ jobs:
                   batch['failure_count']) != (16, 16, 0, 0):
               raise SystemExit('Historical report whitelist did not parse completely')
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: senate-amendment-history-inputs-${{ github.run_id }}
           path: |
@@ -169,14 +169,14 @@ jobs:
       queue: max
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: senate-amendment-history-inputs-${{ github.run_id }}
           path: .local
@@ -196,7 +196,7 @@ jobs:
             --plan .local/senate-amendment-history-plan.json \
             --historical-extractions .local/senate-history-extraction-batch.json \
             --output .local/senate-amendment-supplement.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: senate-amendment-supplement-${{ github.run_id }}
           path: .local/senate-amendment-supplement.json
@@ -222,18 +222,18 @@ jobs:
       queue: max
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: senate-amendment-history-inputs-${{ github.run_id }}
           path: .local
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: senate-amendment-supplement-${{ github.run_id }}
           path: .local

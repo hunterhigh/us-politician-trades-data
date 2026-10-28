@@ -41,7 +41,7 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
     if status not in {'ready','deferred'}:raise ValueError('Unexpected source assembly disposition')
     if status=='ready':
         if verify_readiness:
-            subprocess.run([sys.executable,'-m','unison_snapshot','verify-first-launch',
+            subprocess.run([sys.executable,'-m','unison_snapshot','verify-publication-readiness',
                 '--review-root',str(review),'--input',str(review/'candidates/disclosure-current.json')],
                 check=True)
         candidate=json.loads((review/'candidates/disclosure-current.json').read_bytes())

@@ -1,0 +1,12 @@
+{
+  "schema_version": "source-runtime-inputs/v1",
+  "python_image": "python:3.11.17-slim-bookworm@sha256:f06d01d4ba3f8ad5af45a3ec87df19c1d317d8e8961edc0fabda61811af6f7cf",
+  "node_image": "node:24.14.1-bookworm-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c",
+  "debian_snapshot": "20261028T000000Z",
+  "tesseract_commit": "8ee020e14cf5be4e3f0e9beb09b6b050a1871854",
+  "tesseract_archive_sha256": "300c486237ccf4f41034ba4ed8a7f009fb24685c2f23e88bd394a7f024bd3a9f",
+  "tessdata_commit": "65727574dfcd264acbb0c3e07860e4e9e9b22185",
+  "eng_sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+  "osd_sha256": "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff",
+  "requirements_sha256": "ffa6d45688e7d1404b3689fa8ef04efdafd9d295b4e898ba3205f0de66041296"
+}

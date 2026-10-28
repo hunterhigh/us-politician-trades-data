@@ -26,8 +26,8 @@ class PublishWorkflowTests(unittest.TestCase):
         install = publish.index("python -m pip install -e 'backend[native-source-proof]'")
         self.assertLess(install, publish.index('unison_snapshot.fact_policy.publication_delta'))
         ci = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
-        self.assertLess(ci.index('backend[house-ingest,native-source-proof]'),
-                        ci.index('python scripts/verify.py'))
+        self.assertLess(ci.index('--require-hashes'),
+                        ci.index('python backend/scripts/verify.py'))
 
     def test_publication_explicitly_keeps_saved_parser_inputs(self):
         prepare = (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text(encoding="utf-8")
@@ -41,7 +41,7 @@ class PublishWorkflowTests(unittest.TestCase):
         projection = content.index("Build canonical disclosure projection from qualified sources")
         frozen_board = content.index("Freeze prior board for HTML browser checks")
         browser = content.index("Verify publication in both browser frontends")
-        readiness = content.index("verify-first-launch")
+        readiness = content.index("verify-publication-readiness")
         market = content.index('build-cached-candidate')
         preflight = content.index("Publish immutable preflight commits")
         readback = content.index("Read back immutable prepared main and market commits")

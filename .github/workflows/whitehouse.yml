@@ -49,10 +49,10 @@ jobs:
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
       OGE_ANNUAL_REPORT_BATCH_SIZE: ${{ vars.OGE_ANNUAL_REPORT_BATCH_SIZE }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
       - name: Check OGE production authorization
@@ -152,10 +152,10 @@ jobs:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
       - name: Check OGE production authorization
@@ -209,10 +209,10 @@ jobs:
       EXTRACTION_BATCH_SIZE: ${{ inputs.extraction_batch_size || '100' }}
       OCR_PAGE_LIMIT: ${{ inputs.ocr_page_limit || '50' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
           cache: pip
@@ -352,10 +352,10 @@ jobs:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
       - name: Check bounded archived-source run

@@ -2,120 +2,127 @@ name: Offline contract checks
 on:
   push:
     branches: [code]
-    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
+    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/**', 'runtime/**', 'docs/**', 'README.md', 'AGENTS.md']
   pull_request:
-    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/workflows/**', '.github/scripts/**']
+    paths: ['contract/**', 'backend/**', 'client/**', 'frontend-e2e/**', 'review-input/**', '.github/**', 'runtime/**', 'docs/**', 'README.md', 'AGENTS.md']
+  schedule:
+    - cron: '43 18 * * *'
   workflow_dispatch:
     inputs:
-      oge_evidence_validation:
-        description: Collect a bounded OGE direct-PDF evidence batch from this ref
-        required: true
+      full_suite:
+        description: Full suite for release preparation; PRs use changed sources plus common checks
+        type: boolean
+        default: true
+      build_runtime:
+        description: Build and smoke-test the fixed OCR/Python runtime before pinning its digest
         type: boolean
         default: false
-      oge_terms_acknowledged:
-        description: I acknowledge the OGE disclosure-use restrictions
-        required: true
+      house_2025_backfill:
+        description: After successful checks, execute the authorized fixed 2025 House PTR replay
         type: boolean
         default: false
-      oge_report_batch_size:
-        description: Maximum new direct PDFs to archive
-        required: true
-        type: string
-        default: '25'
 permissions:
   contents: read
 concurrency:
   group: offline-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  verify:
+  checks:
+    name: Source checks (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    # The integrated source-proof suite exceeded the previous ten-minute limit.
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
-      - name: Install existing PDF geometry test dependencies
-        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
-      - name: Install pinned saved-source geometry dependencies
-        run: python -m pip install -e 'backend[oge-source-quad]'
-      - run: python scripts/verify.py
-        working-directory: backend
-      - run: python -m unison_snapshot demo
-      - run: python -m unittest discover -s review-input/us-politician-trades-watch/tests -v
-      - uses: actions/setup-node@v4
+      - name: Install hash-locked source and proof dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements.lock
+          python -m pip install --no-deps --no-build-isolation -e backend
+      - name: Run shared and affected sources, or a complete release shard
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_EVENT: ${{ github.event_name == 'pull_request' }}
+          FORCE_FULL: ${{ inputs.full_suite }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          args=(--full)
+          if [ "$PR_EVENT" = true ] && [ "$FORCE_FULL" != true ]; then
+            if ! git cat-file -e "$PR_BASE^{commit}"; then
+              git fetch --no-tags --depth=1 origin "$PR_BASE"
+            fi
+            args=(--base "$PR_BASE")
+          fi
+          python backend/scripts/verify.py "${args[@]}" --shard "$SHARD/4"
+      - name: Reconstruct the demo through the normal entry
+        if: matrix.shard == 0
+        run: python -m unison_snapshot demo
+      - name: Check frozen upstream processor contracts
+        if: matrix.shard == 0
+        run: python -m unittest discover -s review-input/us-politician-trades-watch/tests -v
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: matrix.shard == 0
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: |
-            frontend-e2e/package-lock.json
+          cache-dependency-path: frontend-e2e/package-lock.json
       - run: npm ci
+        if: matrix.shard == 0
         working-directory: frontend-e2e
       - run: npm test
+        if: matrix.shard == 0
         working-directory: frontend-e2e
-
-  collect-oge-validation-evidence:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.oge_evidence_validation && inputs.oge_terms_acknowledged }}
-    concurrency:
-      group: disclosure-source-writer
-      queue: max
-      cancel-in-progress: false
+  verify:
+    if: always()
+    needs: checks
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      OGE_COLLECTION_ENABLED: 'true'
-      OGE_TERMS_ACKNOWLEDGED: 'true'
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-      - name: Prepare temporary validation evidence directory
-        id: evidence
-        run: |
-          evidence_root="$RUNNER_TEMP/oge-validation-evidence"
-          mkdir -p "$evidence_root"
-          echo "root=$evidence_root" >> "$GITHUB_OUTPUT"
-      - name: Collect catalog and bounded direct-PDF batch
+      - name: Require every selected source shard
         env:
-          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
-          BATCH_SIZE: ${{ inputs.oge_report_batch_size }}
-        run: |
-          mkdir -p .local
-          PYTHONPATH=backend/src python - <<'PY'
-          import json, os
-          from pathlib import Path
-          from unison_snapshot.codec import encode
-          from unison_snapshot.oge import discover_catalog, source_config_from_environment
-          from unison_snapshot.oge_reports import archive_direct_batch
-          root = Path(os.environ['EVIDENCE_ROOT'])
-          config = source_config_from_environment()
-          catalog = discover_catalog(root, config)
-          Path('.local/oge-catalog.json').write_bytes(encode(catalog))
-          batch = archive_direct_batch(root, catalog, config, limit=int(os.environ['BATCH_SIZE']))
-          Path('.local/oge-report-batch.json').write_bytes(encode(batch))
-          print(json.dumps({
-              'records': catalog['records_total'],
-              'direct_pdfs': catalog['metadata']['direct_pdf_count'],
-              'request_required': catalog['metadata']['request_required_count'],
-              'archived': len(batch['reports']), 'pending': batch['pending_count'],
-              'failures': batch['failure_count'],
-          }))
-          PY
-      - name: Stage short-lived validation artifact
+          RESULT: ${{ needs.checks.result }}
+        run: test "$RESULT" = success
+  fixed-house-replay:
+    if: github.event_name == 'workflow_dispatch' && inputs.house_2025_backfill
+    needs: verify
+    permissions:
+      contents: write
+    uses: ./.github/workflows/replay.yml
+    with:
+      source: house
+      mode: backfill
+      limit: '25'
+      archive_budget_seconds: '900'
+  build-runtime:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_runtime
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Authenticate the repository runtime registry
         env:
-          EVIDENCE_ROOT: ${{ steps.evidence.outputs.root }}
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build, verify and publish the dependency-only runtime
+        env:
+          REPOSITORY: ${{ github.repository }}
         run: |
-          mkdir -p .local/evidence
-          cp -R "$EVIDENCE_ROOT/oge" .local/evidence/oge
-      - uses: actions/upload-artifact@v4
+          python runtime/build.py --image "ghcr.io/${REPOSITORY,,}-runtime" \
+            --tag "$GITHUB_SHA" --receipt .local/runtime-build.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: oge-validation-${{ github.run_id }}
-          path: |
-            .local/oge-catalog.json
-            .local/oge-report-batch.json
-            .local/evidence
+          name: source-runtime-build
+          path: .local/runtime-build.json
           include-hidden-files: true
-          retention-days: 1
+          if-no-files-found: error
+          retention-days: 30
