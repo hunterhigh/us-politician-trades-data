@@ -1,6 +1,6 @@
 # 政客交易项目接续入口
 
-当前解析重构在 `C:\Users\admin\.codex\worktrees\parser-execution-plan\whitehouse` 的 `codex/parser-completion-1019` 分支推进。此主目录保留旧代码分支，不能用其旧目标/状态判断最新进展。
+当前解析重构在 `C:\Users\admin\.codex\worktrees\v1-closeout\whitehouse` 的 `codex/v1-closeout` 分支推进。此主目录保留旧代码分支，不能用其旧目标/状态判断最新进展。
 
 继续项目重构或复盘时，先进入上述工作树，读取其 `AGENTS.md`、`docs/当前目标与优先级.md` 与 `docs/实现状态与下一步.md`；它们是当前协作规则、目标及状态入口。原任务定义和历史证据按需读取，不在本目录复制另一套进度。先核对分支和未提交修改，不自动重置或切换旧分支。
 
