@@ -11,16 +11,12 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from .senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA, classify_ledger
+from .senate_slot_inventory import SCHEMA as SLOT_SCHEMA, classify_ledger
 from .source_row_ledger import report_ledger, senate_shadow_pages
+from .senate_observation_data import DEFAULT_ROOT, load_bundle
 
 SCHEMA = "senate-paper-slot-comparison/v3"
 PENDING_SCHEMA = "senate-paper-pending-slot-projection/v3"
-LEDGER_FILES = (
-    "senate-paper-first-report-rows.json",
-    "senate-paper-viewer-remainders.json",
-    "senate-paper-legacy-extracted-grid.json",
-)
 
 
 def _source_report_relations(report: dict) -> dict:
@@ -62,10 +58,10 @@ def _source_report_relations(report: dict) -> dict:
             if slot["label"] == "data_observed"])
 
 
-def _fixed_ledgers(docs_root: Path) -> dict[str, dict]:
+def _saved_ledgers(observations_root: Path) -> dict[str, dict]:
     ledgers: dict[str, dict] = {}
-    for name in LEDGER_FILES:
-        source = json.loads((docs_root / name).read_text(encoding="utf-8"))
+    for name in load_bundle(observations_root)['ledgers']:
+        source = json.loads((observations_root / name).read_text(encoding="utf-8"))
         for report in source.get("reports", [source]):
             document_id = report["document_id"]
             if document_id in ledgers:
@@ -75,11 +71,14 @@ def _fixed_ledgers(docs_root: Path) -> dict[str, dict]:
     return ledgers
 
 
-def compare_archived_batch(evidence_root: Path, docs_root: Path,
+def compare_archived_batch(evidence_root: Path, observations_root: Path,
                            extraction_batch: dict, *,
                            date_reader: Callable | None = None) -> dict:
     """Observe only exact fixed page bytes; compare counts without matching IDs."""
-    ledgers = _fixed_ledgers(docs_root)
+    ledgers = _saved_ledgers(observations_root)
+    bundle = load_bundle(observations_root)
+    account_reviews = bundle['account_reviews']
+    reference_commit = bundle['evidence_commit']
     extraction_by_id = {item["document_id"]: item for item in
                         extraction_batch.get("extractions", [])}
     failure_by_id = {item["document_id"]: item for item in
@@ -152,14 +151,13 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
                                    if page["page_number"] not in observed_page_numbers]
         account_scope = None
         from .senate_paper_account_scope import (
-            DOCUMENT_ID as ACCOUNT_SCOPE_DOCUMENT_ID,
-            audit_first_report_account_scopes, confirmed_visual_review_from_fields,
+            observe_reviewed_account_scopes, confirmed_visual_review_from_fields,
         )
-        if document_id == ACCOUNT_SCOPE_DOCUMENT_ID:
-            fields = json.loads((docs_root / "senate-paper-first-report-fields.json")
+        if document_id in account_reviews:
+            fields = json.loads((observations_root / account_reviews[document_id])
                                 .read_text(encoding="utf-8"))
             visual = confirmed_visual_review_from_fields(fields, ledger)
-            account_scope = audit_first_report_account_scopes(
+            account_scope = observe_reviewed_account_scopes(
                 ledger, visual, page_bytes=read_page)
             classified_data = {(slot["page_number"], slot["grid_slot"])
                                for slot in classified["slots"]
@@ -179,7 +177,7 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
         result["source_report_ledger"] = _source_report_relations(result)
         results.append(result)
     return {"schema_version": SCHEMA,
-            "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
+            "fixed_inventory_evidence_commit": reference_commit,
             "slot_classification_schema_version": SLOT_SCHEMA,
             "interpretation": "read-only physical slot comparison; no qualified transactions or IDs",
             "report_count": len(results),
@@ -197,7 +195,7 @@ def compare_archived_batch(evidence_root: Path, docs_root: Path,
             "reports": results}
 
 
-def project_pending_slots(observation: dict) -> dict:
+def project_pending_slots(observation: dict, *, observations_root=DEFAULT_ROOT) -> dict:
     """Retain every observed data slot as a pending, non-candidate fact.
 
     This projection has no formal transaction ID and never asserts that an
@@ -205,8 +203,11 @@ def project_pending_slots(observation: dict) -> dict:
     extraction rows may overlap these physical slots; no string-only dedup is
     attempted here.
     """
+    bundle = load_bundle(observations_root)
+    account_reviews = bundle['account_reviews']
+    reference_commit = bundle['evidence_commit']
     if (observation.get("schema_version") != SCHEMA or
-            observation.get("fixed_inventory_evidence_commit") != EVIDENCE_COMMIT or
+            observation.get("fixed_inventory_evidence_commit") != reference_commit or
             observation.get("slot_classification_schema_version") != SLOT_SCHEMA):
         raise ValueError("Senate paper slot observation schema or source changed")
     reports = observation.get("reports")
@@ -233,9 +234,8 @@ def project_pending_slots(observation: dict) -> dict:
                     for page in report["pages"]}
         if len(page_sha) != len(report["pages"]):
             raise ValueError("Senate paper slot observation repeats a page")
-        from .senate_paper_account_scope import DOCUMENT_ID as ACCOUNT_SCOPE_DOCUMENT_ID
         scope = report.get("account_scope_observation")
-        if document_id == ACCOUNT_SCOPE_DOCUMENT_ID and scope is None:
+        if document_id in account_reviews and scope is None:
             raise ValueError("Senate paper fixed account scope is missing")
         scope_rows = {}
         heading_by_slot = {}
@@ -337,7 +337,7 @@ def project_pending_slots(observation: dict) -> dict:
         raise ValueError("Senate paper unknown slots did not all reach coverage ledger")
     result = {"schema_version": PENDING_SCHEMA,
             "source_id": "senate_efd",
-            "fixed_inventory_evidence_commit": EVIDENCE_COMMIT,
+            "fixed_inventory_evidence_commit": reference_commit,
             "observation_schema_version": SCHEMA,
             "interpretation": "pending physical slots only; no qualified or published trades",
             "report_count": len(reports),

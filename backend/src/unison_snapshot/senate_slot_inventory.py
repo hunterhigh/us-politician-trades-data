@@ -13,16 +13,13 @@ from datetime import datetime
 import hashlib
 from io import BytesIO
 import io
-import json
-import os
-from pathlib import Path
 import re
 from statistics import median
 import subprocess
 from typing import Callable
+from .senate_observation_data import load_bundle
 
 SCHEMA = "senate-paper-grid-slot-shadow/v1"
-EVIDENCE_COMMIT = "80f086267677b8fde34314f24024bdc505d97cb0"
 TYPE_CELLS = (("purchase", 1429), ("sale", 1518), ("exchange", 1612))
 AMOUNT_CELLS = (
     ("1001_15000", 1980), ("15001_50000", 2077),
@@ -301,7 +298,8 @@ def classify_ledger(ledger: dict, page_bytes: Callable[[str, int], bytes], *,
     """Classify one existing ledger, validating original page and crop hashes."""
     from PIL import Image
 
-    if ledger.get("evidence_commit") != EVIDENCE_COMMIT:
+    reference_commit = load_bundle()['evidence_commit']
+    if ledger.get("evidence_commit") != reference_commit:
         raise ValueError("Senate paper evidence commit changed")
     reports = ledger.get("reports")
     if reports is None:
@@ -343,43 +341,7 @@ def classify_ledger(ledger: dict, page_bytes: Callable[[str, int], bytes], *,
                        "label_counts": dict(sorted(Counter(
                            row["label"] for row in observed).items())),
                        "pages": page_results, "slots": observed})
-    return {"schema_version": SCHEMA, "evidence_commit": EVIDENCE_COMMIT,
+    return {"schema_version": SCHEMA, "evidence_commit": reference_commit,
             "interpretation": "classification only; no qualified or published trades",
             "reports": result}
 
-
-def fixed_archive_pages(repo: Path, inventory: dict) -> Callable[[str, int], bytes]:
-    """Read only pages named by the fixed inventory and evidence manifests."""
-    if inventory.get("evidence_commit") != EVIDENCE_COMMIT:
-        raise ValueError("Senate paper inventory evidence commit changed")
-    paths: dict[tuple[str, int], tuple[str, str]] = {}
-    env = dict(os.environ, GIT_NO_LAZY_FETCH="1")
-
-    def git_bytes(path: str) -> bytes:
-        proc = subprocess.run(["git", "-C", str(repo), "show",
-                               f"{EVIDENCE_COMMIT}:{path}"],
-                              capture_output=True, env=env, check=False)
-        if proc.returncode:
-            raise ValueError(f"fixed Senate paper archive unavailable: {path}")
-        return proc.stdout
-
-    for report in inventory["reports"]:
-        document_id = report["document_id"]
-        manifest = json.loads(git_bytes(
-            f"senate_efd/paper_pages/{document_id}/manifest.json"))
-        if manifest["manifest_sha256"] != report["manifest_sha256"]:
-            raise ValueError("Senate paper manifest mismatch")
-        for listed, archived in zip(report["pages"], manifest["pages"], strict=True):
-            if listed["page_sha256"] != archived["sha256"]:
-                raise ValueError("Senate paper inventory and manifest disagree")
-            paths[(document_id, listed["page_number"])] = (
-                archived["archive_path"], archived["sha256"])
-
-    def read(document_id: str, page_number: int) -> bytes:
-        path, expected = paths[(document_id, page_number)]
-        raw = git_bytes(path)
-        if hashlib.sha256(raw).hexdigest() != expected:
-            raise ValueError("Senate paper archived image SHA mismatch")
-        return raw
-
-    return read

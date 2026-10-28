@@ -10,7 +10,7 @@ except ImportError:
     Image=ImageDraw=ImageFont=None
 from unison_snapshot.senate import SenateEfdError
 from unison_snapshot.senate_paper_accounts import RULE,interpret_account_spacing,unpunctuated_heading
-from unison_snapshot.senate_slots_shadow import FORM_BOUNDS,TYPE_CELLS,AMOUNT_CELLS,classify_slot
+from unison_snapshot.senate_slot_inventory import FORM_BOUNDS,TYPE_CELLS,AMOUNT_CELLS,classify_slot
 
 
 def spacing():

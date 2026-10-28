@@ -173,7 +173,7 @@ def interpret_enclosed_amount_row(image, slot):
     disconnected pixels are retained and no strokes are invented.
     """
     from .senate_paper_cell_faces import enclosed_cell_ink
-    from .senate_slots_shadow import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
+    from .senate_slot_inventory import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
     if (slot.get('label') != 'unknown' or slot.get('column_calibration') != 'verified' or
             len(slot.get('type_marks', [])) != 1 or slot.get('amount_marks')):
         return None
@@ -220,7 +220,7 @@ def interpret_enclosed_amount_row(image, slot):
 
 def interpret_complete_mark_row(image, slot, *, resolve_boundary_traces=False,
                                 independent_blank_boundaries=False):
-    from .senate_slots_shadow import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
+    from .senate_slot_inventory import _row_form_lines, TYPE_CELLS, AMOUNT_CELLS, _mark_count
     if slot.get("label") != "unknown" or slot.get("column_calibration") != "verified":
         return None
     gray = image.convert("L")

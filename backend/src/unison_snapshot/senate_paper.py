@@ -173,7 +173,7 @@ def _paper_row(source_sha: str, page_number: int, position: int,
     amount_indexes = [_nearest(_center(word)[0], _AMOUNT_CENTERS) for word in amount_marks]
     amount_indexes = [index for index in amount_indexes if index is not None]
     if grid_slot is not None:
-        from .senate_slots_shadow import AMOUNT_CELLS
+        from .senate_slot_inventory import AMOUNT_CELLS
         labels = [label for label, _ in AMOUNT_CELLS]
         amount_indexes = [labels.index(value) for value in grid_slot["amount_marks"]]
     if len(amount_indexes) != 1:
@@ -337,7 +337,7 @@ def parse_paper_grid_observations(report: dict, manifest: dict, observation: dic
     from io import BytesIO
     from PIL import Image
     from .senate_paper_observation import _source_report_relations
-    from .senate_slots_shadow import TYPE_CELLS, AMOUNT_CELLS, _mark_count
+    from .senate_slot_inventory import TYPE_CELLS, AMOUNT_CELLS, _mark_count
 
     document_id, source_sha = report.get("document_id"), manifest.get("entrypoint_source_sha256")
     if (report.get("source_id") != "senate_efd" or report.get("access_method") != "paper_ptr" or

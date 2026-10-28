@@ -11,7 +11,7 @@ from unittest.mock import patch
 from PIL import Image, ImageDraw, ImageFont
 from unison_snapshot.ruled_cell_blank import inspect_ruled_cell_blank
 from unison_snapshot.senate_paper_marks import INDEPENDENT_BOUNDARY_RULE, interpret_complete_mark_row
-from unison_snapshot.senate_slots_shadow import FORM_BOUNDS, classify_slot
+from unison_snapshot.senate_slot_inventory import FORM_BOUNDS, classify_slot
 from unison_snapshot.senate_paper import parse_paper_grid_observations, _save_legacy_grid_input
 from unison_snapshot.senate_paper_observation import _source_report_relations
 from unison_snapshot.senate import SenateEfdError

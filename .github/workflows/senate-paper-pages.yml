@@ -109,9 +109,10 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          PYTHONPATH=backend/src python backend/scripts/observe_senate_paper_slots.py \
+          PYTHONPATH=backend/src python -m unison_snapshot observe-senate-paper-slots \
             --evidence-root "$EVIDENCE_ROOT" \
-            --docs-root docs \
+            --observations-root backend/data/source_observations/senate_efd \
+            --ocr-cache-root "$REVIEW_ROOT/senate_efd/paper_date_reads" \
             --extraction-batch .local/senate-paper-extraction-batch.json \
             --output "$REVIEW_ROOT/senate_efd/paper_slot_observations/current.json" \
             --pending-output "$REVIEW_ROOT/senate_efd/paper_pending_projections/current.json"
@@ -251,6 +252,9 @@ jobs:
             git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
           fi
           git -C "$REVIEW_ROOT" add -A senate_efd/extractions senate_efd/paper_report_failures senate_efd/paper_slot_observations senate_efd/paper_pending_projections status/senate_efd.json
+          if test -d "$REVIEW_ROOT/senate_efd/paper_date_reads"; then
+            git -C "$REVIEW_ROOT" add -A senate_efd/paper_date_reads
+          fi
           git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
           git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then

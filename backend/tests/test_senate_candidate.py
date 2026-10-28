@@ -413,7 +413,8 @@ class SenateCandidateTests(unittest.TestCase):
     def test_paper_pending_projection_reaches_audit_without_new_trades(self):
         from unison_snapshot.senate_paper_observation import (
             SCHEMA, project_pending_slots)
-        from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA
+        from unison_snapshot.senate_slot_inventory import SCHEMA as SLOT_SCHEMA
+        from senate_source_fixture import EVIDENCE_COMMIT
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -17,7 +17,7 @@ from unison_snapshot.senate import SenateEfdError
 from unison_snapshot.senate_paper import parse_paper_grid_observations, extract_archived_paper_reports
 from unison_snapshot.senate_reports import PARSER_VERSION, PAPER_INSPECTION_SCHEMA
 from unison_snapshot.senate_paper_observation import _source_report_relations
-from unison_snapshot.senate_slots_shadow import classify_slot, TYPE_CELLS, AMOUNT_CELLS
+from unison_snapshot.senate_slot_inventory import classify_slot, TYPE_CELLS, AMOUNT_CELLS
 from unison_snapshot.senate_candidate import build_senate_candidate
 from tests.test_senate_paper import REPORT, MANIFEST, word, page
 from tests import test_senate_candidate as candidate_helpers

@@ -1,7 +1,8 @@
 """Independent production health and idempotent GitHub Issue alerts.
 
-This observer cannot publish or roll back a snapshot. Transport failures preserve
-the previous health record and never count as proof of corrupt snapshot content.
+Health stays independent of the formal snapshot. Only a verified content failure
+can request the existing expected-head-bound rollback workflow; transport errors
+never grant that authority.
 """
 import argparse
 import base64

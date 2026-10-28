@@ -207,7 +207,8 @@ class CoverConsumptionTests(unittest.TestCase):
             'failure_count':0, 'failures':[], 'reports':[data['metadata']]})
         write(self.root/'extracted.json', {'schema_version':'oge-278t-extraction-batch/v1',
             'report_count':1, 'extraction_count':1, 'failure_count':0, 'failures':[]})
-        write(self.root/'saved.json', {DOCUMENT_ID:data['request']}); write(self.root/'base.json', data['formal'])
+        portable = {k:v for k,v in data['request'].items() if k != 'archived_pdf_path'}
+        write(self.root/'saved.json', {DOCUMENT_ID:portable}); write(self.root/'base.json', data['formal'])
         for args in (('init','-q'), ('config','user.name','Contract'),
                      ('config','user.email','contract@example.invalid'), ('add','.'), ('commit','-qm','fixed evidence contract')):
             subprocess.run(['git','-C',str(data['evidence']),*args], check=True, capture_output=True)
@@ -215,14 +216,11 @@ class CoverConsumptionTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=str(repository/'backend/src'), GIT_NO_LAZY_FETCH='1')
         def command(output):
-            return [sys.executable, '-m', 'unison_snapshot.fact_policy.oge_run_cli',
-                '--catalog', str(self.root/'catalog.json'), '--archive-batch',str(self.root/'archive.json'),
-                '--extraction-batch',str(self.root/'extracted.json'), '--extractions-dir',str(extraction_dir),
+            return [sys.executable, '-m', 'unison_snapshot', 'build-oge-candidate',
+                '--catalog', str(self.root/'catalog.json'), '--extractions-dir',str(extraction_dir),
                 '--evidence-root',str(data['evidence']), '--saved-observations',str(self.root/'saved.json'),
-                '--candidate-base',str(self.root/'base.json'), '--data-cutoff-at',CUTOFF,
-                '--output-dir',str(output), '--run-id','cover-consumer-contract', '--code-commit','b'*40,
-                '--evidence-commit',evidence_commit, '--review-commit','d'*40, '--started-at',CUTOFF,
-                '--completed-at','2026-06-20T00:02:00Z']
+                '--base',str(self.root/'base.json'), '--data-cutoff-at',CUTOFF,
+                '--output',str(output/'candidate.json'), '--audit-output',str(output/'candidate_audit.json')]
         output = self.root/'output'
         result = subprocess.run(command(output), env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -262,7 +260,7 @@ class CoverConsumptionTests(unittest.TestCase):
         for name in ('candidate.json','candidate_audit.json'):
             self.assertEqual((output/name).read_bytes(), (second/name).read_bytes())
         before = data['source'].read_bytes(), (output/'candidate.json').read_bytes(), (output/'candidate_audit.json').read_bytes()
-        bad = deepcopy(data['request']); bad['observations'][0]['source_sha256'] = '0'*64
+        bad = deepcopy(portable); bad['observations'][0]['source_sha256'] = '0'*64
         write(self.root/'saved.json', {DOCUMENT_ID:bad})
         failed = self.root/'failed'
         rejected = subprocess.run(command(failed), env=env, capture_output=True, text=True)

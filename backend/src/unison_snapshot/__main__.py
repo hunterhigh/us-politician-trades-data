@@ -199,6 +199,9 @@ def main() -> None:
     bridge_paper.add_argument("--document-id")
     bridge_paper.add_argument("--materialize-saved", action="store_true",
                               help="Interpret saved paper evidence without starting OCR")
+    senate_observation = sub.add_parser('observe-senate-paper-slots')
+    from .senate_paper_observation_cli import configure_parser as configure_senate_observation
+    configure_senate_observation(senate_observation)
     senate_correction = sub.add_parser('correct-reviewed-senate-paper')
     for name in ('batch', 'pending', 'correction', 'evidence-root', 'output'):
         senate_correction.add_argument('--'+name, type=Path, required=True)
@@ -609,6 +612,9 @@ def main() -> None:
             from .reviewed_house_paper import qualify_reviewed_paper_paths
             result = qualify_reviewed_paper_paths(args.evidence_root, args.review_root, args.correction)
             print(json.dumps(result, sort_keys=True))
+        elif args.command == 'observe-senate-paper-slots':
+            from .senate_paper_observation_cli import run
+            run(args)
         elif args.command == 'correct-reviewed-senate-paper':
             from .reviewed_senate_paper import qualify_reviewed_senate_paths
             result = qualify_reviewed_senate_paths(batch_path=args.batch, pending_path=args.pending,

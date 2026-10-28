@@ -12,11 +12,12 @@ import unittest
 from unison_snapshot.senate_paper_observation import (
     SCHEMA, compare_archived_batch, project_pending_slots, _source_report_relations,
 )
-from unison_snapshot.senate_slots_shadow import EVIDENCE_COMMIT, SCHEMA as SLOT_SCHEMA
+from unison_snapshot.senate_slot_inventory import SCHEMA as SLOT_SCHEMA
+from senate_source_fixture import EVIDENCE_COMMIT
 
 
 REPO = Path(__file__).resolve().parents[2]
-DOCS = REPO / "docs"
+OBSERVATIONS = REPO / "backend/data/source_observations/senate_efd"
 DOCUMENT_ID = "068274e1-4b7a-4453-a242-563dde4c10d8"
 
 
@@ -55,7 +56,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            result = compare_archived_batch(root, DOCS, self._batch())
+            result = compare_archived_batch(root, OBSERVATIONS, self._batch())
         self.assertEqual(result["observed_report_count"], 1)
         self.assertEqual(result["physical_grid_slot_count"], 65)
         self.assertEqual(result["observed_page_count"] + result["unobserved_page_count"], 5)
@@ -88,7 +89,7 @@ class SenatePaperObservationTests(unittest.TestCase):
             manifest["manifest_sha256"] = "0" * 64
             path = root / "senate_efd" / "paper_pages" / DOCUMENT_ID / "manifest.json"
             path.write_text(json.dumps(manifest), encoding="utf-8")
-            result = compare_archived_batch(root, DOCS, self._batch())
+            result = compare_archived_batch(root, OBSERVATIONS, self._batch())
         self.assertEqual(result["coverage_unknown_report_count"], 1)
         self.assertEqual(result["physical_grid_slot_count"], 0)
         self.assertEqual(result["reports"][0]["slots"], [])
@@ -104,13 +105,13 @@ class SenatePaperObservationTests(unittest.TestCase):
             batch = self._batch()
             batch["extractions"][0]["source_sha256"] = "0" * 64
             with self.assertRaisesRegex(ValueError, "extraction and archive differ"):
-                compare_archived_batch(root, DOCS, batch)
+                compare_archived_batch(root, OBSERVATIONS, batch)
 
     def test_fixed_data_slots_project_only_to_pending_ledger(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed = compare_archived_batch(root, OBSERVATIONS, self._batch())
             projected = project_pending_slots(observed)
         self.assertEqual(projected["pending_row_count"], 36)
         self.assertEqual(projected["account_scoped_pending_row_count"], 36)
@@ -136,7 +137,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed = compare_archived_batch(root, OBSERVATIONS, self._batch())
             observed["reports"][0]["account_scope_observation"]["rows"][0][
                 "account_heading_slot"]["asset_crop_sha256"] = "0" * 64
             with self.assertRaisesRegex(ValueError, "account heading differs"):
@@ -146,7 +147,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed = compare_archived_batch(root, OBSERVATIONS, self._batch())
             observed["reports"][0]["account_scope_observation"]["account_headings"][0][
                 "printed_heading"] = ""
             with self.assertRaisesRegex(ValueError, "account heading differs"):
@@ -156,7 +157,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            observed = compare_archived_batch(root, DOCS, self._batch())
+            observed = compare_archived_batch(root, OBSERVATIONS, self._batch())
             observed["reports"][0]["slots"][1]["grid_slot"] = observed[
                 "reports"][0]["slots"][0]["grid_slot"]
             with self.assertRaisesRegex(ValueError, "duplicated or unbound|slot key missing or duplicated"):
@@ -173,7 +174,7 @@ class SenatePaperObservationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._archive(root)
-            observed = compare_archived_batch(root, DOCS, self._batch(),
+            observed = compare_archived_batch(root, OBSERVATIONS, self._batch(),
                                               date_reader=date_reader)
             projected = project_pending_slots(observed)
         self.assertEqual(len(calls), 36)

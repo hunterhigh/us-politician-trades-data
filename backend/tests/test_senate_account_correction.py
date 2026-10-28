@@ -28,7 +28,7 @@ def fixture():
     from unison_snapshot.senate_paper_observation import _source_report_relations
     from unison_snapshot.senate_reports import parse_paper_viewer_manifest, REPORT_ARCHIVE_SCHEMA
     from unison_snapshot.senate_candidate import _transaction
-    from unison_snapshot.senate_slots_shadow import classify_slot, TYPE_CELLS, AMOUNT_CELLS
+    from unison_snapshot.senate_slot_inventory import classify_slot, TYPE_CELLS, AMOUNT_CELLS
     report, _, observation, pages, images = inputs()
     tiny, request, tiny_words = spacing()
     image = Image.open(BytesIO(images[2])).convert("RGB")

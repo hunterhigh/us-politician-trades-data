@@ -103,7 +103,7 @@ class SenateAnnualAmendmentTests(unittest.TestCase):
                    side_effect=list_paths):
             # The function defaults bind at definition time, so patch the
             # publication boundary with a wrapper that supplies test readers.
-            from unison_snapshot.pipeline_qa import senate_annual_amendment as module
+            from unison_snapshot.fact_policy import senate_annual_amendment as module
             def verified(**kwargs):
                 return module.verified_amendment_rekeys(
                     **kwargs, read_object=read_object, list_paths=list_paths)

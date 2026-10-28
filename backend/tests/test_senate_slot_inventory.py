@@ -6,14 +6,15 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from unison_snapshot.senate_slots_shadow import (
-    EVIDENCE_COMMIT, classify_ledger, combine_date_reads, fixed_archive_pages,
+from senate_source_fixture import EVIDENCE_COMMIT, fixed_archive_pages
+from unison_snapshot.senate_slot_inventory import (
+    classify_ledger, combine_date_reads,
     tesseract_date_cell, tesseract_date_consensus,
 )
 
 
 REPO = Path(__file__).resolve().parents[2]
-DOCS = REPO / "docs"
+OBSERVATIONS = REPO / "backend/data/source_observations/senate_efd"
 TESSERACT = Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
 
 
@@ -43,12 +44,12 @@ class SenateSlotsShadowTests(unittest.TestCase):
         if subprocess.run(["git", "-C", str(REPO), "cat-file", "-e", target],
                           capture_output=True).returncode:
             raise unittest.SkipTest("fixed Senate paper archive unavailable")
-        inventory = json.loads((DOCS / "senate-paper-52-page-inventory.json")
+        inventory = json.loads((OBSERVATIONS / "senate-paper-52-page-inventory.json")
                                .read_text(encoding="utf-8"))
         cls.read_page = fixed_archive_pages(REPO, inventory)
 
     def _ledger(self, name: str) -> dict:
-        return json.loads((DOCS / name).read_text(encoding="utf-8"))
+        return json.loads((OBSERVATIONS / name).read_text(encoding="utf-8"))
 
     def test_first_report_observed_data_matches_visual_audit_without_promotion(self):
         original = self._ledger("senate-paper-first-report-rows.json")

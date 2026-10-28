@@ -89,7 +89,7 @@ def unpunctuated_heading(image, slot, next_slot, words, *, text, confidence, all
     This is a positive layout role, not a general blank-row classifier. Empty
     OCR, residual marks and absent neighboring data do not satisfy it.
     """
-    from .senate_slots_shadow import _row_form_lines, _mark_count
+    from .senate_slot_inventory import _row_form_lines, _mark_count
     if (slot.get("label") != "unknown" or slot.get("column_calibration") != "verified" or
             confidence is None or not math.isfinite(confidence) or confidence < 85 or
             not re.fullmatch(r"\((S|J|DC)\)\s*\S.+", text) or

@@ -10,7 +10,7 @@ try:
 except ImportError:
     Image=ImageDraw=ImageFont=None
 from unison_snapshot.senate_paper_marks import complete_x,interpret_complete_mark_row,RULE
-from unison_snapshot.senate_slots_shadow import FORM_BOUNDS,TYPE_CELLS,AMOUNT_CELLS,classify_slot
+from unison_snapshot.senate_slot_inventory import FORM_BOUNDS,TYPE_CELLS,AMOUNT_CELLS,classify_slot
 from unison_snapshot.senate_paper import parse_paper_grid_observations
 from unison_snapshot.senate_paper_observation import _source_report_relations
 from unison_snapshot.senate import SenateEfdError
