@@ -3,6 +3,9 @@ description: Verify fixed libraries and trained data, then install only this che
 runs:
   using: composite
   steps:
+    - name: Trust only the mounted code checkout
+      shell: bash
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - name: Verify the immutable runtime contract without OCR
       shell: bash
       run: python runtime/smoke.py backend/requirements.lock --metadata-only
