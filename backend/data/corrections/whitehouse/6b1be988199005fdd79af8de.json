@@ -72,27 +72,10 @@
     {
       "op": "set_field",
       "row": "1",
-      "field": "cells",
-      "expect": [
-        "35",
-        "RVING TXSCH DIST RFDG B/E PSE GTD PTC 4.00% Due Fab 25, 2030",
-        "",
-        "2/26/2026",
-        "_yes",
-        "| $500,008 - $3,000,000"
-      ],
-      "value": [
-        "1",
-        "RVING TXSCH DIST RFDG B/E PSE GTD PTC 4.00% Due Fab 25, 2030",
-        "",
-        "2/26/2026",
-        "_yes",
-        "| $500,008 - $3,000,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "35",
+      "value": "1",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 143.64
       }
@@ -100,27 +83,10 @@
     {
       "op": "set_field",
       "row": "2",
-      "field": "cells",
-      "expect": [
-        "36",
-        "WENTZVILLE MO R VOM DIST LSE CTF PARTN REDG & IMPT REV D/C PTC 4.00% Duo Ape 1.2026",
-        "",
-        "purchase U26/2026",
-        "yes",
-        "| $200,001 - $250,000"
-      ],
-      "value": [
-        "2",
-        "WENTZVILLE MO R VOM DIST LSE CTF PARTN REDG & IMPT REV D/C PTC 4.00% Duo Ape 1.2026",
-        "",
-        "purchase U26/2026",
-        "yes",
-        "| $200,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "36",
+      "value": "2",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 156.96
       }
@@ -128,27 +94,10 @@
     {
       "op": "set_field",
       "row": "3",
-      "field": "cells",
-      "expect": [
-        "37",
-        "IGCORGIA ST RD & TW AUTH REV ECDL KWHY GRANT ANTIC B/C $.00.% Due Jun 3, 2026",
-        "",
-        "purchase uac/2026",
-        "_yes|",
-        "$s0,003 -$100,000"
-      ],
-      "value": [
-        "3",
-        "IGCORGIA ST RD & TW AUTH REV ECDL KWHY GRANT ANTIC B/C $.00.% Due Jun 3, 2026",
-        "",
-        "purchase uac/2026",
-        "_yes|",
-        "$s0,003 -$100,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "37",
+      "value": "3",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 171.0
       }
@@ -156,27 +105,10 @@
     {
       "op": "set_field",
       "row": "4",
-      "field": "cells",
-      "expect": [
-        "Ey 37",
-        "INDIANA ST FIN AUTH REV DEACONESS HLTH SYS SER A B/E PTC 4.00 % Ove Mar 2.2044",
-        "",
-        "purchase 23/2026",
-        "_yes",
-        "$200,001 - $250,000"
-      ],
-      "value": [
-        "4",
-        "INDIANA ST FIN AUTH REV DEACONESS HLTH SYS SER A B/E PTC 4.00 % Ove Mar 2.2044",
-        "",
-        "purchase 23/2026",
-        "_yes",
-        "$200,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "Ey 37",
+      "value": "4",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 183.6
       }
@@ -184,27 +116,10 @@
     {
       "op": "set_field",
       "row": "5",
-      "field": "cells",
-      "expect": [
-        "39",
-        "RICHMOND VA REDLV & HSG AUTH MLTIFAM REV B/E JOYFIELD GERMAN SCM PTC'3.20% Due Dee 3, 2055,",
-        "",
-        "purchase, UZ (2026",
-        "_yes",
-        "| $200,003 - $250,000"
-      ],
-      "value": [
-        "5",
-        "RICHMOND VA REDLV & HSG AUTH MLTIFAM REV B/E JOYFIELD GERMAN SCM PTC'3.20% Due Dee 3, 2055,",
-        "",
-        "purchase, UZ (2026",
-        "_yes",
-        "| $200,003 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "39",
+      "value": "5",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 197.64
       }
@@ -212,27 +127,10 @@
     {
       "op": "set_field",
       "row": "6",
-      "field": "cells",
-      "expect": [
-        "“0 39",
-        "MCTROPOUTAN ST LOUtS MO SWR DIST WSTWTR SYS REV IMPT REDG SER A B/E 5.00 % Due May 2,226",
-        "",
-        "purchase, 732026 (2026",
-        "",
-        "_yex| $250,003 -$500,000"
-      ],
-      "value": [
-        "6",
-        "MCTROPOUTAN ST LOUtS MO SWR DIST WSTWTR SYS REV IMPT REDG SER A B/E 5.00 % Due May 2,226",
-        "",
-        "purchase, 732026 (2026",
-        "",
-        "_yex| $250,003 -$500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "“0 39",
+      "value": "6",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 210.6
       }
@@ -240,27 +138,10 @@
     {
       "op": "set_field",
       "row": "7",
-      "field": "cells",
-      "expect": [
-        "“0 aa",
-        "[UNITED OH LOCSCH DIST COLUMBIANA CNTY COP SCH FACS Pt REV BAM D/C 4.00% Due Dec 2.2026",
-        "",
-        "purchase uaa/r02s",
-        "yes]",
-        "$25,001 - $50,000"
-      ],
-      "value": [
-        "7",
-        "[UNITED OH LOCSCH DIST COLUMBIANA CNTY COP SCH FACS Pt REV BAM D/C 4.00% Due Dec 2.2026",
-        "",
-        "purchase uaa/r02s",
-        "yes]",
-        "$25,001 - $50,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "“0 aa",
+      "value": "7",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 223.56
       }
@@ -268,27 +149,10 @@
     {
       "op": "set_field",
       "row": "8",
-      "field": "cells",
-      "expect": [
-        "az",
-        "[JOHN GUNN S04 CORP IN KIGH SCH BLOG CORP REV 2ST MTG D/E ST INTROFT 3.00% Due tan 35, 2027",
-        "",
-        "purchase yBn026)",
-        "yes|",
-        "$25,002 - $50,000"
-      ],
-      "value": [
-        "8",
-        "[JOHN GUNN S04 CORP IN KIGH SCH BLOG CORP REV 2ST MTG D/E ST INTROFT 3.00% Due tan 35, 2027",
-        "",
-        "purchase yBn026)",
-        "yes|",
-        "$25,002 - $50,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "az",
+      "value": "8",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 236.88
       }
@@ -296,27 +160,10 @@
     {
       "op": "set_field",
       "row": "9",
-      "field": "cells",
-      "expect": [
-        "a3",
-        "| WISCONSIN ST GENL FD ANNUAL APPROP REV RFOG SER A B/E $.00 % Due May t, 2026",
-        "",
-        "purchase spapens,",
-        "yes]",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "9",
-        "| WISCONSIN ST GENL FD ANNUAL APPROP REV RFOG SER A B/E $.00 % Due May t, 2026",
-        "",
-        "purchase spapens,",
-        "yes]",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "a3",
+      "value": "9",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 253.8
       }
@@ -324,27 +171,10 @@
     {
       "op": "set_field",
       "row": "10",
-      "field": "cells",
-      "expect": [
-        "a3 as",
-        "ROUND ROCK TEX MUN 4%Due 09/02/42",
-        "",
-        "purchase 2a fr0x%",
-        "yes]",
-        "$250,001 - $300,000"
-      ],
-      "value": [
-        "10",
-        "ROUND ROCK TEX MUN 4%Due 09/02/42",
-        "",
-        "purchase 2a fr0x%",
-        "yes]",
-        "$250,001 - $300,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "a3 as",
+      "value": "10",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 266.76
       }
@@ -352,27 +182,10 @@
     {
       "op": "set_field",
       "row": "11",
-      "field": "cells",
-      "expect": [
-        "as. as",
-        "WASHINGTON ST HEAT SX SYST HLTH DUE 10/03/35",
-        "",
-        "purchase 2/38/2026) fr0x%",
-        "",
-        "sno $3,000.001 - $3,000,000,"
-      ],
-      "value": [
-        "11",
-        "WASHINGTON ST HEAT SX SYST HLTH DUE 10/03/35",
-        "",
-        "purchase 2/38/2026) fr0x%",
-        "",
-        "sno $3,000.001 - $3,000,000,"
-      ],
+      "field": "printed_row_number",
+      "expect": "as. as",
+      "value": "11",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 279.72
       }
@@ -380,27 +193,10 @@
     {
       "op": "set_field",
       "row": "12",
-      "field": "cells",
-      "expect": [
-        "lac",
-        "S~AVIENT CORPORATION REG $ DUE 00/02/2030 07.125%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CONNECTION WITH A SALE PURSUANT'TO REG. S",
-        "",
-        "purchase 2pajr026",
-        "",
-        "190 | $3,000,001 - $5,000,000"
-      ],
-      "value": [
-        "12",
-        "S~AVIENT CORPORATION REG $ DUE 00/02/2030 07.125%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CONNECTION WITH A SALE PURSUANT'TO REG. S",
-        "",
-        "purchase 2pajr026",
-        "",
-        "190 | $3,000,001 - $5,000,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "lac",
+      "value": "12",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 293.04
       }
@@ -408,27 +204,10 @@
     {
       "op": "set_field",
       "row": "13",
-      "field": "cells",
-      "expect": [
-        "",
-        "[SPOR SERICS TRUST STATE STRECT SPOR PORTFOUO HIGH VIELD BOND ETF DISCRETIONARY ORDER.LP. MORGAN SCCURITICS LLC MAKES A MARKET IN THIS SECURITY ROME:",
-        "",
-        "purchase 4;2026)",
-        "‘yes",
-        "| $00,003 - $1,000,000"
-      ],
-      "value": [
-        "13",
-        "[SPOR SERICS TRUST STATE STRECT SPOR PORTFOUO HIGH VIELD BOND ETF DISCRETIONARY ORDER.LP. MORGAN SCCURITICS LLC MAKES A MARKET IN THIS SECURITY ROME:",
-        "",
-        "purchase 4;2026)",
-        "‘yes",
-        "| $00,003 - $1,000,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "13",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 312.12
       }
@@ -436,27 +215,10 @@
     {
       "op": "set_field",
       "row": "14",
-      "field": "cells",
-      "expect": [
-        "",
-        "GENERAL TRS FINL CO INC DUC 03/01/2026 05.250KMS 01 DISCRETIONARY ORDER YIELD 2.228% TO MATURITY TIME OF DXECUTION 15:29:04 FINRA LINK FOLLOWS >>> MITPu/ BONDKACTS.FINRA.ORG/37045x060",
-        "",
-        "purchase 24r2026",
-        "yes",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "14",
-        "GENERAL TRS FINL CO INC DUC 03/01/2026 05.250KMS 01 DISCRETIONARY ORDER YIELD 2.228% TO MATURITY TIME OF DXECUTION 15:29:04 FINRA LINK FOLLOWS >>> MITPu/ BONDKACTS.FINRA.ORG/37045x060",
-        "",
-        "purchase 24r2026",
-        "yes",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "14",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 325.8
       }
@@ -464,27 +226,10 @@
     {
       "op": "set_field",
       "row": "15",
-      "field": "cells",
-      "expect": [
-        "“9",
-        "[NEWELL RUBBERMAIO INCSENIOR UNSECURED NOTES DUE 09/25/2029 06.C25%MS 15 DISCRCTIONARY ORDER VICLD 6 540 % TO PAR CALL VIELD 6.542 96 TO MATURMTY CALLABLE 06/25/29",
-        "AT'100,000",
-        "purchase 2app0re",
-        "yes}",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "15",
-        "[NEWELL RUBBERMAIO INCSENIOR UNSECURED NOTES DUE 09/25/2029 06.C25%MS 15 DISCRCTIONARY ORDER VICLD 6 540 % TO PAR CALL VIELD 6.542 96 TO MATURMTY CALLABLE 06/25/29",
-        "AT'100,000",
-        "purchase 2app0re",
-        "yes}",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "“9",
+      "value": "15",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 337.32
       }
@@ -492,27 +237,10 @@
     {
       "op": "set_field",
       "row": "16",
-      "field": "cells",
-      "expect": [
-        "",
-        "“UNITED RENTALS NORTH AMER INC SENIOR SECURED NOTES REG $ DUL 12/25/2029 0C.000%U0 25 DISCRETIONARY ORDER IF THS CONFIRMATION SIN CONNECTION WITH A SALC",
-        "PURSUANT TO REG. 5.",
-        "purcnase 2uanr02e|",
-        "yes",
-        "$300,001 -$250,000"
-      ],
-      "value": [
-        "16",
-        "“UNITED RENTALS NORTH AMER INC SENIOR SECURED NOTES REG $ DUL 12/25/2029 0C.000%U0 25 DISCRETIONARY ORDER IF THS CONFIRMATION SIN CONNECTION WITH A SALC",
-        "PURSUANT TO REG. 5.",
-        "purcnase 2uanr02e|",
-        "yes",
-        "$300,001 -$250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "16",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 352.08
       }
@@ -520,27 +248,10 @@
     {
       "op": "set_field",
       "row": "17",
-      "field": "cells",
-      "expect": [
-        "BY",
-        "| WHIRLPOOL CORP DEO SENIOR NOTES DUE 02/26/2029 O4.7SOXFA 26 DISCRETIONARY ORDER YIELD 5.016 % TO MATURITY YIELD 5.043 % TO PAR CALL CALLABLE 21/26/28 AT 100,000",
-        "",
-        "purchase aszn26|",
-        "yes]",
-        "$100,001 -$250,000"
-      ],
-      "value": [
-        "17",
-        "| WHIRLPOOL CORP DEO SENIOR NOTES DUE 02/26/2029 O4.7SOXFA 26 DISCRETIONARY ORDER YIELD 5.016 % TO MATURITY YIELD 5.043 % TO PAR CALL CALLABLE 21/26/28 AT 100,000",
-        "",
-        "purchase aszn26|",
-        "yes]",
-        "$100,001 -$250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "BY",
+      "value": "17",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 365.04
       }
@@ -548,27 +259,10 @@
     {
       "op": "set_field",
       "row": "18",
-      "field": "cells",
-      "expect": [
-        "BY 2",
-        "S~WNETFUK INE REG 5 DUT 11/25/2029 05.375%ID 15 DISCRETIONARY ORDER IF TIS CONFIRMATION tS IN CONNECTION WITH A SALE PURSUANTTO REG. 5",
-        "",
-        "purchase 44/2026)",
-        "_yes]",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "18",
-        "S~WNETFUK INE REG 5 DUT 11/25/2029 05.375%ID 15 DISCRETIONARY ORDER IF TIS CONFIRMATION tS IN CONNECTION WITH A SALE PURSUANTTO REG. 5",
-        "",
-        "purchase 44/2026)",
-        "_yes]",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "BY 2",
+      "value": "18",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 378.0
       }
@@ -576,27 +270,10 @@
     {
       "op": "set_field",
       "row": "19",
-      "field": "cells",
-      "expect": [
-        "33 2",
-        "S°ASIRIUS XM RADIO INC SENIOR NOTES REG $ OUE 07/01/2029 05.00% G2 IROER IF THIS CON SIN WITH ASALE PURSUANTTO REG. $",
-        "",
-        "purchase asz026)",
-        "yes|",
-        "$100,001 . $250,000"
-      ],
-      "value": [
-        "19",
-        "S°ASIRIUS XM RADIO INC SENIOR NOTES REG $ OUE 07/01/2029 05.00% G2 IROER IF THIS CON SIN WITH ASALE PURSUANTTO REG. $",
-        "",
-        "purchase asz026)",
-        "yes|",
-        "$100,001 . $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "33 2",
+      "value": "19",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 390.24
       }
@@ -604,27 +281,10 @@
     {
       "op": "set_field",
       "row": "20",
-      "field": "cells",
-      "expect": [
-        "sw",
-        "S~\"CARNIVAL CORP REG 5 DUE 08/15/2029 07 DOOKEA 15 DISCRE ORDER IF THIS COI 15N | WITH A SALE PURSUANT'TO REG. 5.",
-        "",
-        "purchase 214N2026)",
-        "yes|",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "20",
-        "S~\"CARNIVAL CORP REG 5 DUE 08/15/2029 07 DOOKEA 15 DISCRE ORDER IF THIS COI 15N | WITH A SALE PURSUANT'TO REG. 5.",
-        "",
-        "purchase 214N2026)",
-        "yes|",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "sw",
+      "value": "20",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 403.92
       }
@@ -632,27 +292,10 @@
     {
       "op": "set_field",
       "row": "21",
-      "field": "cells",
-      "expect": [
-        "ss",
-        "JOLIN CORP DUE 08/01/2029 05.6259¢RA 02 DISCRETIONARY ORDER VICLD $.000 % TO PAR CALL YIELD 26.605 %¢ TO CALL VICLD 5.343 96 TO MATURITY CALLABLE 04/01/27 AT 200.000",
-        "",
-        "purchase anne,",
-        "‘yes",
-        "| $250,001 $500,000,"
-      ],
-      "value": [
-        "21",
-        "JOLIN CORP DUE 08/01/2029 05.6259¢RA 02 DISCRETIONARY ORDER VICLD $.000 % TO PAR CALL YIELD 26.605 %¢ TO CALL VICLD 5.343 96 TO MATURITY CALLABLE 04/01/27 AT 200.000",
-        "",
-        "purchase anne,",
-        "‘yes",
-        "| $250,001 $500,000,"
-      ],
+      "field": "printed_row_number",
+      "expect": "ss",
+      "value": "21",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 417.24
       }
@@ -660,27 +303,10 @@
     {
       "op": "set_field",
       "row": "22",
-      "field": "cells",
-      "expect": [
-        "",
-        "FIRST HORTON DE MEMPHIS TENN OUE 05/01/2030 05.7S0%MN O1 DISCRETIONARY ORDER YIELD 4.768 % TO PAR CALL YIELD 4.828 % TO MATURITY CALLABLE 62/01/30 AY 100.000 IMC'OF",
-        "EXECUTION 15:29:08",
-        "purchase, 2u4s20%6",
-        "_yes",
-        "| $250,003 - $00,000"
-      ],
-      "value": [
-        "22",
-        "FIRST HORTON DE MEMPHIS TENN OUE 05/01/2030 05.7S0%MN O1 DISCRETIONARY ORDER YIELD 4.768 % TO PAR CALL YIELD 4.828 % TO MATURITY CALLABLE 62/01/30 AY 100.000 IMC'OF",
-        "EXECUTION 15:29:08",
-        "purchase, 2u4s20%6",
-        "_yes",
-        "| $250,003 - $00,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "22",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 432.0
       }
@@ -688,27 +314,10 @@
     {
       "op": "set_field",
       "row": "23",
-      "field": "cells",
-      "expect": [
-        "",
-        "[THE DOCING COMPANY SENIOR UNSECURED NOTE DUC 05/02/2027 05.040XMIN 03 DISCRETIONARY OROER YIELD 3.981 %TO PAR CALL YIELD 4.135 9% TO MATURITY CALLABLE 03/01/27",
-        "AT'100.000",
-        "purchase 244/206",
-        "yes|",
-        "$100,001 - $250,000"
-      ],
-      "value": [
-        "23",
-        "[THE DOCING COMPANY SENIOR UNSECURED NOTE DUC 05/02/2027 05.040XMIN 03 DISCRETIONARY OROER YIELD 3.981 %TO PAR CALL YIELD 4.135 9% TO MATURITY CALLABLE 03/01/27",
-        "AT'100.000",
-        "purchase 244/206",
-        "yes|",
-        "$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "23",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 445.32
       }
@@ -716,27 +325,10 @@
     {
       "op": "set_field",
       "row": "24",
-      "field": "cells",
-      "expect": [
-        "",
-        "BLOCK FINL LE SENIOR UNSECURED NOTE DUC 08/25/2030 09.075:4FA 15 DISCRETIONARY ORDER YIELD 4.890% TO MATURITY YIELD 4.945 % TO PAR CALL CALLABLE 05/35/30 AY 100.000",
-        "",
-        "purchase 2742026)",
-        "‘yes",
-        "|s100,002 $250,000"
-      ],
-      "value": [
-        "24",
-        "BLOCK FINL LE SENIOR UNSECURED NOTE DUC 08/25/2030 09.075:4FA 15 DISCRETIONARY ORDER YIELD 4.890% TO MATURITY YIELD 4.945 % TO PAR CALL CALLABLE 05/35/30 AY 100.000",
-        "",
-        "purchase 2742026)",
-        "‘yes",
-        "|s100,002 $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "24",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 458.28
       }
@@ -744,27 +336,10 @@
     {
       "op": "set_field",
       "row": "25",
-      "field": "cells",
-      "expect": [
-        "0",
-        "OCOOLNTAL PETE SR DEDS-AEG SENIOR NOTES DUE 09/01/2030 0¢.625%MS 02 DISCRETIONARY ORDER YIELD 4.554% TO PAR CALL YIELD 4.753.%TO MATURITY CALLABLE 03/01/90 AT",
-        "200.000",
-        "purchase 27472026",
-        "_yes",
-        "| $250,001 - $500,000"
-      ],
-      "value": [
-        "25",
-        "OCOOLNTAL PETE SR DEDS-AEG SENIOR NOTES DUE 09/01/2030 0¢.625%MS 02 DISCRETIONARY ORDER YIELD 4.554% TO PAR CALL YIELD 4.753.%TO MATURITY CALLABLE 03/01/90 AT",
-        "200.000",
-        "purchase 27472026",
-        "_yes",
-        "| $250,001 - $500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "0",
+      "value": "25",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 471.6
       }
@@ -772,27 +347,10 @@
     {
       "op": "set_field",
       "row": "26",
-      "field": "cells",
-      "expect": [
-        "eo 0",
-        "““TVICTORIAS SECRET CO REG $ DUC.07/25/2029 04.6254 15 DISCRETIONARY ORDER IF THIS CONFIRMATION 1S IN CONNECTION WETH A SALE PURSUANTO REG. 5.",
-        "",
-        "purchase 24/2026)",
-        "_yes",
-        "| $250,002 - $500,000"
-      ],
-      "value": [
-        "26",
-        "““TVICTORIAS SECRET CO REG $ DUC.07/25/2029 04.6254 15 DISCRETIONARY ORDER IF THIS CONFIRMATION 1S IN CONNECTION WETH A SALE PURSUANTO REG. 5.",
-        "",
-        "purchase 24/2026)",
-        "_yes",
-        "| $250,002 - $500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "eo 0",
+      "value": "26",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 483.48
       }
@@ -800,27 +358,10 @@
     {
       "op": "set_field",
       "row": "27",
-      "field": "cells",
-      "expect": [
-        "a",
-        "“=“CORCWEAVE INC REG S DUE 02/02/2033 09.000%FA 02 DISCRETIONARY ORDER 1F THIS CONFIRMATION IS IN CONNECTION WITHA SALE PURSUANT TO REG,",
-        "",
-        "purchase 2/2026]",
-        "_yes",
-        "| $250,003 - $300,000"
-      ],
-      "value": [
-        "27",
-        "“=“CORCWEAVE INC REG S DUE 02/02/2033 09.000%FA 02 DISCRETIONARY ORDER 1F THIS CONFIRMATION IS IN CONNECTION WITHA SALE PURSUANT TO REG,",
-        "",
-        "purchase 2/2026]",
-        "_yes",
-        "| $250,003 - $300,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "a",
+      "value": "27",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 497.88
       }
@@ -828,27 +369,10 @@
     {
       "op": "set_field",
       "row": "28",
-      "field": "cells",
-      "expect": [
-        "a e",
-        "“COTY INCSENIOR SECURED NOTES REG S DUE 02/25/2029 O4.7507kil 15 DISCRETIONARY ORDER It THIS CONFIRMATION 15 IN CONNECTION WITH A SALE PURSUANT TO RIG. 5,",
-        "",
-        "purchase 2/2026}",
-        "‘yes",
-        "| $250,002 - $500,000"
-      ],
-      "value": [
-        "28",
-        "“COTY INCSENIOR SECURED NOTES REG S DUE 02/25/2029 O4.7507kil 15 DISCRETIONARY ORDER It THIS CONFIRMATION 15 IN CONNECTION WITH A SALE PURSUANT TO RIG. 5,",
-        "",
-        "purchase 2/2026}",
-        "‘yes",
-        "| $250,002 - $500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "a e",
+      "value": "28",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 511.56
       }
@@ -856,27 +380,10 @@
     {
       "op": "set_field",
       "row": "29",
-      "field": "cells",
-      "expect": [
-        "e 3",
-        "\"~\" MACYS RETA HOLOINGS LLC REGS DU 03/25/2000 05.875KMS 15 DISCRETIONARY OROER IF THIS CONFIRMATION tS IN CONNECTION WITH A SALE PURSUANT TO REG.S",
-        "",
-        "02/04/2026",
-        "",
-        "-yes|'s2s0,002-$500,000"
-      ],
-      "value": [
-        "29",
-        "\"~\" MACYS RETA HOLOINGS LLC REGS DU 03/25/2000 05.875KMS 15 DISCRETIONARY OROER IF THIS CONFIRMATION tS IN CONNECTION WITH A SALE PURSUANT TO REG.S",
-        "",
-        "02/04/2026",
-        "",
-        "-yes|'s2s0,002-$500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "e 3",
+      "value": "29",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 524.88
       }
@@ -884,27 +391,10 @@
     {
       "op": "set_field",
       "row": "30",
-      "field": "cells",
-      "expect": [
-        "“a 3",
-        "KEYOOR? DP SH PFD",
-        "",
-        "purchase 267026)",
-        "_yes|",
-        "$3,002 - $15,000"
-      ],
-      "value": [
-        "30",
-        "KEYOOR? DP SH PFD",
-        "",
-        "purchase 267026)",
-        "_yes|",
-        "$3,002 - $15,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "“a 3",
+      "value": "30",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 536.76
       }
@@ -912,27 +402,10 @@
     {
       "op": "set_field",
       "row": "31",
-      "field": "cells",
-      "expect": [
-        "",
-        "[BANK OF AMERICA CORPORATION = DAC.",
-        "",
-        "02/05/2026",
-        "",
-        "$35,001 «$50,000"
-      ],
-      "value": [
-        "31",
-        "[BANK OF AMERICA CORPORATION = DAC.",
-        "",
-        "02/05/2026",
-        "",
-        "$35,001 «$50,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "31",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 550.44
       }
@@ -940,27 +413,10 @@
     {
       "op": "set_field",
       "row": "32",
-      "field": "cells",
-      "expect": [
-        "",
-        "EYCORP DPSH PED H-KEY",
-        "",
-        "purchase, 2y5/2026)",
-        "yes}",
-        "$3,002 - $35,000"
-      ],
-      "value": [
-        "32",
-        "EYCORP DPSH PED H-KEY",
-        "",
-        "purchase, 2y5/2026)",
-        "yes}",
-        "$3,002 - $35,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "",
+      "value": "32",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 3,
         "geometry_top": 563.4
       }
@@ -968,27 +424,10 @@
     {
       "op": "set_field",
       "row": "33",
-      "field": "cells",
-      "expect": [
-        "on",
-        "|KEYCORP OP SH PFD H~KCY_",
-        "",
-        "lourchase",
-        "2/4/2026 2/3/2026) yes",
-        "| $15,001 - $50,000."
-      ],
-      "value": [
-        "33",
-        "|KEYCORP OP SH PFD H~KCY_",
-        "",
-        "lourchase",
-        "2/4/2026 2/3/2026) yes",
-        "| $15,001 - $50,000."
-      ],
+      "field": "printed_row_number",
+      "expect": "on",
+      "value": "33",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 4,
         "geometry_top": 146.16
       }
@@ -996,27 +435,10 @@
     {
       "op": "set_field",
       "row": "34",
-      "field": "cells",
-      "expect": [
-        "oo",
-        "| DANK OF AMERICA CORPORATION - DAC",
-        "",
-        "purchase",
-        "2/3/2026) 2/2f2026 | yes",
-        "| $1,002 - $15,000"
-      ],
-      "value": [
-        "34",
-        "| DANK OF AMERICA CORPORATION - DAC",
-        "",
-        "purchase",
-        "2/3/2026) 2/2f2026 | yes",
-        "| $1,002 - $15,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "oo",
+      "value": "34",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-        "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
         "page_number": 4,
         "geometry_top": 159.48
       }
@@ -1057,5 +479,14 @@
     "source_id": "oge",
     "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf"
+  },
+  "person": {
+    "id": "oge:076544f8ba0638cf",
+    "display_name": "Donald Trump",
+    "short_name": "Trump",
+    "role": "President of the United States of America"
+  },
+  "audit_constraints": {
+    "require_nonempty": true
   }
 }

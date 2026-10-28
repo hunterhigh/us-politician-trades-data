@@ -16,12 +16,13 @@ from urllib.parse import urlsplit
 
 from .builder import ARRAYS, FIELDS, normalize, timestamp
 from .oge import OgeCatalogError
+from .reviewed_whitehouse_ocr import person_for_id as reviewed_person_for_id
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
 from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS,
     generic_existing_fact, generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSIONS, DUAL_AXIS_PARSER_VERSION)
 from .whitehouse_278t_audit import (
-    AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
+    AUDIT_SCHEMA, audit_whitehouse_278t, source_bound_filing_date,
     resolve_exact_source_reports,
 )
 
@@ -304,15 +305,15 @@ def _person(identity: dict) -> dict:
     computed_id = _person_id(key)
     person_id = identity.get("person_id", computed_id)
     source_bound_new = identity.get("identity_basis") == "whitehouse_directory_new_oge_person"
-    if person_id not in {computed_id, TRUMP_PERSON_ID} and not (
+    reviewed_person = reviewed_person_for_id(person_id)
+    if person_id != computed_id and reviewed_person is None and not (
             source_bound_new and re.fullmatch(r"oge:[0-9a-f]{16}", person_id or "")):
         raise OgeCatalogError("White House 278-T person identity is unsupported")
-    is_trump = person_id == TRUMP_PERSON_ID
     person = {
         "id": person_id,
-        "display_name": "Donald Trump" if is_trump else identity["filer_name"],
-        "short_name": "Trump" if is_trump else _short_name(identity["filer_name"]),
-        "role": ("President of the United States of America" if is_trump else
+        "display_name": reviewed_person['display_name'] if reviewed_person else identity["filer_name"],
+        "short_name": reviewed_person['short_name'] if reviewed_person else _short_name(identity["filer_name"]),
+        "role": (reviewed_person['role'] if reviewed_person else
                  identity["position_title"]),
         "office_type": identity["agency"],
         "chamber": None, "party": None, "state": None,

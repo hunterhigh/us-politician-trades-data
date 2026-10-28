@@ -78,6 +78,15 @@ class CorrectionTests(unittest.TestCase):
                         (set(guards['input_row_inventory'])|added)-dropped)
                     self.assertEqual(correction['parser_version'],correction['parser_versions'][-1])
                     self.assertEqual(set(correction['parser_versions']),set(guards['legacy_versions']))
+                elif correction['profile']=='reviewed-ocr-table/v1':
+                    guards=correction['assertions']
+                    self.assertEqual(sum(guards['page_row_counts'].values()),len(guards['row_inventory']))
+                    self.assertEqual(correction['header']['parser_version'],correction['parser_version'])
+                    for key in ('document_id','source_sha256','source_url'):
+                        self.assertEqual(correction['source_profile'][key],correction[key])
+                        self.assertEqual(correction['header'][key],correction[key])
+                    self.assertTrue(guards['approved_artifact_sha256'])
+                    self.assertTrue(correction['person']['id'].startswith('oge:'))
                 for action in correction['actions']:
                     if action['op'] in {'set_field','set_report','drop_row','quarantine','relate'}:
                         self.assertIn('expect',action)

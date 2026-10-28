@@ -10,16 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION, TRUMP_081225_DOCUMENT_ID, TRUMP_081225_PARSER_VERSION,
-    TRUMP_081225_SOURCE_SHA256, TRUMP_081225_SOURCE_URL,
-    TRUMP_2026_PARSER_VERSION, TRUMP_2026_PROFILES,
-    TradeOcrCheckpointPending,
-    _ocr_date, parse_whitehouse_278t_pdf,
-    extract_whitehouse_278t_pdf_checkpointed,
-    parser_version_for_source, quarantine_duplicate_report_groups,
-    replay_reviewed_ocr_extraction,
-)
+from unison_snapshot.whitehouse_278t import (PARSER_VERSION, REVIEWED_COVER_PARSER_VERSION, REVIEWED_LISTING_PARSER_VERSION, TradeOcrCheckpointPending, _ocr_date, parse_whitehouse_278t_pdf, extract_whitehouse_278t_pdf_checkpointed, parser_version_for_source, quarantine_duplicate_report_groups, replay_reviewed_ocr_extraction)
+from whitehouse_reviewed_fixture import (COVER_DOCUMENT_ID, COVER_SOURCE_SHA256, COVER_SOURCE_URL, LISTING_SOURCE_PROFILES)
 
 
 PDF = b"%PDF-1.7\nexample\n%%EOF"
@@ -168,22 +160,22 @@ class WhiteHouse278TTests(unittest.TestCase):
 
     def test_trade_parser_version_is_exact_source_bound(self):
         self.assertEqual(parser_version_for_source(
-            TRUMP_081225_SOURCE_URL, TRUMP_081225_SOURCE_SHA256),
-            TRUMP_081225_PARSER_VERSION)
+            COVER_SOURCE_URL, COVER_SOURCE_SHA256),
+            REVIEWED_COVER_PARSER_VERSION)
         self.assertEqual(parser_version_for_source(
-            TRUMP_081225_SOURCE_URL, "0" * 64), PARSER_VERSION)
+            COVER_SOURCE_URL, "0" * 64), PARSER_VERSION)
 
 
     def test_trump_2026_parser_requires_exact_url_and_sha(self):
-        profile = TRUMP_2026_PROFILES[-1]
+        profile = LISTING_SOURCE_PROFILES[-1]
         self.assertEqual(parser_version_for_source(
             profile["source_url"], profile["source_sha256"]),
-            TRUMP_2026_PARSER_VERSION)
+            REVIEWED_LISTING_PARSER_VERSION)
         self.assertEqual(parser_version_for_source(
             profile["source_url"], "0" * 64), PARSER_VERSION)
 
     def test_trump_2026_long_report_writes_bounded_checkpoint(self):
-        profile = next(item for item in TRUMP_2026_PROFILES
+        profile = next(item for item in LISTING_SOURCE_PROFILES
                        if item["page_count"] == 113)
 
         class Document:

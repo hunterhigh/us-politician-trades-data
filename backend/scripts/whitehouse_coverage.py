@@ -17,8 +17,8 @@ from unison_snapshot.oge_278e_public import (
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSION, DUAL_AXIS_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSER_VERSIONS,
-    TRUMP_081225_PARSER_VERSION,
-    TRUMP_2026_PARSER_VERSION,
+    REVIEWED_COVER_PARSER_VERSION,
+    REVIEWED_LISTING_PARSER_VERSION,
     parser_version_for_source as trade_parser_version_for_source,
     plan_whitehouse_278t_archive,
     NATIVE_VISIBLE_PARSER_VERSIONS,
@@ -49,8 +49,8 @@ def _trade_versions(source_url: str, source_sha256: str, *, generic_trade: bool 
         return (GENERIC_PARSER_VERSION,)
     current = trade_parser_version_for_source(source_url, source_sha256)
     return (current, *(version for version in TRADE_PARSER_VERSIONS
-                       if version not in {current, *GENERIC_PARSER_VERSIONS, TRUMP_081225_PARSER_VERSION,
-                                          TRUMP_2026_PARSER_VERSION}))
+                       if version not in {current, *GENERIC_PARSER_VERSIONS, REVIEWED_COVER_PARSER_VERSION,
+                                          REVIEWED_LISTING_PARSER_VERSION}))
 
 
 def _load(path: Path) -> dict:
@@ -113,12 +113,12 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
                     # One source-derived current version; older successes and
                     # failures remain history, never a fallback from uncertainty.
                     versions_to_check = (selection['parser_version'],)
-            forbidden_v3 = folder / f"{TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json"
-            if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != TRUMP_081225_PARSER_VERSION and
+            forbidden_v3 = folder / f"{REVIEWED_COVER_PARSER_VERSION.replace('/', '-')}.json"
+            if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != REVIEWED_COVER_PARSER_VERSION and
                     forbidden_v3.is_file()):
                 raise ValueError("Source-bound White House 278-T v3 extraction has the wrong source")
-            forbidden_v4 = folder / f"{TRUMP_2026_PARSER_VERSION.replace('/', '-')}.json"
-            if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != TRUMP_2026_PARSER_VERSION and
+            forbidden_v4 = folder / f"{REVIEWED_LISTING_PARSER_VERSION.replace('/', '-')}.json"
+            if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != REVIEWED_LISTING_PARSER_VERSION and
                     forbidden_v4.is_file()):
                 raise ValueError("Source-bound White House 278-T v4 extraction has the wrong source")
             forbidden_v6 = folder / f"{TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json"

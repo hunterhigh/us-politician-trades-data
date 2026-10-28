@@ -19,12 +19,11 @@ import test_whitehouse_278t_saved_ocr as saved_ocr_tests
 from test_whitehouse_278t_generic import consume
 from unison_snapshot.oge_278t_raster_slots import _oge_2024_image_grid, _joint_horizontal_partition, _partial_header_geometry, observe_raster_slots
 from unison_snapshot.oge_278t_field_shadow import observe_content_rows
-from unison_snapshot.whitehouse_278t import (_generic_cover_dates, _generic_cover_identity, _saved_source_cover_resolution,
-    generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSION, TRUMP_2026_PROFILES,
-    validate_generic_whitehouse_report, materialize_saved_whitehouse_278t)
+from unison_snapshot.whitehouse_278t import (_generic_cover_dates, _generic_cover_identity, _saved_source_cover_resolution, generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSION, validate_generic_whitehouse_report, materialize_saved_whitehouse_278t)
 from unison_snapshot.whitehouse_278t_audit import source_bound_filer_identity, source_bound_filing_date
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.builder import build
+from whitehouse_reviewed_fixture import (LISTING_SOURCE_PROFILES)
 
 
 def altered_page(kind):
@@ -206,7 +205,7 @@ class PartialGeometryTests(unittest.TestCase):
             self.assertEqual(receipt['geometry_partial_pages'],[])
 
     def test_existing_profile_dates_and_identity_resolve_missing_ocr_but_not_conflicts(self):
-        profile=next(p for p in TRUMP_2026_PROFILES if p['page_count']==113)
+        profile=next(p for p in LISTING_SOURCE_PROFILES if p['page_count']==113)
         missing=_generic_cover_dates('OGE Form 278-T\nFiler Certification\nDate: unknown\n',profile['source_sha256'],True)
         resolved=_saved_source_cover_resolution(profile['document_id'],profile['source_url'],profile['source_sha256'],113,missing)
         self.assertEqual(resolved['filed_at'],'2026-05-08')

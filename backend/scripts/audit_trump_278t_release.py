@@ -17,24 +17,25 @@ from urllib.parse import urlsplit
 from unison_snapshot.builder import ARRAYS
 from unison_snapshot.codec import encode
 from unison_snapshot.whitehouse_278t_candidate import SCHEMA as CONSERVATION_SCHEMA
-from unison_snapshot.whitehouse_278t_audit import (
-    TRUMP_TARGET_DOCUMENT_ID as TARGET_DOCUMENT_ID,
-    TRUMP_TARGET_FILED_AT,
-    TRUMP_TARGET_SOURCE_SHA256 as TARGET_SOURCE_SHA256,
-    TRUMP_TARGET_SOURCE_URL as TARGET_SOURCE_URL,
-)
 from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
 from unison_snapshot.reviewed_security_tickers import is_allowed_ticker_change
-from unison_snapshot.whitehouse_278t import TRUMP_2026_PROFILES
+from unison_snapshot.reviewed_whitehouse_ocr import profiles, source_profiles
+_COVER = next(c for c in profiles() if c['output_mode']=='source_cover_gate')
+TARGET_DOCUMENT_ID = _COVER['document_id']
+COVER_FILED_AT = _COVER['source_profile']['report_date']
+TARGET_SOURCE_SHA256 = _COVER['source_sha256']
+TARGET_SOURCE_URL = _COVER['source_url']
+LISTING_SOURCE_PROFILES = source_profiles(mode='source_listing_evidence')
+
 
 
 SCHEMA = "whitehouse-trump-278t-release-audit/v1"
 TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
-TARGET_FILED_AT = TRUMP_TARGET_FILED_AT + "T00:00:00Z"
+TARGET_FILED_AT = COVER_FILED_AT + "T00:00:00Z"
 ALLOWED_REPORTS = {
-    (TARGET_DOCUMENT_ID, TARGET_SOURCE_URL, TARGET_SOURCE_SHA256): TRUMP_TARGET_FILED_AT,
+    (TARGET_DOCUMENT_ID, TARGET_SOURCE_URL, TARGET_SOURCE_SHA256): COVER_FILED_AT,
     **{(profile["document_id"], profile["source_url"], profile["source_sha256"]):
-       profile["report_date"] for profile in TRUMP_2026_PROFILES},
+       profile["report_date"] for profile in LISTING_SOURCE_PROFILES},
 }
 
 
@@ -367,7 +368,7 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         "target_source_sha256": TARGET_SOURCE_SHA256,
         "target_filed_at": TARGET_FILED_AT,
         "target_2026_document_ids": sorted(
-            profile["document_id"] for profile in TRUMP_2026_PROFILES),
+            profile["document_id"] for profile in LISTING_SOURCE_PROFILES),
         "frontend_verified": frontend is not None,
     }
     if frontend is not None:

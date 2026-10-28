@@ -11,6 +11,8 @@ from .oge import OgeCatalogError
 
 PROFILE = 'reviewed-ocr-table/v1'
 ROOT = Path(__file__).resolve().parents[2] / 'data/corrections/whitehouse'
+CELL_FIELDS = ('printed_row_number', 'asset_name_raw', 'transaction_type_raw',
+    'transaction_date_raw', 'late_notification_raw', 'amount_raw')
 
 
 @lru_cache(maxsize=32)
@@ -51,6 +53,20 @@ def profile_for(document_id, source_url, source_sha256, *, mode=None):
     return None
 
 
+def source_profiles(*, mode=None):
+    return [deepcopy(c['source_profile']) for c in profiles()
+        if mode is None or c['output_mode'] == mode]
+
+
+def person_for_id(person_id):
+    matches = [c['person'] for c in profiles() if c['person']['id'] == person_id]
+    if not matches:
+        return None
+    if any(value != matches[0] for value in matches):
+        raise OgeCatalogError('Reviewed source person metadata conflicts')
+    return deepcopy(matches[0])
+
+
 def apply_row_corrections(records, correction):
     guards = correction['assertions']
     normalized = []
@@ -77,9 +93,12 @@ def apply_row_corrections(records, correction):
             [str(i) for i in range(1, len(records)+1)] != guards['row_inventory']):
         raise OgeCatalogError('Reviewed OCR original row precondition changed')
     model = {key: correction[key] for key in ('source', 'document_id', 'source_sha256')}
-    model.update(report={}, rows={str(i): deepcopy(row) for i, row in enumerate(records, 1)})
+    model.update(report={}, rows={str(i): {
+        **dict(zip(CELL_FIELDS, row['cells'], strict=True)),
+        **({'source_bound_corrections': deepcopy(row['source_bound_corrections'])}
+            if 'source_bound_corrections' in row else {})} for i, row in enumerate(records, 1)})
     for action in correction['actions']:
-        if action['op'] != 'set_field' or action.get('field') not in {'cells', 'source_bound_corrections'}:
+        if action['op'] != 'set_field' or action.get('field') not in {*CELL_FIELDS, 'source_bound_corrections'}:
             raise OgeCatalogError('Reviewed OCR correction operation is unsupported')
     try:
         corrected = apply_correction(model, correction)
@@ -87,7 +106,11 @@ def apply_row_corrections(records, correction):
         raise OgeCatalogError('Reviewed OCR correction precondition failed: ' + str(error)) from error
     result = []
     for key, original in zip(guards['row_inventory'], records, strict=True):
-        row = corrected['rows'][key]
+        fields = corrected['rows'][key]
+        row = deepcopy(original)
+        row['cells'] = [fields[field] for field in CELL_FIELDS]
+        if 'source_bound_corrections' in fields:
+            row['source_bound_corrections'] = fields['source_bound_corrections']
         row['raw_cells'] = list(original['cells'])
         row['printed_row_number_raw'] = original['cells'][0]
         row['printed_row_number_resolution'] = 'source_bound_geometry_order'

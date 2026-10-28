@@ -68,73 +68,11 @@ def _saved_source_path(value: str, *, evidence: bool = False) -> Path:
     if not target.is_relative_to(root):
         raise OgeCatalogError("White House saved source escapes controlled root")
     return target
-TRUMP_081225_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v3"
-TRUMP_081225_DOCUMENT_ID = "wh-url:1a6bbff2a684fedd76ac9f59"
-TRUMP_081225_SOURCE_URL = (
-    "https://www.whitehouse.gov/wp-content/uploads/2025/08/"
-    "President-Donald-J.-Trump-Periodic-Transaction-Report-8.12.25-1.pdf")
-TRUMP_081225_SOURCE_SHA256 = (
-    "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043")
-TRUMP_2026_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v4"
-TRUMP_2026_PROFILES = (
-    {"document_id": "wh-url:62340683e32b0263e8f0eb20",
-     "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf",
-     "report_date": "2026-01-14", "report_date_raw": "01.14.26", "page_count": 8,
-     "v2_source_row_count": 191},
-    {"document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
-     "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
-     "report_date": "2026-01-14", "report_date_raw": "01.14.26", "page_count": 10,
-     "v2_source_row_count": 2},
-    {"document_id": "wh-url:8a81a4571e085ccd51a0e4e6",
-     "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-     "report_date": "2026-02-26", "report_date_raw": "02.26.26", "page_count": 8,
-     "v2_source_row_count": 38},
-    {"document_id": "wh-url:2e543c867ad080888580fa12",
-     "source_sha256": "795a8dd77ccbf70df3b907cb2b3130ee68a7b2a4d78ccd7b4b59ad0db1569db2",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-2.pdf",
-     "report_date": "2026-02-26", "report_date_raw": "02.26.26", "page_count": 5,
-     "v2_source_row_count": 83},
-    {"document_id": "wh-url:82a263659dcbd44a6522ecbc",
-     "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
-     "report_date": "2026-04-20", "report_date_raw": "04.20.26", "page_count": 8,
-     "v2_source_row_count": 174},
-    {"document_id": "wh-url:11b77506f8e46ae1a83b0531",
-     "source_sha256": "b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-1.pdf",
-     "report_date": "2026-05-08", "report_date_raw": "05.08.26", "page_count": 113,
-     "v2_source_row_count": None},
-    {"document_id": "wh-url:6b1be988199005fdd79af8de",
-     "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
-     "report_date": "2026-05-08", "report_date_raw": "05.08.26", "page_count": 5,
-     "v2_source_row_count": 34},
-    {"document_id": "wh-url:7e17c4be2b42f563d37df173",
-     "source_sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf",
-     "report_date": "2026-06-25", "report_date_raw": "06.25.26", "page_count": 44,
-     "v2_source_row_count": 1375},
-    {"document_id": "wh-url:01475dee0bcffa4e79f7f58c",
-     "source_sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf",
-     "report_date": "2026-06-25", "report_date_raw": "06.25.26", "page_count": 37,
-     "v2_source_row_count": 1149},
-    {"document_id": "wh-url:5e95b7609861d78aa29e3d13",
-     "source_sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
-     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
-     "report_date": "2026-08-12", "report_date_raw": "08.12.26", "page_count": 34,
-     "v2_source_row_count": 1047},
-)
-_TRUMP_2026_BY_SOURCE = {
-    (profile["source_url"], profile["source_sha256"]): profile
-    for profile in TRUMP_2026_PROFILES
-}
+REVIEWED_COVER_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v3"
+REVIEWED_LISTING_PARSER_VERSION = "whitehouse-278t-hybrid-geometry/v4"
 LEGACY_PARSER_VERSIONS = ("whitehouse-278t-pdf/v1",)
 HISTORICAL_PARSER_VERSIONS = (
-    PARSER_VERSION, TRUMP_081225_PARSER_VERSION, TRUMP_2026_PARSER_VERSION,
+    PARSER_VERSION, REVIEWED_COVER_PARSER_VERSION, REVIEWED_LISTING_PARSER_VERSION,
     *LEGACY_PARSER_VERSIONS, GENERIC_PARSER_VERSION, SAVED_OCR_PARSER_VERSION, DUAL_AXIS_PARSER_VERSION)
 SUPPORTED_PARSER_VERSIONS = (*HISTORICAL_PARSER_VERSIONS, *sorted(NATIVE_VISIBLE_PARSER_VERSIONS))
 MAX_INLINE_OCR_PAGES = 100
@@ -690,7 +628,7 @@ def extract_whitehouse_278t_pdf_checkpointed(
                 raise OgeCatalogError("White House 278-T OCR checkpoint is invalid") from None
             pages = shard.get("pages")
             if (shard.get("schema_version") != OCR_SHARD_SCHEMA or
-                    shard.get("parser_version") != TRUMP_2026_PARSER_VERSION or
+                    shard.get("parser_version") != REVIEWED_LISTING_PARSER_VERSION or
                     shard.get("source_url") != source_url or
                     shard.get("source_sha256") != source_sha256 or
                     shard.get("page_start") != start or shard.get("page_end") != end or
@@ -720,7 +658,7 @@ def extract_whitehouse_278t_pdf_checkpointed(
                 raise OgeCatalogError("White House 278-T OCR checkpoint engine changed")
             engines.add(engine)
             shard = {"schema_version": OCR_SHARD_SCHEMA,
-                     "parser_version": TRUMP_2026_PARSER_VERSION,
+                     "parser_version": REVIEWED_LISTING_PARSER_VERSION,
                      "source_url": source_url, "source_sha256": source_sha256,
                      "ocr_engine": engine, "page_start": start, "page_end": end,
                      "pages": [{"page_number": number, "width": page.width,
@@ -734,7 +672,7 @@ def extract_whitehouse_278t_pdf_checkpointed(
             created += 1
     completed = sum(end - start + 1 for start, end in shards)
     status = {"schema_version": OCR_CHECKPOINT_SCHEMA,
-              "parser_version": TRUMP_2026_PARSER_VERSION,
+              "parser_version": REVIEWED_LISTING_PARSER_VERSION,
               "source_url": source_url, "source_sha256": source_sha256,
               "page_count": profile["page_count"], "shard_size": shard_size,
               "shard_count": len(ranges), "completed_shard_count": len(shards),
@@ -1198,7 +1136,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
             metadata.get("document_type_from_label") != "278t" or
             metadata.get("archive_path") != f"whitehouse/disclosures/reports/{document.removeprefix('wh-url:')}/{sha}.pdf" or
             checkpoint.get("schema_version") != OCR_SHARD_SCHEMA or checkpoint.get("source_sha256") != sha or
-            checkpoint.get("source_url") != url or checkpoint.get("parser_version") not in GENERIC_PARSER_VERSIONS | {TRUMP_2026_PARSER_VERSION} or
+            checkpoint.get("source_url") != url or checkpoint.get("parser_version") not in GENERIC_PARSER_VERSIONS | {REVIEWED_LISTING_PARSER_VERSION} or
             not isinstance(checkpoint.get("ocr_engine"), str) or not checkpoint["ocr_engine"]):
         raise OgeCatalogError("White House OCR checkpoint differs from official archive identity")
     blob = inputs.get("checkpoint_git_blob")
@@ -1960,7 +1898,7 @@ def quarantine_duplicate_report_groups(extractions: list[dict]) -> list[dict]:
         # The 2026 emergency publication lane deliberately defers duplicate
         # resolution. Exact-source row evidence remains review-visible now;
         # reconciliation can happen without withholding the current reports.
-        if report.get("parser_version") == TRUMP_2026_PARSER_VERSION:
+        if report.get("parser_version") == REVIEWED_LISTING_PARSER_VERSION:
             continue
         by_sha.setdefault(report["source_sha256"], []).append(index)
         rows = report.get("transactions", [])

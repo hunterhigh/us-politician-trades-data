@@ -18,10 +18,10 @@ def extraction():
     rows[-1]["reasons"] = ["asset_name_missing"]
     return {
         "schema_version": script.EXTRACTION_SCHEMA,
-        "parser_version": script.TRUMP_081225_PARSER_VERSION,
-        "document_id": script.TRUMP_081225_DOCUMENT_ID,
-        "source_url": script.TRUMP_081225_SOURCE_URL,
-        "source_sha256": script.TRUMP_081225_SOURCE_SHA256,
+        "parser_version": script.REVIEWED_COVER_PARSER_VERSION,
+        "document_id": script.COVER_DOCUMENT_ID,
+        "source_url": script.COVER_SOURCE_URL,
+        "source_sha256": script.COVER_SOURCE_SHA256,
         "filed_at": "2025-08-12", "evidence_complete": True,
         "document_reasons": [], "source_row_count": 507,
         "transactions": rows[:-1], "quarantined": rows[-1:],
@@ -31,8 +31,8 @@ def extraction():
 def status():
     return {
         "schema_version": "whitehouse-public-extraction-status/v1",
-        "fixed_document_id": script.TRUMP_081225_DOCUMENT_ID,
-        "fixed_source_sha256": script.TRUMP_081225_SOURCE_SHA256,
+        "fixed_document_id": script.COVER_DOCUMENT_ID,
+        "fixed_source_sha256": script.COVER_SOURCE_SHA256,
         "selected_version_count": 1, "failure_count": 0,
         "recorded_failure_count": 0, "checkpoint_pending_count": 0,
         "pending_count": 0, "extraction_created_count": 1,

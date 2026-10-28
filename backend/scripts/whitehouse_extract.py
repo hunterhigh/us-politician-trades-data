@@ -24,7 +24,7 @@ from unison_snapshot.oge_278e_public import (
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER_VERSION, GENERIC_PARSER_VERSION,
     parse_generic_whitehouse_278t_pdf,
-    TRUMP_2026_PARSER_VERSION,
+    REVIEWED_LISTING_PARSER_VERSION,
     TradeOcrCheckpointPending,
     extract_whitehouse_278t_pdf_checkpointed,
     parser_version_for_source as trade_parser_version_for_source,
@@ -215,7 +215,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                         old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.is_file() else None
                         return parse_generic_whitehouse_278t_pdf(path, **common, document_id=metadata["document_id"],
                             filer_name=name, amended_label=metadata.get("link_label"), legacy_extraction=old)
-                    if version == TRUMP_2026_PARSER_VERSION:
+                    if version == REVIEWED_LISTING_PARSER_VERSION:
                         prior = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
                         if prior.is_file():
                             return replay_reviewed_ocr_extraction(
@@ -226,7 +226,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                             filer_name=name,
                             amended_label=metadata.get("link_label"))
                     except OgeCatalogError as exc:
-                        if (version != TRUMP_2026_PARSER_VERSION or
+                        if (version != REVIEWED_LISTING_PARSER_VERSION or
                                 str(exc) != "White House 278-T requires checkpointed OCR"):
                             raise
                     checkpoint = (review_root / "whitehouse/ocr-checkpoints" /

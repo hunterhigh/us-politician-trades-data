@@ -39,27 +39,10 @@
     {
       "op": "set_field",
       "row": "1",
-      "field": "cells",
-      "expect": [
-        "27",
-        "CORP SER 82 8/E 5.00 % Duo Ave 15, 2054 |",
-        "",
-        "",
-        "Yes",
-        ""
-      ],
-      "value": [
-        "1",
-        "CORP SER 82 8/E 5.00 % Duo Ave 15, 2054 |",
-        "",
-        "",
-        "Yes",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "27",
+      "value": "1",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
-        "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
         "page_number": 3,
         "geometry_top": 162.72
       }
@@ -67,27 +50,10 @@
     {
       "op": "set_field",
       "row": "2",
-      "field": "cells",
-      "expect": [
-        "| 23",
-        "Fob 15, 2034 ;",
-        "",
-        "",
-        "Yes",
-        ""
-      ],
-      "value": [
-        "2",
-        "Fob 15, 2034 ;",
-        "",
-        "",
-        "Yes",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "| 23",
+      "value": "2",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
-        "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
         "page_number": 3,
         "geometry_top": 557.64
       }
@@ -128,5 +94,14 @@
     "source_id": "oge",
     "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf"
+  },
+  "person": {
+    "id": "oge:076544f8ba0638cf",
+    "display_name": "Donald Trump",
+    "short_name": "Trump",
+    "role": "President of the United States of America"
+  },
+  "audit_constraints": {
+    "require_nonempty": true
   }
 }

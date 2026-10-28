@@ -14,26 +14,20 @@ import re
 from urllib.parse import urlsplit
 
 from .oge import OgeCatalogError
+from .reviewed_whitehouse_ocr import profile_for as reviewed_ocr_profile
 from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
 from .whitehouse_directory_identity_shadow import bind_directory_entry
 from .whitehouse_278t import (
     EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
     validate_generic_whitehouse_report, generic_existing_fact, DUAL_AXIS_PARSER_VERSION,
-    SUPPORTED_PARSER_VERSIONS, TRUMP_081225_DOCUMENT_ID,
-    TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
-    TRUMP_081225_SOURCE_URL, TRUMP_2026_PARSER_VERSION, _first_last,
+    SUPPORTED_PARSER_VERSIONS, REVIEWED_COVER_PARSER_VERSION,
+    REVIEWED_LISTING_PARSER_VERSION, _first_last,
     quarantine_duplicate_report_groups,
-    reviewed_listing_profile,
 )
 
 
 AUDIT_SCHEMA = "whitehouse-278t-eligibility-audit/v2"
-TRUMP_TARGET_DOCUMENT_ID = TRUMP_081225_DOCUMENT_ID
-TRUMP_TARGET_SOURCE_URL = TRUMP_081225_SOURCE_URL
-TRUMP_TARGET_SOURCE_SHA256 = TRUMP_081225_SOURCE_SHA256
-TRUMP_TARGET_FILED_AT = "2025-08-12"
-TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 _OFFICE_LABELS = {
     "white house": "white house office",
     "white house office": "white house office",
@@ -172,98 +166,56 @@ def _day(value: object) -> date | None:
         return None
 
 
-def source_bound_filing_date(report: dict) -> str | None:
-    """Verify the fixed Trump scan's first-page certification-date evidence."""
+def _reviewed_report_profile(report):
     try:
-        profile = reviewed_listing_profile(
-            report.get("document_id"), report.get("source_url"),
-            report.get("source_sha256"))
+        correction = reviewed_ocr_profile(report.get('document_id'), report.get('source_url'), report.get('source_sha256'))
     except OgeCatalogError:
         return None
-    if profile is not None:
-        evidence = report.get("filing_date_evidence")
-        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
+    if correction is None:
+        return None
+    versions = {correction['parser_version']}
+    if correction['output_mode'] == 'source_listing_evidence':
+        versions.update(SAVED_OCR_PARSER_VERSIONS)
+    if report.get('parser_version') not in versions:
+        return None
+    if (report.get('parser_version') in SAVED_OCR_PARSER_VERSIONS and
+            report.get('page_count') != correction['source_profile']['page_count']):
+        return None
+    return correction
+
+
+def source_bound_filing_date(report: dict) -> str | None:
+    correction = _reviewed_report_profile(report)
+    if correction is None:
+        return None
+    expected = correction['header']['filing_date_evidence']
+    evidence = report.get('filing_date_evidence')
+    if (report.get('signature_method') != correction['header']['signature_method'] or
+            not isinstance(evidence, dict)):
+        return None
+    for key, value in expected.items():
+        if key == 'geometry' and correction.get('filing_geometry_mode') == 'finite_rectangle':
+            geometry = evidence.get(key)
+            if (not isinstance(geometry, dict) or geometry.get('coordinate_space') != 'pdf_points' or
+                    any(type(geometry.get(k)) not in (int, float) or not math.isfinite(geometry[k])
+                        for k in ('x0', 'top', 'x1', 'bottom')) or
+                    not (geometry['x0'] < geometry['x1'] and geometry['top'] < geometry['bottom'])):
+                return None
+        elif evidence.get(key) != value:
             return None
-        if (report.get("parser_version") not in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} or
-                report.get("signature_method") !=
-                "official_disclosure_date_source_bound" or
-                not isinstance(evidence, dict) or
-                evidence.get("page_number") is not None or
-                evidence.get("label") != "Official White House disclosure listing date" or
-                evidence.get("raw") != profile["report_date_raw"] or
-                evidence.get("normalized") != profile["report_date"] or
-                evidence.get("basis") != "exact_sha_official_disclosure_link_label" or
-                evidence.get("source_url") != profile["source_url"] or
-                evidence.get("source_sha256") != profile["source_sha256"]):
-            return None
-        return profile["report_date"]
-    if (report.get("document_id") != TRUMP_TARGET_DOCUMENT_ID or
-            report.get("source_url") != TRUMP_TARGET_SOURCE_URL or
-            report.get("source_sha256") != TRUMP_TARGET_SOURCE_SHA256 or
-            report.get("parser_version") != TRUMP_081225_PARSER_VERSION or
-            report.get("signature_method") != "handwritten_source_bound"):
-        return None
-    evidence = report.get("filing_date_evidence")
-    if not isinstance(evidence, dict):
-        return None
-    geometry = evidence.get("geometry")
-    if (evidence.get("page_number") != 1 or
-            evidence.get("label") != "Filer's Certification Date" or
-            evidence.get("raw") != "8/12/25" or
-            evidence.get("normalized") != TRUMP_TARGET_FILED_AT or
-            evidence.get("source_url") != TRUMP_TARGET_SOURCE_URL or
-            evidence.get("source_sha256") != TRUMP_TARGET_SOURCE_SHA256 or
-            not isinstance(geometry, dict) or
-            geometry.get("coordinate_space") != "pdf_points" or
-            any(type(geometry.get(key)) not in (int, float) or
-                not math.isfinite(geometry[key])
-                for key in ("x0", "top", "x1", "bottom")) or
-            not (geometry["x0"] < geometry["x1"] and geometry["top"] < geometry["bottom"])):
-        return None
-    return TRUMP_TARGET_FILED_AT
+    return correction['source_profile']['report_date']
 
 
 def source_bound_filer_identity(report: dict) -> bool:
-    """Verify the fixed scan's filer identity without inventing an agency cell."""
-    try:
-        profile = reviewed_listing_profile(
-            report.get("document_id"), report.get("source_url"),
-            report.get("source_sha256"))
-    except OgeCatalogError:
+    correction = _reviewed_report_profile(report)
+    if correction is None:
         return False
-    if profile is not None:
-        evidence = report.get("filer_identity_evidence")
-        if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS and report.get("page_count") != profile["page_count"]:
-            return False
-        return bool(
-            report.get("parser_version") in {TRUMP_2026_PARSER_VERSION,*SAVED_OCR_PARSER_VERSIONS} and
-            report.get("pdf_filer_name") == "Donald J Trump" and
-            report.get("pdf_position_title") ==
-            "President of the United States of America" and
-            report.get("pdf_agency_label") is None and
-            isinstance(evidence, dict) and evidence.get("page_number") == 1 and
-            evidence.get("pdf_filer_name") == report["pdf_filer_name"] and
-            evidence.get("pdf_position_title") == report["pdf_position_title"] and
-            evidence.get("agency_basis") ==
-            "exact_sha_official_disclosure_catalog_alias" and
-            evidence.get("source_url") == profile["source_url"] and
-            evidence.get("source_sha256") == profile["source_sha256"])
-    if (report.get("document_id") != TRUMP_TARGET_DOCUMENT_ID or
-            report.get("source_url") != TRUMP_TARGET_SOURCE_URL or
-            report.get("source_sha256") != TRUMP_TARGET_SOURCE_SHA256 or
-            report.get("parser_version") != TRUMP_081225_PARSER_VERSION or
-            report.get("pdf_filer_name") != "Donald J Trump" or
-            report.get("pdf_position_title") != "President of the United States of America" or
-            report.get("pdf_agency_label") is not None):
-        return False
-    evidence = report.get("filer_identity_evidence")
-    return bool(
-        isinstance(evidence, dict) and evidence.get("page_number") == 1 and
-        evidence.get("pdf_filer_name") == report["pdf_filer_name"] and
-        evidence.get("pdf_position_title") == report["pdf_position_title"] and
-        evidence.get("agency_basis") == "exact_sha_official_oge_catalog_alias" and
-        evidence.get("source_url") == TRUMP_TARGET_SOURCE_URL and
-        evidence.get("source_sha256") == TRUMP_TARGET_SOURCE_SHA256)
+    expected = correction['header']
+    evidence = report.get('filer_identity_evidence')
+    return (all(report.get(key) == expected[key] for key in
+                ('pdf_filer_name', 'pdf_position_title', 'pdf_agency_label')) and
+        isinstance(evidence, dict) and all(evidence.get(key) == value
+            for key, value in expected['filer_identity_evidence'].items()))
 
 
 def _row_reasons(row: dict, filing_day: date | None, *, generic: bool = False) -> list[str]:
@@ -523,36 +475,24 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                         row["ocr_confidence"] < MIN_OCR_ROW_CONFIDENCE
                         for row in item["transactions"])):
                 raise OgeCatalogError("White House 278-T OCR geometry contract is invalid")
-        if item.get("parser_version") == TRUMP_081225_PARSER_VERSION:
-            printed = [row.get("row_number") for row in rows]
-            if (item.get("document_id") != TRUMP_TARGET_DOCUMENT_ID or
-                    item.get("source_url") != TRUMP_TARGET_SOURCE_URL or
-                    item.get("source_sha256") != TRUMP_TARGET_SOURCE_SHA256 or
-                    item.get("extraction_method") != "tesseract_ocr_geometry" or
-                    item.get("page_count") != 22 or
-                    item.get("filed_at") != TRUMP_TARGET_FILED_AT or
-                    source_bound_filing_date(item) != TRUMP_TARGET_FILED_AT or
+        if item.get('parser_version') in {REVIEWED_COVER_PARSER_VERSION, REVIEWED_LISTING_PARSER_VERSION}:
+            correction = _reviewed_report_profile(item)
+            if correction is None:
+                raise OgeCatalogError('Reviewed OCR source-bound contract is invalid')
+            profile = correction['source_profile']
+            constraints = correction['audit_constraints']
+            printed = [row.get('row_number') for row in rows]
+            if (item.get('page_count') != profile['page_count'] or
+                    item.get('filed_at') != profile['report_date'] or
+                    source_bound_filing_date(item) != profile['report_date'] or
                     not source_bound_filer_identity(item) or
-                    item.get("source_row_count") != 507 or len(rows) != 507 or
+                    item.get('source_row_count') != len(rows) or
+                    constraints.get('require_nonempty') and not rows or
+                    'row_count' in constraints and len(rows) != constraints['row_count'] or
+                    'extraction_method' in constraints and item.get('extraction_method') != constraints['extraction_method'] or
                     any(type(value) is not int for value in printed) or
-                    sorted(printed) != list(range(1, 508))):
-                raise OgeCatalogError("Trump 08/12/25 278-T source-bound contract is invalid")
-        if item.get("parser_version") == TRUMP_2026_PARSER_VERSION:
-            try:
-                profile = reviewed_listing_profile(
-                    item.get("document_id"), item.get("source_url"),
-                    item.get("source_sha256"))
-            except OgeCatalogError:
-                profile = None
-            printed = [row.get("row_number") for row in rows]
-            if (profile is None or item.get("page_count") != profile["page_count"] or
-                    item.get("filed_at") != profile["report_date"] or
-                    source_bound_filing_date(item) != profile["report_date"] or
-                    not source_bound_filer_identity(item) or
-                    item.get("source_row_count") != len(rows) or not rows or
-                    any(type(value) is not int for value in printed) or
-                    sorted(printed) != list(range(1, len(rows) + 1))):
-                raise OgeCatalogError("Trump 2026 278-T source-bound contract is invalid")
+                    sorted(printed) != list(range(1, len(rows)+1))):
+                raise OgeCatalogError('Reviewed OCR source-bound contract is invalid')
 
     generic_expected = {}
     for item in complete:
@@ -658,7 +598,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                      "whitehouse_directory_existing_oge_person",
                      "whitehouse_directory_annual_oge_person",
                      "whitehouse_directory_new_oge_person"} else
-                     TRUMP_PERSON_ID if identity and source_bound_filer_identity(report) else
+                     _reviewed_report_profile(report)['person']['id'] if identity and source_bound_filer_identity(report) else
                      _person_id(_identity_key(identity)) if identity else None)
         catalog = ({"filer_name": identity["filer_name"],
                     "position_title": identity["position_title"],
@@ -718,7 +658,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
             row_reasons = list(reasons) + field_reasons
             if person_id and not field_reasons:
                 keys = _trade_keys(source_row, person_id)
-                ignore_dedup = report.get("parser_version") == TRUMP_2026_PARSER_VERSION
+                ignore_dedup = report.get("parser_version") == REVIEWED_LISTING_PARSER_VERSION
                 comparison_keys = other_report_keys if bound_addition else existing_keys
                 if not ignore_dedup and keys & comparison_keys and retained is None:
                     row_reasons.append("possible_existing_oge_transaction_duplicate")

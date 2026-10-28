@@ -7,15 +7,13 @@ import unittest
 
 from unison_snapshot.builder import FIELDS
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t_audit import (
-    TRUMP_TARGET_DOCUMENT_ID, TRUMP_TARGET_SOURCE_SHA256, TRUMP_TARGET_SOURCE_URL,
-    audit_whitehouse_278t,
-)
-from unison_snapshot.whitehouse_278t import TRUMP_081225_PARSER_VERSION
+from unison_snapshot.whitehouse_278t_audit import (audit_whitehouse_278t)
+from unison_snapshot.whitehouse_278t import REVIEWED_COVER_PARSER_VERSION
 from unison_snapshot.whitehouse_278t_candidate import (
     _person, build_whitehouse_278t_review_candidate,
 )
 from unison_snapshot.whitehouse_annual_candidate import _person as annual_person
+from whitehouse_reviewed_fixture import (COVER_DOCUMENT_ID, COVER_SOURCE_SHA256, COVER_SOURCE_URL)
 
 
 def _base():
@@ -102,10 +100,10 @@ def _directory_for(report, label="Wiles, Susie"):
 def _trump_source_bound():
     report = _wiles()
     report.update({
-        "document_id": TRUMP_TARGET_DOCUMENT_ID,
-        "source_url": TRUMP_TARGET_SOURCE_URL,
-        "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
-        "parser_version": TRUMP_081225_PARSER_VERSION,
+        "document_id": COVER_DOCUMENT_ID,
+        "source_url": COVER_SOURCE_URL,
+        "source_sha256": COVER_SOURCE_SHA256,
+        "parser_version": REVIEWED_COVER_PARSER_VERSION,
         "filer_name": "Trump, Donald J.", "pdf_filer_name": "Donald J Trump",
         "pdf_position_title": "President of the United States of America",
         "pdf_agency_label": None,
@@ -116,20 +114,20 @@ def _trump_source_bound():
             "raw": "8/12/25", "normalized": "2025-08-12",
             "geometry": {"x0": 10.0, "top": 20.0, "x1": 40.0, "bottom": 30.0,
                          "coordinate_space": "pdf_points"},
-            "source_url": TRUMP_TARGET_SOURCE_URL,
-            "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
+            "source_url": COVER_SOURCE_URL,
+            "source_sha256": COVER_SOURCE_SHA256,
         },
         "filer_identity_evidence": {
             "page_number": 1, "pdf_filer_name": "Donald J Trump",
             "pdf_position_title": "President of the United States of America",
             "agency_basis": "exact_sha_official_oge_catalog_alias",
-            "source_url": TRUMP_TARGET_SOURCE_URL,
-            "source_sha256": TRUMP_TARGET_SOURCE_SHA256,
+            "source_url": COVER_SOURCE_URL,
+            "source_sha256": COVER_SOURCE_SHA256,
         },
     })
     report["transactions"] = [{
         "extraction_id": "oge-278t:" + hashlib.sha256(
-            f"{TRUMP_TARGET_SOURCE_SHA256}:{index}".encode()).hexdigest()[:24],
+            f"{COVER_SOURCE_SHA256}:{index}".encode()).hexdigest()[:24],
         "row_number": index, "owner": "Self", "asset_name": f"Asset {index}",
         "ticker": None, "transaction_type": "sale",
         "transaction_date": "2025-01-01", "amount_low": 1001,

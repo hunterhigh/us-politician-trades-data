@@ -7,13 +7,13 @@ import json
 from pathlib import Path
 
 from unison_snapshot.codec import encode
-from unison_snapshot.whitehouse_278t import (
-    EXTRACTION_SCHEMA,
-    TRUMP_081225_DOCUMENT_ID,
-    TRUMP_081225_PARSER_VERSION,
-    TRUMP_081225_SOURCE_SHA256,
-    TRUMP_081225_SOURCE_URL,
-)
+from unison_snapshot.whitehouse_278t import (EXTRACTION_SCHEMA, REVIEWED_COVER_PARSER_VERSION)
+from unison_snapshot.reviewed_whitehouse_ocr import profiles, source_profiles
+_COVER = next(c for c in profiles() if c['output_mode']=='source_cover_gate')
+COVER_DOCUMENT_ID = _COVER['document_id']
+COVER_SOURCE_SHA256 = _COVER['source_sha256']
+COVER_SOURCE_URL = _COVER['source_url']
+
 
 
 SCHEMA = "whitehouse-trump-278t-replay-audit/v1"
@@ -23,10 +23,10 @@ def audit_replay(extraction: dict, status: dict) -> dict:
     transactions = extraction.get("transactions")
     quarantined = extraction.get("quarantined")
     if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
-            extraction.get("parser_version") != TRUMP_081225_PARSER_VERSION or
-            extraction.get("document_id") != TRUMP_081225_DOCUMENT_ID or
-            extraction.get("source_url") != TRUMP_081225_SOURCE_URL or
-            extraction.get("source_sha256") != TRUMP_081225_SOURCE_SHA256 or
+            extraction.get("parser_version") != REVIEWED_COVER_PARSER_VERSION or
+            extraction.get("document_id") != COVER_DOCUMENT_ID or
+            extraction.get("source_url") != COVER_SOURCE_URL or
+            extraction.get("source_sha256") != COVER_SOURCE_SHA256 or
             extraction.get("filed_at") != "2025-08-12" or
             extraction.get("evidence_complete") is not True or
             extraction.get("document_reasons") != [] or
@@ -47,8 +47,8 @@ def audit_replay(extraction: dict, status: dict) -> dict:
            for row in quarantined):
         raise ValueError("Fixed Trump 278-T quarantined rows need explicit reasons")
     if (status.get("schema_version") != "whitehouse-public-extraction-status/v1" or
-            status.get("fixed_document_id") != TRUMP_081225_DOCUMENT_ID or
-            status.get("fixed_source_sha256") != TRUMP_081225_SOURCE_SHA256 or
+            status.get("fixed_document_id") != COVER_DOCUMENT_ID or
+            status.get("fixed_source_sha256") != COVER_SOURCE_SHA256 or
             status.get("selected_version_count") != 1 or
             status.get("failure_count") != 0 or
             status.get("recorded_failure_count") != 0 or
@@ -59,10 +59,10 @@ def audit_replay(extraction: dict, status: dict) -> dict:
         raise ValueError("Fixed Trump 278-T replay status is incomplete")
     return {
         "schema_version": SCHEMA,
-        "document_id": TRUMP_081225_DOCUMENT_ID,
-        "source_url": TRUMP_081225_SOURCE_URL,
-        "source_sha256": TRUMP_081225_SOURCE_SHA256,
-        "parser_version": TRUMP_081225_PARSER_VERSION,
+        "document_id": COVER_DOCUMENT_ID,
+        "source_url": COVER_SOURCE_URL,
+        "source_sha256": COVER_SOURCE_SHA256,
+        "parser_version": REVIEWED_COVER_PARSER_VERSION,
         "filed_at": "2025-08-12",
         "source_row_count": 507,
         "transaction_count": len(transactions),

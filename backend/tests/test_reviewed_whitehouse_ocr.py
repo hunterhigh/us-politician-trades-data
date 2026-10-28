@@ -30,8 +30,8 @@ def fixture():
         'header': header, 'assertions': {'input_rows_sha256': digest(encode(raw)),
             'output_rows_sha256': digest(encode(corrected)), 'row_inventory': ['1'], 'page_row_counts': {'2': 1},
             'approved_artifact_sha256': [reviewed.artifact_fingerprint(report)]},
-        'actions': [{'op': 'set_field', 'row': '1', 'field': 'cells', 'expect': raw[0]['cells'],
-            'value': corrected[0]['cells'], 'evidence': {'basis': 'source-bound review'}}]}
+        'actions': [{'op': 'set_field', 'row': '1', 'field': 'printed_row_number', 'expect': 'bad',
+            'value': '1', 'evidence': {'basis': 'source-bound review'}}]}
     return raw, corrected, report, correction
 
 
@@ -55,7 +55,7 @@ class ReviewedWhiteHouseOcrTests(unittest.TestCase):
             changed = deepcopy(correction)
             if kind == 'expect': changed['actions'][0]['expect'] = []
             if kind == 'duplicate': changed['actions'].append(changed['actions'][0])
-            if kind == 'output': changed['actions'][0]['value'][0] = '2'
+            if kind == 'output': changed['actions'][0]['value'] = '2'
             if kind == 'operation': changed['actions'][0]['op'] = 'drop_row'
             with self.subTest(kind=kind), self.assertRaises(OgeCatalogError):
                 reviewed.apply_row_corrections(raw, changed)

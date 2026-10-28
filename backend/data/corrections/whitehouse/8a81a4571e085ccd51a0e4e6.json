@@ -76,27 +76,10 @@
     {
       "op": "set_field",
       "row": "1",
-      "field": "cells",
-      "expect": [
-        "136",
-        "GOLDMAN SACHS GROUP INC PERP 7.5000% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "1",
-        "GOLDMAN SACHS GROUP INC PERP 7.5000% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "136",
+      "value": "1",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 143.28
       }
@@ -104,27 +87,10 @@
     {
       "op": "set_field",
       "row": "2",
-      "field": "cells",
-      "expect": [
-        "136 195",
-        "GOLDMAN SACHS GROUP INC PERP 7.5000% 12/31/49",
-        "bel",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "2",
-        "GOLDMAN SACHS GROUP INC PERP 7.5000% 12/31/49",
-        "bel",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "136 195",
+      "value": "2",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 152.4
       }
@@ -132,27 +98,10 @@
     {
       "op": "set_field",
       "row": "3",
-      "field": "cells",
-      "expect": [
-        "195 136",
-        "GOLDMAN SACHS GROUP INC PERP 6.1250% 12/31/49",
-        "| purchaso",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "3",
-        "GOLDMAN SACHS GROUP INC PERP 6.1250% 12/31/49",
-        "| purchaso",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "195 136",
+      "value": "3",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 167.04
       }
@@ -160,27 +109,10 @@
     {
       "op": "set_field",
       "row": "4",
-      "field": "cells",
-      "expect": [
-        "136 137",
-        "GOLDMAN SACHS GROUP INC PERP 6.1250% 12/31/49",
-        "Bassin",
-        "_",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "4",
-        "GOLDMAN SACHS GROUP INC PERP 6.1250% 12/31/49",
-        "Bassin",
-        "_",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "136 137",
+      "value": "4",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 178.56
       }
@@ -188,27 +120,10 @@
     {
       "op": "set_field",
       "row": "5",
-      "field": "cells",
-      "expect": [
-        "3138 137",
-        "HUNTINGTON BANCSHARES INC Tl 5.6250% 12/31/49",
-        "purcnaso",
-        "_",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "5",
-        "HUNTINGTON BANCSHARES INC Tl 5.6250% 12/31/49",
-        "purcnaso",
-        "_",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "3138 137",
+      "value": "5",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 196.8
       }
@@ -216,27 +131,10 @@
     {
       "op": "set_field",
       "row": "6",
-      "field": "cells",
-      "expect": [
-        "130",
-        "HUNTINGTON BANCSHARES INC Tl 5.6250% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025",
-        ""
-      ],
-      "value": [
-        "6",
-        "HUNTINGTON BANCSHARES INC Tl 5.6250% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "130",
+      "value": "6",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 213.84
       }
@@ -244,27 +142,10 @@
     {
       "op": "set_field",
       "row": "7",
-      "field": "cells",
-      "expect": [
-        "130 140",
-        "HUNTINGTON BANCSHARES INC Tl 4.4500%",
-        "a",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "7",
-        "HUNTINGTON BANCSHARES INC Tl 4.4500%",
-        "a",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "130 140",
+      "value": "7",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 224.4
       }
@@ -272,27 +153,10 @@
     {
       "op": "set_field",
       "row": "8",
-      "field": "cells",
-      "expect": [
-        "141 140",
-        "JPMORGAN CHASE & CO PERP NT 6.5000% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "8",
-        "JPMORGAN CHASE & CO PERP NT 6.5000% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "141 140",
+      "value": "8",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 239.52
       }
@@ -300,27 +164,10 @@
     {
       "op": "set_field",
       "row": "9",
-      "field": "cells",
-      "expect": [
-        "143",
-        "JPMORGAN CHASE & CO ALT TIER 3.6500% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/202S 5/8/2025",
-        ""
-      ],
-      "value": [
-        "9",
-        "JPMORGAN CHASE & CO ALT TIER 3.6500% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/202S 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "143",
+      "value": "9",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 265.92
       }
@@ -328,27 +175,10 @@
     {
       "op": "set_field",
       "row": "10",
-      "field": "cells",
-      "expect": [
-        "143 sae",
-        "JPMORGAN CHASE & CO PERP NN 6.8750%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "10",
-        "JPMORGAN CHASE & CO PERP NN 6.8750%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "143 sae",
+      "value": "10",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 278.64
       }
@@ -356,27 +186,10 @@
     {
       "op": "set_field",
       "row": "11",
-      "field": "cells",
-      "expect": [
-        "sae us",
-        "METUFE INC PERP JR SB GLBL 5.8750%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "11",
-        "METUFE INC PERP JR SB GLBL 5.8750%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "sae us",
+      "value": "11",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 291.6
       }
@@ -384,27 +197,10 @@
     {
       "op": "set_field",
       "row": "12",
-      "field": "cells",
-      "expect": [
-        "148 us",
-        "METLIFE INC PERP JR SB GLBL 5.8750%",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "12",
-        "METLIFE INC PERP JR SB GLBL 5.8750%",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "148 us",
+      "value": "12",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 305.04
       }
@@ -412,27 +208,10 @@
     {
       "op": "set_field",
       "row": "13",
-      "field": "cells",
-      "expect": [
-        "147",
-        "METLIFE INC PERP JR SB GLBL5.8750%",
-        "[purchano",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "13",
-        "METLIFE INC PERP JR SB GLBL5.8750%",
-        "[purchano",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "147",
+      "value": "13",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 318.72
       }
@@ -440,27 +219,10 @@
     {
       "op": "set_field",
       "row": "14",
-      "field": "cells",
-      "expect": [
-        "147 148",
-        "MORGAN STANLEY DEP SHS REPST 6.6250% 12/31/49",
-        "—_",
-        "",
-        "5/8/2025 5/8/2025",
-        "$15,001 - $50,000"
-      ],
-      "value": [
-        "14",
-        "MORGAN STANLEY DEP SHS REPST 6.6250% 12/31/49",
-        "—_",
-        "",
-        "5/8/2025 5/8/2025",
-        "$15,001 - $50,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "147 148",
+      "value": "14",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 333.12
       }
@@ -468,27 +230,10 @@
     {
       "op": "set_field",
       "row": "15",
-      "field": "cells",
-      "expect": [
-        "148 140",
-        "MORGAN STANLEY PERP JR GLBL 5.8750%",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        "yea |$50,001 - $100,000"
-      ],
-      "value": [
-        "15",
-        "MORGAN STANLEY PERP JR GLBL 5.8750%",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        "yea |$50,001 - $100,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "148 140",
+      "value": "15",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 345.36
       }
@@ -496,27 +241,10 @@
     {
       "op": "set_field",
       "row": "16",
-      "field": "cells",
-      "expect": [
-        "350 140",
-        "MORGAN STANLEY PERP JR GLBL 5.8750%",
-        "rehose",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "16",
-        "MORGAN STANLEY PERP JR GLBL 5.8750%",
-        "rehose",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "350 140",
+      "value": "16",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 358.08
       }
@@ -524,27 +252,10 @@
     {
       "op": "set_field",
       "row": "17",
-      "field": "cells",
-      "expect": [
-        "451",
-        "SCHWAB CHARLES CORP PERP SUB 4,0000%,",
-        "purchsso",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "17",
-        "SCHWAB CHARLES CORP PERP SUB 4,0000%,",
-        "purchsso",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "451",
+      "value": "17",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 372.24
       }
@@ -552,27 +263,10 @@
     {
       "op": "set_field",
       "row": "18",
-      "field": "cells",
-      "expect": [
-        "152",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "purchaao",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "18",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "purchaao",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "152",
+      "value": "18",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 385.44
       }
@@ -580,27 +274,10 @@
     {
       "op": "set_field",
       "row": "19",
-      "field": "cells",
-      "expect": [
-        "153",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "Purchase",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "19",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "Purchase",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "153",
+      "value": "19",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 398.88
       }
@@ -608,27 +285,10 @@
     {
       "op": "set_field",
       "row": "20",
-      "field": "cells",
-      "expect": [
-        "454 153",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "rc",
-        "",
-        "$/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "20",
-        "SCHWAB CHARLES CORP PERP SUB 4.0000%",
-        "rc",
-        "",
-        "$/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "454 153",
+      "value": "20",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 411.84
       }
@@ -636,27 +296,10 @@
     {
       "op": "set_field",
       "row": "21",
-      "field": "cells",
-      "expect": [
-        "135",
-        "SCHWAB CHARLES CORP PERP SUB 4,0000%",
-        "wrchose",
-        "",
-        "$/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "21",
-        "SCHWAB CHARLES CORP PERP SUB 4,0000%",
-        "wrchose",
-        "",
-        "$/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "135",
+      "value": "21",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 425.28
       }
@@ -664,27 +307,10 @@
     {
       "op": "set_field",
       "row": "22",
-      "field": "cells",
-      "expect": [
-        "150",
-        "SEMPRA PERP SUB GLBL -C 4.8750%",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "22",
-        "SEMPRA PERP SUB GLBL -C 4.8750%",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "150",
+      "value": "22",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 439.2
       }
@@ -692,27 +318,10 @@
     {
       "op": "set_field",
       "row": "23",
-      "field": "cells",
-      "expect": [
-        "150 157",
-        "STATE STR CORP PERP -I BD 6.7000% 12/31/49",
-        "purchoss",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "23",
-        "STATE STR CORP PERP -I BD 6.7000% 12/31/49",
-        "purchoss",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "150 157",
+      "value": "23",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 451.92
       }
@@ -720,27 +329,10 @@
     {
       "op": "set_field",
       "row": "24",
-      "field": "cells",
-      "expect": [
-        "157 158",
-        "TRUIST FINL CORP PERP NT S.1000%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "24",
-        "TRUIST FINL CORP PERP NT S.1000%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "157 158",
+      "value": "24",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 464.88
       }
@@ -748,27 +340,10 @@
     {
       "op": "set_field",
       "row": "25",
-      "field": "cells",
-      "expect": [
-        "i180 158",
-        "TRUIST FINL CORP PERP NT 5.1000%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "25",
-        "TRUIST FINL CORP PERP NT 5.1000%",
-        "Purchase",
-        "",
-        "_5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "i180 158",
+      "value": "25",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 477.84
       }
@@ -776,27 +351,10 @@
     {
       "op": "set_field",
       "row": "26",
-      "field": "cells",
-      "expect": [
-        "180",
-        "US BANCORP ALT TER | PERP 5.3000% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "26",
-        "US BANCORP ALT TER | PERP 5.3000% 12/31/49",
-        "Purchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "180",
+      "value": "26",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 491.52
       }
@@ -804,27 +362,10 @@
     {
       "op": "set_field",
       "row": "27",
-      "field": "cells",
-      "expect": [
-        "161",
-        "US BANCORP ALT TIER I PERP S.3000% 12/31/49",
-        "Durchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "27",
-        "US BANCORP ALT TIER I PERP S.3000% 12/31/49",
-        "Durchase",
-        "",
-        "5/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "161",
+      "value": "27",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 505.68
       }
@@ -832,27 +373,10 @@
     {
       "op": "set_field",
       "row": "28",
-      "field": "cells",
-      "expect": [
-        "162 161",
-        "WELLS FARGO & CO NEW - WFCpl",
-        "purchaso",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
-      "value": [
-        "28",
-        "WELLS FARGO & CO NEW - WFCpl",
-        "purchaso",
-        "",
-        "5/8/2025 $/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "162 161",
+      "value": "28",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 518.4
       }
@@ -860,27 +384,10 @@
     {
       "op": "set_field",
       "row": "29",
-      "field": "cells",
-      "expect": [
-        "163",
-        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
-      "value": [
-        "29",
-        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49",
-        "Purchase",
-        "",
-        "$/8/2025 5/8/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "163",
+      "value": "29",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 531.84
       }
@@ -888,27 +395,10 @@
     {
       "op": "set_field",
       "row": "30",
-      "field": "cells",
-      "expect": [
-        "163 164",
-        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49",
-        "Durchase",
-        "",
-        "5/8/2025 5/8/2025",
-        "yea Lage = 315,000"
-      ],
-      "value": [
-        "30",
-        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49",
-        "Durchase",
-        "",
-        "5/8/2025 5/8/2025",
-        "yea Lage = 315,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "163 164",
+      "value": "30",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 543.36
       }
@@ -916,27 +406,10 @@
     {
       "op": "set_field",
       "row": "31",
-      "field": "cells",
-      "expect": [
-        "18s 164",
-        "WELLS FARGO & CO PERP A BB N 3.900% 12/31/49",
-        "ourenove",
-        "",
-        "_ 5/8/2025 5/8/2025",
-        "a Ome"
-      ],
-      "value": [
-        "31",
-        "WELLS FARGO & CO PERP A BB N 3.900% 12/31/49",
-        "ourenove",
-        "",
-        "_ 5/8/2025 5/8/2025",
-        "a Ome"
-      ],
+      "field": "printed_row_number",
+      "expect": "18s 164",
+      "value": "31",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 6,
         "geometry_top": 554.16
       }
@@ -944,27 +417,10 @@
     {
       "op": "set_field",
       "row": "32",
-      "field": "cells",
-      "expect": [
-        "107",
-        "AIR LEASE CORP PERP GLBL D N 6.0000% 12/31/49",
-        "",
-        "",
-        "S/7/202S 5/7/2025",
-        "yeu |$100,001 - $250,000"
-      ],
-      "value": [
-        "32",
-        "AIR LEASE CORP PERP GLBL D N 6.0000% 12/31/49",
-        "",
-        "",
-        "S/7/202S 5/7/2025",
-        "yeu |$100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "107",
+      "value": "32",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 147.12
       }
@@ -972,27 +428,10 @@
     {
       "op": "set_field",
       "row": "33",
-      "field": "cells",
-      "expect": [
-        "168",
-        "BANK OF AMERICA CORPORATION - BACpI",
-        "",
-        "",
-        "5/7/2025 5/7/2025",
-        "you | $15,001 - 550,000"
-      ],
-      "value": [
-        "33",
-        "BANK OF AMERICA CORPORATION - BACpI",
-        "",
-        "",
-        "5/7/2025 5/7/2025",
-        "you | $15,001 - 550,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "168",
+      "value": "33",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 161.04
       }
@@ -1000,27 +439,10 @@
     {
       "op": "set_field",
       "row": "34",
-      "field": "cells",
-      "expect": [
-        "169",
-        "BK OF AMERICA CORP PERP TT N 6.12S0% 12/31/49",
-        "",
-        "",
-        "5/7/2025 $/7/2025",
-        "yea | $250,001 - $500,000"
-      ],
-      "value": [
-        "34",
-        "BK OF AMERICA CORP PERP TT N 6.12S0% 12/31/49",
-        "",
-        "",
-        "5/7/2025 $/7/2025",
-        "yea | $250,001 - $500,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "169",
+      "value": "34",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 174.24
       }
@@ -1028,27 +450,10 @@
     {
       "op": "set_field",
       "row": "35",
-      "field": "cells",
-      "expect": [
-        "170",
-        "BANK AMERICA CORP PERP GLBL 6.6250% 12/31/49",
-        "",
-        "",
-        "$/7/2025 5/7/2028",
-        "__Yo8 | $250,001 - $300,000"
-      ],
-      "value": [
-        "35",
-        "BANK AMERICA CORP PERP GLBL 6.6250% 12/31/49",
-        "",
-        "",
-        "$/7/2025 5/7/2028",
-        "__Yo8 | $250,001 - $300,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "170",
+      "value": "35",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 187.68
       }
@@ -1056,27 +461,10 @@
     {
       "op": "set_field",
       "row": "36",
-      "field": "cells",
-      "expect": [
-        "170 174",
-        "CAPITAL ONE FINL CORP PERP S 3.9500%",
-        "",
-        "",
-        "S/7/202S 5/7/2028 yes",
-        "| $100,001 - $250,000"
-      ],
-      "value": [
-        "36",
-        "CAPITAL ONE FINL CORP PERP S 3.9500%",
-        "",
-        "",
-        "S/7/202S 5/7/2028 yes",
-        "| $100,001 - $250,000"
-      ],
+      "field": "printed_row_number",
+      "expect": "170 174",
+      "value": "36",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 200.64
       }
@@ -1084,27 +472,10 @@
     {
       "op": "set_field",
       "row": "37",
-      "field": "cells",
-      "expect": [
-        "174 472",
-        "MORGAN STANLEY DEP SHS REPST 6.6250% 12/31/49",
-        "",
-        "",
-        "S/7/202S S/7/2025",
-        ""
-      ],
-      "value": [
-        "37",
-        "MORGAN STANLEY DEP SHS REPST 6.6250% 12/31/49",
-        "",
-        "",
-        "S/7/202S S/7/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "174 472",
+      "value": "37",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 213.36
       }
@@ -1112,27 +483,10 @@
     {
       "op": "set_field",
       "row": "38",
-      "field": "cells",
-      "expect": [
-        "173 472",
-        "PNC FINL SVCS GROUP INC TIER 6.2000%",
-        "",
-        "",
-        "S/7/2025 5/7/2025",
-        ""
-      ],
-      "value": [
-        "38",
-        "PNC FINL SVCS GROUP INC TIER 6.2000%",
-        "",
-        "",
-        "S/7/2025 5/7/2025",
-        ""
-      ],
+      "field": "printed_row_number",
+      "expect": "173 472",
+      "value": "38",
       "evidence": {
-        "basis": "existing_source_bound_geometry_review",
-        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
-        "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
         "page_number": 7,
         "geometry_top": 226.32
       }
@@ -1173,5 +527,14 @@
     "source_id": "oge",
     "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
     "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf"
+  },
+  "person": {
+    "id": "oge:076544f8ba0638cf",
+    "display_name": "Donald Trump",
+    "short_name": "Trump",
+    "role": "President of the United States of America"
+  },
+  "audit_constraints": {
+    "require_nonempty": true
   }
 }
