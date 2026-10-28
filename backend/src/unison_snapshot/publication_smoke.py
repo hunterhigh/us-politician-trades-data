@@ -10,7 +10,7 @@ import subprocess
 import sys
 from urllib.error import HTTPError, URLError
 
-from .legacy import load, processor_version_for
+from . import legacy
 
 SHA = re.compile(r'[0-9a-f]{40}\Z')
 SCHEMA = 'publication-smoke/v1'
@@ -75,7 +75,12 @@ def check_client(*, repository, commit, client_root, output_dir, people, runner=
     if results[0]['status'] == 'passed':
         try:
             dashboard = read_json(output_dir/'0.json')
-            renderer = load('render_dashboard', version=processor_version_for(dashboard))
+            # The deployed producer uses the pinned v2 renderer; the v1
+            # candidate adds a format selector. Keep each release on its own
+            # shipped consumer rather than importing the new parser to deploy
+            # this independent operational observer.
+            version = legacy.processor_version_for(dashboard) if hasattr(legacy, 'processor_version_for') else 'v2'
+            renderer = legacy.load('render_dashboard', version=version)
             html = renderer.render_html(renderer.load_dashboard_data(output_dir/'0.json'))
             if not isinstance(html, str) or '<html' not in html.lower():
                 raise ValueError('Report renderer produced no HTML document')

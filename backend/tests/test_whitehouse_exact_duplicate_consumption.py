@@ -104,7 +104,7 @@ class WhiteHouseExactDuplicateConsumptionTests(unittest.TestCase):
 
     def gate(self, refs, *, transitions=None):
         repo, main, evidence, review = refs
-        args = ['-m', 'unison_snapshot.pipeline_qa.publication_delta',
+        args = ['-m', 'unison_snapshot.fact_policy.publication_delta',
             '--previous-board', self.base, '--unified', self.candidate,
             '--prepared', self.candidate, '--source-root', self.root / 'sources',
             '--output', self.root / 'delta.json', '--repo', repo,

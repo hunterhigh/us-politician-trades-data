@@ -76,7 +76,7 @@ class OgeOwnerHistoryPublicationTests(unittest.TestCase):
             source_root, output = root / 'sources', root / 'delta.json'
             for name, value in sources_for(candidate).items():
                 save(source_root / f'{name}-current.json', value)
-            gate = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+            gate = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                 '--previous-board', str(root / 'previous.json'), '--unified', str(candidate_path),
                 '--prepared', str(candidate_path), '--source-root', str(source_root), '--output', str(output),
                 '--repo', str(repo), '--main-commit', main, '--evidence-commit', evidence_commit,

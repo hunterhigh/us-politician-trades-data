@@ -14,8 +14,8 @@ from tests.test_whitehouse_owner_correction import fixture, encoded
 from unison_snapshot.whitehouse_native_correction import (
     NativeClassificationSources, NativeCorrectionError, prepare_native_classification_sources,
     reconcile_native_classification)
-from unison_snapshot.pipeline_qa.whitehouse_classification_correction import verified_classification_corrections
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
+from unison_snapshot.fact_policy.whitehouse_classification_correction import verified_classification_corrections
+from unison_snapshot.fact_policy.source_objects import InventoryError
 
 
 class WhiteHouseClassificationCorrectionTests(unittest.TestCase):
@@ -146,9 +146,9 @@ class WhiteHouseClassificationCorrectionTests(unittest.TestCase):
     def test_unrelated_quarantine_and_budget_boundaries(self):
         self.assertEqual(self.verify(fixture(extra='unrelated'))[0]['changed_fields'], ['instrument_type', 'owner'])
         with self.assertRaises(InventoryError): self.verify(fixture(extra='scope'))
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_TOTAL_BYTES', 10):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_TOTAL_BYTES', 10):
             with self.assertRaisesRegex(InventoryError, 'byte budget'): self.verify()
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_PAGES', 1):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_PAGES', 1):
             with self.assertRaisesRegex(InventoryError, 'page count'): self.verify()
 
     def test_normal_candidate_and_fixed_git_delta_cli_both_states_repeat_and_explicit(self):
@@ -181,7 +181,7 @@ class WhiteHouseClassificationCorrectionTests(unittest.TestCase):
                     save(root/'sources'/f'{name}-current.json', candidate if name=='oge' else
                         {**candidate, 'people': [], 'transactions': [], 'reported_holdings': []})
                 output=root/'delta.json'
-                gate=[sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+                gate=[sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                     '--previous-board', str(root/'base.json'), '--unified', str(root/'candidate.json'),
                     '--prepared', str(root/'candidate.json'), '--source-root', str(root/'sources'), '--output', str(output),
                     '--repo', str(repo), '--main-commit', commit, '--evidence-commit', commit, '--review-commit', commit]

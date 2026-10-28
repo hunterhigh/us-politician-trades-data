@@ -215,7 +215,7 @@ class CoverConsumptionTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=str(repository/'backend/src'), GIT_NO_LAZY_FETCH='1')
         def command(output):
-            return [sys.executable, '-m', 'unison_snapshot.pipeline_qa.oge_run_cli',
+            return [sys.executable, '-m', 'unison_snapshot.fact_policy.oge_run_cli',
                 '--catalog', str(self.root/'catalog.json'), '--archive-batch',str(self.root/'archive.json'),
                 '--extraction-batch',str(self.root/'extracted.json'), '--extractions-dir',str(extraction_dir),
                 '--evidence-root',str(data['evidence']), '--saved-observations',str(self.root/'saved.json'),

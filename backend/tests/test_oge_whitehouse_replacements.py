@@ -18,7 +18,6 @@ from unison_snapshot.public_repo import PublicSnapshotRepository
 from test_public_repo import FakeTransport
 from scripts.build_whitehouse_278t_candidate import main as wh_cli
 from unison_snapshot.oge_reports import parse_table_rows
-from unison_snapshot.pipeline_qa.oge_run_cli import main as runner_cli
 
 WH_URL='https://www.whitehouse.gov/wp-content/uploads/2025/08/Example-Periodic-Transaction-Report-8.12.25-2.pdf'
 WH_DOC='wh-url:'+hashlib.sha256(WH_URL.encode()).hexdigest()[:24]
@@ -205,26 +204,6 @@ class CrossSourceReplacementTests(unittest.TestCase):
                     result,audit=apply_cross_source_native_replacements(wh,{DOCUMENT_ID:d['inputs']},d['wh_inputs'],d['evidence'],d['review'])
                 self.assertEqual(result,wh);self.assertEqual(audit['applications'],[])
 
-    def test_runner_defers_wh_schema_without_qualifying_or_dropping_old_formal(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);d=cross_fixture(root)
-            with mocks(d):
-                wh,_,_=_whitehouse_candidate(d['wh_inputs'])
-                # Only the selected OGE source is in the direct source inventory.
-                args=runner_arguments(d,root/'runner-inputs',wh,root/'runner-output')
-                for name,value in [('catalog',catalog(d['src'])),('archive-batch',None),('extraction-batch',None)]:
-                    path=root/'runner-inputs'/(name+'.json')
-                    if value is None:
-                        value=json.loads(path.read_text(encoding='utf-8'))
-                        if name=='archive-batch':
-                            value.update(catalog_direct_count=1,attempted_count=1,archived_count=1,
-                                reports=[r for r in value['reports'] if r['document_id']==DOCUMENT_ID])
-                        else:value.update(report_count=1,extraction_count=1)
-                    write(path,value)
-                (root/'runner-inputs/extractions'/ (d['old']['document_id']+'.json')).unlink()
-                self.assertEqual(runner_cli(args),0)
-                ledger=json.loads((root/'runner-output/candidate_rows.json').read_text(encoding='utf-8'))
-                self.assertEqual([row['disposition'] for row in ledger],['quarantined'])
 
     def test_normal_wh_cli_status_builder_and_complete_chain_repeat(self):
         from unison_snapshot.__main__ import main as direct_cli

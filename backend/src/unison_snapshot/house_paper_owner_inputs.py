@@ -112,7 +112,7 @@ def represented_paper_owner_fact(projection, formal):
         return None
     differences = [key for key in formal if projection[key] != formal[key]]
     if differences:
-        from .pipeline_qa.migration_inventory import _market_enrichment_only
+        from .fact_policy.source_objects import _market_enrichment_only
         if not _market_enrichment_only(formal, projection, differences):
             return None
     return deepcopy(formal)

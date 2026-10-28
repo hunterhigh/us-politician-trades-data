@@ -12,9 +12,9 @@ from test_oge import row, payload, DIRECT
 from test_oge_reports import Client
 from unison_snapshot.oge import archive_catalog, parse_catalog_page, build_catalog, OgeSourceConfig
 from unison_snapshot.oge_reports import archive_direct_pdf
-from unison_snapshot.pipeline_qa.migration_inventory import git_object
-from unison_snapshot.pipeline_qa.whitehouse_owner_correction import _Sources
-import unison_snapshot.pipeline_qa.oge_catalog_source as loader
+from unison_snapshot.fact_policy.source_objects import git_object
+from unison_snapshot.fact_policy.whitehouse_owner_correction import _Sources
+import unison_snapshot.fact_policy.oge_catalog_source as loader
 
 
 EVIDENCE, REVIEW = 'a'*40, 'b'*40

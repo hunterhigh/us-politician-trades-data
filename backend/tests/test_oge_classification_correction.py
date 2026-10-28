@@ -16,8 +16,8 @@ from test_oge_owner_correction import fixture, write_files, encoded, DOCUMENT, C
 from unison_snapshot.oge import build_catalog, parse_catalog_page, archive_catalog
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.whitehouse_native_correction import _historical_projection
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.oge_classification_correction import verified_oge_classification_corrections
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.oge_classification_correction import verified_oge_classification_corrections
 
 
 @lru_cache(maxsize=16)

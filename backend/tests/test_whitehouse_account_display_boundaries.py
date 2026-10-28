@@ -11,11 +11,11 @@ import unittest
 from unittest.mock import patch
 
 from whitehouse_account_display_fixture import fixture, encoded, write_files
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.whitehouse_account_display_correction import (
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.whitehouse_account_display_correction import (
     verified_account_display_corrections)
-from unison_snapshot.pipeline_qa.whitehouse_owner_correction import verified_owner_corrections
-from unison_snapshot.pipeline_qa.whitehouse_classification_correction import verified_classification_corrections
+from unison_snapshot.fact_policy.whitehouse_owner_correction import verified_owner_corrections
+from unison_snapshot.fact_policy.whitehouse_classification_correction import verified_classification_corrections
 
 
 def source_mutator(kind):
@@ -191,9 +191,9 @@ class WhiteHouseAccountDisplayBoundaryTests(unittest.TestCase):
         with self.assertRaises(InventoryError):self.verify(wrong)
 
     def test_shared_read_and_page_budgets_apply_before_source_qualification(self):
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_TOTAL_BYTES',10):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_TOTAL_BYTES',10):
             with self.assertRaisesRegex(InventoryError,'byte budget'):self.verify()
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_PAGES',1):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_PAGES',1):
             with self.assertRaisesRegex(InventoryError,'page count'):self.verify()
 
     def test_rehashed_real_painting_and_font_state_cannot_authorize_a_title(self):
@@ -244,7 +244,7 @@ class WhiteHouseAccountDisplayBoundaryTests(unittest.TestCase):
                 write_files(root/'sources',{f'{name}-current.json':encoded(value)})
             output=root/'delta.json';output.write_bytes(b'prior delta must survive\n')
             protected={path:path.read_bytes() for path in (candidate,audit,output)}
-            command=[sys.executable,'-m','unison_snapshot.pipeline_qa.publication_delta',
+            command=[sys.executable,'-m','unison_snapshot.fact_policy.publication_delta',
                 '--previous-board',str(root/'base.json'),'--unified',str(candidate),'--prepared',str(candidate),
                 '--source-root',str(root/'sources'),'--output',str(output),'--repo',str(repo),
                 '--main-commit',ref,'--review-commit',ref,'--evidence-commit',ref]

@@ -79,39 +79,6 @@ class StructureAccountingTests(unittest.TestCase):
         ledger=adapt_oge_278t_extraction(source,record())
         self.assertEqual(ledger["counts"],{"qualified":2,"quarantined":0,"excluded":2,"unrecognized":0})
 
-    def test_native_runner_preserves_bad_rows_and_exact_structural_titles(self):
-        import json,tempfile
-        from pathlib import Path
-        from test_oge_shadow_run import _inputs
-        from test_oge_reports import PDF
-        from test_oge_candidate import base
-        from unison_snapshot.oge import SCHEMA
-        from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run
-        rows=[(2,["2","Spouse Investment Account #1","","","No",""]),
-              (2,["#","ALPHA",*ROW[2:]]),(2,["?","Description Type Date Amount Received Days Ago Fund",*ROW[2:]]),
-              (2,["Transaction ?","ALPHA",*ROW[2:]]),(2,["7","Spouse Account Fund","","","No",""]),
-              (2,["8",*ROW[1:]])]
-        source=native.NativeScopeTests().source(rows)
-        with tempfile.TemporaryDirectory() as d:
-            root=Path(d);args=_inputs(root)
-            for path in args["extractions_dir"].glob("*.json"):path.unlink()
-            (args["extractions_dir"]/f"{source['document_id']}.json").write_text(json.dumps(source),encoding="utf-8")
-            args["catalog_path"].write_text(json.dumps({"schema_version":SCHEMA,"transactions":[record()]}),encoding="utf-8")
-            archive=json.loads(args["archive_batch_path"].read_bytes())
-            archive["reports"]=[{**record(),"document_id":source["document_id"],"sha256":source["source_sha256"],
-                "archive_path":f"oge/reports/{source['document_id']}/{source['source_sha256']}.pdf","byte_length":len(PDF)}]
-            args["archive_batch_path"].write_text(json.dumps(archive),encoding="utf-8")
-            for name,value in [("saved",{}),("base",base())]:(root/f"{name}.json").write_text(json.dumps(value),encoding="utf-8")
-            manifest=build_oge_shadow_run(**args,saved_observations_path=root/"saved.json",candidate_base_path=root/"base.json",
-                                          data_cutoff_at="2026-09-20T00:00:00Z")
-            self.assertEqual(manifest["counts"]["qualified_rows"],1)
-            self.assertEqual(manifest["counts"]["quarantined_rows"],4)
-            self.assertEqual(manifest["counts"]["excluded_rows"],1)
-            facts=json.loads((args["output_dir"]/"candidate.json").read_bytes())
-            self.assertEqual(len(facts["transactions"]),1)
-            self.assertEqual(facts["transactions"][0]["owner"],"Spouse")
-            self.assertTrue(facts["transactions"][0]["asset_name"].endswith("Spouse Investment Account #1"))
-            self.assertTrue((args["output_dir"]/"snapshot/manifest.json").is_file())
 
     def test_marker_only_is_physical_unknown_and_never_an_invented_transaction(self):
         for cells in (["#"],["#","","","","",""]):

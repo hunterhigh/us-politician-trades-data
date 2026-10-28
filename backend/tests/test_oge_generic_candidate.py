@@ -9,14 +9,11 @@ from unittest.mock import patch
 from test_oge_candidate import base, catalog, direct, extraction, DOCUMENT_ID
 from test_oge_observed_candidate import original, candidate, bundle, ROW
 from test_oge_content_relations import saved, column_read, EDGES
-from test_oge_shadow_run import _inputs
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_reports import GENERIC_PARSER_VERSION, parse_table_rows, read_278t_cover_dates
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction, materialize_oge_278t_observations
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run
-from unison_snapshot.pipeline_qa.oge_run_cli import main as run_cli
 
 
 CELLS = ["1", "Example Inc. (EXM)", "Purchase", "05/01/2025", "", "$1,001 - $15,000"]
@@ -341,70 +338,7 @@ class GenericCandidateTests(unittest.TestCase):
         self.assertFalse(result["evidence_complete"])
         self.assertEqual(result["document_reasons"], ["filer_signature_date_missing"])
 
-    def test_runner_consumes_explicit_legacy_map_and_builds_snapshot(self):
-        old = original()
-        production, _ = build_oge_candidate(catalog(), [old], base(), data_cutoff_at="2025-06-04T00:00:00Z")
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            inputs = _inputs(root)
-            for file in inputs["extractions_dir"].glob("*.json"):
-                file.unlink()
-            (inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").write_text(json.dumps(generic()))
-            inputs["catalog_path"].write_text(json.dumps(catalog()))
-            archive = json.loads(inputs["archive_batch_path"].read_text())
-            report = archive["reports"][0]
-            report.update(document_id=DOCUMENT_ID, document_url=old["source_url"],
-                          filer_name=direct()["filer_name"], agency=direct()["agency"],
-                          position_title=direct()["position_title"], catalog_added_date=direct()["catalog_added_date"],
-                          archive_path=f"oge/reports/{DOCUMENT_ID}/{'a'*64}.pdf")
-            inputs["archive_batch_path"].write_text(json.dumps(archive))
-            paths = {}
-            for name, value in [("saved", {}), ("base", production), ("legacy", {DOCUMENT_ID: old})]:
-                paths[name] = root / (name + ".json")
-                paths[name].write_text(json.dumps(value))
-            manifest = build_oge_shadow_run(**inputs, saved_observations_path=paths["saved"],
-                          candidate_base_path=paths["base"], legacy_extractions_path=paths["legacy"],
-                          data_cutoff_at="2025-06-04T00:00:00Z")
-            actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf-8"))
-            self.assertEqual(actual["transactions"], production["transactions"])
-            audit = json.loads((inputs["output_dir"] / "candidate_audit.json").read_text(encoding="utf-8"))
-            inheritance = audit["reports"][0]["legacy_inheritance"]
-            self.assertEqual(inheritance["field_corrections"], [])
-            self.assertEqual(inheritance["owner_scope_deferred_ids"], [production["transactions"][0]["id"]])
-            self.assertEqual(len(inheritance["deferred_field_corrections"]), 1)
-            ledger = json.loads((inputs["output_dir"] / "candidate_rows.json").read_text(encoding="utf-8"))
-            self.assertEqual(ledger[0]["disposition"], "qualified")
-            self.assertEqual(next(item["normalized_value"] for item in ledger[0]["observations"]
-                                  if item["field"] == "owner"), "Self")
-            self.assertTrue(any(row["artifact_type"] == "legacy_extractions" for row in manifest["input_artifacts"]))
-            self.assertTrue((inputs["output_dir"] / "snapshot/manifest.json").is_file())
-            from test_public_repo import FakeTransport
-            from unison_snapshot.public_repo import PublicSnapshotRepository
-            snapshot_root = inputs["output_dir"] / "snapshot"
-            snapshot = {path.relative_to(snapshot_root).as_posix(): path.read_bytes()
-                        for path in snapshot_root.rglob("*") if path.is_file()}
-            public = PublicSnapshotRepository('contract', 'data', transport=FakeTransport(snapshot))
-            self.assertEqual(public.fetch().snapshot['transactions'], production['transactions'])
-            repeated_inputs = {**inputs, 'output_dir': root / 'repeated-output'}
-            repeated_manifest = build_oge_shadow_run(**repeated_inputs, saved_observations_path=paths["saved"],
-                candidate_base_path=paths["base"], legacy_extractions_path=paths["legacy"],
-                data_cutoff_at="2025-06-04T00:00:00Z")
-            self.assertEqual(repeated_manifest, manifest)
-            first_files = {path.relative_to(inputs['output_dir']).as_posix(): path.read_bytes()
-                           for path in inputs['output_dir'].rglob('*') if path.is_file()}
-            second_files = {path.relative_to(repeated_inputs['output_dir']).as_posix(): path.read_bytes()
-                            for path in repeated_inputs['output_dir'].rglob('*') if path.is_file()}
-            self.assertEqual(second_files, first_files)
 
-    def test_cli_forwards_optional_legacy_map(self):
-        with patch("unison_snapshot.pipeline_qa.oge_run_cli.build_oge_shadow_run", return_value={
-                "run_id": "x", "counts": {"discovered_documents": 1, "archived_documents": 1}, "accounted_rows": 1}) as call:
-            code = run_cli(["--catalog", "c", "--archive-batch", "a", "--extraction-batch", "e",
-                            "--extractions-dir", "d", "--output-dir", "o", "--run-id", "x",
-                            "--code-commit", "b"*40, "--evidence-commit", "c"*40,
-                            "--started-at", "s", "--completed-at", "t", "--legacy-extractions", "old.json"])
-        self.assertEqual(code, 0)
-        self.assertEqual(call.call_args.kwargs["legacy_extractions_path"], "old.json")
 
     def test_scoped_adapter_forwards_original_source_and_root_to_shared_owner_guard(self):
         # A real generated PDF exercises the private adapter route; wrapping

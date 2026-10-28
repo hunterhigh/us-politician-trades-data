@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.whitehouse_owner_correction import (
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.whitehouse_owner_correction import (
     _historical_instrument, _historical_projection, verified_owner_corrections)
 
 
@@ -174,9 +174,9 @@ class WhiteHouseOwnerCorrectionTests(unittest.TestCase):
         with self.assertRaises(InventoryError):self.verify(data)
 
     def test_limits_fail_before_native_parse(self):
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_TOTAL_BYTES',10):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_TOTAL_BYTES',10):
             with self.assertRaisesRegex(InventoryError,'byte budget'):self.verify()
-        with patch('unison_snapshot.pipeline_qa.whitehouse_owner_correction.MAX_PAGES',1):
+        with patch('unison_snapshot.fact_policy.whitehouse_owner_correction.MAX_PAGES',1):
             with self.assertRaisesRegex(InventoryError,'page count'):self.verify()
 
     def test_official_amendment_label_cannot_be_dropped_by_saved_cache(self):
@@ -268,7 +268,7 @@ class WhiteHouseOwnerCorrectionTests(unittest.TestCase):
                 save(sources/f'{name}-current.json',candidate if name=='oge' else
                     {**candidate,'people':[],'transactions':[],'reported_holdings':[]})
             output=root/'delta.json'
-            gate=[sys.executable,'-m','unison_snapshot.pipeline_qa.publication_delta','--previous-board',str(root/'base.json'),
+            gate=[sys.executable,'-m','unison_snapshot.fact_policy.publication_delta','--previous-board',str(root/'base.json'),
                 '--unified',str(root/'candidate.json'),'--prepared',str(root/'candidate.json'),
                 '--source-root',str(sources),'--output',str(output),'--repo',str(repo),
                 '--evidence-commit',commit,'--review-commit',commit,'--main-commit',commit]

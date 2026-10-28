@@ -154,7 +154,7 @@ class OwnerScopeCliTests(unittest.TestCase):
                 for name, source in sources_for(candidate).items():
                     save(root / 'sources' / f'{name}-current.json', source)
                 delta_path = root / 'delta.json'
-                gate = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+                gate = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                     '--previous-board', str(root / 'base.json'), '--unified', str(candidate_path),
                     '--prepared', str(candidate_path), '--source-root', str(root / 'sources'),
                     '--output', str(delta_path), '--repo', str(repo), '--main-commit', main,

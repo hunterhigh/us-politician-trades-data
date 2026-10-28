@@ -158,36 +158,6 @@ class NativeScopeTests(unittest.TestCase):
         self.assertEqual(repeated["transactions"],compact["transactions"])
         self.assertEqual(audit["reports"][0]["quarantined_count"],0)
 
-    def test_normal_runner_without_original_preserves_legacy_owner_and_cache(self):
-        from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run
-        source=self.source([(2,ROW)])
-        old=self.source([(2,ROW)],generic=False)
-        prior,_=self.candidate(old)
-        with tempfile.TemporaryDirectory() as d:
-            root=Path(d)
-            inputs={"catalog":{"schema_version":SCHEMA,"transactions":[record()]},"archive":{
-                "schema_version":"oge-278t-archive-batch/v1","reports":[{**record(),"document_id":source["document_id"],"sha256":source["source_sha256"],"byte_length":len(PDF),
-                    "archive_path":f"oge/reports/{source['document_id']}/{source['source_sha256']}.pdf"}],
-                "catalog_direct_count":1,"pending_count":0,"archived_count":1,"attempted_count":1,"failure_count":0,"failures":[]},"batch":{
-                "schema_version":"oge-278t-extraction-batch/v1","report_count":1,"extraction_count":1,"failure_count":0,"failures":[]},
-                "saved":{},"base":prior,"legacy":{source["document_id"]:old}}
-            for name,value in inputs.items():(root/f"{name}.json").write_text(json.dumps(value),encoding="utf-8")
-            (root/"extractions").mkdir();path=root/"extractions"/f"{source['document_id']}.json"
-            path.write_text(json.dumps(source),encoding="utf-8");before=path.read_bytes()
-            manifest=build_oge_shadow_run(catalog_path=root/"catalog.json",archive_batch_path=root/"archive.json",
-                extraction_batch_path=root/"batch.json",extractions_dir=root/"extractions",output_dir=root/"out",
-                saved_observations_path=root/"saved.json",candidate_base_path=root/"base.json",legacy_extractions_path=root/"legacy.json",
-                data_cutoff_at="2026-09-20T00:00:00Z",run_id="scope-legacy",code_commit="a"*40,
-                evidence_commit="b"*40,started_at="2026-09-20T00:00:00Z",completed_at="2026-09-20T00:01:00Z")
-            self.assertEqual(path.read_bytes(),before)
-            result=json.loads((root/"out/candidate.json").read_bytes())
-            self.assertEqual([r["id"] for r in result["transactions"]],[r["id"] for r in prior["transactions"]])
-            # A cached generic owner is not authority to rewrite an old formal fact.
-            self.assertEqual(source["transactions"][0]["owner"],"Undisclosed")
-            self.assertEqual(prior["transactions"][0]["owner"],"Self")
-            self.assertEqual(result["transactions"][0]["owner"],"Self")
-            self.assertEqual(manifest["counts"]["qualified_rows"],1)
-            self.assertEqual(manifest["counts"]["quarantined_rows"],0)
 
     def test_new_reuse_requires_mode_and_complete_source_replay_old_inputs_stay_readable(self):
         from unison_snapshot.oge_reports import load_reusable_extraction,GENERIC_PARSER_VERSION

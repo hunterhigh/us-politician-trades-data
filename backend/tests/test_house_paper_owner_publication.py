@@ -19,8 +19,8 @@ from test_house_candidate import BASE
 from test_house_paper_owner_correction import paper_owner_fixture, prepare
 from unison_snapshot.house_candidate import _person
 from unison_snapshot.house_paper_owner_correction import PROFILE_KEY
-from unison_snapshot.pipeline_qa.house_paper_owner_correction import verified_house_paper_owner_corrections
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
+from unison_snapshot.fact_policy.house_paper_owner_correction import verified_house_paper_owner_corrections
+from unison_snapshot.fact_policy.source_objects import InventoryError
 
 
 MAIN, REVIEW, EVIDENCE = 'a' * 40, 'b' * 40, 'c' * 40
@@ -126,7 +126,7 @@ class HousePaperOwnerPublicationTests(unittest.TestCase):
                     board.update(people=[], transactions=[], reported_holdings=[])
                 save(root / 'sources' / f'{name}-current.json', board)
             output = root / 'delta.json'
-            command = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+            command = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                 '--previous-board', str(root / 'previous.json'), '--unified', str(root / 'candidate.json'),
                 '--prepared', str(root / 'candidate.json'), '--source-root', str(root / 'sources'),
                 '--repo', str(repo), '--main-commit', main, '--evidence-commit', evidence,

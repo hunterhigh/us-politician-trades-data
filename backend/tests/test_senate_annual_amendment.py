@@ -7,8 +7,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta
 
 
 OLD_ID = "516c1638-5b26-4a14-99be-d89c1b426839"
@@ -97,9 +97,9 @@ class SenateAnnualAmendmentTests(unittest.TestCase):
             return objects[(commit, path)]
         def list_paths(repo, commit, directory):
             return paths[directory]
-        with patch("unison_snapshot.pipeline_qa.senate_annual_amendment.git_object",
+        with patch("unison_snapshot.fact_policy.senate_annual_amendment.git_object",
                    side_effect=read_object), patch(
-                   "unison_snapshot.pipeline_qa.senate_annual_amendment.git_tree_paths",
+                   "unison_snapshot.fact_policy.senate_annual_amendment.git_tree_paths",
                    side_effect=list_paths):
             # The function defaults bind at definition time, so patch the
             # publication boundary with a wrapper that supplies test readers.
@@ -107,7 +107,7 @@ class SenateAnnualAmendmentTests(unittest.TestCase):
             def verified(**kwargs):
                 return module.verified_amendment_rekeys(
                     **kwargs, read_object=read_object, list_paths=list_paths)
-            with patch("unison_snapshot.pipeline_qa.publication_delta.verified_amendment_rekeys",
+            with patch("unison_snapshot.fact_policy.publication_delta.verified_amendment_rekeys",
                        side_effect=verified):
                 return build_publication_delta(
                     previous_board=previous, unified=unified, prepared=prepared,

@@ -18,7 +18,6 @@ from unison_snapshot.disclosure_status import attach_disclosure_status
 from unison_snapshot.builder import build
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from test_public_repo import FakeTransport
-from unison_snapshot.pipeline_qa.oge_run_cli import main as runner_cli
 
 OLD_DOC='b'*32
 URL='https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/'+DOCUMENT_ID+'/$FILE/Example-08.12.2025-278T(2)%20AMENDED.pdf'
@@ -207,38 +206,6 @@ class NativeAmountOnlyApplicationTests(unittest.TestCase):
             self.assertEqual(report['promoted_count'],0)
             self.assertEqual(report['quarantined'][0]['reasons'],['replacement_target_pending_final_oge_disposition'])
 
-    def test_normal_runner_first_repeat_and_annual_references_use_verified_source_mapping(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);d=fixture(root)
-            with mocks(d):
-                old,_=build_oge_candidate(catalog(d['prior']),[d['old']],base(),data_cutoff_at=CUTOFF)
-                first=root/'first';self.assertEqual(runner_cli(runner_arguments(d,root/'inputs',old,first)),0)
-                result=json.loads((first/'candidate.json').read_text(encoding='utf-8'))
-                audit=json.loads((first/'candidate_audit.json').read_text(encoding='utf-8'))
-                manifest=json.loads((first/'manifest.json').read_text(encoding='utf-8'))
-                self.assertEqual(manifest['counts']['qualified_rows'],1)
-                self.assertEqual(manifest['counts']['excluded_rows'],1)
-                self.assertTrue(all('v2-native-amount-only' in r['rules_version'] for r in manifest['documents']))
-                again=root/'again';self.assertEqual(runner_cli(runner_arguments(d,root/'inputs',result,again)),0)
-                self.assertEqual(result,json.loads((again/'candidate.json').read_text(encoding='utf-8')))
-                save_status_inputs(d,audit)
-                status=build_oge_status(d['evidence'],d['review'],result['transactions'],[])
-                repeat_audit=json.loads((again/'candidate_audit.json').read_text(encoding='utf-8'))
-                save_status_inputs(d,repeat_audit)
-                self.assertEqual(status,build_oge_status(d['evidence'],d['review'],result['transactions'],[]))
-                save_status_inputs(d,audit)
-                annual=deepcopy(result['transactions'][0]);annual.update(id='annual-contract',asset_name='Annual ALPHA')
-                overlay=deepcopy(result);overlay['transactions'].append(annual)
-                overlay['meta']['transaction_disclosure_relations']=[{'transaction_id':annual['id'],
-                    'possible_ptr_transaction_ids':[old['transactions'][0]['id']],'status':'possible_ptr_overlap'}]
-                remapped,proof=reconcile_annual_ptr_references(overlay,d['review'],d['evidence'])
-                self.assertEqual(remapped['transactions'],overlay['transactions'])
-                self.assertEqual(remapped['meta']['transaction_disclosure_relations'][0]['possible_ptr_transaction_ids'],
-                    [result['transactions'][0]['id']])
-                self.assertEqual(len(proof['replacements']),1)
-                changed=deepcopy(audit);changed['reports'][0]['promoted_count']+=1;save_status_inputs(d,changed)
-                with self.assertRaisesRegex(ValueError,'counts differ'):
-                    reconcile_annual_ptr_references(overlay,d['review'],d['evidence'])
 
     def test_non_amount_financial_difference_and_source_mutation_do_not_apply(self):
         for changed_text in ['BETA','Sale','07/12/2025']:

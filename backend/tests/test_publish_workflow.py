@@ -24,7 +24,7 @@ class PublishWorkflowTests(unittest.TestCase):
         publish = (ROOT / '.github/workflows/publish-complete.yml').read_text(encoding='utf-8')
         publish = publish.split('  publish:\n', 1)[1]
         install = publish.index("python -m pip install -e 'backend[native-source-proof]'")
-        self.assertLess(install, publish.index('unison_snapshot.pipeline_qa.publication_delta'))
+        self.assertLess(install, publish.index('unison_snapshot.fact_policy.publication_delta'))
         ci = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
         self.assertLess(ci.index('backend[house-ingest,native-source-proof]'),
                         ci.index('python scripts/verify.py'))

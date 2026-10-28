@@ -9,9 +9,9 @@ import sys
 import tempfile
 import unittest
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta
-from unison_snapshot.pipeline_qa.senate_account_correction import verified_account_corrections
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta
+from unison_snapshot.fact_policy.senate_account_correction import verified_account_corrections
 
 
 def encoded(value):
@@ -151,7 +151,7 @@ class SenateAccountCorrectionTests(unittest.TestCase):
             return build_publication_delta(previous_board=old,unified=current,prepared=current,sources=sources,
                 transitions=transitions,main_commit="a"*40,review_commit="b"*40,evidence_commit="e"*40,repo="unused")
         # Boundary test uses the independently replayed proof above, not a receipt as verification.
-        with patch("unison_snapshot.pipeline_qa.publication_delta.verified_account_corrections",return_value=[proof]):
+        with patch("unison_snapshot.fact_policy.publication_delta.verified_account_corrections",return_value=[proof]):
             result=gate();self.assertEqual(len(result["changes"]),1)
             for field,value in (("source_sha256","0"*64),("new_id","other"),
                                 ("changed_fields",["asset_name","amount_low"]),
@@ -159,7 +159,7 @@ class SenateAccountCorrectionTests(unittest.TestCase):
                 transitions["records"]=[{**proof,field:value}]
                 with self.subTest(field=field),self.assertRaises(InventoryError):gate()
         transitions["records"]=[proof]
-        with patch("unison_snapshot.pipeline_qa.publication_delta.verified_account_corrections",return_value=[]):
+        with patch("unison_snapshot.fact_policy.publication_delta.verified_account_corrections",return_value=[]):
             with self.assertRaises(InventoryError):gate()
 
     def test_review_identity_dates_and_saved_parser_tampering_fail(self):
@@ -190,7 +190,7 @@ class SenateAccountCorrectionTests(unittest.TestCase):
                 (sources/f"{name}-current.json").write_bytes(encoded({**current,"transactions":[fact] if name=="senate_efd" else []}))
             for name,value in (("old",old),("current",current)):(root/f"{name}.json").write_bytes(encoded(value))
             output=root/"delta.json"
-            cmd=[sys.executable,"-m","unison_snapshot.pipeline_qa.publication_delta","--previous-board",str(root/"old.json"),
+            cmd=[sys.executable,"-m","unison_snapshot.fact_policy.publication_delta","--previous-board",str(root/"old.json"),
                 "--unified",str(root/"current.json"),"--prepared",str(root/"current.json"),"--source-root",str(sources),
                 "--output",str(output),"--repo",str(repo),"--evidence-commit",evidence_commit,"--review-commit",review_commit]
             result=subprocess.run(cmd,capture_output=True,text=True)

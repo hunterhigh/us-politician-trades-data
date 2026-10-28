@@ -14,10 +14,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta
 
-MODULE = 'unison_snapshot.pipeline_qa.publication_delta'
+MODULE = 'unison_snapshot.fact_policy.publication_delta'
 MAIN, REVIEW, EVIDENCE = 'a' * 40, 'b' * 40, 'c' * 40
 
 
@@ -186,7 +186,7 @@ class OgeOwnerPublicationCliTests(unittest.TestCase):
             for name, value in sources_for(candidate).items():
                 save(source_root / f'{name}-current.json', value)
             delta = root / 'delta.json'
-            gate = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+            gate = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                 '--previous-board', str(root / 'previous.json'), '--unified', str(output),
                 '--prepared', str(output), '--source-root', str(source_root), '--output', str(delta),
                 '--repo', str(repo), '--main-commit', main_commit, '--evidence-commit', evidence_commit,

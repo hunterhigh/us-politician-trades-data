@@ -81,7 +81,7 @@ class AccountDisplayCorrectionTests(unittest.TestCase):
                     value = current if name == 'oge' else {**current, 'people':[], 'transactions':[], 'reported_holdings':[]}
                     write_files(sources, {f'{name}-current.json':encoded(value)})
                 output = root/'delta.json'
-                gate = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+                gate = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                     '--previous-board', str(root/'base.json'), '--unified', str(path), '--prepared', str(path),
                     '--source-root', str(sources), '--output', str(output), '--repo', str(repo),
                     '--main-commit', commit, '--review-commit', commit, '--evidence-commit', commit]

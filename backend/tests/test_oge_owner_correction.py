@@ -18,8 +18,8 @@ from unison_snapshot.oge import parse_catalog_page, build_catalog, archive_catal
 from unison_snapshot.oge_reports import parse_archived_pdf
 from unison_snapshot.oge_candidate import build_oge_candidate, _person_id, _identity_key
 from unison_snapshot.whitehouse_native_correction import _historical_projection
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.oge_owner_correction import verified_oge_owner_corrections
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.oge_owner_correction import verified_oge_owner_corrections
 
 DOCUMENT = '42300720a4227e9e85258e77002dd1b3'
 URL = f'https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/{DOCUMENT}/$FILE/Example-278T.pdf'
@@ -257,10 +257,10 @@ class OgeOwnerCorrectionTests(unittest.TestCase):
         data = fixture(extra_rows=[[str(n), f'Asset{n}', 'Purchase', '06/02/2026', 'No',
                                      '$1,001-$15,000'] for n in range(2, 41)])
         self.assertEqual(self.verify(data)[0]['changed_fields'], ['owner'])
-        with patch('unison_snapshot.pipeline_qa.oge_owner_correction.MAX_SCOPE_COMPARISONS', 1), \
+        with patch('unison_snapshot.fact_policy.oge_owner_correction.MAX_SCOPE_COMPARISONS', 1), \
                 self.assertRaisesRegex(InventoryError, 'comparison budget exceeded'):
             self.verify()
-        with patch('unison_snapshot.pipeline_qa.oge_owner_correction.MAX_SOURCE_ROWS', 1), \
+        with patch('unison_snapshot.fact_policy.oge_owner_correction.MAX_SOURCE_ROWS', 1), \
                 self.assertRaisesRegex(InventoryError, 'row count exceeds budget'):
             self.verify()
 

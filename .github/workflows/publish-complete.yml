@@ -343,25 +343,6 @@ jobs:
               output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
               output.write(f"source_health_count={len(candidate['source_health'])}\n")
           PY
-      - name: Record projection issues for final targeted review
-        env:
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
-          PYTHONPATH: backend/src
-        run: |
-          board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
-          python -m unison_snapshot.pipeline_qa.projection_issues \
-            --governed "$RUNNER_TEMP/governed-disclosure.json" \
-            --reference "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --previous-board "$MAIN_ROOT/board/$board_sha.json" \
-            --output "$RUNNER_TEMP/projection-issues.json"
-      - name: Keep deferred projection issues
-        uses: actions/upload-artifact@v4
-        with:
-          name: projection-issues-${{ github.run_id }}
-          path: ${{ runner.temp }}/projection-issues.json
-          if-no-files-found: error
-          retention-days: 30
       - name: Verify first-launch disclosure completeness
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -384,7 +365,7 @@ jobs:
           if [ -f "$REVIEW_ROOT/status/publication_transitions.json" ]; then
             transition_args+=(--transitions "$REVIEW_ROOT/status/publication_transitions.json")
           fi
-          python -m unison_snapshot.pipeline_qa.publication_delta \
+          python -m unison_snapshot.fact_policy.publication_delta \
             --previous-board "$MAIN_ROOT/board/$board_sha.json" \
             --unified "$RUNNER_TEMP/governed-disclosure.json" \
             --prepared "$RUNNER_TEMP/complete-candidate.json" \

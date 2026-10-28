@@ -80,7 +80,7 @@ class DefaultOwnerCliTests(unittest.TestCase):
         for name, source in sources_for(candidate).items():
             save(p.root/'sources'/f'{name}-current.json', source)
         delta = p.root/'delta.json'
-        command = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+        command = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
             '--previous-board', str(p.root/'ingest/current.json'),
             '--unified', str(p.output), '--prepared', str(p.output),
             '--source-root', str(p.root/'sources'), '--output', str(delta),

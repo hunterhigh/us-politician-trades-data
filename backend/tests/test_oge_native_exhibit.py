@@ -12,13 +12,11 @@ from unittest.mock import patch
 
 from test_oge_candidate import extraction, direct, catalog, base, DOCUMENT_ID, URL
 from test_oge_annual import _Document,_Page
-from test_oge_shadow_run import _inputs
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278t_page_shadow import interpret_native_exhibit_page
 from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits,parse_table_rows
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
 from unison_snapshot.oge_candidate import build_oge_candidate
-from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run,OgeShadowInputError
 
 
 def observation(predecessor=None):
@@ -164,41 +162,5 @@ class NativeExhibitTests(unittest.TestCase):
             with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),self.assertRaisesRegex(OgeCatalogError,"archive metadata"):
                 materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(obs,targets))
 
-    def test_actual_runner_candidate_and_final_builder_keep_unknown_pages(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);kwargs=_inputs(root)
-            old=empty_source();obs=observation()
-            for file in kwargs["extractions_dir"].glob("*.json"):file.unlink()
-            (kwargs["extractions_dir"]/f"{DOCUMENT_ID}.json").write_text(json.dumps(old),encoding="utf-8")
-            kwargs["catalog_path"].write_text(json.dumps(catalog()),encoding="utf-8")
-            archive=json.loads(kwargs["archive_batch_path"].read_text(encoding="utf-8"));archive["reports"][0].update(
-                document_id=DOCUMENT_ID,document_url=URL,sha256="a"*64,archive_path=f"oge/reports/{DOCUMENT_ID}/{'a'*64}.pdf",
-                filer_name="Example, Ada",agency="Example Agency",position_title="Director",catalog_added_date="2025-06-04",amended_label=None)
-            kwargs["archive_batch_path"].write_text(json.dumps(archive),encoding="utf-8")
-            inputs=root/"exhibit.json";inputs.write_text(json.dumps({DOCUMENT_ID:bundle(obs)}),encoding="utf-8")
-            base_file=root/"base.json";base_file.write_text(json.dumps(base()),encoding="utf-8")
-            from unison_snapshot.pipeline_qa.oge_run_cli import main as run_cli
-            args=["--catalog",str(kwargs["catalog_path"]),"--archive-batch",str(kwargs["archive_batch_path"]),
-                "--extraction-batch",str(kwargs["extraction_batch_path"]),"--extractions-dir",str(kwargs["extractions_dir"]),
-                "--output-dir",str(kwargs["output_dir"]),"--run-id",kwargs["run_id"],"--code-commit",kwargs["code_commit"],
-                "--evidence-commit",kwargs["evidence_commit"],"--started-at",kwargs["started_at"],"--completed-at",kwargs["completed_at"],
-                "--saved-exhibit-observations",str(inputs),"--candidate-base",str(base_file),"--data-cutoff-at","2025-06-04T00:00:00Z"]
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),redirect_stdout(io.StringIO()):
-                self.assertEqual(run_cli(args),0)
-            from unison_snapshot.__main__ import main as candidate_cli
-            candidate_args=["unison_snapshot","build-oge-candidate","--catalog",str(kwargs["catalog_path"]),
-                "--extractions-dir",str(kwargs["extractions_dir"]),"--base",str(base_file),"--data-cutoff-at","2025-06-04T00:00:00Z",
-                "--output",str(root/"direct-candidate.json"),"--audit-output",str(root/"direct-audit.json"),
-                "--saved-exhibit-observations",str(inputs)]
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),patch.object(sys,"argv",candidate_args),redirect_stdout(io.StringIO()):
-                candidate_cli()
-            direct_audit=json.loads((root/"direct-audit.json").read_text(encoding="utf-8"))
-            self.assertEqual(direct_audit["reports"][0]["observation_receipt"]["mode"],"native_exhibit_substitution")
-            ledger=json.loads((kwargs["output_dir"]/"candidate_rows.json").read_text(encoding="utf-8"))
-            audit=json.loads((kwargs["output_dir"]/"candidate_audit.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(ledger),1)
-            self.assertEqual(ledger[0]["disposition"],"quarantined")
-            self.assertEqual(audit["reports"][0]["observation_receipt"]["unobserved_pages"],[1,2,4])
-            self.assertTrue((kwargs["output_dir"]/"snapshot/manifest.json").is_file())
 
 if __name__=="__main__":unittest.main()

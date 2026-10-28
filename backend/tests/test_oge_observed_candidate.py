@@ -9,14 +9,12 @@ from unittest.mock import patch
 
 from test_oge_candidate import base, catalog, direct, extraction, DOCUMENT_ID
 from test_oge_content_relations import saved, column_read
-from test_oge_shadow_run import _inputs
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations, adapt_oge_278t_extraction
 from unison_snapshot.disclosure_status_oge import _apply_audit
 from unison_snapshot.oge_278t_field_shadow import observe_content_rows
 from unison_snapshot.builder import build
-from unison_snapshot.pipeline_qa.oge_run import build_oge_shadow_run, OgeShadowInputError
 
 
 ROW = ["2", "ALPHA", "purchase", "05/02/2025", "No", "$1,001 - $15,000"]
@@ -286,71 +284,7 @@ class ObservedCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(OgeCatalogError, "archived catalog source"):
             candidate(old=old)
 
-    def test_existing_runner_writes_actual_candidate_and_bound_receipt(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            inputs = _inputs(root)
-            # Replace the old generic test inputs with one internally consistent report.
-            old = original()
-            for file in inputs["extractions_dir"].glob("*.json"):
-                file.unlink()
-            (inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").write_text(json.dumps(old))
-            inputs["catalog_path"].write_text(json.dumps(catalog()))
-            archive = json.loads(inputs["archive_batch_path"].read_text())
-            report = archive["reports"][0]
-            report.update(document_id=DOCUMENT_ID, document_url=old["source_url"],
-                          filer_name=direct()["filer_name"], agency=direct()["agency"],
-                          position_title=direct()["position_title"], catalog_added_date=direct()["catalog_added_date"],
-                          archive_path=f"oge/reports/{DOCUMENT_ID}/{'a'*64}.pdf")
-            inputs["archive_batch_path"].write_text(json.dumps(archive))
-            observations = root / "observations.json"
-            observations.write_text(json.dumps({DOCUMENT_ID: bundle()}))
-            candidate_base = root / "base.json"
-            candidate_base.write_text(json.dumps(base()))
-            manifest = build_oge_shadow_run(**inputs, saved_observations_path=observations,
-                                           candidate_base_path=candidate_base,
-                                           data_cutoff_at="2025-06-04T00:00:00Z")
-            actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf-8"))
-            self.assertEqual(len(actual["transactions"]), 2)
-            snapshot = json.loads((inputs["output_dir"] / "snapshot/manifest.json").read_text(encoding="utf-8"))
-            board = json.loads((inputs["output_dir"] / f"snapshot/board/{snapshot['board']}.json").read_text(encoding="utf-8"))
-            self.assertEqual(board["transactions"], actual["transactions"])
-            alpha = next(row for row in board["transactions"] if row["asset_name"] == "ALPHA")
-            self.assertEqual({key: alpha[key] for key in ("owner", "transaction_type", "transaction_date", "filed_at", "amount_low", "amount_high", "ticker", "filing_id", "source_url")},
-                             {"owner": "Self", "transaction_type": "purchase", "transaction_date": "2025-05-02",
-                              "filed_at": "2025-06-03T00:00:00Z", "amount_low": 1001, "amount_high": 15000,
-                              "ticker": None, "filing_id": DOCUMENT_ID, "source_url": old["source_url"]})
-            for output in manifest["outputs"]:
-                self.assertEqual(hashlib.sha256((inputs["output_dir"] / output["path"]).read_bytes()).hexdigest(), output["sha256"])
 
-    def test_existing_runner_consumes_nonempty_legacy_reference_without_reparse(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            inputs = _inputs(root)
-            old = original()
-            del old["source_rows"]
-            del old["transactions"][0]["cells"]
-            for file in inputs["extractions_dir"].glob("*.json"):
-                file.unlink()
-            (inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").write_text(json.dumps(old))
-            inputs["catalog_path"].write_text(json.dumps(catalog()))
-            archive = json.loads(inputs["archive_batch_path"].read_text())
-            archive["reports"][0].update(document_id=DOCUMENT_ID, document_url=old["source_url"],
-                filer_name=direct()["filer_name"], agency=direct()["agency"],
-                position_title=direct()["position_title"], catalog_added_date=direct()["catalog_added_date"],
-                archive_path=f"oge/reports/{DOCUMENT_ID}/{'a'*64}.pdf")
-            inputs["archive_batch_path"].write_text(json.dumps(archive))
-            observations, candidate_base = root / "saved.json", root / "base.json"
-            observations.write_text(json.dumps({DOCUMENT_ID: bundle()}))
-            candidate_base.write_text(json.dumps(base()))
-            with patch("unison_snapshot.pipeline_qa.oge_run.parse_archived_pdf", side_effect=AssertionError("must not reparse")):
-                manifest = build_oge_shadow_run(**inputs, saved_observations_path=observations,
-                    candidate_base_path=candidate_base, data_cutoff_at="2025-06-04T00:00:00Z")
-            actual = json.loads((inputs["output_dir"] / "candidate.json").read_text(encoding="utf8"))
-            self.assertEqual(len(actual["transactions"]), 1)
-            self.assertEqual(manifest["documents"][0]["legacy_normalized_reference_count"], 1)
-            self.assertEqual(manifest["documents"][0]["legacy_physical_inventory_status"], "not_saved")
-            self.assertEqual(json.loads((inputs["extractions_dir"] / f"{DOCUMENT_ID}.json").read_text()), old)
 
 
 if __name__ == "__main__":

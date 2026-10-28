@@ -11,12 +11,12 @@ import unittest
 from unittest.mock import patch
 
 import test_pipeline_publication_delta as delta_fixtures
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError, _differences
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta, main
+from unison_snapshot.fact_policy.source_objects import InventoryError, _differences
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta, main
 
 MAIN, REVIEW, EVIDENCE = "a" * 40, "b" * 40, "c" * 40
 SOURCE_SHA = "d" * 64
-MODULE = "unison_snapshot.pipeline_qa.publication_delta"
+MODULE = "unison_snapshot.fact_policy.publication_delta"
 
 
 def fixture(*, extra_old=False, extra_new=False):

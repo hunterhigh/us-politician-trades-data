@@ -9,8 +9,8 @@ from unittest.mock import patch
 import test_house_revision_source_context as context_fixture
 from unison_snapshot.house_members import archive_members, parse_members
 from unison_snapshot.house_revision_source_context import load_house_revision_source_context
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-import unison_snapshot.pipeline_qa.house_revision_supersession as verifier
+from unison_snapshot.fact_policy.source_objects import InventoryError
+import unison_snapshot.fact_policy.house_revision_supersession as verifier
 
 
 MAIN, EVIDENCE, REVIEW = 'a' * 40, 'b' * 40, 'c' * 40

@@ -105,7 +105,7 @@ class DefaultExplicitOwnerCliTests(unittest.TestCase):
                 for name, source in sources_for(candidate).items():
                     save(root/'sources'/f'{name}-current.json', source)
                 delta_path = root/'delta.json'
-                gate = [sys.executable, '-m', 'unison_snapshot.pipeline_qa.publication_delta',
+                gate = [sys.executable, '-m', 'unison_snapshot.fact_policy.publication_delta',
                     '--previous-board', str(previous_path), '--unified', str(output), '--prepared', str(output),
                     '--source-root', str(root/'sources'), '--output', str(delta_path), '--repo', str(repo),
                     '--main-commit', main, '--evidence-commit', main, '--review-commit', review_ref]
