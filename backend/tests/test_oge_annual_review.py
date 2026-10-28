@@ -43,7 +43,7 @@ class OgeAnnualReviewTests(unittest.TestCase):
                                     "row_reconciliation_complete": True},
                 "production_qualification": "pending_filing_date_cross_report_dedup_and_row_quarantine",
             }
-            with patch("oge_annual_review.extract_annual_pdf", return_value=extraction) as parser:
+            with patch("unison_snapshot.commands.oge_annual_review.extract_annual_pdf", return_value=extraction) as parser:
                 status = extract_archived_reports(evidence, review)
             parser.assert_called_once()
             self.assertEqual(status["promoted_to_candidate"], 0)
@@ -86,7 +86,7 @@ class OgeAnnualReviewTests(unittest.TestCase):
                     "row_reconciliation_complete": True},
                 "production_qualification": "pending",
             }
-            with patch("oge_annual_review.extract_annual_pdf",
+            with patch("unison_snapshot.commands.oge_annual_review.extract_annual_pdf",
                        side_effect=[OgeCatalogError("OGE annual 278e cover is not machine-verifiable"),
                                     extraction]):
                 status = extract_archived_reports(evidence, review)

@@ -54,7 +54,7 @@ class HousePaperCliTests(unittest.TestCase):
         self.assertNotIn("materialize_saved", bridge.call_args.kwargs)
 
     def test_controlled_workflow_opt_in_skips_parser_and_ocr(self):
-        path = Path(__file__).resolve().parents[2] / ".github/workflows/house-review.yml"
+        path = Path(__file__).resolve().parents[2] / ".github/workflows/house.yml"
         text = path.read_text(encoding="utf-8")
         self.assertIn("materialize_saved_paper:", text)
         self.assertIn("paper_args+=(--materialize-saved)", text)

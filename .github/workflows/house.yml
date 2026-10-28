@@ -1,118 +1,157 @@
-name: House automatic qualification
+name: House source pipeline
 on:
-  workflow_run:
-    workflows: ['House source state']
-    types: [completed]
+  schedule:
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
+      filing_year:
+        description: Current filing year, or the authorized fixed 2025 PTR scope
+        default: ''
+      archive_budget_seconds:
+        description: Time budget for draining the indexed archive queue
+        default: '900'
       batch_size:
-        description: Maximum number of archived PTRs to parse in this run
-        required: false
+        description: Maximum archived PTRs to parse in this run
         default: '25'
       paper_document_id:
-        description: Optional archived paper PTR document ID to observe in this run
-        required: false
+        description: Optional existing paper report to replay
+        default: ''
       materialize_saved_paper:
-        description: Interpret saved paper evidence only; skip parser and OCR work
+        description: Interpret saved paper observations without collection or OCR
         type: boolean
         default: false
 permissions:
   contents: write
-  actions: read
 concurrency:
   group: disclosure-source-writer
   cancel-in-progress: false
 jobs:
-  parse:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'code' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+  source:
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: code
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
-        if: github.event_name == 'workflow_run'
-        with:
-          name: house-source-handoff-${{ github.event.workflow_run.id }}
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: .local/source-handoff
-      - name: Validate immutable source handoff
-        if: github.event_name == 'workflow_run'
-        id: handoff
-        env:
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
-          SOURCE_CODE_COMMIT: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          python - <<'PY'
-          import json, os, re
-          from pathlib import Path
-          value = json.loads(Path('.local/source-handoff/house-source-handoff.json').read_text(encoding='utf-8'))
-          if (value.get('schema_version') != 'house-source-handoff/v1' or
-                  value.get('source_run_id') != os.environ['SOURCE_RUN_ID'] or
-                  value.get('code_commit') != os.environ['SOURCE_CODE_COMMIT'] or
-                  any(not isinstance(value.get(key), str) or
-                      re.fullmatch(r'[0-9a-f]{40}', value[key]) is None
-                      for key in ('evidence_commit', 'state_commit'))):
-              raise SystemExit('House source handoff does not match the triggering run')
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f"evidence_commit={value['evidence_commit']}\n")
-              output.write(f"state_commit={value['state_commit']}\n")
-          PY
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-          cache: pip
-          cache-dependency-path: backend/pyproject.toml
-      - name: Install pinned PDF extraction dependency
-        run: python -m pip install -e "backend[house-ingest,native-source-proof]"
-      - name: Prepare evidence and review branches
+      - name: Install pinned PDF source dependencies
+        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
+      - name: Prepare controlled source data
         id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: house
+          workspace: ${{ runner.temp }}/house-source
+      - name: Set run coordinates
+        id: clock
         env:
-          PINNED_EVIDENCE: ${{ steps.handoff.outputs.evidence_commit }}
-          PINNED_STATE: ${{ steps.handoff.outputs.state_commit }}
+          INPUT_YEAR: ${{ inputs.filing_year }}
         run: |
-          evidence_root="$RUNNER_TEMP/house-evidence"
-          review_root="$RUNNER_TEMP/house-review"
-          state_root="$RUNNER_TEMP/house-state"
-          if [ -n "$PINNED_EVIDENCE" ]; then
-            git fetch --no-tags origin "$PINNED_EVIDENCE"
-            git worktree add --detach "$evidence_root" "$PINNED_EVIDENCE"
-            git fetch --no-tags origin "$PINNED_STATE"
-            git worktree add --detach "$state_root" "$PINNED_STATE"
-          else
-            git fetch --no-tags origin evidence
-            git worktree add --detach "$evidence_root" FETCH_HEAD
-            git fetch --no-tags origin state
-            git worktree add --detach "$state_root" FETCH_HEAD
+          year="${INPUT_YEAR:-$(date -u +%Y)}"
+          case "$year" in 2025|"$(date -u +%Y)") ;; *) echo 'House v1 only permits the current year or fixed 2025 PTR scope' >&2; exit 2 ;; esac
+          echo "year=$year" >> "$GITHUB_OUTPUT"
+          echo "run_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - name: Load previous public checkpoint
+        if: inputs.materialize_saved_paper != true
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+        run: |
+          mkdir -p .local
+          if [ -f "$STATE_ROOT/checkpoints/house/$YEAR.json" ]; then
+            cp "$STATE_ROOT/checkpoints/house/$YEAR.json" .local/previous.json
           fi
-          remote_review="$(git ls-remote --heads origin review | awk '{print $1}')"
-          if [ -n "$remote_review" ]; then
-            git fetch --no-tags origin review
-            git worktree add --detach "$review_root" "$remote_review"
-          else
-            git worktree add --detach "$review_root" HEAD
-            git -C "$review_root" switch --orphan review
-            git -C "$review_root" rm -rf . >/dev/null 2>&1 || true
+      - name: Discover official House index
+        if: inputs.materialize_saved_paper != true
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot discover-house-index \
+            --year "$YEAR" --archive "$EVIDENCE_ROOT" --output .local/discovery.json
+      - name: Discover official House member roster
+        if: inputs.materialize_saved_paper != true
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot discover-house-members \
+            --archive "$EVIDENCE_ROOT" --output .local/house-members.json
+          roster_sha="$(python -c "import json; print(json.load(open('.local/house-members.json'))['metadata']['sha256'])")"
+          cp .local/house-members.json "$EVIDENCE_ROOT/house_clerk/members/${roster_sha}.roster.json"
+      - name: Build recoverable checkpoint
+        if: inputs.materialize_saved_paper != true
+        env:
+          RUN_AT: ${{ steps.clock.outputs.run_at }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          previous=()
+          if [ -s .local/previous.json ]; then
+            previous+=(--checkpoint .local/previous.json)
           fi
-          cat > "$review_root/README.md" <<'EOF'
-          # Machine qualification and candidate data
-
-          This branch contains source-scoped machine extractions, deterministic identity matches, automatic
-          qualification results, quarantined exceptions, parse failures, and unified frontend candidates.
-          Only the publication workflow writes `main`. Every source artifact is keyed to immutable evidence and the
-          parser code commit.
-          EOF
-          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
-          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
-          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=backend/src python -m unison_snapshot plan-house-ptr-sync \
+            --discovery .local/discovery.json --archive "$EVIDENCE_ROOT" \
+            --planned-at "$RUN_AT" --output .local/checkpoint.json "${previous[@]}"
+      - name: Drain House PTR archive queue within the time budget
+        if: inputs.materialize_saved_paper != true
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          BUDGET_SECONDS: ${{ inputs.archive_budget_seconds || vars.HOUSE_ARCHIVE_BUDGET_SECONDS || '900' }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot drain-house-ptr \
+            --checkpoint .local/checkpoint.json --archive "$EVIDENCE_ROOT" \
+            --budget-seconds "$BUDGET_SECONDS" --output .local/archive-budget.json
+      - name: Publish immutable evidence first
+        if: inputs.materialize_saved_paper != true
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: evidence
+          message: House originals ${{ github.run_id }}
+      - name: Build public run status
+        if: inputs.materialize_saved_paper != true
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          checkpoint = json.loads(Path('.local/checkpoint.json').read_text(encoding='utf-8'))
+          status = {
+              'schema_version': 'house-source-run/v1',
+              'source_id': 'house_clerk',
+              'filing_year': checkpoint['filing_year'],
+              'index_sha256': checkpoint['index_sha256'],
+              'run_at': checkpoint['planned_at'],
+              'counts': checkpoint['counts'],
+              'queue_count': len(checkpoint['queue']),
+              'anomaly_count': len(checkpoint['anomalies']),
+              'status': 'attention' if checkpoint['anomalies'] else 'ok',
+          }
+          Path('.local/last-run.json').write_text(
+              json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+              encoding='utf-8')
+          PY
+      - name: Save archive checkpoint and collection state
+        if: inputs.materialize_saved_paper != true
+        env:
+          YEAR: ${{ steps.clock.outputs.year }}
+        run: |
+          mkdir -p "$STATE_ROOT/checkpoints/house" "$STATE_ROOT/status"
+          cp .local/checkpoint.json "$STATE_ROOT/checkpoints/house/$YEAR.json"
+          if [ "$YEAR" = "$(date -u +%Y)" ]; then
+            cp .local/last-run.json "$STATE_ROOT/status/house_clerk.json"
+            cp .local/last-run.json "$STATE_ROOT/status/last-run.json"
+          else
+            cp .local/last-run.json "$STATE_ROOT/status/house_backfill_$YEAR.json"
+          fi
+      - name: Persist collection state after evidence
+        if: inputs.materialize_saved_paper != true
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: state
+          message: House collection ${{ github.run_id }}
       - name: Select unprocessed evidence
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -120,6 +159,7 @@ jobs:
           BATCH_SIZE: ${{ inputs.batch_size || vars.HOUSE_PARSE_BATCH_SIZE || '25' }}
           MATERIALIZE_SAVED_PAPER: ${{ inputs.materialize_saved_paper }}
           PARSER_COMMIT: ${{ github.sha }}
+          SELECT_YEAR: ${{ inputs.filing_year }}
         run: |
           if [ "$MATERIALIZE_SAVED_PAPER" = "true" ]; then
             mkdir -p .local
@@ -150,6 +190,8 @@ jobs:
           for metadata_path in sorted(evidence.glob('house_clerk/documents/*/*/*.json')):
               metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
               year = str(metadata['filing_year'])
+              if os.environ.get('SELECT_YEAR') and year != os.environ['SELECT_YEAR']:
+                  continue
               document_id = metadata['document_id']
               sha = metadata['sha256']
               extraction = review / 'house_clerk' / 'extractions' / year / document_id / f'{sha}.json'
@@ -385,28 +427,16 @@ jobs:
             "${paper_args[@]}" \
             | tee .local/house-paper-bridge.json
           echo "House paper bridge: $(cat .local/house-paper-bridge.json)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Qualify source-reviewed House paper 9116141
+      - name: Qualify registered House paper corrections
         if: inputs.materialize_saved_paper != true
         env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          CORRECTION_DIR: backend/data/corrections/house_clerk
         run: |
-          PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-house-paper \
-            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --correction backend/data/corrections/house_clerk/9116141.json \
-            | tee .local/house-paper-9116141-qualified.json
-          echo "House paper 9116141, including prior relationship: $(cat .local/house-paper-9116141-qualified.json)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Qualify source-reviewed House paper 9115820
-        if: inputs.materialize_saved_paper != true
-        env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-        run: |
-          PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-house-paper \
-            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --correction backend/data/corrections/house_clerk/9115820.json \
-            | tee .local/house-paper-9115820-qualified.json
-          echo "House paper 9115820: $(cat .local/house-paper-9115820-qualified.json)" >> "$GITHUB_STEP_SUMMARY"
+          for correction in "$CORRECTION_DIR"/*.json; do
+            PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-house-paper \
+              --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+              --correction "$correction"
+          done
       - name: Build qualification queue status
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -508,15 +538,9 @@ jobs:
             "$REVIEW_ROOT/candidates/house-current.json"
           # Persist the validated House projection before cross-source assembly.
           # A stale peer defers assembly without stranding the House waterline.
-          git -C "$REVIEW_ROOT" add README.md house_clerk status/house_clerk.json \
-            status/summary.json candidates/house-current.json \
-            candidates/sources/house_clerk-current.json
-          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
-            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
-            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$REVIEW_ROOT" commit -m "review: House source candidate ${{ github.run_id }}"
-            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
-          fi
+          PYTHONPATH=backend/src python -m unison_snapshot data-trees publish \
+            --workspace "$RUNNER_TEMP/house-source" --role review \
+            --message "House source candidate $GITHUB_RUN_ID"
           echo "House source candidate saved; unified candidate advances only after harmonization succeeds." >> "$GITHUB_STEP_SUMMARY"
           source_args=(--source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json")
           if [ -f "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" ]; then
@@ -536,14 +560,11 @@ jobs:
             --html-output "$RUNNER_TEMP/disclosure-current.html"
           assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \
             --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
+          echo "assembly_status=$assembly_status" >> "$GITHUB_OUTPUT"
           if [ "$assembly_status" = deferred ]; then
-            git -C "$REVIEW_ROOT" add status/disclosure_assembly.json
-            if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
-              git -C "$REVIEW_ROOT" config user.name 'github-actions[bot]'
-              git -C "$REVIEW_ROOT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-              git -C "$REVIEW_ROOT" commit -m "review: deferred source assembly ${{ github.run_id }}"
-              git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
-            fi
+            PYTHONPATH=backend/src python -m unison_snapshot data-trees publish \
+              --workspace "$RUNNER_TEMP/house-source" --role review \
+              --message "deferred House source assembly $GITHUB_RUN_ID"
             exit 0
           fi
           CANDIDATE="$REVIEW_ROOT/candidates/disclosure-current.json" \
@@ -573,16 +594,8 @@ jobs:
           PY
       - name: Publish unified candidate after successful harmonization
         if: ${{ steps.candidate.outputs.assembly_status == 'ready' }}
-        env:
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-        run: |
-          git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
-            status/disclosure_candidate.json status/disclosure_cutoff.json status/disclosure_assembly.json
-          if git -C "$REVIEW_ROOT" diff --cached --quiet; then
-            echo "Review queue is unchanged." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
-          git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$REVIEW_ROOT" commit -m "review: unified House candidate ${{ github.run_id }}"
-          git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: review
+          message: House unified candidate ${{ github.run_id }}

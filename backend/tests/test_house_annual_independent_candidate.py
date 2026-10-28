@@ -94,7 +94,7 @@ class HouseAnnualIndependentTests(unittest.TestCase):
                 self.assertEqual(out['new_candidate_transaction_count'],0)
 
     def test_workflow_uses_existing_source_candidate_as_base_after_activation(self):
-        for name in ['house-review.yml', 'house-holdings.yml']:
+        for name in ['house.yml', 'house-holdings.yml']:
             with self.subTest(workflow=name):
                 workflow=(Path(__file__).resolve().parents[2]/'.github/workflows'/name).read_text(encoding='utf-8')
                 self.assertIn('candidate_base="$REVIEW_ROOT/candidates/sources/house_clerk-current.json"',workflow)

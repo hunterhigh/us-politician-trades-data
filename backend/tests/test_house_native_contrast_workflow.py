@@ -34,7 +34,7 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         extraction.parent.mkdir(parents=True)
         extraction.write_text(json.dumps(legacy),encoding='utf-8')
         repo=Path(__file__).resolve().parents[2]
-        workflow=(repo/'.github/workflows/house-review.yml').read_text(encoding='utf-8')
+        workflow=(repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         segment=workflow.split('- name: Select unprocessed evidence',1)[1].split('- name:',1)[0]
         script=textwrap.dedent(segment.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
         environment={**os.environ,'PYTHONPATH':str(repo/'backend/src'),'EVIDENCE_ROOT':str(root),

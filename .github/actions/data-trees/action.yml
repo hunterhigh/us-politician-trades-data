@@ -1,0 +1,48 @@
+name: Prepare controlled source data
+description: Freeze source roles and check out only the required namespaces
+inputs:
+  scope:
+    description: house, senate, oge, or whitehouse
+    required: true
+  roles:
+    description: Space-separated source roles
+    default: evidence review state
+  workspace:
+    description: Empty runner directory for controlled data worktrees
+    required: true
+outputs:
+  evidence_root:
+    description: Controlled evidence worktree
+    value: ${{ steps.prepare.outputs.evidence_root }}
+  evidence_commit:
+    description: Frozen evidence base
+    value: ${{ steps.prepare.outputs.evidence_commit }}
+  review_root:
+    description: Controlled review worktree
+    value: ${{ steps.prepare.outputs.review_root }}
+  review_commit:
+    description: Frozen review base
+    value: ${{ steps.prepare.outputs.review_commit }}
+  state_root:
+    description: Controlled operational-state worktree
+    value: ${{ steps.prepare.outputs.state_root }}
+  state_commit:
+    description: Frozen state base
+    value: ${{ steps.prepare.outputs.state_commit }}
+runs:
+  using: composite
+  steps:
+    - id: prepare
+      shell: bash
+      env:
+        SCOPE: ${{ inputs.scope }}
+        ROLES: ${{ inputs.roles }}
+        WORKSPACE: ${{ inputs.workspace }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: |
+        read -ra selected <<< "$ROLES"
+        args=()
+        for role in "${selected[@]}"; do args+=(--role "$role"); done
+        python -m unison_snapshot data-trees prepare --scope "$SCOPE" \
+          --workspace "$WORKSPACE" --github-output "$GITHUB_OUTPUT" \
+          --github-environment "$GITHUB_ENV" "${args[@]}"

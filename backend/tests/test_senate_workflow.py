@@ -84,7 +84,7 @@ class SenateWorkflowTests(unittest.TestCase):
 
     def test_house_and_senate_runs_both_rebuild_the_unified_candidate(self):
         senate = (ROOT / ".github/workflows/senate-efd.yml").read_text(encoding="utf-8")
-        house = (ROOT / ".github/workflows/house-review.yml").read_text(encoding="utf-8")
+        house = (ROOT / ".github/workflows/house.yml").read_text(encoding="utf-8")
         for content in (house, senate):
             self.assertIn("candidates/sources/house_clerk-current.json", content)
             self.assertIn("candidates/sources/senate_efd-current.json", content)
@@ -92,18 +92,24 @@ class SenateWorkflowTests(unittest.TestCase):
             self.assertIn("disclosure_candidate.json", content)
 
     def test_source_waterlines_commit_before_unified_harmonization(self):
-        for workflow, source in (("house-review.yml", "House"),
+        for workflow, source in (("house.yml", "House"),
                                  ("senate-efd.yml", "Senate")):
             with self.subTest(source=source):
                 content = (ROOT / ".github/workflows" / workflow).read_text(
                     encoding="utf-8")
-                source_commit = content.index(f'review: {source} source candidate')
                 harmonize = content.index('python -m unison_snapshot build-disclosure-candidate')
-                unified_commit = content.index(f'review: unified {source} candidate')
+                if source == "House":
+                    source_commit = content.index('python -m unison_snapshot data-trees publish')
+                    unified_commit = content.index('uses: ./.github/actions/publish-data', harmonize)
+                    self.assertIn('--role review', content[source_commit:harmonize])
+                    self.assertIn('--message "House source candidate', content[source_commit:harmonize])
+                else:
+                    source_commit = content.index(f'review: {source} source candidate')
+                    unified_commit = content.index(f'review: unified {source} candidate')
+                    self.assertIn('git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review',
+                                  content[source_commit:harmonize])
                 self.assertLess(source_commit, harmonize)
                 self.assertLess(harmonize, unified_commit)
-                self.assertIn('git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review',
-                              content[source_commit:harmonize])
                 self.assertNotIn('continue-on-error', content[source_commit:unified_commit])
 
     def test_annual_source_survives_stale_peer_cutoff(self):

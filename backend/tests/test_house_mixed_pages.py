@@ -266,7 +266,7 @@ class HouseMixedPageTests(unittest.TestCase):
 
     def workflow_script(self, name):
         repo = Path(__file__).resolve().parents[2]
-        text = (repo/'.github/workflows/house-review.yml').read_text(encoding='utf-8')
+        text = (repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         step = text.split('- name: '+name,1)[1].split('- name:',1)[0]
         script = textwrap.dedent(step.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
         return script, {**os.environ,'PYTHONPATH':str(repo/'backend/src')}

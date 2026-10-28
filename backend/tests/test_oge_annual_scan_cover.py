@@ -87,7 +87,7 @@ class OgeAnnualScanCoverTests(unittest.TestCase):
             target = review / "oge/annual/extraction-status.json"
             target.parent.mkdir(parents=True)
             target.write_text(json.dumps({"failures": failures}), encoding="utf-8")
-            with patch("observe_oge_annual_scan_covers.observe_scan_cover",
+            with patch("unison_snapshot.commands.observe_oge_annual_scan_covers.observe_scan_cover",
                        side_effect=[ValueError("OCR unavailable"),
                                     {"schema_version": "oge-278e-scan-cover-observation/v1",
                                      "source_sha256": sha,

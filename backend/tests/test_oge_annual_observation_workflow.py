@@ -58,7 +58,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         result,calls=self.workflow_branch()
         self.assertEqual(result.returncode,0,result.stderr)
         writer=calls[0]
-        self.assertEqual(writer[:2],['python','backend/src/unison_snapshot/commands/observe_oge_annual_scan_sections.py'])
+        self.assertEqual(writer[:4],['python','-m','unison_snapshot','observe-oge-annual-scan-sections'])
         self.assertNotIn('--output',writer)
         self.assertEqual(writer[writer.index('--document-id')+1],DOCUMENT)
         self.assertEqual(writer[writer.index('--source-sha256')+1],SOURCE)
@@ -76,7 +76,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         result,calls=self.workflow_branch(fail=True)
         self.assertEqual(result.returncode,9,result.stderr)
         self.assertEqual(len(calls),1)
-        self.assertEqual(calls[0][:2],['python','backend/src/unison_snapshot/commands/observe_oge_annual_scan_sections.py'])
+        self.assertEqual(calls[0][:4],['python','-m','unison_snapshot','observe-oge-annual-scan-sections'])
 
     def test_normal_writer_prepares_and_overlays_without_moving_legacy_observations(self):
         case=scan_fixtures.SavedScanRuntimeTests();case.setUp();self.addCleanup(case.doCleanups)

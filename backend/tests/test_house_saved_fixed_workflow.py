@@ -23,10 +23,9 @@ from unison_snapshot.house_candidate import _person
 
 
 ROOT=Path(__file__).resolve().parents[2]
-WORKFLOW=ROOT/'.github/workflows/house-review.yml'
+WORKFLOW=ROOT/'.github/workflows/house.yml'
 FIXED_STEPS=(
-    ('Qualify source-reviewed House paper 9116141','-m unison_snapshot correct-reviewed-house-paper'),
-    ('Qualify source-reviewed House paper 9115820','-m unison_snapshot correct-reviewed-house-paper'),
+    ('Qualify registered House paper corrections','-m unison_snapshot correct-reviewed-house-paper'),
 )
 CUTOFF='2026-10-28T00:00:00Z'
 
@@ -98,6 +97,7 @@ class HouseSavedFixedWorkflowTests(unittest.TestCase):
             STATE_ROOT=str(self.state),MATERIALIZE_SAVED_PAPER='true' if saved else 'false',
             PAPER_DOCUMENT_ID=self.data['metadata']['document_id'],PARSER_COMMIT='a'*40,
             GITHUB_STEP_SUMMARY=str(self.root/'step-summary.md'),MSYS_NO_PATHCONV='1',PYTHONUTF8='1')
+        env['CORRECTION_DIR']=str(getattr(self,'correction_dir',ROOT/'backend/data/corrections/house_clerk'))
         return subprocess.run([self.shell,'-c',script],cwd=self.workspace,env=env,
             capture_output=True,text=True,encoding='utf-8')
 

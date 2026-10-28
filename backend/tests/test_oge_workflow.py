@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class OgeWorkflowTests(unittest.TestCase):
     def test_shared_writer_source_schedules_do_not_compete_for_pending_slot(self):
         slots = set()
-        for name in ("house-state.yml", "senate-efd.yml", "oge.yml"):
+        for name in ("house.yml", "senate-efd.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
             match = re.search(r"cron: '(\d+) ([\d,*/]+) \* \* \*'", content)
             self.assertIsNotNone(match, name)
@@ -112,7 +112,7 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertNotIn("continue-on-error", content[build:staged])
 
     def test_all_source_workflows_include_oge_when_available(self):
-        for name in ("house-review.yml", "senate-efd.yml", "oge.yml"):
+        for name in ("house.yml", "senate-efd.yml", "oge.yml"):
             content = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
             self.assertIn("candidates/sources/oge-current.json", content)
 

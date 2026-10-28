@@ -3,6 +3,7 @@ import importlib
 import sys
 
 COMMANDS = {'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
+'data-trees': ('data_trees', 'Prepare or publish fixed source data worktrees'),
 'build-cached-candidate': ('build_cached_candidate',
                             'Publish current disclosures using existing or asynchronously prepared prices.'),
  'build-disclosure-status': ('build_disclosure_status',

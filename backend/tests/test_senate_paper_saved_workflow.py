@@ -44,7 +44,7 @@ class SenateSavedWorkflowTests(unittest.TestCase):
                          'review-input/us-politician-trades-watch/scripts'):
             shutil.copytree(ROOT/relative, cls.code/relative, ignore=shutil.ignore_patterns('__pycache__'))
         target = cls.code/'backend/src/unison_snapshot/commands/prepare_senate_paper_runtime.py'
-        target.parent.mkdir(parents=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT/'backend/src/unison_snapshot/commands/prepare_senate_paper_runtime.py', target)
         cls.write(cls.code/'backend/data/empty-disclosure.json', candidates.BASE)
 

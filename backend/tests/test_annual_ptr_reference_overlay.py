@@ -85,8 +85,7 @@ class AnnualReferenceOverlayTests(unittest.TestCase):
                         overlay_whitehouse_annual_candidate(candidate(),root,evidence_root=root/"evidence")
 
     def test_script_passes_controlled_root_to_normal_overlay(self):
-        sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"scripts"))
-        import overlay_whitehouse_annual_candidate as script
+        from unison_snapshot.commands import overlay_whitehouse_annual_candidate as script
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);path=root/"candidate.json";path.write_text(json.dumps(candidate()))
             with patch.object(script,"overlay_whitehouse_annual_candidate",return_value=(candidate(),{})) as call,                 patch.object(sys,"argv",["overlay","--review-root",str(root/"review"),"--evidence-root",str(root/"evidence"),
@@ -95,8 +94,7 @@ class AnnualReferenceOverlayTests(unittest.TestCase):
             self.assertEqual(call.call_args.kwargs["evidence_root"],root/"evidence")
 
     def test_normal_script_consumes_reference_mapping_and_fails_before_writes(self):
-        sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"scripts"))
-        import overlay_whitehouse_annual_candidate as script
+        from unison_snapshot.commands import overlay_whitehouse_annual_candidate as script
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);review=root/"review";views,_=setup(review)
             path=root/"candidate.json";path.write_text(json.dumps(candidate()))

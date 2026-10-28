@@ -1,0 +1,38 @@
+name: Publish controlled source data
+description: Preserve role scope and expected heads, publishing evidence first
+inputs:
+  workspace:
+    description: Prepared source worktree control directory
+    required: true
+  roles:
+    description: Source roles to publish in evidence-first order
+    default: evidence review state
+  message:
+    description: Commit description without credentials or source response bodies
+    required: true
+outputs:
+  evidence_commit:
+    description: Persisted evidence commit
+    value: ${{ steps.publish.outputs.evidence_commit }}
+  review_commit:
+    description: Persisted review commit
+    value: ${{ steps.publish.outputs.review_commit }}
+  state_commit:
+    description: Persisted operational-state commit
+    value: ${{ steps.publish.outputs.state_commit }}
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        ROLES: ${{ inputs.roles }}
+        MESSAGE: ${{ inputs.message }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: |
+        read -ra selected <<< "$ROLES"
+        args=()
+        for role in "${selected[@]}"; do args+=(--role "$role"); done
+        python -m unison_snapshot data-trees publish --workspace "$WORKSPACE" \
+          --message "$MESSAGE" --github-output "$GITHUB_OUTPUT" "${args[@]}"

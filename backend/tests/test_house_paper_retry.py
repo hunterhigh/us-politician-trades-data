@@ -39,7 +39,7 @@ class HousePaperRetryTests(unittest.TestCase):
         self.failure = self.review/'house_clerk/failures'/self.relative
         self.write(self.failure, {'error':'preserved old parser failure'})
         repo = Path(__file__).resolve().parents[2]
-        workflow = (repo/'.github/workflows/house-review.yml').read_text(encoding='utf-8')
+        workflow = (repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         selector = workflow.split('- name: Select unprocessed evidence',1)[1].split('- name:',1)[0]
         self.script = textwrap.dedent(selector.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
         self.env = {**os.environ, 'PYTHONPATH':str(repo/'backend/src'),

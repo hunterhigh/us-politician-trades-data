@@ -36,7 +36,7 @@ class ObserveOgeAnnualPart7Tests(unittest.TestCase):
             def pinned_pdf_hash(path: Path) -> str:
                 return SOURCE_SHA if path.suffix == ".pdf" else _hash_file(path)
 
-            with patch("observe_oge_annual_part7._hash_file", side_effect=pinned_pdf_hash):
+            with patch("unison_snapshot.commands.observe_oge_annual_part7._hash_file", side_effect=pinned_pdf_hash):
                 status = observe_fixed_report(evidence, review)
             self.assertEqual(status["status"], "observed_shadow_only")
             ledger = json.loads((review / SIDECAR_REL).read_text(encoding="utf-8"))
@@ -55,7 +55,7 @@ class ObserveOgeAnnualPart7Tests(unittest.TestCase):
             status = observe_fixed_report(evidence, review)
             self.assertEqual(status["reason"], "archived_source_pdf_sha_mismatch")
             self.assertFalse((review / SIDECAR_REL).exists())
-            with patch("observe_oge_annual_part7._hash_file", side_effect=lambda path:
+            with patch("unison_snapshot.commands.observe_oge_annual_part7._hash_file", side_effect=lambda path:
                        SOURCE_SHA if path.suffix == ".pdf" else _hash_file(path)):
                 (review / EXTRACTION_REL).write_text("{}", encoding="utf-8")
                 status = observe_fixed_report(evidence, review)
