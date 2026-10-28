@@ -171,6 +171,28 @@ class DefaultOwnerStatusTests(unittest.TestCase):
         self.assertEqual(len(record['publication_transaction_ids']),2)
         self.assertIn('source_interpretation_selection_unknown',record['reason_codes'])
 
+    def test_unselected_old_cache_does_not_replay_source_to_withhold_explicit_owner(self):
+        from test_oge_default_explicit_owner_status import explicit_owner_inputs
+        data = explicit_owner_inputs(self.root)
+        result, audit = build_oge_candidate(data['catalog'], [data['legacy']], data['generic'],
+            data_cutoff_at=CUTOFF, evidence_root=self.evidence)
+        self.assertEqual(result['transactions'][0]['owner'], 'Spouse')
+        sha = data['legacy']['source_sha256']
+        (self.review/f'oge/extractions/{DOCUMENT}/{sha}/oge-278t-pdf-v7.json').unlink()
+        report = audit['reports'][0]
+        report.pop('source_interpretation_binding')
+        for field in ('owner_scope_binding', 'owner_scope_view', 'owner_scope_decisions',
+                      'owner_scope_deferred_ids', 'native_classification', 'legacy_inheritance',
+                      'default_owner_conservation'):
+            report.pop(field, None)
+        self.save(audit)
+        with patch('unison_snapshot.oge_default_owner_conservation.prepare_default_owner_conservation',
+                   side_effect=AssertionError('unselected caches cannot establish qualification')):
+            record = self.status(result)
+        self.assertIsNone(record['qualified_transaction_count'])
+        self.assertEqual(record['qualification_state'], 'unknown')
+        self.assertEqual(len(record['publication_transaction_ids']), len(result['transactions']))
+
 
 if __name__ == '__main__':
     unittest.main()

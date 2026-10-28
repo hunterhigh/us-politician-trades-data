@@ -723,15 +723,11 @@ def _unbound_default_owner_hint(record, review, transactions, *, evidence=None, 
                     and row.get('extraction_id') in undisclosed for row in rows):
                 return True
         if explicit and catalog_record is not None:
-            # An explicit native ID need not equal v2's Self ID. Reuse the
-            # canonical-source mapping rather than inventing a second row
-            # matcher here. This only withholds an unselected interpretation;
-            # even an observed source cannot turn this hint into current q.
-            from .oge_default_owner_conservation import prepare_default_owner_conservation
-            context = prepare_default_owner_conservation(cached, explicit, catalog_record,
-                evidence_root=evidence, source_extraction=cached)
-            if context.protected_ids:
-                return True
+            # Explicit native IDs need not equal v2's default-owner IDs.
+            # Without an execution selection this is only a reason to withhold
+            # qualification, not a source assertion. Replaying an unselected
+            # historical cache cannot establish which reader actually ran.
+            return True
     return False
 
 

@@ -28,6 +28,26 @@ class InventoryError(ValueError):
     """The finite absence-of-owner proof cannot explain the complete source."""
 
 
+def _legacy_replay_matches(actual: dict, saved: dict) -> bool:
+    """Old v2 caches may omit additive cells; present evidence stays exact.
+
+    This does not add the omitted evidence to the saved cache or authorize an
+    owner alias. The separate source inventory proof and row binding still
+    require their actual cells.
+    """
+    if saved.get('parser_version') != PARSER_VERSION:
+        return encode(actual) == encode(saved)
+    replay = deepcopy(actual)
+    if 'source_rows' not in saved:
+        replay.pop('source_rows', None)
+    current, previous = replay.get('transactions'), saved.get('transactions')
+    if isinstance(current, list) and isinstance(previous, list) and len(current) == len(previous):
+        for row, old in zip(current, previous, strict=True):
+            if isinstance(row, dict) and isinstance(old, dict) and 'cells' not in old:
+                row.pop('cells', None)
+    return encode(replay) == encode(saved)
+
+
 def _represented(projection, prior):
     """Allow only omission of known, source-proved nulls in public shards."""
     if set(prior) - set(projection):
@@ -279,7 +299,7 @@ class NativeOwnerScope:
             actual_legacy = parse_archived_pdf(root, metadata_path)
             actual_native = parse_archived_pdf(root, metadata_path, generic=True)
             if (encode(actual_native) != encode(self.source) or self.legacy is not None
-                    and encode(actual_legacy) != encode(self.legacy)):
+                    and not _legacy_replay_matches(actual_legacy, self.legacy)):
                 raise OgeCatalogError('OGE owner source whole-cache replay differs')
             self._source_authenticated = True
         except OgeCatalogError:

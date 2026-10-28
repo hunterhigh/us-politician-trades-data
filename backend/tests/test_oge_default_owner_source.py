@@ -109,6 +109,27 @@ class DefaultOwnerSourceTests(unittest.TestCase):
             with self.assertRaises(OgeCatalogError):
                 prepare_default_owner_conservation(raw, facts, record, evidence_root=root/'missing')
 
+    def test_pre_inventory_cache_is_readable_without_creating_missing_owner_proof(self):
+        raw, facts, record, evidence = self.inputs()
+        raw.pop('source_rows')
+        for row in raw['transactions']:
+            row.pop('cells')
+        before = deepcopy(raw)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_files(root, evidence)
+            context = prepare_default_owner_conservation(raw, facts, record, evidence_root=root)
+            self.assertEqual(context.source_current_ids(facts), set())
+            changed = deepcopy(raw)
+            changed['transactions'][0]['amount_low'] += 1
+            with self.assertRaisesRegex(OgeCatalogError, 'whole-cache replay differs'):
+                prepare_default_owner_conservation(changed, facts, record, evidence_root=root)
+            changed = deepcopy(raw)
+            changed['source_rows'] = []
+            with self.assertRaisesRegex(OgeCatalogError, 'whole-cache replay differs'):
+                prepare_default_owner_conservation(changed, facts, record, evidence_root=root)
+        self.assertEqual(raw, before)
+
     def test_duplicate_formal_ids_rejected_and_manual_effective_is_not_raw_source(self):
         raw, facts, record, _ = self.inputs()
         with self.assertRaisesRegex(OgeCatalogError, 'formal IDs are duplicated'):
