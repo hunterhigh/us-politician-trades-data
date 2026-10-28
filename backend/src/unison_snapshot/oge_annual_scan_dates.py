@@ -6,6 +6,7 @@ cover images, not OCR guesses.  None is an agency receipt or ``filed_at``.
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 from .oge import OgeCatalogError
@@ -14,43 +15,19 @@ from .oge import OgeCatalogError
 SCHEMA = "oge-278e-scan-date-blocks/v1"
 # Official PDF SHA-256, cover type, and source-bound visual transcription.
 # A null means that this role has no reliably readable date on this cover.
-FIXED_COVERS = {
-    "1462ab8c5542e5e7852589b0007899fc": (
-        "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28",
-        "annual_form", {"filer_signature": "2023-05-08",
-                        "agency_ethics_review": "2023-05-12",
-                        "oge_certification": "2023-05-15"}),
-    "59bcdfb898190fac8525884100747a4c": (
-        "f39c873856f8efbc93b1c3885fd9354427adfb8b90636edecd206b72e5e1bb77",
-        "annual_form", {"filer_signature": "2022-05-06",
-                        "agency_ethics_review": "2022-05-10",
-                        "oge_certification": "2022-05-12"}),
-    "98c022b90c25091e852586d9004a7bfc": (
-        "4811d4c9e69e74730fd2354883907745f0939fc28875645ce816c6e447f61a08",
-        "amendment_letter", {"filer_signature": "2021-05-18",
-                             "agency_ethics_review": None,
-                             "oge_certification": "2021-05-18"}),
-    "9a9b9318751632fa852586d9002ec0f9": (
-        "3e66f57c0650c6e50250d32b5c822aa8460985cf5fb7934b96ce9db665b87238",
-        "annual_form", {"filer_signature": "2021-05-17",
-                        "agency_ethics_review": "2021-05-17",
-                        "oge_certification": "2021-05-17"}),
-    "e0e994cfa156d7cf852589b000789259": (
-        "8f7a606ddf0016b66b3e5a72bb4cc906b162c798c062ef163e0a2bf8b52974ea",
-        "annual_form", {"filer_signature": "2023-05-14",
-                        "agency_ethics_review": "2023-05-15",
-                        "oge_certification": "2023-05-15"}),
-    "e53c72b0e534b2e7852588410074776c": (
-        "3cffee2d61c1659fcc9d2845dec47cdd388cf0bc0c23e5ee48eec01a861fb4c3",
-        "annual_form", {"filer_signature": None,
-                        "agency_ethics_review": "2022-05-10",
-                        "oge_certification": "2022-05-12"}),
-}
+def cover_observations():
+    path = Path(__file__).resolve().parents[2] / 'data/source_observations/oge_annual/cover_dates.json'
+    value = json.loads(path.read_text(encoding='utf-8'))
+    if (value.get('schema_version') != 'reviewed-annual-cover-observations/v1' or
+            value.get('qualification_effect') != 'none'):
+        raise OgeCatalogError('Annual cover observations cannot qualify filing dates')
+    return {doc: (row['source_sha256'], row['cover_kind'], row['dates'])
+        for doc, row in value['reports'].items()}
 
 
 def observe_scan_date_blocks(pdf_path: Path, *, source_sha256: str,
                              document_id: str) -> dict:
-    pinned = FIXED_COVERS.get(document_id)
+    pinned = cover_observations().get(document_id)
     if pinned is None or source_sha256 != pinned[0]:
         raise OgeCatalogError("OGE scanned annual date source is not pinned")
     content = pdf_path.read_bytes()

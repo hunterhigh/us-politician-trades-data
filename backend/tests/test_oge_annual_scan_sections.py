@@ -10,11 +10,14 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual_scan_sections import (
-    HARRIS_2023_DOCUMENT_ID, HARRIS_2023_SOURCE_SHA256, _row_blocks,
+    _row_blocks,
     _trade_observation, observe_scan_sections)
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+_SOURCE = json.loads((FIXTURES / 'oge_annual_harris_2023_part7_physical_rows.json').read_text(encoding='utf-8'))
+SOURCE_DOCUMENT_ID = _SOURCE['source_document_id']
+SOURCE_SHA256 = _SOURCE['source_sha256']
 
 
 class OgeAnnualScanSectionsTests(unittest.TestCase):
@@ -23,8 +26,6 @@ class OgeAnnualScanSectionsTests(unittest.TestCase):
                             .read_text(encoding="utf-8"))
         summary = json.loads((FIXTURES / "oge_annual_harris_2023_scan_sections_summary.json")
                              .read_text(encoding="utf-8"))
-        self.assertEqual(source["source_sha256"], HARRIS_2023_SOURCE_SHA256)
-        self.assertEqual(source["source_document_id"], HARRIS_2023_DOCUMENT_ID)
         counts: Counter[str] = Counter()
         for page in source["part7_pages"]:
             lines = [{"text": "# Description Type Date Amount", "x0": 20,
@@ -69,8 +70,8 @@ class OgeAnnualScanSectionsTests(unittest.TestCase):
             pdf = Path(folder) / "report.pdf"
             pdf.write_bytes(b"%PDF-1.7\nwrong bytes\n%%EOF")
             with self.assertRaisesRegex(OgeCatalogError, "archived hash"):
-                observe_scan_sections(pdf, source_sha256=HARRIS_2023_SOURCE_SHA256,
-                                      document_id=HARRIS_2023_DOCUMENT_ID)
+                observe_scan_sections(pdf, source_sha256=SOURCE_SHA256,
+                                      document_id=SOURCE_DOCUMENT_ID)
 
 
 if __name__ == "__main__":

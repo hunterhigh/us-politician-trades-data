@@ -15,8 +15,6 @@ from .oge import OgeCatalogError
 
 
 SCHEMA = "oge-278e-scan-sections/v1"
-HARRIS_2023_DOCUMENT_ID = "1462ab8c5542e5e7852589b0007899fc"
-HARRIS_2023_SOURCE_SHA256 = "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28"
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[0-9a-f]{32}\Z")
 _SECTION = re.compile(r"\bPart\s+([2567])\s*:", re.I)

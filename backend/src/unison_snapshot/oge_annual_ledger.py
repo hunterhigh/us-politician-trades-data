@@ -82,8 +82,8 @@ def annual_filing_date_evidence(extraction: dict, scan_dates: dict | None = None
                 raise ValueError("native and handwritten filer dates conflict")
             return {"date": replay["filed_at"], "method": "native_cover_roles", "source_reference": cover}
     if scan_dates is not None:
-        from .oge_annual_scan_dates import FIXED_COVERS, SCHEMA as DATE_SCHEMA
-        pinned = FIXED_COVERS.get(extraction["source_document_id"])
+        from .oge_annual_scan_dates import cover_observations, SCHEMA as DATE_SCHEMA
+        pinned = cover_observations().get(extraction["source_document_id"])
         if (not isinstance(scan_dates, dict) or scan_dates.get("schema_version") != DATE_SCHEMA or
                 scan_dates.get("source_document_id") != extraction["source_document_id"] or
                 scan_dates.get("source_sha256") != extraction["source_sha256"] or

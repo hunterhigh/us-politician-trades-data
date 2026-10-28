@@ -6,13 +6,13 @@ import json
 from pathlib import Path
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_annual_scan_dates import (FIXED_COVERS,
+from unison_snapshot.oge_annual_scan_dates import (cover_observations,
                                                     observe_scan_date_blocks)
 
 
 def observe_fixed_batch(evidence_root: Path) -> dict:
     results = []
-    for document_id, (sha, _, _) in sorted(FIXED_COVERS.items()):
+    for document_id, (sha, _, _) in sorted(cover_observations().items()):
         pdf = (evidence_root / "oge" / "annual" / "reports" /
                document_id / f"{sha}.pdf")
         try:
