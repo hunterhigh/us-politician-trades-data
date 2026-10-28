@@ -25,8 +25,7 @@ from unison_snapshot.house_candidate import _person
 ROOT=Path(__file__).resolve().parents[2]
 WORKFLOW=ROOT/'.github/workflows/house-review.yml'
 FIXED_STEPS=(
-    ('Qualify fixed source reviewed House paper rows','qualify_house_paper_9116141.py'),
-    ('Close fixed House paper prior-report relationship','complete_house_paper_9116141.py'),
+    ('Qualify source-reviewed House paper 9116141','-m unison_snapshot correct-reviewed-house-paper'),
     ('Qualify source-reviewed House paper 9115820','-m unison_snapshot correct-reviewed-house-paper'),
 )
 CUTOFF='2026-10-28T00:00:00Z'

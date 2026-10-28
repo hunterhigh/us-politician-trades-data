@@ -385,29 +385,17 @@ jobs:
             "${paper_args[@]}" \
             | tee .local/house-paper-bridge.json
           echo "House paper bridge: $(cat .local/house-paper-bridge.json)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Qualify fixed source reviewed House paper rows
+      - name: Qualify source-reviewed House paper 9116141
         if: inputs.materialize_saved_paper != true
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          PYTHONPATH=backend/src python backend/scripts/qualify_house_paper_9116141.py \
+          PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-house-paper \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --source-review docs/house-paper-9116141-source-review.json \
+            --correction backend/data/corrections/house_clerk/9116141.json \
             | tee .local/house-paper-9116141-qualified.json
-          echo "Fixed House paper: $(cat .local/house-paper-9116141-qualified.json)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Close fixed House paper prior-report relationship
-        if: inputs.materialize_saved_paper != true
-        env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-        run: |
-          PYTHONPATH=backend/src python backend/scripts/complete_house_paper_9116141.py \
-            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
-            --source-review docs/house-paper-9116141-source-review.json \
-            --relation-review docs/house-paper-9116141-prior-relationship-review.json \
-            | tee .local/house-paper-9116141-complete.json
-          echo "House paper relationship: $(cat .local/house-paper-9116141-complete.json)" >> "$GITHUB_STEP_SUMMARY"
+          echo "House paper 9116141, including prior relationship: $(cat .local/house-paper-9116141-qualified.json)" >> "$GITHUB_STEP_SUMMARY"
       - name: Qualify source-reviewed House paper 9115820
         if: inputs.materialize_saved_paper != true
         env:

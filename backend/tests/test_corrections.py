@@ -63,7 +63,7 @@ class CorrectionTests(unittest.TestCase):
                 self.assertEqual(len(slots), len(correction['actions']))
                 self.assertTrue(all(a['row'] in correction['assertions']['row_inventory'] for a in correction['actions']))
                 self.assertEqual(sum(a['field']=='account_title' for a in correction['actions']),
-                    review['expected_eligible_count'])
+                    review['physical_counts']['data_candidate'])
 
 
 class V1ContractTests(unittest.TestCase):
