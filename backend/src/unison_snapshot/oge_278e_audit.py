@@ -18,7 +18,7 @@ from .oge_278e_public import (OCR_MINIMUM_CRITICAL_CONFIDENCE,
                                _SIGNATURE,
                                _explicit_part6_owner, _name_key)
 from .oge_annual import _VALUE_RANGES, _range
-from .whitehouse_scanned_annual import (recovered_ocr_holding_valid,
+from .reviewed_annual_extraction import (recovered_ocr_holding_valid,
                                         scanned_signature_evidence_valid,
                                         source_bound_existing_holding_valid,
                                         source_bound_holding_section_page_valid,

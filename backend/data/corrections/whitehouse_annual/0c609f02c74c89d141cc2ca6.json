@@ -1,0 +1,2835 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-annual-extraction/v1",
+  "source": "oge",
+  "document_id": "wh-url:0c609f02c74c89d141cc2ca6",
+  "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/Vice-President-JD-Vance-2025-Annual-Report.pdf",
+  "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
+  "reviewed_at": "2026-10-28",
+  "source_review": {
+    "basis": "preserve_existing_annual_source_qualification",
+    "code_commit": "335fce71"
+  },
+  "source_context": {
+    "source_id": "whitehouse_public",
+    "filer_name": "JD Vance",
+    "report_type": "Annual",
+    "report_period_end": "2025-12-31",
+    "holding_valuation_date": "2025-12-31"
+  },
+  "holding_page_ranges": {},
+  "reserved_parser_versions": [],
+  "identity_rules": {
+    "holding_locator": false,
+    "legacy_ids": []
+  },
+  "transaction_candidate_versions": [],
+  "parser_version": "whitehouse-278e-hybrid-geometry/v5",
+  "actions": [
+    {
+      "op": "set_report",
+      "field": "source_bound_recovered_holding_count",
+      "expect": null,
+      "expect_present": false,
+      "value": 13,
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "source_bound_original_position_title_raw",
+      "expect": null,
+      "expect_present": false,
+      "value": "Vice President of the United States",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "source_bound_resolved_document_reasons",
+      "expect": null,
+      "expect_present": false,
+      "value": [
+        "filer_handwritten_signature_or_date_unverified"
+      ],
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "signature_evidence",
+      "expect": null,
+      "expect_present": false,
+      "value": {
+        "filer_name": "JD Vance",
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "page_number": 1,
+        "signed_on": "2026-06-23",
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
+        "type": "handwritten_scan"
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "source_bound_correction_method",
+      "expect": null,
+      "expect_present": false,
+      "value": "whitehouse-scanned-annual-source-bound/v2",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "document_reasons",
+      "expect": [
+        "filer_handwritten_signature_or_date_unverified"
+      ],
+      "expect_present": true,
+      "value": [],
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "filing_date",
+      "expect": null,
+      "expect_present": true,
+      "value": "2026-06-23",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/0",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 86.6,
+        "ocr_min_confidence": 34.87,
+        "owner": "Self",
+        "owner_evidence": null,
+        "page_number": 3,
+        "raw_columns": {
+          "description": "|SPY-SPDR S&P",
+          "eif": "Yes",
+          "value": "|$100,001 - $250,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "1.1",
+        "section": "part2"
+      },
+      "value": {
+        "asset_name": "SPY-SPDR S&P",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 86.6,
+        "ocr_min_confidence": 34.87,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "|SPY-SPDR S&P",
+            "eif": "Yes",
+            "value": "|$100,001 - $250,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Self",
+        "page_number": 3,
+        "raw_columns": {
+          "description": "SPY-SPDR S&P",
+          "eif": "Yes",
+          "value": "$100,001 - $250,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "1.1",
+        "section": "part2",
+        "value_high": 250000,
+        "value_low": 100001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/0",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/2",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 88.02,
+        "ocr_min_confidence": 61.37,
+        "owner": "Self",
+        "owner_evidence": null,
+        "page_number": 3,
+        "raw_columns": {
+          "description": "|U.S. Brokerage account (cash)",
+          "eif": "N/A",
+          "value": "|$1,001 - $15,000"
+        },
+        "reasons": [
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "2.1",
+        "section": "part2"
+      },
+      "value": {
+        "asset_name": "U.S. Brokerage account (cash)",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 88.02,
+        "ocr_min_confidence": 61.37,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "|U.S. Brokerage account (cash)",
+            "eif": "N/A",
+            "value": "|$1,001 - $15,000"
+          },
+          "original_reasons": [
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Self",
+        "page_number": 3,
+        "raw_columns": {
+          "description": "U.S. Brokerage account (cash)",
+          "eif": "N/A",
+          "value": "$1,001 - $15,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "2.1",
+        "section": "part2",
+        "value_high": 15000,
+        "value_low": 1001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/2",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/8",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 93.68,
+        "ocr_min_confidence": 33.91,
+        "owner": "Self",
+        "owner_evidence": null,
+        "page_number": 3,
+        "raw_columns": {
+          "description": "|Management Fee Set Off Contribution receivable",
+          "eif": "N/A",
+          "value": "{$500,001 - $1,000,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "3.5.2",
+        "section": "part2"
+      },
+      "value": {
+        "asset_name": "Management Fee Set Off Contribution receivable",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 93.68,
+        "ocr_min_confidence": 33.91,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "|Management Fee Set Off Contribution receivable",
+            "eif": "N/A",
+            "value": "{$500,001 - $1,000,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Self",
+        "page_number": 3,
+        "raw_columns": {
+          "description": "Management Fee Set Off Contribution receivable",
+          "eif": "N/A",
+          "value": "$500,001 - $1,000,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "3.5.2",
+        "section": "part2",
+        "value_high": 1000000,
+        "value_low": 500001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/8",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/23",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 89.58,
+        "ocr_min_confidence": 43.4,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+          "eif": "Yes",
+          "value": "|$1,001 - $15,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "2.1",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 89.58,
+        "ocr_min_confidence": 43.4,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+            "eif": "Yes",
+            "value": "|$1,001 - $15,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+          "eif": "Yes",
+          "value": "$1,001 - $15,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "2.1",
+        "section": "part6",
+        "value_high": 15000,
+        "value_low": 1001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/23",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/25",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 85.37,
+        "ocr_min_confidence": 29.99,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+          "eif": "Yes",
+          "value": "$15,001 - $50,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold"
+        ],
+        "row_number": "3.1",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 85.37,
+        "ocr_min_confidence": 29.99,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+            "eif": "Yes",
+            "value": "$15,001 - $50,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+          "eif": "Yes",
+          "value": "$15,001 - $50,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "3.1",
+        "section": "part6",
+        "value_high": 50000,
+        "value_low": 15001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/25",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/27",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 85.16,
+        "ocr_min_confidence": 47.32,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "TLT — iShares 20+ Year Treasury Bond",
+          "eif": "Yes",
+          "value": "|$100,001 - $250,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "4.2",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "TLT — iShares 20+ Year Treasury Bond",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 85.16,
+        "ocr_min_confidence": 47.32,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "TLT — iShares 20+ Year Treasury Bond",
+            "eif": "Yes",
+            "value": "|$100,001 - $250,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "TLT — iShares 20+ Year Treasury Bond",
+          "eif": "Yes",
+          "value": "$100,001 - $250,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "4.2",
+        "section": "part6",
+        "value_high": 250000,
+        "value_low": 100001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/27",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/28",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 90.49,
+        "ocr_min_confidence": 63.27,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+          "eif": "Yes",
+          "value": "|$1,000,001 - $5,000,000"
+        },
+        "reasons": [
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "4.3",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 90.49,
+        "ocr_min_confidence": 63.27,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+            "eif": "Yes",
+            "value": "|$1,000,001 - $5,000,000"
+          },
+          "original_reasons": [
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+          "eif": "Yes",
+          "value": "$1,000,001 - $5,000,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "4.3",
+        "section": "part6",
+        "value_high": 5000000,
+        "value_low": 1000001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/28",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/29",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 87.6,
+        "ocr_min_confidence": 56.94,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "SPY — SPDR S&P 500 ETF",
+          "eif": "Yes",
+          "value": "|$1,000,001 - $5,000,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "4.4",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "SPY — SPDR S&P 500 ETF",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 87.6,
+        "ocr_min_confidence": 56.94,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "SPY — SPDR S&P 500 ETF",
+            "eif": "Yes",
+            "value": "|$1,000,001 - $5,000,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "SPY — SPDR S&P 500 ETF",
+          "eif": "Yes",
+          "value": "$1,000,001 - $5,000,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "4.4",
+        "section": "part6",
+        "value_high": 5000000,
+        "value_low": 1000001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/29",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/30",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 86.34,
+        "ocr_min_confidence": 0.0,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "GLD — SPDR Gold Trust",
+          "eif": "Yes",
+          "value": "$250,001 - $500,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold"
+        ],
+        "row_number": "4.5",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "GLD — SPDR Gold Trust",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 86.34,
+        "ocr_min_confidence": 0.0,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "GLD — SPDR Gold Trust",
+            "eif": "Yes",
+            "value": "$250,001 - $500,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "GLD — SPDR Gold Trust",
+          "eif": "Yes",
+          "value": "$250,001 - $500,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "4.5",
+        "section": "part6",
+        "value_high": 500000,
+        "value_low": 250001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/30",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/33",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 91.68,
+        "ocr_min_confidence": 51.6,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Real Estate, commercial (Jackson, KY)",
+          "eif": "N/A",
+          "value": "|$50,001 - $100,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "8",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "Real Estate, commercial (Jackson, KY)",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 91.68,
+        "ocr_min_confidence": 51.6,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "Real Estate, commercial (Jackson, KY)",
+            "eif": "N/A",
+            "value": "|$50,001 - $100,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Real Estate, commercial (Jackson, KY)",
+          "eif": "N/A",
+          "value": "$50,001 - $100,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "8",
+        "section": "part6",
+        "value_high": 100000,
+        "value_low": 50001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/33",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/34",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 89.22,
+        "ocr_min_confidence": 30.89,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Real Estate, residential (Middletown, OH)",
+          "eif": "N/A",
+          "value": "1$100,001 - $250,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "9",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "Real Estate, residential (Middletown, OH)",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 89.22,
+        "ocr_min_confidence": 30.89,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "Real Estate, residential (Middletown, OH)",
+            "eif": "N/A",
+            "value": "1$100,001 - $250,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Real Estate, residential (Middletown, OH)",
+          "eif": "N/A",
+          "value": "$100,001 - $250,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "9",
+        "section": "part6",
+        "value_high": 250000,
+        "value_low": 100001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/34",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/35",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 86.02,
+        "ocr_min_confidence": 33.82,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "USAA Checking Accounts",
+          "eif": "N/A",
+          "value": "{$15,001 - $50,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "10",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "USAA Checking Accounts",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 86.02,
+        "ocr_min_confidence": 33.82,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "USAA Checking Accounts",
+            "eif": "N/A",
+            "value": "{$15,001 - $50,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "USAA Checking Accounts",
+          "eif": "N/A",
+          "value": "$15,001 - $50,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "10",
+        "section": "part6",
+        "value_high": 50000,
+        "value_low": 15001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/35",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/36",
+      "field": "record",
+      "expect": {
+        "ocr_mean_confidence": 86.96,
+        "ocr_min_confidence": 42.8,
+        "owner": "Unknown",
+        "owner_evidence": null,
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Marcus by Goldman Sachs Savings Account",
+          "eif": "N/A",
+          "value": "{$100,001 - $250,000"
+        },
+        "reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "row_number": "11",
+        "section": "part6"
+      },
+      "value": {
+        "asset_name": "Marcus by Goldman Sachs Savings Account",
+        "holding_valuation_date": "2025-12-31",
+        "holding_valuation_status": "exact_period_end",
+        "ocr_mean_confidence": 86.96,
+        "ocr_min_confidence": 42.8,
+        "ocr_recovery": {
+          "method": "whitehouse-scanned-annual-source-bound/v2",
+          "original_raw_columns": {
+            "description": "Marcus by Goldman Sachs Savings Account",
+            "eif": "N/A",
+            "value": "{$100,001 - $250,000"
+          },
+          "original_reasons": [
+            "holding_ocr_confidence_below_threshold",
+            "holding_value_unreadable_or_open"
+          ],
+          "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+        },
+        "owner": "Unknown",
+        "page_number": 10,
+        "raw_columns": {
+          "description": "Marcus by Goldman Sachs Savings Account",
+          "eif": "N/A",
+          "value": "$100,001 - $250,000"
+        },
+        "report_period_end": "2025-12-31",
+        "row_number": "11",
+        "section": "part6",
+        "value_high": 250000,
+        "value_low": 100001
+      },
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "quarantined/36",
+      "field": "disposition",
+      "expect": "quarantined",
+      "value": "holdings",
+      "evidence": {
+        "source_review": "existing_source_bound_annual_qualification"
+      }
+    }
+  ],
+  "assertions": {
+    "row_inventory": [
+      "quarantined/0",
+      "quarantined/2",
+      "quarantined/8",
+      "quarantined/23",
+      "quarantined/25",
+      "quarantined/27",
+      "quarantined/28",
+      "quarantined/29",
+      "quarantined/30",
+      "quarantined/33",
+      "quarantined/34",
+      "quarantined/35",
+      "quarantined/36"
+    ],
+    "input_sha256": "8d9f77dd5c603cf4cb3b8504e818fb63439b814ab396fe0f8c01f9938ec89330",
+    "output_sha256": "2cd36d74d8f380899c59e7778b897ce20cc16b4a5fd9903ede0ad1b93841d826",
+    "input_counts": {
+      "holdings": 0,
+      "quarantined": 47
+    },
+    "output_counts": {
+      "holdings": 13,
+      "quarantined": 34
+    }
+  },
+  "recovered_holdings": [
+    {
+      "asset_name": "SPY-SPDR S&P",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 86.6,
+      "ocr_min_confidence": 34.87,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "|SPY-SPDR S&P",
+          "eif": "Yes",
+          "value": "|$100,001 - $250,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Self",
+      "page_number": 3,
+      "raw_columns": {
+        "description": "SPY-SPDR S&P",
+        "eif": "Yes",
+        "value": "$100,001 - $250,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "1.1",
+      "section": "part2",
+      "value_high": 250000,
+      "value_low": 100001
+    },
+    {
+      "asset_name": "U.S. Brokerage account (cash)",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 88.02,
+      "ocr_min_confidence": 61.37,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "|U.S. Brokerage account (cash)",
+          "eif": "N/A",
+          "value": "|$1,001 - $15,000"
+        },
+        "original_reasons": [
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Self",
+      "page_number": 3,
+      "raw_columns": {
+        "description": "U.S. Brokerage account (cash)",
+        "eif": "N/A",
+        "value": "$1,001 - $15,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "2.1",
+      "section": "part2",
+      "value_high": 15000,
+      "value_low": 1001
+    },
+    {
+      "asset_name": "Management Fee Set Off Contribution receivable",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 93.68,
+      "ocr_min_confidence": 33.91,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "|Management Fee Set Off Contribution receivable",
+          "eif": "N/A",
+          "value": "{$500,001 - $1,000,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Self",
+      "page_number": 3,
+      "raw_columns": {
+        "description": "Management Fee Set Off Contribution receivable",
+        "eif": "N/A",
+        "value": "$500,001 - $1,000,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "3.5.2",
+      "section": "part2",
+      "value_high": 1000000,
+      "value_low": 500001
+    },
+    {
+      "asset_name": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 89.58,
+      "ocr_min_confidence": 43.4,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+          "eif": "Yes",
+          "value": "|$1,001 - $15,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+        "eif": "Yes",
+        "value": "$1,001 - $15,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "2.1",
+      "section": "part6",
+      "value_high": 15000,
+      "value_low": 1001
+    },
+    {
+      "asset_name": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 85.37,
+      "ocr_min_confidence": 29.99,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+          "eif": "Yes",
+          "value": "$15,001 - $50,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+        "eif": "Yes",
+        "value": "$15,001 - $50,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "3.1",
+      "section": "part6",
+      "value_high": 50000,
+      "value_low": 15001
+    },
+    {
+      "asset_name": "TLT — iShares 20+ Year Treasury Bond",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 85.16,
+      "ocr_min_confidence": 47.32,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "TLT — iShares 20+ Year Treasury Bond",
+          "eif": "Yes",
+          "value": "|$100,001 - $250,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "TLT — iShares 20+ Year Treasury Bond",
+        "eif": "Yes",
+        "value": "$100,001 - $250,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "4.2",
+      "section": "part6",
+      "value_high": 250000,
+      "value_low": 100001
+    },
+    {
+      "asset_name": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 90.49,
+      "ocr_min_confidence": 63.27,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+          "eif": "Yes",
+          "value": "|$1,000,001 - $5,000,000"
+        },
+        "original_reasons": [
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+        "eif": "Yes",
+        "value": "$1,000,001 - $5,000,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "4.3",
+      "section": "part6",
+      "value_high": 5000000,
+      "value_low": 1000001
+    },
+    {
+      "asset_name": "SPY — SPDR S&P 500 ETF",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 87.6,
+      "ocr_min_confidence": 56.94,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "SPY — SPDR S&P 500 ETF",
+          "eif": "Yes",
+          "value": "|$1,000,001 - $5,000,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "SPY — SPDR S&P 500 ETF",
+        "eif": "Yes",
+        "value": "$1,000,001 - $5,000,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "4.4",
+      "section": "part6",
+      "value_high": 5000000,
+      "value_low": 1000001
+    },
+    {
+      "asset_name": "GLD — SPDR Gold Trust",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 86.34,
+      "ocr_min_confidence": 0.0,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "GLD — SPDR Gold Trust",
+          "eif": "Yes",
+          "value": "$250,001 - $500,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "GLD — SPDR Gold Trust",
+        "eif": "Yes",
+        "value": "$250,001 - $500,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "4.5",
+      "section": "part6",
+      "value_high": 500000,
+      "value_low": 250001
+    },
+    {
+      "asset_name": "Real Estate, commercial (Jackson, KY)",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 91.68,
+      "ocr_min_confidence": 51.6,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "Real Estate, commercial (Jackson, KY)",
+          "eif": "N/A",
+          "value": "|$50,001 - $100,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "Real Estate, commercial (Jackson, KY)",
+        "eif": "N/A",
+        "value": "$50,001 - $100,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "8",
+      "section": "part6",
+      "value_high": 100000,
+      "value_low": 50001
+    },
+    {
+      "asset_name": "Real Estate, residential (Middletown, OH)",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 89.22,
+      "ocr_min_confidence": 30.89,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "Real Estate, residential (Middletown, OH)",
+          "eif": "N/A",
+          "value": "1$100,001 - $250,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "Real Estate, residential (Middletown, OH)",
+        "eif": "N/A",
+        "value": "$100,001 - $250,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "9",
+      "section": "part6",
+      "value_high": 250000,
+      "value_low": 100001
+    },
+    {
+      "asset_name": "USAA Checking Accounts",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 86.02,
+      "ocr_min_confidence": 33.82,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "USAA Checking Accounts",
+          "eif": "N/A",
+          "value": "{$15,001 - $50,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "USAA Checking Accounts",
+        "eif": "N/A",
+        "value": "$15,001 - $50,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "10",
+      "section": "part6",
+      "value_high": 50000,
+      "value_low": 15001
+    },
+    {
+      "asset_name": "Marcus by Goldman Sachs Savings Account",
+      "holding_valuation_date": "2025-12-31",
+      "holding_valuation_status": "exact_period_end",
+      "ocr_mean_confidence": 86.96,
+      "ocr_min_confidence": 42.8,
+      "ocr_recovery": {
+        "method": "whitehouse-scanned-annual-source-bound/v2",
+        "original_raw_columns": {
+          "description": "Marcus by Goldman Sachs Savings Account",
+          "eif": "N/A",
+          "value": "{$100,001 - $250,000"
+        },
+        "original_reasons": [
+          "holding_ocr_confidence_below_threshold",
+          "holding_value_unreadable_or_open"
+        ],
+        "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+      },
+      "owner": "Unknown",
+      "page_number": 10,
+      "raw_columns": {
+        "description": "Marcus by Goldman Sachs Savings Account",
+        "eif": "N/A",
+        "value": "$100,001 - $250,000"
+      },
+      "report_period_end": "2025-12-31",
+      "row_number": "11",
+      "section": "part6",
+      "value_high": 250000,
+      "value_low": 100001
+    }
+  ],
+  "existing_holding_approvals": [],
+  "variants": {
+    "whitehouse-278e-hybrid-geometry/v4": {
+      "parser_version": "whitehouse-278e-hybrid-geometry/v4",
+      "actions": [
+        {
+          "op": "set_report",
+          "field": "source_bound_recovered_holding_count",
+          "expect": null,
+          "expect_present": false,
+          "value": 13,
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "source_bound_original_position_title_raw",
+          "expect": null,
+          "expect_present": false,
+          "value": "Vice President of the United States",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "source_bound_resolved_document_reasons",
+          "expect": null,
+          "expect_present": false,
+          "value": [
+            "filer_handwritten_signature_or_date_unverified"
+          ],
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "signature_evidence",
+          "expect": null,
+          "expect_present": false,
+          "value": {
+            "filer_name": "JD Vance",
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "page_number": 1,
+            "signed_on": "2026-06-23",
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d",
+            "type": "handwritten_scan"
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "source_bound_correction_method",
+          "expect": null,
+          "expect_present": false,
+          "value": "whitehouse-scanned-annual-source-bound/v2",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "document_reasons",
+          "expect": [
+            "filer_handwritten_signature_or_date_unverified"
+          ],
+          "expect_present": true,
+          "value": [],
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_report",
+          "field": "filing_date",
+          "expect": null,
+          "expect_present": true,
+          "value": "2026-06-23",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/0",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 86.6,
+            "ocr_min_confidence": 34.87,
+            "owner": "Self",
+            "owner_evidence": null,
+            "page_number": 3,
+            "raw_columns": {
+              "description": "|SPY-SPDR S&P",
+              "eif": "Yes",
+              "value": "|$100,001 - $250,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "1.1",
+            "section": "part2"
+          },
+          "value": {
+            "asset_name": "SPY-SPDR S&P",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 86.6,
+            "ocr_min_confidence": 34.87,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "|SPY-SPDR S&P",
+                "eif": "Yes",
+                "value": "|$100,001 - $250,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Self",
+            "page_number": 3,
+            "raw_columns": {
+              "description": "SPY-SPDR S&P",
+              "eif": "Yes",
+              "value": "$100,001 - $250,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "1.1",
+            "section": "part2",
+            "value_high": 250000,
+            "value_low": 100001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/0",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/2",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 88.02,
+            "ocr_min_confidence": 61.37,
+            "owner": "Self",
+            "owner_evidence": null,
+            "page_number": 3,
+            "raw_columns": {
+              "description": "|U.S. Brokerage account (cash)",
+              "eif": "N/A",
+              "value": "|$1,001 - $15,000"
+            },
+            "reasons": [
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "2.1",
+            "section": "part2"
+          },
+          "value": {
+            "asset_name": "U.S. Brokerage account (cash)",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 88.02,
+            "ocr_min_confidence": 61.37,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "|U.S. Brokerage account (cash)",
+                "eif": "N/A",
+                "value": "|$1,001 - $15,000"
+              },
+              "original_reasons": [
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Self",
+            "page_number": 3,
+            "raw_columns": {
+              "description": "U.S. Brokerage account (cash)",
+              "eif": "N/A",
+              "value": "$1,001 - $15,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "2.1",
+            "section": "part2",
+            "value_high": 15000,
+            "value_low": 1001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/2",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/8",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 93.68,
+            "ocr_min_confidence": 33.91,
+            "owner": "Self",
+            "owner_evidence": null,
+            "page_number": 3,
+            "raw_columns": {
+              "description": "|Management Fee Set Off Contribution receivable",
+              "eif": "N/A",
+              "value": "{$500,001 - $1,000,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "3.5.2",
+            "section": "part2"
+          },
+          "value": {
+            "asset_name": "Management Fee Set Off Contribution receivable",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 93.68,
+            "ocr_min_confidence": 33.91,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "|Management Fee Set Off Contribution receivable",
+                "eif": "N/A",
+                "value": "{$500,001 - $1,000,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Self",
+            "page_number": 3,
+            "raw_columns": {
+              "description": "Management Fee Set Off Contribution receivable",
+              "eif": "N/A",
+              "value": "$500,001 - $1,000,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "3.5.2",
+            "section": "part2",
+            "value_high": 1000000,
+            "value_low": 500001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/8",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/23",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 89.58,
+            "ocr_min_confidence": 43.4,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+              "eif": "Yes",
+              "value": "|$1,001 - $15,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "2.1",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 89.58,
+            "ocr_min_confidence": 43.4,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+                "eif": "Yes",
+                "value": "|$1,001 - $15,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+              "eif": "Yes",
+              "value": "$1,001 - $15,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "2.1",
+            "section": "part6",
+            "value_high": 15000,
+            "value_low": 1001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/23",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/25",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 85.37,
+            "ocr_min_confidence": 29.99,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+              "eif": "Yes",
+              "value": "$15,001 - $50,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold"
+            ],
+            "row_number": "3.1",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 85.37,
+            "ocr_min_confidence": 29.99,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+                "eif": "Yes",
+                "value": "$15,001 - $50,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+              "eif": "Yes",
+              "value": "$15,001 - $50,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "3.1",
+            "section": "part6",
+            "value_high": 50000,
+            "value_low": 15001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/25",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/27",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 85.16,
+            "ocr_min_confidence": 47.32,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "TLT — iShares 20+ Year Treasury Bond",
+              "eif": "Yes",
+              "value": "|$100,001 - $250,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "4.2",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "TLT — iShares 20+ Year Treasury Bond",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 85.16,
+            "ocr_min_confidence": 47.32,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "TLT — iShares 20+ Year Treasury Bond",
+                "eif": "Yes",
+                "value": "|$100,001 - $250,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "TLT — iShares 20+ Year Treasury Bond",
+              "eif": "Yes",
+              "value": "$100,001 - $250,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "4.2",
+            "section": "part6",
+            "value_high": 250000,
+            "value_low": 100001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/27",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/28",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 90.49,
+            "ocr_min_confidence": 63.27,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+              "eif": "Yes",
+              "value": "|$1,000,001 - $5,000,000"
+            },
+            "reasons": [
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "4.3",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 90.49,
+            "ocr_min_confidence": 63.27,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+                "eif": "Yes",
+                "value": "|$1,000,001 - $5,000,000"
+              },
+              "original_reasons": [
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+              "eif": "Yes",
+              "value": "$1,000,001 - $5,000,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "4.3",
+            "section": "part6",
+            "value_high": 5000000,
+            "value_low": 1000001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/28",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/29",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 87.6,
+            "ocr_min_confidence": 56.94,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "SPY — SPDR S&P 500 ETF",
+              "eif": "Yes",
+              "value": "|$1,000,001 - $5,000,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "4.4",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "SPY — SPDR S&P 500 ETF",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 87.6,
+            "ocr_min_confidence": 56.94,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "SPY — SPDR S&P 500 ETF",
+                "eif": "Yes",
+                "value": "|$1,000,001 - $5,000,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "SPY — SPDR S&P 500 ETF",
+              "eif": "Yes",
+              "value": "$1,000,001 - $5,000,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "4.4",
+            "section": "part6",
+            "value_high": 5000000,
+            "value_low": 1000001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/29",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/30",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 86.34,
+            "ocr_min_confidence": 0.0,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "GLD — SPDR Gold Trust",
+              "eif": "Yes",
+              "value": "$250,001 - $500,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold"
+            ],
+            "row_number": "4.5",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "GLD — SPDR Gold Trust",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 86.34,
+            "ocr_min_confidence": 0.0,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "GLD — SPDR Gold Trust",
+                "eif": "Yes",
+                "value": "$250,001 - $500,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "GLD — SPDR Gold Trust",
+              "eif": "Yes",
+              "value": "$250,001 - $500,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "4.5",
+            "section": "part6",
+            "value_high": 500000,
+            "value_low": 250001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/30",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/33",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 91.68,
+            "ocr_min_confidence": 51.6,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Real Estate, commercial (Jackson, KY)",
+              "eif": "N/A",
+              "value": "|$50,001 - $100,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "8",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "Real Estate, commercial (Jackson, KY)",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 91.68,
+            "ocr_min_confidence": 51.6,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "Real Estate, commercial (Jackson, KY)",
+                "eif": "N/A",
+                "value": "|$50,001 - $100,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Real Estate, commercial (Jackson, KY)",
+              "eif": "N/A",
+              "value": "$50,001 - $100,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "8",
+            "section": "part6",
+            "value_high": 100000,
+            "value_low": 50001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/33",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/34",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 89.22,
+            "ocr_min_confidence": 30.89,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Real Estate, residential (Middletown, OH)",
+              "eif": "N/A",
+              "value": "1$100,001 - $250,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "9",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "Real Estate, residential (Middletown, OH)",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 89.22,
+            "ocr_min_confidence": 30.89,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "Real Estate, residential (Middletown, OH)",
+                "eif": "N/A",
+                "value": "1$100,001 - $250,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Real Estate, residential (Middletown, OH)",
+              "eif": "N/A",
+              "value": "$100,001 - $250,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "9",
+            "section": "part6",
+            "value_high": 250000,
+            "value_low": 100001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/34",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/35",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 86.02,
+            "ocr_min_confidence": 33.82,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "USAA Checking Accounts",
+              "eif": "N/A",
+              "value": "{$15,001 - $50,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "10",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "USAA Checking Accounts",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 86.02,
+            "ocr_min_confidence": 33.82,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "USAA Checking Accounts",
+                "eif": "N/A",
+                "value": "{$15,001 - $50,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "USAA Checking Accounts",
+              "eif": "N/A",
+              "value": "$15,001 - $50,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "10",
+            "section": "part6",
+            "value_high": 50000,
+            "value_low": 15001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/35",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/36",
+          "field": "record",
+          "expect": {
+            "ocr_mean_confidence": 86.96,
+            "ocr_min_confidence": 42.8,
+            "owner": "Unknown",
+            "owner_evidence": null,
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Marcus by Goldman Sachs Savings Account",
+              "eif": "N/A",
+              "value": "{$100,001 - $250,000"
+            },
+            "reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "row_number": "11",
+            "section": "part6"
+          },
+          "value": {
+            "asset_name": "Marcus by Goldman Sachs Savings Account",
+            "holding_valuation_date": "2025-12-31",
+            "holding_valuation_status": "exact_period_end",
+            "ocr_mean_confidence": 86.96,
+            "ocr_min_confidence": 42.8,
+            "ocr_recovery": {
+              "method": "whitehouse-scanned-annual-source-bound/v2",
+              "original_raw_columns": {
+                "description": "Marcus by Goldman Sachs Savings Account",
+                "eif": "N/A",
+                "value": "{$100,001 - $250,000"
+              },
+              "original_reasons": [
+                "holding_ocr_confidence_below_threshold",
+                "holding_value_unreadable_or_open"
+              ],
+              "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+            },
+            "owner": "Unknown",
+            "page_number": 10,
+            "raw_columns": {
+              "description": "Marcus by Goldman Sachs Savings Account",
+              "eif": "N/A",
+              "value": "$100,001 - $250,000"
+            },
+            "report_period_end": "2025-12-31",
+            "row_number": "11",
+            "section": "part6",
+            "value_high": 250000,
+            "value_low": 100001
+          },
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        },
+        {
+          "op": "set_field",
+          "row": "quarantined/36",
+          "field": "disposition",
+          "expect": "quarantined",
+          "value": "holdings",
+          "evidence": {
+            "source_review": "existing_source_bound_annual_qualification"
+          }
+        }
+      ],
+      "assertions": {
+        "row_inventory": [
+          "quarantined/0",
+          "quarantined/2",
+          "quarantined/8",
+          "quarantined/23",
+          "quarantined/25",
+          "quarantined/27",
+          "quarantined/28",
+          "quarantined/29",
+          "quarantined/30",
+          "quarantined/33",
+          "quarantined/34",
+          "quarantined/35",
+          "quarantined/36"
+        ],
+        "input_sha256": "a54bc69bacde254761d886bb2488a520f6160cfe07a52b89b3ce9b122ffa5fb8",
+        "output_sha256": "4b59d960ed077c60dd2f9936047428df9344a97863140b164a89356ee8f9318e",
+        "input_counts": {
+          "holdings": 0,
+          "quarantined": 47
+        },
+        "output_counts": {
+          "holdings": 13,
+          "quarantined": 34
+        }
+      },
+      "recovered_holdings": [
+        {
+          "asset_name": "SPY-SPDR S&P",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 86.6,
+          "ocr_min_confidence": 34.87,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "|SPY-SPDR S&P",
+              "eif": "Yes",
+              "value": "|$100,001 - $250,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Self",
+          "page_number": 3,
+          "raw_columns": {
+            "description": "SPY-SPDR S&P",
+            "eif": "Yes",
+            "value": "$100,001 - $250,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "1.1",
+          "section": "part2",
+          "value_high": 250000,
+          "value_low": 100001
+        },
+        {
+          "asset_name": "U.S. Brokerage account (cash)",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 88.02,
+          "ocr_min_confidence": 61.37,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "|U.S. Brokerage account (cash)",
+              "eif": "N/A",
+              "value": "|$1,001 - $15,000"
+            },
+            "original_reasons": [
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Self",
+          "page_number": 3,
+          "raw_columns": {
+            "description": "U.S. Brokerage account (cash)",
+            "eif": "N/A",
+            "value": "$1,001 - $15,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "2.1",
+          "section": "part2",
+          "value_high": 15000,
+          "value_low": 1001
+        },
+        {
+          "asset_name": "Management Fee Set Off Contribution receivable",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 93.68,
+          "ocr_min_confidence": 33.91,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "|Management Fee Set Off Contribution receivable",
+              "eif": "N/A",
+              "value": "{$500,001 - $1,000,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Self",
+          "page_number": 3,
+          "raw_columns": {
+            "description": "Management Fee Set Off Contribution receivable",
+            "eif": "N/A",
+            "value": "$500,001 - $1,000,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "3.5.2",
+          "section": "part2",
+          "value_high": 1000000,
+          "value_low": 500001
+        },
+        {
+          "asset_name": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 89.58,
+          "ocr_min_confidence": 43.4,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+              "eif": "Yes",
+              "value": "|$1,001 - $15,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "Vanguard Ohio Target Enrollment 2040 Portfolio",
+            "eif": "Yes",
+            "value": "$1,001 - $15,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "2.1",
+          "section": "part6",
+          "value_high": 15000,
+          "value_low": 1001
+        },
+        {
+          "asset_name": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 85.37,
+          "ocr_min_confidence": 29.99,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+              "eif": "Yes",
+              "value": "$15,001 - $50,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "Vanguard Ohio Target Enrollment 2038 Portfolio",
+            "eif": "Yes",
+            "value": "$15,001 - $50,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "3.1",
+          "section": "part6",
+          "value_high": 50000,
+          "value_low": 15001
+        },
+        {
+          "asset_name": "TLT — iShares 20+ Year Treasury Bond",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 85.16,
+          "ocr_min_confidence": 47.32,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "TLT — iShares 20+ Year Treasury Bond",
+              "eif": "Yes",
+              "value": "|$100,001 - $250,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "TLT — iShares 20+ Year Treasury Bond",
+            "eif": "Yes",
+            "value": "$100,001 - $250,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "4.2",
+          "section": "part6",
+          "value_high": 250000,
+          "value_low": 100001
+        },
+        {
+          "asset_name": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 90.49,
+          "ocr_min_confidence": 63.27,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+              "eif": "Yes",
+              "value": "|$1,000,001 - $5,000,000"
+            },
+            "original_reasons": [
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "DIA — SPDR Dow Jones Indus. Avg. ETF",
+            "eif": "Yes",
+            "value": "$1,000,001 - $5,000,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "4.3",
+          "section": "part6",
+          "value_high": 5000000,
+          "value_low": 1000001
+        },
+        {
+          "asset_name": "SPY — SPDR S&P 500 ETF",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 87.6,
+          "ocr_min_confidence": 56.94,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "SPY — SPDR S&P 500 ETF",
+              "eif": "Yes",
+              "value": "|$1,000,001 - $5,000,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "SPY — SPDR S&P 500 ETF",
+            "eif": "Yes",
+            "value": "$1,000,001 - $5,000,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "4.4",
+          "section": "part6",
+          "value_high": 5000000,
+          "value_low": 1000001
+        },
+        {
+          "asset_name": "GLD — SPDR Gold Trust",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 86.34,
+          "ocr_min_confidence": 0.0,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "GLD — SPDR Gold Trust",
+              "eif": "Yes",
+              "value": "$250,001 - $500,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "GLD — SPDR Gold Trust",
+            "eif": "Yes",
+            "value": "$250,001 - $500,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "4.5",
+          "section": "part6",
+          "value_high": 500000,
+          "value_low": 250001
+        },
+        {
+          "asset_name": "Real Estate, commercial (Jackson, KY)",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 91.68,
+          "ocr_min_confidence": 51.6,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "Real Estate, commercial (Jackson, KY)",
+              "eif": "N/A",
+              "value": "|$50,001 - $100,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "Real Estate, commercial (Jackson, KY)",
+            "eif": "N/A",
+            "value": "$50,001 - $100,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "8",
+          "section": "part6",
+          "value_high": 100000,
+          "value_low": 50001
+        },
+        {
+          "asset_name": "Real Estate, residential (Middletown, OH)",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 89.22,
+          "ocr_min_confidence": 30.89,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "Real Estate, residential (Middletown, OH)",
+              "eif": "N/A",
+              "value": "1$100,001 - $250,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "Real Estate, residential (Middletown, OH)",
+            "eif": "N/A",
+            "value": "$100,001 - $250,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "9",
+          "section": "part6",
+          "value_high": 250000,
+          "value_low": 100001
+        },
+        {
+          "asset_name": "USAA Checking Accounts",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 86.02,
+          "ocr_min_confidence": 33.82,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "USAA Checking Accounts",
+              "eif": "N/A",
+              "value": "{$15,001 - $50,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "USAA Checking Accounts",
+            "eif": "N/A",
+            "value": "$15,001 - $50,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "10",
+          "section": "part6",
+          "value_high": 50000,
+          "value_low": 15001
+        },
+        {
+          "asset_name": "Marcus by Goldman Sachs Savings Account",
+          "holding_valuation_date": "2025-12-31",
+          "holding_valuation_status": "exact_period_end",
+          "ocr_mean_confidence": 86.96,
+          "ocr_min_confidence": 42.8,
+          "ocr_recovery": {
+            "method": "whitehouse-scanned-annual-source-bound/v2",
+            "original_raw_columns": {
+              "description": "Marcus by Goldman Sachs Savings Account",
+              "eif": "N/A",
+              "value": "{$100,001 - $250,000"
+            },
+            "original_reasons": [
+              "holding_ocr_confidence_below_threshold",
+              "holding_value_unreadable_or_open"
+            ],
+            "source_sha256": "d43f25659a26474faae4df8218ff352e3c01a2eaf17b6ae35ae07649bbe90c3d"
+          },
+          "owner": "Unknown",
+          "page_number": 10,
+          "raw_columns": {
+            "description": "Marcus by Goldman Sachs Savings Account",
+            "eif": "N/A",
+            "value": "$100,001 - $250,000"
+          },
+          "report_period_end": "2025-12-31",
+          "row_number": "11",
+          "section": "part6",
+          "value_high": 250000,
+          "value_low": 100001
+        }
+      ],
+      "existing_holding_approvals": []
+    }
+  }
+}

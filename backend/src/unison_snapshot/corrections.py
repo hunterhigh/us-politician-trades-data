@@ -13,7 +13,10 @@ def correction_digest(value):
 
 
 def load_correction(path):
-    value = json.loads(Path(path).read_text(encoding='utf-8'))
+    return validate_correction(json.loads(Path(path).read_text(encoding='utf-8')))
+
+
+def validate_correction(value):
     if value.get('schema_version') != 'source-correction/v1':
         raise ValueError('Unsupported correction schema')
     for key in ('source', 'document_id', 'source_sha256', 'reviewed_at'):

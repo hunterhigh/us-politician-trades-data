@@ -87,6 +87,21 @@ class CorrectionTests(unittest.TestCase):
                         self.assertEqual(correction['header'][key],correction[key])
                     self.assertTrue(guards['approved_artifact_sha256'])
                     self.assertTrue(correction['person']['id'].startswith('oge:'))
+                elif correction['profile']=='reviewed-annual-extraction/v1':
+                    from unison_snapshot.corrections import validate_correction
+                    for application in [correction, *({**correction, **v} for v in correction['variants'].values())]:
+                        validate_correction(application)
+                        guards=application['assertions']
+                        self.assertEqual(sum(guards['input_counts'].values()),sum(guards['output_counts'].values()))
+                        for target in guards['row_inventory']:
+                            kind,index=target.split('/')
+                            self.assertGreaterEqual(int(index),0)
+                            self.assertLess(int(index),guards['input_counts'][kind])
+                        slots={(a.get('row','@report'),a['field']) for a in application['actions']}
+                        self.assertEqual(len(slots),len(application['actions']))
+                        for action in application['actions']:
+                            self.assertIn('expect',action)
+                            self.assertTrue(action['op']=='set_report' or action['row'] in guards['row_inventory'])
                 for action in correction['actions']:
                     if action['op'] in {'set_field','set_report','drop_row','quarantine','relate'}:
                         self.assertIn('expect',action)

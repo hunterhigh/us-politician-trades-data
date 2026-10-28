@@ -16,8 +16,8 @@ from .oge_278e_audit import audit_public_278e
 from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
                                SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last
-from .whitehouse_scanned_annual import (RECOVERY_METHOD, TRUMP_2025_SOURCE_SHA256,
-                                        apply_scanned_annual_corrections)
+from .reviewed_annual_extraction import (RECOVERY_METHOD, profile_for_source,
+    apply_reviewed_annual_corrections)
 
 
 SCHEMA = "whitehouse-annual-filer-reported/v3"
@@ -33,22 +33,17 @@ _PARTIAL_BLOCKERS = {
     "document:table_header_unrecognized",
 }
 _SOURCE_ROW_LOCATOR = re.compile(r"p([1-9]\d*)-y([1-9]\d*)\Z")
-_LEGACY_STABLE_ROW_IDS = {
-    # This row was published when row IDs included its array index 0. Preserve
-    # that public identity while future Trump rows use physical OCR locators.
-    (TRUMP_2025_SOURCE_SHA256, "part2", 864, "332"): "wh-annual:" + hashlib.sha256(
-        f"{TRUMP_2025_SOURCE_SHA256}|0|part2|332".encode()).hexdigest()[:24],
-}
 
 
 def _holding_row_id(source_sha256: str, row: dict, legacy_index: int) -> str:
-    key = (source_sha256, row.get("section"), row.get("page_number"),
-           row.get("row_number"))
-    if key in _LEGACY_STABLE_ROW_IDS:
-        return _LEGACY_STABLE_ROW_IDS[key]
+    profile = profile_for_source(source_sha256)
+    identity_rules = profile['identity_rules'] if profile else {}
+    for entry in identity_rules.get('legacy_ids', []):
+        if all(row.get(k) == entry[k] for k in ('section', 'page_number', 'row_number')):
+            return entry['id']
     locator = row.get("source_row_locator")
     match = _SOURCE_ROW_LOCATOR.fullmatch(locator) if isinstance(locator, str) else None
-    if source_sha256 == TRUMP_2025_SOURCE_SHA256 and match is not None and int(match[1]) == row.get(
+    if identity_rules.get('holding_locator') is True and match is not None and int(match[1]) == row.get(
             "page_number"):
         identity = f"{source_sha256}|{row.get('section')}|{locator}"
     else:
@@ -73,9 +68,9 @@ def _transaction_row_id(source_sha256: str, row: dict, legacy_index: int) -> str
 
 
 def _transaction_candidate_allowed(audit: dict, extraction: dict) -> bool:
-    if (extraction.get("parser_version") != "whitehouse-278e-hybrid-geometry/v8" or
-            extraction.get("source_sha256") != TRUMP_2025_SOURCE_SHA256 or
-            not audit["printed_rows_conserved"]):
+    profile = profile_for_source(extraction.get('source_sha256'))
+    if (profile is None or extraction.get('parser_version') not in profile['transaction_candidate_versions'] or
+            not audit['printed_rows_conserved']):
         return False
     blockers = set(audit["report_blocking_reasons"])
     tolerated = {
@@ -138,7 +133,7 @@ def build_annual_review(coverage: dict, review_root: Path, *,
         if relative != expected_relative:
             raise ValueError("White House annual extraction path is invalid")
         raw = (review_root / relative).read_bytes()
-        extraction = apply_scanned_annual_corrections(json.loads(raw))
+        extraction = apply_reviewed_annual_corrections(json.loads(raw))
         filer = extraction.get("filer_name")
         page_filer = source.get("filer_name_from_label")
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or

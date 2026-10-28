@@ -11,10 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge_278e_audit import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
-from unison_snapshot.whitehouse_scanned_annual import (
+from unison_snapshot.oge_278e_public import (
     TRUMP_2025_PARSER_VERSION, TRUMP_2025_PREVIOUS_PARSER_VERSION,
-    TRUMP_2025_SOURCE_SHA256,
-    apply_scanned_annual_corrections)
+    TRUMP_2025_SOURCE_SHA256)
+from annual_reviewed_fixture import synthetic_reviewed_cover, synthetic_cover_valid
 
 
 def _annual() -> dict:
@@ -101,7 +101,7 @@ def _trump_v7(*rows: dict) -> dict:
         document_reasons=["filer_handwritten_signature_or_date_unverified"],
         holdings=list(rows), printed_row_count=len(rows),
     )
-    return apply_scanned_annual_corrections(extraction)
+    return synthetic_reviewed_cover(extraction)
 
 
 def _trump_v8_transaction() -> dict:
@@ -143,10 +143,15 @@ def _trump_v8_transaction() -> dict:
         "parser_recovery": {"method": "source_bound_part7_structured_row/v1",
                             "field_repairs": []},
     }]
-    return apply_scanned_annual_corrections(extraction)
+    return synthetic_reviewed_cover(extraction)
 
 
 class Public278eAuditTests(unittest.TestCase):
+    def setUp(self):
+        boundary = patch('unison_snapshot.oge_278e_audit.scanned_signature_evidence_valid',
+            side_effect=synthetic_cover_valid)
+        boundary.start(); self.addCleanup(boundary.stop)
+
     def test_source_bound_part7_transaction_gets_row_level_qualification(self):
         audit = audit_public_278e(_trump_v8_transaction())
         self.assertEqual(audit["source_candidate_transaction_count"], 1)
@@ -329,7 +334,10 @@ class Public278eAuditTests(unittest.TestCase):
                                                   "value": "$1,001 to $15,000"},
                                      ocr_mean_confidence=96.0,
                                      ocr_min_confidence=90.0)
-        fixed = apply_scanned_annual_corrections(fixed)
+        fixed = synthetic_reviewed_cover(fixed)
+        from unison_snapshot.reviewed_annual_extraction import profile_for_source
+        source_review = profile_for_source(fixed['source_sha256'])
+        fixed['holdings'] = [deepcopy(source_review['variants'][fixed['parser_version']]['existing_holding_approvals'][0])]
         with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
             audit = audit_public_278e(fixed)
             self.assertNotIn("untrusted_extraction_version", audit["report_blocking_reasons"])
@@ -372,7 +380,7 @@ class Public278eAuditTests(unittest.TestCase):
             },
             ocr_mean_confidence=80.0, ocr_min_confidence=20.0,
         )
-        corrected = apply_scanned_annual_corrections(extraction)
+        corrected = synthetic_reviewed_cover(extraction)
         decision = audit_public_278e(corrected)["holding_row_audit"][0]
         self.assertTrue(decision["source_candidate_eligible"])
 
