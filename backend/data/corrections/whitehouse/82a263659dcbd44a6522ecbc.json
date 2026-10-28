@@ -1,0 +1,5126 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-ocr-table/v1",
+  "source": "oge",
+  "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+  "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+  "reviewed_at": "2026-10-28",
+  "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+  "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+  "output_mode": "source_listing_evidence",
+  "source_profile": {
+    "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+    "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+    "report_date": "2026-04-20",
+    "report_date_raw": "04.20.26",
+    "page_count": 8,
+    "v2_source_row_count": 174
+  },
+  "source_review": {
+    "basis": "migrate_existing_qualified_ocr_behavior",
+    "code_commit": "e18dde7d55fc87b71a5a11cf7fcafac907cc78be"
+  },
+  "assertions": {
+    "row_inventory": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63",
+      "64",
+      "65",
+      "66",
+      "67",
+      "68",
+      "69",
+      "70",
+      "71",
+      "72",
+      "73",
+      "74",
+      "75",
+      "76",
+      "77",
+      "78",
+      "79",
+      "80",
+      "81",
+      "82",
+      "83",
+      "84",
+      "85",
+      "86",
+      "87",
+      "88",
+      "89",
+      "90",
+      "91",
+      "92",
+      "93",
+      "94",
+      "95",
+      "96",
+      "97",
+      "98",
+      "99",
+      "100",
+      "101",
+      "102",
+      "103",
+      "104",
+      "105",
+      "106",
+      "107",
+      "108",
+      "109",
+      "110",
+      "111",
+      "112",
+      "113",
+      "114",
+      "115",
+      "116",
+      "117",
+      "118",
+      "119",
+      "120",
+      "121",
+      "122",
+      "123",
+      "124",
+      "125",
+      "126",
+      "127",
+      "128",
+      "129",
+      "130",
+      "131",
+      "132",
+      "133",
+      "134",
+      "135",
+      "136",
+      "137",
+      "138",
+      "139",
+      "140",
+      "141",
+      "142",
+      "143",
+      "144",
+      "145",
+      "146",
+      "147",
+      "148",
+      "149",
+      "150",
+      "151",
+      "152",
+      "153",
+      "154",
+      "155",
+      "156",
+      "157",
+      "158",
+      "159",
+      "160",
+      "161",
+      "162",
+      "163",
+      "164",
+      "165",
+      "166",
+      "167",
+      "168",
+      "169",
+      "170",
+      "171",
+      "172",
+      "173",
+      "174"
+    ],
+    "input_rows_sha256": "b595093759934daaff9d3462e57aa6f9d37dcba5c11675315e6f30684b8b33ed",
+    "output_rows_sha256": "cb6b184c679bd64f9e34f27fc56594cd10d510c47476516f2c9ef9b75bbc4f26",
+    "page_row_counts": {
+      "2": 32,
+      "3": 32,
+      "4": 32,
+      "5": 33,
+      "6": 33,
+      "7": 12
+    },
+    "approved_artifact_sha256": [
+      "7717b58c73ce73ab552a9e93f10716a02ce9d9a11131b575099ce341b334d2ac",
+      "efb911c8b11cddd2c4519b2138f2c12c8f47f84d9b939a8885392220e885ff61"
+    ]
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "1",
+      "field": "cells",
+      "expect": [
+        "4",
+        "ARUNGTON TEX INDPT 5% DUE 02/15/31 sole",
+        "",
+        "27672026)",
+        "‘Yes|$500,001",
+        "- $1,000,000"
+      ],
+      "value": [
+        "1",
+        "ARUNGTON TEX INDPT 5% DUE 02/15/31 sole",
+        "",
+        "27672026)",
+        "‘Yes|$500,001",
+        "- $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 136.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "2",
+      "field": "cells",
+      "expect": [
+        "2 4",
+        "XTRO TAXBL soe",
+        "",
+        "verzc26",
+        "‘Yes|$500,001 Yes|$1,000.004",
+        "- $5,000,000."
+      ],
+      "value": [
+        "2",
+        "XTRO TAXBL soe",
+        "",
+        "verzc26",
+        "‘Yes|$500,001 Yes|$1,000.004",
+        "- $5,000,000."
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 152.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "3",
+      "field": "cells",
+      "expect": [
+        "2 3",
+        "LOWER COLO RIV AUTH 5% DUE 05/1535",
+        "urchase",
+        "3412026",
+        "Yes Yes|$1,000.004",
+        "$1,000,001 - $5,000,000."
+      ],
+      "value": [
+        "3",
+        "LOWER COLO RIV AUTH 5% DUE 05/1535",
+        "urchase",
+        "3412026",
+        "Yes Yes|$1,000.004",
+        "$1,000,001 - $5,000,000."
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 165.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "4",
+      "field": "cells",
+      "expect": [
+        "4 3",
+        "TEXAS WTR DEV BRD ST RVLVNG FD REV BIE 4.00 % Due Aug 1. 2035",
+        "urchase",
+        "31872028)",
+        "Yes No",
+        "$1,000,001 |$15.001 - $50,000"
+      ],
+      "value": [
+        "4",
+        "TEXAS WTR DEV BRD ST RVLVNG FD REV BIE 4.00 % Due Aug 1. 2035",
+        "urchase",
+        "31872028)",
+        "Yes No",
+        "$1,000,001 |$15.001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 179.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "5",
+      "field": "cells",
+      "expect": [
+        "4 5",
+        "Milan DADE CNTY FL HSG FIN AUTH MUTIFAM HSG IMPERIAL CLUB REV B/E 2.95 % Due Oct 1, 2041",
+        "urchase",
+        "wi2r2026)",
+        "No No]",
+        "$50.04 - $100,000"
+      ],
+      "value": [
+        "5",
+        "Milan DADE CNTY FL HSG FIN AUTH MUTIFAM HSG IMPERIAL CLUB REV B/E 2.95 % Due Oct 1, 2041",
+        "urchase",
+        "wi2r2026)",
+        "No No]",
+        "$50.04 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 193.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "6",
+      "field": "cells",
+      "expect": [
+        "6 5",
+        "SPOKANE CNTY WA SCH DIST 081 SPOKANE RFOG SER B BYE PTC 4.00 % Due Dec 4 2026 purchase.",
+        "",
+        "122026",
+        "No] No|",
+        "$500,001 -$1,000.000"
+      ],
+      "value": [
+        "6",
+        "SPOKANE CNTY WA SCH DIST 081 SPOKANE RFOG SER B BYE PTC 4.00 % Due Dec 4 2026 purchase.",
+        "",
+        "122026",
+        "No] No|",
+        "$500,001 -$1,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 207.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "7",
+      "field": "cells",
+      "expect": [
+        "6 z",
+        "WARREN Mi CONS SCH DIST RFDG SER A OSBLF B/E PTC 5.00 % Due May 1.2029 purchase",
+        "",
+        "3/12/2026",
+        "No| No|",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "7",
+        "WARREN Mi CONS SCH DIST RFDG SER A OSBLF B/E PTC 5.00 % Due May 1.2029 purchase",
+        "",
+        "3/12/2026",
+        "No| No|",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 219.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "8",
+      "field": "cells",
+      "expect": [
+        "z 8",
+        "MICHIGAN FIN AUTH HOSP RFOG BRONSON HLTHCARE GRP INC SER A REV BIE 5.00 % Due May 15, 2054 purchase",
+        "",
+        "an22026|",
+        "No|",
+        "$50,001 - $100,000"
+      ],
+      "value": [
+        "8",
+        "MICHIGAN FIN AUTH HOSP RFOG BRONSON HLTHCARE GRP INC SER A REV BIE 5.00 % Due May 15, 2054 purchase",
+        "",
+        "an22026|",
+        "No|",
+        "$50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 233.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "9",
+      "field": "cells",
+      "expect": [
+        "9 8",
+        "ARIZONA BRO REGTS UNIV SYS REV SER B GREEN BD B/E PTC 5.00 % Due Jun 1, 2029",
+        "uchase",
+        "3N22026;",
+        "No|",
+        "$50,001 - $100,000"
+      ],
+      "value": [
+        "9",
+        "ARIZONA BRO REGTS UNIV SYS REV SER B GREEN BD B/E PTC 5.00 % Due Jun 1, 2029",
+        "uchase",
+        "3N22026;",
+        "No|",
+        "$50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 246.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "10",
+      "field": "cells",
+      "expect": [
+        "9 10",
+        "BLACK BELT ENERGY GAS DIST AL GAS REV PJ 6 SER B BIE 4.00 % Due Oct 4, 2052 purchase",
+        "",
+        "3072026:",
+        "‘Yes|$50,001",
+        "- $100,000"
+      ],
+      "value": [
+        "10",
+        "BLACK BELT ENERGY GAS DIST AL GAS REV PJ 6 SER B BIE 4.00 % Due Oct 4, 2052 purchase",
+        "",
+        "3072026:",
+        "‘Yes|$50,001",
+        "- $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 259.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "11",
+      "field": "cells",
+      "expect": [
+        "10 1g",
+        "JOHNSON CY TN MSH & EDL FACS BRD MLTIFAM REV COLLTZD HSG TAPESTRY B/E 3.60 % Due Dee 1, 2027",
+        "schase",
+        "snor2026",
+        "z ‘Yes|$50,001 ‘Yes'|$100,001",
+        "- $250,000"
+      ],
+      "value": [
+        "11",
+        "JOHNSON CY TN MSH & EDL FACS BRD MLTIFAM REV COLLTZD HSG TAPESTRY B/E 3.60 % Due Dee 1, 2027",
+        "schase",
+        "snor2026",
+        "z ‘Yes|$50,001 ‘Yes'|$100,001",
+        "- $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 271.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "12",
+      "field": "cells",
+      "expect": [
+        "1g 12 *",
+        "did STEEET NAT GAS RIC GA GAS SPLY REV C BE 4.00 % Due Mar 2050 [purchase",
+        "",
+        "3710/2026,",
+        "z ‘Yes'|$100,001 Yes",
+        "|$100,001 - $250,000"
+      ],
+      "value": [
+        "12",
+        "did STEEET NAT GAS RIC GA GAS SPLY REV C BE 4.00 % Due Mar 2050 [purchase",
+        "",
+        "3710/2026,",
+        "z ‘Yes'|$100,001 Yes",
+        "|$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 280.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "13",
+      "field": "cells",
+      "expect": [
+        "13",
+        "PUBLIC FIN AUTH WI POLLTN CTL DUKE ENERGY PROGRESS REV RFDG A1 B/E 3.30 % Due Oct 1, 2046",
+        "uichase",
+        "anor026'",
+        "Yes Yes",
+        "|$500,004 - $1,000,000"
+      ],
+      "value": [
+        "13",
+        "PUBLIC FIN AUTH WI POLLTN CTL DUKE ENERGY PROGRESS REV RFDG A1 B/E 3.30 % Due Oct 1, 2046",
+        "uichase",
+        "anor026'",
+        "Yes Yes",
+        "|$500,004 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 299.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "14",
+      "field": "cells",
+      "expect": [
+        "13 14",
+        "BLACK BELT ENERGY GAS DIST AL GAS PJ 7 REV SER C 1 BE GTO 4.00 % Due Oct 1, 2052",
+        "",
+        "anor2026'",
+        "Yes ‘Yes|",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "14",
+        "BLACK BELT ENERGY GAS DIST AL GAS PJ 7 REV SER C 1 BE GTO 4.00 % Due Oct 1, 2052",
+        "",
+        "anor2026'",
+        "Yes ‘Yes|",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 312.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "15",
+      "field": "cells",
+      "expect": [
+        "14 1s",
+        "MICHIGAN FIN AUTH REV RFDG HOSP HENRY FORD HLTH SYS BYE 5.00 % Duo Nov 15, 2026 purchase",
+        "",
+        "302026",
+        "+ ‘Yes| ___Yes|$500,001",
+        "- $1,000,000"
+      ],
+      "value": [
+        "15",
+        "MICHIGAN FIN AUTH REV RFDG HOSP HENRY FORD HLTH SYS BYE 5.00 % Duo Nov 15, 2026 purchase",
+        "",
+        "302026",
+        "+ ‘Yes| ___Yes|$500,001",
+        "- $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 322.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "16",
+      "field": "cells",
+      "expect": [
+        "16",
+        "IAIN GA STR NAT GAS INC GAS SPLY REV SER C BIE 5.00 % Oue Dec 1, 2028 purchase",
+        "",
+        "aniov2026)",
+        "+ ___Yes|$500,001 ‘Yes",
+        "|$100.001 - $250,000"
+      ],
+      "value": [
+        "16",
+        "IAIN GA STR NAT GAS INC GAS SPLY REV SER C BIE 5.00 % Oue Dec 1, 2028 purchase",
+        "",
+        "aniov2026)",
+        "+ ___Yes|$500,001 ‘Yes",
+        "|$100.001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 338.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "17",
+      "field": "cells",
+      "expect": [
+        "16 17",
+        "LANCASTER EDL ASSIST INC SC INSTALL PUR REV RFOG SCH DIST B/E OID @97.815 3.00 % Due Dec 1, 2028 purchase",
+        "",
+        "3n072026;",
+        "‘Yes Yes",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "17",
+        "LANCASTER EDL ASSIST INC SC INSTALL PUR REV RFOG SCH DIST B/E OID @97.815 3.00 % Due Dec 1, 2028 purchase",
+        "",
+        "3n072026;",
+        "‘Yes Yes",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 352.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "18",
+      "field": "cells",
+      "expect": [
+        "17 18",
+        "MINIDOKA JEROME CNTY 1D JT SCH DIST 331 RFDG SER 8 B/E BIC SCH BO GTY 4.00 % Due Aug 15, 2026 [purchase",
+        "",
+        "27972026:",
+        "Yes ‘Yes|$500,001",
+        "$100,001 - $1,000,000"
+      ],
+      "value": [
+        "18",
+        "MINIDOKA JEROME CNTY 1D JT SCH DIST 331 RFDG SER 8 B/E BIC SCH BO GTY 4.00 % Due Aug 15, 2026 [purchase",
+        "",
+        "27972026:",
+        "Yes ‘Yes|$500,001",
+        "$100,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 365.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "19",
+      "field": "cells",
+      "expect": [
+        "18 19",
+        "UNIVERSITY TX UNIV REV FIN SYS RFDS C BIE OID @96.261 3.28% 3.00 % Due Aug 15, 2035",
+        "Urchase",
+        "92026",
+        "‘Yes|$500,001 Yes",
+        "|$100.001 - $250,000"
+      ],
+      "value": [
+        "19",
+        "UNIVERSITY TX UNIV REV FIN SYS RFDS C BIE OID @96.261 3.28% 3.00 % Due Aug 15, 2035",
+        "Urchase",
+        "92026",
+        "‘Yes|$500,001 Yes",
+        "|$100.001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 380.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "20",
+      "field": "cells",
+      "expect": [
+        "19",
+        "BLAIR NE HWY ALLOC FD PLG 2023 DB BIE 8/0 5.00 % Due Jun 15, 2026 purchase",
+        "",
+        "yarz026",
+        "Yes Yes|$15.001",
+        "- $50,000"
+      ],
+      "value": [
+        "20",
+        "BLAIR NE HWY ALLOC FD PLG 2023 DB BIE 8/0 5.00 % Due Jun 15, 2026 purchase",
+        "",
+        "yarz026",
+        "Yes Yes|$15.001",
+        "- $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 391.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "21",
+      "field": "cells",
+      "expect": [
+        "2",
+        "UPPER BEAR CREAK AL WTR SWR & FIRE PROTN DIST REV RFDG AGM B/E B/Q 3.00 % Due Sep 1, 2025 purchase",
+        "",
+        "03/09/2026",
+        "Yes Yes|$15.001",
+        "$100,004 - $250,000"
+      ],
+      "value": [
+        "21",
+        "UPPER BEAR CREAK AL WTR SWR & FIRE PROTN DIST REV RFDG AGM B/E B/Q 3.00 % Due Sep 1, 2025 purchase",
+        "",
+        "03/09/2026",
+        "Yes Yes|$15.001",
+        "$100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 405.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "22",
+      "field": "cells",
+      "expect": [
+        "zz 2",
+        "CENTRAL FL EXPWY AUTH SR LIEN REV RFDG 8 BIE 5.00 % Oue Jul 1, 2033 purchase",
+        "",
+        "svg2026",
+        "Yes ‘Yes",
+        "$100,004 |$15.001 - $50,000"
+      ],
+      "value": [
+        "22",
+        "CENTRAL FL EXPWY AUTH SR LIEN REV RFDG 8 BIE 5.00 % Oue Jul 1, 2033 purchase",
+        "",
+        "svg2026",
+        "Yes ‘Yes",
+        "$100,004 |$15.001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 416.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "23",
+      "field": "cells",
+      "expect": [
+        "23",
+        "MONTGOMERY CNTY OH HOSP FACS DAYTON CHLORNS REV BIE 5.00 % Due Aug 1, 2026 purchase",
+        "",
+        "svgr2026",
+        "‘Yes Yes|",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "23",
+        "MONTGOMERY CNTY OH HOSP FACS DAYTON CHLORNS REV BIE 5.00 % Due Aug 1, 2026 purchase",
+        "",
+        "svgr2026",
+        "‘Yes Yes|",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 430.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "24",
+      "field": "cells",
+      "expect": [
+        "24",
+        "BRISTOL TN B/E B/O 5.00 % Due Jun 1, 2026 [purchase",
+        "",
+        "arenas!",
+        "Yes| Yes",
+        "$100,004 - $250,000"
+      ],
+      "value": [
+        "24",
+        "BRISTOL TN B/E B/O 5.00 % Due Jun 1, 2026 [purchase",
+        "",
+        "arenas!",
+        "Yes| Yes",
+        "$100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 444.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "25",
+      "field": "cells",
+      "expect": [
+        "25 24",
+        "LOUISIANA PUB FACS AETH REV OCHSNER CLINIC FNDTN PJ SER B BIE O1D@95.766 5.50 % Due May 15, 2032 purchase",
+        "",
+        "9/2026)",
+        "Yes ‘Yes",
+        "$100,004 | $50,001 - $100,000"
+      ],
+      "value": [
+        "25",
+        "LOUISIANA PUB FACS AETH REV OCHSNER CLINIC FNDTN PJ SER B BIE O1D@95.766 5.50 % Due May 15, 2032 purchase",
+        "",
+        "9/2026)",
+        "Yes ‘Yes",
+        "$100,004 | $50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 456.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "26",
+      "field": "cells",
+      "expect": [
+        "26",
+        "TIPPECANOE IN SCH CORP SER A ST INTRCPT BIE 5.00 % Due Jul 15, 2026 purchase",
+        "",
+        "3/2026,",
+        "Yes} ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "26",
+        "TIPPECANOE IN SCH CORP SER A ST INTRCPT BIE 5.00 % Due Jul 15, 2026 purchase",
+        "",
+        "3/2026,",
+        "Yes} ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 469.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "27",
+      "field": "cells",
+      "expect": [
+        "26 27",
+        "‘SOUTH DAKOTA ST HUTH & EFA REV RFDG AVERA HEALTH BIE 5.00 % Due Jul 1, 2026 purchase",
+        "",
+        "3312026,",
+        "Yes} ‘Yes|$15,001",
+        "- $50,000"
+      ],
+      "value": [
+        "27",
+        "‘SOUTH DAKOTA ST HUTH & EFA REV RFDG AVERA HEALTH BIE 5.00 % Due Jul 1, 2026 purchase",
+        "",
+        "3312026,",
+        "Yes} ‘Yes|$15,001",
+        "- $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 482.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "28",
+      "field": "cells",
+      "expect": [
+        "27 28",
+        "CLARK CNTY NV SCH DIST BLOG & RFDG SER A BIE 5.00 % Duo Jun 15, 2025 |",
+        "achese",
+        "s9r2028",
+        "‘Yes|$15,001 Yes}",
+        "$50,001 - $100,000"
+      ],
+      "value": [
+        "28",
+        "CLARK CNTY NV SCH DIST BLOG & RFDG SER A BIE 5.00 % Duo Jun 15, 2025 |",
+        "achese",
+        "s9r2028",
+        "‘Yes|$15,001 Yes}",
+        "$50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 495.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "29",
+      "field": "cells",
+      "expect": [
+        "23 28",
+        "PRIVATE GA CLUGS & UNIVS AUTH REV MERCER UNIV PJ BIE 5.00 % Due Oct 4, 2026 purchase",
+        "",
+        "29/2026,",
+        "Yes} “Yes|$100,004",
+        "- $250,000"
+      ],
+      "value": [
+        "29",
+        "PRIVATE GA CLUGS & UNIVS AUTH REV MERCER UNIV PJ BIE 5.00 % Due Oct 4, 2026 purchase",
+        "",
+        "29/2026,",
+        "Yes} “Yes|$100,004",
+        "- $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 511.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "30",
+      "field": "cells",
+      "expect": [
+        "30",
+        "TARRANT CNTY TX CULTURAL ED FIN HOSP BAYLOR SCOTT & WHITE SER A REV BIE 4.06 % Due Nov 15, 2036",
+        "I",
+        "37912026",
+        "“Yes|$100,004 Yes|",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "30",
+        "TARRANT CNTY TX CULTURAL ED FIN HOSP BAYLOR SCOTT & WHITE SER A REV BIE 4.06 % Due Nov 15, 2036",
+        "I",
+        "37912026",
+        "“Yes|$100,004 Yes|",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 524.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "31",
+      "field": "cells",
+      "expect": [
+        "31",
+        "OHIO ST HWY CAP IMPT DB SER S BE 5.00 % Due May 1, 2026",
+        "|",
+        "3792026",
+        "Yes| Yes",
+        "|$100,004 - $250,000"
+      ],
+      "value": [
+        "31",
+        "OHIO ST HWY CAP IMPT DB SER S BE 5.00 % Due May 1, 2026",
+        "|",
+        "3792026",
+        "Yes| Yes",
+        "|$100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 539.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "32",
+      "field": "cells",
+      "expect": [
+        "31 2",
+        "FARRANT CNTY TX CULTURAL ED FAC FIN CORP HOSP REV BAYLOR HLTH A B/E PTC 4.00 % Due Nov 15, 2042",
+        "|",
+        "37972026",
+        "Yes Yes}$100.001",
+        "- $250,009"
+      ],
+      "value": [
+        "32",
+        "FARRANT CNTY TX CULTURAL ED FAC FIN CORP HOSP REV BAYLOR HLTH A B/E PTC 4.00 % Due Nov 15, 2042",
+        "|",
+        "37972026",
+        "Yes Yes}$100.001",
+        "- $250,009"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 2,
+        "geometry_top": 552.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "33",
+      "field": "cells",
+      "expect": [
+        "33",
+        "WESTFIELD WA IN SCHS BIE ST INTRCPT 5.09 % Due Jul 15, 2026 purchase",
+        "",
+        "2752026)",
+        "",
+        "[$500,001 - $1,000,000"
+      ],
+      "value": [
+        "33",
+        "WESTFIELD WA IN SCHS BIE ST INTRCPT 5.09 % Due Jul 15, 2026 purchase",
+        "",
+        "2752026)",
+        "",
+        "[$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 130.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "34",
+      "field": "cells",
+      "expect": [
+        "3",
+        "MAIN STREET NAT GAS INC GA GAS SPLY REV C BIE 4.00 % Due Mar 1, 2050",
+        "",
+        "avs2026|",
+        "‘Yes",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "34",
+        "MAIN STREET NAT GAS INC GA GAS SPLY REV C BIE 4.00 % Due Mar 1, 2050",
+        "",
+        "avs2026|",
+        "‘Yes",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 144.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "35",
+      "field": "cells",
+      "expect": [
+        "35",
+        "PUBLIC FIN AUTH Wt POLLTN CTL DUKE ENERGY PROGRESS REV RFOG At BIE 3.30 % Due Oct 1, 2046",
+        "",
+        "ws2026|",
+        "Yes| ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "35",
+        "PUBLIC FIN AUTH Wt POLLTN CTL DUKE ENERGY PROGRESS REV RFOG At BIE 3.30 % Due Oct 1, 2046",
+        "",
+        "ws2026|",
+        "Yes| ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 160.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "36",
+      "field": "cells",
+      "expect": [
+        "36",
+        "GADSDEN AL WTS SER B REV BAM B/E 5.00 % Due Aug 1. 2026 purchase",
+        "",
+        "3/5/2026",
+        "Yes| Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "36",
+        "GADSDEN AL WTS SER B REV BAM B/E 5.00 % Due Aug 1. 2026 purchase",
+        "",
+        "3/5/2026",
+        "Yes| Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 174.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "37",
+      "field": "cells",
+      "expect": [
+        "Ed",
+        "HOUSTON CNTY AL BRD SPL. TAX SCH WTS REV BE B/O O1D@98.581 2.25% 2.10% Due Fed 1, 2027",
+        "",
+        "3s2026|",
+        "‘Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "37",
+        "HOUSTON CNTY AL BRD SPL. TAX SCH WTS REV BE B/O O1D@98.581 2.25% 2.10% Due Fed 1, 2027",
+        "",
+        "3s2026|",
+        "‘Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 189.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "38",
+      "field": "cells",
+      "expect": [
+        "38 Ed",
+        ": |Nom BALD AL UTILS WTR SWE CAS REV RFDG & MPT BE BO O10 8.585 270% Dee Dee 1. 2025",
+        "",
+        "¥52028",
+        "‘Yes ‘Yes",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "38",
+        ": |Nom BALD AL UTILS WTR SWE CAS REV RFDG & MPT BE BO O10 8.585 270% Dee Dee 1. 2025",
+        "",
+        "¥52028",
+        "‘Yes ‘Yes",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 197.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "39",
+      "field": "cells",
+      "expect": [
+        "30",
+        "[BLACK BELT ENERGY GAS DIST AL GAS REV PJ 6 SER B BIE 4.00 % Due Oct 1, 2052",
+        "",
+        "31012026",
+        "‘Yes Yes|$15.004",
+        "- $50,000"
+      ],
+      "value": [
+        "39",
+        "[BLACK BELT ENERGY GAS DIST AL GAS REV PJ 6 SER B BIE 4.00 % Due Oct 1, 2052",
+        "",
+        "31012026",
+        "‘Yes Yes|$15.004",
+        "- $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 214.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "40",
+      "field": "cells",
+      "expect": [
+        "40",
+        "MAIN STREET NAT GAS INC GA GAS SPLY REV C BIE 4.00 % Due Mar 1. 2050",
+        "|",
+        "3/4/2026",
+        "‘Yes Yes|$15.004",
+        "|$15,001 - $50,000"
+      ],
+      "value": [
+        "40",
+        "MAIN STREET NAT GAS INC GA GAS SPLY REV C BIE 4.00 % Due Mar 1. 2050",
+        "|",
+        "3/4/2026",
+        "‘Yes Yes|$15.004",
+        "|$15,001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 227.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "41",
+      "field": "cells",
+      "expect": [
+        "at",
+        "WASHINGTON ST HUTMCARE REV TAX EXMP MLTICARE HLTH SYS SER B BIE 5.00 % Due Aug 15, 2026",
+        "|",
+        "3/4/2026",
+        "‘Yes Yes",
+        "|$15.001 - $50,000"
+      ],
+      "value": [
+        "41",
+        "WASHINGTON ST HUTMCARE REV TAX EXMP MLTICARE HLTH SYS SER B BIE 5.00 % Due Aug 15, 2026",
+        "|",
+        "3/4/2026",
+        "‘Yes Yes",
+        "|$15.001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 242.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "42",
+      "field": "cells",
+      "expect": [
+        "42 at",
+        "FLORIDA GULF COAST UNIV FING CORP FL CAP IMPT REV RFDG BD HSG PJ BIE 5.00 % Due Aug 1, 2026",
+        "",
+        "3/4/2026",
+        "Yes Yes",
+        "|$100,061 - $250,000"
+      ],
+      "value": [
+        "42",
+        "FLORIDA GULF COAST UNIV FING CORP FL CAP IMPT REV RFDG BD HSG PJ BIE 5.00 % Due Aug 1, 2026",
+        "",
+        "3/4/2026",
+        "Yes Yes",
+        "|$100,061 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 254.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "43",
+      "field": "cells",
+      "expect": [
+        "43,",
+        "ST JOHN BAPTIST PARISH LA REV RFDG MARATHON Ci CO SER B2 B/E 2.375 % Due Jun 1, 2037",
+        "|",
+        "3/4/2026",
+        "Yes Yes",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "43",
+        "ST JOHN BAPTIST PARISH LA REV RFDG MARATHON Ci CO SER B2 B/E 2.375 % Due Jun 1, 2037",
+        "|",
+        "3/4/2026",
+        "Yes Yes",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 268.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "44",
+      "field": "cells",
+      "expect": [
+        "ae",
+        "TUCSON AZ WTR REV RFDG BYE PTC 3.00 % Due Jul 1, 2026",
+        "|",
+        "3142026",
+        "Yes ‘Yes",
+        "| $50,001 - $100,000"
+      ],
+      "value": [
+        "44",
+        "TUCSON AZ WTR REV RFDG BYE PTC 3.00 % Due Jul 1, 2026",
+        "|",
+        "3142026",
+        "Yes ‘Yes",
+        "| $50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 283.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "45",
+      "field": "cells",
+      "expect": [
+        "4s",
+        "[CUBA RUSHFORD NY CENT SCH DIST BO ANTIC NT 20254 BYE B10 CR ENH 4.00 % Due Jul 23, 2026",
+        "|",
+        "3442026 |",
+        "‘Yes Yes",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "45",
+        "[CUBA RUSHFORD NY CENT SCH DIST BO ANTIC NT 20254 BYE B10 CR ENH 4.00 % Due Jul 23, 2026",
+        "|",
+        "3442026 |",
+        "‘Yes Yes",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 297.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "46",
+      "field": "cells",
+      "expect": [
+        "46",
+        "WPP1 ENERGY Wil PWR SPLY SYS REV SER A B/E 5.00 % Due Jut 1, 2025",
+        "|",
+        "34412026 |",
+        "Yes Yes",
+        "| $100,001 - $250,000"
+      ],
+      "value": [
+        "46",
+        "WPP1 ENERGY Wil PWR SPLY SYS REV SER A B/E 5.00 % Due Jut 1, 2025",
+        "|",
+        "34412026 |",
+        "Yes Yes",
+        "| $100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 311.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "47",
+      "field": "cells",
+      "expect": [
+        "46 az",
+        "KANE CNTY iL SCH DIST 131 AURORA EAST SIDE GENL LSE OBUG C BAM BIE 5.00 % Due Dec 1, 2028",
+        "a |",
+        "3/4/2026",
+        "Yes ‘Yes",
+        "|$50.001 - $100,000"
+      ],
+      "value": [
+        "47",
+        "KANE CNTY iL SCH DIST 131 AURORA EAST SIDE GENL LSE OBUG C BAM BIE 5.00 % Due Dec 1, 2028",
+        "a |",
+        "3/4/2026",
+        "Yes ‘Yes",
+        "|$50.001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 324.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "48",
+      "field": "cells",
+      "expect": [
+        "ee az",
+        "PIMA CNTY AZ UN SCH DIST 20 VAIL SCH IMPT BAM BIE 5.00 % Due Jul +. 2028",
+        "|",
+        "3/4/2026",
+        "‘Yes ‘Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "48",
+        "PIMA CNTY AZ UN SCH DIST 20 VAIL SCH IMPT BAM BIE 5.00 % Due Jul +. 2028",
+        "|",
+        "3/4/2026",
+        "‘Yes ‘Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 342.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "49",
+      "field": "cells",
+      "expect": [
+        "49",
+        "COLUMBUS CH CITY SCH DIST SCH FAC CONSTR & IMPT RFDG SER A B/E 5.00 % Due Dec 1, 2032",
+        "|",
+        "svarz026 |",
+        "‘Yes ‘Yes",
+        "|$15.005 - $50,000"
+      ],
+      "value": [
+        "49",
+        "COLUMBUS CH CITY SCH DIST SCH FAC CONSTR & IMPT RFDG SER A B/E 5.00 % Due Dec 1, 2032",
+        "|",
+        "svarz026 |",
+        "‘Yes ‘Yes",
+        "|$15.005 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 356.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "50",
+      "field": "cells",
+      "expect": [
+        "Ed 49",
+        "UTAH CNTY HOSP IHC HLTH SVCS INC SER B 2 REV BIE 5.00 % Due May 15, 2060",
+        "|",
+        "var2026",
+        "‘Yes ‘Yes",
+        "|$50.001 -$100.000"
+      ],
+      "value": [
+        "50",
+        "UTAH CNTY HOSP IHC HLTH SVCS INC SER B 2 REV BIE 5.00 % Due May 15, 2060",
+        "|",
+        "var2026",
+        "‘Yes ‘Yes",
+        "|$50.001 -$100.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 367.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "51",
+      "field": "cells",
+      "expect": [
+        "st",
+        "HUOSONVILLE MI PUB SCHS RFDG B/E OSBLF 5.00 % Due May 1. 2026",
+        "|",
+        "sv4r2026 |",
+        "‘Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "51",
+        "HUOSONVILLE MI PUB SCHS RFDG B/E OSBLF 5.00 % Due May 1. 2026",
+        "|",
+        "sv4r2026 |",
+        "‘Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 382.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "52",
+      "field": "cells",
+      "expect": [
+        "st s2",
+        "ARIZONA BRD REGTS UNIV RFDG REV BE OID @98.451 3.25% 3.00 % Due Jun 1, 2035",
+        "",
+        "34ar2026 | |",
+        "Yes ‘Yes",
+        "| $50,001 - $100,000"
+      ],
+      "value": [
+        "52",
+        "ARIZONA BRD REGTS UNIV RFDG REV BE OID @98.451 3.25% 3.00 % Due Jun 1, 2035",
+        "",
+        "34ar2026 | |",
+        "Yes ‘Yes",
+        "| $50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 395.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "53",
+      "field": "cells",
+      "expect": [
+        "53 s2",
+        "JTARRANT CNTY TX CULTURAL ED FACS FIN CORP HSP REV SER ABE PTC 5.00 % Due Nov 15, 2037",
+        "",
+        "3/4/2028",
+        "‘Yes Yes",
+        "| $50,004 - $100,000"
+      ],
+      "value": [
+        "53",
+        "JTARRANT CNTY TX CULTURAL ED FACS FIN CORP HSP REV SER ABE PTC 5.00 % Due Nov 15, 2037",
+        "",
+        "3/4/2028",
+        "‘Yes Yes",
+        "| $50,004 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 407.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "54",
+      "field": "cells",
+      "expect": [
+        "6",
+        "LAS VEGAS VLY NV WTR DIST SER A DB BE PTC 5.00 % Due Jun 1, 2046",
+        "",
+        "32026)",
+        "Yes Nes",
+        "|$100.001 - $250,000"
+      ],
+      "value": [
+        "54",
+        "LAS VEGAS VLY NV WTR DIST SER A DB BE PTC 5.00 % Due Jun 1, 2046",
+        "",
+        "32026)",
+        "Yes Nes",
+        "|$100.001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 422.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "55",
+      "field": "cells",
+      "expect": [
+        "55 6",
+        "GARNER (A HAYFIELD VENTURA CMNTY SCH DIST BE 5.00 % Due Jun 1, 2026",
+        "",
+        "31472026",
+        "Nes Yes|",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "55",
+        "GARNER (A HAYFIELD VENTURA CMNTY SCH DIST BE 5.00 % Due Jun 1, 2026",
+        "",
+        "31472026",
+        "Nes Yes|",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 434.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "56",
+      "field": "cells",
+      "expect": [
+        "36.",
+        "CENTRAL DAUPHIN PA SCH DIST SER B BIE ST INTRCPT O1D@297.904 3.45% 3.25 % Due Nov 15, 2031",
+        "",
+        "3142026",
+        "Yes| Yes|",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "56",
+        "CENTRAL DAUPHIN PA SCH DIST SER B BIE ST INTRCPT O1D@297.904 3.45% 3.25 % Due Nov 15, 2031",
+        "",
+        "3142026",
+        "Yes| Yes|",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 447.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "57",
+      "field": "cells",
+      "expect": [
+        "36. ST",
+        "MADISON IN CONS SCH BLDG CORP AD VALOREM PPTY TAX 1ST MTG REV BIE B/Q ENH 5.00 % Due Jul 18, 2026",
+        "",
+        "31472026",
+        "Yes| Yes!",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "57",
+        "MADISON IN CONS SCH BLDG CORP AD VALOREM PPTY TAX 1ST MTG REV BIE B/Q ENH 5.00 % Due Jul 18, 2026",
+        "",
+        "31472026",
+        "Yes| Yes!",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 460.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "58",
+      "field": "cells",
+      "expect": [
+        "ST $8",
+        "PUBLIC FIN AUTH Wi HOSP REV RFOG RENOWN REGL MED CTR PJ SER A BIE 5.00 % Due Jun 1, 2026",
+        "",
+        "3as2026|",
+        "Yes! Yes",
+        "$50,001 - $100,000"
+      ],
+      "value": [
+        "58",
+        "PUBLIC FIN AUTH Wi HOSP REV RFOG RENOWN REGL MED CTR PJ SER A BIE 5.00 % Due Jun 1, 2026",
+        "",
+        "3as2026|",
+        "Yes! Yes",
+        "$50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 473.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "59",
+      "field": "cells",
+      "expect": [
+        "58",
+        "COLORADO HLTH FACS AUTH REV HOSP PARKVIEW MED CTR INC PJ BE PTC 5.00 % Due Sep 1, 266",
+        "",
+        "sr2r2026|",
+        "Yes ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "59",
+        "COLORADO HLTH FACS AUTH REV HOSP PARKVIEW MED CTR INC PJ BE PTC 5.00 % Due Sep 1, 266",
+        "",
+        "sr2r2026|",
+        "Yes ‘Yes",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 487.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "60",
+      "field": "cells",
+      "expect": [
+        "60",
+        "ALLEGHENY VLY PA JT SWR AUTH SWR REV 2022 GREEN BD BAM B/E CR ENH 4.00 % Due Aug 1, 2028 purchase",
+        "",
+        "srerz02s|",
+        "‘Yes ‘Yes!",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "60",
+        "ALLEGHENY VLY PA JT SWR AUTH SWR REV 2022 GREEN BD BAM B/E CR ENH 4.00 % Due Aug 1, 2028 purchase",
+        "",
+        "srerz02s|",
+        "‘Yes ‘Yes!",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 500.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "61",
+      "field": "cells",
+      "expect": [
+        "et",
+        "CHAMBERS CNTY TX IMPT DIST 1 RO B/E 4.00 9% Due Sep 1. 2026 purchase",
+        "",
+        "722026",
+        "‘Yes! Yes!$250,001",
+        "- $500,000"
+      ],
+      "value": [
+        "61",
+        "CHAMBERS CNTY TX IMPT DIST 1 RO B/E 4.00 9% Due Sep 1. 2026 purchase",
+        "",
+        "722026",
+        "‘Yes! Yes!$250,001",
+        "- $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 515.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "62",
+      "field": "cells",
+      "expect": [
+        "62 et",
+        "AMERICAN HONDA FIN NTS 04.50% 010831 070010826 FO070826 CALL@MW*15SBP YTM = 4.295 UNSOLICITED ACCRUI purchase",
+        "",
+        "252026",
+        "Yes!$250,001 ‘Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "62",
+        "AMERICAN HONDA FIN NTS 04.50% 010831 070010826 FO070826 CALL@MW*15SBP YTM = 4.295 UNSOLICITED ACCRUI purchase",
+        "",
+        "252026",
+        "Yes!$250,001 ‘Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 527.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "63",
+      "field": "cells",
+      "expect": [
+        "63",
+        "BAKER HUGHES A GE CO LLC 03.138% 110729 DTD110719 FC0S0720 CALL@MW+258P YTM = 3.933 UNSOLICITED ACCRI purchase",
+        "",
+        "3312026",
+        "Yes ‘Yes",
+        "|$4100,001 -$250,000"
+      ],
+      "value": [
+        "63",
+        "BAKER HUGHES A GE CO LLC 03.138% 110729 DTD110719 FC0S0720 CALL@MW+258P YTM = 3.933 UNSOLICITED ACCRI purchase",
+        "",
+        "3312026",
+        "Yes ‘Yes",
+        "|$4100,001 -$250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 540.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "64",
+      "field": "cells",
+      "expect": [
+        "cS",
+        "CADENCE DESIGN SYS INC 04.300% 091029 DTD091024 CALL@MW'+12.SBP YTM = 4.072 UNSOLICITED ACCRUED INT P/ purchase:",
+        "",
+        "|",
+        "Yes Yes",
+        "|$250,001 - $500,000"
+      ],
+      "value": [
+        "64",
+        "CADENCE DESIGN SYS INC 04.300% 091029 DTD091024 CALL@MW'+12.SBP YTM = 4.072 UNSOLICITED ACCRUED INT P/ purchase:",
+        "",
+        "|",
+        "Yes Yes",
+        "|$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 3,
+        "geometry_top": 555.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "65",
+      "field": "cells",
+      "expect": [
+        "66.",
+        "CHENIERE ENERGY PARTNERS 03.250% 013132 D7D092721 FCO73122 LP BIE YTM = 4.638 UNSOLICITED ACCRUED INT |",
+        "Purchase",
+        "37372026)",
+        "Yes Yes]",
+        "$250,004 - $500,000"
+      ],
+      "value": [
+        "65",
+        "CHENIERE ENERGY PARTNERS 03.250% 013132 D7D092721 FCO73122 LP BIE YTM = 4.638 UNSOLICITED ACCRUED INT |",
+        "Purchase",
+        "37372026)",
+        "Yes Yes]",
+        "$250,004 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 140.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "66",
+      "field": "cells",
+      "expect": [
+        "or",
+        "CPTL ONE FINL CORP NTS 06.37% 060836 DTD060823 FC120823 EVE YTM = 5.188 UNSOLICITED ACCRUED INT PAXD $4,",
+        "Purchase",
+        "37372026",
+        "Yes Yes]",
+        "$250,004 - $500,000"
+      ],
+      "value": [
+        "66",
+        "CPTL ONE FINL CORP NTS 06.37% 060836 DTD060823 FC120823 EVE YTM = 5.188 UNSOLICITED ACCRUED INT PAXD $4,",
+        "Purchase",
+        "37372026",
+        "Yes Yes]",
+        "$250,004 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 153.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "67",
+      "field": "cells",
+      "expect": [
+        "68",
+        "ELI LILLY & CO NTS BE 05.10% 021235 DTD021225 FC081225 CALL @MVi+10BP YTM = £557 UNSOLICITED ACCRUED IN",
+        "|",
+        "22026)",
+        "Yes Yes",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "67",
+        "ELI LILLY & CO NTS BE 05.10% 021235 DTD021225 FC081225 CALL @MVi+10BP YTM = £557 UNSOLICITED ACCRUED IN",
+        "|",
+        "22026)",
+        "Yes Yes",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 166.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "68",
+      "field": "cells",
+      "expect": [
+        "69",
+        "JEVERSOURCE ENERGY NTS 5.850% 041531 DTD041826 FC101524 CALLE:MW+208P YTM = 4.517 UNSOLICITED ACCRU",
+        "",
+        "37372028)",
+        "Yes Yes",
+        "$100,001 $100,001 - $250,000"
+      ],
+      "value": [
+        "68",
+        "JEVERSOURCE ENERGY NTS 5.850% 041531 DTD041826 FC101524 CALLE:MW+208P YTM = 4.517 UNSOLICITED ACCRU",
+        "",
+        "37372028)",
+        "Yes Yes",
+        "$100,001 $100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 182.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "69",
+      "field": "cells",
+      "expect": [
+        "70 69",
+        "GENL MOTORS FINL CO INC 05.950% 040434 DTDO0424 CALL@MW+258P BE YTM = 5.094 UNSOLICITED ACCRUED INT",
+        "Purchase",
+        "3732028)",
+        "Yes ‘Yes",
+        "$100,001 | $250,004 - $500,000"
+      ],
+      "value": [
+        "69",
+        "GENL MOTORS FINL CO INC 05.950% 040434 DTDO0424 CALL@MW+258P BE YTM = 5.094 UNSOLICITED ACCRUED INT",
+        "Purchase",
+        "3732028)",
+        "Yes ‘Yes",
+        "$100,001 | $250,004 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 193.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "70",
+      "field": "cells",
+      "expect": [
+        "70 bal",
+        "GOLDMAN SACHS GROUP INC 05.330% 072335 DTD072324 CALL@MWi+208P FIX-TO-FLT YTM = 4.979 UNSOLICITED ACG",
+        "Purchase",
+        "32372028,",
+        "‘Yes ‘Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "70",
+        "GOLDMAN SACHS GROUP INC 05.330% 072335 DTD072324 CALL@MWi+208P FIX-TO-FLT YTM = 4.979 UNSOLICITED ACG",
+        "Purchase",
+        "32372028,",
+        "‘Yes ‘Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 206.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "71",
+      "field": "cells",
+      "expect": [
+        "72",
+        "JPMORGAN CHASE & CO NTS 05.571% 042228 FIX-TO-FL FC102224 CALLE@MW12.5BP YTM = 4.757 UNSOLICITED ACCR",
+        "Purchase",
+        "3312026",
+        "‘Yes ‘Yes",
+        "| $250,004 - $500,000"
+      ],
+      "value": [
+        "71",
+        "JPMORGAN CHASE & CO NTS 05.571% 042228 FIX-TO-FL FC102224 CALLE@MW12.5BP YTM = 4.757 UNSOLICITED ACCR",
+        "Purchase",
+        "3312026",
+        "‘Yes ‘Yes",
+        "| $250,004 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 219.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "72",
+      "field": "cells",
+      "expect": [
+        "73",
+        "MORGAN STANLEY 05.656% 041830 070041924 CALLE@MV/*20BP FIX-TO-FLOA YTM = 4.527 UNSOUCITED ACCRUED IN]",
+        "Purchase",
+        "3372028)",
+        "‘Yes",
+        "'$100,001 - $250,000"
+      ],
+      "value": [
+        "72",
+        "MORGAN STANLEY 05.656% 041830 070041924 CALLE@MV/*20BP FIX-TO-FLOA YTM = 4.527 UNSOUCITED ACCRUED IN]",
+        "Purchase",
+        "3372028)",
+        "‘Yes",
+        "'$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 233.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "73",
+      "field": "cells",
+      "expect": [
+        "7",
+        "NATIONAL RURAL UTIL COOP 04.950% 020730 D7D02072S FC080725 CALLGMW12.58P YTM = 4.005 UNSOLICITED ACC!",
+        "",
+        "332026",
+        "Yes",
+        "| $250,004 - $500,000"
+      ],
+      "value": [
+        "73",
+        "NATIONAL RURAL UTIL COOP 04.950% 020730 D7D02072S FC080725 CALLGMW12.58P YTM = 4.005 UNSOLICITED ACC!",
+        "",
+        "332026",
+        "Yes",
+        "| $250,004 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 248.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "74",
+      "field": "cells",
+      "expect": [
+        "75 7",
+        "NVIDIA CORP NTS B/E 02.000% 051531 DTD061621 FC121521 CALL@MW+08P YTM = 3.939 UNSOLICITED ACCRUED INT",
+        "",
+        "33.2026",
+        "Yes ‘Yes",
+        "| $100,004 - $250,000"
+      ],
+      "value": [
+        "74",
+        "NVIDIA CORP NTS B/E 02.000% 051531 DTD061621 FC121521 CALL@MW+08P YTM = 3.939 UNSOLICITED ACCRUED INT",
+        "",
+        "33.2026",
+        "Yes ‘Yes",
+        "| $100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 262.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "75",
+      "field": "cells",
+      "expect": [
+        "75 76",
+        "ORACLE CORP NTS BIE 05.200% 092635 DTD032625 CALLEMW+208P YTM = 5.672 UNSOLICITED ACCRUED INT PAID $4",
+        "",
+        "38.2026.",
+        "‘Yes ‘Yes|$15,001",
+        "- $50,000"
+      ],
+      "value": [
+        "75",
+        "ORACLE CORP NTS BIE 05.200% 092635 DTD032625 CALLEMW+208P YTM = 5.672 UNSOLICITED ACCRUED INT PAID $4",
+        "",
+        "38.2026.",
+        "‘Yes ‘Yes|$15,001",
+        "- $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 275.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "76",
+      "field": "cells",
+      "expect": [
+        "76 7",
+        "ROYAL CARIBBEAN CRUISES 04.750% 051533 DTD022726 FC111526 CALL@M\\+158P YTM = 4.782 UNSOLICITED ACCRI",
+        "Purchase",
+        "3732028",
+        "‘Yes|$15,001 ‘Yes|$250,004",
+        "- $500,000"
+      ],
+      "value": [
+        "76",
+        "ROYAL CARIBBEAN CRUISES 04.750% 051533 DTD022726 FC111526 CALL@M\\+158P YTM = 4.782 UNSOLICITED ACCRI",
+        "Purchase",
+        "3732028",
+        "‘Yes|$15,001 ‘Yes|$250,004",
+        "- $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 288.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "77",
+      "field": "cells",
+      "expect": [
+        "7 78",
+        "UNITEDHEALTH GROUP INC 05.350% 021533 07D 102822 FC021523 CALL@MW+208P YTM = 4.572 UNSOLICITED ACCRUI",
+        "Purchase",
+        "37/2026",
+        "‘Yes|$250,004 Yes",
+        "|$100,001 - $250,000"
+      ],
+      "value": [
+        "77",
+        "UNITEDHEALTH GROUP INC 05.350% 021533 07D 102822 FC021523 CALL@MW+208P YTM = 4.572 UNSOLICITED ACCRUI",
+        "Purchase",
+        "37/2026",
+        "‘Yes|$250,004 Yes",
+        "|$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 301.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "78",
+      "field": "cells",
+      "expect": [
+        "79 78",
+        "VIRGINIA ELEC & PWR CO 05.000% 040133 DTD033023 FC100123 CALLEMW+258P YTM = 4.614 UNSOLICITED ACCRUET",
+        "",
+        "3732026)",
+        "Yes Yes",
+        "|$100,004 - $250,000"
+      ],
+      "value": [
+        "78",
+        "VIRGINIA ELEC & PWR CO 05.000% 040133 DTD033023 FC100123 CALLEMW+258P YTM = 4.614 UNSOLICITED ACCRUET",
+        "",
+        "3732026)",
+        "Yes Yes",
+        "|$100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 312.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "79",
+      "field": "cells",
+      "expect": [
+        "30",
+        "WELLS FARGO & CO NTS BIE 05.574% 072529 OTDO72523 FCD12524 YTM = 4.509 UNSOLICITED ACCRUED INT PAID $984",
+        "",
+        "63/03/2026",
+        "Yes Yes}",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "79",
+        "WELLS FARGO & CO NTS BIE 05.574% 072529 OTDO72523 FCD12524 YTM = 4.509 UNSOLICITED ACCRUED INT PAID $984",
+        "",
+        "63/03/2026",
+        "Yes Yes}",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 327.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "80",
+      "field": "cells",
+      "expect": [
+        "30 81",
+        "PAYPAL HOLDINGS INC NTS 02.650% 100126 0710092619 CALL@MW+158P YTM = 3.949 UNSOLICITED ACCRUED INT PAI",
+        "",
+        "oay12028",
+        "Yes} Yes",
+        "|$100,001 - $250,000"
+      ],
+      "value": [
+        "80",
+        "PAYPAL HOLDINGS INC NTS 02.650% 100126 0710092619 CALL@MW+158P YTM = 3.949 UNSOLICITED ACCRUED INT PAI",
+        "",
+        "oay12028",
+        "Yes} Yes",
+        "|$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 341.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "81",
+      "field": "cells",
+      "expect": [
+        "82 81",
+        "ABBOTT LABORATORIES NTS 04.300% 031533 DTD030925 FC091526 CALL@MW*108P YTM = 4.671 UNSOLICITED ACCRI",
+        "Purchase",
+        "03/13/2026",
+        "Yes No]",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "81",
+        "ABBOTT LABORATORIES NTS 04.300% 031533 DTD030925 FC091526 CALL@MW*108P YTM = 4.671 UNSOLICITED ACCRI",
+        "Purchase",
+        "03/13/2026",
+        "Yes No]",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 352.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "82",
+      "field": "cells",
+      "expect": [
+        "83",
+        "BROADCOM INC NTS BIE 03.469% 041534 DTD101525 FC041526 CALL@MW+308P YT = 4.949 UNSOLICITED ACCRUED |",
+        "Purchase",
+        "03/43/2026",
+        "No] No]",
+        "$250,004 - $500,000."
+      ],
+      "value": [
+        "82",
+        "BROADCOM INC NTS BIE 03.469% 041534 DTD101525 FC041526 CALL@MW+308P YT = 4.949 UNSOLICITED ACCRUED |",
+        "Purchase",
+        "03/43/2026",
+        "No] No]",
+        "$250,004 - $500,000."
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 365.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "83",
+      "field": "cells",
+      "expect": [
+        "84",
+        "CENTERPOINT ENERGY RES 05.250% 030128 DTD022323 FC096123 NTS CALL@IMW+208 YTM = 4.242 UNSOLICITED ACt",
+        "Purchase",
+        "03/13/2028",
+        "No] No]",
+        "$250,001 - $500.00"
+      ],
+      "value": [
+        "83",
+        "CENTERPOINT ENERGY RES 05.250% 030128 DTD022323 FC096123 NTS CALL@IMW+208 YTM = 4.242 UNSOLICITED ACt",
+        "Purchase",
+        "03/13/2028",
+        "No] No]",
+        "$250,001 - $500.00"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 379.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "84",
+      "field": "cells",
+      "expect": [
+        "8s",
+        "CINGROUP ING NTS BE 4.643% 050728 OTDOSO725 CALL@MW+158P FIX TO FLTYTM = 4.537 UNSOLICITED ACCRUED Il",
+        "Purchase",
+        "cas372026",
+        "No] No]",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "84",
+        "CINGROUP ING NTS BE 4.643% 050728 OTDOSO725 CALL@MW+158P FIX TO FLTYTM = 4.537 UNSOLICITED ACCRUED Il",
+        "Purchase",
+        "cas372026",
+        "No] No]",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 392.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "85",
+      "field": "cells",
+      "expect": [
+        "86",
+        "CONSTELLATION ENERGY 04.400% 011531 0710010826 FCO71526 CALLE@MW+158P YTM = 4.604 UNSOLICITED ACCRUEI",
+        "Purchase",
+        "03/83/2628",
+        "No] No]",
+        "$250,003 - $500,000"
+      ],
+      "value": [
+        "85",
+        "CONSTELLATION ENERGY 04.400% 011531 0710010826 FCO71526 CALLE@MW+158P YTM = 4.604 UNSOLICITED ACCRUEI",
+        "Purchase",
+        "03/83/2628",
+        "No] No]",
+        "$250,003 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 405.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "86",
+      "field": "cells",
+      "expect": [
+        "37",
+        "JPMORGAN CHASE & CO BIE 05.768% 042235 FIX-TO-FL FC10222¢ CALL@NW208P YTM = 5.133 UNSOLICITED ACCRUI",
+        "Purchase",
+        "03/53/2026",
+        "No] No|",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "86",
+        "JPMORGAN CHASE & CO BIE 05.768% 042235 FIX-TO-FL FC10222¢ CALL@NW208P YTM = 5.133 UNSOLICITED ACCRUI",
+        "Purchase",
+        "03/53/2026",
+        "No] No|",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 421.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "87",
+      "field": "cells",
+      "expect": [
+        "37 38",
+        "ORACLE CORP NTS BIE 04450 092630 DTD092625 CALL @MW+15BP YTM = 5.217 UNSOLICITED ACCRUED INT PAID $4",
+        "Purchase",
+        "03/13/2026",
+        "No| No]",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "87",
+        "ORACLE CORP NTS BIE 04450 092630 DTD092625 CALL @MW+15BP YTM = 5.217 UNSOLICITED ACCRUED INT PAID $4",
+        "Purchase",
+        "03/13/2026",
+        "No| No]",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 432.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "88",
+      "field": "cells",
+      "expect": [
+        "38 39",
+        "PACIFIC GAS & ELEC CO 04.550% 076130 01070120 FC010121 BIE YTM = 4.816 UNSOLICITED ACCRUED INT PAID $342!",
+        "",
+        "03/13/2026",
+        "No] No]",
+        "$15,001 - $50,000"
+      ],
+      "value": [
+        "88",
+        "PACIFIC GAS & ELEC CO 04.550% 076130 01070120 FC010121 BIE YTM = 4.816 UNSOLICITED ACCRUED INT PAID $342!",
+        "",
+        "03/13/2026",
+        "No] No]",
+        "$15,001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 444.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "89",
+      "field": "cells",
+      "expect": [
+        "90",
+        "PUBLIC SERVICE COLO NTS 4.150% 031329 DTD037326 FC091326 CALL@MW+108P YTM = 4.317 UNSOLICITED VS\" 00d",
+        "Purchase",
+        "03/13/2026",
+        "No] No}",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "89",
+        "PUBLIC SERVICE COLO NTS 4.150% 031329 DTD037326 FC091326 CALL@MW+108P YTM = 4.317 UNSOLICITED VS\" 00d",
+        "Purchase",
+        "03/13/2026",
+        "No] No}",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 458.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "90",
+      "field": "cells",
+      "expect": [
+        "1",
+        "EMOBILE INC NTS BYE 4.625% 011533 DTD100925 CALLENW+15BP YTM = 4.890 UNSOLICITED ACCRUED INT PAID $54",
+        "Purchase",
+        "03/13/2026",
+        "No} No]",
+        "$250,001 - $500,060"
+      ],
+      "value": [
+        "90",
+        "EMOBILE INC NTS BYE 4.625% 011533 DTD100925 CALLENW+15BP YTM = 4.890 UNSOLICITED ACCRUED INT PAID $54",
+        "Purchase",
+        "03/13/2026",
+        "No} No]",
+        "$250,001 - $500,060"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 474.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "91",
+      "field": "cells",
+      "expect": [
+        "92 1",
+        "WELLS FARGO & CO BYE 06.491% 102334 DTD 102323 FC04232¢ CALL@MW+3OBP YTM = 5.268 UNSOLICITED ACCRUED | purchase",
+        "",
+        "03/13/2026",
+        "No] No}",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "91",
+        "WELLS FARGO & CO BYE 06.491% 102334 DTD 102323 FC04232¢ CALL@MW+3OBP YTM = 5.268 UNSOLICITED ACCRUED | purchase",
+        "",
+        "03/13/2026",
+        "No] No}",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 484.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "92",
+      "field": "cells",
+      "expect": [
+        "93",
+        "XCEL ENERGY INC NTS BIE 5.450% 081533 DTD080323 FC021524 CALL@MW+2SEP YTM = 5.091 UNSOLICITED ACCRUEL",
+        "Purchase",
+        "03/13/2028",
+        "No} No}",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "92",
+        "XCEL ENERGY INC NTS BIE 5.450% 081533 DTD080323 FC021524 CALL@MW+2SEP YTM = 5.091 UNSOLICITED ACCRUEL",
+        "Purchase",
+        "03/13/2028",
+        "No} No}",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 498.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "93",
+      "field": "cells",
+      "expect": [
+        "93 96",
+        "ABBVIE INC NTS BE 04,125% 031531 DTOC30426 FC0S1525 CALL@MWe108P YTM = 4.446 UNSOLICITED ACCRUED wrt",
+        "",
+        "03/24/2026",
+        "No} 'No|",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "93",
+        "ABBVIE INC NTS BE 04,125% 031531 DTOC30426 FC0S1525 CALL@MWe108P YTM = 4.446 UNSOLICITED ACCRUED wrt",
+        "",
+        "03/24/2026",
+        "No} 'No|",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 510.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "94",
+      "field": "cells",
+      "expect": [
+        "96 95",
+        "BANK OF AMER CORP NTS 64.9484 072228 070072222 FCD12223 CALLEMIVeS03P YTM = 4.636 UNSOLICITED ACCRUE",
+        "",
+        "03/24/2026",
+        "'No| No|",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "94",
+        "BANK OF AMER CORP NTS 64.9484 072228 070072222 FCD12223 CALLEMIVeS03P YTM = 4.636 UNSOLICITED ACCRUE",
+        "",
+        "03/24/2026",
+        "'No| No|",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 524.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "95",
+      "field": "cells",
+      "expect": [
+        "96",
+        "GEORGIA POWER CO BIE 05.250% 031534 070022324 FC091524 CALL@MW+208P YTM = 4.921 UNSOLICITED. ACCRUED",
+        "Purchase",
+        "03/24/2026",
+        "No| No",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "95",
+        "GEORGIA POWER CO BIE 05.250% 031534 070022324 FC091524 CALL@MW+208P YTM = 4.921 UNSOLICITED. ACCRUED",
+        "Purchase",
+        "03/24/2026",
+        "No| No",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 538.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "96",
+      "field": "cells",
+      "expect": [
+        "97",
+        "MICROSOFT CORP BIE 03.3009; 020527 070020617 FCOBO617 CALLEMW+158P YTM = 3.942 UNSOLICITED ACCRUED IN",
+        "",
+        "03/24/2028",
+        "No No]",
+        "$250,001 $15,001 - $50,000"
+      ],
+      "value": [
+        "96",
+        "MICROSOFT CORP BIE 03.3009; 020527 070020617 FCOBO617 CALLEMW+158P YTM = 3.942 UNSOLICITED ACCRUED IN",
+        "",
+        "03/24/2028",
+        "No No]",
+        "$250,001 $15,001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 4,
+        "geometry_top": 551.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "97",
+      "field": "cells",
+      "expect": [
+        "98 *",
+        "LABBVIE INC NTS B/E 04.800% 031529 DTD022624 FC091524 CALL@MW'+10BP YTM = 4.265 UNSOUCITED ACCRUED INT F purchase",
+        "",
+        "02/26/2026",
+        "Days Ago No}",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "97",
+        "LABBVIE INC NTS B/E 04.800% 031529 DTD022624 FC091524 CALL@MW'+10BP YTM = 4.265 UNSOUCITED ACCRUED INT F purchase",
+        "",
+        "02/26/2026",
+        "Days Ago No}",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 131.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "98",
+      "field": "cells",
+      "expect": [
+        "ES)",
+        "AMERICAN EXPRESS CO NTS 04.918% 072033 DTDO72525 FC012026 CALLQMVW+1SBP YTM = 4.888 UNSOLICITED ACCR!",
+        "",
+        "03/26/2026",
+        "No} No",
+        "| $250,001 - $$00,000"
+      ],
+      "value": [
+        "98",
+        "AMERICAN EXPRESS CO NTS 04.918% 072033 DTDO72525 FC012026 CALLQMVW+1SBP YTM = 4.888 UNSOLICITED ACCR!",
+        "",
+        "03/26/2026",
+        "No} No",
+        "| $250,001 - $$00,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 144.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "99",
+      "field": "cells",
+      "expect": [
+        "300",
+        "CANADIAN IMPERIAL BANK 04.862% 011328 DTD011325 FC071325 FIX-TO-FLOAT YTM = 4.698 UNSOLICITED ACCRUED I",
+        "Purchase",
+        "03/26/2026",
+        "No No",
+        "| $50,001 - $100,000"
+      ],
+      "value": [
+        "99",
+        "CANADIAN IMPERIAL BANK 04.862% 011328 DTD011325 FC071325 FIX-TO-FLOAT YTM = 4.698 UNSOLICITED ACCRUED I",
+        "Purchase",
+        "03/26/2026",
+        "No No",
+        "| $50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 157.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "100",
+      "field": "cells",
+      "expect": [
+        "300 3101",
+        "HCA INC BIE 05.450% 091534 DTD081224 FC031525 CALL@MWe258P YTM = 5.261 UNSOLICITED ACCRUED INT PAID. sd",
+        "",
+        "03/26/2026",
+        "No No",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "100",
+        "HCA INC BIE 05.450% 091534 DTD081224 FC031525 CALL@MWe258P YTM = 5.261 UNSOLICITED ACCRUED INT PAID. sd",
+        "",
+        "03/26/2026",
+        "No No",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 168.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "101",
+      "field": "cells",
+      "expect": [
+        "102",
+        "META PLATFORMS INC BVE 04.875% 111535 DTD710325 CALL@MVi+158P YTM = 5.126 UNSOLICITED ACCRUED INT PAID)",
+        "",
+        "03/26/2026",
+        "No No}",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "101",
+        "META PLATFORMS INC BVE 04.875% 111535 DTD710325 CALL@MVi+158P YTM = 5.126 UNSOLICITED ACCRUED INT PAID)",
+        "",
+        "03/26/2026",
+        "No No}",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 184.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "102",
+      "field": "cells",
+      "expect": [
+        "303,",
+        "MICROSOFT CORP B/E 03.300% 020627 DTD020617 FCC80617 CALLEMi158P YTM = 3.988 UNSOLICITED ACCRUED IN purchase",
+        "",
+        "03/26/2026",
+        "No} No!|$15,001",
+        "- $50.000"
+      ],
+      "value": [
+        "102",
+        "MICROSOFT CORP B/E 03.300% 020627 DTD020617 FCC80617 CALLEMi158P YTM = 3.988 UNSOLICITED ACCRUED IN purchase",
+        "",
+        "03/26/2026",
+        "No} No!|$15,001",
+        "- $50.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 197.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "103",
+      "field": "cells",
+      "expect": [
+        "303, 304",
+        "ORACLE CORP NTS B/E 05.200% 092835 DTD092625 CALLEMW+208P YTM = 5.999 UNSOLICITED VS* 0000000. |",
+        "",
+        "03/26/2026",
+        "No!|$15,001 No",
+        "|$100.001 - $250,000"
+      ],
+      "value": [
+        "103",
+        "ORACLE CORP NTS B/E 05.200% 092835 DTD092625 CALLEMW+208P YTM = 5.999 UNSOLICITED VS* 0000000. |",
+        "",
+        "03/26/2026",
+        "No!|$15,001 No",
+        "|$100.001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 208.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "104",
+      "field": "cells",
+      "expect": [
+        "304 105",
+        "TOYOTA MOTOR CREDIT CORP 05.100% 632131 DTD032124 FCOS2126 CALLEQMW+1S8P YT 9 4.590 UNSOLICITED ACC purchase",
+        "",
+        "03/26/2025",
+        "No No",
+        "|$250,001 - $500,000"
+      ],
+      "value": [
+        "104",
+        "TOYOTA MOTOR CREDIT CORP 05.100% 632131 DTD032124 FCOS2126 CALLEQMW+1S8P YT 9 4.590 UNSOLICITED ACC purchase",
+        "",
+        "03/26/2025",
+        "No No",
+        "|$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 220.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "105",
+      "field": "cells",
+      "expect": [
+        "306",
+        "WESTERN MIDSTREAM NTS 6.350% 011529 DTD092923 FC01152¢ BIE CALL@MWe308 YTM = 4.771 UNSOLICITED ACCRU",
+        "",
+        "03/26/2026",
+        "No No",
+        "|$100,001 - $250,000"
+      ],
+      "value": [
+        "105",
+        "WESTERN MIDSTREAM NTS 6.350% 011529 DTD092923 FC01152¢ BIE CALL@MWe308 YTM = 4.771 UNSOLICITED ACCRU",
+        "",
+        "03/26/2026",
+        "No No",
+        "|$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 237.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "106",
+      "field": "cells",
+      "expect": [
+        "107.",
+        "AIKEN CO SC CONS SCH SOUTH SR A BE/RI'S DUE 040133 DTD 040126 INSRD FC 100126 2.870% YIELD TO MATURITY Ul",
+        "",
+        "03/30/2026",
+        "No No",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "106",
+        "AIKEN CO SC CONS SCH SOUTH SR A BE/RI'S DUE 040133 DTD 040126 INSRD FC 100126 2.870% YIELD TO MATURITY Ul",
+        "",
+        "03/30/2026",
+        "No No",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 250.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "107",
+      "field": "cells",
+      "expect": [
+        "107. 108",
+        "ALLEN TX INOPT SCH PERMA SR A BE/R/ 5 DUE 021534 DTD 120225 FC 021526 3.132% YIELD TO MATURITY UNSOLICITE",
+        "",
+        "03/30/2026",
+        "No No",
+        "|$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "107",
+        "ALLEN TX INOPT SCH PERMA SR A BE/R/ 5 DUE 021534 DTD 120225 FC 021526 3.132% YIELD TO MATURITY UNSOLICITE",
+        "",
+        "03/30/2026",
+        "No No",
+        "|$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 263.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "108",
+      "field": "cells",
+      "expect": [
+        "103",
+        "ARIZONA ST TRANSN BRD RV BE/RI 5 DUE 070127 DTD 040726 FC 070126 2.170% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/04/2026",
+        "Yes No",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "108",
+        "ARIZONA ST TRANSN BRD RV BE/RI 5 DUE 070127 DTD 040726 FC 070126 2.170% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/04/2026",
+        "Yes No",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 277.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "109",
+      "field": "cells",
+      "expect": [
+        "0",
+        "ARIZONA ST TRANSN SRD RV BEIR/ 5 DUE 070129 DTD 040726 FC 070126 2.250% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/04/2026",
+        "Yes Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "109",
+        "ARIZONA ST TRANSN SRD RV BEIR/ 5 DUE 070129 DTD 040726 FC 070126 2.250% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/04/2026",
+        "Yes Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 290.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "110",
+      "field": "cells",
+      "expect": [
+        "0 ikl",
+        "BALTIMORE CNTY MO BE/RY 5 DUE 030129 DTD 032426 FC 090126 2.310% YIELD TO MATURITY UNSOLICITED.",
+        "chase",
+        "CIN3W2026",
+        "Yes No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "110",
+        "BALTIMORE CNTY MO BE/RY 5 DUE 030129 DTD 032426 FC 090126 2.310% YIELD TO MATURITY UNSOLICITED.",
+        "chase",
+        "CIN3W2026",
+        "Yes No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 303.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "111",
+      "field": "cells",
+      "expect": [
+        "H2",
+        "CONROE TX INDEPT SCH ULT BEIRY 5 DUE 021535 DTD 112025 FC 021526 3.328% YIELD TO MATURITY UNSOLICITED jcurchase",
+        "",
+        "OWZTI20G",
+        "No| No",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "111",
+        "CONROE TX INDEPT SCH ULT BEIRY 5 DUE 021535 DTD 112025 FC 021526 3.328% YIELD TO MATURITY UNSOLICITED jcurchase",
+        "",
+        "OWZTI20G",
+        "No| No",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 317.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "112",
+      "field": "cells",
+      "expect": [
+        "H2 13",
+        "EL PASO TXWTR & SWR RE RV BEIR/ 5 DUE 030136 DTD 042326 CALLABLE FC 090126 CALLABLE @ 100 030135 FC 0901",
+        "Jrchase",
+        "O3/25'2026,",
+        "No No",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "112",
+        "EL PASO TXWTR & SWR RE RV BEIR/ 5 DUE 030136 DTD 042326 CALLABLE FC 090126 CALLABLE @ 100 030135 FC 0901",
+        "Jrchase",
+        "O3/25'2026,",
+        "No No",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 330.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "113",
+      "field": "cells",
+      "expect": [
+        "13 Me",
+        "HUNTSVILLE AL BE/R/ $ DUE 090134 DTD 632626 FC 090126 2.770% YIELD TO MATURITY UNSOLICITED purchase",
+        "",
+        "03/13/2026",
+        "No No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "113",
+        "HUNTSVILLE AL BE/R/ $ DUE 090134 DTD 632626 FC 090126 2.770% YIELD TO MATURITY UNSOLICITED purchase",
+        "",
+        "03/13/2026",
+        "No No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 343.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "114",
+      "field": "cells",
+      "expect": [
+        "+15 Me",
+        "HUNTSVILLE AL SR A BE/RY 5 DUE 090135 DTD 032626 FC 090126 2.890% YIELD TO MATURITY UNSOLICITED.",
+        "",
+        "63/13/2026",
+        "No No|",
+        "$1,000,001 $500,001 - $1,000,000"
+      ],
+      "value": [
+        "114",
+        "HUNTSVILLE AL SR A BE/RY 5 DUE 090135 DTD 032626 FC 090126 2.890% YIELD TO MATURITY UNSOLICITED.",
+        "",
+        "63/13/2026",
+        "No No|",
+        "$1,000,001 $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 357.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "115",
+      "field": "cells",
+      "expect": [
+        "+15 116",
+        "ILLINOIS ST BE/R/ S DUE 040132 TO 061426 FC 100126 3.280% YIELD TO MATURITY UNSOLICITED [purchase",
+        "",
+        "03/25/2026",
+        "No| No|",
+        "$1,000.00 - $5,000,000"
+      ],
+      "value": [
+        "115",
+        "ILLINOIS ST BE/R/ S DUE 040132 TO 061426 FC 100126 3.280% YIELD TO MATURITY UNSOLICITED [purchase",
+        "",
+        "03/25/2026",
+        "No| No|",
+        "$1,000.00 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 370.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "116",
+      "field": "cells",
+      "expect": [
+        "aird 116",
+        "ILLINOIS ST SR C BE/RI 5 DUE 040128 DTD 041426 FC 100126 2.840% VIELD TO MATURITY UNSOLICITED. purchase:",
+        "",
+        "03/28/2026",
+        "No| No}",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "116",
+        "ILLINOIS ST SR C BE/RI 5 DUE 040128 DTD 041426 FC 100126 2.840% VIELD TO MATURITY UNSOLICITED. purchase:",
+        "",
+        "03/28/2026",
+        "No| No}",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 383.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "117",
+      "field": "cells",
+      "expect": [
+        "118",
+        "LAS VEGAS VALLEY WATER D SRA BE/RY 5 DUE 060131 DTD 630626 FC 060126 2.170% YIELD TO MATURITY UNSCLICITI",
+        "Purchase",
+        "03/02/2026",
+        "Yes No}",
+        "| $1,000,004 - $5,000.000"
+      ],
+      "value": [
+        "117",
+        "LAS VEGAS VALLEY WATER D SRA BE/RY 5 DUE 060131 DTD 630626 FC 060126 2.170% YIELD TO MATURITY UNSCLICITI",
+        "Purchase",
+        "03/02/2026",
+        "Yes No}",
+        "| $1,000,004 - $5,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 396.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "118",
+      "field": "cells",
+      "expect": [
+        "118 19",
+        "LAS VEGAS VALLEY WATER D SRA BE/RY 5 DUE 050131 DTD 630426 FC 060126 2.736% YIELD TO MATURITY UNSOLICITE sale",
+        "",
+        "03/24/2026",
+        "Yes No",
+        "$1,000,004 - $5,000,000"
+      ],
+      "value": [
+        "118",
+        "LAS VEGAS VALLEY WATER D SRA BE/RY 5 DUE 050131 DTD 630426 FC 060126 2.736% YIELD TO MATURITY UNSOLICITE sale",
+        "",
+        "03/24/2026",
+        "Yes No",
+        "$1,000,004 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 410.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "119",
+      "field": "cells",
+      "expect": [
+        "19 120",
+        "MANATEE CNTY FL SCH SRA RV BE/RY 5 DUE 670135 DTD 040626 FC 070126 2.960% YIELD TO MATURITY UNSOLICITED purchase:",
+        "",
+        "Cw04/2026",
+        "yes No",
+        "$1,000,004 }$1,000.001 - $5,000,000"
+      ],
+      "value": [
+        "119",
+        "MANATEE CNTY FL SCH SRA RV BE/RY 5 DUE 670135 DTD 040626 FC 070126 2.960% YIELD TO MATURITY UNSOLICITED purchase:",
+        "",
+        "Cw04/2026",
+        "yes No",
+        "$1,000,004 }$1,000.001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 423.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "120",
+      "field": "cells",
+      "expect": [
+        "321",
+        "METROPOLITAN UTILS DIST RV BEURY S DUE 120126 DTD 032526 FC 060126 2.231% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/12/2026",
+        "yes No",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "120",
+        "METROPOLITAN UTILS DIST RV BEURY S DUE 120126 DTD 032526 FC 060126 2.231% YIELD TO MATURITY UNSOLICITED",
+        "",
+        "03/12/2026",
+        "yes No",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 436.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "121",
+      "field": "cells",
+      "expect": [
+        "321 122",
+        "METROPOLITAN UTILS DIST RV BEURY S DUE 120128 DTD 032526 FC 060126 2.250% YIELD TO MATURITY UNSOLICITED",
+        "Purchase",
+        "03/16/2026",
+        "No No|",
+        "$250,001 $500,001 - $1,000.00"
+      ],
+      "value": [
+        "121",
+        "METROPOLITAN UTILS DIST RV BEURY S DUE 120128 DTD 032526 FC 060126 2.250% YIELD TO MATURITY UNSOLICITED",
+        "Purchase",
+        "03/16/2026",
+        "No No|",
+        "$250,001 $500,001 - $1,000.00"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 449.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "122",
+      "field": "cells",
+      "expect": [
+        "323,",
+        "MINNESOTA ST FOR PREVIOU BER 5 DUE 080126 DTD 082024 2.250% YIELD TO MATURITY UNSOLICITED ACCRUED IN|",
+        "",
+        "03/12/2026",
+        "No| No",
+        "$250,001 - $500.00"
+      ],
+      "value": [
+        "122",
+        "MINNESOTA ST FOR PREVIOU BER 5 DUE 080126 DTD 082024 2.250% YIELD TO MATURITY UNSOLICITED ACCRUED IN|",
+        "",
+        "03/12/2026",
+        "No| No",
+        "$250,001 - $500.00"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 462.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "123",
+      "field": "cells",
+      "expect": [
+        "124",
+        "OHIO ST UNIV GEN RCPTS SR ARV BEIR! S DUE 060135 DTD 010625 FC 050126 2.950% YIELD TO MATURITY UNSOLICIT!",
+        "Purchase",
+        "6312/2026 | |",
+        "No No|",
+        "$250,001 $500,001 - $1,000,000"
+      ],
+      "value": [
+        "123",
+        "OHIO ST UNIV GEN RCPTS SR ARV BEIR! S DUE 060135 DTD 010625 FC 050126 2.950% YIELD TO MATURITY UNSOLICIT!",
+        "Purchase",
+        "6312/2026 | |",
+        "No No|",
+        "$250,001 $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 476.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "124",
+      "field": "cells",
+      "expect": [
+        "124 125",
+        "PENNSYLVANIA ST TPK COMM. SRA RV BER) 5 DUE 120134 DTO 031226 FC 060126 2.600% YIELD TO MATURITY UNSOL| purchase",
+        "",
+        "©302/2026 | |",
+        "Yes} No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "124",
+        "PENNSYLVANIA ST TPK COMM. SRA RV BER) 5 DUE 120134 DTO 031226 FC 060126 2.600% YIELD TO MATURITY UNSOL| purchase",
+        "",
+        "©302/2026 | |",
+        "Yes} No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 488.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "125",
+      "field": "cells",
+      "expect": [
+        "126.",
+        "PENNSYLVANIA ST TPK COMM SRA RV BE/RI DUE 120134 DTD 031226 FC 060126 3.196% YIELD TO MATURITY UNSOL| sale",
+        "",
+        "03/24/2026",
+        "Yes} No}",
+        "$1,000,001 - $5,000.000"
+      ],
+      "value": [
+        "125",
+        "PENNSYLVANIA ST TPK COMM SRA RV BE/RI DUE 120134 DTD 031226 FC 060126 3.196% YIELD TO MATURITY UNSOL| sale",
+        "",
+        "03/24/2026",
+        "Yes} No}",
+        "$1,000,001 - $5,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 502.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "126",
+      "field": "cells",
+      "expect": [
+        "427,",
+        "RALEIGH NC BE/R/ 5 DUE 040130 DTD 031226 FC 040126 2.120% YIELD TO MATURITY. UNSOLICITED purchase.",
+        "",
+        "03/02/2026",
+        "Yes No}",
+        "| $1,000.001 - $5,000,000"
+      ],
+      "value": [
+        "126",
+        "RALEIGH NC BE/R/ 5 DUE 040130 DTD 031226 FC 040126 2.120% YIELD TO MATURITY. UNSOLICITED purchase.",
+        "",
+        "03/02/2026",
+        "Yes No}",
+        "| $1,000.001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 515.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "127",
+      "field": "cells",
+      "expect": [
+        "427, 128",
+        "ROCKWALL TX INDPT SCH D BE/R! 5 DUE 021529 DTD 081225 FC 081525 2.650% YIELD TO MATURITY UNSOUCITED: purchase",
+        "",
+        "OW27/2026 | |",
+        "Yes No",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "127",
+        "ROCKWALL TX INDPT SCH D BE/R! 5 DUE 021529 DTD 081225 FC 081525 2.650% YIELD TO MATURITY UNSOUCITED: purchase",
+        "",
+        "OW27/2026 | |",
+        "Yes No",
+        "| $1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 528.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "128",
+      "field": "cells",
+      "expect": [
+        "128 129",
+        "| SAN JACINTO TX CMNTY CLG BEMRI $ DUE 021527 DTD 042128 FC 081525 2.630% YIELD TO MATURITY UNSOLICITED purchase",
+        "",
+        "OW27/2026 |",
+        "No}",
+        "$500,004 - $1,000,000"
+      ],
+      "value": [
+        "128",
+        "| SAN JACINTO TX CMNTY CLG BEMRI $ DUE 021527 DTD 042128 FC 081525 2.630% YIELD TO MATURITY UNSOLICITED purchase",
+        "",
+        "OW27/2026 |",
+        "No}",
+        "$500,004 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 540.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "129",
+      "field": "cells",
+      "expect": [
+        "130 129",
+        "five JACINTO TX CMNTY CLG BEIR/ 5 DUE 021528 DTD 042126 FC 081526 2.680% YIELD TO MATURITY UNSOLICITED __|",
+        "Purchase",
+        "cse7re6| _",
+        "No|",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "129",
+        "five JACINTO TX CMNTY CLG BEIR/ 5 DUE 021528 DTD 042126 FC 081526 2.680% YIELD TO MATURITY UNSOLICITED __|",
+        "Purchase",
+        "cse7re6| _",
+        "No|",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 5,
+        "geometry_top": 547.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "130",
+      "field": "cells",
+      "expect": [
+        "131",
+        "SAN JACINTO TX CMNTY CLG BE/RY 5 UE 021532 DTD 042126 FC 081526 3.050% YIELD TO MATURITY UNSOLICITED _| purchase",
+        "",
+        "03/27/2026",
+        "Daya Ago No]",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "130",
+        "SAN JACINTO TX CMNTY CLG BE/RY 5 UE 021532 DTD 042126 FC 081526 3.050% YIELD TO MATURITY UNSOLICITED _| purchase",
+        "",
+        "03/27/2026",
+        "Daya Ago No]",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 129.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "131",
+      "field": "cells",
+      "expect": [
+        "132 131",
+        "[SAN JACINTO TX CMNTY CLG BE/RI 5 DUE 022532 DTD 042126 FC 081526 3.100% YIELD TO MATURITY UNSOLICITED purchase,",
+        "",
+        "03/27/2026",
+        "No] No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "131",
+        "[SAN JACINTO TX CMNTY CLG BE/RI 5 DUE 022532 DTD 042126 FC 081526 3.100% YIELD TO MATURITY UNSOLICITED purchase,",
+        "",
+        "03/27/2026",
+        "No] No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 143.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "132",
+      "field": "cells",
+      "expect": [
+        "132 133",
+        "TARRANT REGL WTR DIST TE RV BERS 5 QUE 030134 OTD 062826 FC 090126 3.060% YIELD TO MATURITY UNSQUICITED purchase.",
+        "",
+        "03/31/2026",
+        "No No]",
+        "$1,000,001 $500,001 - $1,000,000"
+      ],
+      "value": [
+        "132",
+        "TARRANT REGL WTR DIST TE RV BERS 5 QUE 030134 OTD 062826 FC 090126 3.060% YIELD TO MATURITY UNSQUICITED purchase.",
+        "",
+        "03/31/2026",
+        "No No]",
+        "$1,000,001 $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 154.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "133",
+      "field": "cells",
+      "expect": [
+        "134",
+        "TEXAS ST RV BE/RY 5 DUE 100135 DTD 170625 FC 040126 2 590% YIELD TO MATURITY UNSOLICITED purchase",
+        "\\",
+        "63/02/2026",
+        "No] No}",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "133",
+        "TEXAS ST RV BE/RY 5 DUE 100135 DTD 170625 FC 040126 2 590% YIELD TO MATURITY UNSOLICITED purchase",
+        "\\",
+        "63/02/2026",
+        "No] No}",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 167.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "134",
+      "field": "cells",
+      "expect": [
+        "435",
+        "TEXAS ST RV BE/RI § OUE 100135 DTO 110625 FC 040126 2.879% YIELD TO MATURITY UNSOUCITED",
+        "|",
+        "o3y1272025",
+        "No} No]",
+        "$250,001 - $500,000"
+      ],
+      "value": [
+        "134",
+        "TEXAS ST RV BE/RI § OUE 100135 DTO 110625 FC 040126 2.879% YIELD TO MATURITY UNSOUCITED",
+        "|",
+        "o3y1272025",
+        "No} No]",
+        "$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 181.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "135",
+      "field": "cells",
+      "expect": [
+        "435 136",
+        "TEXAS ST RV BE/R/ 5 DUE 100135 DTD 110625 FC 040126 3.206% YIELD TO MATURITY UNSOLICITED sale",
+        "|",
+        "03/24/2025",
+        "No] No]",
+        "$1,000,004 - $5,000,000"
+      ],
+      "value": [
+        "135",
+        "TEXAS ST RV BE/R/ 5 DUE 100135 DTD 110625 FC 040126 3.206% YIELD TO MATURITY UNSOLICITED sale",
+        "|",
+        "03/24/2025",
+        "No] No]",
+        "$1,000,004 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 194.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "136",
+      "field": "cells",
+      "expect": [
+        "137",
+        "TRINITY RVR AUTH TX REG SR A RV BE/R/ § DUE 080132 DTD 041626 FC 080126 3.000% YIELO TO MATURITY UNSCLICM purchase",
+        "|",
+        "oxe712028",
+        "No] No|",
+        "$500,001 - $1,000,000"
+      ],
+      "value": [
+        "136",
+        "TRINITY RVR AUTH TX REG SR A RV BE/R/ § DUE 080132 DTD 041626 FC 080126 3.000% YIELO TO MATURITY UNSCLICM purchase",
+        "|",
+        "oxe712028",
+        "No] No|",
+        "$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 208.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "137",
+      "field": "cells",
+      "expect": [
+        "137 138",
+        "UNITED STATES TREAS BILL DUE 04/16/26 AGENCY PURCHASE YTM = 3,689 UNSOLICITED AS AGENT - STEPOUT purchase",
+        "|",
+        "63/13/2026",
+        "No| No|",
+        "$1,000,004 - $5,000,000."
+      ],
+      "value": [
+        "137",
+        "UNITED STATES TREAS BILL DUE 04/16/26 AGENCY PURCHASE YTM = 3,689 UNSOLICITED AS AGENT - STEPOUT purchase",
+        "|",
+        "63/13/2026",
+        "No| No|",
+        "$1,000,004 - $5,000,000."
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 220.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "138",
+      "field": "cells",
+      "expect": [
+        "439",
+        "UNITED STATES TREAS BILt OUE 04/16/26 AGENCY SALE YTM = 3.688 UNSOLICITED AS AGENT - STEPOUT sale",
+        "|",
+        "oey17/2025",
+        "No| No|$500.001",
+        "- $1,000,000"
+      ],
+      "value": [
+        "138",
+        "UNITED STATES TREAS BILt OUE 04/16/26 AGENCY SALE YTM = 3.688 UNSOLICITED AS AGENT - STEPOUT sale",
+        "|",
+        "oey17/2025",
+        "No| No|$500.001",
+        "- $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 233.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "139",
+      "field": "cells",
+      "expect": [
+        "160",
+        "UNITED STATES TREAS BILL DUE 04/16/26 AGENCY SALE YTM = 3.696 UNSOLICITED AS AGENT - STEPOUT sale",
+        "|",
+        "3/6/2025",
+        "No|$500.001 No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "139",
+        "UNITED STATES TREAS BILL DUE 04/16/26 AGENCY SALE YTM = 3.696 UNSOLICITED AS AGENT - STEPOUT sale",
+        "|",
+        "3/6/2025",
+        "No|$500.001 No",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 247.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "140",
+      "field": "cells",
+      "expect": [
+        "144 160",
+        "UNITED STATES TREAS BILL OUE 04/30/26 AGENCY PURCHASE YTM = 3.687 UNSOLICITED AS AGENT - STEPOUT",
+        "chase",
+        "03/27/2026",
+        "No Nol",
+        "$1,000,001 $1,000,091 - $5,000,000"
+      ],
+      "value": [
+        "140",
+        "UNITED STATES TREAS BILL OUE 04/30/26 AGENCY PURCHASE YTM = 3.687 UNSOLICITED AS AGENT - STEPOUT",
+        "chase",
+        "03/27/2026",
+        "No Nol",
+        "$1,000,001 $1,000,091 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 262.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "141",
+      "field": "cells",
+      "expect": [
+        "144 142",
+        "UNITED STATES TREAS BILL QUE 04/30/26 AGENCY SALE YTM = 3.689 UNSOLICITED AS AGENT - STEPOUT sale",
+        "",
+        "63/30/2026",
+        "Nol No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "141",
+        "UNITED STATES TREAS BILL QUE 04/30/26 AGENCY SALE YTM = 3.689 UNSOLICITED AS AGENT - STEPOUT sale",
+        "",
+        "63/30/2026",
+        "Nol No|",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 275.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "142",
+      "field": "cells",
+      "expect": [
+        "142 163",
+        "UNITED STATES TREAS BILL UE 04/30/26 AGENCY SALE YTM = 3.689 UNSOLICITED AS AGENT - STEPOUT sale",
+        "",
+        "03/30/2026",
+        "No| No]",
+        "$1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "142",
+        "UNITED STATES TREAS BILL UE 04/30/26 AGENCY SALE YTM = 3.689 UNSOLICITED AS AGENT - STEPOUT sale",
+        "",
+        "03/30/2026",
+        "No| No]",
+        "$1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 289.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "143",
+      "field": "cells",
+      "expect": [
+        "146 163",
+        "UNIV PITTSBURGH BE/RY § DUE 041532 DTD 120925 CALLABLE FC 041526 CALLABLE @ 100 021532 FC 041525 purchase",
+        "",
+        "03/13/2026",
+        "No] No",
+        "$500,004 - $1,000,600"
+      ],
+      "value": [
+        "143",
+        "UNIV PITTSBURGH BE/RY § DUE 041532 DTD 120925 CALLABLE FC 041526 CALLABLE @ 100 021532 FC 041525 purchase",
+        "",
+        "03/13/2026",
+        "No] No",
+        "$500,004 - $1,000,600"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 302.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "144",
+      "field": "cells",
+      "expect": [
+        "145",
+        "WEYERHAEUSER CO SENIOR UNSECURED DUE 12/15/2029 04.000%MN 15 DISCRETIONARY ORDER YIELD 4.661 % TC purchase",
+        "",
+        "03/26/2026",
+        "No No|",
+        "$500,004 $1,009,001 - $5,000,000"
+      ],
+      "value": [
+        "144",
+        "WEYERHAEUSER CO SENIOR UNSECURED DUE 12/15/2029 04.000%MN 15 DISCRETIONARY ORDER YIELD 4.661 % TC purchase",
+        "",
+        "03/26/2026",
+        "No No|",
+        "$500,004 $1,009,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 317.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "145",
+      "field": "cells",
+      "expect": [
+        "146",
+        "GENERAL MOTORS CO SENIOR UNSECURED DUE 10/01/2027 06.800%AO 01 DISCRETIONARY ORDER YIELD 4.519 %1 purchase:",
+        "",
+        "03/24/2026",
+        "No| No",
+        "$1,000,001 - $5,000,000,"
+      ],
+      "value": [
+        "145",
+        "GENERAL MOTORS CO SENIOR UNSECURED DUE 10/01/2027 06.800%AO 01 DISCRETIONARY ORDER YIELD 4.519 %1 purchase:",
+        "",
+        "03/24/2026",
+        "No| No",
+        "$1,000,001 - $5,000,000,"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 331.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "146",
+      "field": "cells",
+      "expect": [
+        "146 147",
+        "SPDR SERIES TRUST STATE STREET SPOR PORTFOLIO HIGH YIELD BOND ETF DISCRETIONARY ORDER J.P. MORGAN SEC purchase",
+        "",
+        "03/02/2026",
+        "Yes No",
+        "$1,000,001 | $1,000,001 - $5,000,000"
+      ],
+      "value": [
+        "146",
+        "SPDR SERIES TRUST STATE STREET SPOR PORTFOLIO HIGH YIELD BOND ETF DISCRETIONARY ORDER J.P. MORGAN SEC purchase",
+        "",
+        "03/02/2026",
+        "Yes No",
+        "$1,000,001 | $1,000,001 - $5,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 345.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "147",
+      "field": "cells",
+      "expect": [
+        "147 148",
+        "**TAVIENT CORPORATION REG S DUE 08/01/2030 07.12S%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS purchase,",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "|$250,001 - $500,000"
+      ],
+      "value": [
+        "147",
+        "**TAVIENT CORPORATION REG S DUE 08/01/2030 07.12S%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS purchase,",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "|$250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 357.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "148",
+      "field": "cells",
+      "expect": [
+        "449",
+        "NEWELL RUBBERMAID INC SENIOR UNSECURED NOTES DUE 09/15/2029 06.625%MS 15 DISCRETIONARY ORDER YIEt purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes}$500,004",
+        "- $1,000,000"
+      ],
+      "value": [
+        "148",
+        "NEWELL RUBBERMAID INC SENIOR UNSECURED NOTES DUE 09/15/2029 06.625%MS 15 DISCRETIONARY ORDER YIEt purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes}$500,004",
+        "- $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 372.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "149",
+      "field": "cells",
+      "expect": [
+        "449 350,",
+        "**UNITED RENTALS NORTH AMER INC SENIOR SECURED NOTES REG S DUE 12/15/2029 06.000%JD 15 DISCRETION",
+        "",
+        "03/02/2026",
+        "Yes Yes}$500,004",
+        "|$500,004 - $1,000,000"
+      ],
+      "value": [
+        "149",
+        "**UNITED RENTALS NORTH AMER INC SENIOR SECURED NOTES REG S DUE 12/15/2029 06.000%JD 15 DISCRETION",
+        "",
+        "03/02/2026",
+        "Yes Yes}$500,004",
+        "|$500,004 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 381.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "150",
+      "field": "cells",
+      "expect": [
+        "154",
+        "NEW YORK CMNTY BANCORP INC SUBORDINATED NOTE DUE 11/06/2028 06.707% MIN 06 DISCRETIONARY ORDER CL purchase",
+        "",
+        "03/02/2026",
+        "Yes “Yes",
+        "| $100,001 - $250,000"
+      ],
+      "value": [
+        "150",
+        "NEW YORK CMNTY BANCORP INC SUBORDINATED NOTE DUE 11/06/2028 06.707% MIN 06 DISCRETIONARY ORDER CL purchase",
+        "",
+        "03/02/2026",
+        "Yes “Yes",
+        "| $100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 397.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "151",
+      "field": "cells",
+      "expect": [
+        "452 154",
+        "|wuetroot CORP DEB SENIOR NOTES DUE 02/26/2029 04.750%FA 26 DISCRETIONARY ORDER YIELD 5.282 %TO MA purchase",
+        "",
+        "03/02/2026",
+        "“Yes Yes",
+        "|$500,004 - $1,000,000"
+      ],
+      "value": [
+        "151",
+        "|wuetroot CORP DEB SENIOR NOTES DUE 02/26/2029 04.750%FA 26 DISCRETIONARY ORDER YIELD 5.282 %TO MA purchase",
+        "",
+        "03/02/2026",
+        "“Yes Yes",
+        "|$500,004 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 406.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "152",
+      "field": "cells",
+      "expect": [
+        "153",
+        "|***NETFLIX INC REG S DUE 11/15/2029 05.37S%JD 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CONNEC",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "152",
+        "|***NETFLIX INC REG S DUE 11/15/2029 05.37S%JD 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CONNEC",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 423.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "153",
+      "field": "cells",
+      "expect": [
+        "156",
+        "S**SIRIUS XM RADIO INC SENIOR NOTES REG $ DUE 07/01/2025 05.500%JJ 01 DISCRETIONARY ORDER IF THIS CONFI",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "153",
+        "S**SIRIUS XM RADIO INC SENIOR NOTES REG $ DUE 07/01/2025 05.500%JJ 01 DISCRETIONARY ORDER IF THIS CONFI",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 436.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "154",
+      "field": "cells",
+      "expect": [
+        "155",
+        "**\"CARNIVAL CORP REG S DUE 08/15/2029 07.000%FA 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CON",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "154",
+        "**\"CARNIVAL CORP REG S DUE 08/15/2029 07.000%FA 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN CON",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 450.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "155",
+      "field": "cells",
+      "expect": [
+        "155 156",
+        "OLIN CORP DUE 08/01/2029 0S.625%6FA 01 DISCRETIONARY ORDER YIELD 5,627 % TO MATURITY YIELD 28.896 % TO purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000.000"
+      ],
+      "value": [
+        "155",
+        "OLIN CORP DUE 08/01/2029 0S.625%6FA 01 DISCRETIONARY ORDER YIELD 5,627 % TO MATURITY YIELD 28.896 % TO purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 462.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "156",
+      "field": "cells",
+      "expect": [
+        "157,",
+        "FIRST HORIZON 8K MEMPHIS TENN DUE 05/01/2036 05.750%MN 01 DISCRETIONARY ORDER YIELD 4.659 % TO PAR (purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000.000"
+      ],
+      "value": [
+        "156",
+        "FIRST HORIZON 8K MEMPHIS TENN DUE 05/01/2036 05.750%MN 01 DISCRETIONARY ORDER YIELD 4.659 % TO PAR (purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,001 - $1,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 476.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "157",
+      "field": "cells",
+      "expect": [
+        "158",
+        "THE BOEING COMPANY SENIOR UNSECURED NOTE DUE 05/02/2027 05.040%MN 01 DISCRETIONARY | ORDER YIELD 3| purchase:",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "value": [
+        "157",
+        "THE BOEING COMPANY SENIOR UNSECURED NOTE DUE 05/02/2027 05.040%MN 01 DISCRETIONARY | ORDER YIELD 3| purchase:",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $250,001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 489.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "158",
+      "field": "cells",
+      "expect": [
+        "159",
+        "BLOCK FINL LLC SENIOR UNSECURED NOTE DUE 08/15/2030 03.875%FA 15 DISCRETIONARY ORDER YIELD 5.246% TC purchase:",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "}$250.001 - $500,000"
+      ],
+      "value": [
+        "158",
+        "BLOCK FINL LLC SENIOR UNSECURED NOTE DUE 08/15/2030 03.875%FA 15 DISCRETIONARY ORDER YIELD 5.246% TC purchase:",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "}$250.001 - $500,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 502.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "159",
+      "field": "cells",
+      "expect": [
+        "159 160",
+        "OCCIDENTAL PETE SR DEBS-REG SENIOR NOTES DUE 09/01/2030 06.625%MS 01 DISCRETIONARY ORDER YIELD 4.324 purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,004 - $1,000,000"
+      ],
+      "value": [
+        "159",
+        "OCCIDENTAL PETE SR DEBS-REG SENIOR NOTES DUE 09/01/2030 06.625%MS 01 DISCRETIONARY ORDER YIELD 4.324 purchase",
+        "",
+        "03/02/2026",
+        "Yes Yes",
+        "| $500,004 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 515.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "160",
+      "field": "cells",
+      "expect": [
+        "161",
+        "Pr*VICTORIAS SECRET CO REG S DUE 07/15/2025 04.625%JJ 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS I!",
+        "",
+        "03/02/2026",
+        "Yes “Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "value": [
+        "160",
+        "Pr*VICTORIAS SECRET CO REG S DUE 07/15/2025 04.625%JJ 15 DISCRETIONARY ORDER IF THIS CONFIRMATION IS I!",
+        "",
+        "03/02/2026",
+        "Yes “Yes",
+        "|$500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 529.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "161",
+      "field": "cells",
+      "expect": [
+        "162,",
+        "***COREWEAVE INC REG S DUE 02/01/2031 09.000%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN COf purchase",
+        "|",
+        "03/02/2026",
+        "“Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "161",
+        "***COREWEAVE INC REG S DUE 02/01/2031 09.000%FA 01 DISCRETIONARY ORDER IF THIS CONFIRMATION IS IN COf purchase",
+        "|",
+        "03/02/2026",
+        "“Yes Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 542.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "162",
+      "field": "cells",
+      "expect": [
+        "162, 163",
+        "***COTY INC SENIOR SECURED NOTES REG S DUE 01/15/2029 04.750%JJ 15 DISCRETIONARY ORDER IE THIS CONFIRI",
+        "Purchase",
+        "03/02/2026",
+        "Yes Yes}",
+        "$500.00 - $1,000.000"
+      ],
+      "value": [
+        "162",
+        "***COTY INC SENIOR SECURED NOTES REG S DUE 01/15/2029 04.750%JJ 15 DISCRETIONARY ORDER IE THIS CONFIRI",
+        "Purchase",
+        "03/02/2026",
+        "Yes Yes}",
+        "$500.00 - $1,000.000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 6,
+        "geometry_top": 553.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "163",
+      "field": "cells",
+      "expect": [
+        "Ls 164",
+        "***MACYS RETAIL HOLDINGS LLC REG S DUE 03/15/2030 05.875%MS 15 DISCRETIONARY ORDER IF THIS CONFIRMAl purchase",
+        "",
+        "03/02/2026",
+        "Days Ago Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "value": [
+        "163",
+        "***MACYS RETAIL HOLDINGS LLC REG S DUE 03/15/2030 05.875%MS 15 DISCRETIONARY ORDER IF THIS CONFIRMAl purchase",
+        "",
+        "03/02/2026",
+        "Days Ago Yes",
+        "| $500,001 - $1,000,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 269.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "164",
+      "field": "cells",
+      "expect": [
+        "165",
+        "BANK OF AMERICA CORPORATION - BAC purchase",
+        "",
+        "03/18/2026",
+        "Yes No!",
+        "$50,001 - $100,000"
+      ],
+      "value": [
+        "164",
+        "BANK OF AMERICA CORPORATION - BAC purchase",
+        "",
+        "03/18/2026",
+        "Yes No!",
+        "$50,001 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 285.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "165",
+      "field": "cells",
+      "expect": [
+        "165 165",
+        "COREBRIDGE FINL INC PERP -A 6.8750% 12/31/49 purchase",
+        "",
+        "03/18/2026",
+        "No! No}",
+        "$50,001 - $100,000 |"
+      ],
+      "value": [
+        "165",
+        "COREBRIDGE FINL INC PERP -A 6.8750% 12/31/49 purchase",
+        "",
+        "03/18/2026",
+        "No! No}",
+        "$50,001 - $100,000 |"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 295.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "166",
+      "field": "cells",
+      "expect": [
+        "165 167",
+        "WELLS FARGO & CO NEW - WFC purchase",
+        "",
+        "03/18/2026",
+        "No} No!",
+        "$50,004 - $100,000"
+      ],
+      "value": [
+        "166",
+        "WELLS FARGO & CO NEW - WFC purchase",
+        "",
+        "03/18/2026",
+        "No} No!",
+        "$50,004 - $100,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 307.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "167",
+      "field": "cells",
+      "expect": [
+        "167 168",
+        "WELLS FARGO & CO NEW PERP 7.6250% purchase",
+        "",
+        "03/18/2026",
+        "No! No}",
+        "$100,004 - $250,000"
+      ],
+      "value": [
+        "167",
+        "WELLS FARGO & CO NEW PERP 7.6250% purchase",
+        "",
+        "03/18/2026",
+        "No! No}",
+        "$100,004 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 321.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "168",
+      "field": "cells",
+      "expect": [
+        "169",
+        "WELLS FARGO & CO PERP NT 6.8500% 12/31/49 sale",
+        "",
+        "03/18/2026",
+        "No} No",
+        "$50,004 - $100,000."
+      ],
+      "value": [
+        "168",
+        "WELLS FARGO & CO PERP NT 6.8500% 12/31/49 sale",
+        "",
+        "03/18/2026",
+        "No} No",
+        "$50,004 - $100,000."
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 336.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "169",
+      "field": "cells",
+      "expect": [
+        "470",
+        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49 sale",
+        "",
+        "03/15/2026",
+        "No No}",
+        "$50,004 $250,001 - $500,006"
+      ],
+      "value": [
+        "169",
+        "WELLS FARGO & CO PERP A BB N 3.9000% 12/31/49 sale",
+        "",
+        "03/15/2026",
+        "No No}",
+        "$50,004 $250,001 - $500,006"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 350.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "170",
+      "field": "cells",
+      "expect": [
+        "470 371",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 {purchase",
+        "",
+        "03/13/2026",
+        "No|",
+        "$15,001 - $50,000 |"
+      ],
+      "value": [
+        "170",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 {purchase",
+        "",
+        "03/13/2026",
+        "No|",
+        "$15,001 - $50,000 |"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 362.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "171",
+      "field": "cells",
+      "expect": [
+        "371 472",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 | purchase",
+        "",
+        "03/13/2026",
+        "No|",
+        "$1,001 - $15,000"
+      ],
+      "value": [
+        "171",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 | purchase",
+        "",
+        "03/13/2026",
+        "No|",
+        "$1,001 - $15,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 375.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "172",
+      "field": "cells",
+      "expect": [
+        "472 473",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 loses",
+        "",
+        "03/11/2026",
+        "No",
+        "$100,001 - $250,000"
+      ],
+      "value": [
+        "172",
+        "WELLS FARGO & CO PERP GG NT 6.1250% 12/31/49 loses",
+        "",
+        "03/11/2026",
+        "No",
+        "$100,001 - $250,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 386.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "173",
+      "field": "cells",
+      "expect": [
+        "474",
+        "BANK OF AMERICA CORPORATION - BAC",
+        "",
+        "03/06/2026",
+        "Yes",
+        "|$15,004 - $50,000"
+      ],
+      "value": [
+        "173",
+        "BANK OF AMERICA CORPORATION - BAC",
+        "",
+        "03/06/2026",
+        "Yes",
+        "|$15,004 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 402.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "174",
+      "field": "cells",
+      "expect": [
+        "474 +75",
+        "WELLS FARGO & CO NEW -WFC",
+        "1",
+        "03/04/2026",
+        "Yes ‘Yes",
+        "|$15,001 - $50,000"
+      ],
+      "value": [
+        "174",
+        "WELLS FARGO & CO NEW -WFC",
+        "1",
+        "03/04/2026",
+        "Yes ‘Yes",
+        "|$15,001 - $50,000"
+      ],
+      "evidence": {
+        "basis": "existing_source_bound_geometry_review",
+        "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+        "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+        "page_number": 7,
+        "geometry_top": 414.36
+      }
+    }
+  ],
+  "header": {
+    "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+    "document_reasons": [],
+    "evidence_complete": true,
+    "filed_at": "2026-04-20",
+    "filer_identity_evidence": {
+      "agency_basis": "exact_sha_official_disclosure_catalog_alias",
+      "page_number": 1,
+      "pdf_filer_name": "Donald J Trump",
+      "pdf_position_title": "President of the United States of America",
+      "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf"
+    },
+    "filer_signature_evidence": null,
+    "filer_signature_name": "Donald J Trump",
+    "filing_date_evidence": {
+      "basis": "exact_sha_official_disclosure_link_label",
+      "label": "Official White House disclosure listing date",
+      "normalized": "2026-04-20",
+      "page_number": null,
+      "raw": "04.20.26",
+      "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf"
+    },
+    "page_count": 8,
+    "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+    "pdf_agency_label": null,
+    "pdf_filer_name": "Donald J Trump",
+    "pdf_position_agency_raw": "President of the United States of America",
+    "pdf_position_title": "President of the United States of America",
+    "schema_version": "whitehouse-278t-extraction/v1",
+    "signature_method": "official_disclosure_date_source_bound",
+    "source_id": "oge",
+    "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf"
+  }
+}

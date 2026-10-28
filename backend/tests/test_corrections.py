@@ -55,8 +55,9 @@ class CorrectionTests(unittest.TestCase):
         for path in paths:
             with self.subTest(path=str(path)):
                 correction = load_correction(path)
-                self.assertEqual(path.stem, correction['document_id'])
-                self.assertEqual(path.parent.name, correction['source'])
+                self.assertEqual(path.stem, correction['document_id'].removeprefix('wh-url:'))
+                self.assertEqual('oge' if correction['document_id'].startswith('wh-url:') else path.parent.name,
+                    correction['source'])
                 review = correction['source_review']
                 if correction['source']=='house_clerk':
                     self.assertEqual(review['source_sha256'], correction['source_sha256'])

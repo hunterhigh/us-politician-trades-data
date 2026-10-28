@@ -183,6 +183,10 @@ def _verify_review(review_root: Path, *, expected_report_count: int | None,
                 extraction.get("source_url") != row["document_url"] or
                 extraction.get("source_sha256") != row["archive_sha256_versions"][0]):
             raise ValueError("White House 278-T extraction is not bound to coverage and archive SHA")
+        from unison_snapshot.reviewed_whitehouse_ocr import profile_for, validate_reusable_report
+        correction = profile_for(extraction['document_id'], extraction['source_url'], extraction['source_sha256'])
+        if correction is not None and extraction['parser_version'] == correction['parser_version']:
+            validate_reusable_report(extraction, correction)
         extractions.append(extraction)
         manifest.append(f"{relative} {raw_sha}")
     provenance = {

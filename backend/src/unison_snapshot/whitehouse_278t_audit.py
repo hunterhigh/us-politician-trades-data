@@ -24,7 +24,7 @@ from .whitehouse_278t import (
     TRUMP_081225_PARSER_VERSION, TRUMP_081225_SOURCE_SHA256,
     TRUMP_081225_SOURCE_URL, TRUMP_2026_PARSER_VERSION, _first_last,
     quarantine_duplicate_report_groups,
-    trump_2026_profile,
+    reviewed_listing_profile,
 )
 
 
@@ -175,7 +175,7 @@ def _day(value: object) -> date | None:
 def source_bound_filing_date(report: dict) -> str | None:
     """Verify the fixed Trump scan's first-page certification-date evidence."""
     try:
-        profile = trump_2026_profile(
+        profile = reviewed_listing_profile(
             report.get("document_id"), report.get("source_url"),
             report.get("source_sha256"))
     except OgeCatalogError:
@@ -226,7 +226,7 @@ def source_bound_filing_date(report: dict) -> str | None:
 def source_bound_filer_identity(report: dict) -> bool:
     """Verify the fixed scan's filer identity without inventing an agency cell."""
     try:
-        profile = trump_2026_profile(
+        profile = reviewed_listing_profile(
             report.get("document_id"), report.get("source_url"),
             report.get("source_sha256"))
     except OgeCatalogError:
@@ -539,7 +539,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
                 raise OgeCatalogError("Trump 08/12/25 278-T source-bound contract is invalid")
         if item.get("parser_version") == TRUMP_2026_PARSER_VERSION:
             try:
-                profile = trump_2026_profile(
+                profile = reviewed_listing_profile(
                     item.get("document_id"), item.get("source_url"),
                     item.get("source_sha256"))
             except OgeCatalogError:

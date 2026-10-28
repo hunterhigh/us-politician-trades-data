@@ -29,7 +29,7 @@ from unison_snapshot.whitehouse_278t import (
     extract_whitehouse_278t_pdf_checkpointed,
     parser_version_for_source as trade_parser_version_for_source,
     parse_whitehouse_278t_pdf,
-    replay_trump_2026_v2_extraction,
+    replay_reviewed_ocr_extraction,
     materialize_saved_whitehouse_278t, SAVED_OCR_PARSER_VERSION,
     saved_ocr_source_roots,
     NATIVE_VISIBLE_PARSER_VERSIONS, NATIVE_VISIBLE_GENERIC_VERSIONS,
@@ -173,6 +173,11 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     existing.get("source_url") != metadata.get("document_url") or
                     existing.get("parser_version") != version):
                 raise ValueError(f"White House extraction evidence conflict: {target}")
+            if kind == '278t':
+                from unison_snapshot.reviewed_whitehouse_ocr import profile_for, validate_reusable_report
+                correction = profile_for(metadata['document_id'], metadata['document_url'], metadata['sha256'])
+                if correction is not None and existing['parser_version'] == correction['parser_version']:
+                    validate_reusable_report(existing, correction)
             skipped += 1
             continue
         if failure_target.is_file():
@@ -213,7 +218,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     if version == TRUMP_2026_PARSER_VERSION:
                         prior = target.parent / f"{TRADE_PARSER_VERSION.replace('/', '-')}.json"
                         if prior.is_file():
-                            return replay_trump_2026_v2_extraction(
+                            return replay_reviewed_ocr_extraction(
                                 json.loads(prior.read_text(encoding="utf-8")))
                     try:
                         return parse_whitehouse_278t_pdf(
