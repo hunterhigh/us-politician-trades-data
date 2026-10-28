@@ -30,6 +30,50 @@ def fixture():
 
 
 class KnownGapsTests(unittest.TestCase):
+    def large_fixture(self):
+        payload = production_payload()
+        sources = scopes(payload)
+        sources[0]['limitations'].append('Full source inventory limitation ' * 700)
+        original = build(payload, generated_at=NOW, allow_production=True)
+        bundle = attach_disclosure_status(original, sources, transactions=payload['transactions'], provenance=PROVENANCE)
+        return payload, original, bundle
+
+    def test_large_gaps_use_verified_status_object_in_every_normal_reader(self):
+        payload, original, bundle = self.large_fixture()
+        self.assertLessEqual(len(bundle.files['manifest.json']), 16*1024)
+        self.assertEqual(bundle.manifest['snapshot_id'], original.manifest['snapshot_id'])
+        reference = bundle.manifest['known_gaps']
+        self.assertEqual(reference['schema_version'], 'known-gaps-reference/v1')
+        content = bundle.files[f"status/{reference['sha256']}.json"]
+        self.assertEqual(reference['byte_length'], len(content))
+        gaps = json.loads(content)
+        reader = PublicSnapshotRepository('example', 'data', transport=FakeTransport(bundle.files))
+        for mode, key in [('dashboard', None), ('search', None), ('person', payload['people'][0]['id']),
+                          ('ticker', payload['transactions'][0]['ticker'])]:
+            snapshot = reader.fetch(mode, key).snapshot
+            self.assertEqual(snapshot['meta']['known_gaps'], gaps)
+            html = load('render_dashboard', version='v3').render_html(
+                load('process_snapshot', version='v3').build_snapshot(snapshot))
+            self.assertIn('const PUBLISHED_KNOWN_GAPS = ', html)
+            self.assertIn('Full source inventory limitation ', html)
+
+    def test_large_gaps_reject_corruption_bad_reference_and_absent_object(self):
+        _, _, bundle = self.large_fixture()
+        reference = bundle.manifest['known_gaps']
+        path = f"status/{reference['sha256']}.json"
+        for kind in ('hash', 'length', 'budget', 'missing', 'schema'):
+            with self.subTest(kind=kind):
+                files = dict(bundle.files)
+                manifest = deepcopy(bundle.manifest)
+                if kind == 'hash': files[path] = files[path].replace(b'limitation', b'limitatioN', 1)
+                elif kind == 'length': manifest['known_gaps']['byte_length'] -= 1
+                elif kind == 'budget': manifest['known_gaps']['byte_length'] = 256*1024+1
+                elif kind == 'missing': files.pop(path)
+                else: manifest['known_gaps']['unexpected'] = True
+                files['manifest.json'] = encode(manifest)
+                with self.assertRaises((PublicSnapshotError, KeyError)):
+                    PublicSnapshotRepository('example', 'data', transport=FakeTransport(files)).fetch()
+
     def test_source_inventory_gaps_survive_normal_dashboard_and_person_readers(self):
         payload, original, bundle = fixture()
         self.assertEqual(bundle.manifest['snapshot_id'], original.manifest['snapshot_id'])

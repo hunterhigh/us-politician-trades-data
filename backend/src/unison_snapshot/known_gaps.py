@@ -2,12 +2,40 @@
 from collections import Counter
 from pathlib import Path
 import json
+import re
+
+from .codec import digest, encode
 
 SCHEMA = 'known-gaps/v1'
+REFERENCE_SCHEMA = 'known-gaps-reference/v1'
+MAX_BYTES = 256 * 1024
 COUNTS = ('report_count', 'partial_report_count', 'quarantined_report_count',
           'unassessed_report_count', 'request_required_report_count',
           'quarantined_row_count', 'unknown_row_count_report_count',
           'unidentified_affected_report_count')
+
+
+def attach(manifest, files, gaps):
+    """Keep small summaries inline; never truncate a growing source inventory."""
+    manifest['known_gaps'] = validate(gaps)
+    if len(encode(manifest)) <= 16 * 1024:
+        return
+    content = encode(gaps)
+    if len(content) > MAX_BYTES:
+        raise ValueError('Known data gaps exceed their size budget')
+    sha = digest(content)
+    files[f'status/{sha}.json'] = content
+    manifest['known_gaps'] = {'schema_version': REFERENCE_SCHEMA,
+                              'sha256': sha, 'byte_length': len(content)}
+
+
+def validate_reference(value):
+    if (not isinstance(value, dict) or set(value) != {'schema_version', 'sha256', 'byte_length'} or
+            value['schema_version'] != REFERENCE_SCHEMA or
+            not isinstance(value['sha256'], str) or not re.fullmatch('[0-9a-f]{64}', value['sha256']) or
+            type(value['byte_length']) is not int or not 0 < value['byte_length'] <= MAX_BYTES):
+        raise ValueError('Known data gaps reference is invalid')
+    return value
 
 
 def from_scopes(scopes, board):

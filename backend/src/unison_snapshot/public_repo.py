@@ -208,8 +208,15 @@ class PublicSnapshotRepository:
         if not isinstance(health, list) or any(not isinstance(row, dict) for row in health):
             raise PublicSnapshotError("Manifest source_health must be an array")
         if 'known_gaps' in value:
-            from .known_gaps import validate
+            from .known_gaps import MAX_BYTES, REFERENCE_SCHEMA, validate, validate_reference as gaps_reference
             try:
+                reference = value['known_gaps']
+                if isinstance(reference, dict) and reference.get('schema_version') == REFERENCE_SCHEMA:
+                    gaps_reference(reference)
+                    raw = self._read(commit, f"status/{reference['sha256']}.json", MAX_BYTES)
+                    if len(raw) != reference['byte_length'] or hashlib.sha256(raw).hexdigest() != reference['sha256']:
+                        raise ValueError('Known data gaps byte length or hash mismatch')
+                    value['known_gaps'] = self._json(raw, 'known data gaps')
                 validate(value['known_gaps'])
             except ValueError as error:
                 raise PublicSnapshotError(str(error)) from error
