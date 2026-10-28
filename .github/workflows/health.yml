@@ -1,0 +1,55 @@
+name: Production health and alerts
+on:
+  schedule:
+    - cron: '11 * * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Publish complete production snapshot']
+    types: [completed]
+    branches: [code]
+permissions:
+  contents: write
+  issues: write
+  actions: read
+concurrency:
+  # Share the state writer lock; never overwrite an ingestion update.
+  group: disclosure-source-writer
+  cancel-in-progress: false
+jobs:
+  observe:
+    if: github.ref == 'refs/heads/code'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: code
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Read current data and independent source state
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/state:refs/remotes/origin/state
+          git worktree add --detach "$RUNNER_TEMP/health-main" origin/main
+          git worktree add --detach "$RUNNER_TEMP/health-state" origin/state
+      - name: Evaluate health and reconcile one Issue per condition
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot.production_health \
+            --main-root "$RUNNER_TEMP/health-main" \
+            --state-root "$RUNNER_TEMP/health-state" --repository "$REPOSITORY" \
+            --observe-publication-runs --apply-alerts
+      - name: Publish independent health state without moving the formal snapshot
+        run: |
+          state_root="$RUNNER_TEMP/health-state"
+          git -C "$state_root" add status/production_health.json
+          if ! git -C "$state_root" diff --cached --quiet; then
+            git -C "$state_root" config user.name "github-actions[bot]"
+            git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$state_root" commit -m "health: update independent production status"
+            git -C "$state_root" push origin HEAD:refs/heads/state
+          fi
+          echo "Live health: https://github.com/${{ github.repository }}/blob/state/status/production_health.json" >> "$GITHUB_STEP_SUMMARY"
