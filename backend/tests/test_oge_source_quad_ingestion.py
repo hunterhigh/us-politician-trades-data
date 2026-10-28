@@ -136,6 +136,8 @@ class SourceQuadIngestionTests(unittest.TestCase):
             reading=actual_source_quad_secondary(cls.data,field,render)
             cls.secondary.append(reading);write(cls.root/f'{field}.json',reading)
         from test_oge_candidate import base
+        from test_oge_formal_input_cli import seed_formal_main
+        seed_formal_main(cls.root, base())
         write(cls.root/'backend/data/empty-disclosure.json',base())
         write(cls.root/'.local/oge-catalog.json',cls.data['catalog'])
         cls.ledger=cls.root/'field-ledger.json'

@@ -16,6 +16,21 @@ from unison_snapshot.materialize import materialize
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def seed_formal_main(root, payload):
+    bundle = build(payload, generated_at=CUTOFF, allow_production=True, allow_empty_production=True)
+    materialize(root, bundle)
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(root), *args], stderr=subprocess.STDOUT)
+    git('init', '-q')
+    git('config', 'user.name', 'Formal input control')
+    git('config', 'user.email', 'test@example.invalid')
+    git('add', '--', *[name for name in ('manifest.json', 'board', 'people', 'tickers')
+                       if (root/name).exists()])
+    git('commit', '-qm', 'Source-generated formal predecessor')
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD')
+    return bundle
+
+
 class FormalInputCliTests(unittest.TestCase):
     def consume(self, *, historical_cache):
         with tempfile.TemporaryDirectory(prefix='oge-formal-cli-') as directory:
@@ -23,17 +38,7 @@ class FormalInputCliTests(unittest.TestCase):
             data = explicit_owner_inputs(root)
             formal = data['generic']['transactions']
             self.assertEqual(formal[0]['owner'], 'Spouse')
-            bundle = build(data['generic'], generated_at=CUTOFF, allow_production=True)
-            materialize(root, bundle)
-            def git(*args):
-                return subprocess.check_output(['git', '-C', str(root), *args], stderr=subprocess.STDOUT)
-            git('init', '-q')
-            git('config', 'user.name', 'Formal input control')
-            git('config', 'user.email', 'test@example.invalid')
-            git('add', '--', *[name for name in ('manifest.json', 'board', 'people', 'tickers')
-                               if (root/name).exists()])
-            git('commit', '-qm', 'Source-generated formal predecessor')
-            git('update-ref', 'refs/remotes/origin/main', 'HEAD')
+            bundle = seed_formal_main(root, data['generic'])
             manifest_before = (root/'manifest.json').read_bytes()
             if historical_cache:
                 raw = data['legacy']

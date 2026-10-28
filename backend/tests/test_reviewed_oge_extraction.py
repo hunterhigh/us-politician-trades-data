@@ -54,6 +54,48 @@ def fixture():
 
 
 class ReviewedOgeExtractionTests(unittest.TestCase):
+    def test_status_reuses_approved_old_proof_shape_and_rechecks_its_base_assertions(self):
+        from test_oge_owner_correction import fixture as native_fixture, write_files
+        from unison_snapshot.disclosure_status_oge import _selected_source_input
+        from unison_snapshot.oge_native_owner_scope import source_interpretation_binding
+        from unison_snapshot.oge_reports import parse_archived_pdf
+        _, _, caches, evidence, _ = native_fixture()
+        native = json.loads(next(raw for path, raw in caches.items() if path.endswith('pdf-v2.json')))
+        old = deepcopy(native); old.pop('source_rows')
+        for row in old['transactions']: row.pop('cells')
+        _, _, correction = fixture()
+        correction['source_sha256'] = old['source_sha256']
+        guards = correction['assertions']
+        guards['metadata'] = {key: old[field] for key, field in (
+            ('document_id', 'document_id'), ('document_url', 'source_url'),
+            ('filer_name', 'catalog_filer_name'), ('agency', 'agency'), ('position_title', 'position_title'))}
+        guards['input_facts_sha256'] = digest(encode(old))
+        ids = [row['extraction_id'] for row in old['transactions']]
+        guards.update(input_row_inventory=ids, row_inventory=ids, output_transactions=ids, output_quarantined=[])
+        correction['actions'] = [correction['actions'][1]]
+        approved = deepcopy(old); approved['parser_version'] = correction['parser_version']
+        with_proof = deepcopy(native); with_proof['parser_version'] = correction['parser_version']
+        guards['approved_output_sha256'] = [digest(encode(approved)), digest(encode(with_proof))]
+        record = {'report_id': old['document_id'], 'source_url': old['source_url'],
+                  'source_versions': [old['source_sha256']]}
+        audit = {'source_interpretation_binding': source_interpretation_binding(approved)}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); archive = root/'evidence'; review = root/'review'; rules = root/'rules'
+            write_files(archive, evidence); rules.mkdir()
+            (rules/(old['document_id']+'.json')).write_bytes(encode(correction))
+            base = review/'oge/extractions'/old['document_id']/old['source_sha256']/'oge-278t-pdf-v2.json'
+            base.parent.mkdir(parents=True); base.write_bytes(encode(old))
+            (base.parent/(correction['parser_version'].replace('/', '-')+'.json')).write_bytes(encode(approved))
+            metadata = archive/f"oge/reports/{old['document_id']}/{old['source_sha256']}.json"
+            with patch.object(reviewed, 'ROOT', rules):
+                self.assertNotEqual(parse_archived_pdf(archive, metadata), approved)
+                self.assertEqual(_selected_source_input(record, audit, review=review,
+                    evidence=archive, catalog_record=None), approved)
+                changed = deepcopy(old); changed['transactions'][0]['asset_name'] = 'altered source input'
+                base.write_bytes(encode(changed))
+                with self.assertRaisesRegex(ValueError, 'complete original replay'):
+                    _selected_source_input(record, audit, review=review, evidence=archive, catalog_record=None)
+
     def test_original_assertions_preserve_ids_and_input(self):
         original, expected, correction = fixture()
         before = encode(original)

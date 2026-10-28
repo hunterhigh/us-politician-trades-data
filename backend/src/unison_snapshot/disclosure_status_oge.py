@@ -828,8 +828,17 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
     # Saved/native replacement receivers have their own source-bound field
     # contract. Their old normalized input may be reference-only; do not turn
     # the ordinary-native owner profile into a new global qualification gate.
-    if ordinary and parse_archived_pdf(evidence, meta, generic=generic) != raw:
-        raise ValueError('OGE selected source cache differs from complete original replay')
+    if ordinary:
+        if version in parser_versions():
+            # Reviewed profiles deliberately support approved historical
+            # proof shapes. Reuse the normal loader: original hash, complete
+            # approved output and current correction assertions must all pass.
+            from .oge_reports import load_reusable_extraction
+            replay = load_reusable_extraction(evidence, meta, review/'oge/extractions')
+        else:
+            replay = parse_archived_pdf(evidence, meta, generic=generic)
+        if replay != raw:
+            raise ValueError('OGE selected source cache differs from complete original replay')
     record['source_interpretation_binding'] = selected
     return raw
 
