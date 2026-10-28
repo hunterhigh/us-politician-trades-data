@@ -122,7 +122,8 @@ class GenericDateTests(unittest.TestCase):
     def test_generic_does_not_inherit_fixed_source_facts_or_corrections(self):
         cells = [*ROW[:2], "salo", *ROW[3:]]
         cover = {"page_number": 1, "text": "Agency Review\nDate: 6/2/2026", "document_page_count": 2}
-        with patch("unison_snapshot.oge_reports._is_fixed_trump_september_source", return_value=True):
+        with patch("unison_snapshot.oge_reports.source_correction",
+                   side_effect=AssertionError('Generic parsing must not load reviewed source facts')):
             out, _ = self.parse(("", [(2, cells)], [(2, cells)], cover), generic=True)
         self.assertEqual(out["parser_version"], GENERIC_PARSER_VERSION)
         self.assertIsNone(out["filed_at"])
