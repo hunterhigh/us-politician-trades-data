@@ -207,6 +207,12 @@ class PublicSnapshotRepository:
         health = value.get("source_health", [])
         if not isinstance(health, list) or any(not isinstance(row, dict) for row in health):
             raise PublicSnapshotError("Manifest source_health must be an array")
+        if 'known_gaps' in value:
+            from .known_gaps import validate
+            try:
+                validate(value['known_gaps'])
+            except ValueError as error:
+                raise PublicSnapshotError(str(error)) from error
         market = value.get("market_commit")
         if market is not None and (not isinstance(market, str) or not SHA1.fullmatch(market)):
             raise PublicSnapshotError("Manifest market_commit is invalid")

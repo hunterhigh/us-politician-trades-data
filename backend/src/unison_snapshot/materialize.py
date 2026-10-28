@@ -43,6 +43,8 @@ def materialize(root: Path, bundle: Bundle) -> MaterializeResult:
             raise ValueError("Existing manifest is invalid; refusing to publish over it") from None
         if previous.get("disclosure_status") is not None and bundle.manifest.get("disclosure_status") is None:
             raise ValueError("Refusing to remove processing status from an established publication")
+        if previous.get('known_gaps') is not None and bundle.manifest.get('known_gaps') is None:
+            raise ValueError('Refusing to remove known data gaps from an established publication')
     written: list[str] = []
     for relative, content in sorted(bundle.files.items()):
         if relative == "manifest.json":

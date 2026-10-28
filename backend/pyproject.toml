@@ -17,3 +17,6 @@ oge-handwritten-date = ["PyMuPDF==1.28.2", "numpy==2.4.4", "Pillow==12.3.0", "op
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+unison_snapshot = ["*.js"]

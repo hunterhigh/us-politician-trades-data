@@ -52,4 +52,8 @@ def load(name: str, *, version: str = "v1"):
                 sys.modules["process_snapshot"] = previous
     else:
         spec.loader.exec_module(module)
+    if name == 'render_dashboard':
+        from .known_gaps import render
+        original = module.render_html
+        module.render_html = lambda data: render(original(data), data)
     return module
