@@ -5,21 +5,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-class TrumpReplayWorkflowTests(unittest.TestCase):
-    def test_replay_is_fixed_read_only_and_review_scoped(self):
-        content = (ROOT / ".github/workflows/whitehouse-trump-annual-replay.yml").read_text(
-            encoding="utf-8")
-        self.assertIn("group: disclosure-source-writer", content)
-        self.assertIn("wh-url:0c14d3849ca60768024e470b", content)
-        self.assertIn("1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3",
-                      content)
-        self.assertIn("c57ecdcd0e780fa7dc256fae6d0fe728735c8f09", content)
-        self.assertNotIn("audit_trump_", content)
-        self.assertIn("TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v8", content)
-        self.assertIn("test ! -e \"$REVIEW_ROOT/$target_checkpoint_path\"", content)
-        self.assertIn("status --porcelain --untracked-files=all", content)
-        self.assertNotIn("refs/heads/evidence", content)
-
+class ReviewWorkflowTests(unittest.TestCase):
+    def test_replay_uses_explicit_archived_source_identity_and_shared_publication(self):
+        content=(ROOT/'.github/workflows/replay.yml').read_text(encoding='utf-8')
+        self.assertIn('--document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256"',content)
+        self.assertIn('uses: ./.github/actions/publish-data',content)
+        self.assertIn('uses: ./.github/workflows/whitehouse.yml',content)
+        self.assertNotIn('refs/heads/main',content)
+        self.assertNotIn('DOCUMENT_ID: wh-url:',content)
     def test_candidate_rebuild_uses_normal_qualification_and_conservation(self) -> None:
         content = (ROOT / ".github/workflows/whitehouse.yml").read_text(
             encoding="utf-8")

@@ -60,6 +60,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.oge_evidence_validation && inputs.oge_terms_acknowledged }}
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 60

@@ -1,0 +1,221 @@
+name: Replay bounded source inputs
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source whose archived report range is selected
+        type: choice
+        options: [house, senate, whitehouse]
+        default: house
+      mode:
+        description: Fixed 2025 House PTR backfill, saved Senate paper, or one archived White House PDF
+        type: choice
+        options: [backfill, paper-saved, pdf]
+        default: backfill
+      document_ids:
+        description: Selected canonical UUIDs (Senate, at most 12) or one wh-url identifier
+        default: ''
+      source_sha256:
+        description: Exact archived original hash for White House PDF replay
+        default: ''
+      limit:
+        description: Maximum House PTRs to interpret in this run, 1-25
+        default: '25'
+      archive_budget_seconds:
+        description: House archive time budget, at most 1500 seconds
+        default: '900'
+  workflow_call:
+    inputs:
+      source:
+        type: string
+        default: house
+      mode:
+        type: string
+        default: backfill
+      document_ids:
+        type: string
+        default: ''
+      source_sha256:
+        type: string
+        default: ''
+      limit:
+        type: string
+        default: '25'
+      archive_budget_seconds:
+        type: string
+        default: '900'
+permissions:
+  contents: write
+jobs:
+  invalid-selection:
+    if: ${{ !((inputs.source == 'house' && inputs.mode == 'backfill') || (inputs.source == 'senate' && inputs.mode == 'paper-saved') || (inputs.source == 'whitehouse' && inputs.mode == 'pdf')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Unsupported source and replay mode' >&2; exit 2
+  house-backfill:
+    if: inputs.source == 'house' && inputs.mode == 'backfill'
+    uses: ./.github/workflows/house.yml
+    with:
+      mode: ptr
+      filing_year: '2025'
+      archive_budget_seconds: ${{ inputs.archive_budget_seconds }}
+      batch_size: ${{ inputs.limit }}
+  senate-paper:
+    if: inputs.source == 'senate' && inputs.mode == 'paper-saved'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: disclosure-source-writer
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - name: Validate saved replay selection
+        env:
+          SAVED_PAPER_DOCUMENT_IDS: ${{ inputs.document_ids }}
+        run: |
+          python - <<'PY'
+          import os, re
+          raw = os.environ.get('SAVED_PAPER_DOCUMENT_IDS', '')
+          ids = raw.split(',')
+          if (not raw or len(raw) > 12 * 37 or len(ids) > 12 or len(set(ids)) != len(ids)
+                  or any(not re.fullmatch('[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', value) for value in ids)):
+              raise SystemExit('Saved replay requires 1-12 unique canonical document UUIDs')
+          PY
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install fixed saved paper reader
+        run: python -m pip install Pillow==12.3.0
+      - name: Prepare existing saved replay trees
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          workspace: ${{ runner.temp }}/senate-replay
+      - name: Prepare and consume selected saved paper inputs
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          SAVED_PAPER_DOCUMENT_IDS: ${{ inputs.document_ids }}
+        run: |
+          mkdir -p .local
+          saved_args=()
+          IFS=, read -r -a documents <<< "$SAVED_PAPER_DOCUMENT_IDS"
+          for document_id in "${documents[@]}"; do saved_args+=(--document-id "$document_id"); done
+          PYTHONPATH=backend/src python -m unison_snapshot prepare-senate-paper-runtime \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            "${saved_args[@]}" --grid-output .local/senate-saved-grids.json \
+            --word-output .local/senate-saved-words.json --receipt-output .local/senate-saved-receipt.json
+          PYTHONPATH=backend/src python -m unison_snapshot extract-senate-paper-pages \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --saved-grid-observations .local/senate-saved-grids.json \
+            --saved-word-pages .local/senate-saved-words.json --tesseract __OCR_DISABLED__ \
+            --output .local/senate-saved-extraction-batch.json
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
+          selected = set(os.environ['SAVED_PAPER_DOCUMENT_IDS'].split(','))
+          batch = json.loads(Path('.local/senate-saved-extraction-batch.json').read_text(encoding='utf-8'))
+          if (batch.get('scope') != 'selected_fixed_reports_not_full_catalog'
+                  or batch['failure_count'] != 0 or batch['report_count'] != len(selected)
+                  or {row['document_id'] for row in batch['extractions']} != selected):
+              raise SystemExit('Saved replay must conserve every selected report without failures')
+          for row in batch['extractions']:
+              path = review / 'senate_efd/extractions' / row['document_id'] / row['source_sha256'] / (row['parser_version'] + '.json')
+              if json.loads(path.read_text(encoding='utf-8')) != row:
+                  raise SystemExit('Saved replay differs from its existing complete extraction')
+          receipt = json.loads(Path('.local/senate-saved-receipt.json').read_text(encoding='utf-8'))
+          for item in receipt['files']:
+              path = (review if item['root'] == 'review' else evidence) / item['path']
+              if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+                  raise SystemExit('Saved replay changed an archived input or global source status')
+          PY
+      - name: Build candidates from existing source state
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
+        run: |
+          # Keep global source counts, readiness and watermarks unchanged.
+          mkdir -p "$REVIEW_ROOT/candidates/sources"
+          PYTHONPATH=backend/src python -m unison_snapshot build-senate-candidate \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --state-status "$STATE_ROOT/status/senate_efd.json" --base backend/data/empty-disclosure.json \
+            --output "$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --audit-output "$REVIEW_ROOT/senate_efd/qualifications/current.json" \
+            --html-output "$RUNNER_TEMP/senate-saved-paper-current.html"
+      - name: Assemble selected source
+        env:
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/senate-replay" --source senate_efd \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
+            --html-output "$RUNNER_TEMP/senate-replay.html"
+
+  whitehouse-pdf:
+    if: inputs.source == 'whitehouse' && inputs.mode == 'pdf'
+    concurrency:
+      group: disclosure-source-writer
+      queue: max
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Validate one archived original
+        env:
+          DOCUMENT_ID: ${{ inputs.document_ids }}
+          SOURCE_SHA256: ${{ inputs.source_sha256 }}
+        run: |
+          python - <<'PY'
+          import os,re
+          if not re.fullmatch('wh-url:[0-9a-f]{24}',os.environ['DOCUMENT_ID']):
+              raise SystemExit('White House replay requires one canonical document ID')
+          if not re.fullmatch('[0-9a-f]{64}',os.environ['SOURCE_SHA256']):
+              raise SystemExit('White House replay requires an exact original SHA-256')
+          PY
+      - name: Install existing source parsers
+        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
+      - name: Prepare controlled archived source
+        uses: ./.github/actions/data-trees
+        with:
+          scope: whitehouse
+          roles: evidence review
+          workspace: ${{ runner.temp }}/whitehouse-replay
+      - name: Replay the selected archived report through the normal parser
+        env:
+          DOCUMENT_ID: ${{ inputs.document_ids }}
+          SOURCE_SHA256: ${{ inputs.source_sha256 }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot whitehouse-extract \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256" \
+            --limit 1 --ocr-page-limit 100 \
+            --status-output "$REVIEW_ROOT/whitehouse/replay-status.json"
+          python -m unison_snapshot whitehouse-coverage --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT"
+          python -m unison_snapshot build-whitehouse-reported-index --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot build-whitehouse-annual-review --review-root "$REVIEW_ROOT"
+      - name: Persist selected source replay
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-replay
+          roles: review
+          message: Selected White House source replay ${{ github.run_id }}
+  rebuild-whitehouse:
+    needs: whitehouse-pdf
+    uses: ./.github/workflows/whitehouse.yml
+    with:
+      mode: rebuild

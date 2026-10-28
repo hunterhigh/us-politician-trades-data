@@ -16,6 +16,7 @@ jobs:
     timeout-minutes: 15
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     env:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
@@ -165,6 +166,7 @@ jobs:
     timeout-minutes: 10
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
@@ -217,6 +219,7 @@ jobs:
     timeout-minutes: 10
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7

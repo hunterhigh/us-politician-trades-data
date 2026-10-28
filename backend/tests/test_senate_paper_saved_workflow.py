@@ -23,7 +23,7 @@ from unison_snapshot.senate_reports import PARSER_VERSION, inspect_paper_entrypo
 
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKFLOW = ROOT/'.github/workflows/senate-paper-pages.yml'
+WORKFLOW = ROOT/'.github/workflows/replay.yml'
 SELECTED = '11111111-1111-4111-8111-111111111111'
 UNSELECTED = '22222222-2222-4222-8222-222222222222'
 
@@ -130,7 +130,7 @@ class SenateSavedWorkflowTests(unittest.TestCase):
             path.startswith('senate_efd/qualifications/') or path=='status/disclosure_cutoff.json')
             for root,path in added),added)
 
-    def test_actual_saved_bash_reaches_both_candidates_and_keeps_unselected_inputs(self):
+    def test_actual_saved_bash_reaches_source_candidate_and_keeps_unselected_inputs(self):
         state = self.ready_inputs()
         original = self.protected()
         expected,_ = build_senate_candidate(self.review,state,deepcopy(candidates.BASE),evidence_root=self.evidence)
@@ -139,11 +139,8 @@ class SenateSavedWorkflowTests(unittest.TestCase):
             'Prepare and consume selected saved paper inputs','Build candidates from existing source state'])
         self.assertEqual(result.returncode,0,result.stderr)
         source = json.loads((self.review/'candidates/sources/senate_efd-current.json').read_bytes())
-        unified = json.loads((self.review/'candidates/disclosure-current.json').read_bytes())
         self.assertEqual(source['transactions'],expected['transactions'])
         self.assertEqual(source['people'],expected['people'])
-        self.assertEqual(unified['transactions'],expected['transactions'])
-        self.assertEqual(unified['reported_holdings'],expected['reported_holdings'])
         batch = json.loads((self.code/'.local/senate-saved-extraction-batch.json').read_bytes())
         # The extraction runner's catalog count includes paper reports only;
         # the second, electronic report stays in the full candidate unchanged.
@@ -154,8 +151,6 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         self.assertIn('prepare-senate-paper-runtime',calls)
         self.assertIn('--tesseract __OCR_DISABLED__',calls)
         self.assertIn('build-senate-candidate',calls)
-        self.assertIn('build-disclosure-candidate',calls)
-        self.assertIn('--harmonize-cutoffs',calls)
 
     def test_invalid_csv_and_disabled_selection_fail_before_any_reader(self):
         for value in ('',SELECTED+',',','+SELECTED,SELECTED+','+SELECTED,'AAAAAAAA-1111-4111-8111-111111111111',
@@ -163,10 +158,6 @@ class SenateSavedWorkflowTests(unittest.TestCase):
             with self.subTest(value=value):
                 result = self.run_blocks(['Validate saved replay selection'],documents=value)
                 self.assertNotEqual(result.returncode,0)
-        result = self.run_blocks(['Validate fresh mode selection'],documents=SELECTED)
-        self.assertEqual(result.returncode,2)
-        result = self.run_blocks(['Validate fresh mode selection'],documents='')
-        self.assertEqual(result.returncode,0,result.stderr)
         calls = self.calls.read_text(encoding='utf-8')
         self.assertNotIn('prepare-senate-paper-runtime',calls)
         self.assertNotIn('unison_snapshot',calls)
@@ -189,25 +180,20 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         for target in targets:self.assertEqual(target.read_bytes(),b'candidate sentinel')
         self.assert_originals_unchanged(original)
 
-    def test_default_and_saved_jobs_are_explicitly_exclusive(self):
-        content = WORKFLOW.read_text(encoding='utf-8')
-        fresh,saved = content.split('  archive-pages:\n',1)[1].split('  replay-saved:\n',1)
-        self.assertIn('if: ${{ !inputs.replay_saved_paper }}',fresh)
-        self.assertIn('if: ${{ inputs.replay_saved_paper }}',saved)
-        self.assertIn('type: boolean\n        default: false',content)
-        self.assertLess(fresh.index('Validate fresh mode selection'),fresh.index('actions/checkout'))
+    def test_saved_replay_uses_source_lock_without_collection_or_ocr(self):
+        content=WORKFLOW.read_text(encoding='utf-8')
+        saved=content.split('  senate-paper:',1)[1].split('  whitehouse-pdf:',1)[0]
+        self.assertIn("inputs.source == 'senate' && inputs.mode == 'paper-saved'",saved)
         self.assertLess(saved.index('Validate saved replay selection'),saved.index('actions/checkout'))
-        self.assertIn('group: disclosure-source-writer',fresh)
         self.assertIn('group: disclosure-source-writer',saved)
         for name in ('Validate saved replay selection','Prepare and consume selected saved paper inputs',
                      'Build candidates from existing source state'):
-            block = self.block(name)
+            block=self.block(name)
             for forbidden in ('git fetch','git push','pip install','apt-get','archive-senate-paper-pages',
                               'correct-reviewed-senate-paper'):
                 self.assertNotIn(forbidden,block)
-        for forbidden in ('archive-senate-paper-pages','senate-efd-gate','apt-get','tesseract-ocr',
-                          'correct-reviewed-senate-paper'):
-            self.assertNotIn(forbidden,saved)
+        self.assertIn('python -m unison_snapshot assemble-source',saved)
+
 
 
 if __name__=='__main__':unittest.main()

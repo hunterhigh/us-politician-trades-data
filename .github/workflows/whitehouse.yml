@@ -18,10 +18,25 @@ on:
       ocr_page_limit:
         description: Maximum pages for an existing scanned-PDF checkpoint, 25-100
         default: '50'
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        default: 'all'
+      pdf_batch_size:
+        type: string
+        default: '20'
+      extraction_batch_size:
+        type: string
+        default: '100'
+      ocr_page_limit:
+        type: string
+        default: '50'
 permissions:
   contents: write
 concurrency:
   group: disclosure-source-writer
+  queue: max
   cancel-in-progress: false
 jobs:
   annual-catalog:

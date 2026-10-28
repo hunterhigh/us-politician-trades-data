@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class SenateWorkflowTests(unittest.TestCase):
     def test_every_candidate_rebuild_has_the_archived_evidence_root(self):
         calls = 0
-        for name in ['senate.yml', 'senate-paper-pages.yml', 'senate-amendment-history-resolve.yml']:
+        for name in ['senate.yml', 'replay.yml', 'senate-amendment-history-resolve.yml']:
             content = (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
             for step in content.split('\n      - '):
                 if 'python -m unison_snapshot build-senate-candidate' not in step:
@@ -25,7 +25,7 @@ class SenateWorkflowTests(unittest.TestCase):
                         command += '\n' + lines[i]
                     self.assertIn('--evidence-root "$EVIDENCE_ROOT"', command)
                     calls += 1
-        self.assertEqual(calls, 5)
+        self.assertEqual(calls, 3)
         activation = (ROOT / '.github/workflows/senate-amendment-history-resolve.yml').read_text(encoding='utf-8').split('  activate:', 1)[1]
         self.assertIn('git worktree add --detach "$evidence_root" origin/evidence', activation)
         self.assertIn('echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"', activation)
@@ -138,23 +138,17 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog senate_efd/reports", content)
         self.assertIn("HEAD:refs/heads/review", content)
 
-    def test_paper_page_workflow_is_bounded_to_current_official_viewers(self):
-        content = (ROOT / ".github/workflows/senate-paper-pages.yml").read_text(
-            encoding="utf-8")
-        self.assertIn("archive-senate-paper-pages", content)
-        self.assertIn("--expected-documents 9", content)
-        self.assertIn("--expected-pages 52", content)
-        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/paper_pages", content)
-        self.assertIn("extract-senate-paper-pages", content)
-        self.assertIn("tesseract-ocr", content)
-        self.assertIn("extraction_count'] + batch['failure_count'] != 9", content)
-        self.assertIn("paper_report_failures", content)
-        self.assertIn("paper_failures = len(batch['failures'])", content)
-        self.assertIn("HEAD:refs/heads/review", content)
-        self.assertIn("HEAD:refs/heads/state", content)
-        self.assertIn("build-senate-candidate", content)
-        self.assertIn("build-disclosure-candidate", content)
+    def test_saved_paper_replay_is_selected_and_uses_existing_official_inputs(self):
+        content=(ROOT/'.github/workflows/replay.yml').read_text(encoding='utf-8')
+        paper=content.split('  senate-paper:',1)[1].split('  whitehouse-pdf:',1)[0]
+        self.assertIn("inputs.source == 'senate' && inputs.mode == 'paper-saved'",paper)
+        self.assertIn('prepare-senate-paper-runtime',paper)
+        self.assertIn('--tesseract __OCR_DISABLED__',paper)
+        self.assertIn('build-senate-candidate',paper)
+        self.assertIn('assemble-source',paper)
+        self.assertIn('scope: senate',paper)
+        self.assertNotIn('archive-senate-paper-pages',paper)
+        self.assertNotIn('HEAD:refs/heads/state',paper)
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == '__main__':unittest.main()

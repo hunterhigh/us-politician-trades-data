@@ -61,6 +61,7 @@ jobs:
   evaluate-gate:
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest
@@ -135,6 +136,7 @@ jobs:
       started_at: ${{ steps.collect.outputs.started_at }}
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest
@@ -289,6 +291,7 @@ jobs:
     needs: collect-direct-reports
     concurrency:
       group: disclosure-source-writer
+      queue: max
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest

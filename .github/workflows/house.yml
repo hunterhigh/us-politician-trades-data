@@ -25,10 +25,31 @@ on:
         description: Interpret saved paper observations without collection or OCR
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        default: 'ptr'
+      filing_year:
+        type: string
+        default: ''
+      archive_budget_seconds:
+        type: string
+        default: '900'
+      batch_size:
+        type: string
+        default: '25'
+      paper_document_id:
+        type: string
+        default: ''
+      materialize_saved_paper:
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
   group: disclosure-source-writer
+  queue: max
   cancel-in-progress: false
 jobs:
   source:
