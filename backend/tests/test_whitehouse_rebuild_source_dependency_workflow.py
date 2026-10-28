@@ -51,13 +51,11 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
 
     def declared_dependencies(self):
         content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
-        install=re.search(r'run: python -m pip install -e (?:"?backend(?:\[([^]]+)\])?"?)',content)
-        self.assertIsNotNone(install)
-        extras=(install.group(1) or '').split(',')
-        metadata=tomllib.loads((ROOT/'backend/pyproject.toml').read_text(encoding='utf-8'))['project']
-        requirements=list(metadata['dependencies'])
-        for extra in filter(None,extras):requirements+=metadata['optional-dependencies'][extra]
-        packages={re.match(r'[A-Za-z0-9_.-]+',requirement).group(0).casefold() for requirement in requirements}
+        self.assertIn('uses: ./.github/actions/setup-source',content)
+        lock=(ROOT/'backend/requirements.lock').read_text(encoding='utf-8')
+        requirements=re.findall(r'^([A-Za-z0-9_.-]+==[^ \n]+)',lock,re.M)
+        extras=lock.split('# Sources: backend/pyproject.toml extras ',1)[1].split('\n',1)[0].split(',')
+        packages={requirement.split('==')[0].casefold() for requirement in requirements}
         return packages,extras,requirements
 
     def run_branch(self,data,*,blocked=(),evidence=None):
@@ -142,7 +140,7 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
         packages,extras,requirements=self.declared_dependencies()
         self.assertIn('native-source-proof',extras)
         self.assertTrue({'pdfplumber','pymupdf'}<=packages)
-        self.assertTrue(any(re.fullmatch(r'PyMuPDF==[0-9.]+',r) for r in requirements))
+        self.assertTrue(any(re.fullmatch(r'pymupdf==[0-9.]+',r) for r in requirements))
         self.assertTrue(any(re.fullmatch(r'pdfplumber==[0-9.]+',r) for r in requirements))
         content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
         self.assertIn("audit['promoted_transaction_count']",content)

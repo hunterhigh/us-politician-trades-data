@@ -22,6 +22,7 @@ on:
         type: boolean
         default: false
 permissions:
+  packages: read
   contents: read
 concurrency:
   group: offline-${{ github.workflow }}-${{ github.ref }}
@@ -36,17 +37,20 @@ jobs:
       max-parallel: 4
       matrix:
         shard: [0, 1, 2, 3]
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 2
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
-      - name: Install hash-locked source and proof dependencies
-        run: |
-          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements.lock
-          python -m pip install --no-deps --no-build-isolation -e backend
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Run shared and affected sources, or a complete release shard
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
@@ -68,15 +72,15 @@ jobs:
       - name: Check frozen upstream processor contracts
         if: matrix.shard == 0
         run: python -m unittest discover -s review-input/us-politician-trades-watch/tests -v
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: matrix.shard == 0
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: frontend-e2e/package-lock.json
       - run: npm ci
         if: matrix.shard == 0
         working-directory: frontend-e2e
+      - name: Install the browser revision paired with the pinned Playwright
+        if: matrix.shard == 0
+        working-directory: frontend-e2e
+        run: |
+          node node_modules/playwright-core/cli.js install --with-deps chromium
+          node --input-type=module -e "import {chromium} from 'playwright-core'; console.log('PLAYWRIGHT_CHROMIUM_EXECUTABLE=' + chromium.executablePath())" >> "$GITHUB_ENV"
       - run: npm test
         if: matrix.shard == 0
         working-directory: frontend-e2e
@@ -93,6 +97,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.house_2025_backfill
     needs: verify
     permissions:
+      packages: read
       contents: write
     uses: ./.github/workflows/replay.yml
     with:

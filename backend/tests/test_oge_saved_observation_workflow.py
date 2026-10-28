@@ -145,7 +145,7 @@ class SavedOgeWorkflowTests(unittest.TestCase):
         option = content.split('      include_saved_oge_observations:\n', 1)[1].split('      oge_saved_observations_path:', 1)[0]
         self.assertIn('type: boolean\n        default: false', option)
         publish = content.split('  publish-review:', 1)[1]
-        install = publish.index("pip install -e 'backend[house-ingest,native-source-proof]'")
+        install = publish.index("uses: ./.github/actions/setup-source")
         self.assertLess(install, publish.index('build-oge-candidate'))
         shadow = content.split('  publish-review:', 1)[0]
         self.assertNotIn('"${saved_observation_args[@]}"', shadow)

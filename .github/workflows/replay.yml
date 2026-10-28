@@ -10,7 +10,7 @@ on:
       mode:
         description: Fixed 2025 House PTR backfill, saved Senate paper, or one archived White House PDF
         type: choice
-        options: [backfill, paper-saved, pdf]
+        options: [backfill, paper-saved, pdf, history-plan, history-resolve]
         default: backfill
       document_ids:
         description: Selected canonical UUIDs (Senate, at most 12) or one wh-url identifier
@@ -21,6 +21,9 @@ on:
       limit:
         description: Maximum House PTRs to interpret in this run, 1-25
         default: '25'
+      submitted_start_date:
+        description: Earliest official submission date for explicitly selected Senate predecessors
+        default: '2024-01-01'
       archive_budget_seconds:
         description: House archive time budget, at most 1500 seconds
         default: '900'
@@ -41,14 +44,18 @@ on:
       limit:
         type: string
         default: '25'
+      submitted_start_date:
+        type: string
+        default: '2024-01-01'
       archive_budget_seconds:
         type: string
         default: '900'
 permissions:
+  packages: read
   contents: write
 jobs:
   invalid-selection:
-    if: ${{ !((inputs.source == 'house' && inputs.mode == 'backfill') || (inputs.source == 'senate' && inputs.mode == 'paper-saved') || (inputs.source == 'whitehouse' && inputs.mode == 'pdf')) }}
+    if: ${{ !((inputs.source == 'house' && inputs.mode == 'backfill') || (inputs.source == 'senate' && (inputs.mode == 'paper-saved' || inputs.mode == 'history-plan' || inputs.mode == 'history-resolve')) || (inputs.source == 'whitehouse' && inputs.mode == 'pdf')) }}
     runs-on: ubuntu-latest
     steps:
       - run: echo 'Unsupported source and replay mode' >&2; exit 2
@@ -69,6 +76,14 @@ jobs:
       group: disclosure-source-writer
       queue: max
       cancel-in-progress: false
+    container: &source_runtime
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Validate saved replay selection
         env:
@@ -85,11 +100,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
-      - name: Install fixed saved paper reader
-        run: python -m pip install Pillow==12.3.0
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Prepare existing saved replay trees
         id: trees
         uses: ./.github/actions/data-trees
@@ -167,13 +179,16 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Validate one archived original
         env:
           DOCUMENT_ID: ${{ inputs.document_ids }}
@@ -186,8 +201,6 @@ jobs:
           if not re.fullmatch('[0-9a-f]{64}',os.environ['SOURCE_SHA256']):
               raise SystemExit('White House replay requires an exact original SHA-256')
           PY
-      - name: Install existing source parsers
-        run: python -m pip install -e 'backend[house-ingest,native-source-proof]'
       - name: Prepare controlled archived source
         uses: ./.github/actions/data-trees
         with:
@@ -219,3 +232,50 @@ jobs:
     uses: ./.github/workflows/whitehouse.yml
     with:
       mode: rebuild
+  senate-history:
+    if: inputs.source == 'senate' && (inputs.mode == 'history-plan' || inputs.mode == 'history-resolve')
+    concurrency:
+      group: disclosure-source-writer
+      queue: max
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
+      SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
+      - name: Prepare selected historical source trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: senate
+          workspace: ${{ runner.temp }}/senate-history
+      - name: Replay selected official amendment predecessors
+        env:
+          DOCUMENTS: ${{ inputs.document_ids }}
+          MODE: ${{ inputs.mode }}
+          START_DATE: ${{ inputs.submitted_start_date }}
+          LIMIT: ${{ inputs.limit }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot replay-senate-history \
+            --workspace "$RUNNER_TEMP/senate-history" --documents "$DOCUMENTS" \
+            --mode "${MODE#history-}" --submitted-start-date "$START_DATE" --limit "$LIMIT" \
+            --run-root .local/senate-history --base backend/data/empty-disclosure.json \
+            --builder-commit "$GITHUB_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: selected-amendment-replay
+          path: .local/senate-history/*.json
+          if-no-files-found: ignore
+          retention-days: 30

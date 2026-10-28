@@ -8,6 +8,7 @@ on:
     types: [completed]
     branches: [code]
 permissions:
+  packages: read
   contents: write
   issues: write
   actions: write
@@ -20,14 +21,21 @@ jobs:
     if: github.ref == 'refs/heads/code'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 1
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Read current data and independent source state
         run: |
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/state:refs/remotes/origin/state

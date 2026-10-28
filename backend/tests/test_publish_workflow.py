@@ -23,10 +23,10 @@ class PublishWorkflowTests(unittest.TestCase):
                 self.assertIn(requirement, extras['oge-raster-ocr'])
         publish = (ROOT / '.github/workflows/publish-complete.yml').read_text(encoding='utf-8')
         publish = publish.split('  publish:\n', 1)[1]
-        install = publish.index("python -m pip install -e 'backend[native-source-proof]'")
+        install = publish.index("uses: ./.github/actions/setup-source")
         self.assertLess(install, publish.index('unison_snapshot.fact_policy.publication_delta'))
         ci = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
-        self.assertLess(ci.index('--require-hashes'),
+        self.assertLess(ci.index('uses: ./.github/actions/setup-source'),
                         ci.index('python backend/scripts/verify.py'))
 
     def test_publication_explicitly_keeps_saved_parser_inputs(self):

@@ -25,7 +25,7 @@ class ReviewWorkflowTests(unittest.TestCase):
     def test_every_review_writer_uses_one_concurrency_lock(self):
         for path in (ROOT / ".github/workflows").glob("*.yml"):
             content = path.read_text(encoding="utf-8")
-            if "HEAD:refs/heads/review" in content:
+            if any(marker in content for marker in ("HEAD:refs/heads/review", "./.github/actions/publish-data", "unison_snapshot assemble-source", "unison_snapshot replay-senate-history")):
                 self.assertIn("group: disclosure-source-writer", content, path.name)
                 self.assertNotIn("group: disclosure-review-writer", content, path.name)
 

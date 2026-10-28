@@ -2,7 +2,8 @@
 import importlib
 import sys
 
-COMMANDS = {'assemble-source': ('assemble_source', 'Save a qualified source and assemble current peer candidates'),
+COMMANDS = {'replay-senate-history': ('replay_senate_history', 'Plan or resolve explicitly selected amendment predecessors'),
+'assemble-source': ('assemble_source', 'Save a qualified source and assemble current peer candidates'),
 'senate-source-state': ('senate_source_state', 'Persist Senate gate, failure, collection and review state'),
 'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
 'data-trees': ('data_trees', 'Prepare or publish fixed source data worktrees'),

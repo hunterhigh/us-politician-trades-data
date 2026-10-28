@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class SenateWorkflowTests(unittest.TestCase):
     def test_every_candidate_rebuild_has_the_archived_evidence_root(self):
         calls = 0
-        for name in ['senate.yml', 'replay.yml', 'senate-amendment-history-resolve.yml']:
+        for name in ['senate.yml', 'replay.yml']:
             content = (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
             for step in content.split('\n      - '):
                 if 'python -m unison_snapshot build-senate-candidate' not in step:
@@ -25,10 +25,7 @@ class SenateWorkflowTests(unittest.TestCase):
                         command += '\n' + lines[i]
                     self.assertIn('--evidence-root "$EVIDENCE_ROOT"', command)
                     calls += 1
-        self.assertEqual(calls, 3)
-        activation = (ROOT / '.github/workflows/senate-amendment-history-resolve.yml').read_text(encoding='utf-8').split('  activate:', 1)[1]
-        self.assertIn('git worktree add --detach "$evidence_root" origin/evidence', activation)
-        self.assertIn('echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"', activation)
+        self.assertEqual(calls, 2)
         primary = (ROOT / '.github/workflows/senate.yml').read_text(encoding='utf-8')
         self.assertIn('uses: ./.github/actions/data-trees', primary)
         self.assertNotIn('download-artifact', primary)
@@ -115,28 +112,16 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("'collection_enabled': gate['collection_enabled']", content)
         self.assertIn("'terms_acknowledged': gate['terms_acknowledged']", content)
 
-    def test_history_plan_archives_only_catalog_and_does_not_mutate_candidate_state(self):
-        content = (ROOT / ".github/workflows/senate-amendment-history-plan.yml").read_text(
-            encoding="utf-8")
-        self.assertIn("python -m unison_snapshot plan-senate-amendment-backfill", content)
-        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog", content)
-        self.assertIn("Require a unique predecessor for every planned target", content)
-        self.assertNotIn("archive-senate-report-entrypoints", content)
-        self.assertNotIn("HEAD:refs/heads/state", content)
-        self.assertNotIn("HEAD:refs/heads/review", content)
-
-    def test_history_resolution_is_bounded_and_activates_only_after_validation(self):
-        content = (ROOT / ".github/workflows/senate-amendment-history-resolve.yml").read_text(
-            encoding="utf-8")
-        self.assertIn("--document-ids .local/senate-history-candidate-ids.json", content)
-        self.assertIn("--limit 16", content)
-        self.assertIn("counts.count(1) == 8 and counts.count(2) == 4", content)
-        self.assertIn("resolve-senate-amendment-backfill", content)
-        self.assertIn("activate-senate-amendment-supplement", content)
-        self.assertIn("audit['input_transaction_count'] != 1646", content)
-        self.assertIn("Historical predecessor escaped into the candidate", content)
-        self.assertIn("git -C \"$EVIDENCE_ROOT\" add senate_efd/catalog senate_efd/reports", content)
-        self.assertIn("HEAD:refs/heads/review", content)
+    def test_history_replay_requires_explicit_targets_and_uses_the_controlled_source_entry(self):
+        content=(ROOT/'.github/workflows/replay.yml').read_text(encoding='utf-8')
+        history=content.split('  senate-history:',1)[1]
+        self.assertIn("inputs.mode == 'history-plan' || inputs.mode == 'history-resolve'",history)
+        self.assertIn('replay-senate-history',history)
+        self.assertIn('--documents "$DOCUMENTS"',history)
+        self.assertIn('scope: senate',history)
+        self.assertNotIn('1646',history)
+        self.assertNotIn('--expected-target-count 12',history)
+        self.assertNotIn('HEAD:refs/heads/state',history)
 
     def test_saved_paper_replay_is_selected_and_uses_existing_official_inputs(self):
         content=(ROOT/'.github/workflows/replay.yml').read_text(encoding='utf-8')

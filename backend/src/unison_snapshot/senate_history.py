@@ -55,7 +55,8 @@ def _plan_sha256(plan: dict) -> str:
 def plan_amendment_predecessors(
         historical_discovery: object, historical_identities: object,
         current_status: object, current_audit: object, identities_doc: object,
-        extractions: list[dict], *, expected_target_count: int) -> dict:
+        extractions: list[dict], *, expected_target_count: int,
+        selected_document_ids: list[str] | None = None) -> dict:
     """Find exact unamended catalog predecessors without downloading report bodies."""
 
     if (not isinstance(expected_target_count, int) or isinstance(expected_target_count, bool) or
@@ -170,8 +171,17 @@ def plan_amendment_predecessors(
     if len(pending_documents) != len(set(pending_documents)):
         raise SenateHistoryError("Current Senate audit duplicates amendment quarantine rows")
 
+    if selected_document_ids is not None and (not isinstance(selected_document_ids,list)
+            or not selected_document_ids or any(not isinstance(v,str) for v in selected_document_ids)):
+        raise SenateHistoryError("Selected amendment targets are not unique current pending reports")
+    selected = None if selected_document_ids is None else set(selected_document_ids)
+    if selected is not None and (len(selected) != len(selected_document_ids)
+            or not selected.issubset(pending_documents)):
+        raise SenateHistoryError("Selected amendment targets are not unique current pending reports")
     targets = []
     for document_id in sorted(pending_documents):
+        if selected is not None and document_id not in selected:
+            continue
         extraction = extraction_by_document.get(document_id)
         identity = identity_by_document.get(document_id)
         if not isinstance(extraction, dict) or not isinstance(identity, dict):
@@ -504,7 +514,8 @@ def activate_amendment_supplement(
 
 def load_amendment_predecessor_plan(
         review_root: Path, historical_discovery_path: Path,
-        historical_identities_path: Path, *, expected_target_count: int) -> dict:
+        historical_identities_path: Path, *, expected_target_count: int,
+        selected_document_ids: list[str] | None = None) -> dict:
     """Load the immutable current review inputs and build a catalog-only plan."""
 
     try:
@@ -534,7 +545,7 @@ def load_amendment_predecessor_plan(
         raise SenateHistoryError("Senate amendment planning inputs are incomplete") from None
     return plan_amendment_predecessors(
         discovery, historical_identities, status, audit, identities, extractions,
-        expected_target_count=expected_target_count,
+        expected_target_count=expected_target_count, selected_document_ids=selected_document_ids,
     )
 
 

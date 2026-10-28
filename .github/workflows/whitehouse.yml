@@ -33,6 +33,7 @@ on:
         type: string
         default: '50'
 permissions:
+  packages: read
   contents: write
 concurrency:
   group: disclosure-source-writer
@@ -48,13 +49,20 @@ jobs:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
       OGE_ANNUAL_REPORT_BATCH_SIZE: ${{ vars.OGE_ANNUAL_REPORT_BATCH_SIZE }}
+    container: &source_runtime
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Check OGE production authorization
         run: |
           test "$OGE_COLLECTION_ENABLED" = true
@@ -151,20 +159,21 @@ jobs:
     env:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Check OGE production authorization
         run: |
           test "$OGE_COLLECTION_ENABLED" = true
           test "$OGE_TERMS_ACKNOWLEDGED" = true
           test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
-      - name: Install annual PDF parser
-        run: python -m pip install -e 'backend[house-ingest]'
       - name: Prepare controlled annual review
         id: trees
         uses: ./.github/actions/data-trees
@@ -179,8 +188,8 @@ jobs:
             --review-root "$REVIEW_ROOT"
       - name: Observe scanned annual covers without promotion
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          : # Fixed source runtime supplies these dependencies
+          : # Fixed source runtime supplies these dependencies
           PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-covers \
             --evidence-root "$EVIDENCE_ROOT" \
             --review-root "$REVIEW_ROOT"
@@ -208,15 +217,16 @@ jobs:
       PDF_BATCH_SIZE: ${{ inputs.pdf_batch_size || '20' }}
       EXTRACTION_BATCH_SIZE: ${{ inputs.extraction_batch_size || '100' }}
       OCR_PAGE_LIMIT: ${{ inputs.ocr_page_limit || '50' }}
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: backend/pyproject.toml
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Check bounded official-source run
         run: |
           test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
@@ -228,12 +238,6 @@ jobs:
           test "$EXTRACTION_BATCH_SIZE" -ge 1 && test "$EXTRACTION_BATCH_SIZE" -le 100
           case "$OCR_PAGE_LIMIT" in *[!0-9]*|'') exit 2 ;; esac
           test "$OCR_PAGE_LIMIT" -ge 25 && test "$OCR_PAGE_LIMIT" -le 100
-      - name: Install PDF parsers
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
-          tesseract --version | head -1
-          python -m pip install -e 'backend[house-ingest,native-source-proof]'
       - name: Prepare controlled public disclosure data
         id: trees
         uses: ./.github/actions/data-trees
@@ -351,20 +355,21 @@ jobs:
     env:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Check bounded archived-source run
         run: |
           test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
           test "$OGE_COLLECTION_ENABLED" = true
           test "$OGE_TERMS_ACKNOWLEDGED" = true
-      - name: Install producer
-        run: python -m pip install -e "backend[native-source-proof]"
       - name: Prepare controlled candidate sources
         id: trees
         uses: ./.github/actions/data-trees

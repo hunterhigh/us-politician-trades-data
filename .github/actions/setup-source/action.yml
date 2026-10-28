@@ -1,0 +1,11 @@
+name: Activate the fixed source runtime
+description: Verify fixed libraries and trained data, then install only this checked-out source
+runs:
+  using: composite
+  steps:
+    - name: Verify the immutable runtime contract without OCR
+      shell: bash
+      run: python runtime/smoke.py backend/requirements.lock --metadata-only
+    - name: Install the checked-out backend without dependency resolution
+      shell: bash
+      run: python -m pip install --no-deps --no-build-isolation -e backend

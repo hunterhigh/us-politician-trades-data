@@ -163,9 +163,10 @@ class HouseHoldingsSourceRootWorkflowTests(unittest.TestCase):
 
     def test_job_installs_existing_pinned_source_proof_extra(self):
         content=WORKFLOW.read_text(encoding='utf-8')
-        extras=set(re.search(r'python -m pip install -e "backend\[([^]]+)\]"',content).group(1).split(','))
-        self.assertIn('house-ingest',extras)
-        self.assertIn('native-source-proof',extras)
+        self.assertIn('uses: ./.github/actions/setup-source',content)
+        lock=(ROOT/'backend/requirements.lock').read_text(encoding='utf-8')
+        self.assertRegex(lock,r'(?m)^pymupdf==[0-9.]+')
+        self.assertRegex(lock,r'(?m)^pdfplumber==[0-9.]+')
         metadata=tomllib.loads((ROOT/'backend/pyproject.toml').read_text(encoding='utf-8'))
         deps=metadata['project']['optional-dependencies']
         self.assertNotIn('PyMuPDF',','.join(deps['house-ingest']))

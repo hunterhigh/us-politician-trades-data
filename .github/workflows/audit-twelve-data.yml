@@ -14,6 +14,7 @@ on:
         type: boolean
 
 permissions:
+  packages: read
   contents: read
 
 concurrency:
@@ -26,18 +27,21 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: backend/pyproject.toml
-      - name: Install producer
-        run: python -m pip install -e backend
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Verify access and authorization
         env:
           ALPACA_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}

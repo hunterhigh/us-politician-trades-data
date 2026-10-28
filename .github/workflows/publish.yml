@@ -12,6 +12,7 @@ on:
         type: boolean
         default: false
 permissions:
+  packages: read
   contents: write
 concurrency:
   group: publish-snapshot
@@ -22,13 +23,20 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Validate requested input path
         env:
           INPUT_PATH: ${{ inputs.normalized_path }}

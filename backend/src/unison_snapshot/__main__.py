@@ -349,6 +349,7 @@ def main() -> None:
     senate_history.add_argument("--historical-discovery", type=Path, required=True)
     senate_history.add_argument("--historical-identities", type=Path, required=True)
     senate_history.add_argument("--expected-target-count", type=int, required=True)
+    senate_history.add_argument("--document-id", action="append")
     senate_history.add_argument("--output", type=Path, required=True)
     senate_history_resolve = sub.add_parser("resolve-senate-amendment-backfill")
     senate_history_resolve.add_argument("--review-root", type=Path, required=True)
@@ -995,7 +996,7 @@ def main() -> None:
         elif args.command == "plan-senate-amendment-backfill":
             result = load_amendment_predecessor_plan(
                 args.review_root, args.historical_discovery, args.historical_identities,
-                expected_target_count=args.expected_target_count)
+                expected_target_count=args.expected_target_count, selected_document_ids=args.document_id)
             _write_atomic(args.output, result)
             print(json.dumps({"status": result["status"],
                               "targets": result["target_count"],

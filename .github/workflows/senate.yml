@@ -26,6 +26,7 @@ on:
         type: boolean
         default: false
 permissions:
+  packages: read
   contents: write
 concurrency:
   group: disclosure-source-writer
@@ -43,13 +44,20 @@ jobs:
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
       SENATE_EFD_START_DATE: ${{ vars.SENATE_EFD_START_DATE }}
       SENATE_EFD_REPORT_BATCH_SIZE: ${{ vars.SENATE_EFD_REPORT_BATCH_SIZE }}
+    container: &source_runtime
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Prepare controlled source data
         id: trees
         uses: ./.github/actions/data-trees
@@ -253,13 +261,16 @@ jobs:
       SENATE_EFD_COLLECTION_ENABLED: ${{ vars.SENATE_EFD_COLLECTION_ENABLED }}
       SENATE_EFD_TERMS_ACKNOWLEDGED: ${{ vars.SENATE_EFD_TERMS_ACKNOWLEDGED }}
       REPORT_LIMIT: ${{ inputs.limit || '200' }}
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Check bounded authorized run
         env:
           COLLECT_ANNUAL: ${{ inputs.collect_annual }}
@@ -271,8 +282,6 @@ jobs:
           fi
           case "$REPORT_LIMIT" in *[!0-9]*|'') exit 2 ;; esac
           test "$REPORT_LIMIT" -ge 1 && test "$REPORT_LIMIT" -le 300
-      - name: Install annual producer
-        run: python -m pip install -e backend
       - name: Prepare controlled annual source data
         uses: ./.github/actions/data-trees
         with:
@@ -360,13 +369,16 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container: *source_runtime
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Prepare controlled roster source data
         id: trees
         uses: ./.github/actions/data-trees
