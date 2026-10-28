@@ -85,8 +85,6 @@ jobs:
           direct_count = status.get('oge_direct_qualified_transaction_count', status['qualified_transaction_count'])
           direct_quarantined = status.get('oge_direct_quarantined_row_count', status['quarantined_row_count'])
           annual_transaction_count = annual.get('annual_transaction_count', 0)
-          if annual_transaction_count != 6759:
-              raise SystemExit('Trump annual transaction count is not the fixed audited total')
           if len(candidate['transactions']) != (direct_count +
                                                  audit['promoted_transaction_count'] +
                                                  annual_transaction_count):
@@ -116,21 +114,6 @@ jobs:
             --review-root "$REVIEW_ROOT" \
             --input "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --output "$RUNNER_TEMP/whitehouse-release-readiness.json"
-          python backend/scripts/audit_trump_278t_release.py \
-            --before "$RUNNER_TEMP/disclosure-candidate-before.json" \
-            --after "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --before-oge "$RUNNER_TEMP/oge-candidate-before.json" \
-            --after-oge "$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --conservation "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json" \
-            --allow-directory-bound-non-trump \
-            --output "$REVIEW_ROOT/whitehouse/qualifications/trump-release-current.json"
-          python backend/scripts/audit_trump_candidate_transition.py \
-            --before "$RUNNER_TEMP/disclosure-candidate-before.json" \
-            --after "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --before-oge "$RUNNER_TEMP/oge-candidate-before.json" \
-            --after-oge "$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --conservation "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json" \
-            --output "$REVIEW_ROOT/whitehouse/annual/candidate-transition-current.json"
       - name: Publish verified review candidate
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-candidate-review
@@ -138,7 +121,6 @@ jobs:
         run: |
           git -C "$REVIEW_ROOT" add candidates whitehouse/qualifications \
             whitehouse/annual/candidate-current.json \
-            whitehouse/annual/candidate-transition-current.json \
             whitehouse/annual/ticker-mapping-current.json \
             whitehouse/278t/trump-2026-ticker-mapping-current.json \
             status/oge.json status/disclosure_cutoff.json

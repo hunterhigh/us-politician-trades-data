@@ -8,7 +8,7 @@
   "reviewed_at": "2026-10-28",
   "source_review": {
     "basis": "preserve_existing_annual_source_qualification",
-    "code_commit": "335fce71"
+    "code_commit": "335fce7144b49c3d358724e32a30538eb8a39109"
   },
   "source_context": {
     "source_id": "whitehouse_public",
@@ -1850,5 +1850,56 @@
         }
       ]
     }
-  }
+  },
+  "parser_profile": {
+    "layout_id": "wide-scanned-annual/v1",
+    "page_count": 927,
+    "legacy_ocr_engine": "tesseract 5.3.4",
+    "account_scope_aliases": {
+      "FAMILY TRUST 1*": "family-trust-1",
+      "DONALD J TRUMP": "donald-j-trump",
+      "DONALD J. TRUMP REVOCABLE TRUST": "donald-j-trump-revocable-trust"
+    },
+    "accepted_account_scopes": [
+      "investment-account-1",
+      "investment-account-2",
+      "investment-account-3",
+      "investment-account-4",
+      "investment-account-5",
+      "investment-account-6",
+      "investment-account-7",
+      "investment-account-8"
+    ],
+    "ambiguous_asset_labels": [
+      "ANALYTICS INC CLASS A",
+      "COM INC",
+      "COMMUNICATIONS CORP CLASS CLASS A",
+      "CORP",
+      "CORP CLASS A",
+      "CORP NEW CLASS A",
+      "CORPORATION",
+      "DIGITAL INC",
+      "ENERGY CORP NEW",
+      "ENERGY INC",
+      "GLOBAL INC",
+      "GLOBAL INC CLASS CLASS A",
+      "GROUP INC",
+      "HLDGS INC",
+      "INC",
+      "INC CLASS CLASS A",
+      "INDS INC",
+      "INDUSTRIAL TRUST REI",
+      "LABS INC",
+      "MORRIS INTL INC",
+      "OF AMER CORP",
+      "REIT",
+      "RESEARCH CORPORATION",
+      "STORES INC",
+      "SYS INC",
+      "SYSTEMS INC",
+      "TECHNOLOGIES INC",
+      "TREE INC"
+    ]
+  },
+  "publication_requirement": true
 }

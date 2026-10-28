@@ -15,28 +15,24 @@ import tempfile
 from urllib.parse import urlsplit
 
 from .oge import OgeCatalogError
+from .reviewed_annual_extraction import parser_profile_for_source, frozen_annual_rules
 from .oge_annual import _range
 from .ocr_geometry import OcrGeometryError, OcrPage, ocr_pdf_pages
 
 
 SCHEMA = "whitehouse-public-278e-extraction/v1"
 PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v5"
-TRUMP_2025_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v8"
-TRUMP_2025_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
-TRUMP_2025_LEGACY_PARSER_VERSIONS = (
+CONSOLIDATED_SCANNED_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v8"
+CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION = "whitehouse-278e-hybrid-geometry/v7"
+CONSOLIDATED_SCANNED_LEGACY_PARSER_VERSIONS = (
     "whitehouse-278e-hybrid-geometry/v6",
-    TRUMP_2025_PREVIOUS_PARSER_VERSION,
+    CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION,
 )
-TRUMP_2025_SOURCE_SHA256 = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
-TRUMP_2025_SOURCE_URL = ("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
-                         "President-Donald-J.-Trump-2025-Annual-Report.pdf")
-TRUMP_2025_PAGE_COUNT = 927
-TRUMP_2025_LEGACY_OCR_ENGINE = "tesseract 5.3.4"
 LEGACY_PARSER_VERSIONS = ("whitehouse-278e-hybrid-geometry/v4",
                           "whitehouse-278e-positioned-text/v2")
 SUPPORTED_PARSER_VERSIONS = (PARSER_VERSION, *LEGACY_PARSER_VERSIONS,
-                             *TRUMP_2025_LEGACY_PARSER_VERSIONS,
-                             TRUMP_2025_PARSER_VERSION)
+                             *CONSOLIDATED_SCANNED_LEGACY_PARSER_VERSIONS,
+                             CONSOLIDATED_SCANNED_PARSER_VERSION)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 1200
 MAX_INLINE_OCR_PAGES = 100
@@ -55,21 +51,17 @@ _BAND = re.compile(r"\$[\d,]+\s*-\s*\$[\d,]+")
 _DAY = re.compile(r"\d{1,2}/\d{1,2}/\d{4}\Z")
 _PARTS = {2: ("part2", "Self"), 5: ("part5", "Spouse"),
           6: ("part6", "Unknown"), 7: ("part7", "Unknown")}
-_TRUMP_ACCOUNT = re.compile(r"^INVESTMENT\s+ACCOUNT\s*#\s*([1-9]\d*)$", re.I)
-_TRUMP_WEAK_ACCOUNT = re.compile(r"^(?:Ac\s*)?#\s*([1-9]\d*)$", re.I)
-_TRUMP_OTHER_SCOPES = {
-    "FAMILY TRUST 1*": "family-trust-1",
-    "DONALD J TRUMP": "donald-j-trump",
-    "DONALD J. TRUMP REVOCABLE TRUST": "donald-j-trump-revocable-trust",
-}
+_SCANNED_ACCOUNT = re.compile(r"^INVESTMENT\s+ACCOUNT\s*#\s*([1-9]\d*)$", re.I)
+_SCANNED_WEAK_ACCOUNT = re.compile(r"^(?:Ac\s*)?#\s*([1-9]\d*)$", re.I)
 
 
 def parser_version_for_source(source_url: str, source_sha256: str) -> str:
-    """Version the one scanned layout without churning unrelated 278e reports."""
-
-    return (TRUMP_2025_PARSER_VERSION if
-            source_url == TRUMP_2025_SOURCE_URL and
-            source_sha256 == TRUMP_2025_SOURCE_SHA256 else PARSER_VERSION)
+    profile = parser_profile_for_source(source_url, source_sha256)
+    if profile is None:
+        return PARSER_VERSION
+    if profile['layout_id'] != 'wide-scanned-annual/v1':
+        raise OgeCatalogError('Unsupported annual scanned parser layout')
+    return CONSOLIDATED_SCANNED_PARSER_VERSION
 
 
 class OcrCheckpointPending(OgeCatalogError):
@@ -268,7 +260,7 @@ def _cover(cover: str, expected_filer: str) -> dict:
             "filing_date": filed_at, "signature_text": _compact(signatures[0][0])}
 
 
-def _trump_part6_header(words: list[dict]) -> dict[str, float] | None:
+def _scanned_part6_header(words: list[dict]) -> dict[str, float] | None:
     """Recognize this scan's damaged labels only with its complete geometry."""
 
     anchors: dict[str, float] = {}
@@ -301,7 +293,7 @@ def _trump_part6_header(words: list[dict]) -> dict[str, float] | None:
     return {key: anchors[key] for key in ("#", "description", "eif", "value", "income")}
 
 
-def _trump_part7_header(words: list[dict]) -> dict[str, float] | None:
+def _scanned_part7_header(words: list[dict]) -> dict[str, float] | None:
     """Recognize the fixed scan's 687-page transaction header by geometry.
 
     Tesseract 5.3.4 consistently reads the printed ``#`` as ``*`` on 212 pages
@@ -334,12 +326,12 @@ def _trump_part7_header(words: list[dict]) -> dict[str, float] | None:
     return columns
 
 
-def _header(words: list[dict], part: str, *, trump_part6: bool = False,
-            trump_part7: bool = False) -> dict[str, float] | None:
-    if trump_part6 and part == "part6":
-        return _trump_part6_header(words)
-    if trump_part7 and part == "part7":
-        return _trump_part7_header(words)
+def _header(words: list[dict], part: str, *, scanned_part6: bool = False,
+            scanned_part7: bool = False) -> dict[str, float] | None:
+    if scanned_part6 and part == "part6":
+        return _scanned_part6_header(words)
+    if scanned_part7 and part == "part7":
+        return _scanned_part7_header(words)
     by_name: dict[str, float] = {}
     for word in words:
         raw = word["text"].casefold()
@@ -361,7 +353,7 @@ def _words_at(words: list[dict], top: float) -> list[dict]:
                   key=lambda word: float(word["x0"]))
 
 
-def _merge_trump_part7_lines(lines: list[dict], words: list[dict]) -> list[dict]:
+def _merge_scanned_part7_lines(lines: list[dict], words: list[dict]) -> list[dict]:
     """Join only disjoint OCR fragments occupying the same printed row.
 
     Some bottom rows are returned as separate number, description, date, and
@@ -416,7 +408,7 @@ def _append_line(row: dict, line_words: list[dict], columns: dict[str, float]) -
                 row.setdefault("_ocr_confidences", []).append(float(word["ocr_confidence"]))
 
 
-def _append_trump_part7_line(row: dict, line_words: list[dict],
+def _append_scanned_part7_line(row: dict, line_words: list[dict],
                              columns: dict[str, float]) -> None:
     """Split the fixed transaction table while retaining every source word."""
 
@@ -460,7 +452,7 @@ def _append_trump_part7_line(row: dict, line_words: list[dict],
             row.setdefault("_ocr_field_confidences", {}).setdefault(field, []).append(score)
 
 
-def _append_trump_part6_line(row: dict, line_words: list[dict],
+def _append_scanned_part6_line(row: dict, line_words: list[dict],
                              columns: dict[str, float]) -> None:
     """Separate EIF/Value OCR fusion without borrowing from the income column."""
 
@@ -515,7 +507,7 @@ def _append_trump_part6_line(row: dict, line_words: list[dict],
                 row.setdefault("_ocr_field_confidences", {}).setdefault(name, []).append(score)
 
 
-def _trump_value_geometry_evidence(row: dict) -> dict | None:
+def _scanned_value_geometry_evidence(row: dict) -> dict | None:
     columns = row.get("_value_column_bounds")
     words = row.get("_value_word_evidence")
     if not isinstance(columns, dict) or not isinstance(words, list) or not words:
@@ -524,7 +516,7 @@ def _trump_value_geometry_evidence(row: dict) -> dict | None:
             "column_bounds": columns, "words": words}
 
 
-def _trump_part7_geometry_evidence(row: dict) -> dict | None:
+def _scanned_part7_geometry_evidence(row: dict) -> dict | None:
     columns = row.get("_part7_column_bounds")
     words = row.get("_part7_word_evidence")
     if not isinstance(columns, dict) or not isinstance(words, list) or not words:
@@ -533,10 +525,10 @@ def _trump_part7_geometry_evidence(row: dict) -> dict | None:
             "column_bounds": columns, "words": words}
 
 
-def _trump_part7_repair(row: dict, field: str, raw: str) -> tuple[str, list[dict]]:
+def _scanned_part7_repair(row: dict, field: str, raw: str) -> tuple[str, list[dict]]:
     """Apply only reversible lexical repairs backed by Part 7 coordinates."""
 
-    if _trump_part7_geometry_evidence(row) is None:
+    if _scanned_part7_geometry_evidence(row) is None:
         return raw, []
     repaired = raw
     repairs: list[dict] = []
@@ -563,10 +555,10 @@ def _trump_part7_repair(row: dict, field: str, raw: str) -> tuple[str, list[dict
     return repaired, repairs
 
 
-def _trump_value_geometry_valid(row: dict) -> bool:
+def _scanned_value_geometry_valid(row: dict) -> bool:
     """A Value band must be assembled only from this source's Value cell."""
 
-    geometry = _trump_value_geometry_evidence(row)
+    geometry = _scanned_value_geometry_evidence(row)
     if geometry is None:
         return False
     bounds = geometry["column_bounds"]
@@ -619,10 +611,10 @@ def _quarantine(row: dict, reasons: list[str]) -> dict:
         result["ocr_word_repairs"] = row["_ocr_word_repairs"]
     if row.get("_ocr_field_confidences"):
         result["ocr_field_confidence"] = _ocr_field_confidence(row)
-    geometry = _trump_value_geometry_evidence(row)
+    geometry = _scanned_value_geometry_evidence(row)
     if geometry:
         result["value_geometry_evidence"] = geometry
-    transaction_geometry = _trump_part7_geometry_evidence(row)
+    transaction_geometry = _scanned_part7_geometry_evidence(row)
     if transaction_geometry:
         result["transaction_geometry_evidence"] = transaction_geometry
     if row.get("owner_evidence_conflict"):
@@ -699,8 +691,8 @@ def _assign_part6_owners(raw_rows: list[dict], pages: list[object]) -> None:
 
 
 def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
-               trump_source_bound: bool = False,
-               trump_part7_source_bound: bool = False) -> tuple[str, dict]:
+               scanned_source_bound: bool = False,
+               scanned_part7_source_bound: bool = False) -> tuple[str, dict]:
     cells = {key: _compact(" ".join(value)) for key, value in row.items()
              if key in {"description", "eif", "value", "type", "date", "amount"}}
     row["raw_columns"] = cells
@@ -716,10 +708,10 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
         evidence["ocr_word_repairs"] = row["_ocr_word_repairs"]
     if row.get("_ocr_field_confidences"):
         evidence["ocr_field_confidence"] = _ocr_field_confidence(row)
-    geometry = _trump_value_geometry_evidence(row)
+    geometry = _scanned_value_geometry_evidence(row)
     if geometry:
         evidence["value_geometry_evidence"] = geometry
-    transaction_geometry = _trump_part7_geometry_evidence(row)
+    transaction_geometry = _scanned_part7_geometry_evidence(row)
     if transaction_geometry:
         evidence["transaction_geometry_evidence"] = transaction_geometry
     confidences = row.get("_ocr_confidences", [])
@@ -729,14 +721,14 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
     if row.get("owner_evidence"):
         evidence["owner_evidence"] = row["owner_evidence"]
     if row["section"] == "part7":
-        type_text, type_repairs = _trump_part7_repair(
-            row, "type", cells.get("type", "")) if trump_part7_source_bound else (
+        type_text, type_repairs = _scanned_part7_repair(
+            row, "type", cells.get("type", "")) if scanned_part7_source_bound else (
                 cells.get("type", ""), [])
-        date_text, date_repairs = _trump_part7_repair(
-            row, "date", cells.get("date", "")) if trump_part7_source_bound else (
+        date_text, date_repairs = _scanned_part7_repair(
+            row, "date", cells.get("date", "")) if scanned_part7_source_bound else (
                 cells.get("date", ""), [])
-        amount_text, amount_repairs = _trump_part7_repair(
-            row, "amount", cells.get("amount", "")) if trump_part7_source_bound else (
+        amount_text, amount_repairs = _scanned_part7_repair(
+            row, "amount", cells.get("amount", "")) if scanned_part7_source_bound else (
                 cells.get("amount", ""), [])
         kind = type_text.casefold()
         when = _date(date_text)
@@ -759,7 +751,7 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
         transaction = {**evidence, "transaction_type": kind,
                        "transaction_date": when, "amount_low": band[0],
                        "amount_high": band[1]}
-        if trump_part7_source_bound:
+        if scanned_part7_source_bound:
             transaction["parser_recovery"] = {
                 "method": "source_bound_part7_structured_row/v1",
                 "field_repairs": type_repairs + date_repairs + amount_repairs}
@@ -774,7 +766,7 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
     band = _range(value_text)
     reasons = list(row.get("_row_reasons", []))
     recovered_reasons: list[str] = []
-    if (trump_source_bound and row["section"] == "part6" and
+    if (scanned_source_bound and row["section"] == "part6" and
             "row_number_ocr_unreadable" in reasons and
             row.get("source_row_locator") and row.get("account_scope") and
             "account_heading_unverified" not in reasons):
@@ -784,8 +776,8 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
         reasons.append("owner_evidence_conflicts")
     if band is None:
         reasons.append("holding_value_unreadable_or_open")
-    if trump_source_bound and row["section"] == "part6" and band is not None and (
-            not _trump_value_geometry_valid(row)):
+    if scanned_source_bound and row["section"] == "part6" and band is not None and (
+            not _scanned_value_geometry_valid(row)):
         reasons.append("holding_value_geometry_invalid")
     if "see endnote" in evidence["asset_name"].casefold() or "see endnote" in cells.get("eif", "").casefold():
         reasons.append("asset_endnote_unresolved")
@@ -795,13 +787,13 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
         reasons.append("nested_aggregate_may_double_count")
     if confidences and (evidence["ocr_mean_confidence"] < OCR_MINIMUM_ROW_MEAN_CONFIDENCE or
                         evidence["ocr_min_confidence"] < OCR_MINIMUM_CRITICAL_CONFIDENCE):
-        if trump_source_bound and row["section"] == "part6":
+        if scanned_source_bound and row["section"] == "part6":
             recovered_reasons.append("holding_ocr_confidence_below_threshold")
         else:
             reasons.append("holding_ocr_confidence_below_threshold")
     if reasons:
         return "quarantined", _quarantine(row, reasons)
-    if trump_source_bound and row["section"] == "part6":
+    if scanned_source_bound and row["section"] == "part6":
         if geometry is None:
             return "quarantined", _quarantine(row, ["holding_value_geometry_missing"])
         evidence["parser_recovery"] = {
@@ -814,15 +806,17 @@ def _parse_row(row: dict, meta: dict, child_parent: str | None, *,
                                                      else "not_exact_on_cover")}
 
 
+@frozen_annual_rules
 def _extract_page_rows(pages: list[object], meta: dict, *,
                        initial_reasons: list[str], source_url: str | None = None,
                        source_sha256: str | None = None,
-                       enable_trump_part7_recovery: bool = False) -> dict:
-    trump_layout = (parser_version_for_source(source_url, source_sha256) ==
-                    TRUMP_2025_PARSER_VERSION)
+                       enable_scanned_part7_recovery: bool = False) -> dict:
+    scanned_layout = (parser_version_for_source(source_url, source_sha256) ==
+                    CONSOLIDATED_SCANNED_PARSER_VERSION)
+    source_layout = parser_profile_for_source(source_url, source_sha256) or {}
     # Keep the deployed v7 semantics unchanged.  Qualification/integration must
     # explicitly opt in before these candidates can enter a versioned pipeline.
-    trump_part7_recovery = trump_layout and enable_trump_part7_recovery
+    scanned_part7_recovery = scanned_layout and enable_scanned_part7_recovery
     raw_rows: list[dict] = []
     unparsed_rows: list[dict] = []
     document_reasons = list(initial_reasons)
@@ -839,7 +833,7 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
         # This scan prints an OCR-damaged "Part i" instead of "Part 7" on
         # transaction pages.  The page-level instructions and transaction
         # header are both present on every such page; never carry Part 6 into it.
-        transaction_page = trump_layout and any(
+        transaction_page = scanned_layout and any(
             re.search(r"\bPart\s*7\b", _compact(line.get("text", "")), re.I)
             and float(line.get("top", 1000)) < 45 for line in lines) and any(
             re.search(r"\bDescription\s+Type\s+Date\s+Amount\b",
@@ -848,8 +842,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
         if transaction_page:
             current_part, current_owner, current_scope = "part7", "Unknown", None
             section_pages["part7"] += 1
-            if trump_part7_recovery:
-                lines = _merge_trump_part7_lines(lines, words)
+            if scanned_part7_recovery:
+                lines = _merge_scanned_part7_lines(lines, words)
         # Integrity.gov continuation pages repeat the table header but omit the
         # numbered section heading.  Preserve the active section and its column
         # geometry until an explicit new section, endnotes, or summary changes it.
@@ -882,8 +876,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                 continue
             line_words = line.get("words") or _words_at(words, float(line["top"]))
             header = (_header(line_words, current_part,
-                              trump_part6=trump_layout,
-                              trump_part7=trump_part7_recovery)
+                              scanned_part6=scanned_layout,
+                              scanned_part7=scanned_part7_recovery)
                       if line_words else None)
             if header:
                 if row:
@@ -892,12 +886,12 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                 columns = header
                 known_columns[current_part] = header
                 continue
-            if trump_layout and (current_part == "part6" or
-                                 current_part == "part7" and trump_part7_recovery):
-                account = _TRUMP_ACCOUNT.fullmatch(text)
-                other_scope = (_TRUMP_OTHER_SCOPES.get(text.upper())
+            if scanned_layout and (current_part == "part6" or
+                                 current_part == "part7" and scanned_part7_recovery):
+                account = _SCANNED_ACCOUNT.fullmatch(text)
+                other_scope = (source_layout['account_scope_aliases'].get(text.upper())
                                if current_part == "part6" else None)
-                weak_account = (_TRUMP_WEAK_ACCOUNT.fullmatch(text)
+                weak_account = (_SCANNED_WEAK_ACCOUNT.fullmatch(text)
                                 if current_part == "part6" else None)
                 if account or other_scope or weak_account:
                     if row:
@@ -928,10 +922,10 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                                 "row_number": number,
                                 "raw_columns": {"unparsed_line": text},
                                 "reasons": ["table_header_unrecognized"]}
-                    if trump_layout and current_part == "part6" and current_scope:
+                    if scanned_layout and current_part == "part6" and current_scope:
                         unparsed["account_scope"] = current_scope["id"]
                         unparsed["account_scope_evidence"] = current_scope["evidence"]
-                    if trump_layout and current_part == "part6":
+                    if scanned_layout and current_part == "part6":
                         unparsed["source_row_locator"] = (
                             f"p{page_number}-y{round(float(line['top']) * 10)}")
                     unparsed_rows.append(unparsed)
@@ -945,12 +939,12 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
             # visible row even without a trustworthy number.  Keep it as an
             # individually quarantined row instead of merging it into the
             # preceding asset or silently losing it.
-            trump_geometry_row = (trump_layout and current_part == "part6" and
+            scanned_geometry_row = (scanned_layout and current_part == "part6" and
                                   any(columns["description"] - 6 <= float(word["x0"]) <
                                       columns["eif"] - 8 for word in line_words) and
                                   any(columns["eif"] - 8 <= float(word["x0"]) <
                                       columns["income"] - 8 for word in line_words))
-            trump_transaction_row = (trump_part7_recovery and current_part == "part7" and
+            scanned_transaction_row = (scanned_part7_recovery and current_part == "part7" and
                                      any(columns["description"] - 6 <= float(word["x0"]) <
                                          columns["type"] - 8 for word in line_words) and
                                      sum(any(columns[field] - 8 <= float(word["x0"]) <
@@ -961,8 +955,8 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                                              ("type", "date"), ("date", "amount"),
                                              ("amount", None))) >= 2)
             if ((first_in_number_column and len(line_words) > 1 and
-                 (number or looks_numbered)) or trump_geometry_row or
-                    trump_transaction_row):
+                 (number or looks_numbered)) or scanned_geometry_row or
+                    scanned_transaction_row):
                 if row:
                     raw_rows.append(row)
                 top = int(round(float(line["top"]) * 10))
@@ -972,7 +966,7 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                        **{key: [] for key in columns if key != "#"}}
                 if number is None:
                     row["_row_reasons"] = ["row_number_ocr_unreadable"]
-                if trump_layout and current_part == "part6":
+                if scanned_layout and current_part == "part6":
                     row["source_row_locator"] = f"p{page_number}-y{top}"
                     row["_value_column_bounds"] = {
                         "eif_start": columns["eif"],
@@ -983,7 +977,7 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                         row["account_scope_evidence"] = current_scope["evidence"]
                     if not current_scope or not current_scope["verified"]:
                         row.setdefault("_row_reasons", []).append("account_heading_unverified")
-                elif trump_part7_recovery and current_part == "part7":
+                elif scanned_part7_recovery and current_part == "part7":
                     row["source_row_locator"] = f"p{page_number}-y{top}"
                     row["_part7_column_bounds"] = {
                         "description_start": columns["description"],
@@ -995,18 +989,18 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
                         row["account_scope_evidence"] = current_scope["evidence"]
                     if not current_scope or not current_scope["verified"]:
                         row.setdefault("_row_reasons", []).append("account_heading_unverified")
-                if (not (trump_part7_recovery and current_part == "part7") and
-                        (not trump_layout or current_part != "part6" or first_in_number_column) and
+                if (not (scanned_part7_recovery and current_part == "part7") and
+                        (not scanned_layout or current_part != "part6" or first_in_number_column) and
                         isinstance(line_words[0].get("ocr_confidence"), (int, float))):
                     score = float(line_words[0]["ocr_confidence"])
                     row["_ocr_confidences"] = [score]
-                    if trump_layout and current_part == "part6":
+                    if scanned_layout and current_part == "part6":
                         row["_ocr_field_confidences"] = {"row_number": [score]}
             if row:
-                if trump_layout and current_part == "part6":
-                    _append_trump_part6_line(row, line_words, columns)
-                elif trump_part7_recovery and current_part == "part7":
-                    _append_trump_part7_line(row, line_words, columns)
+                if scanned_layout and current_part == "part6":
+                    _append_scanned_part6_line(row, line_words, columns)
+                elif scanned_part7_recovery and current_part == "part7":
+                    _append_scanned_part7_line(row, line_words, columns)
                 else:
                     _append_line(row, line_words, columns)
         if row:
@@ -1020,20 +1014,20 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     excluded: list[dict] = []
     counts: dict[tuple[str, str], int] = {}
     for row in raw_rows:
-        key = (row["section"], row["source_row_locator"] if trump_layout and
+        key = (row["section"], row["source_row_locator"] if scanned_layout and
                (row["section"] == "part6" or
-                row["section"] == "part7" and trump_part7_recovery)
+                row["section"] == "part7" and scanned_part7_recovery)
                else row["row_number"])
         counts[key] = counts.get(key, 0) + 1
-    if not trump_layout:
+    if not scanned_layout:
         _assign_part6_owners(raw_rows, pages)
     for row in raw_rows:
-        scope = row.get("account_scope") if trump_layout and (
+        scope = row.get("account_scope") if scanned_layout and (
             row["section"] == "part6" or
-            row["section"] == "part7" and trump_part7_recovery) else None
-        key = (row["section"], row["source_row_locator"] if trump_layout and
+            row["section"] == "part7" and scanned_part7_recovery) else None
+        key = (row["section"], row["source_row_locator"] if scanned_layout and
                (row["section"] == "part6" or
-                row["section"] == "part7" and trump_part7_recovery)
+                row["section"] == "part7" and scanned_part7_recovery)
                else row["row_number"])
         if counts[key] > 1:
             row["raw_columns"] = _raw_text_columns(row)
@@ -1041,14 +1035,14 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
             continue
         parent = row["row_number"]
         child_parent = parent if any(other["section"] == row["section"] and
-                                     (not trump_layout or row["section"] != "part6" and
-                                      not (row["section"] == "part7" and trump_part7_recovery) or
+                                     (not scanned_layout or row["section"] != "part6" and
+                                      not (row["section"] == "part7" and scanned_part7_recovery) or
                                       other.get("account_scope") == scope) and
                                      other["row_number"].startswith(parent + ".")
                                      for other in raw_rows) else None
         destination, parsed = _parse_row(row, meta, child_parent,
-                                         trump_source_bound=trump_layout,
-                                         trump_part7_source_bound=trump_part7_recovery)
+                                         scanned_source_bound=scanned_layout,
+                                         scanned_part7_source_bound=scanned_part7_recovery)
         {"holdings": holdings, "transactions": transactions,
          "quarantined": quarantined, "excluded": excluded}[destination].append(parsed)
     recognized_source_row_counts = {part: sum(
@@ -1087,7 +1081,7 @@ def _extract_page_rows(pages: list[object], meta: dict, *,
     # prove that every row printed in the PDF was recognized.  A complete
     # source census must be supplied by a separately verified page/row audit.
     result["source_row_census_status"] = (
-        "ocr_detected_rows_only" if trump_layout else "parser_detected_rows_only")
+        "ocr_detected_rows_only" if scanned_layout else "parser_detected_rows_only")
     result["source_row_census_complete"] = False
     return result
 
@@ -1143,7 +1137,7 @@ def extract_public_278e_pdf(pdf_path: Path, *, source_url: str, source_sha256: s
         rows = _extract_page_rows(
             pages, meta, initial_reasons=cover_reasons,
             source_url=source_url, source_sha256=source_sha256,
-            enable_trump_part7_recovery=version == TRUMP_2025_PARSER_VERSION)
+            enable_scanned_part7_recovery=version == CONSOLIDATED_SCANNED_PARSER_VERSION)
         return {"schema_version": SCHEMA,
                 "parser_version": version,
                 "source_id": "whitehouse_public", "form_type": "278e",
@@ -1194,7 +1188,7 @@ def extract_public_278e_pdf_checkpointed(
     if not isinstance(expected_filer, str) or _name_key(expected_filer) is None:
         raise OgeCatalogError("White House 278e expected filer is required")
     version = parser_version_for_source(source_url, source_sha256)
-    if legacy_checkpoint_root is not None and version != TRUMP_2025_PARSER_VERSION:
+    if legacy_checkpoint_root is not None and version != CONSOLIDATED_SCANNED_PARSER_VERSION:
         raise OgeCatalogError("White House legacy OCR reuse is not source-bound")
     content = pdf_path.read_bytes()
     if (not content.startswith(b"%PDF-") or b"%%EOF" not in content[-4096:] or
@@ -1215,7 +1209,7 @@ def extract_public_278e_pdf_checkpointed(
         page_count = len(document.pages)
         if not MAX_INLINE_OCR_PAGES < page_count <= MAX_PDF_PAGES:
             raise OgeCatalogError("White House 278e checkpoint page count is outside bounds")
-        if reuse_legacy and page_count != TRUMP_2025_PAGE_COUNT:
+        if reuse_legacy and page_count != parser_profile_for_source(source_url, source_sha256)['page_count']:
             raise OgeCatalogError("White House legacy OCR page count conflicts with source")
         try:
             _cover(document.pages[0].extract_text() or "", expected_filer)
@@ -1249,7 +1243,7 @@ def extract_public_278e_pdf_checkpointed(
                     shard.get("page_start") != start or shard.get("page_end") != end or
                     not isinstance(shard.get("ocr_engine"), str) or
                     not shard["ocr_engine"].casefold().startswith("tesseract ") or
-                    (reuse_legacy and shard["ocr_engine"] != TRUMP_2025_LEGACY_OCR_ENGINE) or
+                    (reuse_legacy and shard['ocr_engine'] != parser_profile_for_source(source_url, source_sha256)['legacy_ocr_engine']) or
                     not isinstance(page_rows, list) or len(page_rows) != end - start + 1 or
                     [row.get("page_number") for row in page_rows
                      if isinstance(row, dict)] != list(range(start, end + 1)) or
@@ -1320,7 +1314,7 @@ def extract_public_278e_pdf_checkpointed(
     rows = _extract_page_rows(
         pages, meta, initial_reasons=cover_reasons,
         source_url=source_url, source_sha256=source_sha256,
-        enable_trump_part7_recovery=version == TRUMP_2025_PARSER_VERSION)
+        enable_scanned_part7_recovery=version == CONSOLIDATED_SCANNED_PARSER_VERSION)
     return {"schema_version": SCHEMA, "parser_version": version,
             "source_id": "whitehouse_public", "form_type": "278e",
             "source_url": source_url, "source_sha256": source_sha256,

@@ -1,6 +1,7 @@
 """Reviewed annual report corrections over immutable parser checkpoints."""
 from copy import deepcopy
-from functools import lru_cache
+from contextvars import ContextVar
+from functools import lru_cache, wraps
 from pathlib import Path
 import re
 
@@ -16,6 +17,21 @@ REPORT_FIELDS = {'filing_date', 'source_bound_original_position_title_raw',
     'position_line_raw', 'position_title_raw', 'source_bound_resolved_document_reasons',
     'document_reasons', 'signature_evidence', 'source_bound_recovered_holding_count',
     'source_bound_correction_method'}
+_RULES = ContextVar('annual_reviewed_rules', default=None)
+
+
+def frozen_annual_rules(function):
+    """Use one correction-data snapshot for an entire qualification operation."""
+    @wraps(function)
+    def run(*args, **kwargs):
+        if _RULES.get() is not None:
+            return function(*args, **kwargs)
+        token = _RULES.set(profiles())
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _RULES.reset(token)
+    return run
 
 
 @lru_cache(maxsize=16)
@@ -31,6 +47,9 @@ def _read(path, modified, size):
 
 
 def profiles():
+    active = _RULES.get()
+    if active is not None:
+        return active
     result = []
     for path in sorted(ROOT.glob('*.json')):
         stat = path.stat()
@@ -50,6 +69,15 @@ def profile_for(extraction):
 
 def profile_for_source(source_sha256):
     return next((c for c in profiles() if c['source_sha256'] == source_sha256), None)
+
+
+def parser_profile_for_source(source_url, source_sha256):
+    correction = profile_for_source(source_sha256)
+    return correction.get('parser_profile') if correction and correction['source_url'] == source_url else None
+
+
+def required_source_urls():
+    return {c['source_url'] for c in profiles() if c.get('publication_requirement') is True}
 
 
 def _variant(correction, version):
@@ -109,6 +137,25 @@ def apply_reviewed_annual_corrections(extraction):
             fingerprint(result) != guards['output_sha256']):
         raise OgeCatalogError('Reviewed annual correction differs from its approved output')
     return result
+
+
+@frozen_annual_rules
+def validate_reviewed_checkpoint(extraction):
+    """Reject changed registered sources before accepting a cached or fresh parse.
+
+    The checkpoint remains the original parser output. Qualification applies the
+    same asserted correction later; collection must validate it before skipping
+    an existing artifact or writing a new one.
+    """
+    registered = next((c for c in profiles()
+        if extraction.get('source_url') == c['source_url']), None)
+    if registered is None:
+        return extraction
+    if (extraction.get('source_sha256') != registered['source_sha256'] or
+            profile_for(extraction) is None):
+        raise OgeCatalogError('Reviewed annual source correction binding changed')
+    apply_reviewed_annual_corrections(extraction)
+    return extraction
 
 
 def _approved_variant(extraction):

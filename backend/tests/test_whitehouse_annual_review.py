@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from test_oge_278e_audit import (_annual, _trump_v7, _trump_v8_transaction,
                                  _v7_holding)
-from unison_snapshot.oge_278e_public import TRUMP_2025_PREVIOUS_PARSER_VERSION
+from unison_snapshot.oge_278e_public import CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION
 from unison_snapshot.whitehouse_annual_review import build_annual_review
 
 

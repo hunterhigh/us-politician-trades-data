@@ -5,7 +5,13 @@ correction entry is covered separately by test_reviewed_annual_extraction and
 frozen-source replay, including all current and saved legacy checkpoints.
 """
 from copy import deepcopy
-from unison_snapshot.reviewed_annual_extraction import profile_for_source
+from unison_snapshot.reviewed_annual_extraction import profile_for_source, profiles
+
+_SAMPLE = next(c for c in profiles() if c.get('parser_profile'))
+ANNUAL_SAMPLE_SHA256 = _SAMPLE['source_sha256']
+ANNUAL_SAMPLE_URL = _SAMPLE['source_url']
+ANNUAL_SAMPLE_PAGE_COUNT = _SAMPLE['parser_profile']['page_count']
+ANNUAL_SAMPLE_LEGACY_ENGINE = _SAMPLE['parser_profile']['legacy_ocr_engine']
 
 
 def synthetic_reviewed_cover(extraction):

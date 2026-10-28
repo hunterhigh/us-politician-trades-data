@@ -8,7 +8,7 @@
   "reviewed_at": "2026-10-28",
   "source_review": {
     "basis": "preserve_existing_annual_source_qualification",
-    "code_commit": "335fce71"
+    "code_commit": "335fce7144b49c3d358724e32a30538eb8a39109"
   },
   "source_context": {
     "source_id": "whitehouse_public",

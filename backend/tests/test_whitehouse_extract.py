@@ -11,16 +11,14 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278e_public import (
-    OcrCheckpointPending, TRUMP_2025_PARSER_VERSION,
-    TRUMP_2025_SOURCE_SHA256, TRUMP_2025_SOURCE_URL,
-)
+from unison_snapshot.oge_278e_public import (OcrCheckpointPending, CONSOLIDATED_SCANNED_PARSER_VERSION)
 from unison_snapshot.whitehouse_278t import (REVIEWED_COVER_PARSER_VERSION)
 spec = importlib.util.spec_from_file_location(
     "whitehouse_extract_script", ROOT / "scripts/whitehouse_extract.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 from whitehouse_reviewed_fixture import (COVER_DOCUMENT_ID, COVER_SOURCE_SHA256, COVER_SOURCE_URL)
+from annual_reviewed_fixture import (ANNUAL_SAMPLE_SHA256, ANNUAL_SAMPLE_URL)
 
 
 class WhiteHouseExtractTests(unittest.TestCase):
@@ -182,8 +180,8 @@ class WhiteHouseExtractTests(unittest.TestCase):
         document_id = "wh-url:0c14d3849ca60768024e470b"
         metadata = {
             "document_id": document_id,
-            "document_url": TRUMP_2025_SOURCE_URL,
-            "sha256": TRUMP_2025_SOURCE_SHA256,
+            "document_url": ANNUAL_SAMPLE_URL,
+            "sha256": ANNUAL_SAMPLE_SHA256,
             "filer_name_from_label": "Trump, Donald J.",
             "document_type_from_label": "278e_annual",
         }
@@ -194,22 +192,53 @@ class WhiteHouseExtractTests(unittest.TestCase):
                 side_effect=OgeCatalogError(
                     "White House 278e requires checkpointed OCR")), patch.object(
                 script, "extract_public_278e_pdf_checkpointed",
-                return_value={"source_url": TRUMP_2025_SOURCE_URL,
-                              "source_sha256": TRUMP_2025_SOURCE_SHA256,
-                              "parser_version": TRUMP_2025_PARSER_VERSION}) as checkpointed:
+                return_value={"source_url": ANNUAL_SAMPLE_URL,
+                              "source_sha256": ANNUAL_SAMPLE_SHA256,
+                              "parser_version": CONSOLIDATED_SCANNED_PARSER_VERSION}) as checkpointed, patch.object(
+                script, "validate_reviewed_checkpoint"):
             result = script.extract_batch(
                 self.evidence, self.review, limit=1, document_id=document_id,
-                source_sha256=TRUMP_2025_SOURCE_SHA256)
+                source_sha256=ANNUAL_SAMPLE_SHA256)
         self.assertEqual(result["extraction_created_count"], 1)
         call = checkpointed.call_args.kwargs
         v5 = script.ANNUAL_PARSER_VERSION.replace("/", "-")
-        v6 = TRUMP_2025_PARSER_VERSION.replace("/", "-")
+        v6 = CONSOLIDATED_SCANNED_PARSER_VERSION.replace("/", "-")
         self.assertEqual(call["legacy_checkpoint_root"].name, v5)
         self.assertEqual(call["checkpoint_root"].name, v6)
         self.assertNotEqual(call["legacy_checkpoint_root"], call["checkpoint_root"])
         target = (self.review / "whitehouse/extractions" / document_id[7:] /
-                  TRUMP_2025_SOURCE_SHA256 / f"{v6}.json")
+                  ANNUAL_SAMPLE_SHA256 / f"{v6}.json")
         self.assertTrue(target.is_file())
+
+    def test_registered_annual_validation_precedes_cached_skip_and_new_write(self):
+        from test_reviewed_annual_extraction import fixture
+        from unison_snapshot import reviewed_annual_extraction as reviewed
+        before, _, correction = fixture()
+        rules = self.root / 'corrections'; rules.mkdir()
+        (rules / (correction['document_id'][7:]+'.json')).write_text(json.dumps(correction), encoding='utf-8')
+        metadata = {'document_id': correction['document_id'], 'document_url': correction['source_url'],
+            'sha256': correction['source_sha256'], 'filer_name_from_label': 'Example Filer',
+            'document_type_from_label': '278e_annual'}
+        pdf = self.root/'annual.pdf'; pdf.write_bytes(b'fixture')
+        with patch.object(reviewed, 'ROOT', rules), patch.object(script, '_archive_rows', return_value=[(metadata,pdf)]), patch.object(
+                script, 'parser_version_for_source', return_value=before['parser_version']), patch.object(
+                script, 'extract_public_278e_pdf', return_value=before) as parse:
+            first = script.extract_batch(self.evidence, self.review, limit=1)
+            self.assertEqual(first['extraction_created_count'], 1)
+            target = next((self.review/'whitehouse/extractions').rglob('*.json'))
+            original = target.read_bytes()
+            self.assertEqual(json.loads(original), before)
+            second = script.extract_batch(self.evidence, self.review, limit=1)
+            self.assertEqual(second['existing_extraction_count'], 1)
+            self.assertEqual(parse.call_count, 1)
+            changed = {**before, 'filer_name': 'Other Filer'}
+            target.write_text(json.dumps(changed), encoding='utf-8')
+            with self.assertRaisesRegex(OgeCatalogError, 'binding changed'):
+                script.extract_batch(self.evidence, self.review, limit=1)
+            target.unlink(); parse.return_value = changed
+            failed = script.extract_batch(self.evidence, self.review, limit=1)
+            self.assertEqual((failed['extraction_created_count'], failed['failure_count']), (0,1))
+            self.assertFalse(target.exists())
 
     def test_fixed_trump_278t_selects_only_exact_source_bound_v3(self):
         metadata = {

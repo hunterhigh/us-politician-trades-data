@@ -13,10 +13,11 @@ import sys
 import tempfile
 
 from unison_snapshot.oge import OgeCatalogError
+from unison_snapshot.reviewed_annual_extraction import validate_reviewed_checkpoint
 from unison_snapshot.oge_278e_public import (
     OcrCheckpointPending,
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
-    TRUMP_2025_PARSER_VERSION,
+    CONSOLIDATED_SCANNED_PARSER_VERSION,
     extract_public_278e_pdf,
     extract_public_278e_pdf_checkpointed,
     parser_version_for_source,
@@ -178,6 +179,8 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                 correction = profile_for(metadata['document_id'], metadata['document_url'], metadata['sha256'])
                 if correction is not None and existing['parser_version'] == correction['parser_version']:
                     validate_reusable_report(existing, correction)
+            else:
+                validate_reviewed_checkpoint(existing)
             skipped += 1
             continue
         if failure_target.is_file():
@@ -245,7 +248,7 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                               metadata["document_id"].split(":", 1)[1] /
                               metadata["sha256"] / suffix)
                 legacy_checkpoint = None
-                if version == TRUMP_2025_PARSER_VERSION:
+                if version == CONSOLIDATED_SCANNED_PARSER_VERSION:
                     legacy_checkpoint = (review_root / "whitehouse/ocr-checkpoints" /
                                          metadata["document_id"].split(":", 1)[1] /
                                          metadata["sha256"] /
@@ -265,6 +268,8 @@ def extract_batch(evidence_root: Path, review_root: Path, *, limit: int,
                     result.get("source_url") != metadata["document_url"] or
                     result.get("parser_version") != version):
                 raise ValueError("White House parser returned unbound evidence")
+            if kind != '278t':
+                validate_reviewed_checkpoint(result)
             _write(target, result)
             failure_target.unlink(missing_ok=True)
             created += 1

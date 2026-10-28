@@ -16,7 +16,7 @@ from .oge_278e_audit import audit_public_278e
 from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
                                SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last
-from .reviewed_annual_extraction import (RECOVERY_METHOD, profile_for_source,
+from .reviewed_annual_extraction import (RECOVERY_METHOD, profile_for_source, frozen_annual_rules,
     apply_reviewed_annual_corrections)
 
 
@@ -93,6 +93,7 @@ def _partial_candidate_allowed(audit: dict, extraction: dict) -> bool:
             bool(audit["source_candidate_holding_count"]) and blockers <= tolerated)
 
 
+@frozen_annual_rules
 def build_annual_review(coverage: dict, review_root: Path, *,
                         coverage_sha256: str) -> dict:
     """Conserve every extracted Annual 278e holding without guessing owner."""

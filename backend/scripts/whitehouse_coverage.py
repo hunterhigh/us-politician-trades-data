@@ -11,7 +11,7 @@ from unison_snapshot.whitehouse_disclosures import INDEX_SCHEMA
 from unison_snapshot.oge_278e_public import (
     PARSER_VERSION as ANNUAL_PARSER_VERSION,
     SUPPORTED_PARSER_VERSIONS as ANNUAL_PARSER_VERSIONS,
-    TRUMP_2025_PARSER_VERSION,
+    CONSOLIDATED_SCANNED_PARSER_VERSION,
     parser_version_for_source,
 )
 from unison_snapshot.whitehouse_278t import (
@@ -34,7 +34,7 @@ def _annual_versions(source_url: str, source_sha256: str) -> tuple[str, ...]:
 
     current = parser_version_for_source(source_url, source_sha256)
     return (current, *(version for version in ANNUAL_PARSER_VERSIONS
-                       if version not in {current, TRUMP_2025_PARSER_VERSION}))
+                       if version not in {current, CONSOLIDATED_SCANNED_PARSER_VERSION}))
 
 
 def _trade_versions(source_url: str, source_sha256: str, *, generic_trade: bool = False, saved_ocr_trade: bool = False, dual_axis_trade: bool = False) -> tuple[str, ...]:
@@ -121,9 +121,9 @@ def build_coverage(index: dict, batch: dict, review_root: Path, *, generic_trade
             if (is_trade and not generic_trade and not saved_ocr_trade and not dual_axis_trade and versions_to_check[0] != REVIEWED_LISTING_PARSER_VERSION and
                     forbidden_v4.is_file()):
                 raise ValueError("Source-bound White House 278-T v4 extraction has the wrong source")
-            forbidden_v6 = folder / f"{TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json"
+            forbidden_v6 = folder / f"{CONSOLIDATED_SCANNED_PARSER_VERSION.replace('/', '-')}.json"
             if (report.get("document_type_from_label") != "278t" and
-                    versions_to_check[0] != TRUMP_2025_PARSER_VERSION and
+                    versions_to_check[0] != CONSOLIDATED_SCANNED_PARSER_VERSION and
                     forbidden_v6.is_file()):
                 raise ValueError("Source-bound White House v6 extraction has the wrong source")
             valid_options = []

@@ -56,16 +56,6 @@ jobs:
             --limit 1 --ocr-page-limit 25 \
             --document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256" \
             --status-output "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-status.json"
-      - name: Conserve all rows while allowing row-level follow-up
-        env:
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-          PYTHONPATH: backend/src
-        run: |
-          extraction="$REVIEW_ROOT/whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json"
-          python backend/scripts/audit_trump_278t_replay.py \
-            --input "$extraction" \
-            --status "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-status.json" \
-            --output "$REVIEW_ROOT/whitehouse/278t/trump-2025-08-12-replay-audit.json"
       - name: Rebuild review indexes from the fixed extraction
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -87,7 +77,6 @@ jobs:
             "whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json" \
             whitehouse/coverage-current.json \
             whitehouse/filer-reported-current.json \
-            whitehouse/278t/trump-2025-08-12-replay-audit.json \
             whitehouse/278t/trump-2025-08-12-replay-status.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"

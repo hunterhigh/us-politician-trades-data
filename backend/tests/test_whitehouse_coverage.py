@@ -161,8 +161,8 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
         ordinary = script._annual_versions(
             "https://www.whitehouse.gov/wp-content/uploads/2026/09/annual.pdf",
             "d" * 64)
-        self.assertEqual(fixed[0], script.TRUMP_2025_PARSER_VERSION)
-        self.assertNotIn(script.TRUMP_2025_PARSER_VERSION, ordinary)
+        self.assertEqual(fixed[0], script.CONSOLIDATED_SCANNED_PARSER_VERSION)
+        self.assertNotIn(script.CONSOLIDATED_SCANNED_PARSER_VERSION, ordinary)
 
     def test_nonfixed_source_rejects_v6_extraction(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -179,7 +179,7 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                      "indexed_count": 1, "failures": [], "reports": [{
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
             path = (root / "whitehouse/extractions" / document_id[7:] / sha /
-                    f"{script.TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json")
+                    f"{script.CONSOLIDATED_SCANNED_PARSER_VERSION.replace('/', '-')}.json")
             path.parent.mkdir(parents=True)
             path.write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "wrong source"):

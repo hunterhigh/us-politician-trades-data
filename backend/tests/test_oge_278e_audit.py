@@ -11,10 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge_278e_audit import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
-from unison_snapshot.oge_278e_public import (
-    TRUMP_2025_PARSER_VERSION, TRUMP_2025_PREVIOUS_PARSER_VERSION,
-    TRUMP_2025_SOURCE_SHA256)
+from unison_snapshot.oge_278e_public import (CONSOLIDATED_SCANNED_PARSER_VERSION, CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION)
 from annual_reviewed_fixture import synthetic_reviewed_cover, synthetic_cover_valid
+from annual_reviewed_fixture import (ANNUAL_SAMPLE_SHA256)
 
 
 def _annual() -> dict:
@@ -90,10 +89,10 @@ def _v7_holding(*, row_number: str = "222", locator: str = "p27-y1753",
 def _trump_v7(*rows: dict) -> dict:
     extraction = _annual()
     extraction.update(
-        parser_version=TRUMP_2025_PARSER_VERSION,
+        parser_version=CONSOLIDATED_SCANNED_PARSER_VERSION,
         source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                     "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
-        source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+        source_sha256=ANNUAL_SAMPLE_SHA256, filer_name="Donald Trump",
         position_line_raw="President", cover_report_year=2025,
         extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
         filing_date=None, signature_text=None,
@@ -107,10 +106,10 @@ def _trump_v7(*rows: dict) -> dict:
 def _trump_v8_transaction() -> dict:
     extraction = _annual()
     extraction.update(
-        parser_version=TRUMP_2025_PARSER_VERSION,
+        parser_version=CONSOLIDATED_SCANNED_PARSER_VERSION,
         source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                     "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
-        source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+        source_sha256=ANNUAL_SAMPLE_SHA256, filer_name="Donald Trump",
         position_line_raw="President", cover_report_year=2025,
         extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
         filing_date=None, signature_text=None, holdings=[],
@@ -305,19 +304,19 @@ class Public278eAuditTests(unittest.TestCase):
         self.assertFalse(audit["source_report_eligible"])
 
     def test_trump_v6_parser_version_is_bound_to_the_fixed_pdf(self):
-        supported = {PARSER_VERSION, TRUMP_2025_PREVIOUS_PARSER_VERSION}
+        supported = {PARSER_VERSION, CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION}
         wrong_source = _annual()
-        wrong_source["parser_version"] = TRUMP_2025_PREVIOUS_PARSER_VERSION
+        wrong_source["parser_version"] = CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION
         with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
             self.assertIn("untrusted_extraction_version",
                           audit_public_278e(wrong_source)["report_blocking_reasons"])
 
         fixed = _annual()
         fixed.update(
-            parser_version=TRUMP_2025_PREVIOUS_PARSER_VERSION,
+            parser_version=CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION,
             source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                         "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
-            source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+            source_sha256=ANNUAL_SAMPLE_SHA256, filer_name="Donald Trump",
             position_line_raw="President", cover_report_year=2025,
             extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
             filing_date=None, signature_text=None,
@@ -354,10 +353,10 @@ class Public278eAuditTests(unittest.TestCase):
     def test_trump_part6_physical_identity_replaces_weak_printed_number_confidence(self):
         extraction = _annual()
         extraction.update(
-            parser_version=TRUMP_2025_PREVIOUS_PARSER_VERSION,
+            parser_version=CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION,
             source_url=("https://www.whitehouse.gov/wp-content/uploads/2026/06/"
                         "President-Donald-J.-Trump-2025-Annual-Report.pdf"),
-            source_sha256=TRUMP_2025_SOURCE_SHA256, filer_name="Donald Trump",
+            source_sha256=ANNUAL_SAMPLE_SHA256, filer_name="Donald Trump",
             position_line_raw="President", cover_report_year=2025,
             extraction_method="tesseract_ocr_geometry", ocr_engine="tesseract test",
             filing_date=None, signature_text=None,

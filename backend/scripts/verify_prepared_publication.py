@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode, digest
 from unison_snapshot.legacy import load, processor_version_for
-from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
+from unison_snapshot.reviewed_annual_extraction import required_source_urls
 from unison_snapshot.reviewed_oge_extraction import required_publication_source
 from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotRepository
 
@@ -183,7 +183,7 @@ def verify_prepared_publication(
             len(person["transactions"]) != expected_person_transactions):
         raise ValueError("Prepared Trump person readback is incomplete")
     if (person["meta"].get("is_demo") is True or any(
-            row.get("source_url") != TRUMP_2025_SOURCE_URL or
+            row.get("source_url") not in required_source_urls() or
             row.get("report_period_end") != "2025-12-31" or
             row.get("verification_status") != "official_matched"
             for row in person["reported_holdings"])):

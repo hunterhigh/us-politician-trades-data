@@ -14,17 +14,17 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
         self.assertIn("1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3",
                       content)
         self.assertIn("c57ecdcd0e780fa7dc256fae6d0fe728735c8f09", content)
-        self.assertIn("audit_trump_ocr_checkpoints.py", content)
-        self.assertIn("audit_trump_annual_replay.py", content)
+        self.assertNotIn("audit_trump_", content)
         self.assertIn("TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v8", content)
         self.assertIn("test ! -e \"$REVIEW_ROOT/$target_checkpoint_path\"", content)
         self.assertIn("status --porcelain --untracked-files=all", content)
         self.assertNotIn("refs/heads/evidence", content)
 
-    def test_candidate_rebuild_requires_fixed_annual_transaction_total(self) -> None:
+    def test_candidate_rebuild_uses_normal_qualification_and_conservation(self) -> None:
         content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
             encoding="utf-8")
-        self.assertIn("annual_transaction_count != 6759", content)
+        self.assertIn("overlay_whitehouse_annual_candidate.py", content)
+        self.assertIn("audit['promoted_transaction_count']", content)
         self.assertNotIn("refs/heads/main", content)
         self.assertNotIn("refs/heads/market", content)
         self.assertIn("HEAD:refs/heads/review", content)
@@ -36,13 +36,13 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
                 self.assertIn("group: disclosure-source-writer", content, path.name)
                 self.assertNotIn("group: disclosure-review-writer", content, path.name)
 
-    def test_candidate_rebuild_audits_only_additive_trump_annual_facts(self):
+    def test_candidate_rebuild_keeps_normal_release_readiness(self):
         content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
             encoding="utf-8")
         self.assertIn("disclosure-candidate-before.json", content)
         self.assertIn("oge-candidate-before.json", content)
-        self.assertIn("audit_trump_candidate_transition.py", content)
-        self.assertIn("candidate-transition-current.json", content)
+        self.assertIn("verify-first-launch", content)
+        self.assertNotIn("audit_trump_", content)
 
 
 if __name__ == "__main__":

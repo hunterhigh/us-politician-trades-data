@@ -18,7 +18,9 @@ spec.loader.exec_module(script)
 
 
 from unison_snapshot.reviewed_oge_extraction import required_publication_sources
+from unison_snapshot.reviewed_annual_extraction import required_source_urls
 REQUIRED_OGE_SOURCE = required_publication_sources()[0]
+REQUIRED_ANNUAL_URL = next(iter(required_source_urls()))
 
 class Delegate:
     def __init__(self):
@@ -155,7 +157,7 @@ class PreparedPublicationTests(unittest.TestCase):
             if mode == "person":
                 value["transactions"] = person_transactions
                 value["reported_holdings"] = [{
-                    "person_id": key, "source_url": script.TRUMP_2025_SOURCE_URL,
+                    "person_id": key, "source_url": REQUIRED_ANNUAL_URL,
                     "report_period_end": "2025-12-31",
                     "verification_status": "official_matched"}]
             if mode == omitted_from:

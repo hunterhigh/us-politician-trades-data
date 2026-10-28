@@ -103,6 +103,20 @@ class ReviewedAnnualExtractionTests(unittest.TestCase):
         with self.assertRaisesRegex(OgeCatalogError, 'unsupported'):
             reviewed.apply_reviewed_annual_corrections(self.before)
 
+    def test_ingress_validates_registered_sources_without_rewriting_checkpoints(self):
+        original = encode(self.before)
+        self.assertIs(reviewed.validate_reviewed_checkpoint(self.before), self.before)
+        self.assertEqual(encode(self.before), original)
+        for field, value in [('source_sha256', 'b'*64), ('filer_name', 'Other Filer')]:
+            changed = {**self.before, field: value}
+            with self.assertRaisesRegex(OgeCatalogError, 'binding changed'):
+                reviewed.validate_reviewed_checkpoint(changed)
+        changed = deepcopy(self.before); changed['transactions'].append({'unexpected': True})
+        with self.assertRaisesRegex(OgeCatalogError, 'precondition changed'):
+            reviewed.validate_reviewed_checkpoint(changed)
+        ordinary = {**self.before, 'source_url': 'https://example.org/ordinary.pdf'}
+        self.assertIs(reviewed.validate_reviewed_checkpoint(ordinary), ordinary)
+
     def test_legacy_variant_and_operational_resume_counter_reuse(self):
         legacy = deepcopy(self.before); legacy['parser_version'] = 'annual-layout/v0'
         expected = deepcopy(self.after); expected['parser_version'] = 'annual-layout/v0'

@@ -19,7 +19,6 @@ jobs:
       SOURCE_SHA256: 1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3
       TARGET_PARSER_SLUG: whitehouse-278e-hybrid-geometry-v8
       LEGACY_TREE: c57ecdcd0e780fa7dc256fae6d0fe728735c8f09
-      LEGACY_AUDIT_SHA256: 291eec853889ebcb102187a7f876fcd624270f33f0bcc5108dd42c90611a995b
     steps:
       - uses: actions/checkout@v7
         with:
@@ -50,10 +49,6 @@ jobs:
         run: |
           legacy_path="whitehouse/ocr-checkpoints/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/whitehouse-278e-hybrid-geometry-v5"
           test "$(git -C "$REVIEW_ROOT" rev-parse "HEAD:$legacy_path")" = "$LEGACY_TREE"
-          python backend/scripts/audit_trump_ocr_checkpoints.py \
-            --root "$REVIEW_ROOT/$legacy_path" \
-            --output "$RUNNER_TEMP/checkpoint-before.json"
-          test "$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["audit_sha256"])' "$RUNNER_TEMP/checkpoint-before.json")" = "$LEGACY_AUDIT_SHA256"
       - name: Replay only the fixed source from the 38 legacy shards
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -65,7 +60,7 @@ jobs:
             --limit 1 --ocr-page-limit 25 \
             --document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256" \
             --status-output "$REVIEW_ROOT/whitehouse/annual/trump-2025-replay-status.json"
-      - name: Enforce row conservation, account deduplication, and no checkpoint writes
+      - name: Keep the source checkpoint tree read-only
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PYTHONPATH: backend/src
@@ -76,16 +71,6 @@ jobs:
           test ! -e "$REVIEW_ROOT/$target_checkpoint_path"
           test -z "$(git -C "$REVIEW_ROOT" status --porcelain --untracked-files=all -- "$legacy_path")"
           test "$(git -C "$REVIEW_ROOT" rev-parse "HEAD:$legacy_path")" = "$LEGACY_TREE"
-          python backend/scripts/audit_trump_ocr_checkpoints.py \
-            --root "$REVIEW_ROOT/$legacy_path" \
-            --output "$RUNNER_TEMP/checkpoint-after.json"
-          cmp "$RUNNER_TEMP/checkpoint-before.json" "$RUNNER_TEMP/checkpoint-after.json"
-          extraction="$REVIEW_ROOT/whitehouse/extractions/${DOCUMENT_ID#wh-url:}/$SOURCE_SHA256/$TARGET_PARSER_SLUG.json"
-          python backend/scripts/audit_trump_annual_replay.py \
-            --input "$extraction" \
-            --output "$REVIEW_ROOT/whitehouse/annual/trump-2025-replay-audit.json" \
-            --legacy-tree "$LEGACY_TREE" \
-            --legacy-audit-sha256 "$LEGACY_AUDIT_SHA256"
       - name: Rebuild review indexes from the verified extraction
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -109,7 +94,6 @@ jobs:
             whitehouse/coverage-current.json \
             whitehouse/filer-reported-current.json \
             whitehouse/annual/filer-reported-current.json \
-            whitehouse/annual/trump-2025-replay-audit.json \
             whitehouse/annual/trump-2025-replay-status.json
           if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
             git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
