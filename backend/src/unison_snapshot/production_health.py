@@ -51,7 +51,7 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
             published_health = next((h for h in manifest.get('source_health', []) if h.get('source_id') == source), {})
             last_success = published_health.get('last_successful_sync_at')
         blocked = (run.get('status') in {'blocked', 'disabled', 'authorization_required'} or
-            last_attempt.get('http_status') == 403)
+            (run.get('status') == 'failed' and last_attempt.get('http_status') == 403))
         stale = last_success is None or now - timestamp(last_success) > timedelta(hours=hours)
         reason = ('source_blocked' if blocked else 'source_stale' if stale else None)
         since = (prior.get('unhealthy_since') or last_success or attempted or now.isoformat()) if reason else None
