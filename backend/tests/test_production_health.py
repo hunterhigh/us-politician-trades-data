@@ -50,19 +50,38 @@ class HealthTests(unittest.TestCase):
         class Api:
             def __init__(self):
                 self.calls = []
+                self.issues = [{'number': 1, 'body': '<!-- production-health:source:senate_efd -->'},
+                    {'number': 2, 'body': '<!-- production-health:publication -->'},
+                    {'number': 3, 'body': 'Unrelated user issue'}]
             def request(self, path, method='GET', payload=None):
                 self.calls.append((path, method, payload))
                 if method == 'GET':
-                    return [{'number': 1, 'body': '<!-- production-health:source:senate_efd -->'},
-                        {'number': 2, 'body': '<!-- production-health:publication -->'},
-                        {'number': 3, 'body': 'Unrelated user issue'}]
+                    return deepcopy(self.issues)
+                if method == 'PATCH':
+                    number = int(path.rsplit('/', 1)[1])
+                    next(i for i in self.issues if i['number'] == number).update(payload)
                 return {'number': 4}
         api = Api()
-        h = {'alerts': [{'key': 'source:senate_efd', 'title': 'Blocked', 'detail': '403'}]}
+        h = {'alerts': [{'key': 'source:senate_efd', 'title': 'Blocked', 'detail': '403'}],
+            'sources': {'senate_efd': {'status': 'blocked', 'http_status': 403}}, 'blocking_sources': []}
         result = reconcile_issues(api, h)
-        self.assertEqual([x['action'] for x in result], ['already_open', 'closed'])
-        self.assertEqual([x[0] for x in api.calls if x[1] == 'PATCH'], ['/issues/2'])
+        self.assertEqual([x['action'] for x in result], ['updated_condition', 'closed'])
+        self.assertEqual([x[0] for x in api.calls if x[1] == 'PATCH'], ['/issues/1', '/issues/2'])
         self.assertFalse(any(x[1] == 'POST' for x in api.calls))
+        api.calls.clear()
+        self.assertEqual([x['action'] for x in reconcile_issues(api, h)], ['already_open'])
+        self.assertFalse(any(x[1] == 'PATCH' for x in api.calls))
+
+    def test_fresh_catalog_does_not_hide_an_old_qualified_candidate(self):
+        assembly = {'schema_version': 'disclosure-assembly-status/v1', 'status': 'deferred',
+            'reason': 'source_cutoffs_too_stale', 'source_cutoffs': {
+                'house_clerk': '2026-10-28T07:00:00Z', 'oge': '2026-10-24T07:00:00Z',
+                'senate_efd': '2026-10-23T07:00:00Z'}}
+        h = evaluate(self.manifest, self.sources, now=self.now, assembly=assembly)
+        self.assertEqual(h['sources']['oge']['status'], 'ok')
+        self.assertIn({'source': 'oge', 'reason': 'candidate_cutoff_lag',
+            'candidate_cutoff_at': '2026-10-24T07:00:00Z'}, h['blocking_sources'])
+        self.assertEqual(h['publication'], 'held')
 
     def test_missing_or_unzoned_source_time_is_not_a_success(self):
         self.sources['house_clerk']['run_at'] = '2026-10-28T06:00:00'

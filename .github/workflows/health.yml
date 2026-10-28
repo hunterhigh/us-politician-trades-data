@@ -54,7 +54,7 @@ jobs:
             --main-root "$RUNNER_TEMP/health-main" \
             --state-root "$RUNNER_TEMP/health-state" --health-root "$RUNNER_TEMP/health-output" \
             --repository "$REPOSITORY" \
-            --observe-publication-runs --apply-alerts
+            --observe-publication-runs --observe-assembly --apply-alerts
       - name: Publish independent health state without moving the formal snapshot
         run: |
           state_root="$RUNNER_TEMP/health-output"

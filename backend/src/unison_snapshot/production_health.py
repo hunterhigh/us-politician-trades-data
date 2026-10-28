@@ -4,6 +4,8 @@ This observer cannot publish or roll back a snapshot. Transport failures preserv
 the previous health record and never count as proof of corrupt snapshot content.
 """
 import argparse
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -33,7 +35,7 @@ def latest_publication_deadline(now):
     raise ValueError('No publication window')
 
 
-def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None):
+def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None):
     now = now or datetime.now(UTC)
     previous = previous or {}
     prior_sources = previous.get('sources', {})
@@ -68,6 +70,17 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
             if now - timestamp(since) >= timedelta(hours=48):
                 alerts.append({'key': 'source:' + source, 'title': '[Health] ' + source + ' collection blocked or stale',
                     'detail': json.dumps(entry, ensure_ascii=False, sort_keys=True)})
+    if assembly is not None:
+        if assembly.get('schema_version') != 'disclosure-assembly-status/v1' or assembly.get('status') not in {'ready', 'deferred'}:
+            raise ValueError('Unsupported assembly status')
+        if assembly['status'] == 'deferred':
+            cutoffs = assembly.get('source_cutoffs', {})
+            if set(cutoffs) != set(SOURCES):
+                raise ValueError('Deferred assembly lacks the source waterlines')
+            newest = max(timestamp(v) for v in cutoffs.values())
+            for source, value in cutoffs.items():
+                if newest - timestamp(value) > timedelta(days=2):
+                    blockers.append({'source': source, 'reason': 'candidate_cutoff_lag', 'candidate_cutoff_at': value})
     published = manifest.get('generated_at')
     candidates = [v for v in (publication_success_at, previous.get('last_successful_publication_check_at'), published) if v]
     last_live = max(candidates, key=timestamp) if candidates else None
@@ -78,7 +91,7 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
     return {'schema_version': 'production-health/v1', 'checked_at': now.isoformat(),
         'snapshot_id': manifest.get('snapshot_id'), 'published_at': published,
         'last_successful_publication_check_at': last_live,
-        'publication': 'held' if blockers else 'ready_for_normal_publication',
+        'publication': 'held' if blockers else 'sources_recovered', 'assembly': assembly,
         'blocking_sources': blockers, 'sources': sources, 'alerts': alerts,
         'snapshot_changed': manifest.get('snapshot_id') != previous.get('snapshot_id')}
 
@@ -123,7 +136,11 @@ def reconcile_issues(api, health):
     for key, alert in current.items():
         marker = '<!-- production-health:' + key + ' -->'
         matches = [issue for issue in issues if marker in (issue.get('body') or '')]
-        body = marker + '\n\n' + alert['detail'] + '\n\nIndependent health status: `health/status/production_health.json`.'
+        condition = (health['blocking_sources'] if key == 'publication' else
+            {k: health['sources'][key.split(':', 1)[1]].get(k) for k in ('status', 'failed_step', 'http_status')})
+        fingerprint = hashlib.sha256(json.dumps(condition, sort_keys=True).encode()).hexdigest()
+        condition_marker = '<!-- condition:' + fingerprint + ' -->'
+        body = marker + '\n' + condition_marker + '\n\n' + alert['detail'] + '\n\nIndependent health status: `health/status/production_health.json`.'
         if not matches:
             issue = api.request('/issues', 'POST', {'title': alert['title'], 'body': body})
             results.append({'key': key, 'number': issue['number'], 'action': 'created'})
@@ -133,7 +150,11 @@ def reconcile_issues(api, health):
                 api.request('/issues/' + str(issue['number']), 'PATCH', {'state': 'open', 'body': body})
                 results.append({'key': key, 'number': issue['number'], 'action': 'reopened'})
             else:
-                results.append({'key': key, 'number': issue['number'], 'action': 'already_open'})
+                if condition_marker not in (issue.get('body') or ''):
+                    api.request('/issues/' + str(issue['number']), 'PATCH', {'body': body})
+                    results.append({'key': key, 'number': issue['number'], 'action': 'updated_condition'})
+                else:
+                    results.append({'key': key, 'number': issue['number'], 'action': 'already_open'})
     # Close only alerts owned by this observer, and only after a complete read.
     for issue in issues:
         body = issue.get('body') or ''
@@ -165,6 +186,8 @@ def main():
     parser.add_argument('--state-root', type=Path, required=True)
     parser.add_argument('--repository', required=True)
     parser.add_argument('--health-root', type=Path)
+    parser.add_argument('--review-root', type=Path)
+    parser.add_argument('--observe-assembly', action='store_true')
     parser.add_argument('--apply-alerts', action='store_true')
     parser.add_argument('--publication-success-at')
     parser.add_argument('--observe-publication-runs', action='store_true')
@@ -176,7 +199,11 @@ def main():
     prior = read(target) if target.exists() else {}
     api = GitHub(args.repository, os.environ.get('GH_TOKEN'))
     live_at = successful_publication_at(api) if args.observe_publication_runs else args.publication_success_at
-    health = evaluate(manifest, statuses, prior, publication_success_at=live_at)
+    assembly = read(args.review_root / 'status/disclosure_assembly.json') if args.review_root else None
+    if args.observe_assembly:
+        saved = api.request('/contents/status/disclosure_assembly.json?ref=review')
+        assembly = json.loads(base64.b64decode(saved['content']))
+    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly)
     if args.apply_alerts:
         health['issue_actions'] = reconcile_issues(api, health)
     target.parent.mkdir(parents=True, exist_ok=True)
