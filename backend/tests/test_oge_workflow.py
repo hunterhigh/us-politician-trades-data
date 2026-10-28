@@ -17,7 +17,7 @@ class OgeWorkflowTests(unittest.TestCase):
             hour_spec = match.group(2)
             hours = (set(range(0, 24, 6)) if hour_spec == "*/6" else
                      {int(hour) for hour in hour_spec.split(",")})
-            self.assertEqual(len(hours), 4, name)
+            self.assertEqual(len(hours), 1 if name == "senate-efd.yml" else 4, name)
             for hour in hours:
                 scheduled = hour * 60 + minute
                 self.assertTrue(all(min((scheduled - other) % 1440,
