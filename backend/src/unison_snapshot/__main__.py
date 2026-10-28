@@ -1,4 +1,12 @@
 import argparse
+import sys
+from .command_registry import dispatch
+
+# A selected command owns its parser and dependencies. Avoid importing every
+# source adapter merely to run a small status command or request its --help.
+if __name__ == '__main__' and dispatch(sys.argv[1:]):
+    raise SystemExit(0)
+
 from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timezone

@@ -239,9 +239,10 @@ class AnnualCandidateTests(unittest.TestCase):
 
     def test_fixed_visual_date_alone_cannot_authorize_filing_date(self):
         from unison_snapshot.oge_annual_ledger import annual_filing_date_evidence
-        from unison_snapshot.oge_annual_scan_dates import SCHEMA as DATE_SCHEMA, FIXED_COVERS
-        doc = next(iter(FIXED_COVERS))
-        sha = FIXED_COVERS[doc][0]
+        from unison_snapshot.oge_annual_scan_dates import SCHEMA as DATE_SCHEMA, cover_observations
+        covers = cover_observations()
+        doc = next(iter(covers))
+        sha = covers[doc][0]
         extraction = source()
         extraction.update(source_document_id=doc, source_sha256=sha)
         extraction.pop("cover_date_evidence")

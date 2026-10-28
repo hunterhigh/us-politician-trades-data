@@ -2,7 +2,8 @@
 import importlib
 import sys
 
-COMMANDS = {'build-cached-candidate': ('build_cached_candidate',
+COMMANDS = {'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
+'build-cached-candidate': ('build_cached_candidate',
                             'Publish current disclosures using existing or asynchronously prepared prices.'),
  'build-disclosure-status': ('build_disclosure_status',
                              'Build processing observations from frozen existing trees, without source '
