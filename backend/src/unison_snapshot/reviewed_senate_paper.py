@@ -1,4 +1,5 @@
 """Apply source-bound reviewed rows through the shared correction engine."""
+from .content_integrity import content_boundary
 from copy import deepcopy
 import hashlib
 from io import BytesIO
@@ -144,6 +145,7 @@ def qualify_reviewed_senate_paper(batch, pending, manifest, evidence_root, corre
     return result
 
 
+@content_boundary('correction_assertion')
 def correction_for(document):
     if not isinstance(document,str) or not DOCUMENT.fullmatch(document):
         return None

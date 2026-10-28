@@ -1,12 +1,15 @@
 """Evaluate the publication source gate from fixed Git objects without changing branches."""
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 
 from unison_snapshot.codec import encode
 from unison_snapshot.publication_gate import SOURCES,evaluate
+from unison_snapshot.content_integrity import open_failures
+from unison_snapshot.production_health import GitHub
 
 
 def from_git(repo,review_commit,state_commit):
@@ -32,10 +35,17 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--github-output',type=Path)
     parser.add_argument('--require-ready',action='store_true')
+    parser.add_argument('--repository',help='Also hold for unresolved content-integrity Issues')
     args=parser.parse_args()
     try:
         candidates,statuses,provenance=from_git(args.repo,args.review_commit,args.state_commit)
         result={**evaluate(candidates,statuses),**provenance}
+        if args.repository:
+            result['integrity_failures'] = open_failures(GitHub(args.repository, os.environ.get('GH_TOKEN')))
+            for failure in result['integrity_failures']:
+                result['blocking_sources'].append({'source': failure['scope'], 'reason': 'content_integrity',
+                                                  'category': failure['category'], 'issue': failure['issue']})
+            result['ready'] = not result['blocking_sources']
         args.output.parent.mkdir(parents=True,exist_ok=True)
         temporary=args.output.with_suffix('.next.json');temporary.write_bytes(encode(result));temporary.replace(args.output)
         if args.github_output:

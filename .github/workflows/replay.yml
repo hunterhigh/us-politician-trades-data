@@ -53,6 +53,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
 jobs:
   invalid-selection:
     if: ${{ !((inputs.source == 'house' && inputs.mode == 'backfill') || (inputs.source == 'senate' && (inputs.mode == 'paper-saved' || inputs.mode == 'history-plan' || inputs.mode == 'history-resolve')) || (inputs.source == 'whitehouse' && inputs.mode == 'pdf')) }}
@@ -102,6 +103,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: senate_efd
       - name: Prepare existing saved replay trees
         id: trees
         uses: ./.github/actions/data-trees
@@ -170,6 +173,9 @@ jobs:
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/senate-replay.html"
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   whitehouse-pdf:
     if: inputs.source == 'whitehouse' && inputs.mode == 'pdf'
     concurrency:
@@ -189,6 +195,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Validate one archived original
         env:
           DOCUMENT_ID: ${{ inputs.document_ids }}
@@ -227,6 +235,9 @@ jobs:
           workspace: ${{ runner.temp }}/whitehouse-replay
           roles: review
           message: Selected White House source replay ${{ github.run_id }}
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   rebuild-whitehouse:
     needs: whitehouse-pdf
     uses: ./.github/workflows/whitehouse.yml
@@ -254,6 +265,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: senate_efd
       - name: Prepare selected historical source trees
         uses: ./.github/actions/data-trees
         with:
@@ -279,3 +292,6 @@ jobs:
           path: .local/senate-history/*.json
           if-no-files-found: ignore
           retention-days: 30
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

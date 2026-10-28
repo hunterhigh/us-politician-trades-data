@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import content_boundary
 import re
 import tempfile
 import urllib.error
@@ -645,6 +646,7 @@ def _extract_pdf(content_path: Path, *, include_inventory: bool = False,
     return result
 
 
+@content_boundary('official_hash')
 def _read_archived_source(root: Path, metadata_path: Path) -> tuple[dict, Path, str]:
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     if (metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA or

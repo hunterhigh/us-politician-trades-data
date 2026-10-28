@@ -1,4 +1,5 @@
 """Source-bound reviewed table corrections before normal OGE qualification."""
+from .content_integrity import content_boundary
 from copy import deepcopy
 from functools import lru_cache
 import json
@@ -43,6 +44,7 @@ def binding_for(document):
     return _binding_file(str(path),stat.st_mtime_ns,stat.st_size)
 
 
+@content_boundary('correction_assertion')
 def source_correction(metadata,source_sha):
     correction=correction_for(metadata.get('document_id'))
     if correction is None:return None

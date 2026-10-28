@@ -21,6 +21,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
   actions: read
 
 jobs:
@@ -46,6 +47,8 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
       - uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: publication
       - name: Require a completed price handoff for market-triggered publication
         id: upstream
         env:
@@ -66,9 +69,11 @@ jobs:
       - name: Assess source waterlines without modifying any publication
         if: steps.upstream.outputs.ready == 'true'
         id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git fetch --no-tags --depth=1 --filter=blob:none origin review:refs/remotes/origin/review state:refs/remotes/origin/state
-          python -m unison_snapshot publication-gate --repo . \
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY" \
             --review-commit "$(git rev-parse origin/review)" --state-commit "$(git rev-parse origin/state)" \
             --output "$RUNNER_TEMP/publication-source-gate.json" --github-output "$GITHUB_OUTPUT"
       - name: Preserve publication hold evidence
@@ -79,6 +84,9 @@ jobs:
           path: ${{ runner.temp }}/publication-source-gate.json
           if-no-files-found: error
           retention-days: 14
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   publish:
     needs: assess
     if: needs.assess.outputs.publication_ready == 'true'
@@ -109,6 +117,8 @@ jobs:
           fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: publication
       - name: Enforce licensed cache publication
         env:
           AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
@@ -121,8 +131,10 @@ jobs:
           CACHE_MARKET_OVERRIDE: ''
         run: bash .github/scripts/prepare-publication-trees.sh
       - name: Recheck held sources against the fixed publication inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
-          python -m unison_snapshot publication-gate --repo .
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY"
           --review-commit "${{ steps.trees.outputs.review_commit }}"
           --state-commit "${{ steps.trees.outputs.state_commit }}"
           --output "$RUNNER_TEMP/publication-source-gate.json" --require-ready
@@ -428,8 +440,12 @@ jobs:
           printf 'Controlled stop after verified preflight; main `%s` and market `%s` unchanged.\n' \
             "$MAIN_BASE" "$MARKET_BASE" >> "$GITHUB_STEP_SUMMARY"
           exit 86
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
       - name: Atomically publish the verified main, market, and tags
         env:
+          GH_TOKEN: ${{ github.token }}
           REFRESHED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data' && 'success' || 'skipped' }}
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
           MAIN_SHA: ${{ steps.main.outputs.main_sha }}
@@ -439,6 +455,9 @@ jobs:
           PREFLIGHT_MAIN_REF: ${{ steps.preflight.outputs.main_ref }}
           PREFLIGHT_MARKET_REF: ${{ steps.preflight.outputs.market_ref }}
         run: |
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY" \
+            --review-commit "${{ steps.trees.outputs.review_commit }}" --state-commit "${{ steps.trees.outputs.state_commit }}" \
+            --output "$RUNNER_TEMP/final-publication-source-gate.json" --require-ready
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
           test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
           test "$(git ls-remote origin "$PREFLIGHT_MAIN_REF" | cut -f1)" = "$MAIN_SHA"

@@ -1,4 +1,5 @@
 """Apply data-driven reviews to printed House PTRs before normal candidate use."""
+from .content_integrity import content_boundary
 from copy import deepcopy
 from datetime import date
 import hashlib
@@ -15,6 +16,7 @@ from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_ptr_paper_temporal import validate_paper_source_metadata
 
 
+@content_boundary('correction_assertion')
 def qualify_reviewed_paper(pdf_bytes, prior_pdf_bytes, metadata, prior_metadata,
         observation, amount_header, identity, current, correction):
     guards, review = correction['assertions'], correction['source_review']

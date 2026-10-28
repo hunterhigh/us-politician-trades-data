@@ -35,6 +35,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
 concurrency:
   group: disclosure-source-writer
   queue: max
@@ -63,6 +64,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Check OGE production authorization
         run: |
           test "$OGE_COLLECTION_ENABLED" = true
@@ -150,6 +153,9 @@ jobs:
           roles: review
           message: White House Persist annual coverage ${{ github.run_id }}
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   annual-review:
     needs: annual-catalog
     if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'annual')
@@ -169,6 +175,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Check OGE production authorization
         run: |
           test "$OGE_COLLECTION_ENABLED" = true
@@ -205,6 +213,9 @@ jobs:
           roles: review
           message: White House Publish annual extraction audits ${{ github.run_id }}
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   public:
     needs: annual-review
     if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'collect')
@@ -227,6 +238,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Check bounded official-source run
         run: |
           test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
@@ -346,6 +359,9 @@ jobs:
           roles: review
           message: White House Publish bounded review observations ${{ github.run_id }}
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   rebuild:
     needs: public
     if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'rebuild')
@@ -365,6 +381,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Check bounded archived-source run
         run: |
           test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
@@ -442,3 +460,6 @@ jobs:
             --workspace "$RUNNER_TEMP/whitehouse-candidate" --source oge \
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/whitehouse-candidate.html" --verify-readiness
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

@@ -92,6 +92,7 @@ jobs:
     permissions:
       packages: read
       contents: write
+      issues: write
     uses: ./.github/workflows/replay.yml
     with:
       source: house

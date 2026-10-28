@@ -1,4 +1,5 @@
 """Reviewed annual report corrections over immutable parser checkpoints."""
+from .content_integrity import content_boundary
 from copy import deepcopy
 from contextvars import ContextVar
 from functools import lru_cache, wraps
@@ -61,16 +62,19 @@ def profiles():
     return result
 
 
+@content_boundary('correction_assertion')
 def profile_for(extraction):
     return next((c for c in profiles() if extraction.get('source_url') == c['source_url'] and
         extraction.get('source_sha256') == c['source_sha256'] and
         all(extraction.get(k) == v for k, v in c['source_context'].items())), None)
 
 
+@content_boundary('correction_assertion')
 def profile_for_source(source_sha256):
     return next((c for c in profiles() if c['source_sha256'] == source_sha256), None)
 
 
+@content_boundary('correction_assertion')
 def parser_profile_for_source(source_url, source_sha256):
     correction = profile_for_source(source_sha256)
     return correction.get('parser_profile') if correction and correction['source_url'] == source_url else None

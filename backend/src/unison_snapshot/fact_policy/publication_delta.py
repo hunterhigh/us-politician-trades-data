@@ -13,6 +13,7 @@ import re
 from urllib.parse import urlsplit
 
 from .source_objects import InventoryError, _differences, _market_enrichment_only
+from ..content_integrity import content_boundary
 from .source_replacements import _archive, _official_index_replacement, git_tree_paths
 from .source_objects import git_object
 from .senate_annual_amendment import verified_amendment_rekeys
@@ -106,6 +107,7 @@ def _decision(item, entity, old, current, *, repo, evidence_commit, verified_rep
             **({"changed_fields": item["changed_fields"]} if kind in {"corrected", "superseded"} else {})}
 
 
+@content_boundary('old_fact_delta')
 def build_publication_delta(*, previous_board, unified, prepared, sources,
                             transitions=None, main_commit=None, review_commit=None,
                             repo=None, evidence_commit=None):

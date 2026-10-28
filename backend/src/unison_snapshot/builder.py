@@ -9,6 +9,7 @@ import re
 from urllib.parse import urlsplit
 
 from .codec import bucket, digest, encode
+from .content_integrity import content_boundary
 from .legacy import PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256, load, processor_version_for
 from .disclosure_amounts import POLICY as AMOUNT_POLICY, is_open_amount, validate_amount
 from .market_store import (MARKET_COVERAGE_SCHEMA, MIXED_MARKET_COVERAGE_SCHEMA,
@@ -58,6 +59,7 @@ def required(row: dict, key: str) -> str:
     return value
 
 
+@content_boundary('snapshot_contract')
 def normalize(payload: dict, *, allow_production: bool = False,
               allow_empty_production: bool = False,
               allow_market: bool = False) -> dict:

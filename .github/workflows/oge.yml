@@ -57,6 +57,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
 
 jobs:
   evaluate-gate:
@@ -87,6 +88,8 @@ jobs:
           fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Evaluate default-closed source gate
         id: gate
         run: |
@@ -134,6 +137,9 @@ jobs:
           echo "OGE collection was enabled without the required terms acknowledgement." >&2
           exit 2
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   collect-direct-reports:
     needs: evaluate-gate
     if: ${{ needs.evaluate-gate.outputs.status == 'enabled' }}
@@ -164,6 +170,8 @@ jobs:
           fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - name: Prepare evidence, review cache and state branches
         id: trees
         run: |
@@ -296,6 +304,9 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   publish-review:
     needs: collect-direct-reports
     concurrency:
@@ -316,6 +327,8 @@ jobs:
           fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: oge
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: oge-direct-${{ github.run_id }}
@@ -703,3 +716,21 @@ jobs:
             git -C "$REVIEW_ROOT" commit -m "review: unified OGE candidate ${{ github.run_id }}"
             git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
           fi
+      - name: Observe current source isolation without changing facts
+        env:
+          REVIEW_ROOT: ${{ runner.temp }}/oge-review
+          EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence
+        run: |
+          python -m unison_snapshot observe-source-quality --source oge \
+            --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+            --input "$REVIEW_ROOT/candidates/sources/oge-current.json"
+          git -C "$REVIEW_ROOT" add status/quality/oge.json
+          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
+            git -C "$REVIEW_ROOT" config user.name 'github-actions[bot]'
+            git -C "$REVIEW_ROOT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git -C "$REVIEW_ROOT" commit -m 'review: observe qualified source quality'
+            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
+          fi
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

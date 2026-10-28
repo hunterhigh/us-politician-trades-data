@@ -6,6 +6,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import integrity_error
 import re
 import shutil
 import subprocess
@@ -1313,7 +1314,7 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
         raise HouseIndexError("Archived House PTR is unavailable") from None
     source_sha = hashlib.sha256(content).hexdigest()
     if source_sha != metadata.get("sha256"):
-        raise HouseIndexError("Archived House PTR hash does not match its metadata")
+        raise integrity_error(HouseIndexError, "Archived House PTR hash does not match its metadata")
     try:
         import pdfplumber
     except ImportError:

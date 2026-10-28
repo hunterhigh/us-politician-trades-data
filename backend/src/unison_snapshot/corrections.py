@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import content_boundary
 
 OPS = {'set_field', 'set_report', 'add_row', 'drop_row', 'quarantine', 'relate'}
 
@@ -16,6 +17,7 @@ def load_correction(path):
     return validate_correction(json.loads(Path(path).read_text(encoding='utf-8')))
 
 
+@content_boundary('correction_assertion')
 def validate_correction(value):
     if value.get('schema_version') != 'source-correction/v1':
         raise ValueError('Unsupported correction schema')
@@ -32,6 +34,7 @@ def validate_correction(value):
     return value
 
 
+@content_boundary('correction_assertion')
 def apply_correction(document, correction):
     """Return a new document; an invalid action leaves the caller's input intact.
 

@@ -63,12 +63,12 @@ jobs:
             --main-root "$RUNNER_TEMP/health-main" \
             --state-root "$RUNNER_TEMP/health-state" --health-root "$RUNNER_TEMP/health-output" \
             --repository "$REPOSITORY" \
-            --observe-publication-runs --observe-assembly --apply-alerts \
+            --observe-publication-runs --observe-assembly --observe-source-quality --apply-alerts \
             --smoke-client-root "$GITHUB_WORKSPACE" --apply-content-rollback
       - name: Publish independent health state without moving the formal snapshot
         run: |
           state_root="$RUNNER_TEMP/health-output"
-          git -C "$state_root" add status/production_health.json status/publication_smoke.json
+          git -C "$state_root" add status/production_health.json status/publication_smoke.json status/quality_history.json
           if ! git -C "$state_root" diff --cached --quiet; then
             git -C "$state_root" config user.name "github-actions[bot]"
             git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

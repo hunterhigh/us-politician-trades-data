@@ -23,6 +23,9 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
     project_source_candidate(source_id,value)
     build(value, generated_at=value['meta']['data_cutoff_at'], allow_production=True,
           allow_empty_production=True)
+    if 'evidence' in control['trees']:
+        from unison_snapshot.source_quality import observe
+        observe(source_id, control['trees']['evidence']['root'], review, value)
     # The valid source remains durable even when another source is unavailable.
     publish(workspace,('review',),source_id+' source candidate')
     arguments=[sys.executable,'-m','unison_snapshot','build-disclosure-candidate',

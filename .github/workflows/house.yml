@@ -48,6 +48,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
 concurrency:
   group: disclosure-source-writer
   queue: max
@@ -72,6 +73,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: house_clerk
       - name: Prepare controlled source data
         id: trees
         uses: ./.github/actions/data-trees
@@ -566,6 +569,9 @@ jobs:
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   annual-holdings:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'annual'
     environment: production
@@ -581,6 +587,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: house_clerk
       - name: Prepare controlled annual source data
         id: trees
         uses: ./.github/actions/data-trees
@@ -807,3 +815,6 @@ jobs:
             --workspace "$RUNNER_TEMP/house-annual" --source house_clerk \
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/house-annual.html"
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

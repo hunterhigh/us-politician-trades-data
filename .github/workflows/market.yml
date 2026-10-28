@@ -29,6 +29,7 @@ on:
 permissions:
   packages: read
   contents: read
+  issues: write
 
 jobs:
   refresh:
@@ -60,6 +61,8 @@ jobs:
           fetch-depth: 1
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: market
       - name: Enforce licensed production gate
         env:
           AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
@@ -194,6 +197,9 @@ jobs:
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   audit:
     if: github.ref == 'refs/heads/code' && github.event_name == 'workflow_dispatch' && inputs.mode != 'refresh'
     environment: production
@@ -214,6 +220,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: market
       - name: Verify access and authorization
         env:
           ALPACA_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
@@ -315,3 +323,6 @@ jobs:
           name: twelve-data-coverage-audit
           path: ${{ runner.temp }}/twelve-audit.json
           retention-days: 14
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

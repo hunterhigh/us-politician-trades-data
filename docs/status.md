@@ -1,6 +1,6 @@
 # v1 状态
 
-2026-10-28：v1替代原35项交付，旧材料存archive/pre-v1-docs。连续推进，不等待工作日；日期可修正。生产解析器及数据切换须用户确认一次。
+2026-10-29：v1替代原35项交付，旧材料存archive/pre-v1-docs。连续推进，不等待工作日；日期可修正。生产解析器及数据切换须用户确认一次。
 
 ## 范围与授权
 
@@ -28,7 +28,7 @@
 
 [健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)已上线：区分采集和候选水位，复用告警；正式客户端、三人物及渲染冒烟通过。内容失败才可回退至已验证前版，并阻止重复发布失败快照。
 
-House/Senate四实例、OGE及白宫OCR、两份扫描年报迁入统一修正层，迁移结果及原ID保持一致；专用代码同PR删除。Burrows旧Bond按原件改为Stock，其他82对象不变。19项日期观察迁入，修订签字不作申报日期。known_gaps已进入manifest、页脚及人物页；真实6563条库存、60位可绑定人物摘要为14177字节。命令统一中，backend/scripts仅留verify.py；工作流28→23，待并至10条。Senate受阻及OGE/Senate候选过期仍阻断正式发布。
+House/Senate、OGE/白宫OCR、扫描年报及19项日期观察已迁入统一修正层，专用代码同PR删除；原ID与对照结果保持。known_gaps进入manifest、页脚和人物页。命令已统一，backend/scripts仅留verify.py；工作流28→10。依赖、Actions提交及含OCR的镜像已固定；镜像构建和一次完整源码CI通过，十条工作流整合版本e3427624完整CI通过，新告警代码待本轮CI。新发布入口区分采集与合格水位，加入48小时绝对期限及内容告警门禁；周隔离指标已接入候选。Senate受阻、OGE/Senate候选过期仍阻断正式发布。
 
 | 阶段 | 台北日期 | 状态 |
 | --- | --- | --- |

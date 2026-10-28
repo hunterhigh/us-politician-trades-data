@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import content_boundary
 import re
 import tempfile
 import urllib.error
@@ -257,6 +258,7 @@ def archive_public_index(root: Path, *, client: WhiteHouseDisclosureClient | Non
     return index
 
 
+@content_boundary('official_hash')
 def read_archived_pdf(root: Path, metadata: dict) -> bytes:
     """Reassemble and hash-check original bytes from one evidence metadata row."""
     if not isinstance(metadata, dict):

@@ -28,6 +28,7 @@ on:
 permissions:
   packages: read
   contents: write
+  issues: write
 concurrency:
   group: disclosure-source-writer
   queue: max
@@ -58,6 +59,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: senate_efd
       - name: Prepare controlled source data
         id: trees
         uses: ./.github/actions/data-trees
@@ -251,6 +254,9 @@ jobs:
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   annual:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'annual'
     environment: production
@@ -271,6 +277,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: senate_efd
       - name: Check bounded authorized run
         env:
           COLLECT_ANNUAL: ${{ inputs.collect_annual }}
@@ -364,6 +372,9 @@ jobs:
             --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
             --html-output "$RUNNER_TEMP/senate-annual.html"
 
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
   roster:
     if: github.event_name == 'schedule' || inputs.mode == 'roster'
     environment: production
@@ -379,6 +390,8 @@ jobs:
           fetch-depth: 0
       - name: Activate fixed source runtime
         uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: senate_efd
       - name: Prepare controlled roster source data
         id: trees
         uses: ./.github/actions/data-trees
@@ -471,3 +484,6 @@ jobs:
           workspace: ${{ runner.temp }}/senate-roster
           roles: state
           message: Senate Persist identity roster state ${{ github.run_id }}
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

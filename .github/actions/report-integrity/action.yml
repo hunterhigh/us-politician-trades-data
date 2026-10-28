@@ -1,0 +1,13 @@
+name: Report explicit content failures
+description: Reuse publication-blocking integrity Issues; transport failures grant no rollback authority
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: >-
+        python -m unison_snapshot report-integrity
+        --directory "$RUNNER_TEMP/unison-integrity"
+        --repository "$GITHUB_REPOSITORY"

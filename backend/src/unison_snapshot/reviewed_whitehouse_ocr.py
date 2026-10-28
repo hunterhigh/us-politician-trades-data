@@ -1,4 +1,5 @@
 """Apply reviewed OCR table facts with source and old-value assertions."""
+from .content_integrity import content_boundary
 from collections import Counter
 from copy import deepcopy
 from functools import lru_cache
@@ -42,6 +43,7 @@ def profiles():
     return result
 
 
+@content_boundary('correction_assertion')
 def profile_for(document_id, source_url, source_sha256, *, mode=None):
     for value in profiles():
         if mode is not None and value['output_mode'] != mode:
