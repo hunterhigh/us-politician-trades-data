@@ -123,7 +123,7 @@ def reconcile_issues(api, health):
     for key, alert in current.items():
         marker = '<!-- production-health:' + key + ' -->'
         matches = [issue for issue in issues if marker in (issue.get('body') or '')]
-        body = marker + '\n\n' + alert['detail'] + '\n\nIndependent health status: `state/status/production_health.json`.'
+        body = marker + '\n\n' + alert['detail'] + '\n\nIndependent health status: `health/status/production_health.json`.'
         if not matches:
             issue = api.request('/issues', 'POST', {'title': alert['title'], 'body': body})
             results.append({'key': key, 'number': issue['number'], 'action': 'created'})
@@ -164,6 +164,7 @@ def main():
     parser.add_argument('--main-root', type=Path, required=True)
     parser.add_argument('--state-root', type=Path, required=True)
     parser.add_argument('--repository', required=True)
+    parser.add_argument('--health-root', type=Path)
     parser.add_argument('--apply-alerts', action='store_true')
     parser.add_argument('--publication-success-at')
     parser.add_argument('--observe-publication-runs', action='store_true')
@@ -171,7 +172,7 @@ def main():
     read = lambda p: json.loads(p.read_text(encoding='utf-8'))
     manifest = read(args.main_root / 'manifest.json')
     statuses = {s: read(args.state_root / 'status' / (s + '.json')) for s in SOURCES}
-    target = args.state_root / 'status/production_health.json'
+    target = (args.health_root or args.state_root) / 'status/production_health.json'
     prior = read(target) if target.exists() else {}
     api = GitHub(args.repository, os.environ.get('GH_TOKEN'))
     live_at = successful_publication_at(api) if args.observe_publication_runs else args.publication_success_at
