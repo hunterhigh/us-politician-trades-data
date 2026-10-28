@@ -56,16 +56,13 @@ from .oge import (
 from .oge_reports import (
     PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
     GENERIC_PARSER_VERSION as OGE_GENERIC_PARSER_VERSION,
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
-    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-    TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
-    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
     archive_direct_batch as archive_oge_direct_batch,
     load_reusable_extraction as load_reusable_oge_extraction,
     parse_archived_pdf as parse_oge_archived_pdf,
 )
 from .oge_candidate import build_oge_candidate
+from .reviewed_oge_extraction import (approved_extraction as approved_oge_extraction,
+    parser_versions as reviewed_oge_versions, version_priority as oge_version_priority)
 from .public_repo import HTTPTransport, PublicSnapshotRepository
 from .release_readiness import ReleaseReadinessError, validate_first_launch
 from .store import GitStore, assemble
@@ -1190,10 +1187,7 @@ def main() -> None:
                         continue
                 use_generic = args.generic or document_id in scoped_generic_ids
                 if version not in {OGE_REPORT_PARSER_VERSION, *VISIBLE_DEFAULTS,
-                                   TRUMP_SEPT_2026_PARSER_VERSION,
-                                   TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-                                   TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
+                                   *reviewed_oge_versions()} and not (
                         use_generic and version in {OGE_GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}):
                     continue
                 if args.evidence_root is not None:
@@ -1206,14 +1200,8 @@ def main() -> None:
                 if document_id in document_sources:
                     pinned_source_inputs.extend(verify_selected_native_cache(
                         path, args.extractions_dir, value, args.evidence_root))
-                if version in {TRUMP_SEPT_2026_PARSER_VERSION,
-                               TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-                               TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                               TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
-                        document_id == TRUMP_SEPT_2026_DOCUMENT_ID and
-                        value.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
-                        value.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256):
-                    raise OgeCatalogError("Source-bound OGE extraction is not the fixed report")
+                if version in reviewed_oge_versions() and not approved_oge_extraction(value):
+                    raise OgeCatalogError("Reviewed OGE extraction differs from its approved source output")
                 previous = selected_extractions.get(document_id)
                 if previous is not None:
                     if use_generic and OGE_GENERIC_PARSER_VERSION in {version, previous.get("parser_version")}:
@@ -1230,16 +1218,11 @@ def main() -> None:
                         if version == OGE_GENERIC_PARSER_VERSION:
                             selected_extractions[document_id] = value
                         continue
-                    if (document_id != TRUMP_SEPT_2026_DOCUMENT_ID or
+                    priority = oge_version_priority(document_id, OGE_REPORT_PARSER_VERSION)
+                    if (not priority or version not in priority or
+                            previous.get("parser_version") not in priority or
                             version == previous.get("parser_version")):
                         raise OgeCatalogError("OGE extraction document ID is duplicated")
-                    priority = {
-                        OGE_REPORT_PARSER_VERSION: 0,
-                        TRUMP_SEPT_2026_PARSER_VERSION: 1,
-                        TRUMP_SEPT_2026_SECOND_PASS_VERSION: 2,
-                        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION: 3,
-                        TRUMP_SEPT_2026_PAGE7_PASS_VERSION: 4,
-                    }
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value

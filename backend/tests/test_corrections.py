@@ -60,14 +60,27 @@ class CorrectionTests(unittest.TestCase):
                 review = correction['source_review']
                 if correction['source']=='house_clerk':
                     self.assertEqual(review['source_sha256'], correction['source_sha256'])
-                slots = {(a['row'], a.get('field')) for a in correction['actions']}
+                slots = {(a.get('row','@report'), a.get('field',a['op'])) for a in correction['actions']}
                 self.assertEqual(len(slots), len(correction['actions']))
-                self.assertTrue(all(a['row'] in correction['assertions']['row_inventory'] for a in correction['actions']))
+                self.assertTrue(all(a['op']=='set_report' or a['row'] in correction['assertions']['row_inventory'] for a in correction['actions']))
                 if correction['source']=='house_clerk':
                     self.assertEqual(sum(a['field']=='account_title' for a in correction['actions']),
                         review['physical_counts']['data_candidate'])
-                else:
+                elif correction['source']=='senate_efd':
                     self.assertEqual(len(correction['actions']),len(correction['assertions']['row_inventory']))
+                elif correction['profile']=='reviewed-six-column-extraction/v1':
+                    guards=correction['assertions']
+                    self.assertFalse(set(guards['output_transactions']) & set(guards['output_quarantined']))
+                    added={a['row'] for a in correction['actions'] if a['op']=='add_row'}
+                    dropped={a['row'] for a in correction['actions'] if a['op']=='drop_row'}
+                    self.assertEqual(set(guards['output_transactions']+guards['output_quarantined']),
+                        (set(guards['input_row_inventory'])|added)-dropped)
+                    self.assertEqual(correction['parser_version'],correction['parser_versions'][-1])
+                    self.assertEqual(set(correction['parser_versions']),set(guards['legacy_versions']))
+                for action in correction['actions']:
+                    if action['op'] in {'set_field','set_report','drop_row','quarantine','relate'}:
+                        self.assertIn('expect',action)
+                    if action['op']=='add_row':self.assertTrue(action['expect_absent'])
 
 
 class V1ContractTests(unittest.TestCase):

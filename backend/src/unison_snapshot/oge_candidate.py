@@ -9,37 +9,13 @@ import re
 
 from .builder import timestamp
 from .oge import OgeCatalogError, SCHEMA as CATALOG_SCHEMA
-from .oge_reports import (
-    EXTRACTION_SCHEMA, GENERIC_PARSER_VERSION, PARSER_VERSION, TRUMP_SEPT_2026_DOCUMENT_ID,
-    TRUMP_SEPT_2026_FILING_DATE_EVIDENCE, TRUMP_SEPT_2026_PARSER_VERSION,
-    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-    TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
-    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
-    collapse_direct_catalog_records,
-)
+from .oge_reports import (EXTRACTION_SCHEMA, GENERIC_PARSER_VERSION, PARSER_VERSION, collapse_direct_catalog_records)
+from .reviewed_oge_extraction import (source_binding as _reviewed_source,person_for,parser_versions)
 
 
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
-TRUMP_PERSON_ID = "oge:076544f8ba0638cf"
 
 
-def _fixed_trump_sept_source(extraction: dict, record: dict | None) -> bool:
-    return (
-        record is not None
-        and extraction.get("document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
-        and record.get("source_document_id") == TRUMP_SEPT_2026_DOCUMENT_ID
-        and extraction.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL
-        and record.get("document_url") == TRUMP_SEPT_2026_SOURCE_URL
-        and extraction.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256
-        and extraction.get("catalog_filer_name") == record.get("filer_name") ==
-        "Trump, Donald J"
-        and extraction.get("agency") == record.get("agency") == "White House Office"
-        and extraction.get("position_title") == record.get("position_title") == "President"
-        and extraction.get("filed_at") == "2026-09-08"
-        and extraction.get("filing_date_evidence") ==
-        TRUMP_SEPT_2026_FILING_DATE_EVIDENCE
-    )
 
 
 def _identity_key(record: dict) -> tuple[str, str, str]:
@@ -168,7 +144,7 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
         return result, receipt
     from .oge_native_owner_scope import prepare_native_owner_scope
     owner_scope = _owner_scope or prepare_native_owner_scope(extraction, legacy, record,
-        evidence_root=None if _fixed_trump_sept_source(extraction, record) else evidence_root,
+        evidence_root=None if _reviewed_source(extraction, record) else evidence_root,
         source_extraction=source_extraction)
     actual_formal = {fact['id']: fact for fact in formal}
     # A complete source-projected successor identifies the same physical row.
@@ -232,7 +208,7 @@ def _inherit_generic_legacy(extraction: dict, legacy: dict | None,
                 and all(fact.get(field) == old.get(field) for field in compare)
                 and fact.get("asset_name") == (f"{old['asset_name']} — {old['account_title']}"
                                                if old.get("account_title") else old.get("asset_name"))
-                and fact.get("person_id") == (TRUMP_PERSON_ID if _fixed_trump_sept_source(legacy, record)
+                and fact.get("person_id") == (person_for(legacy)['id'] if _reviewed_source(legacy, record)
                                                else _person_id(_identity_key(record)))
                 and fact.get("filed_at") == f"{legacy.get('filed_at')}T00:00:00Z"):
             key = scope_key(old)
@@ -415,7 +391,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         classification = None
         if (not visible and not observed and document_id not in native_views
                 and extraction.get('parser_version') in {PARSER_VERSION, GENERIC_PARSER_VERSION}
-                and record is not None and not _fixed_trump_sept_source(extraction, record)):
+                and record is not None and not _reviewed_source(extraction, record)):
             from .oge_native_classification import prepare_native_classification
             context = prepare_native_classification(extraction, base.get('transactions', []), record,
                 evidence_root=evidence_root, source_extraction=source_extraction,
@@ -432,7 +408,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         and fact.get('id') in classification.target_ids)]
         if (not generic and not visible and not observed and document_id not in native_views
                 and extraction.get('parser_version') == PARSER_VERSION and record is not None
-                and not _fixed_trump_sept_source(extraction, record)
+                and not _reviewed_source(extraction, record)
                 and any(fact.get('source_id') == 'oge' and fact.get('filing_id') == document_id
                     and fact.get('verification_status') == 'official_matched'
                     and fact.get('owner') in {'Undisclosed', 'Spouse', 'Dependent Child'}
@@ -468,7 +444,7 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         inheritance = None
         if generic and not visible and record is not None:
             owner_scope = prepare_native_owner_scope(extraction, legacy_inputs.get(document_id), record,
-                evidence_root=None if _fixed_trump_sept_source(extraction, record) else evidence_root,
+                evidence_root=None if _reviewed_source(extraction, record) else evidence_root,
                 source_extraction=source_extraction)
             extraction, inheritance = _inherit_generic_legacy(extraction, legacy_inputs.get(document_id), retained, record,
                 evidence_root=evidence_root, source_extraction=source_extraction, _owner_scope=owner_scope,
@@ -561,14 +537,11 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         if row.get("extraction_id") not in referenced_ids:
                             row["reasons"] = sorted(set(row.get("reasons", []) + ["legacy_formal_reference_unbound"]))
         reasons = []
-        fixed_trump = _fixed_trump_sept_source(extraction, record)
+        reviewed_source = _reviewed_source(extraction, record)
         supported_parser = (
             observed or visible or extraction.get("parser_version") in {PARSER_VERSION, GENERIC_PARSER_VERSION}
-            or (extraction.get("parser_version") in {
-                TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-                TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                TRUMP_SEPT_2026_PAGE7_PASS_VERSION}
-                and fixed_trump)
+            or (extraction.get("parser_version") in parser_versions()
+                and reviewed_source)
         )
         if (extraction.get("schema_version") != EXTRACTION_SCHEMA or
                 not supported_parser or
@@ -763,12 +736,12 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                                         "reasons": sorted(set(row_reasons)),
                                         **({"native_exhibit_reference":row["native_exhibit_reference"]} if row.get("native_exhibit_reference") else {})})
                 continue
-            person_id = TRUMP_PERSON_ID if fixed_trump else _person_id(key)
+            person_id = person_for(extraction)['id'] if reviewed_source else _person_id(key)
             people.setdefault(person_id, {
                 "id": person_id,
-                "display_name": "Donald Trump" if fixed_trump else record["filer_name"],
-                "short_name": "Trump" if fixed_trump else _short_name(record["filer_name"]),
-                "role": ("President of the United States of America" if fixed_trump else
+                "display_name": person_for(extraction)['display_name'] if reviewed_source else record["filer_name"],
+                "short_name": person_for(extraction)['short_name'] if reviewed_source else _short_name(record["filer_name"]),
+                "role": (person_for(extraction)['role'] if reviewed_source else
                          record["position_title"]),
                 "office_type": record["agency"],
                 "chamber": None,
@@ -979,8 +952,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                if "manual_filing_date_evidence" in extraction else {}),
             **({"manual_filing_date_evidence": extraction["manual_filing_date_evidence"]}
                if "manual_filing_date_evidence" in extraction else {}),
-            **({"filing_date_evidence": TRUMP_SEPT_2026_FILING_DATE_EVIDENCE}
-               if fixed_trump else {}),
+            **({"filing_date_evidence": extraction['filing_date_evidence']}
+               if reviewed_source else {}),
             **({"deferred_cross_source_formal_ids":deferred} if deferred else {}),
             "promoted_count": report_promoted-len(deferred),
             "quarantined_count": len(row_quarantines),

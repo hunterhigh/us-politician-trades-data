@@ -776,9 +776,8 @@ def _unbound_native_classification_hint(record, review, transactions, catalog_re
 def _selected_source_input(record, audit, *, review, evidence, catalog_record, transactions=None):
     """Bind execution selection without guessing it from cache existence."""
     from .oge_reports import (PARSER_VERSION, GENERIC_PARSER_VERSION, MAX_PDF_BYTES,
-        TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION, TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
         _read_archived_source, selected_parser_version, parse_archived_pdf)
+    from .reviewed_oge_extraction import parser_versions
     from .oge_native_partition import VERSIONS, GENERIC_VERSIONS
     selected = audit.get('source_interpretation_binding')
     ordinary = _source_receiver_is_ordinary(audit)
@@ -798,9 +797,7 @@ def _selected_source_input(record, audit, *, review, evidence, catalog_record, t
     if review is None or evidence is None or not isinstance(selected, dict):
         raise ValueError('OGE source interpretation requires its controlled roots and selection')
     sha, version = selected.get('source_sha256'), selected.get('parser_version')
-    supported = {PARSER_VERSION, GENERIC_PARSER_VERSION, *VERSIONS,
-        TRUMP_SEPT_2026_PARSER_VERSION, TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION, TRUMP_SEPT_2026_PAGE7_PASS_VERSION}
+    supported = {PARSER_VERSION, GENERIC_PARSER_VERSION, *VERSIONS, *parser_versions()}
     if (version not in supported or
             sha not in record.get('source_versions', []) or
             selected.get('document_id') != record.get('report_id')):
@@ -873,8 +870,8 @@ def _apply_selected_owner_interpretation(record, audit, raw, *, review, evidence
         return  # Default v2 keeps its existing manual-date qualification layer.
     if 'default_owner_conservation' in audit:
         raise ValueError('OGE default owner conservation requires the selected default parser')
-    from .oge_candidate import _fixed_trump_sept_source
-    if catalog_record is not None and _fixed_trump_sept_source(raw, catalog_record):
+    from .reviewed_oge_extraction import source_binding
+    if catalog_record is not None and source_binding(raw, catalog_record):
         return  # The existing exact-source lane has its independent contract.
     legacy_path = (review / 'oge/extractions' / record['report_id'] / raw['source_sha256'] /
                    (PARSER_VERSION.replace('/', '-') + '.json'))

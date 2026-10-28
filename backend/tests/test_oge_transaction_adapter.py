@@ -7,10 +7,7 @@ import unittest
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
-from unison_snapshot.oge_reports import (
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
-    TRUMP_SEPT_2026_SOURCE_URL,
-)
+from unison_snapshot.reviewed_oge_extraction import profiles
 
 
 FIXTURE = (Path(__file__).parent / "fixtures" / "oge_278t" / "gold_rows_v1.json")
@@ -59,25 +56,26 @@ class OgeTransactionAdapterTests(unittest.TestCase):
     def test_fixed_visual_recovery_is_accounted_with_distinct_provenance(self):
         extraction = self.fixture["extraction"]
         record = self.fixture["catalog_record"]
-        extraction["document_id"] = record["source_document_id"] = TRUMP_SEPT_2026_DOCUMENT_ID
-        extraction["source_url"] = record["document_url"] = TRUMP_SEPT_2026_SOURCE_URL
-        extraction["source_sha256"] = TRUMP_SEPT_2026_SOURCE_SHA256
-        original = extraction["transactions"][0]
-        recovered = json.loads(json.dumps(original))
-        recovered["page_number"] = 7
-        recovered["row_number"] = 9
-        recovered["cells"][0] = "9"
-        marker = {"basis": "fixed_source_visual_table_row_recovery",
-                  "page_number": 7, "printed_row_number": 9}
-        recovered["source_bound_row_recovery"] = marker
+        correction=next(c for c in profiles() if any(a['op']=='add_row' for a in c['actions']))
+        action=next(a for a in correction['actions'] if a['op']=='add_row')
+        extraction["document_id"] = record["source_document_id"] = correction['document_id']
+        extraction["source_url"] = record["document_url"] = correction['assertions']['metadata']['document_url']
+        extraction["source_sha256"] = correction['source_sha256']
+        recovered=json.loads(json.dumps(action['value']['record']))
+        recovered['cells']=action['evidence']['raw_cells']
+        marker=recovered['source_bound_row_recovery']
         extraction["transactions"].append(recovered)
         extraction["source_rows"].append(
-            {"page_number": 7, "cells": recovered["cells"],
+            {"page_number": recovered['page_number'], "cells": recovered["cells"],
              "source_bound_row_recovery": marker})
         result = adapt_oge_278t_extraction(extraction, record)
         self.assertEqual(result["row_count"], 6)
         self.assertEqual(result["rows"][-1]["evidence_locations"][0]["kind"],
                          "visual_table_row_recovery")
+        extraction['source_rows'][-1]['cells']=['forged',*recovered['cells'][1:]]
+        with self.assertRaisesRegex(OgeCatalogError, "not source-bound"):
+            adapt_oge_278t_extraction(extraction, record)
+        extraction['source_rows'][-1]['cells']=recovered['cells']
         extraction["source_sha256"] = "0" * 64
         with self.assertRaisesRegex(OgeCatalogError, "not source-bound"):
             adapt_oge_278t_extraction(extraction, record)

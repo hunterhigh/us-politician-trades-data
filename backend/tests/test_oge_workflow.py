@@ -41,8 +41,7 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn('--reuse-root "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'reused_extraction_count':", content)
         self.assertIn("'parsed_extraction_count':", content)
-        # Three existing jobs plus the new read-only manual shadow job.
-        self.assertEqual(content.count("fetch-depth: 1"), 4)
+        self.assertEqual(content.count("fetch-depth: 1"), 3)
         self.assertNotIn("fetch-depth: 0", content)
         self.assertNotIn("201 Request", content)
         self.assertNotIn("curl ", content)
@@ -57,8 +56,7 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("status/oge.json", content)
         self.assertIn("group: disclosure-source-writer", content)
         self.assertIn("python -m unison_snapshot build-oge-candidate", content)
-        self.assertIn("python backend/scripts/audit_trump_sept_oge_v5.py", content)
-        self.assertIn("python backend/scripts/audit_trump_sept_oge_v6.py", content)
+        self.assertNotIn("audit_trump_sept_oge_", content)
         self.assertIn('--catalog-history-dir "$REVIEW_ROOT/oge/discoveries"', content)
         self.assertIn('--extractions-dir "$REVIEW_ROOT/oge/extractions"', content)
         self.assertIn("'retained_historical_direct_count':", content)
@@ -90,17 +88,10 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("'status': 'partial' if succeeded else 'failed'", content)
         self.assertIn("'workflow_run_url': os.environ['WORKFLOW_RUN_URL']", content)
 
-    def test_fixed_page_coverage_is_only_a_nonblocking_review_sidecar(self):
+    def test_collection_does_not_run_retired_fixed_page_diagnostics(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
-        self.assertIn("build_oge_278t_page_coverage.py", content)
-        self.assertIn("--batch .local/oge-report-batch.json", content)
-        self.assertIn("--extractions-dir .local/oge-extractions", content)
-        step = content.split("- name: Observe fixed 278-T page coverage", 1)[1].split(
-            "- name: Publish immutable official evidence", 1)[0]
-        self.assertIn("continue-on-error: true", step)
-        self.assertIn(".local/oge-278t-page-sidecars", content)
-        self.assertIn("review / 'oge' / 'page_coverage'", content)
-        self.assertNotIn("build-oge-candidate", step)
+        self.assertNotIn("build_oge_278t_page_coverage.py", content)
+        self.assertNotIn(".local/oge-278t-page-sidecars", content)
 
     def test_successful_unified_build_updates_and_commits_disclosure_status(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")

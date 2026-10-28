@@ -12,9 +12,9 @@ from typing import Any
 from .oge import OgeCatalogError
 from .oge_reports import (
     GENERIC_PARSER_VERSION, PARSER_VERSION,
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_SHA256,
     collapse_direct_catalog_records,
 )
+from .reviewed_oge_extraction import recovery_is_bound
 from .pipeline_ledger import (
     CANDIDATE_ROW_SCHEMA, OBSERVATION_SCHEMA, idempotency_key,
     validate_candidate_row,
@@ -779,8 +779,7 @@ def adapt_oge_278t_extraction(extraction: dict, catalog_record: dict, *,
         if not isinstance(raw, dict) or type(raw.get("page_number")) is not int:
             raise OgeCatalogError("OGE 278-T adapter source row locator is invalid")
         recovery = raw.get("source_bound_row_recovery")
-        if recovery is not None and (extraction.get("document_id") != TRUMP_SEPT_2026_DOCUMENT_ID or
-                source_sha != TRUMP_SEPT_2026_SOURCE_SHA256 or
+        if recovery is not None and (not recovery_is_bound(extraction, raw) or
                 not isinstance(recovery, dict) or
                 recovery.get("basis") != "fixed_source_visual_table_row_recovery" or
                 recovery.get("page_number") != raw["page_number"] or
