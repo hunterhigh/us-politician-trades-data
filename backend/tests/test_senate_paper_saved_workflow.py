@@ -203,10 +203,10 @@ class SenateSavedWorkflowTests(unittest.TestCase):
                      'Build candidates from existing source state'):
             block = self.block(name)
             for forbidden in ('git fetch','git push','pip install','apt-get','archive-senate-paper-pages',
-                              'qualify_senate_paper_first_report','qualify_senate_paper_second_report'):
+                              'correct-reviewed-senate-paper'):
                 self.assertNotIn(forbidden,block)
         for forbidden in ('archive-senate-paper-pages','senate-efd-gate','apt-get','tesseract-ocr',
-                          'qualify_senate_paper_first_report','qualify_senate_paper_second_report'):
+                          'correct-reviewed-senate-paper'):
             self.assertNotIn(forbidden,saved)
 
 

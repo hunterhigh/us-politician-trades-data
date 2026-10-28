@@ -199,6 +199,9 @@ def main() -> None:
     bridge_paper.add_argument("--document-id")
     bridge_paper.add_argument("--materialize-saved", action="store_true",
                               help="Interpret saved paper evidence without starting OCR")
+    senate_correction = sub.add_parser('correct-reviewed-senate-paper')
+    for name in ('batch', 'pending', 'correction', 'evidence-root', 'output'):
+        senate_correction.add_argument('--'+name, type=Path, required=True)
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
     candidate.add_argument("--evidence-root", type=Path)
@@ -606,6 +609,12 @@ def main() -> None:
             from .reviewed_house_paper import qualify_reviewed_paper_paths
             result = qualify_reviewed_paper_paths(args.evidence_root, args.review_root, args.correction)
             print(json.dumps(result, sort_keys=True))
+        elif args.command == 'correct-reviewed-senate-paper':
+            from .reviewed_senate_paper import qualify_reviewed_senate_paths
+            result = qualify_reviewed_senate_paths(batch_path=args.batch, pending_path=args.pending,
+                correction_path=args.correction, evidence_root=args.evidence_root)
+            _write_atomic(args.output, result)
+            print(json.dumps({'transaction_count':result['transaction_count'], 'failure_count':result['failure_count']}))
         elif args.command == "bridge-house-paper-batch":
             result = bridge_paper_batch(
                 evidence_root=args.evidence_root, review_root=args.review_root,

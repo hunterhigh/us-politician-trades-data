@@ -1,0 +1,5368 @@
+{
+  "schema_version": "source-correction/v1",
+  "source": "senate_efd",
+  "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+  "source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+  "reviewed_at": "2026-10-28",
+  "profile": "reviewed-senate-paper/v1",
+  "assertions": {
+    "source_review_sha256": "ba07ad3df141a14165905dc52468e198ec7be8d469c486729f6c36846513c24f",
+    "manifest_sha256": "b7387adfc9939708749a1294bb545a82c31380b62255554b58d2cf30a18a5dc0",
+    "person_id": "senate:B001277",
+    "row_inventory": [
+      "p2#2",
+      "p2#3",
+      "p2#4",
+      "p2#5",
+      "p2#8",
+      "p2#9",
+      "p2#10",
+      "p2#11",
+      "p3#2",
+      "p3#3",
+      "p3#4",
+      "p3#5",
+      "p3#6",
+      "p3#7",
+      "p3#8",
+      "p3#11",
+      "p3#12",
+      "p3#13",
+      "p3#14",
+      "p3#15",
+      "p4#2",
+      "p4#3",
+      "p4#4",
+      "p4#5",
+      "p4#8",
+      "p4#9",
+      "p4#10",
+      "p4#11",
+      "p4#12",
+      "p4#13",
+      "p4#16",
+      "p5#2",
+      "p5#3",
+      "p5#6",
+      "p5#7",
+      "p5#8"
+    ],
+    "pending_row_sha256": {
+      "p2#2": "d58557e9d2594073806c0c468844e0d68290138a0b174df077455fa105caa82f",
+      "p2#3": "71efe321ae51954d0e93d05e1be3f0b2b26fe4ebbdb75079c0a214eda80adc41",
+      "p2#4": "8a57f8d7afe417ca37bcdd96b7722feeab3ab8fbf9d4ca46140db9409201e41d",
+      "p2#5": "ab2ff56ec7058b43cdde6393d720249fb1505d474e5999244c65e6f1f9a71b97",
+      "p2#8": "979c77adb9b3adb69b0fde0f6b69068e27a6b870347995cdc8772765e6649b1a",
+      "p2#9": "1e615fc12ad335fade3c2c21bf8a4d3cd296a43bdbc6825afd5045d1f8e2652b",
+      "p2#10": "9d7f52faade5789ba621b6e4e20111ef8aa2e6492787b010176e6edb786b5c08",
+      "p2#11": "2d5b212d6360edb6ae01792b8c66a552e2441150f0dd88f6a7b896b43cc2c79a",
+      "p3#2": "e676637559d3a22ddb0798d71b6e4fba7c54af93afb1ff9bb7976485c64305ba",
+      "p3#3": "85464f57446f4355934dec04851b10a612cedcd9e2f438d6e7315b11a4e0f676",
+      "p3#4": "0686df963d011ac03d6119bfa86bccbd985c75832b694e2c04b04fe439952a03",
+      "p3#5": "4f57f9058471d971e0b0aaf81bc44cf6cf50f8e9ab98624f8f7cea39a1982b1a",
+      "p3#6": "0317769ce6e9a39a65abe434a78c0a0c2b80e8e2e09f85c2c06d214595d070bb",
+      "p3#7": "2b902281f76b6583bac86c9a1e150143f24ccc97fa4bb73f4a7b967534ffbd8e",
+      "p3#8": "ffc06bf10593b352de4b384fd7e63b30d0d30425003efd226ee428562fe4fe0d",
+      "p3#11": "1f931d4680384639536830a4eb1bc0a7a10a7dcf17ff59a910cc021f3e02cd38",
+      "p3#12": "a708101e1c7dd37d944bc442e922cff44a93e5829c3fc0b9fc2b3f64bacb7578",
+      "p3#13": "8876361c2786a35a0b2b3358a0e7f57c680b5cd54937e24e9eb196b039fef40a",
+      "p3#14": "0859d95198dd5424561d439fd68915436b0ffe07171f3e355b557aa295403334",
+      "p3#15": "07eed03b7f3add2cb9e636f538ba96c9c2a4b0bbdb8666cd5d12ee17dea32b54",
+      "p4#2": "fa49b2246e15dd1ed9aeed575f407aec134a77da1466cba4bdfbadf91ac4e123",
+      "p4#3": "b012da33a6b4cf5dafcd77952790be90c95d711bf89021387eba65f5c690e904",
+      "p4#4": "cebb2646eff4d747b96b2983d5515b3dbc9d67494f2effb7a2626327f6365475",
+      "p4#5": "ec58a20bc3a46cfdd3bd3cc10166f9beee371d84241af9976e58eee1f27f401b",
+      "p4#8": "31bfb3ae53999b3bd53b06b1910e9f4fafe2f2f23c661f7bca3e435606d95abb",
+      "p4#9": "bea4069d052955ecc9fffa7f1ae5f9f3729d1c214bdc8d78665548e805bcd341",
+      "p4#10": "be8f8740549a0c5f1640db3e65e66d8e9140f6cca61b9a94f74063699437de5c",
+      "p4#11": "a0ea62fbd7e6726bee849a544006b2704ffaeefae307c4f62cbab3c2a5f750d3",
+      "p4#12": "882aea65b53278ad9ef7f11fbcd905941e3f8ad55e217c1a9b7d3ea5dd17efe9",
+      "p4#13": "e43dbea16baf400f8fed9f24ce675130c742210c010f46ee62f390047aad6c21",
+      "p4#16": "06bf8fa2ffadfee2a9c1763fed8b81dc074260875f9e769933660d93c546ca24",
+      "p5#2": "4b8014176de277a9a9fe108360882940654d1ed9134e3e65719bb74c10262ad5",
+      "p5#3": "5aec0416c46f07e628d1e292dd3a30a8204d4d7c8a444478bb34202adee26ec7",
+      "p5#6": "454cf6040b03b74aa6bf10a54ba4a2bbbbba31e14d5c7384ef28998cc189b876",
+      "p5#7": "9319e7e5325c491e8e2e9013e3cfc869144a13d585c4ea166f2da67425ff2235",
+      "p5#8": "5be23404f835736d2d18fb44a84dde7b6c540e267192fa6baa11f3c93d6b3405"
+    },
+    "report": {
+      "catalog_title_date_matches": true,
+      "document_disposition": "transactions_parsed",
+      "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+      "eligible_transaction_count": 36,
+      "evidence_complete": true,
+      "filed_at_raw": "Filed 02/12/2026",
+      "filer_name": "RICHARD BLUMENTHAL",
+      "frontend_gate_audit_sha256": "123eb6f68e316449f3f2919f49514554e3ab0e567fdaa972073cbbdb9323a009",
+      "paper_rule_version": "senate-paper-form-geometry-2026-10-v2",
+      "parser_version": "senate-efd-report-parser-2026-09-v2",
+      "portal_listed_date": "2026-02-12",
+      "qualification_basis": "fixed_source_visual_review_v1",
+      "quarantined_transaction_count": 0,
+      "report_amendment_number": null,
+      "report_label_date": "2026-02-12",
+      "report_title_date": "2026-02-12",
+      "schema_version": "senate-efd-paper-ptr-extraction/v1",
+      "source_id": "senate_efd",
+      "source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+      "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/"
+    },
+    "page_crops": [
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2086,
+          2920,
+          2219
+        ],
+        "grayscale_sha256": "c2d1101cffeabf2e6ac72dec05f874766427a3df62ac946ab70ac331c52e6c91"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2094,
+          1385,
+          2211
+        ],
+        "grayscale_sha256": "c813281c6c814c3b3288eccf1b217f4559f484b8081bbe0076f1b9d0c3548800"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2094,
+          1940,
+          2211
+        ],
+        "grayscale_sha256": "80282da2260213fbd0bcdc424468c5f557e0240b5e2368a484b528522c9efae8"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2219,
+          2920,
+          2351
+        ],
+        "grayscale_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2227,
+          1385,
+          2343
+        ],
+        "grayscale_sha256": "29347775958f26648382a6fd6b87bfe3eeec9689efcbea5a69c543dc096e754a"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2227,
+          1940,
+          2343
+        ],
+        "grayscale_sha256": "1cc3fc2877b10026bfffbbf079b490845737b03baf6f868d38a7e6b4c87bc9c0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2351,
+          2920,
+          2483
+        ],
+        "grayscale_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2359,
+          1385,
+          2475
+        ],
+        "grayscale_sha256": "d2b08d4e0b64a6ad3b83fe7de87cfbb5eddea43956318f40457217e2c8d6ed4d"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2359,
+          1940,
+          2475
+        ],
+        "grayscale_sha256": "6631d2a43e79ef41b3e834b0d8de415765a5670505cda64e0a9d615fa0619941"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2483,
+          2920,
+          2615
+        ],
+        "grayscale_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2491,
+          1385,
+          2607
+        ],
+        "grayscale_sha256": "68c4c1c3045da921ed7749c8f26d14264f1486485b334c0bb262c5c8e6db54ff"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2491,
+          1940,
+          2607
+        ],
+        "grayscale_sha256": "45aabf6b7d46feb84f9e68ebf1fcef59b61645cda9b7abeb1317a8349ed528ef"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2615,
+          2920,
+          2748
+        ],
+        "grayscale_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2623,
+          1385,
+          2740
+        ],
+        "grayscale_sha256": "2dfed0c7f186350bb3ab7c1b16ee9eb381f76fe8e75cde105267d0b73fe61fef"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2623,
+          1940,
+          2740
+        ],
+        "grayscale_sha256": "9e2e9243e9c7484e39bb9407da816dd9cac53e44d2ff99985b6271c0801eeaf0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2748,
+          2920,
+          2880
+        ],
+        "grayscale_sha256": "ece1e81269da401e5be35327de8890849e911ad5581b4ecc7f817bf2e93318ba"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2756,
+          1385,
+          2872
+        ],
+        "grayscale_sha256": "4597dff15f73d75b265e65f9accef7e40a02fcb597a3e199a2455dfaec68949c"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2756,
+          1940,
+          2872
+        ],
+        "grayscale_sha256": "22366b075cfd9eba10c633c69948e2bb8c1cb8b93ff6ee2b5b9ba5bd0867de33"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2880,
+          2920,
+          3012
+        ],
+        "grayscale_sha256": "12a81d23af10a4cc204a425690794127c86e6e419e948aa0a8c6e2ce7a569ffb"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2888,
+          1385,
+          3004
+        ],
+        "grayscale_sha256": "4b49b5c31e01f13b2fc70bdb43bd999122daa84b7131b94203378ed14bb5ef02"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2888,
+          1940,
+          3004
+        ],
+        "grayscale_sha256": "3e89abd9f057e32ed30a6390de813d11a480c1ac4bcbc7ceedb529a19f573701"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3012,
+          2920,
+          3144
+        ],
+        "grayscale_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3020,
+          1385,
+          3136
+        ],
+        "grayscale_sha256": "49069913ea71188ecf2189b9e06d0799a588d867b7e85507cf9fd5889bfaf2a0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3020,
+          1940,
+          3136
+        ],
+        "grayscale_sha256": "17190c9098ad9904d870cf0e2e94e2c527c6e16dad63a5a17acfaba20dc19558"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3144,
+          2920,
+          3276
+        ],
+        "grayscale_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3152,
+          1385,
+          3268
+        ],
+        "grayscale_sha256": "445fda0d174b6205ff706982aae16289e0d1f92c38223c96d5fcd59100e7c8e0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3152,
+          1940,
+          3268
+        ],
+        "grayscale_sha256": "745166b0d163787ad6e544e52876f8fd1102f72ac4e67db93d34c8c375e182ca"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3276,
+          2920,
+          3408
+        ],
+        "grayscale_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3284,
+          1385,
+          3400
+        ],
+        "grayscale_sha256": "87cbbffa278b71b67ff34e5975b3d17cca5506a28a1964c3c8a819be8e420434"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3284,
+          1940,
+          3400
+        ],
+        "grayscale_sha256": "8c7964dcef4a8e3c6a4d7bac7fbdc87e9a43aff2f0a2f48ae03a785e3d6ce1f7"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3408,
+          2920,
+          3541
+        ],
+        "grayscale_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3416,
+          1385,
+          3533
+        ],
+        "grayscale_sha256": "9b7c551e74a5a5cb5cc21bbd5844345a38f2c7aa654095804e782531ce15f26c"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3416,
+          1940,
+          3533
+        ],
+        "grayscale_sha256": "55ac9b9640d3ad5164de7c3bc92375e2ab3f41099b42a5ac0160cf3204fca53e"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3541,
+          2920,
+          3673
+        ],
+        "grayscale_sha256": "1c75d55de58e30a085a464b3962aeaa61dc9e74cb2876d2125a906d08cd25c00"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3549,
+          1385,
+          3665
+        ],
+        "grayscale_sha256": "af1f54c4d25dae2eef1f82a64a67c88af995e1ff29cd0e7045ab2838ad9c8a52"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3549,
+          1940,
+          3665
+        ],
+        "grayscale_sha256": "db476d81b4abbb03f5207030603315d73b3e49bb1e5a6290ed330f410ecf730d"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3673,
+          2920,
+          3805
+        ],
+        "grayscale_sha256": "d4cca8263daeb5d8eb000259e9d3d2cd7c48692ef83477b645bd771ea74024c8"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3681,
+          1385,
+          3797
+        ],
+        "grayscale_sha256": "76a0db6a79e9282414ad3ed8b04d42a59768ade8ae843fb89dba63c0e030b8f9"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3681,
+          1940,
+          3797
+        ],
+        "grayscale_sha256": "7e8728d2bf5c8a23aeb62f7780b74b4642aa646e9ace46f2a290d7f65e063f8a"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3805,
+          2920,
+          3937
+        ],
+        "grayscale_sha256": "390b5b4e607917071ed0a1d0ad62e306a5a1343be147fce817ffd0b7bc66641b"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3813,
+          1385,
+          3929
+        ],
+        "grayscale_sha256": "bc4aab661145fe7daed676a117e676989fe747521639de1330c864f92b25d1cf"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3813,
+          1940,
+          3929
+        ],
+        "grayscale_sha256": "26534a9bdcb7c823375555bc906d2551f846fb6634f105ad2dcc3f80fbeb8eef"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1333,
+          2920,
+          1483
+        ],
+        "grayscale_sha256": "f0f8cb0ed037dee14a161f9c8817f62e734c6cdd409c5b5f2d7d609a5c8b607f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1341,
+          1385,
+          1475
+        ],
+        "grayscale_sha256": "8644951a1d6f3a55f2a9a26aabea8713943d91fde5dee55bd6e579363002c95d"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1341,
+          1940,
+          1475
+        ],
+        "grayscale_sha256": "11becfdca05e2c4437497a0e1ecc5e816e700142bb031b986cee91078e936bb4"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1483,
+          2920,
+          1632
+        ],
+        "grayscale_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1491,
+          1385,
+          1624
+        ],
+        "grayscale_sha256": "3baf2be0bca13fc3a9618e2ba2bf92371150f205d4a67cfbbb6dcd8ba3265fb7"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1491,
+          1940,
+          1624
+        ],
+        "grayscale_sha256": "80b4e9f8ddbd499dcf06057c887a99d1e2f8f102b9bf8600165958ae94547b3e"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1632,
+          2920,
+          1781
+        ],
+        "grayscale_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1640,
+          1385,
+          1773
+        ],
+        "grayscale_sha256": "786e24302c4d287c1c479cb004e65627193c35943655e5eb6da550a1705ba993"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1640,
+          1940,
+          1773
+        ],
+        "grayscale_sha256": "5f9fc215b31ff4043cde8f820375c43652be943bbb037780ef7581c299c9efe9"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1781,
+          2920,
+          1930
+        ],
+        "grayscale_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1789,
+          1385,
+          1922
+        ],
+        "grayscale_sha256": "ed65d3ba4fb1ed21e5e6b6de4e1979e9b35956f826cfa6e2e296d3ba91e4c1eb"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1789,
+          1940,
+          1922
+        ],
+        "grayscale_sha256": "c81fa66932639175789eb51c411c891521198faff8aba0a45fec0b6b60b15ba9"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1930,
+          2920,
+          2079
+        ],
+        "grayscale_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1938,
+          1385,
+          2071
+        ],
+        "grayscale_sha256": "e0489849bffe474d4ee9cceb881f4492ceb23bc15652e0563189d04456e712e4"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1938,
+          1940,
+          2071
+        ],
+        "grayscale_sha256": "b9efd3062115389071e255cd9d36f762e1e7986e3dfa906f473042b528d12871"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2079,
+          2920,
+          2228
+        ],
+        "grayscale_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2087,
+          1385,
+          2220
+        ],
+        "grayscale_sha256": "82773a587ffe5710f6412acef7d1644750f5d0067edd7857722072c8d84b8f98"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2087,
+          1940,
+          2220
+        ],
+        "grayscale_sha256": "2b99198f7ab88f2e86d735c46dbc1c47440880a8a08ed2fd79046a28483af676"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2228,
+          2920,
+          2378
+        ],
+        "grayscale_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2236,
+          1385,
+          2370
+        ],
+        "grayscale_sha256": "a5d331ca38d20511e2d0c8920d758133276e2950dfe9fc2c2f9fccb7a81e16df"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2236,
+          1940,
+          2370
+        ],
+        "grayscale_sha256": "48709f279a5cf088b27e6d3cd5a747db84a2ad35a064c988d7e0a540b7067dac"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2378,
+          2920,
+          2526
+        ],
+        "grayscale_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2386,
+          1385,
+          2518
+        ],
+        "grayscale_sha256": "b1005e0e9129f5cdbbff380c9dfed72e7fb936c18eb954727aec17bd10932765"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2386,
+          1940,
+          2518
+        ],
+        "grayscale_sha256": "1f2506a56b2a96950595beedfc03615c70aa58536ff307d0fecf473dec281305"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2526,
+          2920,
+          2676
+        ],
+        "grayscale_sha256": "e7eb7075321aaec04061dd6bf33913fced3de9db445efb04351830ccc831e861"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2534,
+          1385,
+          2668
+        ],
+        "grayscale_sha256": "16b4d996fcb214901c77b038b2eab86e1341930156272f18a21b9bea3aed9c6c"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2534,
+          1940,
+          2668
+        ],
+        "grayscale_sha256": "807d913dc75ac56fc7ebb9a716524745d1c0f7913a83ee1fa409cf27af0618e3"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2676,
+          2920,
+          2824
+        ],
+        "grayscale_sha256": "c2bdb0b7e77ac8f1c905666ffcfe4ec613d12d3027f3dd85b9c52b77a68ca3f2"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2684,
+          1385,
+          2816
+        ],
+        "grayscale_sha256": "768a96b9d2114209032f1b8946435ee70b27c327bd7ae7cd30bd954116c3aa77"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2684,
+          1940,
+          2816
+        ],
+        "grayscale_sha256": "0c715052fabd69b2cb8e3c35cd79970c93ec3351d83c75e3d82b40778ec348f2"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2824,
+          2920,
+          2974
+        ],
+        "grayscale_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2832,
+          1385,
+          2966
+        ],
+        "grayscale_sha256": "5f2cbb805b1ba11984e0d85ec7bf210cec18993fcf6ed94d4466502ed8efbd1b"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2832,
+          1940,
+          2966
+        ],
+        "grayscale_sha256": "80d6a529ffa8c17d3a21eda75a7c9e539fb24bbae4c52fdd4014e07c258b020a"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2974,
+          2920,
+          3124
+        ],
+        "grayscale_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2982,
+          1385,
+          3116
+        ],
+        "grayscale_sha256": "4c5512e8ae69ddb369502ee29ce4bf182175c5d390b96b387741d8eba60b66a3"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2982,
+          1940,
+          3116
+        ],
+        "grayscale_sha256": "bd07addb83a3ffa3abc6b05fc5b00952bfc35d41a5718ebc419482866c6d2553"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3124,
+          2920,
+          3272
+        ],
+        "grayscale_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3132,
+          1385,
+          3264
+        ],
+        "grayscale_sha256": "bc751afd27259cfaf77b86f9703ab9e2ec4993a79f8d1ada98bc7db1ca1084d0"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3132,
+          1940,
+          3264
+        ],
+        "grayscale_sha256": "d7eccf1d26c8282fc5ac68bbee849276ea320f3b81cce233a68916b941cbb785"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3272,
+          2920,
+          3422
+        ],
+        "grayscale_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3280,
+          1385,
+          3414
+        ],
+        "grayscale_sha256": "3d13a39eb85395cdf9c8784e0e24167578350e0ddd04c8fcdd2558f4a8a5f504"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3280,
+          1940,
+          3414
+        ],
+        "grayscale_sha256": "0d0573cb6cb1c89b8441c07df453a7bc5fb8a41a544422f4a59df0dce6d52657"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3422,
+          2920,
+          3570
+        ],
+        "grayscale_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3430,
+          1385,
+          3562
+        ],
+        "grayscale_sha256": "ea93aeb78cb15b28efd05f101dc7e9ff92074da8245a5ba0f083c22a282d6002"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3430,
+          1940,
+          3562
+        ],
+        "grayscale_sha256": "aa46b285b0364d4c7eee23b23641e5b7eec0faee8ee5debb34c1ca61f25d70cd"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3570,
+          2920,
+          3720
+        ],
+        "grayscale_sha256": "f5afce7737a2e7664444d7714a33e4fa9bb9198af8aad4c91b72c3fb3c98013d"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3578,
+          1385,
+          3712
+        ],
+        "grayscale_sha256": "8e6a6554559eaf080d5048c0dd3b5a7068439b940ec6e8d8a82e6e86407c033a"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3578,
+          1940,
+          3712
+        ],
+        "grayscale_sha256": "2bfc4d572c314e5a71c89419f6cb0159dee2e2bb71be24ca7b05a338d3b4104f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3720,
+          2920,
+          3868
+        ],
+        "grayscale_sha256": "c74b87a55703443e25389fe8818a3283ab7f98d230b44f52c9220a91e830f974"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3728,
+          1385,
+          3860
+        ],
+        "grayscale_sha256": "1fc4857992a98f138efa9dbcaede29b2f7187bafa78b638a8f41d096adbd9be9"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3728,
+          1940,
+          3860
+        ],
+        "grayscale_sha256": "c28b27324549fcd0db929d2ec87677c1572fd5a4b57f47379a2a3e9ef93af904"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1338,
+          2920,
+          1488
+        ],
+        "grayscale_sha256": "f42f7a9719ba64bc8971ebddef6e3c94216215e47f8bbfb0d0d358106c33dad0"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1346,
+          1385,
+          1480
+        ],
+        "grayscale_sha256": "aa50fc048783c6f589318b6f5b0afe3c13967802cd9653372e7c5588549522ba"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1346,
+          1940,
+          1480
+        ],
+        "grayscale_sha256": "227b00f6bf79a3b80135124b40bc64cbc6f641b0bf939a3536fcb0ec1e4cafcf"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1488,
+          2920,
+          1637
+        ],
+        "grayscale_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1496,
+          1385,
+          1629
+        ],
+        "grayscale_sha256": "76566e2eed667b8e53fa5b73d5da857a1faddf8af184aa13e73e519578e378a9"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1496,
+          1940,
+          1629
+        ],
+        "grayscale_sha256": "352490fe953171570659b1829fe569b80fd4e26d3e52e9c2cfe340645f10a291"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1637,
+          2920,
+          1786
+        ],
+        "grayscale_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1645,
+          1385,
+          1778
+        ],
+        "grayscale_sha256": "0ba4bb5140a2351c120d86774036f5278c8d92d50d0863b1da15271c45a9b703"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1645,
+          1940,
+          1778
+        ],
+        "grayscale_sha256": "14bc6b73f5d8a1be0e8f5c0196d5d6a2437cc9537b4f7a28b7a280aa4b1cc1b3"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1786,
+          2920,
+          1935
+        ],
+        "grayscale_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1794,
+          1385,
+          1927
+        ],
+        "grayscale_sha256": "043cd1758b1844d5636373d883d9c504df753f37d80c06e58e89ccb935085173"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1794,
+          1940,
+          1927
+        ],
+        "grayscale_sha256": "d16cc1a14cbdea90369019f9d6dcaf61fe0eb9375260d449884368db10241bc2"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1935,
+          2920,
+          2084
+        ],
+        "grayscale_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1943,
+          1385,
+          2076
+        ],
+        "grayscale_sha256": "b024e66dfc6437041aef1401ab8d57a85606892bbe568cf154d1f16251b30e4b"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1943,
+          1940,
+          2076
+        ],
+        "grayscale_sha256": "6fcea74878323f1c4bb5c31155fab62f679044ebcb81f0644aaf4f603befdad4"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2084,
+          2920,
+          2233
+        ],
+        "grayscale_sha256": "6ade6e868b71653c79015d186a25e7a0d3a4ddd69c5866bfb3dc7a6479c8a7ee"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2092,
+          1385,
+          2225
+        ],
+        "grayscale_sha256": "9568993be09df4fbd4eb81419ce33c52eeac6ac45459d3b25acf063bb4516254"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2092,
+          1940,
+          2225
+        ],
+        "grayscale_sha256": "7e94e48b3673e0bb13c01a94f1f44e7f94eb97c7fc52d2c39a99299bad0f8457"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2233,
+          2920,
+          2383
+        ],
+        "grayscale_sha256": "282138fcf89c7b89a7c09a6c261a6d93501c4dd9f1c17280eda5fb582d8b46cd"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2241,
+          1385,
+          2375
+        ],
+        "grayscale_sha256": "6cb5e1769ac718d64e0cee52f6fca23c91811b09caad1fc94858c872d90ef008"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2241,
+          1940,
+          2375
+        ],
+        "grayscale_sha256": "aaba18f1c1ffe06bdea5e3fda75bb95c62cd881be025968671ffc3e7507434fa"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2383,
+          2920,
+          2532
+        ],
+        "grayscale_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2391,
+          1385,
+          2524
+        ],
+        "grayscale_sha256": "29eafb4a7dbe4cc1d274f5de5abec43cc537936d40699a740aae84f4dd75babd"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2391,
+          1940,
+          2524
+        ],
+        "grayscale_sha256": "0aef4a7c34074200aa0f21b4249c93986c9e4d7db00f93db9418c807c681bf53"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2532,
+          2920,
+          2682
+        ],
+        "grayscale_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2540,
+          1385,
+          2674
+        ],
+        "grayscale_sha256": "80fd0f8b50a7938b5b2ae6d37cc5eea835cd26f88aadcac7343346a8ee5db9ac"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2540,
+          1940,
+          2674
+        ],
+        "grayscale_sha256": "d3dd0c6b91d637ed2e5a88ca76ee2d6652197f9d2204dd215aa918f6c8495843"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2682,
+          2920,
+          2830
+        ],
+        "grayscale_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2690,
+          1385,
+          2822
+        ],
+        "grayscale_sha256": "9a7ca4c4f82c61026b0f02c9c417649d7d0701880f125b8246e8e37083afba7f"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2690,
+          1940,
+          2822
+        ],
+        "grayscale_sha256": "077a31ba0aa631dce54d5e710890e08ca26d7955c7606e0e3b21dbeaeb2f443c"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2830,
+          2920,
+          2980
+        ],
+        "grayscale_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2838,
+          1385,
+          2972
+        ],
+        "grayscale_sha256": "33d22ab4137b2b9de105be4cd6701a6423876329a76f9e8787f387fce7b67e5d"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2838,
+          1940,
+          2972
+        ],
+        "grayscale_sha256": "86760723668266c5145f97703ccfc8775d0823c49120f6e392b8c7d760e69b46"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2980,
+          2920,
+          3129
+        ],
+        "grayscale_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2988,
+          1385,
+          3121
+        ],
+        "grayscale_sha256": "c6e2a16e0ae315408c36b631ad5a1e9b8935add6df44ff4a80130332c2e3eb7e"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2988,
+          1940,
+          3121
+        ],
+        "grayscale_sha256": "576c4b9a5148ba46000cd44487ffcfa7e63fa0f0f1f258b1fd70d56b15e4e37f"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3129,
+          2920,
+          3279
+        ],
+        "grayscale_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3137,
+          1385,
+          3271
+        ],
+        "grayscale_sha256": "d001124c4e8338ef01933940bf40e891a61347d18290b1bf317f3eab74c07aa6"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3137,
+          1940,
+          3271
+        ],
+        "grayscale_sha256": "3989b36928651666878431bc09c1a48ef3faf83edb83f5dc699b9c4219473365"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3279,
+          2920,
+          3428
+        ],
+        "grayscale_sha256": "2ffdffb8b207daa9146f227e441df1b333434d5a8c4628631aa11f5dd1b129d7"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3287,
+          1385,
+          3420
+        ],
+        "grayscale_sha256": "8e65c6f8500ad5900136b7ad97e94200c22292eddf2772cbb025f170188c0716"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3287,
+          1940,
+          3420
+        ],
+        "grayscale_sha256": "fd9050d3449356fb621378f8dcdf6e4e40a35f5313f771cdc3a4bb96f59ebf25"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3428,
+          2920,
+          3577
+        ],
+        "grayscale_sha256": "1009449e5c2a485c8a828582b003d0e3f21e08fe51b4ca6381694249674e3fe1"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3436,
+          1385,
+          3569
+        ],
+        "grayscale_sha256": "d8d430e4a95bb939062975d4ccb97c0c1eb41b664e18f943b60fffd1f63fc960"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3436,
+          1940,
+          3569
+        ],
+        "grayscale_sha256": "d83060eb9538d2c0c75852112fa29b4a2a7b7d9beb8a3e81c0b7d50d44f3fd72"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3577,
+          2920,
+          3726
+        ],
+        "grayscale_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3585,
+          1385,
+          3718
+        ],
+        "grayscale_sha256": "b640f534b526cc7927ab1d743b2373637a1105cecfba32c709cf9d4085e67fe7"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3585,
+          1940,
+          3718
+        ],
+        "grayscale_sha256": "189fe626b175cafaade1f62bd6c5c6c456855b5b94b9778eaf1cc16e75a6b0a0"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3726,
+          2920,
+          3874
+        ],
+        "grayscale_sha256": "d2b2768ff012d17fc72875a0374762c3c461deb85f0219ff4260c03c9ce7d5d5"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3734,
+          1385,
+          3866
+        ],
+        "grayscale_sha256": "de4b7cac7d675cd307606a0a9e3e1ee6b644b6ee0b2dc9577cff0bd9cf94455c"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3734,
+          1940,
+          3866
+        ],
+        "grayscale_sha256": "a93b684e167e5a7af169c524ed637c87bfd2b21051d714b45667aeb306074fa0"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1345,
+          2920,
+          1494
+        ],
+        "grayscale_sha256": "3961abee473bd8ae8b70af208a8101dbfabbe6baad0246816d17f7178803011f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1353,
+          1385,
+          1486
+        ],
+        "grayscale_sha256": "5e79cb52ad23b6c2c306791930775c23ffa97ea665721cd8b5ad1f71ac3adcd4"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1353,
+          1940,
+          1486
+        ],
+        "grayscale_sha256": "fbe84da602cf726bb69095c9c0c83c860b7dfd9117c6bf201ed48aeff25bc24b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1494,
+          2920,
+          1644
+        ],
+        "grayscale_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1502,
+          1385,
+          1636
+        ],
+        "grayscale_sha256": "24bca82b21bb667b0ec408a65a9d0f958c16420955c5c55272dd0fca79987d8a"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1502,
+          1940,
+          1636
+        ],
+        "grayscale_sha256": "1196ec4179a5596af0a6a585b438752d21c5d8a70dcaa09d43fe3c5af6f56373"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1644,
+          2920,
+          1792
+        ],
+        "grayscale_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1652,
+          1385,
+          1784
+        ],
+        "grayscale_sha256": "9822aa4fb72c1b02772336fc53b237ff284dcd1c658c18da8ab4910e1239948c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1652,
+          1940,
+          1784
+        ],
+        "grayscale_sha256": "dfaffb1dc05da7ff8660ae977eb0f20e9f1d77cbcd829be14fb23ba913c99e35"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1792,
+          2920,
+          1941
+        ],
+        "grayscale_sha256": "32c1c6a0389768fc56a5ba9ae8d775e24d7d51f12eaebf52b7212290414801aa"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1800,
+          1385,
+          1933
+        ],
+        "grayscale_sha256": "7349191a75782a1f0952b06a0d31a4a0cfb13015ff8024b9b8e39c7eda207726"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1800,
+          1940,
+          1933
+        ],
+        "grayscale_sha256": "1d48e41502a26c014afc017a8764bbfbdd5fa49f4b4bfb21ae53cb898745c72c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1941,
+          2920,
+          2090
+        ],
+        "grayscale_sha256": "02cb794a9916a5a55190a0909f9d03e668067b6650f1c74852ef779358366891"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1949,
+          1385,
+          2082
+        ],
+        "grayscale_sha256": "c3343fb7b8dc82aca98e547a01ddbf9c567d21dad9e20859ae5b4d0ed9d79053"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1949,
+          1940,
+          2082
+        ],
+        "grayscale_sha256": "426aad2bf15a8c8d797edbcaff952e998630918988466e8b7151822ccb81fb9f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2090,
+          2920,
+          2240
+        ],
+        "grayscale_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2098,
+          1385,
+          2232
+        ],
+        "grayscale_sha256": "c11c0a020520c270b0de20a06279979fe9f751617484ecd786966a2d78ce04c0"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2098,
+          1940,
+          2232
+        ],
+        "grayscale_sha256": "9d2c5423141113f12948eed78fc561ef17d76159cfe9a2540da99b0252e91339"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2240,
+          2920,
+          2389
+        ],
+        "grayscale_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2248,
+          1385,
+          2381
+        ],
+        "grayscale_sha256": "cd335d66e96ebeb21830392ca44a268abbe3628390f862a2c4dd28ad9adf6bd8"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2248,
+          1940,
+          2381
+        ],
+        "grayscale_sha256": "c325cc4c3f1dbe3e5817b85c7ff2744b2471bc1992d2068e0834f67674e53e95"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2389,
+          2920,
+          2538
+        ],
+        "grayscale_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2397,
+          1385,
+          2530
+        ],
+        "grayscale_sha256": "a10eef67f8b513e1d05ca3dce232661b7c8dc7f1dab8f7a907a591e48f9527ba"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2397,
+          1940,
+          2530
+        ],
+        "grayscale_sha256": "57e175058b2d9518e699980056395ef380c880da28cea92a22c0daa9ad95d04c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2538,
+          2920,
+          2688
+        ],
+        "grayscale_sha256": "5f0e2d455c1363bdb04280428719e1638091b892369950ae10291ac41c858a5b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2546,
+          1385,
+          2680
+        ],
+        "grayscale_sha256": "ba17bc4431c1ad2f3a4a52bc41c382d4d256686f966164c42467be896dccad5b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2546,
+          1940,
+          2680
+        ],
+        "grayscale_sha256": "d16ec41d80dbcad8d2bcc651397469b8bfa1e50dfd60fa46291117ac302b7e5d"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2688,
+          2920,
+          2836
+        ],
+        "grayscale_sha256": "17bac36c7ea9885adf86f79bdefca75da41a595b9ad37ef824492dff517c515f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2696,
+          1385,
+          2828
+        ],
+        "grayscale_sha256": "a67a03874e14319cdb5979189ecb4b66ec994f65f01aba308bdd373a63dd12f5"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2696,
+          1940,
+          2828
+        ],
+        "grayscale_sha256": "8fd37f9f195192e2c94f8bfd53a2ddcec5df76189344eefc80b15e0d72a2d7cf"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2836,
+          2920,
+          2986
+        ],
+        "grayscale_sha256": "6fad07bf8a3b359497b9eb2bf5b177889d50f9565d49520aa3fbbef6af9def70"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2844,
+          1385,
+          2978
+        ],
+        "grayscale_sha256": "b07cc0ac6d7e6cb2495d7291a050c6a0455e29f5a000d8fab28a0a68072cd452"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2844,
+          1940,
+          2978
+        ],
+        "grayscale_sha256": "46da7ecebbcd991641602dcb5afaa914c92b379a0bb9718dbda16ccfac710537"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2986,
+          2920,
+          3134
+        ],
+        "grayscale_sha256": "01ca20ab6dd5b66fecd88ada55f8e32627d05deaa01dc912610a0cd52b2f3f7f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2994,
+          1385,
+          3126
+        ],
+        "grayscale_sha256": "ca827d4a24073b3956957a3b68ee799d622e3f9ded8c81c3d3f4c7d27db853fb"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2994,
+          1940,
+          3126
+        ],
+        "grayscale_sha256": "090d82b8c9e3dd30383a33ef1b203b6dfd89ca586b3a6178a20e8c8f170e9d8b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3134,
+          2920,
+          3284
+        ],
+        "grayscale_sha256": "1752c7e32b6b01fb44d883d37ef4c99483c78f6a9b83f4224be02bf5465253ec"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3142,
+          1385,
+          3276
+        ],
+        "grayscale_sha256": "a597c2fb3fc13188e74629dd5298f61e22e7e15463db9070583422dfa7ed0119"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3142,
+          1940,
+          3276
+        ],
+        "grayscale_sha256": "f80f128562f4c371158d6d90d38a5103fe695f4c97c3bbd80640d834bf800188"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3284,
+          2920,
+          3433
+        ],
+        "grayscale_sha256": "071e64185ff356faf05c8212c186735842f4d178f79a3e30d16a851c4e19b9a1"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3292,
+          1385,
+          3425
+        ],
+        "grayscale_sha256": "2e70dd6ba1bd496c78b7227533fa6ad54d094bc12ff2ce6488f2298e4eb441f7"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3292,
+          1940,
+          3425
+        ],
+        "grayscale_sha256": "3b9cee4155325c4583a43826b389d384301e94320e1704b31987dd5368b19a30"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3433,
+          2920,
+          3582
+        ],
+        "grayscale_sha256": "d186e712e839de2623a87d0e91f940a3dec43c76ad5c3c78fc7bdc4a82eaadaf"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3441,
+          1385,
+          3574
+        ],
+        "grayscale_sha256": "04de28ba39015ced88a8e839ef484e67541eae46db6fa26d8b07f32155b05285"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3441,
+          1940,
+          3574
+        ],
+        "grayscale_sha256": "27c169535b83fb4a15102f1e04e40e17a84f5993dbb937668e42d889a20321aa"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3582,
+          2920,
+          3731
+        ],
+        "grayscale_sha256": "7c2cca71d3e3a837b3a67a13dca213025d01ea9a61ad3d72261d878549422283"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3590,
+          1385,
+          3723
+        ],
+        "grayscale_sha256": "32ebbd3a874459d46ba6f357703473990465381ab04dba3fd85a3d25ac0b71fe"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3590,
+          1940,
+          3723
+        ],
+        "grayscale_sha256": "23aec85ddbdb02cc6123d1be1f0522b582ef2ea7dfe7d4c6f1d1a63792b45a8c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3731,
+          2920,
+          3880
+        ],
+        "grayscale_sha256": "93d66a91df5b916f4839e584bd4c436df2946cabdbbf7e025383c96281d578f1"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3739,
+          1385,
+          3872
+        ],
+        "grayscale_sha256": "fa807bcba0d0f2993f8fa44a5b1507590d5d56725fb11f12f227bc3ce5c9cd40"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3739,
+          1940,
+          3872
+        ],
+        "grayscale_sha256": "cfb896587f810f95251a137b4bb57e02751fe6a44c0e20533abb58dbdd7fe186"
+      }
+    ],
+    "pixel_limits": []
+  },
+  "source_review": {
+    "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+    "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
+    "field_observations_sha256": "da42b9770d401238bedaaca8d2632372f436d373e17272a8412aa336ce3331a1",
+    "frontend_context": {
+      "current_document_transaction_count": 0,
+      "current_person_transaction_count": 1,
+      "matched_person_id": "senate:B001277",
+      "transaction_keys": [
+        "amount_high",
+        "amount_low",
+        "asset_name",
+        "disclosure_lag_days",
+        "filed_at",
+        "filing_id",
+        "id",
+        "instrument_type",
+        "owner",
+        "performance_eligible",
+        "performance_ineligible_reason",
+        "person",
+        "person_id",
+        "source",
+        "source_id",
+        "source_url",
+        "ticker",
+        "ticker_mapping_basis",
+        "transaction_date",
+        "transaction_type",
+        "underlying_return_since_filing",
+        "underlying_return_since_trade",
+        "verification_status"
+      ]
+    },
+    "frontend_sha256": "d60282832dc0e38e47be900fdd37aa386db474df404989467ffb8b55367efaa4",
+    "missing_field_counts": {
+      "id": 36,
+      "verification_status": 36
+    },
+    "report_context": {
+      "amendment_checkbox": {
+        "dark_pixels_below_160": 2,
+        "interior_crop": {
+          "box_px": [
+            1089,
+            829,
+            1105,
+            844
+          ],
+          "grayscale_sha256": "3dbaaf52d4a7d5422c59820365933dc56707dc6e084b2d2fde44861be099c215"
+        },
+        "observation": "no_mark_detected"
+      },
+      "amendment_number_in_entrypoint": null,
+      "catalog_listed_date": "2026-02-12",
+      "catalog_sha256": "0cf0622f563dbd276ed05b96424765f9a596515fd494e03bbb2c1b25ed611a63",
+      "cover_identity_crop": {
+        "box_px": [
+          350,
+          1250,
+          2300,
+          2000
+        ],
+        "grayscale_sha256": "d0f4fad8cec3265861e06819d5e48c3844657e887d6071d5a16698249845463e"
+      },
+      "cover_receipt_date": "2026-02-12",
+      "cross_report_equivalence": "unresolved",
+      "entrypoint_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+      "filing_date_evidence": [
+        "fixed_catalog_listed_date",
+        "fixed_cover_receipt_date"
+      ],
+      "filing_time": null,
+      "filing_timestamp_disposition": "date_only_encoded_at_utc_midnight_not_actual_time",
+      "form_identity_crop": {
+        "box_px": [
+          500,
+          750,
+          2950,
+          1150
+        ],
+        "grayscale_sha256": "61a08deb2c1d6c2d2c8bb32d9dd5c74301594b415a1d72e563f027fffeb5a89d"
+      },
+      "frontend_count_policy": "official_disclosure_rows",
+      "identity": {
+        "bioguide_id": "B001277",
+        "filer_name": "RICHARD BLUMENTHAL",
+        "official_roster_sha256": "7ed5a29def7139ac58a30b1e10e68f3c6059cf7938a7c5256c5374c94a5d1d8e",
+        "person_id": "senate:B001277",
+        "review_status": "matched_automatically"
+      },
+      "official_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+      "owner_legend_reference": {
+        "authority": "U.S. Senate Select Committee on Ethics",
+        "binding": "same_paper_PTR_form_layout_and_column_as_fixed_report",
+        "codes": {
+          "(DC)": "Dependent Child",
+          "(J)": "Joint",
+          "(S)": "Spouse"
+        },
+        "pdf_page_number": 2,
+        "section": "Identification of Assets",
+        "source_bytes_archived_in_code": false,
+        "url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf"
+      },
+      "same_person_catalog_reports": [
+        {
+          "catalog_listed_date": "02/12/2026",
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/"
+        },
+        {
+          "catalog_listed_date": "07/17/2026",
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/3a4c5095-028a-4614-a692-836719da4e63/"
+        },
+        {
+          "catalog_listed_date": "08/31/2026",
+          "document_id": "929216d5-5dbd-429c-858c-1e9332924627",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/929216d5-5dbd-429c-858c-1e9332924627/"
+        },
+        {
+          "catalog_listed_date": "06/08/2026",
+          "document_id": "a0d25e8f-fe54-4328-a7ea-504da008742b",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/a0d25e8f-fe54-4328-a7ea-504da008742b/"
+        },
+        {
+          "catalog_listed_date": "05/19/2026",
+          "document_id": "d02263c3-381d-4ee9-8d84-2c44d9baa59e",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/d02263c3-381d-4ee9-8d84-2c44d9baa59e/"
+        },
+        {
+          "catalog_listed_date": "03/13/2026",
+          "document_id": "d337c392-e0aa-428e-be93-44a327b90d08",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/d337c392-e0aa-428e-be93-44a327b90d08/"
+        },
+        {
+          "catalog_listed_date": "08/21/2026",
+          "document_id": "ec20cd93-6702-4a29-b3a6-983f4b17f365",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/ec20cd93-6702-4a29-b3a6-983f4b17f365/"
+        },
+        {
+          "catalog_listed_date": "04/08/2026",
+          "document_id": "f028d2ce-4ab7-41a8-a67a-91675b6941d7",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/f028d2ce-4ab7-41a8-a67a-91675b6941d7/"
+        },
+        {
+          "catalog_listed_date": "01/20/2026",
+          "document_id": "f873aeb4-adbb-4934-a188-79416a2e4c76",
+          "kind": "paper",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/f873aeb4-adbb-4934-a188-79416a2e4c76/"
+        }
+      ],
+      "same_person_electronic_report_count": 0,
+      "verified_supplement_target": false
+    },
+    "review_commit": "9749718e5ae837057db7c031d431714fc72988d1",
+    "row_count": 36,
+    "rows": [
+      {
+        "account_heading_visual_raw": "(S) 3M's Partners LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 2,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) 3M's Partners LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 3,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) 3M's Partners LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 4,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) 3M's Partners LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "MH Built to Last LLC (Account: (S) 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 5,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 8,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+        "amount_band_observed": "50001_100000",
+        "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 100000,
+          "amount_low": 50001,
+          "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 9,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 10,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 11,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 2,
+        "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+        "row_crop_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Radar Private Fund 1 LP (1)",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Radar Private Fund 1 LP (1)",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Radar Private Fund 1 LP (1) (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-08",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 2,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 3,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 4,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 5,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) MH Northbound Train",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Northbound Train",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "MH Northbound Train (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-22",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 6,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-27",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 7,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 9 LLC",
+        "amount_band_observed": "250001_500000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 500000,
+          "amount_low": 250001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 8,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
+        "amount_band_observed": "100001_250000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 250000,
+          "amount_low": 100001,
+          "asset_name": "ELCM2 LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 11,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 12,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) MH Northbound Train",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Northbound Train",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "MH Northbound Train (Account: (S) Peter L Malkin Family 2000 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-22",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 13,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-27",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 14,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Peter L Malkin Family 2000 LLC",
+        "amount_band_observed": "250001_500000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 500000,
+          "amount_low": 250001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 15,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 3,
+        "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+        "row_crop_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Hedge Holdings LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 2,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Hedge Holdings LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 3,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Hedge Holdings LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Hedge Holdings LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 4,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Hedge Holdings LLC",
+        "amount_band_observed": "50001_100000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 100000,
+          "amount_low": 50001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Hedge Holdings LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 5,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 8,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "250001_500000",
+        "asset_cell_verbatim": "(S) Kirkowswald Global Macro Fund LP",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Kirkowswald Global Macro Fund LP",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 500000,
+          "amount_low": 250001,
+          "asset_name": "Kirkowswald Global Macro Fund LP (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 9,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-16",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 10,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 11,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) MH Northbound Train",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Northbound Train",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "MH Northbound Train (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-22",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 12,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) LarryMae LLC",
+        "amount_band_observed": "100001_250000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 250000,
+          "amount_low": 100001,
+          "asset_name": "MH Built to Last LLC (Account: (S) LarryMae LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 13,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) New Things Partners LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "MH Built to Last LLC (Account: (S) New Things Partners LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 16,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 4,
+        "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+        "row_crop_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Other One LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Other One LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 2,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 5,
+        "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+        "row_crop_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Other One LLC",
+        "amount_band_observed": "15001_50000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 50000,
+          "amount_low": 15001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Other One LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 3,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 5,
+        "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+        "row_crop_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Summa I LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) ELCM2 LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "ELCM2 LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "ELCM2 LLC (Account: (S) Summa I LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-09",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 6,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 5,
+        "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+        "row_crop_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Summa I LLC",
+        "amount_band_observed": "1001_15000",
+        "asset_cell_verbatim": "(S) Not Fade Away LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "Not Fade Away LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 15000,
+          "amount_low": 1001,
+          "asset_name": "Not Fade Away LLC (Account: (S) Summa I LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-21",
+          "transaction_type": "purchase",
+          "verification_status": null
+        },
+        "grid_slot": 7,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 5,
+        "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+        "row_crop_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      },
+      {
+        "account_heading_visual_raw": "(S) Summa I LLC",
+        "amount_band_observed": "50001_100000",
+        "asset_cell_verbatim": "(S) MH Built to Last LLC",
+        "asset_name_rule": "remove_official_owner_prefix_only_preserve_remaining_text_verbatim",
+        "asset_text_without_code_observed": "MH Built to Last LLC",
+        "blocking_reasons": [
+          "stable_transaction_id_not_assigned",
+          "candidate_verification_not_run"
+        ],
+        "candidate_transaction_id": null,
+        "disposition": "quarantined_no_candidate",
+        "filed_at_precision": "date",
+        "filed_date_observed": "2026-02-12",
+        "frontend_projection_preview": {
+          "amount_high": 100000,
+          "amount_low": 50001,
+          "asset_name": "MH Built to Last LLC (Account: (S) Summa I LLC)",
+          "filed_at": "2026-02-12T00:00:00Z",
+          "filing_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "id": null,
+          "instrument_type": null,
+          "owner": "Spouse",
+          "person_id": "senate:B001277",
+          "source_id": "senate_efd",
+          "source_url": "https://efdsearch.senate.gov/search/view/paper/068274e1-4b7a-4453-a242-563dde4c10d8/",
+          "transaction_date": "2026-01-28",
+          "transaction_type": "sale",
+          "verification_status": null
+        },
+        "grid_slot": 8,
+        "missing_frontend_fields": [
+          "id",
+          "verification_status"
+        ],
+        "owner_code_observed": "(S)",
+        "owner_legend_url": "https://www.ethics.senate.gov/public/_cache/files/312473c0-b6ca-44c9-a68f-c65fc5f0d8e9/periodic-disclosure-of-financial-transactions-form.pdf",
+        "page_number": 5,
+        "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+        "row_crop_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef",
+        "unverified_optional_fields": [
+          "instrument_type",
+          "ticker"
+        ]
+      }
+    ],
+    "schema_version": "senate-paper-first-report-frontend-gates/v3"
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "p2#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:bcc84d7430f43c6c5d8b83d1",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "97b3ee10f542a4729f659e215ce11e09b71fceab0a2fd1bac5b1b4ad4f833830"
+        },
+        "pending_sha256": "d58557e9d2594073806c0c468844e0d68290138a0b174df077455fa105caa82f"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "Kirkowswald Global Macro Fund LP (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:2a936ddac565e6cf6c3685fb",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "6fc9a6b0879f61329ff335355d7ca27b1fa46b0aad94d6d2332450cf51062999"
+        },
+        "pending_sha256": "71efe321ae51954d0e93d05e1be3f0b2b26fe4ebbdb75079c0a214eda80adc41"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:fdedc02780bb72c172bac24e",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "918989c2198d59dca10f8c4569b855d3ea2f52ee8fb98b7368c6a24c6d4e6231"
+        },
+        "pending_sha256": "8a57f8d7afe417ca37bcdd96b7722feeab3ab8fbf9d4ca46140db9409201e41d"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:b8a5a5ddbdbf53c81b7e1f01",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "99219507c2f96eef3ee471ed8b529aba79a520020fee5a4d81f8494bb92c92ad"
+        },
+        "pending_sha256": "ab2ff56ec7058b43cdde6393d720249fb1505d474e5999244c65e6f1f9a71b97"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#8",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:62bf7816c3dac3ff5d1375bf",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 8,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "2725d2106b83a608346e49f8810773a13dfec53c72e3ea9df90c5c69993a887e"
+        },
+        "pending_sha256": "979c77adb9b3adb69b0fde0f6b69068e27a6b870347995cdc8772765e6649b1a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#9",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "Kirkowswald Global Macro Fund LP (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:767c2e7079752f07195ebe9d",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 9,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 9,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 9,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e32fc33da87fb2cec423c4270aae1341b26e89b38ff8149636c90ebd190b87ef"
+        },
+        "pending_sha256": "1e615fc12ad335fade3c2c21bf8a4d3cd296a43bdbc6825afd5045d1f8e2652b"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:f8c38ec81f118541d69a0441",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 10,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 10,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e62f3dc539fdb8a0aa47207b7aee58cfd1cadfac49f9d69d6dbe27bcd137b2eb"
+        },
+        "pending_sha256": "9d7f52faade5789ba621b6e4e20111ef8aa2e6492787b010176e6edb786b5c08"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:9adbb8099311dcb8b2e79bf4",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 2,
+          "page_sha256": "327fe3996f395a7ad9b5355ff813bcfe33126e8cfdbbb91616655399e8574c89",
+          "row_crop_sha256": "e978438c2c327db08acf23223d929cd92525c0b119ffb280a1f4ff0e662d1ec6"
+        },
+        "pending_sha256": "2d5b212d6360edb6ae01792b8c66a552e2441150f0dd88f6a7b896b43cc2c79a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Radar Private Fund 1 LP (1) (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:bc6973094472cb4456c2f3b1",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-08",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "c2cca02c1111f5d2e35bc5c4faa1c77c445ed9b88d32f1ccf0754a1ef37da79a"
+        },
+        "pending_sha256": "e676637559d3a22ddb0798d71b6e4fba7c54af93afb1ff9bb7976485c64305ba"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5de5bfb70985a80a7f018901",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "f8fa6205797bcb7d161de48a18ee0ec76b42e392f3221a0b104243a28ec5448f"
+        },
+        "pending_sha256": "85464f57446f4355934dec04851b10a612cedcd9e2f438d6e7315b11a4e0f676"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:aa274897f370def49d67bdf5",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "2376fb21e9721a5e2cb6ee26395c289b952ceb606a81a2694c18dd7cded6e82d"
+        },
+        "pending_sha256": "0686df963d011ac03d6119bfa86bccbd985c75832b694e2c04b04fe439952a03"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:3e78e57081b9ff66e78df2f4",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "406f939a806ce77fa5631cd3595ebf9cb09c7df1ab4ea15af7606c153052d8ac"
+        },
+        "pending_sha256": "4f57f9058471d971e0b0aaf81bc44cf6cf50f8e9ab98624f8f7cea39a1982b1a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#6",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Northbound Train (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:3ef3afd9157ac9cfd70948a2",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 6,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 6,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 6,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "cc9f1d1c1eb67df09e0afc1c963b00f1a2c3e53ae096b17f749eab3fabdd3aec"
+        },
+        "pending_sha256": "0317769ce6e9a39a65abe434a78c0a0c2b80e8e2e09f85c2c06d214595d070bb"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#7",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ec1cd891218ace4027c34d9d",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 7,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 7,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-27",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 7,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "790a938275a66474c2ad80437c882daf01e76ad90363cd7dc99af6999732de21"
+        },
+        "pending_sha256": "2b902281f76b6583bac86c9a1e150143f24ccc97fa4bb73f4a7b967534ffbd8e"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#8",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:2a8e94f1b21aada541724dd7",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 8,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "83f184e6d913ca734706cfa3f01506ca8cd947fc554dbaf0e2b591d489b69580"
+        },
+        "pending_sha256": "ffc06bf10593b352de4b384fd7e63b30d0d30425003efd226ee428562fe4fe0d"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$100,001 - $250,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:f9e591f496bc5c42eafd95c3",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "cfe04aa16f434411155aa440aa60e3cff6d55d6c9d7054fbccf14d2c2adafd15"
+        },
+        "pending_sha256": "1f931d4680384639536830a4eb1bc0a7a10a7dcf17ff59a910cc021f3e02cd38"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:2c19168df710def02d940aa5",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 12,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 12,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "db5b739c3a021026d6e883b20435b6a01786544f68a360340f8e6c8b08fee314"
+        },
+        "pending_sha256": "a708101e1c7dd37d944bc442e922cff44a93e5829c3fc0b9fc2b3f64bacb7578"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#13",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Northbound Train (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:e240e447cd8412465d9f12a0",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 13,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 13,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 13,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "6cf7a756a4eab39fbbaa9cc3da5ca1c943724a94c8e18775f0368bc59a2787ef"
+        },
+        "pending_sha256": "8876361c2786a35a0b2b3358a0e7f57c680b5cd54937e24e9eb196b039fef40a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#14",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:1c296213fe68b6d6aea7c9cd",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 14,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 14,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-27",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 14,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "b45310bbe984a7e958effd3f58afc54c93c68d1e76c7296b8c94143e2884fa22"
+        },
+        "pending_sha256": "0859d95198dd5424561d439fd68915436b0ffe07171f3e355b557aa295403334"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#15",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ef018dcf3b55f2f79c640ac1",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 15,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 15,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 15,
+          "page_number": 3,
+          "page_sha256": "e6ee8a21c0be40ab7353e20e8b04dab88c308f68e47463ac3f14746a2677f480",
+          "row_crop_sha256": "6d9f95fd4eb5f5278dbdb61c1399232b9cf77456e7acb17925ac37d32f7f8775"
+        },
+        "pending_sha256": "07eed03b7f3add2cb9e636f538ba96c9c2a4b0bbdb8666cd5d12ee17dea32b54"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:4fb6eb18308c4a69c66d224a",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "276c3e45ce6fb75a8f0733a0dddb6710425bff428d80c47f56028c3a17ad388c"
+        },
+        "pending_sha256": "fa49b2246e15dd1ed9aeed575f407aec134a77da1466cba4bdfbadf91ac4e123"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Hedge Holdings LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:a735e29af4ce51af3ec122f5",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "192099ffba456dbd97fc87f9c2f3f2cbabd78607857a8ee9273ee6ac066fd5ca"
+        },
+        "pending_sha256": "b012da33a6b4cf5dafcd77952790be90c95d711bf89021387eba65f5c690e904"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Hedge Holdings LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:795f003ca2fc9223dd8c27bb",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 4,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "2a69344271d91e610d969b887cbd3600470adb082666605c75624db354fd2279"
+        },
+        "pending_sha256": "cebb2646eff4d747b96b2983d5515b3dbc9d67494f2effb7a2626327f6365475"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Hedge Holdings LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:f17ee9b5638f4264241bcc1f",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 5,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "d8a069cbcd2295b6f1bf835005e153b90439e04a22d2f24d3cf0e692aa3b886b"
+        },
+        "pending_sha256": "ec58a20bc3a46cfdd3bd3cc10166f9beee371d84241af9976e58eee1f27f401b"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#8",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ae0d4e206135667c9a19a7fb",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 8,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "65a9d019f5af8d6cde1cc35a607b2c60f789e99e7b7ebee6f9e25399b9e73b60"
+        },
+        "pending_sha256": "31bfb3ae53999b3bd53b06b1910e9f4fafe2f2f23c661f7bca3e435606d95abb"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#9",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "Kirkowswald Global Macro Fund LP (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:0e704a925502ce3ab97a1a14",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 9,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 9,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 9,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "07c69822de5ca3aa96c1dbfa1334548f39c61632347240e3dc23a0617b59cc23"
+        },
+        "pending_sha256": "bea4069d052955ecc9fffa7f1ae5f9f3729d1c214bdc8d78665548e805bcd341"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:89ed3fa799967f8d10b7c962",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 10,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-16",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 10,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "10dfd9f7df959ce830fc71bde191e74a33fbde0c1ae64fa24908d5e0c1c51f7e"
+        },
+        "pending_sha256": "be8f8740549a0c5f1640db3e65e66d8e9140f6cca61b9a94f74063699437de5c"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:68e418a663be298729c03b5e",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 11,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "9ef495fe9f45bf81b9640f8bb6bd1d88102a89ff366c3fe46fbe89a971871c35"
+        },
+        "pending_sha256": "a0ea62fbd7e6726bee849a544006b2704ffaeefae307c4f62cbab3c2a5f750d3"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Northbound Train (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:e07322aa4ec5083ee18bc92d",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 12,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-22",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 12,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "7438500483c8e437034f66ea93206f7855b4509835e3a8652769cd71652fd5ff"
+        },
+        "pending_sha256": "882aea65b53278ad9ef7f11fbcd905941e3f8ad55e217c1a9b7d3ea5dd17efe9"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#13",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$100,001 - $250,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) LarryMae LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:b7ad82f79f777be6c3f5c17e",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 13,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 13,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 13,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "be439b0b99e73123e87e9b06cc50e43483bb44125d5a0546bbf49df5cd257645"
+        },
+        "pending_sha256": "e43dbea16baf400f8fed9f24ce675130c742210c010f46ee62f390047aad6c21"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#16",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) New Things Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:2477a22230f1b5845277fb2d",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 16,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 16,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 16,
+          "page_number": 4,
+          "page_sha256": "3911bfb075c4d9ca21f57098455cbc88bc1db5bdc686a35ce2ea8d4b1520fdb5",
+          "row_crop_sha256": "fed732bb300ab74d128aba912259a959717a2347625e32961e6d986b929e0d8d"
+        },
+        "pending_sha256": "06bf8fa2ffadfee2a9c1763fed8b81dc074260875f9e769933660d93c546ca24"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Other One LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:852d6410b239e085352579c4",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 2,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "5093bdf3521159f54fb08514abe5e35b05f66680d42f707fab9c479ef607c4fd"
+        },
+        "pending_sha256": "4b8014176de277a9a9fe108360882940654d1ed9134e3e65719bb74c10262ad5"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Other One LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:44e9d34903918ab4c12a6198",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 3,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "30ff7d07f5daf2d3c7133f2ff9448d41449d79033b0cb9914611efc3a9a12020"
+        },
+        "pending_sha256": "5aec0416c46f07e628d1e292dd3a30a8204d4d7c8a444478bb34202adee26ec7"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#6",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "ELCM2 LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:b6af36ad8ed24ec0ea1c714e",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 6,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 6,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-09",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 6,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "fda4d67a187a07ab8087875766a0e6bfebd5741a3f213d700f58be34f7323a14"
+        },
+        "pending_sha256": "454cf6040b03b74aa6bf10a54ba4a2bbbbba31e14d5c7384ef28998cc189b876"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#7",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "Not Fade Away LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:bdfe8f558691757e15754a85",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 7,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 7,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-21",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 7,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "1f0e97fae5b7fbe3bf6fd5a5a76576d6360dd18d23422570d887080b83e7ba4b"
+        },
+        "pending_sha256": "9319e7e5325c491e8e2e9013e3cfc869144a13d585c4ea166f2da67425ff2235"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#8",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:d9bcd7e79c5ac8f2bf32e644",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 8,
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-01-28",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "068274e1-4b7a-4453-a242-563dde4c10d8",
+          "entrypoint_source_sha256": "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c",
+          "grid_slot": 8,
+          "page_number": 5,
+          "page_sha256": "b6d7346f8120c8d0137a19bb1576723a2580ce8b0d3ae589845e3789a548f0d8",
+          "row_crop_sha256": "ce572d40483311af996673c050733ac05d927eae1edfce2091d0ef902a3351ef"
+        },
+        "pending_sha256": "5be23404f835736d2d18fb44a84dde7b6c540e267192fa6baa11f3c93d6b3405"
+      }
+    }
+  ]
+}

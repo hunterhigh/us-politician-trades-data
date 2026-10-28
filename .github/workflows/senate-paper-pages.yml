@@ -139,11 +139,11 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          PYTHONPATH=backend/src python backend/scripts/qualify_senate_paper_first_report.py \
+          PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-senate-paper \
             --batch .local/senate-paper-extraction-batch.json \
             --pending "$REVIEW_ROOT/senate_efd/paper_pending_projections/current.json" \
-            --audit docs/senate-paper-first-report-frontend-gates.json \
-            --manifest "$EVIDENCE_ROOT/senate_efd/paper_pages/068274e1-4b7a-4453-a242-563dde4c10d8/manifest.json" \
+            --correction backend/data/corrections/senate_efd/068274e1-4b7a-4453-a242-563dde4c10d8.json \
+            --evidence-root "$EVIDENCE_ROOT" \
             --output .local/senate-paper-qualified-batch.json
           mv .local/senate-paper-qualified-batch.json .local/senate-paper-extraction-batch.json
       - name: Qualify second fixed source-bound paper report
@@ -151,12 +151,10 @@ jobs:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
-          PYTHONPATH=backend/src python backend/scripts/qualify_senate_paper_second_report.py \
+          PYTHONPATH=backend/src python -m unison_snapshot correct-reviewed-senate-paper \
             --batch .local/senate-paper-extraction-batch.json \
             --pending "$REVIEW_ROOT/senate_efd/paper_pending_projections/current.json" \
-            --corrections docs/senate-paper-second-report-corrections.json \
-            --ledger docs/senate-paper-viewer-remainders.json \
-            --manifest "$EVIDENCE_ROOT/senate_efd/paper_pages/3a4c5095-028a-4614-a692-836719da4e63/manifest.json" \
+            --correction backend/data/corrections/senate_efd/3a4c5095-028a-4614-a692-836719da4e63.json \
             --evidence-root "$EVIDENCE_ROOT" \
             --output .local/senate-paper-second-qualified-batch.json
           mv .local/senate-paper-second-qualified-batch.json .local/senate-paper-extraction-batch.json

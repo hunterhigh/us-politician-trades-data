@@ -58,12 +58,16 @@ class CorrectionTests(unittest.TestCase):
                 self.assertEqual(path.stem, correction['document_id'])
                 self.assertEqual(path.parent.name, correction['source'])
                 review = correction['source_review']
-                self.assertEqual(review['source_sha256'], correction['source_sha256'])
+                if correction['source']=='house_clerk':
+                    self.assertEqual(review['source_sha256'], correction['source_sha256'])
                 slots = {(a['row'], a.get('field')) for a in correction['actions']}
                 self.assertEqual(len(slots), len(correction['actions']))
                 self.assertTrue(all(a['row'] in correction['assertions']['row_inventory'] for a in correction['actions']))
-                self.assertEqual(sum(a['field']=='account_title' for a in correction['actions']),
-                    review['physical_counts']['data_candidate'])
+                if correction['source']=='house_clerk':
+                    self.assertEqual(sum(a['field']=='account_title' for a in correction['actions']),
+                        review['physical_counts']['data_candidate'])
+                else:
+                    self.assertEqual(len(correction['actions']),len(correction['assertions']['row_inventory']))
 
 
 class V1ContractTests(unittest.TestCase):

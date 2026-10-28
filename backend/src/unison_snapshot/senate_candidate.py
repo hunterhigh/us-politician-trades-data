@@ -547,17 +547,8 @@ def _transaction(row: dict, extraction: dict, identity: dict, *,
             for logical in source_ledger.get("logical_rows", [])))
     if grid_missing_type:
         instrument = "Unspecified"
-    reviewed_source = (
-        (extraction.get("document_id") == "068274e1-4b7a-4453-a242-563dde4c10d8" and
-         extraction.get("source_sha256") ==
-         "107c79b1276ae99ef9321547420e2303790fcc3cb110f43bf64e4c3ddb34bb6c" and
-         extraction.get("frontend_gate_audit_sha256") ==
-         "123eb6f68e316449f3f2919f49514554e3ab0e567fdaa972073cbbdb9323a009") or
-        (extraction.get("document_id") == "3a4c5095-028a-4614-a692-836719da4e63" and
-         extraction.get("source_sha256") ==
-         "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3" and
-         extraction.get("visual_corrections_sha256") ==
-         "a4a2b56e8fec7b80aa6a6ea3fe436c48c9f4cec1e38a640ef5b06fabff4d37e4"))
+    from .reviewed_senate_paper import reviewed_record
+    reviewed_source = reviewed_record(row, extraction, identity.get('person_id'))
     reviewed_paper = (
         extraction.get("schema_version") == PAPER_EXTRACTION_SCHEMA and
         extraction.get("qualification_basis") == "fixed_source_visual_review_v1" and
@@ -1214,10 +1205,8 @@ def build_senate_candidate(
         reviewed_by_document = Counter(
             slot.get("document_id") for slot in
             (row.get("source_slot") or {} for row in reviewed_paper_rows))
-        expected_reviewed = {
-            "068274e1-4b7a-4453-a242-563dde4c10d8": 36,
-            "3a4c5095-028a-4614-a692-836719da4e63": 46,
-        }
+        from .reviewed_senate_paper import reviewed_counts
+        expected_reviewed = reviewed_counts()
         reviewed_ids = {row.get("extraction_id") for row in reviewed_paper_rows}
         qualified_ids = {row["transaction_id"] for row in qualified_rows}
         if (paper_pending_audit is None or
