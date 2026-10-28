@@ -64,8 +64,8 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertNotIn("\n      - name:", content[publish + 1:])
         self.assertIn('verify-prepared-publication', content)
         self.assertIn("prepared-readback/dashboard.html", content)
-        self.assertIn("person_id = 'oge:076544f8ba0638cf'", content)
-        self.assertIn("ticker = 'MSFT'", content)
+        self.assertIn('python -m unison_snapshot publication-probes', content)
+        self.assertIn('--person-id oge:076544f8ba0638cf --ticker MSFT', content)
         self.assertIn('"$MAIN_SHA:refs/heads/main" "${market_ref[@]}"',
                       content)
         self.assertIn('"refs/tags/published/$MAIN_SHA"', content)

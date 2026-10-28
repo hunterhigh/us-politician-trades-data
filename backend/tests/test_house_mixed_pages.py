@@ -268,7 +268,9 @@ class HouseMixedPageTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[2]
         text = (repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         step = text.split('- name: '+name,1)[1].split('- name:',1)[0]
-        script = textwrap.dedent(step.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
+        mode = {'Detect pages requiring OCR in this batch': 'ocr', 'Select unprocessed evidence': 'select'}[name]
+        self.assertIn('python -m unison_snapshot house-review '+mode, step)
+        script = 'import sys; from unison_snapshot.commands.house_review import main; sys.argv=["house-review",'+repr(mode)+']; main()'
         return script, {**os.environ,'PYTHONPATH':str(repo/'backend/src')}
 
     def test_normal_workflow_prepares_ocr_for_mixed_pages_and_not_for_native_blank_tails(self):

@@ -40,6 +40,29 @@ def record_gate(state, run, now):
     target.parent.mkdir(parents=True, exist_ok=True)
     write_text(target, json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
 
+
+def record_roster(state, run, now):
+    roster = json.loads((run / 'senate-members.json').read_text(encoding='utf-8'))
+    congress_path = run / 'congress-senate-members.json'
+    congress = json.loads(congress_path.read_text(encoding='utf-8')) if congress_path.is_file() else None
+    target = state / 'status/senate_efd.json'
+    prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
+    gate = prior.get('gate', {'schema_version': 'senate-efd-source-gate/v1',
+        'source_id': 'senate_efd', 'status': 'disabled', 'collection_enabled': False,
+        'terms_acknowledged': False, 'reasons': ['collection_not_enabled']})
+    value = {**prior, 'schema_version': 'senate-source-run/v1', 'source_id': 'senate_efd',
+        'run_at': now, 'status': prior.get('status', gate['status']),
+        'collection_enabled': gate['collection_enabled'],
+        'terms_acknowledged': gate['terms_acknowledged'], 'gate': gate,
+        'roster': {'status': 'ok', 'record_count': len(roster['members']),
+                   'sha256': roster['metadata']['sha256'], 'retrieved_at': roster['metadata']['retrieved_at']},
+        'detail': prior.get('detail', 'Official Senate identity roster archived. eFD report collection remains disabled.')}
+    if congress is not None:
+        value['historical_roster'] = {'status': 'ok', 'source_id': 'congress_gov_members',
+            'congress': congress['metadata']['congress'], 'record_count': len(congress['members']),
+            'sha256': congress['metadata']['sha256'], 'retrieved_at': congress['metadata']['retrieved_at']}
+    write_text(target, json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+
 def record_failure(state, run, now, source_status='', collect_outcome='failure', run_url='', summary=None):
     target = state / 'status/senate_efd.json'
     prior = json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {}
@@ -217,7 +240,7 @@ def record_review(review, run, now):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('gate','failure','collected','review'))
+    parser.add_argument('operation', choices=('gate','failure','collected','review','roster'))
     parser.add_argument('--run-root', type=Path, default=Path('.local'))
     parser.add_argument('--state-root', type=Path)
     parser.add_argument('--review-root', type=Path)
@@ -237,7 +260,7 @@ def main():
                 record_failure(args.state_root, args.run_root, now, args.source_status,
                     args.collect_outcome, args.run_url, args.summary)
             else:
-                {'gate':record_gate, 'collected':record_collected}[args.operation](
+                {'gate':record_gate, 'collected':record_collected, 'roster':record_roster}[args.operation](
                     args.state_root, args.run_root, now)
     except (OSError, ValueError) as error:parser.exit(2,str(error)+'\n')
 

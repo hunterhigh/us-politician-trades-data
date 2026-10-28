@@ -130,26 +130,10 @@ jobs:
             --saved-grid-observations .local/senate-saved-grids.json \
             --saved-word-pages .local/senate-saved-words.json --tesseract __OCR_DISABLED__ \
             --output .local/senate-saved-extraction-batch.json
-          python - <<'PY'
-          import hashlib, json, os
-          from pathlib import Path
-          evidence, review = Path(os.environ['EVIDENCE_ROOT']), Path(os.environ['REVIEW_ROOT'])
-          selected = set(os.environ['SAVED_PAPER_DOCUMENT_IDS'].split(','))
-          batch = json.loads(Path('.local/senate-saved-extraction-batch.json').read_text(encoding='utf-8'))
-          if (batch.get('scope') != 'selected_fixed_reports_not_full_catalog'
-                  or batch['failure_count'] != 0 or batch['report_count'] != len(selected)
-                  or {row['document_id'] for row in batch['extractions']} != selected):
-              raise SystemExit('Saved replay must conserve every selected report without failures')
-          for row in batch['extractions']:
-              path = review / 'senate_efd/extractions' / row['document_id'] / row['source_sha256'] / (row['parser_version'] + '.json')
-              if json.loads(path.read_text(encoding='utf-8')) != row:
-                  raise SystemExit('Saved replay differs from its existing complete extraction')
-          receipt = json.loads(Path('.local/senate-saved-receipt.json').read_text(encoding='utf-8'))
-          for item in receipt['files']:
-              path = (review if item['root'] == 'review' else evidence) / item['path']
-              if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
-                  raise SystemExit('Saved replay changed an archived input or global source status')
-          PY
+          python -m unison_snapshot verify-senate-saved-replay \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --documents "$SAVED_PAPER_DOCUMENT_IDS" \
+            --batch .local/senate-saved-extraction-batch.json --receipt .local/senate-saved-receipt.json
       - name: Build candidates from existing source state
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}

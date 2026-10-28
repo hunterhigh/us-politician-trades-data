@@ -36,14 +36,14 @@ class HouseContrastWorkflowTests(unittest.TestCase):
         repo=Path(__file__).resolve().parents[2]
         workflow=(repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         segment=workflow.split('- name: Select unprocessed evidence',1)[1].split('- name:',1)[0]
-        script=textwrap.dedent(segment.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
+        self.assertIn('python -m unison_snapshot house-review select', segment)
         environment={**os.environ,'PYTHONPATH':str(repo/'backend/src'),'EVIDENCE_ROOT':str(root),
             'REVIEW_ROOT':str(review),'PARSER_COMMIT':'a'*40,'BATCH_SIZE':'25',
             'LEGACY_PARSER_VERSION':LEGACY_PARSER_VERSION,'PARSER_RETRY_VERSION':PARSER_RETRY_VERSION}
 
         def selected():
             before={path:path.read_bytes() for path in review.rglob('*.json')}
-            done=subprocess.run([sys.executable,'-c',script],cwd=root,env=environment,
+            done=subprocess.run([sys.executable,'-m','unison_snapshot','house-review','select'],cwd=root,env=environment,
                 capture_output=True,text=True,timeout=30)
             self.assertEqual(done.returncode,0,done.stderr)
             self.assertEqual(before,{path:path.read_bytes() for path in before})

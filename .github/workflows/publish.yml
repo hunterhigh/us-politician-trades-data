@@ -191,39 +191,8 @@ jobs:
       - name: Select fixed published readback probes
         id: probes
         run: |
-          python - <<'PY'
-          import json, os
-          candidate = json.load(open(os.environ['RUNNER_TEMP'] + '/complete-candidate.json'))
-          covered = {row['ticker'] for row in candidate['security_market_data']}
-          twelve = sorted(row['ticker'] for row in candidate['security_market_data']
-                          if row['source_id'] == 'twelve_data_split_adjusted_eod')
-          if not twelve:
-              raise SystemExit('Twelve Data probe is missing from the candidate')
-          person_id = 'oge:076544f8ba0638cf'
-          person_holdings = [row for row in candidate['reported_holdings']
-                             if row['person_id'] == person_id]
-          if not person_holdings:
-              raise SystemExit('Trump person holding probe is missing')
-          person_transactions = [row for row in candidate['transactions']
-                                 if row['person_id'] == person_id]
-          if not person_transactions:
-              raise SystemExit('Trump person transaction probe is missing')
-          ticker = 'MSFT'
-          if ticker not in covered or not any(
-                  row.get('ticker') == ticker for row in candidate['transactions']):
-              raise SystemExit('MSFT transaction and market probe is missing')
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f"person_id={person_id}\n")
-              output.write(f"person_holding_count={len(person_holdings)}\n")
-              output.write(f"person_transaction_count={len(person_transactions)}\n")
-              output.write(f"ticker={ticker}\n")
-              output.write(f"twelve_ticker={twelve[0]}\n")
-              output.write(f"people_count={len(candidate['people'])}\n")
-              output.write(f"transaction_count={len(candidate['transactions'])}\n")
-              output.write(f"holding_count={len(candidate['reported_holdings'])}\n")
-              output.write(f"market_row_count={len(candidate['security_market_data'])}\n")
-              output.write(f"source_health_count={len(candidate['source_health'])}\n")
-          PY
+          python -m unison_snapshot publication-probes --input "$RUNNER_TEMP/complete-candidate.json" \
+            --person-id oge:076544f8ba0638cf --ticker MSFT
       - name: Verify v1 disclosure accounting
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}

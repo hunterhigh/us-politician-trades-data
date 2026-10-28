@@ -86,6 +86,24 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn("python -m unison_snapshot assemble-source", content)
         self.assertIn("--html-output", content)
 
+    def test_roster_refresh_retains_last_success_and_failed_collection_diagnostics(self):
+        from unison_snapshot.commands.senate_source_state import record_roster
+        import json, tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); state = root/'state'; run = root/'run'
+            (state/'status').mkdir(parents=True); run.mkdir()
+            prior = {'status': 'blocked', 'last_successful_collection_at': '2026-10-20T00:00:00Z',
+                     'last_collection_attempt': {'status': 'blocked', 'http_status': 403},
+                     'catalog': {'retrieved_at': '2026-10-20T00:00:00Z'}, 'reports': {'evidence_count': 129}}
+            target = state/'status/senate_efd.json'
+            target.write_text(json.dumps(prior))
+            (run/'senate-members.json').write_text(json.dumps({'members': [1],
+                'metadata': {'sha256': 'a'*64, 'retrieved_at': '2026-10-29T00:00:00Z'}}))
+            record_roster(state, run, '2026-10-29T00:00:00Z')
+            saved = json.loads(target.read_bytes())
+            for key, value in prior.items(): self.assertEqual(saved[key], value)
+            self.assertEqual(saved['roster']['record_count'], 1)
+
     def test_house_and_senate_runs_use_the_shared_assembly_contract(self):
         for name,source in [('house','house_clerk'),('senate','senate_efd')]:
             content=(ROOT/'.github/workflows'/f'{name}.yml').read_text(encoding='utf-8')
@@ -104,13 +122,6 @@ class SenateWorkflowTests(unittest.TestCase):
         self.assertIn('--source senate_efd',annual)
         self.assertNotIn('    concurrency:',content)
         self.assertNotIn('HEAD:refs/heads/main',annual)
-
-    def test_roster_refresh_preserves_catalog_gate_and_status(self):
-        content = (ROOT / ".github/workflows/senate.yml").read_text(encoding="utf-8")
-        self.assertIn("gate = prior.get('gate'", content)
-        self.assertIn("for key in ('catalog', 'reports')", content)
-        self.assertIn("'collection_enabled': gate['collection_enabled']", content)
-        self.assertIn("'terms_acknowledged': gate['terms_acknowledged']", content)
 
     def test_history_replay_requires_explicit_targets_and_uses_the_controlled_source_entry(self):
         content=(ROOT/'.github/workflows/replay.yml').read_text(encoding='utf-8')

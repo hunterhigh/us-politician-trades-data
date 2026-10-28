@@ -2,7 +2,11 @@
 import importlib
 import sys
 
-COMMANDS = {'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
+COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay', 'Check selected saved Senate replay conservation'),
+'publication-probes': ('publication_probes', 'Select fixed source-backed publication probes'),
+'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),
+'house-review': ('house_review', 'Select and account for normal House review artifacts'),
+'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
 'oge-source-state': ('oge_source_state', 'Preserve independent OGE source collection outcomes'),
 'observe-source-quality': ('observe_source_quality', 'Observe qualified source isolation metrics'),
 'report-integrity': ('report_integrity', 'Report explicit content failure receipts'),

@@ -41,7 +41,8 @@ class HousePaperRetryTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[2]
         workflow = (repo/'.github/workflows/house.yml').read_text(encoding='utf-8')
         selector = workflow.split('- name: Select unprocessed evidence',1)[1].split('- name:',1)[0]
-        self.script = textwrap.dedent(selector.split("python - <<'PY'",1)[1].split('\n          PY',1)[0])
+        self.assertIn('python -m unison_snapshot house-review select', selector)
+        self.script = 'import sys; from unison_snapshot.commands.house_review import main; sys.argv=["house-review","select"]; main()'
         self.env = {**os.environ, 'PYTHONPATH':str(repo/'backend/src'),
             'EVIDENCE_ROOT':str(self.evidence), 'REVIEW_ROOT':str(self.review),
             'PARSER_COMMIT':'frozen', 'LEGACY_PARSER_VERSION':'legacy',

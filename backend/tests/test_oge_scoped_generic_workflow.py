@@ -216,17 +216,23 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.write(self.review/'whitehouse/278t/trump-2026-ticker-mapping-current.json', {
             'retained_ticker_conflict_count': 0})
         workflow = (ROOT/'.github/workflows/oge.yml').read_text(encoding='utf-8')
-        before_commit = workflow.split('          # Persist the validated source', 1)[0]
-        summary = before_commit.rsplit('          REVIEW_ROOT="$REVIEW_ROOT" python - <<\'PY\'\n', 1)[1]
-        summary = textwrap.dedent(summary.rsplit('          PY\n', 1)[0])
-        result = subprocess.run([sys.executable, '-c', summary], cwd=self.root,
-                                env=self.env, capture_output=True, text=True)
+        self.assertIn('python -m unison_snapshot oge-review build', workflow)
+        result = subprocess.run([sys.executable, '-m', 'unison_snapshot', 'oge-review', 'build',
+                                '--review-root', str(self.review)], cwd=self.root,
+                                env={**self.env, 'PYTHONPATH': str(ROOT/'backend/src')},
+                                capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         state = json.loads((self.review/'status/oge.json').read_bytes())
         self.assertEqual(state['oge_direct_qualified_transaction_count'], 0)
         self.assertEqual(state['oge_direct_publication_transaction_count'], 1)
         self.assertEqual(state['publication_transaction_count'], 1)
         self.assertIsNone(state['qualified_transaction_count'])
+        from types import SimpleNamespace
+        from unison_snapshot.commands.oge_review import reconcile
+        reconcile(SimpleNamespace(review_root=self.review))
+        reconciled = json.loads((self.review/'status/oge.json').read_bytes())
+        self.assertIsNone(reconciled['qualified_transaction_count'])
+        self.assertEqual(reconciled['publication_transaction_count'], 1)
 
 
 if __name__ == '__main__':
