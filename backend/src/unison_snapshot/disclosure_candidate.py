@@ -26,6 +26,15 @@ class DisclosureCandidateError(ValueError):
     """A source projection is unsafe to include in a unified candidate."""
 
 
+class SourceCutoffsStaleError(DisclosureCandidateError):
+    """Valid source waterlines cannot form a current coherent candidate."""
+
+    def __init__(self, projections: list[dict], message: str):
+        self.source_cutoffs = {item['source_id']: item['data_cutoff_at']
+                               for item in projections}
+        super().__init__(message)
+
+
 def _objects(value: object, description: str) -> list[dict]:
     if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
         raise DisclosureCandidateError(f"{description} must be an array of objects")
@@ -139,7 +148,7 @@ def _harmonize_projections(projections: list[dict], source_hashes: dict[str, str
         waterlines = ", ".join(
             f"{item['source_id']}={item['data_cutoff_at']}"
             for item in sorted(projections, key=lambda item: item['source_id']))
-        raise DisclosureCandidateError(
+        raise SourceCutoffsStaleError(projections,
             f"Source candidate cutoffs are too stale to harmonize "
             f"(maximum lag {MAX_HARMONIZATION_LAG.days} days; {waterlines})")
     earliest = min(native_times).astimezone(timezone.utc)

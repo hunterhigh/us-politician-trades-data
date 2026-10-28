@@ -38,6 +38,14 @@ class HealthTests(unittest.TestCase):
         now = datetime(2026, 11, 1, 20, tzinfo=timezone.utc)
         self.assertEqual(latest_publication_deadline(now).isoformat(), '2026-10-30T22:31:00+00:00')
 
+    def test_transient_network_failure_with_fresh_source_does_not_hold_publication(self):
+        self.sources['senate_efd'].update(status='unavailable', catalog={'retrieved_at': '2026-10-28T07:00:00Z'},
+            last_collection_attempt={'http_status': 503, 'failed_step': 'collect_catalog'})
+        h = evaluate(self.manifest, self.sources, now=self.now, publication_success_at='2026-10-28T01:00:00Z')
+        self.assertEqual(h['alerts'], [])
+        self.assertEqual(h['blocking_sources'], [])
+        self.assertEqual(h['sources']['senate_efd']['status'], 'retry_pending')
+
     def test_issue_reconciliation_does_not_repeat_open_alerts_or_close_unrelated_issues(self):
         class Api:
             def __init__(self):

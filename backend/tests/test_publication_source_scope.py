@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -30,6 +31,19 @@ class SourceScopeTests(unittest.TestCase):
                 "candidates/sources/oge-current.json": b"qualified facts",
                 "status/oge.json": b"processing status",
                 "new-source/future.json": b"future input",
+                "house_clerk/documents/2026/123/a.pdf": b"House PTR original",
+                "house_clerk/documents/2026/123/a.json": b"House PTR receipt",
+                "house_clerk/financial-reports/2026/124/a.pdf": b"House annual original",
+                "house_clerk/financial-reports/2026/124/a.json": b"House annual receipt",
+                "oge/reports/doc/a.pdf": b"OGE transaction original",
+                "oge/reports/doc/a.json": b"OGE transaction receipt",
+                "oge/annual/reports/doc/a.pdf": b"OGE annual original",
+                "oge/annual/reports/doc/a.json": b"OGE annual receipt",
+                "whitehouse/disclosures/reports/doc/a.pdf": b"White House original",
+                "whitehouse/disclosures/reports/doc/a.part-000.bin": b"White House original chunk",
+                "whitehouse/disclosures/reports/doc/a.json": b"White House receipt",
+                "senate_efd/reports/doc/a.pdf": b"Senate archive existence input",
+                "future-source/new.pdf": b"unknown future original",
             }
             for path, raw in files.items():
                 target = origin / path
@@ -42,29 +56,55 @@ class SourceScopeTests(unittest.TestCase):
             git(origin, "config", "uploadpack.allowFilter", "true")
             # Match Actions: start with a normal initialized repository, then
             # convert the source fetch to a filtered promisor fetch.
-            client.mkdir(); git(client, "init")
-            git(client, "remote", "add", "origin", origin.as_uri())
-            git(client, "fetch", "--depth=1", "--filter=blob:none", "origin", commit)
+            excluded = {
+                "review": {"whitehouse/ocr-checkpoints/a.json"},
+                "evidence": {"oge/catalog/pages/a.json",
+                    "house_clerk/documents/2026/123/a.pdf",
+                    "house_clerk/financial-reports/2026/124/a.pdf",
+                    "oge/reports/doc/a.pdf", "oge/annual/reports/doc/a.pdf",
+                    "whitehouse/disclosures/reports/doc/a.pdf",
+                    "whitehouse/disclosures/reports/doc/a.part-000.bin"},
+            }
             for kind in ("review", "evidence"):
+                # Separate clients prove each scope's omitted blobs were never
+                # fetched, rather than hidden after another checkout read them.
+                client = root / ("client-" + kind)
+                client.mkdir(); git(client, "init")
+                git(client, "remote", "add", "origin", origin.as_uri())
+                git(client, "fetch", "--depth=1", "--filter=blob:none", "origin", commit)
                 worktree = root / kind
                 git(client, "worktree", "add", "--detach", "--no-checkout", str(worktree), commit)
                 result = scope.apply_scope(worktree, kind)
-                self.assertEqual(result["omitted_files"], 1)
-                # The review tree legitimately downloads evidence's page; use
-                # the first scope to prove omitted content was never fetched.
-                if kind == "review":
-                    self.assertEqual(result["omitted_blobs_already_present"], 0)
+                self.assertEqual(result["omitted_files"], len(excluded[kind]))
+                self.assertEqual(result["omitted_blobs_already_present"], 0)
                 for path, raw in files.items():
-                    if path.startswith(scope.EXCLUDED[kind]):
+                    if path in excluded[kind]:
                         self.assertFalse((worktree / path).exists())
                     else:
                         self.assertEqual((worktree / path).read_bytes(), raw)
                 self.assertEqual(git(worktree, "status", "--porcelain"), "")
-            full = root / "full"
-            git(client, "worktree", "add", "--detach", str(full), commit)
-            self.assertTrue(all((full / p).read_bytes() == raw for p, raw in files.items()))
-            self.assertFalse((root / "review/whitehouse/ocr-checkpoints/a.json").exists())
-            self.assertFalse((root / "evidence/oge/catalog/pages/a.json").exists())
+                # Restore inputs needed by the new parser's status replay through
+                # its existing CLI flag. v1 House consumers also replay original PDFs.
+                output = subprocess.check_output([sys.executable, str(Path(scope.__file__)),
+                    "--root", str(worktree), "--kind", kind, "--keep-parser-inputs"],
+                    text=True, encoding="utf-8")
+                parser_result = json.loads(output.splitlines()[-1])
+                remaining = set()
+                self.assertEqual(parser_result["profile"], "parser-safe")
+                self.assertEqual(parser_result["omitted_files"], len(remaining))
+                self.assertEqual(parser_result["omitted_blobs_already_present"], 0)
+                self.assertEqual(parser_result["selected_bytes"],
+                    sum(len(raw) for path, raw in files.items() if path not in remaining))
+                for path, raw in files.items():
+                    if path in remaining:
+                        self.assertFalse((worktree / path).exists())
+                    else:
+                        self.assertEqual((worktree / path).read_bytes(), raw)
+                full = root / ("full-" + kind)
+                git(client, "worktree", "add", "--detach", str(full), commit)
+                self.assertTrue(all((full / p).read_bytes() == raw for p, raw in files.items()))
+                self.assertTrue(all(not (worktree / p).exists() for p in remaining))
+                self.assertEqual(git(worktree, "status", "--porcelain"), "")
 
 
     def test_parser_safe_cli_restores_replay_bytes_and_leaves_other_worktrees_unchanged(self):

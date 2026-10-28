@@ -27,7 +27,7 @@ class SenateWorkflowTests(unittest.TestCase):
                         command += '\n' + lines[i]
                     self.assertIn('--evidence-root "$EVIDENCE_ROOT"', command)
                     calls += 1
-        self.assertEqual(calls, 4)
+        self.assertEqual(calls, 5)
         activation = (ROOT / '.github/workflows/senate-amendment-history-resolve.yml').read_text(encoding='utf-8').split('  activate:', 1)[1]
         self.assertIn('git worktree add --detach "$evidence_root" origin/evidence', activation)
         self.assertIn('echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"', activation)
@@ -75,7 +75,7 @@ class SenateWorkflowTests(unittest.TestCase):
         gate_step = content.split("- name: Record authorization gate state", 1)[1].split(
             "- name: Fail a partially enabled gate", 1)[0]
         self.assertIn("**prior", gate_step)
-        self.assertIn("prior.get('status') in {'catalog_ready_for_review', 'failed'}", gate_step)
+        self.assertIn("prior.get('status') in {'catalog_ready_for_review', 'failed', 'blocked', 'unavailable'}", gate_step)
         self.assertNotIn("value['historical_roster']", gate_step)
 
     def test_catalog_respects_evidence_review_and_state_boundaries(self):

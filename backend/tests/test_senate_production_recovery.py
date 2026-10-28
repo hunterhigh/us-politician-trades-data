@@ -212,14 +212,24 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         shutil.copytree(ROOT / 'frontend-contract-v2/scripts',
                         self.root / 'frontend-contract-v2/scripts',
                         ignore=shutil.ignore_patterns('__pycache__'))
-        # The real CLI must fail before replacing either unified output or its audit.
+        scripts = self.root / 'backend/scripts'
+        scripts.mkdir()
+        shutil.copyfile(ROOT / 'backend/scripts/source_assembly_status.py',
+                        scripts / 'source_assembly_status.py')
+        self.env['GITHUB_OUTPUT'] = str(self.root / 'github-output')
+        self.env['GITHUB_STEP_SUMMARY'] = str(self.root / 'github-summary')
+        # The opted-in source workflow records deferral while preserving all
+        # candidate/audit outputs. The strict CLI remains covered separately.
         result = self.run_shell(step_script('oge.yml',
                                 'Rebuild unified candidate from saved source projections'))
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn('too stale to harmonize', result.stderr)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Unified assembly deferred', result.stderr)
         self.assertEqual(source.read_bytes(), expected)
-        self.assertEqual(self.git('--git-dir', str(self.remote),
-                                 'rev-parse', 'refs/heads/review'), committed)
+        deferred = json.loads(self.git('--git-dir', str(self.remote),
+                                       'show', 'review:status/disclosure_assembly.json'))
+        self.assertEqual(deferred['status'], 'deferred')
+        self.assertIn('assembly_status=deferred', (self.root / 'github-output').read_text())
+        self.assertIn('not a successful data update', (self.root / 'github-summary').read_text())
         for path in ('candidates/disclosure-current.json', 'status/disclosure_cutoff.json',
                      'status/disclosure_candidate.json'):
             self.assertEqual(json.loads((self.review / path).read_text(encoding='utf-8')),
@@ -246,8 +256,10 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         prior_commit = self.git('--git-dir', str(self.remote), 'rev-parse', 'refs/heads/review')
         result = self.run_shell(script)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(self.git('--git-dir', str(self.remote),
-                                 'rev-parse', 'refs/heads/review'), prior_commit)
+        self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
+                                            'show', 'review:candidates/disclosure-current.json')), unified)
+        self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
+                         'show', 'review:status/disclosure_assembly.json'))['status'], 'ready')
 
 
 if __name__ == '__main__':

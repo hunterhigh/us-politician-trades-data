@@ -26,7 +26,7 @@ def main() -> int:
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--code-commit", required=True)
     parser.add_argument("--keep-parser-inputs", action="store_true",
-                        help="Compare using the parser-safe input profile for saved-observation replay")
+                        help="Compare the input profile used by saved-observation status replay")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="source-scope-", dir=args.output_dir.parent) as folder:
