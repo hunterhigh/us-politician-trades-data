@@ -47,11 +47,16 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
             (attempted if run.get('status') == 'ok' else None))
         last_success = last_success or prior.get('last_successful_collection_at')
         last_attempt = run.get('last_collection_attempt', {})
-        blocked = run.get('status') in {'blocked', 'failed', 'disabled', 'authorization_required'}
+        if not last_success:
+            published_health = next((h for h in manifest.get('source_health', []) if h.get('source_id') == source), {})
+            last_success = published_health.get('last_successful_sync_at')
+        blocked = (run.get('status') in {'blocked', 'disabled', 'authorization_required'} or
+            last_attempt.get('http_status') == 403)
         stale = last_success is None or now - timestamp(last_success) > timedelta(hours=hours)
         reason = ('source_blocked' if blocked else 'source_stale' if stale else None)
         since = (prior.get('unhealthy_since') or last_success or attempted or now.isoformat()) if reason else None
-        entry = {'status': 'blocked' if blocked else 'stale' if stale else 'ok',
+        transient = run.get('status') in {'failed', 'unavailable'}
+        entry = {'status': 'blocked' if blocked else 'stale' if stale else 'retry_pending' if transient else 'ok',
             'last_attempt_at': attempted, 'last_successful_collection_at': last_success,
             'unhealthy_since': since, 'detail': run.get('detail'),
             'failed_step': last_attempt.get('failed_step'),
