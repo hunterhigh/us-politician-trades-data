@@ -21,13 +21,13 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
         self.assertNotIn("refs/heads/evidence", content)
 
     def test_candidate_rebuild_uses_normal_qualification_and_conservation(self) -> None:
-        content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
+        content = (ROOT / ".github/workflows/whitehouse.yml").read_text(
             encoding="utf-8")
         self.assertIn('overlay-whitehouse-annual-candidate', content)
         self.assertIn("audit['promoted_transaction_count']", content)
         self.assertNotIn("refs/heads/main", content)
         self.assertNotIn("refs/heads/market", content)
-        self.assertIn("HEAD:refs/heads/review", content)
+        self.assertIn("python -m unison_snapshot assemble-source", content)
 
     def test_every_review_writer_uses_one_concurrency_lock(self):
         for path in (ROOT / ".github/workflows").glob("*.yml"):
@@ -37,11 +37,11 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
                 self.assertNotIn("group: disclosure-review-writer", content, path.name)
 
     def test_candidate_rebuild_keeps_normal_release_readiness(self):
-        content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
+        content = (ROOT / ".github/workflows/whitehouse.yml").read_text(
             encoding="utf-8")
         self.assertIn("disclosure-candidate-before.json", content)
         self.assertIn("oge-candidate-before.json", content)
-        self.assertIn("verify-first-launch", content)
+        self.assertIn("--verify-readiness", content)
         self.assertNotIn("audit_trump_", content)
 
 

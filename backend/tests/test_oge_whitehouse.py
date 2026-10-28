@@ -136,14 +136,14 @@ class WhiteHouseCoverageTests(unittest.TestCase):
         self.assertEqual(len(set(client.urls)), 2)
 
     def test_workflow_keeps_originals_and_coverage_on_separate_branches(self):
-        path = Path(__file__).resolve().parents[2] / ".github/workflows/oge-whitehouse.yml"
+        path = Path(__file__).resolve().parents[2] / ".github/workflows/whitehouse.yml"
         workflow = path.read_text(encoding="utf-8")
         self.assertIn("environment: production", workflow)
         self.assertIn('test "$OGE_COLLECTION_ENABLED" = true', workflow)
         self.assertIn('test "$OGE_TERMS_ACKNOWLEDGED" = true', workflow)
-        self.assertIn('git -C "$EVIDENCE_ROOT" add oge/annual/reports', workflow)
-        self.assertIn('if [ -d "$EVIDENCE_ROOT/oge/annual/reports" ]; then', workflow)
-        self.assertIn('git -C "$REVIEW_ROOT" add oge/whitehouse', workflow)
+        self.assertIn('roles: evidence',workflow)
+        self.assertIn('roles: review',workflow)
+        self.assertLess(workflow.index('- name: Publish official annual originals'),workflow.index('- name: Persist annual coverage'))
         self.assertNotIn("201 Request", workflow)
 
 

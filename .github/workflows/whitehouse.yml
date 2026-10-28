@@ -1,0 +1,424 @@
+name: White House source pipeline
+on:
+  schedule:
+    - cron: '23 8 * * 1,4'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Complete source chain, public collection, archived candidate rebuild, or annual review
+        type: choice
+        options: [all, collect, rebuild, annual]
+        default: all
+      pdf_batch_size:
+        description: Maximum new public PDFs, 1-50
+        default: '20'
+      extraction_batch_size:
+        description: Maximum archived PDFs to interpret, 1-100
+        default: '100'
+      ocr_page_limit:
+        description: Maximum pages for an existing scanned-PDF checkpoint, 25-100
+        default: '50'
+permissions:
+  contents: write
+concurrency:
+  group: disclosure-source-writer
+  cancel-in-progress: false
+jobs:
+  annual-catalog:
+    if: inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'annual'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+      OGE_ANNUAL_REPORT_BATCH_SIZE: ${{ vars.OGE_ANNUAL_REPORT_BATCH_SIZE }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check OGE production authorization
+        run: |
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+      - name: Prepare controlled annual catalog
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: whitehouse
+          roles: evidence review
+          workspace: ${{ runner.temp }}/whitehouse-annual-catalog
+      - name: Account for reports and archive a bounded annual batch
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          mkdir -p .local
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse coverage \
+            --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-coverage.json
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse request-plan \
+            --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-request-plan.json
+          batch_size="${OGE_ANNUAL_REPORT_BATCH_SIZE:-2}"
+          if ! [[ "$batch_size" =~ ^([1-9]|1[0-2])$ ]]; then
+            echo "OGE annual batch size must be between 1 and 12" >&2
+            exit 2
+          fi
+          cursor="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['REVIEW_ROOT']) / 'oge/whitehouse/archive-status.json'
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          print(value.get('last_attempted_id') or '')
+          PY
+          )"
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse archive-annual \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --coverage .local/oge-whitehouse-coverage.json \
+            --start-after-id "$cursor" \
+            --limit "$batch_size" --output .local/oge-annual-batch.json
+      - name: Publish official annual originals
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-annual-catalog
+          roles: evidence
+          message: White House Publish official annual originals ${{ github.run_id }}
+      - name: Publish complete White House coverage audit
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT'])
+          coverage = json.loads(Path('.local/oge-whitehouse-coverage.json').read_text(encoding='utf-8'))
+          batch = json.loads(Path('.local/oge-annual-batch.json').read_text(encoding='utf-8'))
+          target = root / 'oge/whitehouse/coverage-current.json'
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(coverage, ensure_ascii=False, sort_keys=True,
+                                       separators=(',', ':')), encoding='utf-8')
+          status = root / 'oge/whitehouse/archive-status.json'
+          status.write_text(json.dumps({
+              'schema_version': 'oge-whitehouse-archive-status/v1',
+              'catalog_sha256': coverage['catalog_sha256'],
+              'catalog_retrieved_at': coverage['catalog_retrieved_at'],
+              'counts': coverage['counts'],
+              'direct_annual_archived': batch['archived_count'],
+              'direct_annual_pending': batch['pending_count'],
+              'direct_annual_failures': batch['failures'],
+              'last_attempted_id': batch['last_attempted_id'],
+              'request_required_not_obtained': True,
+              'candidate_integration_status': 'not_started',
+          }, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+              encoding='utf-8')
+          request_plan = json.loads(Path('.local/oge-whitehouse-request-plan.json').read_text(encoding='utf-8'))
+          request_target = root / 'oge/whitehouse/request-plan-current.json'
+          request_target.write_text(json.dumps(request_plan, ensure_ascii=False,
+                                               sort_keys=True, separators=(',', ':')),
+                                    encoding='utf-8')
+          PY
+      - name: Persist annual coverage
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-annual-catalog
+          roles: review
+          message: White House Persist annual coverage ${{ github.run_id }}
+
+  annual-review:
+    needs: annual-catalog
+    if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'annual')
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check OGE production authorization
+        run: |
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+      - name: Install annual PDF parser
+        run: python -m pip install -e 'backend[house-ingest]'
+      - name: Prepare controlled annual review
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: whitehouse
+          roles: evidence review
+          workspace: ${{ runner.temp }}/whitehouse-annual-review
+      - name: Extract content-verified annual reports into review only
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot oge-annual-review \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --review-root "$REVIEW_ROOT"
+      - name: Observe scanned annual covers without promotion
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-covers \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --review-root "$REVIEW_ROOT"
+      - name: Record scanned cover date roles without filing-date promotion
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-dates \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --output "$REVIEW_ROOT/oge/annual/scan_date_blocks/current.json"
+      - name: Publish annual extraction audits
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-annual-review
+          roles: review
+          message: White House Publish annual extraction audits ${{ github.run_id }}
+
+  public:
+    needs: annual-review
+    if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'collect')
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+      PDF_BATCH_SIZE: ${{ inputs.pdf_batch_size || '20' }}
+      EXTRACTION_BATCH_SIZE: ${{ inputs.extraction_batch_size || '100' }}
+      OCR_PAGE_LIMIT: ${{ inputs.ocr_page_limit || '50' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Check bounded official-source run
+        run: |
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+          case "$PDF_BATCH_SIZE" in *[!0-9]*|'') exit 2 ;; esac
+          test "$PDF_BATCH_SIZE" -ge 1 && test "$PDF_BATCH_SIZE" -le 50
+          case "$EXTRACTION_BATCH_SIZE" in *[!0-9]*|'') exit 2 ;; esac
+          test "$EXTRACTION_BATCH_SIZE" -ge 1 && test "$EXTRACTION_BATCH_SIZE" -le 100
+          case "$OCR_PAGE_LIMIT" in *[!0-9]*|'') exit 2 ;; esac
+          test "$OCR_PAGE_LIMIT" -ge 25 && test "$OCR_PAGE_LIMIT" -le 100
+      - name: Install PDF parsers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
+          tesseract --version | head -1
+          python -m pip install -e 'backend[house-ingest,native-source-proof]'
+      - name: Prepare controlled public disclosure data
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: whitehouse
+          roles: evidence review
+          workspace: ${{ runner.temp }}/whitehouse-public
+      - name: Archive public index and bounded original PDFs
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          cursor="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['REVIEW_ROOT']) / 'whitehouse/disclosures/archive-status.json'
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          print(value.get('last_attempted_id') or '')
+          PY
+          )"
+          python -m unison_snapshot whitehouse-disclosures sync \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --index-out "$REVIEW_ROOT/whitehouse/disclosures/index-current.json" \
+            --iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json" \
+            --batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json" \
+            --limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT']) / 'whitehouse/disclosures'
+          batch = json.loads((root / 'batch-current.json').read_text(encoding='utf-8'))
+          status = {key: batch[key] for key in (
+              'schema_version', 'source_id', 'indexed_count', 'attempted_count',
+              'last_attempted_id', 'archived_version_count', 'pending_url_count',
+              'failures', 'index_quarantine')}
+          (root / 'archive-status.json').write_text(
+              json.dumps(status, ensure_ascii=False, sort_keys=True, separators=(',', ':')),
+              encoding='utf-8')
+          PY
+      - name: Publish official originals to evidence
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-public
+          roles: evidence
+          message: White House Publish official originals to evidence ${{ github.run_id }}
+      - name: Build conservative OGE catalog crosswalk
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          manifest="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['EVIDENCE_ROOT']) / 'oge/catalog'
+          manifests = []
+          for path in root.glob('*.json'):
+              value = json.loads(path.read_text(encoding='utf-8'))
+              if value.get('schema_version') == 'oge-catalog-archive/v1':
+                  manifests.append((value['retrieved_at'], str(path)))
+          if not manifests:
+              raise SystemExit('No archived OGE catalog manifest for crosswalk')
+          print(max(manifests)[1])
+          PY
+          )"
+          python -m unison_snapshot whitehouse-disclosures crosswalk \
+            --evidence-root "$EVIDENCE_ROOT" --oge-manifest "$manifest" \
+            --index "$REVIEW_ROOT/whitehouse/disclosures/index-current.json" \
+            --out "$REVIEW_ROOT/whitehouse/disclosures/crosswalk-current.json"
+      - name: Extract hash-verified PDFs into review only
+        env:
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          cursor="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path(os.environ['REVIEW_ROOT']) / 'whitehouse/extraction-status.json'
+          value = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+          print(value.get('last_attempted_id') or '')
+          PY
+          )"
+          python -m unison_snapshot whitehouse-extract \
+            --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+            --limit "$EXTRACTION_BATCH_SIZE" --start-after-id "$cursor" \
+            --ocr-page-limit "$OCR_PAGE_LIMIT"
+      - name: Account for every public report link
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+        run: |
+          python -m unison_snapshot whitehouse-coverage --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT"
+      - name: Index filer-reported rows independently of frontend eligibility
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          python -m unison_snapshot build-whitehouse-reported-index --review-root "$REVIEW_ROOT"
+      - name: Materialize White House annual filer-reported holdings
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+        run: |
+          python -m unison_snapshot build-whitehouse-annual-review --review-root "$REVIEW_ROOT"
+      - name: Publish bounded review observations
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/whitehouse-public
+          roles: review
+          message: White House Publish bounded review observations ${{ github.run_id }}
+
+  rebuild:
+    needs: public
+    if: always() && (inputs.mode == '' || inputs.mode == 'all' || inputs.mode == 'rebuild')
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
+      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check bounded archived-source run
+        run: |
+          test "$GITHUB_REPOSITORY" = hunterhigh/us-politician-trades-data
+          test "$OGE_COLLECTION_ENABLED" = true
+          test "$OGE_TERMS_ACKNOWLEDGED" = true
+      - name: Install producer
+        run: python -m pip install -e "backend[native-source-proof]"
+      - name: Prepare controlled candidate sources
+        id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: whitehouse
+          roles: evidence review
+          workspace: ${{ runner.temp }}/whitehouse-candidate
+      - name: Rebuild complete OGE and unified review candidates
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          PYTHONPATH: backend/src
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
+          MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
+        run: |
+          cp "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            "$RUNNER_TEMP/oge-candidate-before.json"
+          cp "$REVIEW_ROOT/candidates/disclosure-current.json" \
+            "$RUNNER_TEMP/disclosure-candidate-before.json"
+          python -m unison_snapshot build-whitehouse-278t-candidate \
+            --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
+          python -m unison_snapshot overlay-whitehouse-annual-candidate \
+            --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
+          test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
+          assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
+          python -m unison_snapshot enrich-whitehouse-annual-tickers \
+            --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
+            --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
+            --checked-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --assets-url "$assets_url" --distribution-authorized
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['REVIEW_ROOT'])
+          candidate = json.loads((root / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
+          audit = json.loads((root / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
+          annual = json.loads((root / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
+          path = root / 'status/oge.json'
+          status = json.loads(path.read_text(encoding='utf-8'))
+          direct_count = status.get('oge_direct_qualified_transaction_count', status['qualified_transaction_count'])
+          direct_quarantined = status.get('oge_direct_quarantined_row_count', status['quarantined_row_count'])
+          annual_transaction_count = annual.get('annual_transaction_count', 0)
+          if len(candidate['transactions']) != (direct_count +
+                                                 audit['promoted_transaction_count'] +
+                                                 annual_transaction_count):
+              raise SystemExit('OGE and White House transaction counts do not reconcile')
+          status['oge_direct_qualified_transaction_count'] = direct_count
+          status['oge_direct_quarantined_row_count'] = direct_quarantined
+          status['whitehouse_public_qualified_transaction_count'] = audit['promoted_transaction_count']
+          status['whitehouse_public_qualified_annual_transaction_count'] = annual_transaction_count
+          status['whitehouse_public_qualified_annual_report_count'] = annual['annual_qualified_report_count']
+          status['whitehouse_public_qualified_holding_count'] = annual['annual_holding_count']
+          status['qualified_transaction_count'] = len(candidate['transactions'])
+          status['qualified_holding_count'] = len(candidate['reported_holdings'])
+          status['quarantined_row_count'] = direct_quarantined + audit['quarantined_row_count']
+          path.write_text(json.dumps(status, ensure_ascii=False, sort_keys=True,
+                                     separators=(',', ':')), encoding='utf-8')
+          PY
+          python -m unison_snapshot assemble-source \
+            --workspace "$RUNNER_TEMP/whitehouse-candidate" --source oge \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}" \
+            --html-output "$RUNNER_TEMP/whitehouse-candidate.html" --verify-readiness

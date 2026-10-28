@@ -116,9 +116,10 @@ class AnnualReferenceOverlayTests(unittest.TestCase):
 
     def test_both_production_workflows_pass_known_controlled_root(self):
         root=Path(__file__).resolve().parents[2]
-        for name in ("oge.yml","whitehouse-candidate-rebuild.yml"):
+        for name in ("oge.yml","whitehouse.yml"):
             text=(root/".github/workflows"/name).read_text(encoding="utf-8")
             command=text.split("python -m unison_snapshot overlay-whitehouse-annual-candidate",1)[1].split("--audit-out",1)[0]
             self.assertIn('--evidence-root "$EVIDENCE_ROOT"',command)
-        text=(root/".github/workflows/whitehouse-candidate-rebuild.yml").read_text(encoding="utf-8")
-        self.assertIn('git worktree add --detach "$RUNNER_TEMP/whitehouse-candidate-evidence" FETCH_HEAD',text)
+        text=(root/".github/workflows/whitehouse.yml").read_text(encoding="utf-8")
+        self.assertIn('uses: ./.github/actions/data-trees',text)
+        self.assertIn('scope: whitehouse',text)

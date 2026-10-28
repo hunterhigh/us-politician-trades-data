@@ -11,7 +11,7 @@ from unison_snapshot.commands.data_trees import publish, read_control
 SOURCES=('house_clerk','senate_efd','oge')
 
 
-def assemble(workspace, source_id, base, html_output, builder_commit):
+def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_readiness=False):
     from unison_snapshot.builder import build
     from unison_snapshot.disclosure_candidate import project_source_candidate
     control=read_control(workspace)
@@ -40,6 +40,10 @@ def assemble(workspace, source_id, base, html_output, builder_commit):
     status=result.stdout.strip()
     if status not in {'ready','deferred'}:raise ValueError('Unexpected source assembly disposition')
     if status=='ready':
+        if verify_readiness:
+            subprocess.run([sys.executable,'-m','unison_snapshot','verify-first-launch',
+                '--review-root',str(review),'--input',str(review/'candidates/disclosure-current.json')],
+                check=True)
         candidate=json.loads((review/'candidates/disclosure-current.json').read_bytes())
         included=sorted(row['source_id'] for row in candidate['source_health']
             if row.get('source_id') in SOURCES and row.get('status') in {'ok','partial'})
@@ -62,9 +66,11 @@ def main():
     parser.add_argument('--base',type=Path,required=True)
     parser.add_argument('--html-output',type=Path)
     parser.add_argument('--builder-commit',required=True)
+    parser.add_argument('--verify-readiness',action='store_true')
     args=parser.parse_args()
     try:
-        status=assemble(args.workspace,args.source,args.base,args.html_output,args.builder_commit)
+        status=assemble(args.workspace,args.source,args.base,args.html_output,args.builder_commit,
+            verify_readiness=args.verify_readiness)
     except (ValueError,OSError,subprocess.CalledProcessError) as error:parser.exit(2,str(error)+'\n')
     print(json.dumps({'assembly_status':status}))
 

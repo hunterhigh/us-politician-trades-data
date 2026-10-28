@@ -44,8 +44,6 @@ COMMANDS = {'assemble-source': ('assemble_source', 'Save a qualified source and 
                                    'pages.'),
  'observe-oge-278t-type-column': ('observe_oge_278t_type_column',
                                   'Probe the Type column of saved 2024 OGE 278-T physical slots.'),
- 'observe-oge-annual-part7': ('observe_oge_annual_part7',
-                              'Attach a fixed, read-only Part 7 slot audit to OGE annual review.'),
  'observe-oge-annual-scan-covers': ('observe_oge_annual_scan_covers',
                                     'Observe, but do not qualify, covers rejected by the strict annual '
                                     'parser.'),

@@ -53,6 +53,19 @@ class AssembleSourceTests(SourceTreeFixture, unittest.TestCase):
         self.assertEqual(trees.git(self.repo,'rev-parse','HEAD'),self.code)
         self.assertFalse((self.root/'report.html').exists())
 
+    def test_readiness_failure_keeps_prior_unified_remote_after_saving_valid_source(self):
+        import subprocess
+        review=self.seed('2026-10-27T00:00:00Z')
+        with patch.dict(os.environ,{'PYTHONPATH':str(ROOT/'backend/src'),
+            'GITHUB_OUTPUT':str(self.root/'output'),'GITHUB_STEP_SUMMARY':str(self.root/'summary')}):
+            with self.assertRaises(subprocess.CalledProcessError):
+                assembly.assemble(self.workspace,'house_clerk',ROOT/'backend/data/empty-disclosure.json',
+                    None,self.code,verify_readiness=True)
+        saved=trees.git(self.repo,'--git-dir',self.remote,'show','review:candidates/disclosure-current.json')
+        self.assertEqual(json.loads(saved),{'prior_complete':True})
+        source=trees.git(self.repo,'--git-dir',self.remote,'show','review:candidates/sources/house_clerk-current.json')
+        self.assertEqual(json.loads(source)['transactions'][0]['id'],'house_clerk:fact')
+
     def test_ready_assembly_is_persisted_and_invalid_source_cannot_advance_remote(self):
         review=self.seed('2026-10-27T00:00:00Z')
         self.assertEqual(self.invoke(),'ready')

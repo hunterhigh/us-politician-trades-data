@@ -15,7 +15,7 @@ import test_native_partition_consumption as normal
 import test_oge_annual_workflow as shell_fixture
 
 ROOT=Path(__file__).resolve().parents[2]
-WORKFLOW=ROOT/'.github/workflows/whitehouse-candidate-rebuild.yml'
+WORKFLOW=ROOT/'.github/workflows/whitehouse.yml'
 
 
 class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
@@ -44,13 +44,13 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
                 'disclosure':disclosure,'audit':audit,'runner':runner}
 
     def branch(self):
-        content=WORKFLOW.read_text(encoding='utf-8')
+        content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
         section=content.split('      - name: Rebuild complete OGE and unified review candidates',1)[1]
         run=section.split('        run: |\n',1)[1]
         return textwrap.dedent(run.split('          python -m unison_snapshot overlay-whitehouse-annual-candidate',1)[0])
 
     def declared_dependencies(self):
-        content=WORKFLOW.read_text(encoding='utf-8')
+        content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
         install=re.search(r'run: python -m pip install -e (?:"?backend(?:\[([^]]+)\])?"?)',content)
         self.assertIsNotNone(install)
         extras=(install.group(1) or '').split(',')
@@ -144,8 +144,8 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
         self.assertTrue({'pdfplumber','pymupdf'}<=packages)
         self.assertTrue(any(re.fullmatch(r'PyMuPDF==[0-9.]+',r) for r in requirements))
         self.assertTrue(any(re.fullmatch(r'pdfplumber==[0-9.]+',r) for r in requirements))
-        content=WORKFLOW.read_text(encoding='utf-8')
+        content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
         self.assertIn("audit['promoted_transaction_count']",content)
-        self.assertIn('verify-first-launch',content)
+        self.assertIn('--verify-readiness',content)
         self.assertNotIn('audit_trump_',content)
         self.assertNotIn('overlay-whitehouse-annual-candidate',self.branch())
