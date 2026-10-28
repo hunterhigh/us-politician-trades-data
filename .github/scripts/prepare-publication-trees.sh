@@ -13,8 +13,8 @@ cache_market_root="$RUNNER_TEMP/cache-market"
 git worktree add --detach --no-checkout "$review_root" origin/review
 git worktree add --detach --no-checkout "$evidence_root" origin/evidence
 # Status replays saved observations, including checkpoint and catalog-page bytes.
-python backend/scripts/publication_source_scope.py --root "$review_root" --kind review --keep-parser-inputs
-python backend/scripts/publication_source_scope.py --root "$evidence_root" --kind evidence --keep-parser-inputs
+python -m unison_snapshot publication-source-scope --root "$review_root" --kind review --keep-parser-inputs
+python -m unison_snapshot publication-source-scope --root "$evidence_root" --kind evidence --keep-parser-inputs
 git worktree add --detach "$market_root" origin/market
 git worktree add --detach "$main_root" origin/main
 if [ -n "$CACHE_MAIN_OVERRIDE" ]; then

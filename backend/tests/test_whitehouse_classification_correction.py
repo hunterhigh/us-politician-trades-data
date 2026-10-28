@@ -170,7 +170,7 @@ class WhiteHouseClassificationCorrectionTests(unittest.TestCase):
                 save(repo/'manifest.json', {'is_demo': False, 'board': sha}); save(repo/f'board/{sha}.json', raw)
                 git('add', '.'); git('commit', '-qm', 'source contract '+owner); commit=git('rev-parse', 'HEAD')
                 save(root/'base.json', original)
-                cmd=[sys.executable, str(project/'backend/scripts/build_whitehouse_278t_candidate.py'),
+                cmd=[sys.executable, str(project/'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py'),
                     '--oge-candidate', str(root/'base.json'), '--review-root', str(repo), '--evidence-root', str(repo),
                     '--candidate-out', str(root/'candidate.json'), '--audit-out', str(root/'audit.json'), '--expected-report-count', '1']
                 run=subprocess.run(cmd, capture_output=True, text=True, env=env)

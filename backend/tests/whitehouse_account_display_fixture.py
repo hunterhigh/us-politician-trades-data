@@ -19,7 +19,7 @@ def fixture(*, extra=None, asset='Example Common Stock (EXM)',
             account_title='Investment account #7', inherit_legacy=True, pdf_mutator=None):
     """Return (historical fact, expected fact, review bytes, evidence bytes, base)."""
     import pymupdf
-    from scripts.whitehouse_coverage import build_coverage
+    from unison_snapshot.commands.whitehouse_coverage import build_coverage
     from unison_snapshot.whitehouse_278t import parse_generic_whitehouse_278t_pdf, PARSER_VERSION
     from unison_snapshot.whitehouse_disclosures import parse_disclosure_index
     from unison_snapshot.oge_reports import parse_table_rows

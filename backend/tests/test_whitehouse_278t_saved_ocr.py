@@ -146,7 +146,7 @@ class SavedWhiteHouseTests(unittest.TestCase):
     def test_old_default_coverage_selection_does_not_implicitly_enable_new_cache(self):
         import sys
         sys.path.insert(0,str(Path(__file__).parents[1]/"scripts"))
-        from whitehouse_coverage import _trade_versions
+        from unison_snapshot.commands.whitehouse_coverage import _trade_versions
         self.assertNotIn(SAVED_OCR_PARSER_VERSION,_trade_versions("https://www.whitehouse.gov/x.pdf","a"*64))
         self.assertEqual(_trade_versions("https://www.whitehouse.gov/x.pdf","a"*64,saved_ocr_trade=True),(SAVED_OCR_PARSER_VERSION,))
 
@@ -202,7 +202,7 @@ class SavedWhiteHouseTests(unittest.TestCase):
                     observe_raster_slots(path,expected_sha256=sha,page_numbers=[1],saved_ocr_pages={1:words},saved_ocr_engine="saved")
 
     def test_existing_extraction_entry_requires_explicit_source_and_writes_v6_only(self):
-        from scripts.whitehouse_extract import extract_batch
+        from unison_snapshot.commands.whitehouse_extract import extract_batch
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);inputs,_=self.fixture(root,original=False)
             reference=root/"input.json";reference.write_text(json.dumps(inputs),encoding="utf-8")

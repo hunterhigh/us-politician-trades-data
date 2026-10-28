@@ -58,7 +58,7 @@ class WhiteHouseExactDuplicateConsumptionTests(unittest.TestCase):
             env=self.env, capture_output=True, text=True, encoding='utf-8')
 
     def normal(self, *, next_base=False, exhibits=None):
-        arguments = [ROOT / 'backend/scripts/build_whitehouse_278t_candidate.py',
+        arguments = [ROOT / 'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py',
             '--oge-candidate', self.candidate if next_base else self.base,
             '--review-root', self.review, '--evidence-root', self.evidence,
             '--candidate-out', self.candidate, '--audit-out', self.audit,

@@ -23,7 +23,7 @@ class TrumpReplayWorkflowTests(unittest.TestCase):
     def test_candidate_rebuild_uses_normal_qualification_and_conservation(self) -> None:
         content = (ROOT / ".github/workflows/whitehouse-candidate-rebuild.yml").read_text(
             encoding="utf-8")
-        self.assertIn("overlay_whitehouse_annual_candidate.py", content)
+        self.assertIn('overlay-whitehouse-annual-candidate', content)
         self.assertIn("audit['promoted_transaction_count']", content)
         self.assertNotIn("refs/heads/main", content)
         self.assertNotIn("refs/heads/market", content)

@@ -38,10 +38,7 @@ class AnnualWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
             record = folder / 'record.py'
-            record.write_text("import json,os,sys\nfrom pathlib import Path\n"
-                "p=Path(os.environ['TEST_CALL_LOG'])\n"
-                "with p.open('a',encoding='utf-8') as f: f.write(json.dumps(sys.argv[1:])+'\\n')\n"
-                "if os.environ.get('TEST_FAIL_PREPARE')=='1' and 'prepare_oge_annual_runtime.py' in sys.argv[1]: sys.exit(9)\n",
+            record.write_text("import json,os,sys\nfrom pathlib import Path\nargs=sys.argv[1:]\nif args[:2]==['-m','unison_snapshot']:args=args[2:]\np=Path(os.environ['TEST_CALL_LOG'])\nwith p.open('a',encoding='utf-8') as f: f.write(json.dumps(args)+'\\n')\nif os.environ.get('TEST_FAIL_PREPARE')=='1' and args[0]=='prepare-oge-annual-runtime': sys.exit(9)\n",
                 encoding='utf-8')
             log = folder / 'calls.jsonl'
             script = ('set -euo pipefail\n'
@@ -67,7 +64,7 @@ class AnnualWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(calls), 2)
         prepare, overlay = calls
-        self.assertEqual(prepare[0], 'backend/scripts/prepare_oge_annual_runtime.py')
+        self.assertEqual(prepare[0], 'prepare-oge-annual-runtime')
         self.assertEqual(prepare[-2:], ['--document-id', 'a' * 32])
         output = prepare[prepare.index('--output') + 1]
         evidence = prepare[prepare.index('--evidence-root') + 1]
@@ -84,7 +81,7 @@ class AnnualWorkflowTests(unittest.TestCase):
         result, calls = self.run_branch('true', fail=True)
         self.assertEqual(result.returncode, 9, result.stderr)
         self.assertEqual(len(calls), 1)
-        self.assertIn('prepare_oge_annual_runtime.py', calls[0][0])
+        self.assertIn('prepare-oge-annual-runtime', calls[0][0])
 
     def test_scan_preparation_requires_its_explicit_switch_and_main_preparation(self):
         result, calls = self.run_branch('true', 'a'*32, scans='true')
@@ -108,7 +105,7 @@ class AnnualWorkflowTests(unittest.TestCase):
         self.assertIn('evidence_root="$RUNNER_TEMP/oge-review-evidence"', content)
         self.assertIn('git worktree add --detach "$evidence_root" FETCH_HEAD', content)
         self.assertIn('EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence', content)
-        overlay = content.split('python backend/scripts/overlay_whitehouse_annual_candidate.py', 1)[1].split(
+        overlay = content.split('python -m unison_snapshot overlay-whitehouse-annual-candidate', 1)[1].split(
             'test "$MARKET_DISTRIBUTION_AUTHORIZED"', 1)[0]
         self.assertIn('"${annual_args[@]}"', overlay)
 

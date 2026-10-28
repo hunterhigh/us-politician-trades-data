@@ -219,7 +219,7 @@ class DescriptionColumnTests(unittest.TestCase):
         primary.write_text(json.dumps(self.base), encoding="utf-8")
         secondary.write_text(json.dumps(reading), encoding="utf-8")
         backend = Path(__file__).resolve().parents[1]
-        subprocess.run([sys.executable, str(backend / "scripts/observe_oge_278t_fields.py"),
+        subprocess.run([sys.executable, str(backend / "src/unison_snapshot/commands/observe_oge_278t_fields.py"),
                         "--observations", str(primary), "--read-description-pdf", str(self.pdf),
                         "--description-output", str(secondary), "--description-executable", "does-not-exist",
                         "--document-page-count", "2", "--output", str(target)], cwd=backend,

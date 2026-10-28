@@ -10,8 +10,8 @@ from unittest.mock import patch
 import pymupdf
 
 from whitehouse_account_display_fixture import fixture, encoded, write_files
-from scripts.whitehouse_extract import extract_batch
-from scripts.whitehouse_coverage import build_coverage
+from unison_snapshot.commands.whitehouse_extract import extract_batch
+from unison_snapshot.commands.whitehouse_coverage import build_coverage
 from unison_snapshot.whitehouse_disclosures import parse_disclosure_index
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION, GENERIC_PARSER_VERSION, NATIVE_VISIBLE_DEFAULT_VERSION,

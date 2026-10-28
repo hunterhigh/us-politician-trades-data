@@ -162,7 +162,7 @@ class OgeOwnerPublicationCliTests(unittest.TestCase):
             review_commit = git('rev-parse', 'HEAD')
             status_path = root / 'status.json'
             status_result = run([sys.executable,
-                str(Path(__file__).resolve().parents[1] / 'scripts/build_disclosure_status.py'),
+                str(Path(__file__).resolve().parents[1] / 'src/unison_snapshot/commands/build_disclosure_status.py'),
                 '--evidence-root', str(repo), '--review-root', str(repo), '--input', str(output),
                 '--code-commit', 'f' * 40, '--previous-main-commit', main_commit,
                 '--output', str(status_path)])

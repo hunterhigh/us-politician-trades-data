@@ -1,9 +1,10 @@
 """One command: publish synthetic data, reconstruct pinned version, render baseline."""
 import json
+import argparse
 from pathlib import Path
 import sys
 
-BACKEND = Path(__file__).resolve().parents[1]
+BACKEND = Path(__file__).resolve().parents[3]
 ROOT = BACKEND.parent
 sys.path.insert(0, str(BACKEND / "src"))
 from unison_snapshot.builder import build
@@ -13,7 +14,10 @@ from unison_snapshot.store import GitStore, assemble
 
 
 def main():
-    output = ROOT / ".local/demo"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, default=ROOT / '.local/demo')
+    args = parser.parse_args()
+    output = args.output
     output.mkdir(parents=True, exist_ok=True)
     data = json.loads((BACKEND / "examples/synthetic.json").read_text(encoding="utf-8"))
     bundle = build(data, generated_at="2026-09-18T00:01:00Z")

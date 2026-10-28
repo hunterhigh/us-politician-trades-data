@@ -383,7 +383,7 @@ jobs:
           saved_args=()
           IFS=, read -r -a documents <<< "$SAVED_PAPER_DOCUMENT_IDS"
           for document_id in "${documents[@]}"; do saved_args+=(--document-id "$document_id"); done
-          PYTHONPATH=backend/src python backend/scripts/prepare_senate_paper_runtime.py \
+          PYTHONPATH=backend/src python -m unison_snapshot prepare-senate-paper-runtime \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
             "${saved_args[@]}" --grid-output .local/senate-saved-grids.json \
             --word-output .local/senate-saved-words.json --receipt-output .local/senate-saved-receipt.json

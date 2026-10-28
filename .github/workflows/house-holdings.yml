@@ -196,7 +196,7 @@ jobs:
         run: |
           mkdir -p "$REVIEW_ROOT/house_clerk/holding_section_observations" \
             "$REVIEW_ROOT/house_clerk/holding_section_failures"
-          python backend/scripts/run_house_annual_sections.py \
+          python -m unison_snapshot run-house-annual-sections \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
             --new-metadata-list "$RUNNER_TEMP/holding-metadata.txt" --old-limit 2
       - name: Build holding status and candidates

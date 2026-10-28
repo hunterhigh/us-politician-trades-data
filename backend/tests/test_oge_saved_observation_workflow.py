@@ -25,7 +25,7 @@ def source_branch():
         '          # END bounded saved PTR selection', 1)[0])
     call = textwrap.dedent(content.split(
         '          # END bounded saved PTR selection\n', 1)[1].split(
-        '          PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py', 1)[0])
+        '          PYTHONPATH=backend/src python -m unison_snapshot build-whitehouse-278t-candidate', 1)[0])
     return block + '\n' + call
 
 
@@ -109,7 +109,7 @@ class SavedOgeWorkflowTests(unittest.TestCase):
         observation['source_sha256'] = data['sha']
         primary = self.root/'primary.json'; write(primary, observation)
         ledger = self.root/'field-ledger.json'
-        writer = subprocess.run([sys.executable, str(ROOT/'backend/scripts/observe_oge_278t_fields.py'),
+        writer = subprocess.run([sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'),
             '--observations', str(primary), '--review-root', str(self.review),
             '--evidence-root', str(data['evidence']), '--metadata', str(data['source'].with_suffix('.json')),
             '--output', str(ledger)], cwd=ROOT,

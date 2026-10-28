@@ -81,7 +81,7 @@ class SenatePaperRuntimeTests(unittest.TestCase):
         backend = Path(__file__).resolve().parents[1]
         grids,words,receipt,batch = [self.root/name for name in ('grids.json','words.json','receipt.json','batch.json')]
         original = self.fingerprints()
-        result = self.cli(backend/'scripts/prepare_senate_paper_runtime.py',
+        result = self.cli(backend/'src/unison_snapshot/commands/prepare_senate_paper_runtime.py',
             '--review-root',self.review,'--evidence-root',self.evidence,'--document-id',self.document,
             '--grid-output',grids,'--word-output',words,'--receipt-output',receipt)
         self.assertEqual(result.returncode,0,result.stderr.decode('utf-8','replace'))
@@ -141,12 +141,12 @@ class SenatePaperRuntimeTests(unittest.TestCase):
         grids,words = self.root/'grids.json',self.root/'words.json'
         grids.write_bytes(b'grid sentinel');words.write_bytes(b'word sentinel')
         self.viewer.write_bytes(b'wrong source')
-        result = self.cli(backend/'scripts/prepare_senate_paper_runtime.py',
+        result = self.cli(backend/'src/unison_snapshot/commands/prepare_senate_paper_runtime.py',
             '--review-root',self.review,'--evidence-root',self.evidence,'--document-id',self.document,
             '--grid-output',grids,'--word-output',words)
         self.assertNotEqual(result.returncode,0)
         self.assertEqual(grids.read_bytes(),b'grid sentinel');self.assertEqual(words.read_bytes(),b'word sentinel')
-        result = self.cli(backend/'scripts/prepare_senate_paper_runtime.py',
+        result = self.cli(backend/'src/unison_snapshot/commands/prepare_senate_paper_runtime.py',
             '--review-root',self.review,'--evidence-root',self.evidence,'--document-id',self.document,
             '--grid-output',grids,'--word-output',grids)
         self.assertNotEqual(result.returncode,0)

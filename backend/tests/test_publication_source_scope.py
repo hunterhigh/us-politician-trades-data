@@ -9,7 +9,7 @@ import unittest
 
 
 spec = importlib.util.spec_from_file_location("publication_source_scope",
-    Path(__file__).resolve().parents[1] / "scripts/publication_source_scope.py")
+    Path(__file__).resolve().parents[1] / "src/unison_snapshot/commands/publication_source_scope.py")
 scope = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scope)
 

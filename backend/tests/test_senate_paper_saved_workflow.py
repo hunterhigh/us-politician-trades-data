@@ -43,9 +43,9 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         for relative in ('backend/src', 'frontend-contract-v2', 'frontend-contract-v3',
                          'review-input/us-politician-trades-watch/scripts'):
             shutil.copytree(ROOT/relative, cls.code/relative, ignore=shutil.ignore_patterns('__pycache__'))
-        target = cls.code/'backend/scripts/prepare_senate_paper_runtime.py'
+        target = cls.code/'backend/src/unison_snapshot/commands/prepare_senate_paper_runtime.py'
         target.parent.mkdir(parents=True)
-        shutil.copy2(ROOT/'backend/scripts/prepare_senate_paper_runtime.py', target)
+        shutil.copy2(ROOT/'backend/src/unison_snapshot/commands/prepare_senate_paper_runtime.py', target)
         cls.write(cls.code/'ingest/current.json', candidates.BASE)
 
     @staticmethod
@@ -151,7 +151,7 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         self.assertEqual(batch['selected_document_ids'],[SELECTED])
         self.assert_originals_unchanged(original)
         calls = self.calls.read_text(encoding='utf-8')
-        self.assertIn('prepare_senate_paper_runtime.py',calls)
+        self.assertIn('prepare-senate-paper-runtime',calls)
         self.assertIn('--tesseract __OCR_DISABLED__',calls)
         self.assertIn('build-senate-candidate',calls)
         self.assertIn('build-disclosure-candidate',calls)
@@ -168,7 +168,7 @@ class SenateSavedWorkflowTests(unittest.TestCase):
         result = self.run_blocks(['Validate fresh mode selection'],documents='')
         self.assertEqual(result.returncode,0,result.stderr)
         calls = self.calls.read_text(encoding='utf-8')
-        self.assertNotIn('prepare_senate_paper_runtime.py',calls)
+        self.assertNotIn('prepare-senate-paper-runtime',calls)
         self.assertNotIn('unison_snapshot',calls)
 
     def test_unready_existing_state_is_rejected_without_touching_candidates(self):

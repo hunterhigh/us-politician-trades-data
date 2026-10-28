@@ -109,7 +109,7 @@ class SenateWorkflowTests(unittest.TestCase):
     def test_annual_source_survives_stale_peer_cutoff(self):
         content = (ROOT / ".github/workflows/senate-annual.yml").read_text(
             encoding="utf-8")
-        overlay = content.index("python backend/scripts/senate_annual.py overlay")
+        overlay = content.index("python -m unison_snapshot senate-annual overlay")
         source_commit = content.index("review: Senate annual source candidate")
         harmonize = content.index("python -m unison_snapshot build-disclosure-candidate")
         unified_commit = content.index("review: Senate annual holdings")

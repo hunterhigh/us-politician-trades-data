@@ -130,7 +130,7 @@ class OwnerScopeCliTests(unittest.TestCase):
                 review_ref = git('rev-parse', 'HEAD')
                 status_path = root / 'status.json'
                 status_command = [sys.executable,
-                    str(Path(__file__).resolve().parents[1] / 'scripts/build_disclosure_status.py'),
+                    str(Path(__file__).resolve().parents[1] / 'src/unison_snapshot/commands/build_disclosure_status.py'),
                     '--evidence-root', str(repo), '--review-root', str(repo), '--input', str(candidate_path),
                     '--code-commit', 'f' * 40, '--previous-main-commit', main, '--output', str(status_path)]
                 result = run(status_command); self.assertEqual(result.returncode, 0, result.stderr)

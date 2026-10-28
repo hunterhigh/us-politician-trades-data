@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 from unison_snapshot.oge_reports import _read_archived_source
 from unison_snapshot.oge_manual_dates import load_observations
 

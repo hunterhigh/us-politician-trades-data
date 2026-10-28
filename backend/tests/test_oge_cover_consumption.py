@@ -235,7 +235,7 @@ class CoverConsumptionTests(unittest.TestCase):
                          ('config','user.email','contract@example.invalid'), ('add','.'), ('commit','-qm','fixed source contract')):
                 subprocess.run(['git','-C',str(tree),*args], check=True, capture_output=True)
         status_path = self.root/'status-input.json'
-        status_command = [sys.executable,str(repository/'backend/scripts/build_disclosure_status.py'),
+        status_command = [sys.executable,str(repository/'backend/src/unison_snapshot/commands/build_disclosure_status.py'),
             '--evidence-root',str(data['evidence']), '--review-root',str(data['review']),
             '--input',str(output/'candidate.json'), '--code-commit','b'*40, '--previous-main-commit','a'*40,
             '--output',str(status_path)]

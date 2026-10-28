@@ -205,8 +205,8 @@ class WhitehouseDualAxisTests(unittest.TestCase):
             self.assertTrue(any('source_text_line_orientation_conflict' in r['reasons'] for r in bad['quarantined']))
 
     def test_cli_cache_versions_coexist_and_default_never_selects_v7(self):
-        from scripts.whitehouse_extract import extract_batch
-        from scripts.whitehouse_coverage import _trade_versions
+        from unison_snapshot.commands.whitehouse_extract import extract_batch
+        from unison_snapshot.commands.whitehouse_coverage import _trade_versions
         case=saved_tests.SavedWhiteHouseTests()
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);inputs,_=case.fixture(root,original=False)

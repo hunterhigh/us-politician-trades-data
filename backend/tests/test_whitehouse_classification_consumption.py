@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from test_whitehouse_owner_correction import fixture, encoded
-from scripts import build_whitehouse_278t_candidate as cli
+from unison_snapshot.commands import build_whitehouse_278t_candidate as cli
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
@@ -196,7 +196,7 @@ class NativeClassificationConsumptionTests(unittest.TestCase):
         coverage_override = coverage.with_name('coverage-selected.json'); coverage_override.write_bytes(coverage.read_bytes())
         status_override = status.with_name('status-selected.json'); status_override.write_bytes(status.read_bytes())
         root = Path(__file__).resolve().parents[2]
-        command = [sys.executable, str(root/'backend/scripts/build_whitehouse_278t_candidate.py'),
+        command = [sys.executable, str(root/'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py'),
             '--oge-candidate', str(self.candidate), '--candidate-out', str(self.candidate),
             '--audit-out', str(self.audit), '--review-root', str(self.review), '--evidence-root', str(self.evidence),
             '--coverage-input', str(coverage_override), '--extraction-status-input', str(status_override)]

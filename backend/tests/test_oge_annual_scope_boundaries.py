@@ -138,7 +138,7 @@ class AnnualScopeBoundaryTests(unittest.TestCase):
             path = evidence/meta["archive_path"]; path.parent.mkdir(parents=True)
             path.write_bytes(raw)
             path.with_suffix(".json").write_text(json.dumps(meta), encoding="utf-8")
-            run = subprocess.run([sys.executable, str(root/"backend/scripts/oge_annual_review.py"),
+            run = subprocess.run([sys.executable, str(root/"backend/src/unison_snapshot/commands/oge_annual_review.py"),
                 "--evidence-root", str(evidence), "--review-root", str(review),
                 "--parser-version", "oge-278e-tables/v3", "--document-id", DOC],
                 cwd=root, env={**os.environ, "PYTHONPATH": str(root/"backend/src")},

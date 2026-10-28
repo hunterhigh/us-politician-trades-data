@@ -62,7 +62,7 @@ class SavedAmountInterpretationCliTests(unittest.TestCase):
                         self.data['sha']/'saved-observations.json')
 
     def writer(self, *, mode=True, output=None):
-        command = [sys.executable, str(ROOT/'backend/scripts/observe_oge_278t_fields.py'),
+        command = [sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'),
             '--observations', str(self.primary_path), '--secondary-observations', str(self.secondary_path),
             '--review-root', str(self.data['review']), '--evidence-root', str(self.data['evidence']),
             '--metadata', str(self.data['source'].with_suffix('.json')), '--output', str(output or self.ledger)]
@@ -128,7 +128,7 @@ class SavedAmountInterpretationCliTests(unittest.TestCase):
             for args in (('init','-q'),('config','user.name','Contract'),
                     ('config','user.email','contract@example.invalid'),('add','.'),('commit','-qm','saved contract')):
                 subprocess.run(['git','-C',str(tree),*args],check=True,capture_output=True)
-        status = subprocess.run([sys.executable,str(ROOT/'backend/scripts/build_disclosure_status.py'),
+        status = subprocess.run([sys.executable,str(ROOT/'backend/src/unison_snapshot/commands/build_disclosure_status.py'),
             '--evidence-root',str(self.data['evidence']),'--review-root',str(self.data['review']),
             '--input',str(self.root/'candidate.json'),'--code-commit','b'*40,'--previous-main-commit','a'*40,
             '--output',str(self.root/'status.json')],cwd=ROOT,

@@ -120,7 +120,7 @@ class SavedPrintedNumberIngestionTests(unittest.TestCase):
 
     def consume(self, primary, secondary=None):
         write(self.primary_path, primary)
-        arguments = [ROOT / 'backend/scripts/observe_oge_278t_fields.py',
+        arguments = [ROOT / 'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py',
             '--observations', self.primary_path, '--review-root', self.review,
             '--evidence-root', self.data['evidence'], '--metadata', self.data['metadata_path'],
             '--output', self.ledger]

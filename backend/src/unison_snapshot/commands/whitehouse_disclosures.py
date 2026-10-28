@@ -2,9 +2,9 @@
 
 Examples (evidence and review are separate checked-out branches):
 
-  python scripts/whitehouse_disclosures.py sync --evidence-root E --index-out R/index.json \
+  python -m unison_snapshot whitehouse-disclosures sync --evidence-root E --index-out R/index.json \
       --iri-audit-out R/iri-audit.json --batch-out R/batch.json --limit 25
-  python scripts/whitehouse_disclosures.py crosswalk --evidence-root E \
+  python -m unison_snapshot whitehouse-disclosures crosswalk --evidence-root E \
       --oge-manifest E/oge/catalog/MANIFEST.json --index R/index.json \
       --out R/crosswalk.json
 """

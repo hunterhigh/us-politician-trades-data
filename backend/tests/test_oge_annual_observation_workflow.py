@@ -58,7 +58,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         result,calls=self.workflow_branch()
         self.assertEqual(result.returncode,0,result.stderr)
         writer=calls[0]
-        self.assertEqual(writer[:2],['python','backend/scripts/observe_oge_annual_scan_sections.py'])
+        self.assertEqual(writer[:2],['python','backend/src/unison_snapshot/commands/observe_oge_annual_scan_sections.py'])
         self.assertNotIn('--output',writer)
         self.assertEqual(writer[writer.index('--document-id')+1],DOCUMENT)
         self.assertEqual(writer[writer.index('--source-sha256')+1],SOURCE)
@@ -76,7 +76,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         result,calls=self.workflow_branch(fail=True)
         self.assertEqual(result.returncode,9,result.stderr)
         self.assertEqual(len(calls),1)
-        self.assertEqual(calls[0][:2],['python','backend/scripts/observe_oge_annual_scan_sections.py'])
+        self.assertEqual(calls[0][:2],['python','backend/src/unison_snapshot/commands/observe_oge_annual_scan_sections.py'])
 
     def test_normal_writer_prepares_and_overlays_without_moving_legacy_observations(self):
         case=scan_fixtures.SavedScanRuntimeTests();case.setUp();self.addCleanup(case.doCleanups)
@@ -84,7 +84,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         standard=controlled_scan_output_path(case.review,'section_observation',scan_fixtures.DOC,case.sha)
         legacy=case.review/f'oge/annual/scan_section_observations/{scan_fixtures.DOC}/{case.sha}/sections-v1.json'
         arguments=['--pdf',case.pdf,'--source-sha256',case.sha,'--document-id',scan_fixtures.DOC]
-        result=case.cli('observe_oge_annual_scan_sections.py',[*arguments,'--output',legacy])
+        result=case.cli('observe-oge-annual-scan-sections',[*arguments,'--output',legacy])
         self.assertEqual(result.returncode,0,result.stderr)
         legacy_raw=legacy.read_bytes();self.assertEqual(legacy_raw,standard.read_bytes())
         standard.unlink();case.input.write_bytes(b'prior runtime input')
@@ -92,7 +92,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         self.assertNotEqual(result.returncode,0)
         self.assertIn(b'lacks its required cover or section inventory',result.stderr)
         self.assertEqual(case.input.read_bytes(),b'prior runtime input')
-        result=case.cli('observe_oge_annual_scan_sections.py',[*arguments,'--review-root',case.review])
+        result=case.cli('observe-oge-annual-scan-sections',[*arguments,'--review-root',case.review])
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(standard.read_bytes(),legacy_raw)
         result=case.prepare();self.assertEqual(result.returncode,0,result.stderr)
@@ -107,7 +107,7 @@ class AnnualObservationWorkflowTests(unittest.TestCase):
         before=standard.read_bytes()
         wrong=['--pdf',case.pdf,'--source-sha256','0'*64,'--document-id',scan_fixtures.DOC,
                '--output',standard]
-        result=case.cli('observe_oge_annual_scan_sections.py',wrong)
+        result=case.cli('observe-oge-annual-scan-sections',wrong)
         self.assertNotEqual(result.returncode,0)
         self.assertEqual(standard.read_bytes(),before)
         self.assertEqual(legacy.read_bytes(),legacy_raw)

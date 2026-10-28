@@ -239,7 +239,7 @@ class HouseAnnualStatusTests(unittest.TestCase):
                                                   'commit','-qm','fixture','--allow-empty']):
                 subprocess.run(['git','-C',str(tree),*args],check=True,capture_output=True)
         out=self.root/'status.json'
-        script=Path(__file__).resolve().parents[1]/'scripts/build_disclosure_status.py'
+        script=Path(__file__).resolve().parents[1]/'src/unison_snapshot/commands/build_disclosure_status.py'
         env=dict(os.environ,PYTHONPATH=str(script.parents[1]/'src'))
         result=subprocess.run([sys.executable,str(script),'--evidence-root',str(self.evidence),
             '--review-root',str(self.review),'--input',str(input_path),'--code-commit','1'*40,

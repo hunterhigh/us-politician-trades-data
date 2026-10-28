@@ -5,7 +5,7 @@ from pathlib import Path
 
 from unison_snapshot.oge_annual_runtime import prepare_controlled_annual_input
 from unison_snapshot.oge_annual import PARSER_VERSION, SHADOW_PARSER_VERSION, QUALIFIED_PARSER_VERSION
-from overlay_whitehouse_annual_candidate import _write
+from unison_snapshot.commands.overlay_whitehouse_annual_candidate import _write
 
 
 def main():

@@ -44,7 +44,7 @@ class SavedScanRuntimeTests(unittest.TestCase):
         path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(value),encoding='utf-8')
 
     def cli(self,name,args):
-        return subprocess.run([sys.executable,str(self.repo/'backend/scripts'/name),*map(str,args)],
+        return subprocess.run([sys.executable,'-m','unison_snapshot',name.removesuffix('.py').replace('_','-'),*map(str,args)],
             env=dict(os.environ,PYTHONPATH=str(self.repo/'backend/src')),capture_output=True)
 
     def seed(self, *, native_cover=False):
@@ -59,8 +59,8 @@ class SavedScanRuntimeTests(unittest.TestCase):
         # Exercise the existing cover writer with a fixed prior OCR observation;
         # no recognizer is invoked by this test or by runtime preparation.
         self.write(self.review/'oge/annual/extraction-status.json',{'failures':[{'document_id':DOC,'source_sha256':self.sha}]})
-        from scripts.observe_oge_annual_scan_covers import observe_failed_covers
-        with patch('scripts.observe_oge_annual_scan_covers.observe_scan_cover',return_value=cover):
+        from unison_snapshot.commands.observe_oge_annual_scan_covers import observe_failed_covers
+        with patch('unison_snapshot.commands.observe_oge_annual_scan_covers.observe_scan_cover',return_value=cover):
             result=observe_failed_covers(self.evidence,self.review)
         self.assertEqual(result['cover_observation_count'],1)
         if native_cover:

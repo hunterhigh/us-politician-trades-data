@@ -41,7 +41,7 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/oge-annual-review" origin/review
       - name: Extract content-verified annual reports into review only
         run: |
-          PYTHONPATH=backend/src python backend/scripts/oge_annual_review.py \
+          PYTHONPATH=backend/src python -m unison_snapshot oge-annual-review \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Observe scanned annual covers without promotion
@@ -49,24 +49,24 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 tesseract-ocr
-          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_scan_covers.py \
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-covers \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Observe fixed Vance Part 7 physical slots without promotion
         run: |
-          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_part7.py \
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-part7 \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Observe fixed Harris scanned annual sections without promotion
         run: |
-          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_scan_sections.py \
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-sections \
             --pdf "$RUNNER_TEMP/oge-annual-evidence/oge/annual/reports/1462ab8c5542e5e7852589b0007899fc/2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28.pdf" \
             --source-sha256 2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28 \
             --document-id 1462ab8c5542e5e7852589b0007899fc \
             --review-root "$RUNNER_TEMP/oge-annual-review"
       - name: Record scanned cover date roles without filing-date promotion
         run: |
-          PYTHONPATH=backend/src python backend/scripts/observe_oge_annual_scan_dates.py \
+          PYTHONPATH=backend/src python -m unison_snapshot observe-oge-annual-scan-dates \
             --evidence-root "$RUNNER_TEMP/oge-annual-evidence" \
             --output "$RUNNER_TEMP/oge-annual-review/oge/annual/scan_date_blocks/current.json"
       - name: Publish annual extraction audits

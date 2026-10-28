@@ -92,7 +92,7 @@ class SavedOgeNormalCliTests(unittest.TestCase):
                     ('config', 'user.email', 'contract@example.invalid'), ('add', '.'),
                     ('commit', '-qm', 'fixed normal source contract')):
                 subprocess.run(['git', '-C', str(tree), *args], check=True, capture_output=True)
-        status_process = subprocess.run([sys.executable, str(ROOT/'backend/scripts/build_disclosure_status.py'),
+        status_process = subprocess.run([sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/build_disclosure_status.py'),
             '--evidence-root', str(data['evidence']), '--review-root', str(data['review']),
             '--input', str(root/'candidate.json'), '--code-commit', 'b'*40,
             '--previous-main-commit', 'a'*40, '--output', str(root/'status.json')],

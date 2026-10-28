@@ -55,7 +55,7 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PYTHONPATH: backend/src
         run: |
-          python backend/scripts/whitehouse_extract.py \
+          python -m unison_snapshot whitehouse-extract \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
             --limit 1 --ocr-page-limit 25 \
             --document-id "$DOCUMENT_ID" --source-sha256 "$SOURCE_SHA256" \
@@ -76,9 +76,9 @@ jobs:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
           PYTHONPATH: backend/src
         run: |
-          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT"
-          python backend/scripts/build_whitehouse_reported_index.py --review-root "$REVIEW_ROOT"
-          python backend/scripts/build_whitehouse_annual_review.py --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot whitehouse-coverage --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot build-whitehouse-reported-index --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot build-whitehouse-annual-review --review-root "$REVIEW_ROOT"
       - name: Publish only the verified review replay
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}

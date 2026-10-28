@@ -12,7 +12,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 spec = importlib.util.spec_from_file_location(
-    "verify_prepared_publication", ROOT / "scripts/verify_prepared_publication.py")
+    "verify_prepared_publication", ROOT / "src/unison_snapshot/commands/verify_prepared_publication.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 

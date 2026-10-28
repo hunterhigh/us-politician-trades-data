@@ -191,7 +191,7 @@ class NativePartitionStatusTests(unittest.TestCase):
                          ('config','user.email','contract@example.invalid'),('add','.'),('commit','-qm','fixed native status inputs')]:
                 subprocess.run(['git','-C',str(tree),*args],check=True,capture_output=True)
         output=data['root']/'status-input.json'
-        args=[consumers.PROJECT/'backend/scripts/build_disclosure_status.py',
+        args=[consumers.PROJECT/'backend/src/unison_snapshot/commands/build_disclosure_status.py',
             '--evidence-root',data['evidence'],'--review-root',data['review'],
             '--input',data['root']/'candidate.json','--code-commit','b'*40,
             '--previous-main-commit','a'*40,'--output',output]

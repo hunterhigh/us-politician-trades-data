@@ -9,7 +9,7 @@ import pymupdf
 
 import test_native_partition_consumption as consumption
 from whitehouse_account_display_fixture import encoded, write_files
-from scripts import build_whitehouse_278t_candidate as candidate_cli
+from unison_snapshot.commands import build_whitehouse_278t_candidate as candidate_cli
 from unison_snapshot.oge_reports import parse_archived_pdf
 from unison_snapshot.oge_278t_page_shadow import observe_native_exhibit_page
 from unison_snapshot.oge_cross_source_replacements import (

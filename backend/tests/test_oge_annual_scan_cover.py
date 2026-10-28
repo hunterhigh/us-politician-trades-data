@@ -14,7 +14,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual_scan_cover import observe_scan_cover
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from observe_oge_annual_scan_covers import observe_failed_covers
+from unison_snapshot.commands.observe_oge_annual_scan_covers import observe_failed_covers
 
 
 class OgeAnnualScanCoverTests(unittest.TestCase):

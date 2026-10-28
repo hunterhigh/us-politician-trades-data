@@ -19,8 +19,7 @@ from test_oge_annual_workflow import bash_binary
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / '.github/workflows/oge.yml'
 DOCUMENT = 'd' * 32
-with patch.object(sys, 'path', [str(ROOT / 'backend/scripts'), *sys.path]):
-    from scripts import prepare_oge_annual_runtime as cli
+from unison_snapshot.commands import prepare_oge_annual_runtime as cli
 
 
 class AnnualBlueWorkflowTests(unittest.TestCase):
@@ -41,13 +40,7 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
             record = root / 'record.py'
             log = root / 'calls.jsonl'
             record.write_text(
-                'import json,os,sys\nfrom pathlib import Path\n'
-                'args=sys.argv[1:]\n'
-                'with Path(os.environ["TEST_CALL_LOG"]).open("a",encoding="utf-8") as f:\n'
-                ' f.write(json.dumps(args)+"\\n")\n'
-                'failure=os.environ["TEST_FAILURE"]\n'
-                'if failure=="prepare" and "prepare_oge_annual_runtime.py" in args[0]:sys.exit(9)\n'
-                'if failure=="pip" and args[:2]==["-m","pip"]:sys.exit(8)\n',
+                'import json,os,sys\nfrom pathlib import Path\nargs=sys.argv[1:]\nif args[:2]==["-m","unison_snapshot"]:args=args[2:]\nwith Path(os.environ["TEST_CALL_LOG"]).open("a",encoding="utf-8") as f:\n f.write(json.dumps(args)+"\\n")\nfailure=os.environ["TEST_FAILURE"]\nif failure=="prepare" and "prepare-oge-annual-runtime" in args[0]:sys.exit(9)\nif failure=="pip" and args[:2]==["-m","pip"]:sys.exit(8)\n',
                 encoding='utf-8')
             with record.open('a', encoding='utf-8') as handle:
                 handle.write('if failure=="sudo" and args[0]=="sudo":sys.exit(7)\n')
@@ -80,13 +73,13 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(calls), 3)
         prepare, install, overlay = calls
-        self.assertEqual(prepare[0], 'backend/scripts/prepare_oge_annual_runtime.py')
+        self.assertEqual(prepare[0], 'prepare-oge-annual-runtime')
         self.assertEqual(prepare[prepare.index('--blue-date-document-id') + 1], DOCUMENT)
         self.assertEqual(prepare[prepare.index('--blue-date-model-directory') + 1], model)
         self.assertIn('--verify-transaction-blank-slots', prepare)
         self.assertIn('--include-saved-scans', prepare)
         self.assertEqual(install, ['-m', 'pip', 'install', '-e', 'backend[oge-handwritten-date]'])
-        self.assertEqual(overlay[0], 'backend/scripts/overlay_whitehouse_annual_candidate.py')
+        self.assertEqual(overlay[0], 'overlay-whitehouse-annual-candidate')
         self.assertEqual(overlay[overlay.index('--oge-annual-input') + 1],
                          prepare[prepare.index('--output') + 1])
         self.assertEqual(overlay[overlay.index('--oge-annual-runtime-root') + 1],
@@ -134,7 +127,7 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
                 result, calls = self.execute(blue=DOCUMENT, model='models/existing', fail=failure)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertEqual(len(calls), count)
-                self.assertFalse(any('overlay_whitehouse_annual_candidate.py' in call[0] for call in calls))
+                self.assertFalse(any('overlay-whitehouse-annual-candidate' in call[0] for call in calls))
 
     def test_cover_replay_existing_engine_skips_install_and_missing_engine_installs_before_prepare(self):
         for present in (True, False):
@@ -147,9 +140,9 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
                     self.assertEqual(calls[:2], [['sudo', 'apt-get', 'update'],
                                                ['sudo', 'apt-get', 'install', '-y', 'tesseract-ocr']])
                     calls = calls[2:]
-                self.assertEqual(calls[0][0], 'backend/scripts/prepare_oge_annual_runtime.py')
+                self.assertEqual(calls[0][0], 'prepare-oge-annual-runtime')
                 self.assertIn('--replay-cover-ocr', calls[0])
-                self.assertEqual(calls[1][0], 'backend/scripts/overlay_whitehouse_annual_candidate.py')
+                self.assertEqual(calls[1][0], 'overlay-whitehouse-annual-candidate')
                 self.assertFalse(any(call[:2] == ['-m', 'pip'] for call in calls))
 
     def test_cover_dependency_and_prepare_failures_stop_model_extra_and_overlay(self):
@@ -159,18 +152,18 @@ class AnnualBlueWorkflowTests(unittest.TestCase):
                     blue=DOCUMENT, model='models/existing', fail=failure)
                 self.assertEqual(result.returncode, code, result.stderr)
                 self.assertFalse(any(call[:2] == ['-m', 'pip'] for call in calls))
-                self.assertFalse(any('overlay_whitehouse_annual_candidate.py' in call[0] for call in calls))
+                self.assertFalse(any('overlay-whitehouse-annual-candidate' in call[0] for call in calls))
                 self.assertEqual(calls[0], ['sudo', 'apt-get', 'update'])
                 if failure == 'sudo':
                     self.assertEqual(len(calls), 1)
                 else:
-                    self.assertEqual(calls[2][0], 'backend/scripts/prepare_oge_annual_runtime.py')
+                    self.assertEqual(calls[2][0], 'prepare-oge-annual-runtime')
         result, calls = self.execute(cover='true', tesseract_present=False,
                                     blue=DOCUMENT, model='models/existing')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([call[0] for call in calls], ['sudo', 'sudo',
-            'backend/scripts/prepare_oge_annual_runtime.py', '-m',
-            'backend/scripts/overlay_whitehouse_annual_candidate.py'])
+            'prepare-oge-annual-runtime', '-m',
+            'overlay-whitehouse-annual-candidate'])
 
     def test_cli_forwards_repeated_selection_without_executing_a_model(self):
         with tempfile.TemporaryDirectory() as directory:

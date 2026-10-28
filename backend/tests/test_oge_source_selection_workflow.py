@@ -39,9 +39,9 @@ class OgeSourceSelectionWorkflowTests(unittest.TestCase):
             self.cache(doc, sha).unlink()
         self.write(self.root / '.local/oge-catalog.json', json.loads(self.data['catalog_path'].read_bytes()))
         self.write(self.root / 'ingest/current.json', json.loads(self.data['base_path'].read_bytes()))
-        script = self.root / 'backend/scripts/prepare_oge_ptr_generic.py'
+        script = self.root / 'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT / 'backend/scripts/prepare_oge_ptr_generic.py', script)
+        shutil.copyfile(ROOT / 'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py', script)
         self.output = self.review / 'candidates/sources/oge-current.json'
         self.audit = self.review / 'oge/qualifications/current.json'
         self.env = dict(os.environ, REAL_PYTHON=sys.executable,

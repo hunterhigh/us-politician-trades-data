@@ -16,7 +16,7 @@ from unison_snapshot.disclosure_status_oge import build_oge_status
 from unison_snapshot.builder import build
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from test_public_repo import FakeTransport
-from scripts.build_whitehouse_278t_candidate import main as wh_cli
+from unison_snapshot.commands.build_whitehouse_278t_candidate import main as wh_cli
 from unison_snapshot.oge_reports import parse_table_rows
 
 WH_URL='https://www.whitehouse.gov/wp-content/uploads/2025/08/Example-Periodic-Transaction-Report-8.12.25-2.pdf'

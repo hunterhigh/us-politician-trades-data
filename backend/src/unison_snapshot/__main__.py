@@ -79,8 +79,13 @@ def _write_atomic(path: Path, payload: dict) -> None:
 
 
 def main() -> None:
+    import sys
+    from .command_registry import dispatch, register
+    if dispatch(sys.argv[1:]):
+        return
     parser = argparse.ArgumentParser(description="Snapshot production, public reading and official-source discovery")
     sub = parser.add_subparsers(dest="command", required=True)
+    register(sub)
     publish = sub.add_parser("publish-demo")
     publish.add_argument("--input", type=Path, required=True)
     publish.add_argument("--store", type=Path, required=True)

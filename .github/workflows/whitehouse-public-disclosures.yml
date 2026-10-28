@@ -80,7 +80,7 @@ jobs:
           print(value.get('last_attempted_id') or '')
           PY
           )"
-          python backend/scripts/whitehouse_disclosures.py sync \
+          python -m unison_snapshot whitehouse-disclosures sync \
             --evidence-root "$EVIDENCE_ROOT" \
             --index-out "$REVIEW_ROOT/whitehouse/disclosures/index-current.json" \
             --iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json" \
@@ -129,7 +129,7 @@ jobs:
           print(max(manifests)[1])
           PY
           )"
-          python backend/scripts/whitehouse_disclosures.py crosswalk \
+          python -m unison_snapshot whitehouse-disclosures crosswalk \
             --evidence-root "$EVIDENCE_ROOT" --oge-manifest "$manifest" \
             --index "$REVIEW_ROOT/whitehouse/disclosures/index-current.json" \
             --out "$REVIEW_ROOT/whitehouse/disclosures/crosswalk-current.json"
@@ -146,7 +146,7 @@ jobs:
           print(value.get('last_attempted_id') or '')
           PY
           )"
-          python backend/scripts/whitehouse_extract.py \
+          python -m unison_snapshot whitehouse-extract \
             --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
             --limit "$EXTRACTION_BATCH_SIZE" --start-after-id "$cursor" \
             --ocr-page-limit "$OCR_PAGE_LIMIT"
@@ -155,17 +155,17 @@ jobs:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
           EVIDENCE_ROOT: ${{ runner.temp }}/whitehouse-evidence
         run: |
-          python backend/scripts/whitehouse_coverage.py --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT"
+          python -m unison_snapshot whitehouse-coverage --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT"
       - name: Index filer-reported rows independently of frontend eligibility
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
         run: |
-          python backend/scripts/build_whitehouse_reported_index.py --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot build-whitehouse-reported-index --review-root "$REVIEW_ROOT"
       - name: Materialize White House annual filer-reported holdings
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review
         run: |
-          python backend/scripts/build_whitehouse_annual_review.py --review-root "$REVIEW_ROOT"
+          python -m unison_snapshot build-whitehouse-annual-review --review-root "$REVIEW_ROOT"
       - name: Publish bounded review audit
         env:
           REVIEW_ROOT: ${{ runner.temp }}/whitehouse-review

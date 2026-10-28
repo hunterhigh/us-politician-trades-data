@@ -24,7 +24,7 @@ FIXTURES = {
     "page_census": ("oge_annual_vance_2026_page_census.json",
                     "a074afe715f777a2f35749030aa6f382082ecb833bc4efe590c13f58d7b28226"),
 }
-FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
+FIXTURE_ROOT = Path(__file__).resolve().parents[3] / "tests" / "fixtures"
 EXTRACTION_REL = (f"oge/annual/extractions/{DOCUMENT_ID}/{SOURCE_SHA}/"
                   "oge-278e-tables-v1.json")
 PDF_REL = f"oge/annual/reports/{DOCUMENT_ID}/{SOURCE_SHA}.pdf"

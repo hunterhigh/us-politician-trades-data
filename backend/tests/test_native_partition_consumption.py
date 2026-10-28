@@ -179,20 +179,20 @@ class NativePartitionConsumptionTests(unittest.TestCase):
         return root,metadata,base
 
     def wh_extract_coverage(self,root,metadata,generic):
-        args=[PROJECT/'backend/scripts/whitehouse_extract.py','--evidence-root',root/'evidence',
+        args=[PROJECT/'backend/src/unison_snapshot/commands/whitehouse_extract.py','--evidence-root',root/'evidence',
             '--review-root',root/'review','--limit','1','--document-id',metadata['document_id'],
             '--source-sha256',metadata['sha256'],'--status-output',root/'review/whitehouse/extraction-status.json']
         if generic:args+=['--generic-trade']
         self.run_cli(args)
         status=json.loads((root/'review/whitehouse/extraction-status.json').read_bytes())
         self.assertEqual(status['failure_count'],0,status)
-        args=[PROJECT/'backend/scripts/whitehouse_coverage.py','--review-root',root/'review',
+        args=[PROJECT/'backend/src/unison_snapshot/commands/whitehouse_coverage.py','--review-root',root/'review',
             '--evidence-root',root/'evidence','--output',root/'review/whitehouse/coverage-current.json']
         if generic:args+=['--generic-trade']
         self.run_cli(args)
 
     def wh_candidate(self,root,*,roots=True,success=True,input_path=None):
-        args=[PROJECT/'backend/scripts/build_whitehouse_278t_candidate.py','--oge-candidate',input_path or root/'base.json',
+        args=[PROJECT/'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py','--oge-candidate',input_path or root/'base.json',
             '--review-root',root/'review','--candidate-out',root/'candidate.json','--audit-out',root/'audit.json',
             '--expected-report-count','1']
         if roots:args+=['--evidence-root',root/'evidence']

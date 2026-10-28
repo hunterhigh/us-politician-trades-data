@@ -42,7 +42,7 @@ class ControlledAnnualRuntimeTests(unittest.TestCase):
         return path
 
     def run_cli(self, name, arguments):
-        return subprocess.run([sys.executable, str(self.repo/'backend/scripts'/name), *arguments],
+        return subprocess.run([sys.executable, '-m', 'unison_snapshot', name.removesuffix('.py').replace('_','-'), *arguments],
             env=dict(os.environ, PYTHONPATH=str(self.repo/'backend/src')), capture_output=True)
 
     def prepare(self, *extra):

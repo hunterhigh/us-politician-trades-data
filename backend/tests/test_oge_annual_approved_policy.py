@@ -27,7 +27,7 @@ class ApprovedOgeAnnualPolicyTests(unittest.TestCase):
             folder=Path(directory);(folder/'review').mkdir()
             (folder/'base.json').write_text(json.dumps(base()),encoding='utf-8')
             (folder/'input.json').write_text(json.dumps(inputs(source(official_unknown=True))),encoding='utf-8')
-            args=[sys.executable,str(root/'backend/scripts/overlay_whitehouse_annual_candidate.py'),
+            args=[sys.executable,str(root/'backend/src/unison_snapshot/commands/overlay_whitehouse_annual_candidate.py'),
                 '--review-root',str(folder/'review'),'--candidate',str(folder/'base.json'),
                 '--audit-out',str(folder/'audit.json'),'--oge-annual-input',str(folder/'input.json')]
             env=dict(os.environ,PYTHONPATH=str(root/'backend/src'))

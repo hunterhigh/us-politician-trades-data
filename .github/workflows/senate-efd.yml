@@ -527,7 +527,7 @@ jobs:
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json" \
             --html-output "$RUNNER_TEMP/disclosure-current.html"
-          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+          assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \
             --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
           if [ "$assembly_status" = deferred ]; then
             git -C "$REVIEW_ROOT" add status/disclosure_assembly.json

@@ -452,7 +452,7 @@ jobs:
                 source_prepare_args=(--source-sha256 "$source_sha")
                 document_source_args+=(--document-source "$document_id:$source_sha")
               fi
-              PYTHONPATH=backend/src python backend/scripts/prepare_oge_ptr_generic.py \
+              PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-ptr-generic \
                 --document-id "$document_id" \
                 --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
                 --catalog .local/oge-catalog.json \
@@ -473,7 +473,7 @@ jobs:
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
             "${saved_observation_args[@]}" "${generic_document_args[@]}" "${document_source_args[@]}"
-          PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py \
+          PYTHONPATH=backend/src python -m unison_snapshot build-whitehouse-278t-candidate \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
@@ -544,7 +544,7 @@ jobs:
               fi
               selection_args+=(--replay-cover-ocr)
             fi
-            PYTHONPATH=backend/src python backend/scripts/prepare_oge_annual_runtime.py \
+            PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-annual-runtime \
               --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
               --output "$RUNNER_TEMP/oge-annual-input.json" \
               --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -559,7 +559,7 @@ jobs:
             exit 2
           fi
           # END bounded saved annual preparation
-          PYTHONPATH=backend/src python backend/scripts/overlay_whitehouse_annual_candidate.py \
+          PYTHONPATH=backend/src python -m unison_snapshot overlay-whitehouse-annual-candidate \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
@@ -567,7 +567,7 @@ jobs:
             "${annual_args[@]}"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
           assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
-          PYTHONPATH=backend/src python backend/scripts/enrich_whitehouse_annual_tickers.py \
+          PYTHONPATH=backend/src python -m unison_snapshot enrich-whitehouse-annual-tickers \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
             --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
@@ -653,7 +653,7 @@ jobs:
             --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
             --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
-          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+          assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \
             --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
           if [ "$assembly_status" = deferred ]; then
             git -C "$REVIEW_ROOT" add status/disclosure_assembly.json

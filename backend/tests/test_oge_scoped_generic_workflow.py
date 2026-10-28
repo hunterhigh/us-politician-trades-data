@@ -39,9 +39,9 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.original = json.loads(self.data['base_path'].read_bytes())
         self.write(self.root/'ingest/current.json', self.original)
         # The temporary workflow checkout contains the exact production script.
-        script = self.root/'backend/scripts/prepare_oge_ptr_generic.py'
+        script = self.root/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT/'backend/scripts/prepare_oge_ptr_generic.py', script)
+        shutil.copyfile(ROOT/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py', script)
         self.output = self.review/'candidates/sources/oge-current.json'
         self.audit = self.review/'oge/qualifications/current.json'
         self.env = dict(os.environ, REAL_PYTHON=sys.executable,
@@ -87,7 +87,7 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
         self.git_commit(self.review)
         status_path = self.root/'status.json'
         result = subprocess.run([sys.executable,
-            str(ROOT/'backend/scripts/build_disclosure_status.py'),
+            str(ROOT/'backend/src/unison_snapshot/commands/build_disclosure_status.py'),
             '--evidence-root', str(self.data['evidence_root']),
             '--review-root', str(self.review), '--input', str(self.output),
             '--code-commit', 'f'*40, '--previous-main-commit', 'e'*40,
@@ -191,9 +191,9 @@ class ScopedGenericWorkflowTests(unittest.TestCase):
             'request_required_count': 0}
         self.write(self.root/'.local/oge-catalog.json', catalog)
         self.write(self.root/'ingest/current.json', previous)
-        script = self.root/'backend/scripts/prepare_oge_ptr_generic.py'
+        script = self.root/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'
         script.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT/'backend/scripts/prepare_oge_ptr_generic.py', script)
+        shutil.copyfile(ROOT/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py', script)
         self.env.update(REVIEW_ROOT=str(self.review), EVIDENCE_ROOT=str(evidence_root),
                         TEST_CUTOFF=CUTOFF)
         self.output = self.review/'candidates/sources/oge-current.json'

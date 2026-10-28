@@ -1,7 +1,7 @@
 """Build a local OGE review candidate from complete White House 278-T evidence.
 
 Example:
-  python backend/scripts/build_whitehouse_278t_candidate.py \
+  python -m unison_snapshot build-whitehouse-278t-candidate \
     --oge-candidate /tmp/oge-current.json --review-root /tmp/review \
     --candidate-out /tmp/oge-current.json \
     --audit-out /tmp/whitehouse-278t-conservation.json

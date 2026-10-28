@@ -219,7 +219,7 @@ class LinkedFieldEvidenceTests(unittest.TestCase):
             first, second, output = [root / name for name in ("first.json", "second.json", "output.json")]
             first.write_text(json.dumps(base), encoding="utf-8")
             second.write_text(json.dumps(read), encoding="utf-8")
-            process = subprocess.run([sys.executable, str(repo / "backend/scripts/observe_oge_278t_fields.py"),
+            process = subprocess.run([sys.executable, str(repo / "backend/src/unison_snapshot/commands/observe_oge_278t_fields.py"),
                 "--observations", str(first), "--secondary-observations", str(second),
                 "--output", str(output)], capture_output=True, text=True,
                 env=dict(os.environ, PYTHONPATH=str(repo / "backend/src")))

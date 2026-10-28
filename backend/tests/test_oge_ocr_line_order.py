@@ -255,7 +255,7 @@ class OgeOcrLineOrderTests(unittest.TestCase):
             self.assertEqual(row['raw_columns']['description'], 'BOND ALPHA')
             source = root/'observation.json'; source.write_text(json.dumps(live), encoding='utf-8')
             output = root/'fields.json'; repo = Path(__file__).resolve().parents[2]
-            command = [sys.executable, str(repo/'backend/scripts/observe_oge_278t_fields.py'),
+            command = [sys.executable, str(repo/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'),
                        '--observations', str(source), '--output', str(output)]
             env = dict(os.environ, PYTHONPATH=str(repo/'backend/src'))
             done = subprocess.run(command, env=env, capture_output=True, text=True)

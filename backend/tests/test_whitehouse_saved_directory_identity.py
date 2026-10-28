@@ -134,9 +134,9 @@ class SavedDirectoryIdentityTests(unittest.TestCase):
             self.assertEqual(candidate['transactions'],[])
 
     def test_normal_extract_coverage_candidate_cli_consumes_optional_inputs(self):
-        from scripts.whitehouse_extract import main as extract_main
-        from scripts.whitehouse_coverage import main as coverage_main
-        from scripts.build_whitehouse_278t_candidate import main as candidate_main
+        from unison_snapshot.commands.whitehouse_extract import main as extract_main
+        from unison_snapshot.commands.whitehouse_coverage import main as coverage_main
+        from unison_snapshot.commands.build_whitehouse_278t_candidate import main as candidate_main
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);case,inputs,data,cov=fixture(root,information_label='Filer',certification_label='Filer')
             meta=json.loads(Path(inputs['archive_metadata_path']).read_bytes())

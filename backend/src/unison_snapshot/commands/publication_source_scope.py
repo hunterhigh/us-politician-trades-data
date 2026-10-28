@@ -75,7 +75,7 @@ def apply_scope(root: Path, kind: str, *, keep_parser_inputs: bool = False) -> d
     return result
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--kind", choices=EXCLUDED, required=True)
@@ -83,3 +83,7 @@ if __name__ == "__main__":
                         help="Keep OGE/White House originals, source pages and saved OCR for status replay")
     args = parser.parse_args()
     apply_scope(args.root, args.kind, keep_parser_inputs=args.keep_parser_inputs)
+
+
+if __name__ == '__main__':
+    main()

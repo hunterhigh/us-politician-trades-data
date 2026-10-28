@@ -15,7 +15,7 @@ from unison_snapshot.oge_saved_observations import MAX_JSON_BYTES, load_saved_og
 
 
 ROOT = Path(__file__).resolve().parents[2]
-WRITER = ROOT / 'backend/scripts/observe_oge_278t_fields.py'
+WRITER = ROOT / 'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'
 
 
 def directory_alias(link, target):

@@ -196,7 +196,7 @@ class OgePtrRuntimeTests(unittest.TestCase):
         self.rejected_unchanged()
 
     def test_actual_script_receipt_success_and_failure_keeps_all_inputs(self):
-        args = [sys.executable,str(ROOT/'backend/scripts/prepare_oge_ptr_generic.py'),
+        args = [sys.executable,str(ROOT/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'),
             '--document-id',DOCUMENT,'--evidence-root',str(self.evidence),
             '--review-root',str(self.review),'--catalog',str(self.catalog)]
         env = dict(os.environ,PYTHONPATH=str(ROOT/'backend/src'))
@@ -280,7 +280,7 @@ class OgePtrRuntimeTests(unittest.TestCase):
 
     def test_prepare_script_accepts_explicit_input_without_changing_default_multisha_behavior(self):
         sha, _, _ = self.additional_archived_version()
-        args = [sys.executable, str(ROOT/'backend/scripts/prepare_oge_ptr_generic.py'),
+        args = [sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/prepare_oge_ptr_generic.py'),
             '--document-id', DOCUMENT, '--evidence-root', str(self.evidence),
             '--review-root', str(self.review), '--catalog', str(self.catalog)]
         env = dict(os.environ, PYTHONPATH=str(ROOT/'backend/src'))

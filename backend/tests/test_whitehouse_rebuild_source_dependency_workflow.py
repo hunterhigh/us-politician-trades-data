@@ -47,7 +47,7 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
         content=WORKFLOW.read_text(encoding='utf-8')
         section=content.split('      - name: Rebuild complete OGE and unified review candidates',1)[1]
         run=section.split('        run: |\n',1)[1]
-        return textwrap.dedent(run.split('          python backend/scripts/overlay_whitehouse_annual_candidate.py',1)[0])
+        return textwrap.dedent(run.split('          python -m unison_snapshot overlay-whitehouse-annual-candidate',1)[0])
 
     def declared_dependencies(self):
         content=WORKFLOW.read_text(encoding='utf-8')
@@ -148,4 +148,4 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
         self.assertIn("audit['promoted_transaction_count']",content)
         self.assertIn('verify-first-launch',content)
         self.assertNotIn('audit_trump_',content)
-        self.assertNotIn('overlay_whitehouse_annual_candidate.py',self.branch())
+        self.assertNotIn('overlay-whitehouse-annual-candidate',self.branch())

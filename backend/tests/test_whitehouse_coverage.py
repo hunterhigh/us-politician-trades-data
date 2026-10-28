@@ -8,7 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 spec = importlib.util.spec_from_file_location(
-    "whitehouse_coverage_script", ROOT / "scripts/whitehouse_coverage.py")
+    "whitehouse_coverage_script", ROOT / "src/unison_snapshot/commands/whitehouse_coverage.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 

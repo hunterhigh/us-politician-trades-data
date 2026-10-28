@@ -14,7 +14,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278e_public import (OcrCheckpointPending, CONSOLIDATED_SCANNED_PARSER_VERSION)
 from unison_snapshot.whitehouse_278t import (REVIEWED_COVER_PARSER_VERSION)
 spec = importlib.util.spec_from_file_location(
-    "whitehouse_extract_script", ROOT / "scripts/whitehouse_extract.py")
+    "whitehouse_extract_script", ROOT / "src/unison_snapshot/commands/whitehouse_extract.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 from whitehouse_reviewed_fixture import (COVER_DOCUMENT_ID, COVER_SOURCE_SHA256, COVER_SOURCE_URL)

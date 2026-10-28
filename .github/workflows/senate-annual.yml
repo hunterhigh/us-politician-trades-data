@@ -69,7 +69,7 @@ jobs:
       - name: Discover and archive latest annual versions
         if: inputs.structured_asset_labels != true && inputs.independent_transactions != true
         run: |
-          python backend/scripts/senate_annual.py collect \
+          python -m unison_snapshot senate-annual collect \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --roster "$ROSTER" --submitted-start-date 2025-01-01 \
             --limit "$REPORT_LIMIT"
@@ -121,10 +121,10 @@ jobs:
           if [ "$INDEPENDENT_TRANSACTIONS" = "true" ] || [ "$active_transactions" = "independent_part4b/v1" ]; then
             annual_args+=(--independent-transactions)
           fi
-          python backend/scripts/senate_annual.py build \
+          python -m unison_snapshot senate-annual build \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --review-root "$review" --roster "$ROSTER" "${annual_args[@]}"
-          python backend/scripts/senate_annual.py overlay \
+          python -m unison_snapshot senate-annual overlay \
             --review-root "$review" \
             --evidence-root "$RUNNER_TEMP/senate-annual-evidence" \
             --candidate "$review/candidates/sources/senate_efd-current.json" \
@@ -154,7 +154,7 @@ jobs:
             --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
             --output "$review/candidates/disclosure-current.json" \
             --audit-output "$review/status/disclosure_cutoff.json"
-          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
+          assembly_status="$(PYTHONPATH=backend/src python -m unison_snapshot source-assembly-status \
             --status "$review/status/disclosure_assembly.json")"
           if [ "$assembly_status" = deferred ]; then
             git -C "$review" add status/disclosure_assembly.json

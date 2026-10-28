@@ -24,7 +24,7 @@ class CachedPublicationTests(unittest.TestCase):
         import importlib.util
         from test_oge_annual_approved_policy import complete_case
         from unison_snapshot.legacy import processor_version_for
-        script = Path(__file__).resolve().parents[1] / "scripts/build_cached_candidate.py"
+        script = Path(__file__).resolve().parents[1] / "src/unison_snapshot/commands/build_cached_candidate.py"
         spec = importlib.util.spec_from_file_location("cached_candidate_cli", script)
         cli = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli)

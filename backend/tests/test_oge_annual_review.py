@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from oge_annual_review import extract_archived_reports
+from unison_snapshot.commands.oge_annual_review import extract_archived_reports
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual import PARSER_VERSION, SCHEMA
 

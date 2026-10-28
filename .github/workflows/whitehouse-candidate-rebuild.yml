@@ -54,20 +54,20 @@ jobs:
             "$RUNNER_TEMP/oge-candidate-before.json"
           cp "$REVIEW_ROOT/candidates/disclosure-current.json" \
             "$RUNNER_TEMP/disclosure-candidate-before.json"
-          python backend/scripts/build_whitehouse_278t_candidate.py \
+          python -m unison_snapshot build-whitehouse-278t-candidate \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
-          python backend/scripts/overlay_whitehouse_annual_candidate.py \
+          python -m unison_snapshot overlay-whitehouse-annual-candidate \
             --review-root "$REVIEW_ROOT" \
             --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
           assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
-          python backend/scripts/enrich_whitehouse_annual_tickers.py \
+          python -m unison_snapshot enrich-whitehouse-annual-tickers \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
             --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \

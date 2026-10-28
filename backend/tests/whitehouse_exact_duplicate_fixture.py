@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts import build_whitehouse_278t_candidate as whitehouse_cli
+from unison_snapshot.commands import build_whitehouse_278t_candidate as whitehouse_cli
 from test_whitehouse_owner_correction import encoded, fixture
 from unison_snapshot.oge import archive_catalog, build_catalog, parse_catalog_page
 from unison_snapshot.oge_candidate import build_oge_candidate

@@ -302,7 +302,7 @@ jobs:
             cp "$RUNNER_TEMP/prepared-prices/market-audit.json" "$RUNNER_TEMP/market-audit.json"
             cp "$RUNNER_TEMP/prepared-prices/twelve-audit.json" "$RUNNER_TEMP/twelve-audit.json"
           fi
-          python backend/scripts/build_cached_candidate.py \
+          python -m unison_snapshot build-cached-candidate \
             --input "$RUNNER_TEMP/governed-disclosure.json" \
             --main-root "$CACHE_MAIN_ROOT" --market-root "$CACHE_MARKET_ROOT" \
             --market-commit "$CACHE_MARKET_COMMIT" \
@@ -413,7 +413,7 @@ jobs:
           PYTHONPATH: backend/src
         run: |
           generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          python backend/scripts/build_disclosure_status.py \
+          python -m unison_snapshot build-disclosure-status \
             --evidence-root "${{ steps.trees.outputs.evidence_root }}" \
             --review-root "${{ steps.trees.outputs.review_root }}" \
             --input "$RUNNER_TEMP/complete-candidate.json" \
@@ -482,7 +482,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PYTHONPATH: backend/src
         run: |
-          python backend/scripts/verify_prepared_publication.py \
+          python -m unison_snapshot verify-prepared-publication \
             --owner hunterhigh --repo us-politician-trades-data \
             --main-commit "$EXPECTED_MAIN" --market-commit "$EXPECTED_MARKET" \
             --person-id "$PERSON_ID" --ticker "$TICKER" \

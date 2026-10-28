@@ -77,7 +77,7 @@ class UnicodeLinkTests(unittest.TestCase):
 
     def test_sync_cli_uses_one_expanded_index_for_batch_and_review(self):
         backend = Path(__file__).resolve().parents[1]
-        script = backend / "scripts/whitehouse_disclosures.py"
+        script = backend / "src/unison_snapshot/commands/whitehouse_disclosures.py"
         spec = importlib.util.spec_from_file_location("whitehouse_sync_cli_test", script)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
@@ -115,7 +115,7 @@ class UnicodeLinkTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         workflow = (root / ".github/workflows/whitehouse-public-disclosures.yml")
         content = workflow.read_text(encoding="utf-8")
-        self.assertIn("python backend/scripts/whitehouse_disclosures.py sync", content)
+        self.assertIn("python -m unison_snapshot whitehouse-disclosures sync", content)
         self.assertIn('--iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json"',
                       content)
         self.assertIn('--batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json"',

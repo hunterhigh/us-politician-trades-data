@@ -184,7 +184,7 @@ class GridSearchDomainTests(unittest.TestCase):
                 self.assertEqual(sum(len(s['words']) for s in output['slots'])+len(output['unbound_page_ocr_words']),len(words))
                 if rotation==90:
                     repo=Path(__file__).resolve().parents[2];target=root/'geometry.json'
-                    command=[sys.executable,str(repo/'backend/scripts/observe_oge_278t_raster_slots.py'),
+                    command=[sys.executable,str(repo/'backend/src/unison_snapshot/commands/observe_oge_278t_raster_slots.py'),
                         '--pdf',str(path),'--expected-sha256',digest,'--pages','1','--geometry-mode',DUAL_MODE,
                         '--geometry-only','--tesseract','NO_OCR_ALLOWED','--output',str(target)]
                     done=subprocess.run(command,capture_output=True,env=dict(os.environ,PYTHONPATH=str(repo/'backend/src')))

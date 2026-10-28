@@ -45,9 +45,9 @@ jobs:
           EVIDENCE_ROOT: ${{ runner.temp }}/oge-whitehouse-evidence
         run: |
           mkdir -p .local
-          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py coverage \
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse coverage \
             --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-coverage.json
-          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py request-plan \
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse request-plan \
             --evidence-root "$EVIDENCE_ROOT" --output .local/oge-whitehouse-request-plan.json
           batch_size="${OGE_ANNUAL_REPORT_BATCH_SIZE:-2}"
           if ! [[ "$batch_size" =~ ^([1-9]|1[0-2])$ ]]; then
@@ -62,7 +62,7 @@ jobs:
           print(value.get('last_attempted_id') or '')
           PY
           )"
-          PYTHONPATH=backend/src python backend/scripts/oge_whitehouse.py archive-annual \
+          PYTHONPATH=backend/src python -m unison_snapshot oge-whitehouse archive-annual \
             --evidence-root "$EVIDENCE_ROOT" \
             --coverage .local/oge-whitehouse-coverage.json \
             --start-after-id "$cursor" \

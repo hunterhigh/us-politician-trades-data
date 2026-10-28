@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from observe_oge_annual_part7 import (EXTRACTION_REL, PDF_REL, SIDECAR_REL,
+from unison_snapshot.commands.observe_oge_annual_part7 import (EXTRACTION_REL, PDF_REL, SIDECAR_REL,
                                       SOURCE_SHA, STATUS_REL, _hash_file,
                                       observe_fixed_report)
 

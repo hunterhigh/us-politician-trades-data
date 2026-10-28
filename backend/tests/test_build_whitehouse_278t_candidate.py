@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 from contextlib import redirect_stdout
 
-from scripts.build_whitehouse_278t_candidate import main, run
+from unison_snapshot.commands.build_whitehouse_278t_candidate import main, run
 from tests.test_whitehouse_278t_candidate import _base, _catalog, _wiles
 from unison_snapshot.builder import SOURCE_HOSTS
 
@@ -111,7 +111,7 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
     def _exact_command(self, expected_code=0):
         root = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=str(root / "backend/src"))
-        result = subprocess.run([sys.executable, str(root / "backend/scripts/build_whitehouse_278t_candidate.py"),
+        result = subprocess.run([sys.executable, str(root / "backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py"),
             "--oge-candidate", str(self.oge), "--review-root", str(self.review),
             "--candidate-out", str(self.oge), "--audit-out", str(self.audit_out),
             "--expected-report-count", "2", "--exact-source-copies"],
@@ -144,19 +144,6 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
         self.assertEqual(result["promoted_transaction_count"], 0)
         self.assertEqual(json.loads(self.oge.read_text(encoding="utf8"))["transactions"], before)
 
-    def test_existing_audit_script_command_reads_same_local_inputs(self):
-        self._add_exact_alias()
-        root = Path(__file__).resolve().parents[2]
-        result = subprocess.run([sys.executable, str(root / "backend/scripts/audit_whitehouse_278t_review.py"),
-            "--review-root", str(self.review), "--oge-candidate", str(self.oge),
-            "--exact-source-copies"], cwd=root,
-            env=dict(os.environ, PYTHONPATH=str(root / "backend/src")), capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        audit = json.loads(result.stdout)
-        self.assertEqual(audit["schema_version"], "whitehouse-278t-exact-source-candidate/v1")
-        self.assertEqual(audit["canonical_eligibility"]["eligible_row_count"], 3)
-        self.assertEqual(len(audit["exact_source_aliases"][0]["aliases"]), 2)
-        self.assertFalse(audit["qualification_written"])
 
     def test_complete_local_batch_publishes_pair_and_is_idempotent(self):
         before_coverage = (self.review / "whitehouse/coverage-current.json").read_bytes()

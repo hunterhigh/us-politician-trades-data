@@ -212,10 +212,6 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         shutil.copytree(ROOT / 'frontend-contract-v2/scripts',
                         self.root / 'frontend-contract-v2/scripts',
                         ignore=shutil.ignore_patterns('__pycache__'))
-        scripts = self.root / 'backend/scripts'
-        scripts.mkdir()
-        shutil.copyfile(ROOT / 'backend/scripts/source_assembly_status.py',
-                        scripts / 'source_assembly_status.py')
         self.env['GITHUB_OUTPUT'] = str(self.root / 'github-output')
         self.env['GITHUB_STEP_SUMMARY'] = str(self.root / 'github-summary')
         # The opted-in source workflow records deferral while preserving all

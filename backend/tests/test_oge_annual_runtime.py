@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.overlay_whitehouse_annual_candidate import _runtime_input
+from unison_snapshot.commands.overlay_whitehouse_annual_candidate import _runtime_input
 
 
 class AnnualRuntimeTests(unittest.TestCase):
@@ -59,7 +59,7 @@ class AnnualRuntimeTests(unittest.TestCase):
             candidate.write_bytes(b"candidate sentinel")
             audit.write_bytes(b"audit sentinel")
             repo = Path(__file__).resolve().parents[2]
-            result = subprocess.run([sys.executable, str(repo / "backend/scripts/overlay_whitehouse_annual_candidate.py"),
+            result = subprocess.run([sys.executable, str(repo / "backend/src/unison_snapshot/commands/overlay_whitehouse_annual_candidate.py"),
                 "--review-root", str(root / "review"), "--candidate", str(candidate), "--audit-out", str(audit),
                 "--oge-annual-input", str(path), "--oge-annual-runtime-root", str(root)],
                 env=dict(os.environ, PYTHONPATH=str(repo / "backend/src")), capture_output=True)

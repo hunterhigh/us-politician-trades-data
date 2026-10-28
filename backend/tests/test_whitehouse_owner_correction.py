@@ -28,7 +28,7 @@ def fixture(extra=None, asset='Example Common Stock See Endnote (EXM)'):
     from unison_snapshot.oge_candidate import _identity_key, _person_id
     from unison_snapshot.whitehouse_278t_candidate import _person
     from tests.test_whitehouse_278t_candidate import _base
-    from scripts.whitehouse_coverage import build_coverage
+    from unison_snapshot.commands.whitehouse_coverage import build_coverage
     url='https://www.whitehouse.gov/wp-content/uploads/2026/06/Example-PTR.pdf'
     doc='wh-url:'+hashlib.sha256(url.encode()).hexdigest()[:24]
     label='Example, Ada - Periodic Transaction Report 06.13.26'
@@ -257,7 +257,7 @@ class WhiteHouseOwnerCorrectionTests(unittest.TestCase):
             save(repo/'manifest.json',{'is_demo':False,'board':digest});save(repo/f'board/{digest}.json',raw)
             git('add','.');git('commit','-qm','source contract');commit=git('rev-parse','HEAD')
             save(root/'base.json',base)
-            cmd=[sys.executable,str(project/'backend/scripts/build_whitehouse_278t_candidate.py'),
+            cmd=[sys.executable,str(project/'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py'),
                 '--oge-candidate',str(root/'base.json'),'--review-root',str(repo),'--evidence-root',str(repo),
                 '--candidate-out',str(root/'candidate.json'),'--audit-out',str(root/'audit.json'),'--expected-report-count','1']
             result=subprocess.run(cmd,capture_output=True,text=True,env=env)

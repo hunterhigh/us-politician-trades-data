@@ -190,8 +190,8 @@ class GenericWhiteHouseTests(unittest.TestCase):
 
     def test_generic_cli_uses_separate_inputs_and_default_selection_stays_legacy(self):
         from test_build_whitehouse_278t_candidate import WhiteHouse278TCandidateCliTests, _write
-        from scripts.build_whitehouse_278t_candidate import main
-        from scripts.whitehouse_coverage import _trade_versions
+        from unison_snapshot.commands.build_whitehouse_278t_candidate import main
+        from unison_snapshot.commands.whitehouse_coverage import _trade_versions
         case=WhiteHouse278TCandidateCliTests()
         case.setUp()
         self.addCleanup(case.doCleanups)

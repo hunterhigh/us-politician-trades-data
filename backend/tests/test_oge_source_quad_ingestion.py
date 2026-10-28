@@ -148,7 +148,7 @@ class SourceQuadIngestionTests(unittest.TestCase):
             capture_output=True,text=True)
 
     def writer(self):
-        return self.command(ROOT/'backend/scripts/observe_oge_278t_fields.py',
+        return self.command(ROOT/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py',
             '--observations',self.root/'primary.json','--secondary-observations',
             self.root/'type.json',self.root/'amount.json','--review-root',self.data['review'],
             '--evidence-root',self.data['evidence'],'--metadata',self.data['metadata_path'],

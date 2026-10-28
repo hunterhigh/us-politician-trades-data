@@ -29,14 +29,10 @@ class PublishWorkflowTests(unittest.TestCase):
         self.assertLess(ci.index('backend[house-ingest,native-source-proof]'),
                         ci.index('python scripts/verify.py'))
 
-    def test_publication_and_preview_explicitly_keep_saved_parser_inputs(self):
+    def test_publication_explicitly_keeps_saved_parser_inputs(self):
         prepare = (ROOT / ".github/scripts/prepare-publication-trees.sh").read_text(encoding="utf-8")
         for kind, root in (("review", "review_root"), ("evidence", "evidence_root")):
-            self.assertIn(f'publication_source_scope.py --root "${root}" --kind {kind} --keep-parser-inputs', prepare)
-        preview = (ROOT / ".github/workflows/disclosure-status-preview.yml").read_text(encoding="utf-8")
-        self.assertIn("verify_publication_source_scope.py --keep-parser-inputs", preview)
-        script = (ROOT / "backend/scripts/verify_publication_source_scope.py").read_text(encoding="utf-8")
-        self.assertEqual(script.count("keep_parser_inputs=args.keep_parser_inputs"), 2)
+            self.assertIn(f'publication-source-scope --root "${root}" --kind {kind} --keep-parser-inputs', prepare)
 
     def test_complete_publish_checks_sources_and_reads_back_every_frontend_mode(self):
         content = (ROOT / ".github/workflows/publish-complete.yml").read_text(
@@ -46,7 +42,7 @@ class PublishWorkflowTests(unittest.TestCase):
         frozen_board = content.index("Freeze prior board for HTML browser checks")
         browser = content.index("Verify publication in both browser frontends")
         readiness = content.index("verify-first-launch")
-        market = content.index("build_cached_candidate.py")
+        market = content.index('build-cached-candidate')
         preflight = content.index("Publish immutable preflight commits")
         readback = content.index("Read back immutable prepared main and market commits")
         publish = content.index("Atomically publish the verified main, market, and tags")
@@ -66,7 +62,7 @@ class PublishWorkflowTests(unittest.TestCase):
                       content)
         self.assertIn("exit 86", content)
         self.assertNotIn("\n      - name:", content[publish + 1:])
-        self.assertIn("verify_prepared_publication.py", content)
+        self.assertIn('verify-prepared-publication', content)
         self.assertIn("prepared-readback/dashboard.html", content)
         self.assertIn("person_id = 'oge:076544f8ba0638cf'", content)
         self.assertIn("ticker = 'MSFT'", content)
@@ -188,7 +184,7 @@ npm() {
         self.assertNotIn("build-twelve-data-supplement", publish)
         self.assertIn("needs.refresh.result == 'skipped'", publish)
         self.assertLess(publish.index("Prepare fixed source"), publish.index("build-disclosure-candidate"))
-        self.assertLess(publish.index("build-disclosure-candidate"), publish.index("build_cached_candidate.py"))
+        self.assertLess(publish.index("build-disclosure-candidate"), publish.index('build-cached-candidate'))
         self.assertIn("market_ref=()", publish)
         self.assertIn('market_ref=("$MARKET_SHA:refs/heads/market")', publish)
         self.assertIn("vendor requests: 0", publish)

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from build_oge_manual_cover_dates import build, SCHEMA
+from unison_snapshot.commands.build_oge_manual_cover_dates import build, SCHEMA
 
 
 class OgeManualCoverDateTests(unittest.TestCase):

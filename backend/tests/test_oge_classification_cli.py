@@ -65,7 +65,7 @@ class ClassificationCliTests(unittest.TestCase):
                 save(repo/'oge/qualifications/current.json', audit_path.read_bytes())
                 review_ref = commit('actual normal classification qualification')
                 status_path = root/'status.json'
-                status_command = [sys.executable, str(ROOT/'backend/scripts/build_disclosure_status.py'),
+                status_command = [sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/build_disclosure_status.py'),
                     '--evidence-root', str(repo), '--review-root', str(repo), '--input', str(output),
                     '--code-commit', 'f'*40, '--previous-main-commit', main, '--output', str(status_path)]
                 result = run(status_command); self.assertEqual(result.returncode, 0, result.stderr)

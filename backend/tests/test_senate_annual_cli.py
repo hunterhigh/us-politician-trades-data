@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 
 def entry():
-    path = Path(__file__).resolve().parents[1] / "scripts/senate_annual.py"
+    path = Path(__file__).resolve().parents[1] / "src/unison_snapshot/commands/senate_annual.py"
     spec = importlib.util.spec_from_file_location("annual_cli_under_test", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

@@ -207,7 +207,7 @@ class WhiteHouseAccountDisplayBoundaryTests(unittest.TestCase):
         self.assertEqual(len(self.verify(fixture(pdf_mutator=source_mutator('inset_ink')))),1)
 
     def test_hidden_title_normal_candidate_cannot_pass_fixed_git_publication_or_touch_outputs(self):
-        from scripts import build_whitehouse_278t_candidate as candidate_cli
+        from unison_snapshot.commands import build_whitehouse_278t_candidate as candidate_cli
         from unison_snapshot.house_native_visibility import _source_characters
         import pdfplumber
         data=fixture(pdf_mutator=source_mutator('hidden'))

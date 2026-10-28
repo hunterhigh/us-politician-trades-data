@@ -120,7 +120,7 @@ class AnnualReferenceOverlayTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[2]
         for name in ("oge.yml","whitehouse-candidate-rebuild.yml"):
             text=(root/".github/workflows"/name).read_text(encoding="utf-8")
-            command=text.split("python backend/scripts/overlay_whitehouse_annual_candidate.py",1)[1].split("--audit-out",1)[0]
+            command=text.split("python -m unison_snapshot overlay-whitehouse-annual-candidate",1)[1].split("--audit-out",1)[0]
             self.assertIn('--evidence-root "$EVIDENCE_ROOT"',command)
         text=(root/".github/workflows/whitehouse-candidate-rebuild.yml").read_text(encoding="utf-8")
         self.assertIn('git worktree add --detach "$RUNNER_TEMP/whitehouse-candidate-evidence" FETCH_HEAD',text)

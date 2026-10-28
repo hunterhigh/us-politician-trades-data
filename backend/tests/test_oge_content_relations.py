@@ -135,7 +135,7 @@ class OgeContentRelationsTests(unittest.TestCase):
             source, target = Path(temp) / "input.json", Path(temp) / "output.json"
             source.write_text(json.dumps(data), encoding="utf-8")
             backend = Path(__file__).resolve().parents[1]
-            subprocess.run([sys.executable, str(backend / "scripts/observe_oge_278t_fields.py"),
+            subprocess.run([sys.executable, str(backend / "src/unison_snapshot/commands/observe_oge_278t_fields.py"),
                             "--observations", str(source), "--document-page-count", "4", "--output", str(target)],
                            cwd=backend, env={**os.environ, "PYTHONPATH": str(backend / "src")},
                            check=True, capture_output=True)

@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 from whitehouse_account_display_fixture import fixture, encoded, write_files
-from scripts import build_whitehouse_278t_candidate as candidate_cli
+from unison_snapshot.commands import build_whitehouse_278t_candidate as candidate_cli
 
 
 class AccountDisplayCorrectionTests(unittest.TestCase):
@@ -58,7 +58,7 @@ class AccountDisplayCorrectionTests(unittest.TestCase):
                 commit = git('rev-parse', 'HEAD')
                 write_files(root, {'base.json':board})
                 path, audit_path = root/'candidate.json', root/'audit.json'
-                command = [sys.executable, str(self.project/'backend/scripts/build_whitehouse_278t_candidate.py'),
+                command = [sys.executable, str(self.project/'backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py'),
                     '--oge-candidate', str(root/'base.json'), '--candidate-out', str(path),
                     '--audit-out', str(audit_path), '--review-root', str(repo), '--evidence-root', str(repo),
                     '--expected-report-count', '1']

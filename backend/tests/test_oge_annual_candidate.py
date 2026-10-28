@@ -313,8 +313,8 @@ class AnnualCandidateTests(unittest.TestCase):
 
     def test_existing_cli_uses_optional_oge_input_and_v3_extractor_is_bounded(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-        from oge_annual_review import extract_archived_reports
-        from overlay_whitehouse_annual_candidate import main
+        from unison_snapshot.commands.oge_annual_review import extract_archived_reports
+        from unison_snapshot.commands.overlay_whitehouse_annual_candidate import main
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             data, request, audit = root/"candidate.json", root/"input.json", root/"audit.json"
