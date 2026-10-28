@@ -25633,38 +25633,5 @@
     "basis": "Existing reviewed source-bound extraction revisions, archived before v1 migration",
     "input_parser_version": "oge-278t-pdf/v2",
     "output_parser_version": "oge-278t-pdf/v6"
-  },
-  "legacy_symbols": {
-    "TRUMP_SEPT_2026_PARSER_VERSION": [
-      "parser_versions",
-      0
-    ],
-    "TRUMP_SEPT_2026_SECOND_PASS_VERSION": [
-      "parser_versions",
-      1
-    ],
-    "TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION": [
-      "parser_versions",
-      2
-    ],
-    "TRUMP_SEPT_2026_PAGE7_PASS_VERSION": [
-      "parser_versions",
-      3
-    ],
-    "TRUMP_SEPT_2026_DOCUMENT_ID": [
-      "document_id"
-    ],
-    "TRUMP_SEPT_2026_SOURCE_SHA256": [
-      "source_sha256"
-    ],
-    "TRUMP_SEPT_2026_SOURCE_URL": [
-      "assertions",
-      "metadata",
-      "document_url"
-    ],
-    "TRUMP_SEPT_2026_FILING_DATE_EVIDENCE": [
-      "assertions",
-      "filing_date_evidence"
-    ]
   }
 }

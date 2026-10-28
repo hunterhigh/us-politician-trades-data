@@ -31,7 +31,7 @@ from unison_snapshot.whitehouse_278t_candidate import (
     build_whitehouse_278t_exact_source_candidate, EXACT_COPY_SCHEMA,
 )
 from unison_snapshot.whitehouse_annual_candidate import annual_identity_people
-from unison_snapshot.whitehouse_2026_tickers import restore_pre_enrichment
+from unison_snapshot.reviewed_security_tickers import restore_pre_enrichment
 from unison_snapshot.whitehouse_278t import (
     PARSER_VERSION as TRADE_PARSER, GENERIC_PARSER_VERSIONS,
     SUPPORTED_PARSER_VERSIONS as TRADE_PARSERS,

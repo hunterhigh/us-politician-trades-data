@@ -15,9 +15,7 @@ from urllib.parse import urlsplit
 from unison_snapshot.codec import encode, digest
 from unison_snapshot.legacy import load, processor_version_for
 from unison_snapshot.oge_278e_public import TRUMP_2025_SOURCE_URL
-from unison_snapshot.oge_reports import (
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_URL,
-)
+from unison_snapshot.reviewed_oge_extraction import required_publication_source
 from unison_snapshot.public_repo import HTTPTransport, PublicSnapshotRepository
 
 
@@ -43,10 +41,7 @@ def _official_trump_transaction_source(row: dict) -> bool:
     filing_id = row.get("filing_id")
     if isinstance(filing_id, str) and filing_id.startswith("wh-url:"):
         return _official_whitehouse_pdf(row.get("source_url"))
-    return (filing_id == TRUMP_SEPT_2026_DOCUMENT_ID and
-            row.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
-            isinstance(row.get("id"), str) and
-            row["id"].startswith("oge-278t:"))
+    return required_publication_source(row)
 
 
 class FixedCommitTransport:

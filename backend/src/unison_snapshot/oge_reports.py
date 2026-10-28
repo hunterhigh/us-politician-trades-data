@@ -1496,9 +1496,3 @@ def _native_amount_only_application(source: dict, record: dict, row: dict, conte
         'notification_metadata':{'original_raw':old.get('late_notification_raw'),
                                   'replacement_raw':row.get('late_notification_raw'),
                                   'role':'optional_over30days_metadata_not_a_required_financial_field'}}, []
-
-
-def __getattr__(name):
-    # Legacy metadata aliases are data references while internal consumers migrate.
-    from .reviewed_oge_extraction import legacy_symbol
-    return legacy_symbol(name)

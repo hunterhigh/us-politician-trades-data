@@ -24,7 +24,7 @@ from unison_snapshot.whitehouse_278t_audit import (
     TRUMP_TARGET_SOURCE_URL as TARGET_SOURCE_URL,
 )
 from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
-from unison_snapshot.whitehouse_2026_tickers import is_allowed_2026_ticker_change
+from unison_snapshot.reviewed_security_tickers import is_allowed_ticker_change
 from unison_snapshot.whitehouse_278t import TRUMP_2026_PROFILES
 
 
@@ -246,7 +246,7 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         key for key, row in before_transactions.items()
         if after_transactions.get(key) != row and after_transactions.get(key) is not None and
         (is_allowed_ticker_upgrade(row, after_transactions[key]) or
-         is_allowed_2026_ticker_change(row, after_transactions[key])))
+         is_allowed_ticker_change(row, after_transactions[key])))
     changed_transactions = sorted(
         key for key, row in before_transactions.items()
         if after_transactions.get(key) != row and key not in ticker_upgrades)
@@ -257,7 +257,7 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         if after_oge_transactions.get(key) != row and
         after_oge_transactions.get(key) is not None and
         (is_allowed_ticker_upgrade(row, after_oge_transactions[key]) or
-         is_allowed_2026_ticker_change(row, after_oge_transactions[key])))
+         is_allowed_ticker_change(row, after_oge_transactions[key])))
     changed_oge_transactions = sorted(
         key for key, row in before_oge_transactions.items()
         if after_oge_transactions.get(key) != row and key not in oge_ticker_upgrades)
@@ -353,10 +353,10 @@ def audit_release(before: dict, after: dict, before_oge: dict, after_oge: dict,
         "annual_ticker_upgrade_ids": [key for key in ticker_upgrades if
                                       is_allowed_ticker_upgrade(
                                           before_transactions[key], after_transactions[key])],
-        "trump_2026_ticker_change_count": sum(is_allowed_2026_ticker_change(
+        "trump_2026_ticker_change_count": sum(is_allowed_ticker_change(
             before_transactions[key], after_transactions[key]) for key in ticker_upgrades),
         "trump_2026_ticker_change_ids": [key for key in ticker_upgrades if
-                                         is_allowed_2026_ticker_change(
+                                         is_allowed_ticker_change(
                                              before_transactions[key], after_transactions[key])],
         "duplicate_person_id_count": 0,
         "duplicate_transaction_id_count": 0,

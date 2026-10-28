@@ -17,6 +17,9 @@ script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 
 
+from unison_snapshot.reviewed_oge_extraction import required_publication_sources
+REQUIRED_OGE_SOURCE = required_publication_sources()[0]
+
 class Delegate:
     def __init__(self):
         self.calls = []
@@ -116,9 +119,9 @@ class PreparedPublicationTests(unittest.TestCase):
     def _oge_transaction():
         return {
             "id": "oge-278t:fixed", "person_id": "trump", "source_id": "oge",
-            "filing_id": script.TRUMP_SEPT_2026_DOCUMENT_ID,
+            "filing_id": REQUIRED_OGE_SOURCE["document_id"],
             "verification_status": "official_matched",
-            "source_url": script.TRUMP_SEPT_2026_SOURCE_URL,
+            "source_url": REQUIRED_OGE_SOURCE["assertions"]["metadata"]["document_url"],
         }
 
     def test_fixed_transport_resolves_candidate_without_forwarding_api_credentials(self):
@@ -233,7 +236,7 @@ class PreparedPublicationTests(unittest.TestCase):
         for changed in (
                 {"filing_id": "other-document"},
                 {"source_url": "https://example.org/report.pdf"},
-                {"source_url": script.TRUMP_SEPT_2026_SOURCE_URL + "?copy=1"},
+                {"source_url": REQUIRED_OGE_SOURCE["assertions"]["metadata"]["document_url"] + "?copy=1"},
                 {"id": "other-row"},
                 {"person_id": "other-person"},
                 {"source_id": "house"},

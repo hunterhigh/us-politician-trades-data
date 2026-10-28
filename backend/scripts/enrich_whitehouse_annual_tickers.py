@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 
 from unison_snapshot.alpaca_market import AlpacaMarketClient
-from unison_snapshot.whitehouse_2026_tickers import enrich_trump_2026_tickers
+from unison_snapshot.reviewed_security_tickers import enrich_reviewed_tickers
 from unison_snapshot.whitehouse_annual_tickers import enrich_whitehouse_annual_tickers
 
 
@@ -53,7 +53,7 @@ def main() -> int:
     if args.trump_2026_mapping_output is not None:
         previous_trump = (json.loads(args.trump_2026_mapping_output.read_text(encoding="utf-8"))
                           if args.trump_2026_mapping_output.is_file() else None)
-        result, trump_audit = enrich_trump_2026_tickers(
+        result, trump_audit = enrich_reviewed_tickers(
             result, assets, checked_at=checked_at, previous=previous_trump)
     _write(args.candidate, result)
     _write(args.mapping_output, audit)

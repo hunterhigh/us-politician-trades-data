@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from unison_snapshot.codec import encode
 from unison_snapshot.whitehouse_annual_tickers import is_allowed_ticker_upgrade
-from unison_snapshot.whitehouse_2026_tickers import is_allowed_2026_ticker_change
+from unison_snapshot.reviewed_security_tickers import is_allowed_ticker_change
 
 
 SCHEMA = "whitehouse-trump-candidate-transition-audit/v1"
@@ -60,7 +60,7 @@ def _require_unchanged_subset(before: dict[str, dict], after: dict[str, dict],
                      if before[key] != after[key])
     rejected = [key for key in changed if not allow_ticker_upgrade or not (
                 is_allowed_ticker_upgrade(before[key], after[key]) or
-                is_allowed_2026_ticker_change(before[key], after[key]))]
+                is_allowed_ticker_change(before[key], after[key]))]
     if removed or rejected:
         raise ValueError(
             f"Trump rebuild removed or changed existing {label}: {removed or rejected}")
@@ -202,10 +202,10 @@ def audit_transition(before: dict, after: dict,
         "annual_ticker_upgrade_ids": [key for key in ticker_upgrades if
                                       is_allowed_ticker_upgrade(
                                           before_transactions[key], after_transactions[key])],
-        "trump_2026_ticker_change_count": sum(is_allowed_2026_ticker_change(
+        "trump_2026_ticker_change_count": sum(is_allowed_ticker_change(
             before_transactions[key], after_transactions[key]) for key in ticker_upgrades),
         "trump_2026_ticker_change_ids": [key for key in ticker_upgrades if
-                                         is_allowed_2026_ticker_change(
+                                         is_allowed_ticker_change(
                                              before_transactions[key], after_transactions[key])],
     }
 
