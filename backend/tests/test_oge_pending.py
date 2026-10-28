@@ -45,5 +45,13 @@ class PendingOgeTests(unittest.TestCase):
         with self.assertRaisesRegex(OgeCatalogError,'immutable binding'):
             build_oge_candidate(source,[a],base(),data_cutoff_at='2025-06-05T00:00:00Z',incomplete_publication=publication)
 
+    def test_pending_retention_requires_the_same_official_source_url(self):
+        source,a,publication=self.inputs()
+        publication['board']['transactions'][1]['source_url']='https://extapps2.oge.gov/other.pdf'
+        publication['board_sha256']=digest(encode(publication['board']))
+        with self.assertRaisesRegex(OgeCatalogError, 'pending official source URL'):
+            build_oge_candidate(source,[a],base(),data_cutoff_at='2025-06-05T00:00:00Z',
+                                incomplete_publication=publication)
+
 
 if __name__=='__main__':unittest.main()

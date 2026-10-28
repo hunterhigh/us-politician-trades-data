@@ -1186,6 +1186,13 @@ def main() -> None:
             selected_extractions = {}
             required_current_documents = set()
             legacy_extractions = {}
+            supplemented = set()
+            for path in (args.saved_observations, args.saved_exhibit_observations):
+                if path is not None:
+                    supplied = json.loads(path.read_bytes())
+                    if not isinstance(supplied, dict):
+                        raise OgeCatalogError('OGE saved source inputs must be document mappings')
+                    supplemented.update(supplied)
             if args.legacy_extractions_dir and not scoped_generic_ids:
                 if not args.generic:
                     raise OgeCatalogError("Legacy inheritance input requires explicit generic mode")
@@ -1221,6 +1228,16 @@ def main() -> None:
                     required_current_documents.add(document_id)
                     if version != expected:
                         continue
+                if (args.allow_incomplete_reports and document_id not in supplemented
+                        and version == OGE_REPORT_PARSER_VERSION and (
+                        not isinstance(value.get('source_rows'), list) or
+                        any(not isinstance(row, dict) or 'cells' not in row
+                            for row in value.get('transactions', [])))):
+                    # Pre-inventory native caches are historical observations.
+                    # They cannot establish a current execution selection or
+                    # owner migration. Keep exact formal facts via pending
+                    # report admission instead of replaying or guessing proof.
+                    continue
                 if document_id in document_sources:
                     pinned_source_inputs.extend(verify_selected_native_cache(
                         path, args.extractions_dir, value, args.evidence_root))
@@ -1311,7 +1328,22 @@ def main() -> None:
                 if args.evidence_root is None:
                     raise OgeCatalogError('Incomplete OGE admission requires archived-source verification')
                 from .oge_pending import published_main
-                incomplete_publication = lambda: published_main(Path.cwd())
+                publication_cache = None
+                def load_publication():
+                    nonlocal publication_cache
+                    if publication_cache is None:
+                        publication_cache = published_main(Path.cwd())
+                    return publication_cache
+                incomplete_publication = load_publication
+                # Owner/classification conservation needs the actual formal
+                # predecessor even for reports that do have current inputs.
+                # The source builder emits only its own qualified scope.
+                if not base.get('transactions'):
+                    board = load_publication()['board']
+                    base['transactions'] = [deepcopy(row) for row in board['transactions']
+                                            if row.get('source_id') == 'oge']
+                    people = {row['person_id'] for row in base['transactions']}
+                    base['people'] = [deepcopy(row) for row in board['people'] if row['id'] in people]
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
                 evidence_root=args.evidence_root,
@@ -1322,6 +1354,9 @@ def main() -> None:
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic or scoped_generic_ids else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
                    if args.saved_exhibit_observations else {}))
+            if args.allow_incomplete_reports and publication_cache is not None:
+                audit['prior_publication'] = {key: publication_cache[key]
+                    for key in ('main_commit', 'board_sha256', 'snapshot_id')}
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
                            allow_empty_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],

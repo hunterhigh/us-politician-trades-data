@@ -48,6 +48,8 @@ def retain(pending, records, publication, people, transactions, evidence_root):
             if row.get('source_id')!='oge' or row.get('filing_id')!=document:continue
             if row.get('verification_status')!='official_matched' or row['id'] in seen:
                 raise OgeCatalogError('Retained OGE publication facts are unqualified or collide')
+            if row.get('source_url') != records[document]['document_url']:
+                raise OgeCatalogError('Retained OGE fact differs from the pending official source URL')
             person=prior_people.get(row['person_id'])
             if person is None:raise OgeCatalogError('Retained OGE fact lacks its published person')
             people.setdefault(person['id'],deepcopy(person))

@@ -143,7 +143,7 @@ class WhiteHouseRebuildSourceDependencyWorkflowTests(unittest.TestCase):
         self.assertTrue(any(re.fullmatch(r'pymupdf==[0-9.]+',r) for r in requirements))
         self.assertTrue(any(re.fullmatch(r'pdfplumber==[0-9.]+',r) for r in requirements))
         content=WORKFLOW.read_text(encoding='utf-8').split('  rebuild:',1)[1]
-        self.assertIn("audit['promoted_transaction_count']",content)
+        self.assertIn('python -m unison_snapshot oge-review reconcile',content)
         self.assertIn('--verify-readiness',content)
         self.assertNotIn('audit_trump_',content)
         self.assertNotIn('overlay-whitehouse-annual-candidate',self.branch())

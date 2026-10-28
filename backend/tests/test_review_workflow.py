@@ -17,7 +17,7 @@ class ReviewWorkflowTests(unittest.TestCase):
         content = (ROOT / ".github/workflows/whitehouse.yml").read_text(
             encoding="utf-8")
         self.assertIn('overlay-whitehouse-annual-candidate', content)
-        self.assertIn("audit['promoted_transaction_count']", content)
+        self.assertIn('python -m unison_snapshot oge-review reconcile', content)
         self.assertNotIn("refs/heads/main", content)
         self.assertNotIn("refs/heads/market", content)
         self.assertIn("python -m unison_snapshot assemble-source", content)
