@@ -1,5 +1,6 @@
 """Keep formal publication held when any source collection or qualification is stale."""
 from datetime import datetime,timedelta,timezone
+from .content_integrity import content_boundary
 
 SOURCES=('house_clerk','senate_efd','oge')
 MAX_AGE=timedelta(hours=48)
@@ -12,6 +13,7 @@ def timestamp(value):
     return result.astimezone(timezone.utc)
 
 
+@content_boundary('snapshot_contract')
 def evaluate(candidates,statuses,*,now=None):
     now=now or datetime.now(timezone.utc)
     if now.tzinfo is None:raise ValueError('Publication clock requires a timezone')
@@ -26,7 +28,7 @@ def evaluate(candidates,statuses,*,now=None):
         if len(health)!=1 or health[0].get('data_cutoff_at')!=candidate['meta'].get('data_cutoff_at'):
             raise ValueError('Qualified source waterline is not bound to its candidate')
         qualified=candidate['meta']['data_cutoff_at']
-        collection=(status.get('catalog',{}).get('retrieved_at') if source in {'senate_efd','oge'} else
+        collection=status.get('last_successful_collection_at') or ((status.get('catalog') or {}).get('retrieved_at') if source in {'senate_efd','oge'} else
             status.get('run_at') if status.get('status') in {'ok','attention'} else
             status.get('last_successful_collection_at'))
         waterlines[source]={'collection_at':collection,'qualified_at':qualified}

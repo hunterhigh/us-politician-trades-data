@@ -1651,6 +1651,10 @@ def build_oge_status(evidence_root: Path, review_root: Path,
     archives = _archive_records(evidence, "oge/reports", False)
     audits = _read(review / "oge/qualifications/current.json")
     audit_by_id = {row["document_id"]: row for row in _rows(audits, "reports")}
+    pending_by_id = {row['document_id']: row for row in _rows(audits, 'pending_reports')}
+    if (len(pending_by_id) != len(_rows(audits, 'pending_reports')) or set(pending_by_id)&set(audit_by_id)
+            or set(pending_by_id)-set(catalog_direct)):
+        raise ValueError('OGE pending reports do not form a disjoint catalog disposition')
     if len(audit_by_id) != len(_rows(audits, "reports")):
         raise ValueError("OGE report qualification IDs are duplicated")
     for report_id in sorted(set(catalog_direct) | set(archives) | set(audit_by_id)):
@@ -1671,6 +1675,19 @@ def build_oge_status(evidence_root: Path, review_root: Path,
             _apply_manual_direct_date(record, audit_by_id[report_id], review)
         else:
             record["reason_codes"].append("qualification_artifact_missing_for_report")
+            if report_id in pending_by_id:
+                failures=list((review/'oge/extractions'/report_id).glob('*/*.failure.json'))
+                failed=False
+                for path in failures:
+                    failure=_read(path)
+                    if (failure.get('schema_version')=='oge-278t-extraction-failure/v1' and
+                            failure.get('document_id')==report_id and
+                            failure.get('source_sha256') in record['source_versions']):
+                        failed=True
+                record['extraction_state']='failed' if failed else 'not_attempted'
+                record['qualification_state']='quarantined' if failed else 'not_evaluated'
+                record['reason_codes'].append('current_extraction_failed' if failed else 'current_extraction_pending')
+                record['retained_prior_published_transaction_count']=len(pending_by_id[report_id]['retained_published_fact_ids'])
         direct["reports"].append(record)
     if not audits:
         direct["limitations"].append("direct_qualification_artifact_unavailable")

@@ -30,18 +30,18 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertIn("OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}", content)
         self.assertIn("OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}", content)
         # Environment variables are available only after this job starts.
-        gate_job = content.split("  evaluate-gate:", 1)[1].split("  collect-direct-reports:", 1)[0]
+        gate_job = content.split("  source:", 1)[1].split("      - name: Discover, archive", 1)[0]
         self.assertNotIn("    if: ${{ github.event_name", gate_job)
         self.assertIn("environment: production", gate_job)
-        self.assertIn("needs.evaluate-gate.outputs.status == 'enabled'", content)
+        self.assertIn("steps.gate.outputs.status == 'enabled'", content)
         self.assertIn("python -m unison_snapshot oge-gate", content)
         self.assertIn("python -m unison_snapshot discover-oge", content)
         self.assertIn("python -m unison_snapshot archive-oge-direct-pdfs", content)
         self.assertIn("python -m unison_snapshot extract-oge-direct-pdfs", content)
         self.assertIn('--reuse-root "$REVIEW_ROOT/oge/extractions"', content)
-        self.assertIn("'reused_extraction_count':", content)
-        self.assertIn("'parsed_extraction_count':", content)
-        self.assertEqual(content.count("fetch-depth: 1"), 3)
+        self.assertIn("oge-source-state collection", content)
+        self.assertIn("--extraction .local/oge-extraction-batch.json", content)
+        self.assertEqual(content.count("fetch-depth: 1"), 1)
         self.assertNotIn("fetch-depth: 0", content)
         self.assertNotIn("201 Request", content)
         self.assertNotIn("curl ", content)
@@ -49,7 +49,7 @@ class OgeWorkflowTests(unittest.TestCase):
 
     def test_workflow_preserves_branch_boundaries_and_rebuilds_unified_candidate(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
-        self.assertIn("git -C \"$EVIDENCE_ROOT\" add oge/catalog oge/reports", content)
+        self.assertIn("roles: evidence", content)
         self.assertIn("/ 'oge' / 'extractions' /", content)
         self.assertIn("value['parser_version'].replace('/', '-')", content)
         self.assertNotIn("'oge-278t-pdf-v1.json'", content)
@@ -73,43 +73,32 @@ class OgeWorkflowTests(unittest.TestCase):
         self.assertLess(content.index("python -m unison_snapshot build-whitehouse-278t-candidate"),
                         content.index("python -m unison_snapshot overlay-whitehouse-annual-candidate"))
         self.assertLess(content.index("python -m unison_snapshot overlay-whitehouse-annual-candidate"),
-                        content.index("python -m unison_snapshot build-disclosure-candidate"))
-        self.assertIn("python -m unison_snapshot build-disclosure-candidate", content)
-        self.assertIn("--harmonize-cutoffs", content)
-        self.assertIn("candidates/disclosure-current.json", content)
+                        content.index("python -m unison_snapshot assemble-source"))
+        self.assertIn("python -m unison_snapshot assemble-source", content)
+        self.assertIn('--workspace "$RUNNER_TEMP/oge-source" --source oge', content)
 
     def test_collection_failure_is_written_to_source_state(self):
-        content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
-        self.assertIn("id: collect", content)
-        self.assertIn("id: publish_evidence", content)
-        self.assertIn("if: ${{ always() }}", content)
-        self.assertIn("COLLECT_OUTCOME: ${{ steps.collect.outcome }}", content)
-        self.assertIn("EVIDENCE_OUTCOME: ${{ steps.publish_evidence.outcome }}", content)
-        self.assertIn("'status': 'partial' if succeeded else 'failed'", content)
-        self.assertIn("'workflow_run_url': os.environ['WORKFLOW_RUN_URL']", content)
+        content = (ROOT / '.github/workflows/oge.yml').read_text()
+        self.assertIn('id: collect', content)
+        self.assertIn('id: publish_evidence', content)
+        self.assertIn("if: always() && steps.gate.outputs.status == 'enabled'", content)
+        self.assertIn('oge-source-state collection', content)
+        self.assertIn('steps.collect.outcome == \'success\' && steps.publish_evidence.outcome == \'success\'', content)
+        self.assertIn('--successful "$SUCCESSFUL"', content)
+        self.assertIn('--role state', content)
 
     def test_collection_does_not_run_retired_fixed_page_diagnostics(self):
         content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
         self.assertNotIn("build_oge_278t_page_coverage.py", content)
         self.assertNotIn(".local/oge-278t-page-sidecars", content)
 
-    def test_successful_unified_build_updates_and_commits_disclosure_status(self):
-        content = (ROOT / ".github/workflows/oge.yml").read_text(encoding="utf-8")
-        build = content.index("python -m unison_snapshot build-disclosure-candidate")
-        status = content.index("(review / 'status/disclosure_candidate.json').write_text(")
-        staged = content.index("status/disclosure_cutoff.json status/disclosure_candidate.json")
-        self.assertLess(build, status)
-        self.assertLess(status, staged)
-        self.assertIn('BUILDER_COMMIT="${{ github.sha }}" python', content[build:status])
-        for field in ("'schema_version': 'disclosure-candidate-run/v1'",
-                      "'builder_commit': os.environ['BUILDER_COMMIT']",
-                      "'data_cutoff_at': candidate['meta']['data_cutoff_at']",
-                      "'people_count': len(candidate['people'])",
-                      "'transaction_count': len(candidate['transactions'])",
-                      "'reported_holding_count': len(candidate['reported_holdings'])",
-                      "'cutoff_audit': 'status/disclosure_cutoff.json'"):
-            self.assertIn(field, content[build:staged])
-        self.assertNotIn("continue-on-error", content[build:staged])
+    def test_unified_build_uses_the_shared_durable_source_assembler(self):
+        content = (ROOT / '.github/workflows/oge.yml').read_text()
+        self.assertIn('python -m unison_snapshot assemble-source', content)
+        self.assertIn('--builder-commit "${{ github.sha }}"', content)
+        self.assertNotIn('HEAD:refs/heads/main', content)
+        self.assertNotIn('earliest + timedelta', content)
+        self.assertIn('c.get("observed_at", c["metadata"]["retrieved_at"])', content)
 
     def test_all_source_workflows_include_oge_when_available(self):
         for name in ("house.yml", "senate.yml", "oge.yml"):

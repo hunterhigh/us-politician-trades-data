@@ -84,7 +84,8 @@ def validate_publication(review_root: Path, candidate_path: Path) -> dict:
     if direct != archived + _count(oge, "pending_direct_count", "OGE status"):
         raise ReleaseReadinessError("OGE direct-PDF archive queue is not accounted for")
     if archived != (_count(oge, "extraction_count", "OGE status") +
-                    _count(oge, "extraction_failure_count", "OGE status")):
+                    _count(oge, "extraction_failure_count", "OGE status") +
+                    (_count(oge, 'pending_extraction_count', 'OGE status') if 'pending_extraction_count' in oge else 0)):
         raise ReleaseReadinessError("OGE direct-PDF extraction dispositions are not fully accounted for")
 
     senate = _read(review_root / "status" / "senate_efd.json", "Senate status")

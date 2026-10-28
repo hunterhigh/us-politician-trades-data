@@ -7,6 +7,7 @@ gate.  The date exposed by the search table is retained as portal metadata;
 it is not evidence of the report's filing date.
 """
 from __future__ import annotations
+from .content_integrity import content_boundary
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -367,6 +368,7 @@ def _canonical_report_link(markup: str) -> tuple[str, str, str, str | None, int 
             document_id, url, report_label_date, amendment_number)
 
 
+@content_boundary('snapshot_contract')
 def parse_search_page(payload: object, *, start: int, length: int) -> SenateSearchPage:
     """Validate one unfiltered eFD DataTables page.
 

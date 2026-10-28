@@ -13,7 +13,7 @@ from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
-from .content_integrity import integrity_error
+from .content_integrity import integrity_error, verified_original_hash
 import re
 import tempfile
 from typing import Iterable
@@ -559,7 +559,8 @@ def parse_electronic_ptr(metadata: dict, content: bytes, *, include_source_ledge
         raise SenateEfdError("Senate eFD report is not an archived electronic PTR")
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
-        raise integrity_error(SenateEfdError, "Senate eFD report bytes do not match archive metadata")
+        raise integrity_error(SenateEfdError, "Senate eFD report bytes do not match archive metadata", metadata=metadata)
+    verified_original_hash(metadata)
     parser = _report_parser(content)
     titles = [text for tag, text in parser.headings if tag == "h1"]
     if len(titles) != 1:
@@ -654,7 +655,8 @@ def parse_paper_viewer_manifest(metadata: dict, content: bytes) -> dict:
         raise SenateEfdError("Senate paper viewer metadata is invalid")
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
-        raise integrity_error(SenateEfdError, "Senate paper viewer bytes do not match archive metadata")
+        raise integrity_error(SenateEfdError, "Senate paper viewer bytes do not match archive metadata", metadata=metadata)
+    verified_original_hash(metadata)
     try:
         text = content.decode("utf-8")
         parser = _PaperViewerParser()

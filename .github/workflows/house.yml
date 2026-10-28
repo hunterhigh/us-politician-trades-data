@@ -89,6 +89,7 @@ jobs:
           year="${INPUT_YEAR:-$(date -u +%Y)}"
           case "$year" in 2025|"$(date -u +%Y)") ;; *) echo 'House v1 only permits the current year or fixed 2025 PTR scope' >&2; exit 2 ;; esac
           echo "year=$year" >> "$GITHUB_OUTPUT"
+          echo "UNISON_HOUSE_FILING_YEAR=$year" >> "$GITHUB_ENV"
           echo "run_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Load previous public checkpoint
         if: inputs.materialize_saved_paper != true

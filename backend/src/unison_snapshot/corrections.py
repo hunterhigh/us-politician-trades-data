@@ -13,6 +13,7 @@ def correction_digest(value):
         separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
+@content_boundary('snapshot_contract')
 def load_correction(path):
     return validate_correction(json.loads(Path(path).read_text(encoding='utf-8')))
 

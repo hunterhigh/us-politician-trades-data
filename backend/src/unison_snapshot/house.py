@@ -1,4 +1,5 @@
 """Official House Clerk bulk-index discovery; PDF parsing is a separate stage."""
+from .content_integrity import content_boundary
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -47,6 +48,7 @@ def document_url(year: int, filing_type: str, document_id: str) -> str:
     return f"https://disclosures-clerk.house.gov/public_disc/{folder}/{year}/{document_id}.pdf"
 
 
+@content_boundary('snapshot_contract')
 def parse_index(archive: bytes, year: int) -> list[HouseFilingCandidate]:
     if not 2008 <= year <= 2100 or len(archive) > MAX_ZIP_BYTES or not archive.startswith(b"PK"):
         raise HouseIndexError("Invalid House index archive")

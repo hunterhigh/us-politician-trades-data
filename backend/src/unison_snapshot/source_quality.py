@@ -33,7 +33,10 @@ def snapshot(source, scopes, candidate, *, observed_at=None):
                      {'qualified', 'partial', 'quarantined', 'zero_transactions'}]
         quarantined = sum(report['qualification_state'] == 'quarantined' for report in evaluated)
         good_rows = sum(good for good, bad in rows); bad_rows = sum(bad for good, bad in rows)
-        result.append({'scope_id': scope['scope_id'], 'cohort': digest(encode(scope['scope'])),
+        cohort_keys={'document_type','document_types','filing_year','filing_years','catalog_unit',
+                     'catalog_selection','universe_complete','submitted_start_date','submitted_end_date'}
+        cohort={key:value for key,value in scope['scope'].items() if key in cohort_keys}
+        result.append({'scope_id': scope['scope_id'], 'cohort': digest(encode(cohort)),
             'report_quarantine': {'numerator': quarantined, 'denominator': len(evaluated)},
             'row_quarantine': {'numerator': bad_rows, 'denominator': good_rows + bad_rows},
             'unknown_row_report_count': len(reports) - len(rows), 'report_count': len(reports),

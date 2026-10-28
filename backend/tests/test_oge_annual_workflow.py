@@ -102,9 +102,9 @@ class AnnualWorkflowTests(unittest.TestCase):
         self.assertIn('include_saved_oge_annual:\n', content)
         self.assertIn('include_saved_oge_annual_scans:\n', content)
         self.assertIn('type: boolean\n        default: false', content)
-        self.assertIn('evidence_root="$RUNNER_TEMP/oge-review-evidence"', content)
-        self.assertIn('git worktree add --detach "$evidence_root" FETCH_HEAD', content)
-        self.assertIn('EVIDENCE_ROOT: ${{ runner.temp }}/oge-review-evidence', content)
+        self.assertIn('uses: ./.github/actions/data-trees', content)
+        self.assertIn('workspace: ${{ runner.temp }}/oge-source', content)
+        self.assertIn('EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}', content)
         overlay = content.split('python -m unison_snapshot overlay-whitehouse-annual-candidate', 1)[1].split(
             'test "$MARKET_DISTRIBUTION_AUTHORIZED"', 1)[0]
         self.assertIn('"${annual_args[@]}"', overlay)

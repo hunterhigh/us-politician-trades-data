@@ -42,5 +42,11 @@ class PublicationGateTests(unittest.TestCase):
         candidates,statuses=self.inputs();statuses['oge']['catalog']['retrieved_at']='2027-01-01T00:00:00Z'
         with self.assertRaisesRegex(ValueError,'future'):evaluate(candidates,statuses,now=now)
 
+    def test_fresh_successful_observation_is_independent_of_immutable_archive_creation(self):
+        candidates,statuses=self.inputs()
+        statuses['oge']['catalog']['retrieved_at']='2026-10-01T00:00:00Z'
+        statuses['oge']['last_successful_collection_at']='2026-10-29T00:00:00Z'
+        self.assertTrue(evaluate(candidates,statuses,now=datetime(2026,10,29,8,tzinfo=timezone.utc))['ready'])
+
 
 if __name__=='__main__':unittest.main()

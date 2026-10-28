@@ -24,4 +24,5 @@ runs:
         if [ -n "$SCOPE" ]; then
           echo "UNISON_INTEGRITY_SCOPE=$SCOPE" >> "$GITHUB_ENV"
           echo "UNISON_INTEGRITY_DIRECTORY=$RUNNER_TEMP/unison-integrity" >> "$GITHUB_ENV"
+          echo "UNISON_SOURCE_FAILURE_DIRECTORY=$RUNNER_TEMP/unison-source-failures" >> "$GITHUB_ENV"
         fi

@@ -48,5 +48,14 @@ class QualityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'denominator'):
             weekly({'oge': bad}, history, now=datetime(2026, 10, 27, tzinfo=timezone.utc))
 
+    def test_new_catalog_hash_does_not_reset_the_same_population_definition(self):
+        old_scopes=self.scopes();old_scopes[0]['scope']['catalog_sha256']='a'*64
+        old=self.observed(old_scopes,'2026-10-20T00:00:00Z')
+        history,_=weekly({'oge':old},now=datetime(2026,10,20,tzinfo=timezone.utc))
+        new_scopes=self.scopes(80,20);new_scopes[0]['scope']['catalog_sha256']='b'*64
+        current=self.observed(new_scopes,'2026-10-27T00:00:00Z')
+        _,alerts=weekly({'oge':current},history,now=datetime(2026,10,27,tzinfo=timezone.utc))
+        self.assertEqual(alerts[0]['condition']['increased_metrics'],['row_quarantine'])
+
 
 if __name__ == '__main__': unittest.main()

@@ -83,6 +83,7 @@ def record_collected(state, run, now):
         'source_id': 'senate_efd',
         'run_at': now,
         'status': 'catalog_ready_for_review',
+        'last_successful_collection_at': now,
         'collection_enabled': True,
         'terms_acknowledged': True,
         'gate': gate,

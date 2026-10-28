@@ -57,7 +57,7 @@ from .senate_history import (
 )
 from .oge import (
     MAX_CATALOG_PAGE_SIZE as OGE_MAX_CATALOG_PAGE_SIZE,
-    OgeCatalogError, collection_gate_status as oge_collection_gate_status,
+    OgeCatalogError, OgeHttpError, collection_gate_status as oge_collection_gate_status,
     discover_catalog as discover_oge_catalog,
     source_config_from_environment as oge_source_config_from_environment,
 )
@@ -368,6 +368,7 @@ def main() -> None:
     oge_discovery = sub.add_parser("discover-oge")
     oge_discovery.add_argument("--archive", type=Path, required=True)
     oge_discovery.add_argument("--output", type=Path, required=True)
+    oge_discovery.add_argument("--failure-output", type=Path)
     oge_discovery.add_argument("--page-size", type=int, default=OGE_MAX_CATALOG_PAGE_SIZE)
     oge_discovery.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
     oge_discovery.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
@@ -386,6 +387,7 @@ def main() -> None:
     oge_extract.add_argument("--output-dir", type=Path, required=True)
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
+    oge_candidate.add_argument('--allow-incomplete-reports', action='store_true')
     oge_candidate.add_argument("--catalog", type=Path, required=True)
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
@@ -1108,7 +1110,9 @@ def main() -> None:
             failures = []
             reused_count = parsed_count = 0
             for metadata in reports:
-                if not isinstance(metadata, dict) or not isinstance(metadata.get("document_id"), str):
+                if (not isinstance(metadata, dict) or
+                        not re.fullmatch('[0-9a-f]{32}',str(metadata.get('document_id',''))) or
+                        not re.fullmatch('[0-9a-f]{64}',str(metadata.get('sha256','')))):
                     raise OgeCatalogError("OGE archive batch report is invalid")
                 metadata_path = args.archive / "oge" / "reports" / metadata["document_id"] / \
                     f"{metadata.get('sha256')}.json"
@@ -1127,6 +1131,10 @@ def main() -> None:
                     extracted.append(result)
                 except (OgeCatalogError, OSError, json.JSONDecodeError) as exc:
                     failures.append({"document_id": metadata["document_id"], "error": str(exc)})
+                    _write_atomic(args.output_dir / (metadata['document_id'] + '.failure.json'), {
+                        'schema_version': 'oge-278t-extraction-failure/v1', 'source_id': 'oge',
+                        'document_id': metadata['document_id'], 'source_sha256': metadata.get('sha256'),
+                        'reason': 'extraction_failed', 'error_type': type(exc).__name__})
             summary = {
                 "schema_version": "oge-278t-extraction-batch/v1", "source_id": "oge",
                 "report_count": len(reports), "extraction_count": len(extracted),
@@ -1242,7 +1250,7 @@ def main() -> None:
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value
-            if required_current_documents - set(selected_extractions):
+            if required_current_documents - set(selected_extractions) and not args.allow_incomplete_reports:
                 raise OgeCatalogError('A current source-selected OGE extraction is missing')
             if document_sources.keys() - selected_extractions.keys():
                 raise OgeCatalogError('A requested archived OGE document source was not selected')
@@ -1282,7 +1290,7 @@ def main() -> None:
                     extractions, args.manual_cover_dates_dir)
             catalog_history = []
             if args.catalog_history_dir:
-                current_bytes = encode(catalog)
+                current_bytes = encode({key:value for key,value in catalog.items() if key!='observed_at'})
                 for path in sorted(args.catalog_history_dir.glob("*.json")):
                     value = json.loads(path.read_text(encoding="utf-8"))
                     if encode(value) != current_bytes:
@@ -1298,11 +1306,18 @@ def main() -> None:
                     source_inputs.extend([Path(request["archived_pdf_path"]),
                         args.evidence_root / f"oge/reports/{document}/{request['observations'][0]['source_sha256']}.json"])
                 guard_saved_oge_outputs([args.output, args.audit_output], inputs=source_inputs)
+            incomplete_publication = None
+            if args.allow_incomplete_reports:
+                if args.evidence_root is None:
+                    raise OgeCatalogError('Incomplete OGE admission requires archived-source verification')
+                from .oge_pending import published_main
+                incomplete_publication = lambda: published_main(Path.cwd())
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
                 evidence_root=args.evidence_root,
                 source_extractions_by_document=source_extractions,
                 catalog_history=catalog_history,
+                **({'incomplete_publication': incomplete_publication} if args.allow_incomplete_reports else {}),
                 **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
                 **({"legacy_extractions_by_document": legacy_extractions} if args.generic or scoped_generic_ids else {}),
                 **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
@@ -1363,6 +1378,12 @@ def main() -> None:
             CongressMemberError, OgeCatalogError, ReleaseReadinessError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
+        from .source_failures import record as record_source_failure
+        record_source_failure(args.command,exc,filing_year=getattr(args,'year',None))
+        if args.command == 'discover-oge' and args.failure_output:
+            _write_atomic(args.failure_output, {'schema_version': 'oge-collection-failure/v1',
+                'source_id': 'oge', 'http_status': exc.status if isinstance(exc, OgeHttpError) else None,
+                'failed_step': 'collect_catalog', 'recorded_at': datetime.now(timezone.utc).isoformat()})
         if (args.command == "discover-senate-efd" and args.failure_output and
                 isinstance(exc, SenateHttpError)):
             _write_atomic(args.failure_output, {

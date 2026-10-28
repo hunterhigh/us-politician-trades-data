@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      publication_ready: ${{ steps.gate.outputs.publication_ready }}
+      preparation_ready: ${{ steps.gate.outputs.preparation_ready }}
     container:
       image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
       credentials:
@@ -89,7 +89,7 @@ jobs:
         uses: ./.github/actions/report-integrity
   publish:
     needs: assess
-    if: needs.assess.outputs.publication_ready == 'true'
+    if: needs.assess.outputs.preparation_ready == 'true'
     concurrency:
       group: publish-snapshot
       queue: max
@@ -137,7 +137,7 @@ jobs:
           python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY"
           --review-commit "${{ steps.trees.outputs.review_commit }}"
           --state-commit "${{ steps.trees.outputs.state_commit }}"
-          --output "$RUNNER_TEMP/publication-source-gate.json" --require-ready
+          --output "$RUNNER_TEMP/publication-source-gate.json" --require-preparation-ready
       - name: Freeze prior board for HTML browser checks
         env:
           MAIN_ROOT: ${{ steps.trees.outputs.main_root }}

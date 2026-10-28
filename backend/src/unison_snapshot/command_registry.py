@@ -2,7 +2,9 @@
 import importlib
 import sys
 
-COMMANDS = {'observe-source-quality': ('observe_source_quality', 'Observe qualified source isolation metrics'),
+COMMANDS = {'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
+'oge-source-state': ('oge_source_state', 'Preserve independent OGE source collection outcomes'),
+'observe-source-quality': ('observe_source_quality', 'Observe qualified source isolation metrics'),
 'report-integrity': ('report_integrity', 'Report explicit content failure receipts'),
 'publication-gate': ('publication_gate', 'Check current collection and qualification waterlines'),
 'replay-senate-history': ('replay_senate_history', 'Plan or resolve explicitly selected amendment predecessors'),

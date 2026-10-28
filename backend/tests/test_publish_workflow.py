@@ -120,7 +120,7 @@ npm() {
         self.assertIn('head_repository.full_name == github.repository', complete)
         self.assertIn('publication-gate --repo .', complete)
         self.assertIn('--require-ready', complete)
-        self.assertIn("needs.assess.outputs.publication_ready == 'true'", complete)
+        self.assertIn("needs.assess.outputs.preparation_ready == 'true'", complete)
         self.assertIn('test "$TWELVE_LIMIT" -ge 0', market)
         self.assertIn('if [ "$TWELVE_LIMIT" -gt 0 ] && [ -z "$TWELVE_KEY" ]', market)
 

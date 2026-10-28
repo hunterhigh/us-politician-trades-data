@@ -34,12 +34,15 @@ def main():
     parser.add_argument('--state-commit',required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--github-output',type=Path)
-    parser.add_argument('--require-ready',action='store_true')
+    requirement=parser.add_mutually_exclusive_group()
+    requirement.add_argument('--require-ready',action='store_true')
+    requirement.add_argument('--require-preparation-ready',action='store_true')
     parser.add_argument('--repository',help='Also hold for unresolved content-integrity Issues')
     args=parser.parse_args()
     try:
         candidates,statuses,provenance=from_git(args.repo,args.review_commit,args.state_commit)
         result={**evaluate(candidates,statuses),**provenance}
+        result['preparation_ready']=result['ready']
         if args.repository:
             result['integrity_failures'] = open_failures(GitHub(args.repository, os.environ.get('GH_TOKEN')))
             for failure in result['integrity_failures']:
@@ -51,8 +54,11 @@ def main():
         if args.github_output:
             with args.github_output.open('a',encoding='utf-8') as stream:
                 stream.write('publication_ready='+str(result['ready']).lower()+'\n')
+                stream.write('preparation_ready='+str(result['preparation_ready']).lower()+'\n')
         print(json.dumps(result))
         if args.require_ready and not result['ready']:parser.exit(3,'Publication held by current source waterlines\n')
+        if args.require_preparation_ready and not result['preparation_ready']:
+            parser.exit(3,'Preparation held by current source waterlines\n')
     except (ValueError,OSError,subprocess.CalledProcessError) as error:parser.exit(2,str(error)+'\n')
 
 

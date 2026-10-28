@@ -285,7 +285,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                         legacy_extractions_by_document: dict | None = None,
                         saved_exhibit_observations_by_document: dict | None = None,
                         evidence_root=None,
-                        source_extractions_by_document=None) -> tuple[dict, dict]:
+                        source_extractions_by_document=None,
+                        incomplete_publication=None) -> tuple[dict, dict]:
     """Build a frontend-compatible OGE projection and a quarantine audit."""
 
     if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA:
@@ -961,9 +962,22 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
             "quarantined": row_quarantines,
         })
 
-    if seen_document_ids != set(direct_by_id):
+    pending=set(direct_by_id)-seen_document_ids
+    pending_reports=[];retained_published=[]
+    if seen_document_ids-set(direct_by_id) or pending and incomplete_publication is None:
         raise OgeCatalogError("OGE candidate extractions do not close over direct report history")
+    if pending:
+        from .oge_pending import retain
+        if callable(incomplete_publication):
+            incomplete_publication=incomplete_publication()
+        pending_reports,retained_published=retain(pending,direct_by_id,incomplete_publication,
+            people,transactions,evidence_root)
     replacement_redirects = _apply_native_exhibit_replacements(transactions, audit_reports, base)
+    if pending:
+        effective={row['id'] for row in transactions}
+        retained_published=sorted(set(retained_published)&effective)
+        for report in pending_reports:
+            report['retained_published_fact_ids']=sorted(set(report['retained_published_fact_ids'])&effective)
 
     candidate = deepcopy(base)
     candidate["meta"]["data_cutoff_at"] = data_cutoff_at
@@ -1000,6 +1014,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                                             or 'default_owner_conservation' in report
                                             or 'native_classification' in report
                                             for report in audit_reports) else None)
+    if pending and owner_current_count is None:
+        owner_current_count=len(transactions)-len(deferred_formal_ids)-len(retained_published)
     health = {
         "source_id": "oge",
         "source": "U.S. Office of Government Ethics",
@@ -1018,6 +1034,8 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
                    f"catalog entries were not automated; {retained_from_history} direct documents "
                    "were retained from archived catalog history."),
     }
+    if pending:
+        health['detail']+=f" {len(pending)} reports await extraction; {len(retained_published)} exact prior published facts retained."
     current_health = candidate.get("source_health")
     if not isinstance(current_health, list):
         raise OgeCatalogError("OGE candidate base has no source health array")
@@ -1038,6 +1056,10 @@ def build_oge_candidate(catalog: dict, extractions: list[dict], base: dict, *,
         "catalog_history_count": history_count,
         "request_required_count": request_required,
         "extraction_count": len(extractions),
+        **({'pending_reports':pending_reports,'retained_published_fact_ids':retained_published,
+            'retained_published_fact_count':len(retained_published),
+            'prior_publication':{key:incomplete_publication[key] for key in ('main_commit','board_sha256','snapshot_id')}}
+           if pending else {}),
         "promoted_transaction_count": len(transactions)-len(deferred_formal_ids),
         **({'current_qualified_transaction_count': owner_current_count}
            if owner_current_count is not None else {}),

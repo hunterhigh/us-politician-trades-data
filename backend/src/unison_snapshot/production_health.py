@@ -48,8 +48,8 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
         run = source_status.get(source, {})
         prior = prior_sources.get(source, {})
         attempted = run.get('run_at')
-        catalog = run.get('catalog', {})
-        last_success = (catalog.get('retrieved_at') if source in {'senate_efd', 'oge'} else
+        catalog = run.get('catalog') or {}
+        last_success = run.get('last_successful_collection_at') or (catalog.get('retrieved_at') if source in {'senate_efd', 'oge'} else
             (attempted if run.get('status') in {'ok', 'attention'} else None))
         last_success = last_success or run.get('last_successful_collection_at') or prior.get('last_successful_collection_at')
         last_attempt = run.get('last_collection_attempt', {})

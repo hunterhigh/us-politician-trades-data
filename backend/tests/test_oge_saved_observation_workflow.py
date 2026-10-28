@@ -144,10 +144,10 @@ class SavedOgeWorkflowTests(unittest.TestCase):
         content = WORKFLOW.read_text(encoding='utf-8')
         option = content.split('      include_saved_oge_observations:\n', 1)[1].split('      oge_saved_observations_path:', 1)[0]
         self.assertIn('type: boolean\n        default: false', option)
-        publish = content.split('  publish-review:', 1)[1]
+        publish = content.split('  source:', 1)[1]
         install = publish.index("uses: ./.github/actions/setup-source")
         self.assertLess(install, publish.index('build-oge-candidate'))
-        shadow = content.split('  publish-review:', 1)[0]
+        shadow = content.split('      - name: Publish normalized review data', 1)[0]
         self.assertNotIn('"${saved_observation_args[@]}"', shadow)
         self.assertNotIn('prepare_saved_oge_observations', content)
 

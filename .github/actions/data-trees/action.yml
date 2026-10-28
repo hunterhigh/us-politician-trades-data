@@ -46,3 +46,4 @@ runs:
         python -m unison_snapshot data-trees prepare --scope "$SCOPE" \
           --workspace "$WORKSPACE" --github-output "$GITHUB_OUTPUT" \
           --github-environment "$GITHUB_ENV" "${args[@]}"
+        echo "UNISON_SOURCE_WORKSPACE=$WORKSPACE" >> "$GITHUB_ENV"

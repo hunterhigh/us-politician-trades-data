@@ -5,9 +5,21 @@ runs:
   steps:
     - shell: bash
       env:
-        GH_TOKEN: ${{ github.token }}
+        JOB_STATUS: ${{ job.status }}
         PYTHONPATH: ${{ github.workspace }}/backend/src
-      run: >-
-        python -m unison_snapshot report-integrity
-        --directory "$RUNNER_TEMP/unison-integrity"
-        --repository "$GITHUB_REPOSITORY"
+      run: |
+        if [ "$JOB_STATUS" = failure ] && [ -n "${UNISON_SOURCE_WORKSPACE:-}" ]; then
+          python -m unison_snapshot record-source-failure --workspace "$UNISON_SOURCE_WORKSPACE" \
+            --directory "$RUNNER_TEMP/unison-source-failures"
+        fi
+    - shell: bash
+      if: always()
+      env:
+        GH_TOKEN: ${{ github.token }}
+        JOB_STATUS: ${{ job.status }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: |
+        successful=false
+        if [ "$JOB_STATUS" = success ]; then successful=true; fi
+        python -m unison_snapshot report-integrity --successful "$successful" \
+          --directory "$RUNNER_TEMP/unison-integrity" --repository "$GITHUB_REPOSITORY"

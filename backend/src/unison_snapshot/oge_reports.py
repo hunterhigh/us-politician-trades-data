@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+from .source_transport import read_with_retry, TRANSPORT_ERRORS
 from .content_integrity import content_boundary
 import re
 import tempfile
@@ -196,16 +197,19 @@ class OgePdfClient:
             "Referer": "https://www.oge.gov/web/OGE.nsf/Officials%20Individual%20Disclosures%20Search%20Collection?OpenForm",
             "User-Agent": "unison-oge-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
         }, method="GET")
-        try:
+        def receive():
             with self.opener.open(request, timeout=self.timeout) as response:
                 if response.status != 200 or response.geturl() != url:
                     raise OgeCatalogError("OGE 278-T returned an unexpected response")
                 content = response.read(MAX_PDF_BYTES + 1)
                 headers = {name.lower(): value for name, value in response.headers.items()
                            if name.lower() in {"etag", "last-modified", "content-type"}}
+            return content, headers
+        try:
+            content, headers = read_with_retry(receive)
         except urllib.error.HTTPError as exc:
             raise OgeCatalogError(f"OGE 278-T returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
+        except TRANSPORT_ERRORS:
             raise OgeCatalogError("OGE 278-T is unavailable") from None
         if len(content) > MAX_PDF_BYTES:
             raise OgeCatalogError("OGE 278-T exceeds its size limit")

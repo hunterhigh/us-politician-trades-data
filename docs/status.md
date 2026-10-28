@@ -6,7 +6,7 @@
 
 来源过期全站停发。Senate停止访问诊断，每日一次正常采集发现恢复。允许告警Issue、内容失败自动回退、稳定后固定范围2025 House PTR回填；网络仅重试，不扩年份、年报或供应商。
 
-支持House电子PTR、年报A/B，Senate电子PTR及年报，OGE/白宫原生278-T；扫描件沿用既有规则，异常隔离。产品语义见当前目标入口。
+支持范围、字段及缺失值语义见[data-contract.md](data-contract.md)；扫描异常隔离。
 
 ## 已知限制
 
@@ -20,15 +20,13 @@
 8. 历史ID通用重编号：不做，沿用原ID。
 9. Paddle/TrOCR未采用实验：退役，不再运行。
 
-缺口进入状态及known_gaps；不猜事实，不将demo改标正式；旧事实无来源解释不得消失。
-
 ## 当前结果与下一步
 
-源码及104986个证据文件已备份；初始候选v1/candidate-20261028（30483a2e9）与前端基准已固定。实现与证据见[PR293](https://github.com/hunterhigh/us-politician-trades-data/pull/293)，整合CI以当前head为准。
+源码与本机证据已备份；初始候选v1/candidate-20261028（30483a2e9）与前端基准已固定。实现与证据见[PR293](https://github.com/hunterhigh/us-politician-trades-data/pull/293)，整合CI以当前head为准。
 
 [健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)已上线：区分采集和候选水位，复用告警；正式客户端、三人物及渲染冒烟通过。内容失败才可回退至已验证前版，并阻止重复发布失败快照。
 
-House/Senate、OGE/白宫OCR、扫描年报及19项日期观察已迁入统一修正层，专用代码同PR删除；原ID与对照结果保持。known_gaps进入manifest、页脚和人物页。命令已统一，backend/scripts仅留verify.py；工作流28→10。依赖、Actions提交及含OCR的镜像已固定；镜像构建和一次完整源码CI通过，十条工作流整合版本e3427624完整CI通过，新告警代码待本轮CI。新发布入口区分采集与合格水位，加入48小时绝对期限及内容告警门禁；周隔离指标已接入候选。Senate受阻、OGE/Senate候选过期仍阻断正式发布。
+House/Senate、OGE/白宫OCR、扫描年报及19项日期观察已迁入统一修正层，专用代码同PR删除；原ID与对照结果保持。known_gaps进入manifest、页脚和人物页。命令已统一，backend/scripts仅留verify.py；工作流28→10。依赖、Actions提交及含OCR的镜像已固定；镜像构建和一次完整源码CI通过，十条工作流整合版本e3427624完整CI通过，新告警代码完整源码检查通过。新发布入口区分采集与合格水位，加入48小时绝对期限及内容告警门禁；周隔离指标已接入候选。远端停发演练通过，正式引用未移动。2025回填在启动前被production分支保护拒绝，待唯一切换确认后从code执行；Senate受阻仍阻断发布。
 
 | 阶段 | 台北日期 | 状态 |
 | --- | --- | --- |
