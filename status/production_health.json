@@ -43,15 +43,15 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-28T06:16:04.563856+00:00",
+  "checked_at": "2026-10-28T09:42:09.164101+00:00",
   "issue_actions": [
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "source:senate_efd",
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "publication",
       "number": 291
     }
@@ -60,6 +60,55 @@
   "publication": "held",
   "published_at": "2026-10-24T01:16:50Z",
   "schema_version": "production-health/v1",
+  "smoke": {
+    "checked_at": "2026-10-28T09:42:09.163601+00:00",
+    "checks": [
+      {
+        "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+        "mode": "dashboard",
+        "person_id": null,
+        "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
+        "status": "passed"
+      },
+      {
+        "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+        "mode": "person",
+        "person_id": "house:M001157",
+        "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
+        "status": "passed"
+      },
+      {
+        "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+        "mode": "person",
+        "person_id": "senate:W000805",
+        "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
+        "status": "passed"
+      },
+      {
+        "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+        "mode": "person",
+        "person_id": "oge:076544f8ba0638cf",
+        "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
+        "status": "passed"
+      },
+      {
+        "mode": "render",
+        "status": "passed"
+      }
+    ],
+    "client_sha256": "54550d77dc3ba29f474fe9e998a793073e8dc648d52e3bee90906fbb19f75849",
+    "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+    "failed_snapshots": {},
+    "last_good_commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
+    "recovery": {
+      "action": "none",
+      "reason": "passed"
+    },
+    "rollback_requested_for": null,
+    "schema_version": "publication-smoke/v1",
+    "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
+    "status": "passed"
+  },
   "snapshot_changed": false,
   "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
   "sources": {
