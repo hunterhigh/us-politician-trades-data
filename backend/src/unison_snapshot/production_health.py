@@ -35,7 +35,7 @@ def latest_publication_deadline(now):
     raise ValueError('No publication window')
 
 
-def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None):
+def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None):
     now = now or datetime.now(UTC)
     previous = previous or {}
     prior_sources = previous.get('sources', {})
@@ -88,12 +88,16 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
         alerts.append({'key': 'publication', 'title': '[Health] Production publication missed its expected window',
             'detail': 'Latest snapshot: ' + str(published) + '\nBlocking sources: ' +
                 json.dumps(blockers, ensure_ascii=False)})
+    if smoke and smoke.get('status') not in {'passed', 'superseded'}:
+        alerts.append({'key':'smoke', 'title':'[Health] Published client read or report smoke failed',
+            'detail':json.dumps(smoke, ensure_ascii=False, sort_keys=True),
+            'condition':{'commit':smoke['commit'], 'status':smoke['status'], 'recovery':smoke.get('recovery')}})
     return {'schema_version': 'production-health/v1', 'checked_at': now.isoformat(),
         'snapshot_id': manifest.get('snapshot_id'), 'published_at': published,
         'last_successful_publication_check_at': last_live,
         'publication': 'held' if blockers else 'sources_recovered', 'assembly': assembly,
         'blocking_sources': blockers, 'sources': sources, 'alerts': alerts,
-        'snapshot_changed': manifest.get('snapshot_id') != previous.get('snapshot_id')}
+        'snapshot_changed': manifest.get('snapshot_id') != previous.get('snapshot_id'), 'smoke':smoke}
 
 
 class GitHub:
@@ -137,7 +141,8 @@ def reconcile_issues(api, health):
         marker = '<!-- production-health:' + key + ' -->'
         matches = [issue for issue in issues if marker in (issue.get('body') or '')]
         condition = (health['blocking_sources'] if key == 'publication' else
-            {k: health['sources'][key.split(':', 1)[1]].get(k) for k in ('status', 'failed_step', 'http_status')})
+            {k: health['sources'][key.split(':', 1)[1]].get(k) for k in ('status', 'failed_step', 'http_status')}
+                if key.startswith('source:') else alert['condition'])
         fingerprint = hashlib.sha256(json.dumps(condition, sort_keys=True).encode()).hexdigest()
         condition_marker = '<!-- condition:' + fingerprint + ' -->'
         body = marker + '\n' + condition_marker + '\n\n' + alert['detail'] + '\n\nIndependent health status: `health/status/production_health.json`.'
@@ -161,7 +166,7 @@ def reconcile_issues(api, health):
         prefix = '<!-- production-health:'
         if body.startswith(prefix) and issue.get('state', 'open') == 'open':
             key = body[len(prefix):].split(' -->', 1)[0]
-            if key not in current and key in {'publication', *('source:' + s for s in SOURCES)}:
+            if key not in current and key in {'publication', 'smoke', *('source:' + s for s in SOURCES)}:
                 api.request('/issues/' + str(issue['number']), 'PATCH', {'state': 'closed', 'state_reason': 'completed'})
                 results.append({'key': key, 'number': issue['number'], 'action': 'closed'})
     return results
@@ -191,6 +196,8 @@ def main():
     parser.add_argument('--apply-alerts', action='store_true')
     parser.add_argument('--publication-success-at')
     parser.add_argument('--observe-publication-runs', action='store_true')
+    parser.add_argument('--smoke-client-root', type=Path)
+    parser.add_argument('--apply-content-rollback', action='store_true')
     args = parser.parse_args()
     read = lambda p: json.loads(p.read_text(encoding='utf-8'))
     manifest = read(args.main_root / 'manifest.json')
@@ -203,7 +210,17 @@ def main():
     if args.observe_assembly:
         saved = api.request('/contents/status/disclosure_assembly.json?ref=review')
         assembly = json.loads(base64.b64decode(saved['content']))
-    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly)
+    smoke = None
+    if args.apply_content_rollback and not args.smoke_client_root:
+        parser.error('Content recovery requires a real client smoke')
+    if args.smoke_client_root:
+        import subprocess
+        from .publication_smoke import observe_smoke
+        commit = subprocess.check_output(['git','-C',str(args.main_root),'rev-parse','HEAD'], text=True).strip()
+        smoke = observe_smoke(api, repository=args.repository, commit=commit, manifest=manifest,
+            client_root=args.smoke_client_root, health_root=args.health_root or args.state_root,
+            apply=args.apply_content_rollback)
+    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly, smoke=smoke)
     if args.apply_alerts:
         health['issue_actions'] = reconcile_issues(api, health)
     target.parent.mkdir(parents=True, exist_ok=True)
