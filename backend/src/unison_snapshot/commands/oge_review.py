@@ -2,6 +2,19 @@
 import argparse
 import os
 from pathlib import Path
+from unison_snapshot.content_integrity import content_boundary
+
+
+@content_boundary('snapshot_contract')
+def save_immutable(review, relative, content, *, metadata):
+    root = Path(review).resolve()
+    target = (root / relative).resolve()
+    if not target.is_relative_to(root):
+        raise ValueError('OGE review artifact escapes its controlled root')
+    if target.is_file() and target.read_bytes() != content:
+        raise ValueError('Immutable OGE review artifact collision')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
 
 def build(args):
     import json, os
@@ -107,22 +120,16 @@ def stage(args):
     catalog_path = args.run_root/'oge-catalog.json'
     catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
     sha = catalog['metadata']['sha256']
-    target = review / 'oge' / 'discoveries' / f'{sha}.json'
-    target.parent.mkdir(parents=True, exist_ok=True)
     content = encode({key: value for key, value in catalog.items() if key != 'observed_at'})
-    if target.is_file() and target.read_bytes() != content:
-        raise SystemExit('Immutable OGE catalog collision')
-    target.write_bytes(content)
+    save_immutable(review, f'oge/discoveries/{sha}.json', content,
+                   metadata={'document_id': 'catalog:' + sha})
     for source in (args.run_root/'oge-extractions').glob('*.json'):
         value = json.loads(source.read_text(encoding='utf-8'))
         parser_file = ('failure-' + hashlib.sha256(source.read_bytes()).hexdigest()[:16] + '.failure.json' if source.name.endswith('.failure.json') else
                        value['parser_version'].replace('/', '-') + '.json')
-        target = (review / 'oge' / 'extractions' / value['document_id'] /
-                  value['source_sha256'] / parser_file)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.is_file() and target.read_bytes() != source.read_bytes():
-            raise SystemExit('Immutable OGE extraction collision')
-        target.write_bytes(source.read_bytes())
+        relative = Path('oge/extractions') / value['document_id'] / value['source_sha256'] / parser_file
+        identity = 'artifact:' + hashlib.sha256(relative.as_posix().encode()).hexdigest()
+        save_immutable(review, relative, source.read_bytes(), metadata={'document_id': identity})
 
 
 def saved_input(args):

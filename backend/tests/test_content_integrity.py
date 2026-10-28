@@ -27,6 +27,21 @@ class IntegrityTests(unittest.TestCase):
             'UNISON_INTEGRITY_DIRECTORY': str(self.receipts), 'GITHUB_RUN_ID': '123', 'GITHUB_SHA': 'a' * 40})
         self.environment.start(); self.addCleanup(self.environment.stop)
 
+    def test_immutable_review_collision_reports_only_its_verified_object(self):
+        from unison_snapshot.commands.oge_review import save_immutable
+        review = self.root/'review'
+        save_immutable(review, 'oge/example.json', b'original private value', metadata={'document_id': 'artifact:a'})
+        with self.assertRaisesRegex(ValueError, 'collision'):
+            save_immutable(review, 'oge/example.json', b'changed private value', metadata={'document_id': 'artifact:a'})
+        failure = json.loads(next(self.receipts.glob('*.failure.json')).read_bytes())
+        self.assertEqual(failure['category'], 'snapshot_contract')
+        save_immutable(review, 'oge/other.json', b'other', metadata={'document_id': 'artifact:b'})
+        successes = [json.loads(p.read_bytes()) for p in self.receipts.glob('*.success.json')]
+        self.assertEqual(sum(s['condition'] == failure['condition'] for s in successes), 1)
+        self.assertEqual((review/'oge/example.json').read_bytes(), b'original private value')
+        for path in self.receipts.glob('*.json'):
+            self.assertNotIn(b'private value', path.read_bytes())
+
     def test_real_hash_correction_and_contract_failures_record_types_without_source_values(self):
         pdf = self.root / 'report.pdf'; pdf.write_bytes(b'%PDF-1.7\nsource content')
         metadata = self.root / 'report.json'

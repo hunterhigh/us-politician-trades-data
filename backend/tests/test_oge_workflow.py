@@ -52,7 +52,6 @@ class OgeWorkflowTests(unittest.TestCase):
         accounting = (ROOT / 'backend/src/unison_snapshot/commands/oge_review.py').read_text(encoding='utf-8')
         self.assertIn("roles: evidence", content)
         self.assertIn('python -m unison_snapshot oge-review stage', content)
-        self.assertIn("/ 'oge' / 'extractions' /", accounting)
         self.assertIn("value['parser_version'].replace('/', '-')", accounting)
         self.assertNotIn("'oge-278t-pdf-v1.json'", content)
         self.assertIn("status/oge.json", accounting)
