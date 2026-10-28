@@ -6,26 +6,52 @@
       "title": "[Health] senate_efd collection blocked or stale"
     },
     {
-      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"senate_efd\", \"reason\": \"source_blocked\"}]",
+      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"senate_efd\", \"reason\": \"source_blocked\"}, {\"source\": \"oge\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-24T07:42:53Z\"}, {\"source\": \"senate_efd\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\"}]",
       "key": "publication",
       "title": "[Health] Production publication missed its expected window"
     }
   ],
+  "assembly": {
+    "attempted_at": "2026-10-28T05:57:08.951883+00:00",
+    "reason": "source_cutoffs_too_stale",
+    "schema_version": "disclosure-assembly-status/v1",
+    "source_candidate_sha256": {
+      "house_clerk": "6100da40a9beae35da50bf8d403ad55b601b432f386d37f325a478267dc53580",
+      "oge": "b7b2ea71e6e069a9ad60b404693fa4aeaaa8d8fcb00d887fc0fb784249a2f771",
+      "senate_efd": "5ee4ce4e013823f252bbafb7414485f01febe829a58ea5ea2769a44875e10900"
+    },
+    "source_cutoffs": {
+      "house_clerk": "2026-10-28T05:53:59+00:00",
+      "oge": "2026-10-24T07:42:53Z",
+      "senate_efd": "2026-10-23T07:42:53.699480+00:00"
+    },
+    "status": "deferred"
+  },
   "blocking_sources": [
     {
       "reason": "source_blocked",
       "source": "senate_efd"
+    },
+    {
+      "candidate_cutoff_at": "2026-10-24T07:42:53Z",
+      "reason": "candidate_cutoff_lag",
+      "source": "oge"
+    },
+    {
+      "candidate_cutoff_at": "2026-10-23T07:42:53.699480+00:00",
+      "reason": "candidate_cutoff_lag",
+      "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-28T05:57:44.150165+00:00",
+  "checked_at": "2026-10-28T06:16:04.563856+00:00",
   "issue_actions": [
     {
-      "action": "already_open",
+      "action": "updated_condition",
       "key": "source:senate_efd",
       "number": 290
     },
     {
-      "action": "already_open",
+      "action": "updated_condition",
       "key": "publication",
       "number": 291
     }
@@ -34,7 +60,7 @@
   "publication": "held",
   "published_at": "2026-10-24T01:16:50Z",
   "schema_version": "production-health/v1",
-  "snapshot_changed": true,
+  "snapshot_changed": false,
   "snapshot_id": "f0412f1c4185df57142ab03a9702e4855de6777ebd45b89774c68f063780b8de",
   "sources": {
     "house_clerk": {
