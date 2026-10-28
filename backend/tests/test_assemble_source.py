@@ -16,6 +16,30 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 class AssembleSourceTests(SourceTreeFixture, unittest.TestCase):
+    def test_oge_scope_saves_its_projection_before_deferring_stale_peers(self):
+        control=trees.prepare(self.repo,self.workspace,'oge',('review',))
+        review=Path(control['trees']['review']['root'])
+        for source,cutoff in [('house_clerk','2026-10-27T00:00:00Z'),
+                ('senate_efd','2026-10-23T00:00:00Z'),('oge','2026-10-24T00:00:00Z')]:
+            value=candidate(source,source+':person',source+':fact')
+            value['meta']['data_cutoff_at']=cutoff;value['source_health'][0]['data_cutoff_at']=cutoff
+            value['transactions'][0]['source_url']='https://'+{'house_clerk':'disclosures-clerk.house.gov',
+                'senate_efd':'efdsearch.senate.gov','oge':'www.oge.gov'}[source]+'/bounded-test-input'
+            self.write(review/f'candidates/sources/{source}-current.json',encode(value).decode())
+        for name in ['candidates/disclosure-current.json','status/disclosure_cutoff.json']:
+            self.write(review/name,'{"prior_complete":true}')
+        self.commit(review);trees.git(review,'push','origin','HEAD:refs/heads/review')
+        control['trees']['review']['base']=trees.git(review,'rev-parse','HEAD')
+        (self.workspace/'trees.json').write_bytes(encode(control))
+        source=review/'candidates/sources/oge-current.json'
+        value=json.loads(source.read_bytes());value['source_health'][0]['detail']='new validated projection'
+        source.write_bytes(encode(value));expected=source.read_bytes()
+        with patch.dict(os.environ,{'PYTHONPATH':str(ROOT/'backend/src')}):
+            self.assertEqual(assembly.assemble(self.workspace,'oge',ROOT/'backend/data/empty-disclosure.json',None,self.code),'deferred')
+        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:candidates/sources/oge-current.json')),json.loads(expected))
+        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:candidates/disclosure-current.json')),{'prior_complete':True})
+        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:status/disclosure_assembly.json'))['status'],'deferred')
+
     def seed(self, cutoff):
         prepared=self.prepare(('review',));review=Path(prepared['trees']['review']['root'])
         for source,date in [('house_clerk','2026-10-27T00:00:00Z'),('senate_efd',cutoff)]:

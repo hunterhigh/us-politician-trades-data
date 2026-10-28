@@ -403,7 +403,10 @@ jobs:
                              if direct_current + retained_prior == direct_published else None)
           pending_reports = audit.get('pending_reports', [])
           archived_pending = {row['document_id'] for row in pending_reports if row['archive_state'] == 'archived'}
-          failed_pending = archived_pending & {row['document_id'] for row in extraction['failures']}
+          failure_entries = extraction.get('failures', [])
+          if not isinstance(failure_entries, list) or len(failure_entries) != extraction['failure_count']:
+              raise ValueError('OGE extraction failures lack their report dispositions')
+          failed_pending = archived_pending & {row['document_id'] for row in failure_entries}
           archived_count = audit['extraction_count'] + len(archived_pending)
           value = {
               'schema_version': 'oge-review-run/v1', 'source_id': 'oge',

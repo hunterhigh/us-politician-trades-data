@@ -11,7 +11,7 @@ import re
 import uuid
 
 CATEGORIES = {'correction_assertion', 'snapshot_contract', 'official_hash', 'old_fact_delta'}
-SCOPES = {'house_clerk', 'senate_efd', 'oge', 'publication', 'market'}
+SCOPES = {'house_clerk', 'senate_efd', 'oge', 'publication', 'publication_gate', 'market'}
 MARKER = '<!-- source-integrity:'
 META = '<!-- integrity-conditions:'
 
@@ -119,13 +119,14 @@ def verified_original_hash(metadata):
     event('snapshot_contract', True, boundary='official_archive_hash', identity=subject('snapshot_contract', {'metadata': metadata}))
 
 
-def open_failures(api):
+def open_failures(api, *, include_closed=False):
     found = []; page = 1
     while True:
-        batch = api.request(f'/issues?state=open&per_page=100&page={page}')
+        state='all' if include_closed else 'open'
+        batch = api.request(f'/issues?state={state}&per_page=100&page={page}')
         for issue in batch:
             if ('pull_request' in issue or issue.get('user', {}).get('login') != 'github-actions[bot]'
-                    or issue.get('state', 'open') != 'open'): continue
+                    or not include_closed and issue.get('state', 'open') != 'open'): continue
             body = issue.get('body') or ''
             match = re.match(re.escape(MARKER) + r'([a-z_]+):([a-z_]+) -->', body)
             if not match or match[1] not in SCOPES or match[2] not in CATEGORIES: continue
@@ -139,7 +140,8 @@ def open_failures(api):
                             all(isinstance(key, str) and re.fullmatch('[0-9a-f]{64}', key) for key in parsed['conditions'])):
                         metadata = parsed
                 except (ValueError, TypeError): pass
-            found.append({'scope': match[1], 'category': match[2], 'issue': issue['number'], 'metadata': metadata})
+            found.append({'scope': match[1], 'category': match[2], 'issue': issue['number'],
+                          'metadata': metadata, 'closed': issue.get('state')=='closed'})
         if len(batch) < 100: return found
         page += 1
 
@@ -160,12 +162,15 @@ def report(api, directory, *, successful=False):
         prior = group.get(value['condition'])
         if prior is None or value['recorded_at'] > prior['recorded_at']: group[value['condition']] = value
     if not failures and not successful: return []
-    existing = {(row['scope'], row['category']): row for row in open_failures(api)}
+    existing = {}
+    for row in open_failures(api,include_closed=bool(failures)):
+        key=row['scope'],row['category']
+        if key not in existing or existing[key]['closed'] and not row['closed']:existing[key]=row
     actions = []
     for key in set(failures) | (set(existing) & set(verified) if successful else set()):
         previous = existing.get(key); metadata = previous.get('metadata') if previous else None
-        active = set(metadata['conditions']) if metadata else set()
-        overflow = bool(metadata.get('overflow')) if metadata else previous is not None
+        active = set(metadata['conditions']) if metadata and not previous['closed'] else set()
+        overflow = (bool(metadata.get('overflow')) if metadata else True) if previous and not previous['closed'] else False
         current = failures.get(key, {})
         active.update(current)
         if successful:
@@ -174,7 +179,7 @@ def report(api, directory, *, successful=False):
                     active.discard(condition)
         marker = MARKER + ':'.join(key) + ' -->'
         if not active and not overflow:
-            if previous:
+            if previous and not previous['closed']:
                 api.request('/issues/' + str(previous['issue']), 'PATCH', {'state': 'closed', 'state_reason': 'completed'})
                 actions.append({'scope': key[0], 'category': key[1], 'issue': previous['issue'], 'action': 'verified_recovery'})
             continue
@@ -191,7 +196,7 @@ def report(api, directory, *, successful=False):
             'Observed subjects: ' + json.dumps(subjects) + '\n'
             'Only matching verified checks in a completed pipeline clear these conditions; unrelated success does not.\n')
         if previous:
-            number = previous['issue']; api.request('/issues/' + str(number), 'PATCH', {'body': body})
+            number = previous['issue']; api.request('/issues/' + str(number), 'PATCH', {'body': body,'state':'open'})
         else:
             number = api.request('/issues', 'POST', {'title': '[Integrity] ' + ' / '.join(key), 'body': body})['number']
         actions.append({'scope': key[0], 'category': key[1], 'issue': number, 'action': 'held'})

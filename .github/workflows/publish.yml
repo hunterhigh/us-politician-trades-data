@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 1
       - uses: ./.github/actions/setup-source
         with:
-          integrity_scope: publication
+          integrity_scope: publication_gate
       - name: Require a completed price handoff for market-triggered publication
         id: upstream
         env:

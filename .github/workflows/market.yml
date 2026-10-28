@@ -31,16 +31,17 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: prepare-market-data
+  queue: max
+  cancel-in-progress: false
+
 jobs:
   refresh:
     if: github.ref == 'refs/heads/code' && (github.event_name == 'schedule' || inputs.mode == 'refresh')
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    concurrency:
-      group: prepare-market-refresh
-      queue: max
-      cancel-in-progress: false
     container: &source_runtime
       image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
       credentials:
@@ -205,10 +206,6 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    concurrency:
-      group: twelve-data-market-audit
-      queue: max
-      cancel-in-progress: false
     container: *source_runtime
     defaults:
       run:

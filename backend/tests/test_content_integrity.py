@@ -60,7 +60,7 @@ class IntegrityTests(unittest.TestCase):
         self.assertEqual(report(api, self.receipts)[0]['issue'], 11)
         self.assertEqual(report(api, self.receipts)[0]['issue'], 11)
         self.assertEqual(api.posts, 1)
-        self.assertEqual([{key: value for key, value in row.items() if key != 'metadata'} for row in open_failures(api)], [{'scope': 'house_clerk', 'category': 'correction_assertion', 'issue': 11}])
+        self.assertEqual([{key: row[key] for key in ('scope','category','issue')} for row in open_failures(api)], [{'scope': 'house_clerk', 'category': 'correction_assertion', 'issue': 11}])
 
     def test_normal_publication_command_holds_on_integrity_even_with_fresh_sources(self):
         candidates, statuses = gate_fixtures.PublicationGateTests().inputs()
@@ -116,6 +116,10 @@ class IntegrityTests(unittest.TestCase):
         report(api,self.receipts,successful=True)
         self.assertEqual(api.issues[0]['state'],'closed')
         self.assertEqual(open_failures(api),[])
+        with self.assertRaises(ValueError):apply_correction(changed,correction)
+        report(api,self.receipts)
+        self.assertEqual(len(api.issues),1)
+        self.assertEqual(api.issues[0]['state'],'open')
 
 
 if __name__ == '__main__': unittest.main()
