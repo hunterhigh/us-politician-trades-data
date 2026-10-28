@@ -186,6 +186,14 @@ class HouseHoldingTests(unittest.TestCase):
         self.assertEqual(rows[0]["asset_type_code"], "MF")
         self.assertEqual(rows[0]["review_reasons"], [])
 
+    def test_saved_unrepresentable_value_keeps_its_existing_quarantine_reason(self):
+        rows, _ = extract_schedule_a_pages([page(bad_value=True)], source_sha256=SHA)
+        result = qualify_financial_report(extraction(rows), IDENTITY)
+        self.assertFalse(result["production_eligible"])
+        self.assertEqual(result["qualification_reasons"], ["value_not_representable"])
+        self.assertEqual(result["holdings"], [])
+        self.assertEqual(result["quarantined"][0]["reasons"], ["value_not_representable"])
+
     def test_unrecognized_value_literal_is_retained_for_explanation(self):
         source = page(bad_value=True)
         next(item for item in source["words"] if item["text"] == "Undetermined")["text"] = "Not established"

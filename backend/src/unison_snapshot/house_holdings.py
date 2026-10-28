@@ -505,7 +505,11 @@ def qualify_financial_report(extraction: dict, identity: dict) -> dict:
             if (type(low) is not int or low < 0 or
                     (high is None and type(row.get("value_low_exclusive")) is not bool) or
                     (high is not None and (type(high) is not int or low > high))):
-                problems.append("value_bounds_unresolved")
+                # Saved native extractions already explain an unrepresentable
+                # value. Keep that stable reason; add a bounds guard when an
+                # otherwise accepted row loses its numeric evidence.
+                if "value_not_representable" not in problems:
+                    problems.append("value_bounds_unresolved")
         row_problems.append(sorted(set(problems)))
         report_reasons.extend(problems)
     coverage = extraction.get("source_text_coverage", {})

@@ -239,9 +239,9 @@ class HouseAnnualStatusTests(unittest.TestCase):
                                                   'commit','-qm','fixture','--allow-empty']):
                 subprocess.run(['git','-C',str(tree),*args],check=True,capture_output=True)
         out=self.root/'status.json'
-        script=Path(__file__).resolve().parents[1]/'src/unison_snapshot/commands/build_disclosure_status.py'
-        env=dict(os.environ,PYTHONPATH=str(script.parents[1]/'src'))
-        result=subprocess.run([sys.executable,str(script),'--evidence-root',str(self.evidence),
+        source=Path(__file__).resolve().parents[1]/'src'
+        env=dict(os.environ,PYTHONPATH=str(source))
+        result=subprocess.run([sys.executable,'-m','unison_snapshot','build-disclosure-status','--evidence-root',str(self.evidence),
             '--review-root',str(self.review),'--input',str(input_path),'--code-commit','1'*40,
             '--previous-main-commit','4'*40,'--output',str(out)],capture_output=True,text=True,env=env)
         self.assertEqual(result.returncode,0,result.stderr)
