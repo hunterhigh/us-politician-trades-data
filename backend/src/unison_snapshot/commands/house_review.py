@@ -281,7 +281,15 @@ def holding_status(args):
     target=review/'status/house_holdings.json'; target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(value,sort_keys=True,separators=(',',':')),encoding='utf-8')
 
-HANDLERS = {'select': select, 'ocr': ocr, 'status': status,
+def backfill(args):
+    from unison_snapshot.house_archive_queue import consume
+    import json
+    workspace=Path(os.environ['UNISON_SOURCE_WORKSPACE'])
+    receipt=consume(workspace,year=int(args.year),batch_size=args.batch_size)
+    print(json.dumps({key:value for key,value in receipt.items() if key!='reports'}))
+
+
+HANDLERS = {'select': select, 'ocr': ocr, 'status': status, 'backfill': backfill,
             'select-holdings': select_holdings, 'holding-status': holding_status}
 
 
