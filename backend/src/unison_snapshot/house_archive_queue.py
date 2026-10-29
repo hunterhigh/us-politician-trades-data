@@ -83,6 +83,8 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
     for metadata_path in paths:
         if clock()>=deadline:break
         metadata=json.loads(metadata_path.read_bytes());document=metadata['document_id'];sha=metadata['sha256']
+        if metadata.get('filing_year')!=year or document!=metadata_path.parent.name or sha!=metadata_path.stem:
+            raise HouseIndexError('House source metadata differs from its fixed year and document path')
         if hashlib.sha256((evidence/metadata['archive_path']).read_bytes()).hexdigest()!=sha:
             raise HouseIndexError('House archived original hash differs from the fixed inventory')
         relative=Path(str(year))/str(document)/(sha+'.json')
@@ -124,6 +126,9 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
             'report_count':len(paths),'processed_count':len(records),'queue_count':len(paths)-len(records),
             'qualified_row_count':sum(r['qualified_row_count'] for r in records.values()),
             'quarantined_row_count':sum(r['quarantined_row_count'] or 0 for r in records.values()),
+            'qualified_report_count':sum(r['status'] in {'qualified','zero_transactions'} for r in records.values()),
+            'partial_report_count':sum(r['status']=='partial' for r in records.values()),
+            'quarantined_report_count':sum(r['status'] in {'quarantined','parse_failed'} for r in records.values()),
             'parse_failure_count':sum(r['status']=='parse_failed' for r in records.values()),
             'reports':[records[k] for k in sorted(records)]}
         write(receipt_path,receipt)
