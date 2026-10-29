@@ -63,10 +63,10 @@ class FixedArchiveQueueTests(SourceTreeFixture,unittest.TestCase):
         pdf=evidence/f'house_clerk/documents/2025/20000002/{sha}.pdf';pdf.parent.mkdir(parents=True);pdf.write_bytes(raw)
         metadata={'filing_year':2025,'document_id':'20000002','sha256':sha,
                   'archive_path':pdf.relative_to(evidence).as_posix(),
-                  'document_url':'https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2025/20000002.pdf'}
+                  'source_url':'https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2025/20000002.pdf'}
         write(pdf.with_suffix('.json'),metadata);write(evidence/'house_clerk/members/roster.roster.json',{})
         write(state/'checkpoints/house/2025.json',{'filing_year':2025,'queue':[],'counts':{'failed':0},
-                                               'documents':{'20000002':{}},'index_sha256':'a'*64})
+                                               'documents':{'20000002':{'document_url':metadata['source_url']}},'index_sha256':'a'*64})
         write(state/'status/house_backfill_2025.json',{'counts':{'archived':1}})
         write(review/'candidates/sources/house_clerk-current.json',{'kept':'all prior facts'})
         data_trees.publish(self.workspace,data_trees.ROLES,'source fixtures')

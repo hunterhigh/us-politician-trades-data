@@ -85,6 +85,9 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
         metadata=json.loads(metadata_path.read_bytes());document=metadata['document_id'];sha=metadata['sha256']
         if metadata.get('filing_year')!=year or document!=metadata_path.parent.name or sha!=metadata_path.stem:
             raise HouseIndexError('House source metadata differs from its fixed year and document path')
+        source_url=metadata.get('source_url')
+        if not isinstance(source_url,str) or source_url!=checkpoint['documents'][document].get('document_url'):
+            raise HouseIndexError('House archived source URL differs from the official index')
         if hashlib.sha256((evidence/metadata['archive_path']).read_bytes()).hexdigest()!=sha:
             raise HouseIndexError('House archived original hash differs from the fixed inventory')
         relative=Path(str(year))/str(document)/(sha+'.json')
@@ -94,7 +97,7 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
                 and (destinations['qualifications'] if previous['status']!='parse_failed' else destinations['failures']).is_file()):
             continue
         row={'document_id':document,'source_sha256':sha,'parser_version':PARSER_RETRY_VERSION,
-             'source_url':metadata['document_url'],'qualified_row_count':0,'quarantined_row_count':None,
+             'source_url':source_url,'qualified_row_count':0,'quarantined_row_count':None,
              'person_id':None,'reasons':[]}
         try:
             extraction=parse_archived_pdf(evidence,metadata_path)
@@ -113,7 +116,7 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
             row.update(status=status,qualified_row_count=good,quarantined_row_count=bad,
                 person_id=identity.get('person_id') if identity.get('match_basis') in DETERMINISTIC_IDENTITY_BASES else None,
                 reasons=reasons or (['source_rows_qualified'] if good else ['explicit_zero_transaction_report'] if status=='zero_transactions' else ['qualification_incomplete']))
-        except HouseIndexError as error:
+        except (HouseIndexError,ValueError,RuntimeError) as error:
             for key in ('extractions','identities','qualifications'):
                 if destinations[key].exists():destinations[key].unlink()
             row.update(status='parse_failed',reasons=[str(error)[:480]])
