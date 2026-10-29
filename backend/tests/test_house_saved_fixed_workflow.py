@@ -41,12 +41,16 @@ def step(name):
 def scheduled_fixed_body(name):
     condition,body=step(name)
     if condition is None:return body
-    if condition!='inputs.materialize_saved_paper != true':
+    if condition not in {'inputs.materialize_saved_paper != true',
+                         "inputs.materialize_saved_paper != true && inputs.filing_year != '2025'"}:
         raise ValueError('Unsupported fixed-writer workflow condition in this bounded scheduler')
     # Evaluate the actual workflow selection for both dispatch values. A
     # missing condition really executes the unmodified writer and fails saved
     # mode, rather than merely failing a string-presence assertion.
-    return 'if [ "$MATERIALIZE_SAVED_PAPER" != "true" ]; then\n'+body+'\nfi\n'
+    predicate='[ "$MATERIALIZE_SAVED_PAPER" != "true" ]'
+    if 'inputs.filing_year' in condition:
+        predicate+=' && [ "${UNISON_HOUSE_FILING_YEAR:-}" != "2025" ]'
+    return 'if '+predicate+'; then\n'+body+'\nfi\n'
 
 
 def write(path,value):

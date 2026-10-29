@@ -188,7 +188,14 @@ jobs:
           workspace: ${{ runner.temp }}/house-source
           roles: state
           message: House collection ${{ github.run_id }}
+      - name: Consume the fixed 2025 archived PTR inventory
+        if: inputs.filing_year == '2025'
+        env:
+          PARSER_COMMIT: ${{ github.sha }}
+          PYTHONPATH: backend/src
+        run: python -m unison_snapshot house-review backfill --year 2025 --batch-size 25
       - name: Select unprocessed evidence
+        if: inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -211,7 +218,7 @@ jobs:
           }
           python -m unison_snapshot house-review select
       - name: Detect pages requiring OCR in this batch
-        if: inputs.materialize_saved_paper != true
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         id: ocr
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
@@ -219,7 +226,7 @@ jobs:
         run: |
           python -m unison_snapshot house-review ocr
       - name: Parse and prepare machine extraction artifacts
-        if: inputs.materialize_saved_paper != true
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -281,7 +288,7 @@ jobs:
           done < .local/parse-batch.txt
           printf 'Parsed %s archived PTRs; %s require parser attention.\n' "$parsed" "$failed" >> "$GITHUB_STEP_SUMMARY"
       - name: Refresh deterministic House identities
-        if: inputs.materialize_saved_paper != true
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -297,7 +304,7 @@ jobs:
               --extraction "$extraction" --members "$roster" --output "$identity"
           done
       - name: Build automatic qualification artifacts
-        if: inputs.materialize_saved_paper != true
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
         run: |
@@ -316,6 +323,7 @@ jobs:
               --extraction "$extraction" --identity "$identity" --evidence-root "$EVIDENCE_ROOT" --output "$qualification"
           done
       - name: Bridge bounded House paper observations into qualification
+        if: inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -336,7 +344,7 @@ jobs:
             | tee .local/house-paper-bridge.json
           echo "House paper bridge: $(cat .local/house-paper-bridge.json)" >> "$GITHUB_STEP_SUMMARY"
       - name: Qualify registered House paper corrections
-        if: inputs.materialize_saved_paper != true
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025'
         env:
           CORRECTION_DIR: backend/data/corrections/house_clerk
         run: |
@@ -346,6 +354,7 @@ jobs:
               --correction "$correction"
           done
       - name: Build qualification queue status
+        if: inputs.filing_year != '2025'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -353,6 +362,7 @@ jobs:
         run: |
           python -m unison_snapshot house-review status
       - name: Build and validate frontend candidate
+        if: inputs.filing_year != '2025'
         id: candidate
         env:
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
