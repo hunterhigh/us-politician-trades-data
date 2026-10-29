@@ -115,6 +115,66 @@ class KnownGapsTests(unittest.TestCase):
         gaps['sources'][0]['unknown_row_count_report_count'] = gaps['sources'][0]['report_count']+1
         with self.assertRaises(ValueError):validate(gaps)
 
+    def test_person_counts_reports_once_and_never_assigns_unbound_source_reports(self):
+        payload=production_payload();sources=scopes(payload)
+        report=sources[0]['reports'][0]
+        person=payload['transactions'][0]['person_id']
+        report.update(qualification_state='partial',quarantined_row_count=2,reason_codes=['amount_unreadable'])
+        extra=deepcopy(payload['transactions'][0]);extra['id']+=':another-row'
+        payload['transactions'].append(extra);report['publication_transaction_ids'].append(extra['id'])
+        report['qualified_transaction_count']+=1
+        unknown=record('unbound',qualification_state='unknown',publication_binding='unknown',
+                       qualified_transaction_count=None,quarantined_row_count=None,
+                       reason_codes=['source_not_assessed'])
+        unknown['filer_name']=payload['people'][0]['display_name']  # Names do not establish a report binding.
+        sources[0]['reports'].append(unknown)
+        alias=deepcopy(sources[0]);alias['scope_id']+='_alias'
+        alias['reports']=[deepcopy(report)];alias['reports'][0]['publication_transaction_ids']=[]
+        sources.append(alias)
+        bundle=attach_disclosure_status(build(payload,generated_at=NOW,allow_production=True),sources,
+            transactions=payload['transactions'],provenance=PROVENANCE)
+        reader=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files))
+        selection=reader.fetch('person',person)
+        snapshot=selection.snapshot
+        gaps=snapshot['meta']['known_gaps']
+        self.assertEqual(gaps['schema_version'],'known-gaps/v2')
+        self.assertEqual(gaps['person_unparsed_report_counts'][person],1)
+        source=next(s for s in gaps['sources'] if s['scope_id']==sources[0]['scope_id'])
+        self.assertEqual(source['unidentified_affected_report_count'],1)
+        status=reader.disclosure_status(selection.commit,include_records=True)
+        bound={(s['source_id'],r['report_id']) for s in status['sources'] for r in s['records']
+               if person in r['bound_person_ids'] and r['qualification_state']=='partial'}
+        self.assertEqual(len(bound),gaps['person_unparsed_report_counts'][person])
+        unbound=next(r for s in status['sources'] for r in s['records'] if r['report_id']=='unbound')
+        self.assertEqual(unbound['bound_person_ids'],[])
+
+    def test_person_count_contract_rejects_invention_and_preserves_legacy_unknown(self):
+        _,_,bundle=fixture();gaps=deepcopy(bundle.manifest['known_gaps'])
+        person=next(iter(gaps['person_unparsed_report_counts']))
+        for value in [True,0,-1,1.5,10**20]:
+            bad=deepcopy(gaps);bad['person_unparsed_report_counts'][person]=value
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,'person report counts'):validate(bad)
+        bad=deepcopy(gaps);bad['person_unparsed_report_counts']['unverified-person']=1
+        with self.assertRaisesRegex(ValueError,'person report counts'):validate(bad)
+        legacy=deepcopy(gaps);legacy['schema_version']='known-gaps/v1';legacy.pop('person_unparsed_report_counts')
+        self.assertEqual(validate(legacy),legacy)
+        manifest={**bundle.manifest,'known_gaps':legacy}
+        reader=PublicSnapshotRepository('example','data',transport=FakeTransport(
+            {**bundle.files,'manifest.json':encode(manifest)}))
+        self.assertNotIn('person_unparsed_report_counts',reader.fetch().snapshot['meta']['known_gaps'])
+
+    def test_foreign_or_missing_publication_binding_cannot_assign_a_person(self):
+        payload=production_payload();sources=scopes(payload)
+        source=sources[0]
+        foreign=next(r['id'] for r in payload['transactions'] if r['source_id']!=source['source_id'])
+        for identifier in [foreign,'absent-fact']:
+            changed=deepcopy(sources)
+            changed[0]['reports'][0].update(qualification_state='partial',quarantined_row_count=1,
+                publication_holding_ids=[identifier])
+            with self.subTest(identifier=identifier),self.assertRaisesRegex(ValueError,'publication binding'):
+                attach_disclosure_status(build(payload,generated_at=NOW,allow_production=True),changed,
+                    transactions=payload['transactions'],provenance=PROVENANCE)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,14 +1,16 @@
 (() => {
   const labels = {house_clerk:'House Clerk',senate_efd:'Senate eFD',oge:'OGE / White House'};
-  function panel(sources, person = false) {
+  function panel(sources, person = false, reportCount = null) {
     const section = document.createElement('section');
     section.dataset.knownGaps = person ? 'person' : 'report';
     section.style.cssText = 'margin:16px 0;padding:14px;border:1px solid var(--line,#ddd);font-size:12px;line-height:1.6';
     const title = document.createElement('strong');
-    title.textContent = person ? 'Known gaps in this disclosure source' : 'Known data gaps';
+    const counted = person && Number.isSafeInteger(reportCount) && reportCount > 0;
+    title.textContent = counted ? `该人有 ${reportCount} 份披露未解析` : person ? 'Known gaps in this disclosure source' : 'Known data gaps';
+    if (counted) section.dataset.personUnparsedCount = String(reportCount);
     section.append(title);
     const note = document.createElement('p');
-    note.textContent = 'Counts describe the source inventory at this snapshot’s cutoff. Coverage can be partial; missing row counts remain unknown.';
+    note.textContent = counted ? '含部分解析、隔离或尚未评估的披露；仅计已可靠绑定的报告。未绑定报告仍按来源整体统计。下方为来源整体边界，不是该人的缺失行数。' : 'Counts describe the source inventory at this snapshot’s cutoff. Coverage can be partial; missing row counts remain unknown.';
     section.append(note);
     for (const source of sources) {
       const item = document.createElement('details');
@@ -43,7 +45,12 @@
     const person = typeof PEOPLE !== 'undefined' && PEOPLE[personId];
     const selected = sources.filter(s => s.affected_person_ids.includes(personId) || s.source_id === person?.disclosure_authority);
     const container = document.querySelector('#personPage .person-main') || document.querySelector('#personPageContent') || document.querySelector('#personPage');
-    if (container && selected.length) container.append(panel(selected, true));
+    if (container && selected.length) {
+      const count = PUBLISHED_KNOWN_GAPS.person_unparsed_report_counts?.[personId];
+      const section = panel(selected, true, count);
+      if (Number.isSafeInteger(count) && count > 0) container.prepend(section);
+      else container.append(section);
+    }
   }
   if (typeof renderPersonPage === 'function') {
     const original = renderPersonPage;

@@ -48,7 +48,9 @@ Path(sys.argv[2]).write_text(load('render_dashboard',version='v3').render_html(d
   const person = page.locator('[data-known-gaps="person"]');
   assert.equal(await person.count(),1);
   assert.equal(await person.isVisible(),true);
-  assert.match(await person.innerText(),/source inventory at this snapshot/);
+  assert.match(await person.innerText(),/该人有 1 份披露未解析/);
+  assert.equal(await person.getAttribute('data-person-unparsed-count'),'1');
+  assert.match(await person.innerText(),/未绑定报告仍按来源整体统计/);
   await page.evaluate(()=>renderPersonPage());
   assert.equal(await person.count(),1);
   assert.deepEqual(errors,[]);

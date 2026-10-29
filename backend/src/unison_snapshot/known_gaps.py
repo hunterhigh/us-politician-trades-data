@@ -6,7 +6,8 @@ import re
 
 from .codec import digest, encode
 
-SCHEMA = 'known-gaps/v1'
+SCHEMA = 'known-gaps/v2'
+LEGACY_SCHEMA = 'known-gaps/v1'
 REFERENCE_SCHEMA = 'known-gaps-reference/v1'
 MAX_BYTES = 256 * 1024
 COUNTS = ('report_count', 'partial_report_count', 'quarantined_report_count',
@@ -38,12 +39,31 @@ def validate_reference(value):
     return value
 
 
-def from_scopes(scopes, board):
+def published_bindings(board):
     facts = {r['id']: r for kind in ('transactions','reported_holdings') for r in board.get(kind, [])}
     by_source_url = {}
     for fact in facts.values():
         by_source_url.setdefault((fact['source_id'],fact['source_url']), set()).add(fact['person_id'])
+    return facts, by_source_url
+
+
+def bound_people(source_id, row, bindings):
+    """Use only the hash-verified board's official report associations."""
+    facts, by_source_url = bindings
+    people = set(by_source_url.get((source_id,row.get('source_url')), ()))
+    for key in ('publication_transaction_ids','publication_holding_ids'):
+        for identifier in row.get(key, []):
+            if identifier not in facts or facts[identifier]['source_id'] != source_id:
+                raise ValueError('Known data gaps publication binding is invalid')
+            if row['publication_binding'] == 'verified':
+                people.add(facts[identifier]['person_id'])
+    return sorted(people)
+
+
+def from_scopes(scopes, board):
+    bindings = published_bindings(board)
     sources = []
+    person_reports = {}
     for scope in sorted(scopes, key=lambda s: s['scope_id']):
         reports = scope['reports']
         reasons = Counter(reason for row in reports for reason in row['reason_codes'])
@@ -55,11 +75,13 @@ def from_scopes(scopes, board):
                         row['acquisition_state'] == 'request_required')
             if not affected:
                 continue
-            people = set(by_source_url.get((scope['source_id'],row.get('source_url')), ()))
-            for key in ('publication_transaction_ids','publication_holding_ids'):
-                people.update(facts[k]['person_id'] for k in row.get(key, []) if k in facts)
+            people = bound_people(scope['source_id'],row,bindings)
             affected_people.update(people)
             unidentified += not bool(people)
+            report_key = (scope['source_id'], row.get('report_id') or row.get('source_url') or
+                          (scope['scope_id'], row['record_key']))
+            for person in people:
+                person_reports.setdefault(person, set()).add(report_key)
         sources.append({'source_id': scope['source_id'], 'scope_id': scope['scope_id'],
             'report_count': len(reports),
             'partial_report_count': sum(r['qualification_state'] == 'partial' for r in reports),
@@ -74,12 +96,18 @@ def from_scopes(scopes, board):
             'filed_date_range': [dates[0], dates[-1]] if dates else [],
             'reason_report_counts': dict(sorted(reasons.items())),
             'limitations': sorted(scope['limitations'])})
-    return validate({'schema_version': SCHEMA, 'scope': 'source_inventory', 'sources': sources})
+    return validate({'schema_version': SCHEMA, 'scope': 'source_inventory', 'sources': sources,
+                     'person_unparsed_report_counts': {p:len(person_reports[p]) for p in sorted(person_reports)}})
 
 
 def validate(value):
-    if (not isinstance(value, dict) or set(value) != {'schema_version','scope','sources'} or
-            value['schema_version'] != SCHEMA or value['scope'] != 'source_inventory' or
+    if not isinstance(value, dict):
+        raise ValueError('Known data gaps schema is invalid')
+    version = value.get('schema_version')
+    fields = {'schema_version','scope','sources'}
+    if version == SCHEMA:
+        fields.add('person_unparsed_report_counts')
+    if (set(value) != fields or version not in {SCHEMA,LEGACY_SCHEMA} or value['scope'] != 'source_inventory' or
             not isinstance(value['sources'], list) or len(value['sources']) > 16):
         raise ValueError('Known data gaps schema is invalid')
     scopes = set()
@@ -112,6 +140,14 @@ def validate(value):
                 not isinstance(row['limitations'], list) or
                 any(not isinstance(s, str) or not s for s in row['limitations'])):
             raise ValueError('Known data gaps reasons are invalid')
+    if version == SCHEMA:
+        counts = value['person_unparsed_report_counts']
+        people = {p for row in value['sources'] for p in row['affected_person_ids']}
+        report_count = sum(row['report_count'] for row in value['sources'])
+        if (not isinstance(counts, dict) or set(counts) != people or
+                any(not isinstance(p, str) or not p or type(n) is not int or
+                    not 0 < n <= min(report_count, 2**53-1) for p,n in counts.items())):
+            raise ValueError('Known data gaps person report counts are invalid')
     return value
 
 
