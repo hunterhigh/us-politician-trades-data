@@ -67,7 +67,7 @@ class FixedArchiveQueueTests(SourceTreeFixture,unittest.TestCase):
         write(pdf.with_suffix('.json'),metadata);write(evidence/'house_clerk/members/roster.roster.json',{})
         write(state/'checkpoints/house/2025.json',{'filing_year':2025,'queue':[],'counts':{'failed':0},
                                                'documents':{'20000002':{}},'index_sha256':'a'*64})
-        write(state/'status/house_clerk.json',{'kept':'current-year state'})
+        write(state/'status/house_backfill_2025.json',{'counts':{'archived':1}})
         write(review/'candidates/sources/house_clerk-current.json',{'kept':'all prior facts'})
         data_trees.publish(self.workspace,data_trees.ROLES,'source fixtures')
         poison=review/'house_clerk/extractions/2026/poison.json';write(poison,{'invalid':'must not visit'})

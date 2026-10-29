@@ -137,8 +137,8 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
     if receipt.get('queue_count')==0:
         source=review/'candidates/sources/house_clerk-current.json'
         prior=json.loads(source.read_bytes())
-        current_state=json.loads((state/'status/house_clerk.json').read_bytes())
-        value=project(review,evidence,current_state,prior,year)
+        historical_state=json.loads((state/f'status/house_backfill_{year}.json').read_bytes())
+        value=project(review,evidence,historical_state,prior,year)
         write(source,value);write(review/'candidates/house-current.json',value)
         from .commands.assemble_source import assemble
         assemble(workspace,'house_clerk',Path(__file__).parents[2]/'data/empty-disclosure.json',None,control['code_commit'])
