@@ -88,6 +88,10 @@ def validate_record(row: object) -> dict:
     versions = _strings(row.get("source_versions"), "source_versions")
     if any(not SHA256.fullmatch(s) for s in versions):
         raise ValueError("Status source version must be a SHA-256")
+    if 'bound_person_ids' in row or 'person_binding_basis' in row:
+        _strings(row.get('bound_person_ids'), 'bound person IDs')
+        if row.get('person_binding_basis') != 'published_fact_report_binding':
+            raise ValueError('Status person binding basis is invalid')
     return row
 
 
@@ -217,6 +221,8 @@ def attach_disclosure_status(bundle: Bundle, scopes: list[dict], *, transactions
     if board_content is None or digest(board_content) != bundle.manifest["board"]:
         raise ValueError("Disclosure status requires the hash-verified prepared board")
     board = json.loads(board_content)
+    from .known_gaps import published_bindings, bound_people
+    person_bindings = published_bindings(board)
     identity_fields = ("id", "source_id", "filing_id", "source_url")
     if (not isinstance(board.get("transactions"), list) or
             sorted(tuple(row.get(k) for k in identity_fields) for row in board["transactions"]) !=
@@ -239,6 +245,8 @@ def attach_disclosure_status(bundle: Bundle, scopes: list[dict], *, transactions
         record_keys = set()
         published_count = 0
         for row in sorted(reports, key=lambda r: r["record_key"]):
+            row['bound_person_ids'] = bound_people(source['source_id'],row,person_bindings)
+            row['person_binding_basis'] = 'published_fact_report_binding'
             ids = _strings(row.pop("publication_transaction_ids"), "publication transaction IDs")
             holding_ids = row.pop("publication_holding_ids", None)
             if holding_ids is not None:
