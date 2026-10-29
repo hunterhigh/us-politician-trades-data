@@ -92,7 +92,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-29T07:34:13.947536+00:00",
+  "checked_at": "2026-10-29T09:52:22.493451+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -106,7 +106,7 @@
       "number": 291
     },
     {
-      "action": "created",
+      "action": "already_open",
       "key": "quality-summary:2026-W44",
       "number": 301
     }
