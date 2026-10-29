@@ -13,7 +13,7 @@ from unison_snapshot.pdf_text_object_words import observe_pdf_text_objects
 from unison_snapshot.pdf_text_baselines import MODE,_assignment,source_text_baseline_bindings
 from unison_snapshot.ocr_geometry import OcrPage
 from unison_snapshot.oge_278t_raster_slots import _dual_axis_image_grid,observe_raster_slots
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes,observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_field_shapes,observe_content_rows
 
 
 def flat_page():

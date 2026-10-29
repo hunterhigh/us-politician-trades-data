@@ -28,7 +28,7 @@ def _same(left,right):
 
 
 def _whitehouse_candidate(inputs, *, evidence_root=None, review_root=None):
-    from .whitehouse_278t_audit import audit_whitehouse_278t
+    from .whitehouse_278t_qualification import audit_whitehouse_278t
     from .whitehouse_278t_candidate import (build_whitehouse_278t_review_candidate,
         audit_whitehouse_278t_exact_source_candidate,build_whitehouse_278t_exact_source_candidate)
     args=(inputs['base'],inputs['extractions'])

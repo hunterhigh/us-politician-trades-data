@@ -7,7 +7,7 @@ import unittest
 
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import _identity_key, _person_id
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
 
 
 def catalog(name="Wiles, Susie", title="Assistant to the President & Chief of Staff",

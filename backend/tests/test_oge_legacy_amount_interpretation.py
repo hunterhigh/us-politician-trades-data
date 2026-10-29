@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from test_oge_content_relations import saved
-from unison_snapshot.oge_278t_field_shadow import (
+from unison_snapshot.oge_278t_fields import (
     _amount_shape, observe_field_shapes, observe_content_rows,
     LEGACY_AMOUNT_INTERPRETATION_MODE as MODE, AMOUNT_SHAPE_RULES_VERSION,
 )

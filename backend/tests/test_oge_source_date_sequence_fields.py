@@ -9,7 +9,7 @@ import unittest
 import test_oge_source_quad_cells as quad_tests
 from unison_snapshot.oge_278t_source_quad_cells import observe_saved_source_quad_cells
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows,observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_content_rows,observe_field_shapes
 from unison_snapshot.oge_278t_source_date_sequence_fields import MODE
 
 

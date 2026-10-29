@@ -15,7 +15,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
+from .house_ptr_key_fields import read_house_ptr_key_fields
 
 REREAD_RULE_VERSION = "house-paper-key-field-conflict-probe-v2"
 MATERIALIZATION_SELECTION = "materialization"

@@ -4,8 +4,8 @@ import importlib.util
 from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
-from unison_snapshot.house_ptr_cell_observation_shadow import _printed_checkbox
-from unison_snapshot.house_ptr_key_fields_shadow import _single_mark, _amount_marks
+from unison_snapshot.house_ptr_cell_observation import _printed_checkbox
+from unison_snapshot.house_ptr_key_fields import _single_mark, _amount_marks
 from unison_snapshot.house_ptr_paper_qualification import materialize_paper_observation
 
 

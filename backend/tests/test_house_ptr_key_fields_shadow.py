@@ -1,6 +1,6 @@
 import unittest
 
-from unison_snapshot.house_ptr_key_fields_shadow import read_house_ptr_key_fields
+from unison_snapshot.house_ptr_key_fields import read_house_ptr_key_fields
 
 
 def cell(text="", label="", ink=0):

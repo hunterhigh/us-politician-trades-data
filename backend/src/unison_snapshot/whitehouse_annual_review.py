@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 import re
 
-from .oge_278e_audit import audit_public_278e
+from .oge_278e_qualification import audit_public_278e
 from .oge_278e_public import (PARSER_VERSION, SCHEMA as EXTRACTION_SCHEMA,
                                SUPPORTED_PARSER_VERSIONS)
 from .whitehouse_278t import _first_last

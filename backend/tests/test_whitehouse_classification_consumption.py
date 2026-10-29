@@ -13,7 +13,7 @@ from unittest.mock import patch
 from test_whitehouse_owner_correction import fixture, encoded
 from unison_snapshot.commands import build_whitehouse_278t_candidate as cli
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
 from unison_snapshot.whitehouse_native_correction import POLICY_VERSION, prepare_native_classification_sources
 
@@ -232,7 +232,7 @@ class NativeClassificationConsumptionTests(unittest.TestCase):
         self.assertEqual(before, (self.candidate.read_bytes(), self.audit.read_bytes()))
 
     def test_alias_requires_full_legacy_equivalence_and_sources(self):
-        from unison_snapshot.whitehouse_278t_audit import resolve_exact_source_reports
+        from unison_snapshot.whitehouse_278t_qualification import resolve_exact_source_reports
         self.add_native_alias(extra_legacy=True)
         extractions, _, coverage, *_ = cli._verify_review(self.review, expected_report_count=2)
         sources = prepare_native_classification_sources(extractions, evidence_root=self.evidence, review_root=self.review,
@@ -384,7 +384,7 @@ class NativeClassificationConsumptionTests(unittest.TestCase):
             return _Document([_Page('', [d['raw']])])
         with patch('pdfplumber.open', side_effect=opened), \
                 patch('unison_snapshot.whitehouse_278t.plan_whitehouse_278t_archive', side_effect=source_plan), \
-                patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page', side_effect=d['native']), \
+                patch('unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page', side_effect=d['native']), \
                 patch('unison_snapshot.oge_reports._extract_borderless_transaction_tables', return_value=[]):
             candidate, _, _ = cross._bound_whitehouse_candidate(inputs, self.evidence, self.review)
             saved = {DOCUMENT_ID:d['inputs']}

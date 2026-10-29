@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from unison_snapshot.house_ptr_cell_observation_shadow import (_cell, _column_boxes,
+from unison_snapshot.house_ptr_cell_observation import (_cell, _column_boxes,
                                                               observe_house_ptr_pdf)
 from unison_snapshot.ocr_geometry import OcrPage
 
@@ -101,11 +101,11 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
                   "text": "04/01/26", "ocr_confidence": 95.0}]
         rotated_ocr = OcrPage(width=36, height=72, words=words)
         with (patch("pdfplumber.open", return_value=pdf),
-              patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid",
+              patch("unison_snapshot.house_ptr_table_region.locate_transaction_grid",
                     return_value=region),
-              patch("unison_snapshot.house_ptr_cell_observation_shadow._column_boxes",
+              patch("unison_snapshot.house_ptr_cell_observation._column_boxes",
                     return_value=columns),
-              patch("unison_snapshot.house_ptr_cell_observation_shadow.ocr_rendered_image",
+              patch("unison_snapshot.house_ptr_cell_observation.ocr_rendered_image",
                     return_value=(rotated_ocr, "test engine")) as ocr):
             observed = observe_house_ptr_pdf(
                 source, source_sha256=hashlib.sha256(source).hexdigest(), dpi=200)
@@ -138,9 +138,9 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
             self.assertEqual(page["_image"].mode, "L")
             return "New"
         with patch("pdfplumber.open", return_value=pdf), patch(
-                "unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value=region), patch(
-                "unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value=columns), patch(
-                "unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages",
+                "unison_snapshot.house_ptr_table_region.locate_transaction_grid", return_value=region), patch(
+                "unison_snapshot.house_ptr_cell_observation._column_boxes", return_value=columns), patch(
+                "unison_snapshot.house_ptr_cell_observation.ocr_pdf_pages",
                 return_value=([OcrPage(width=200, height=100, words=words)], "cached")), patch(
                 "unison_snapshot.house_ptr._legacy_filing_status", side_effect=cover):
             observed = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest())
@@ -154,7 +154,7 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         pdf.pages = pages
         pdf.__enter__.return_value = pdf
         with (patch("pdfplumber.open", return_value=pdf),
-              patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid",
+              patch("unison_snapshot.house_ptr_table_region.locate_transaction_grid",
                     return_value={"status": "coverage_unknown", "reason": "unlocated"})):
             result = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest(),
                                            page_numbers=[2])
@@ -169,7 +169,7 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
                   "column_family": "short_grid"}
         rules = [.06, .12, .35, .375, .405, .43, .46] + [round(.60 + .03 * n, 3)
                                                 for n in range(12)]
-        with patch("unison_snapshot.house_ptr_cell_observation_shadow._vertical_rules",
+        with patch("unison_snapshot.house_ptr_cell_observation._vertical_rules",
                    return_value=rules):
             columns = _column_boxes(region, None)
         self.assertEqual(columns["status"], "located_shadow")
@@ -180,7 +180,7 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
 
     @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
     def test_merged_title_owner_rule_requires_unique_grid_line(self):
-        from unison_snapshot.house_ptr_region_shadow import _complete_header_rules
+        from unison_snapshot.house_ptr_table_region import _complete_header_rules
 
         major = [.515, .583, .664, .714, .733]
         self.assertEqual(_complete_header_rules(major, [.102, .515, .537]),
@@ -194,7 +194,7 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
                   "column_family": "short_grid"}
         rules = [.044, .102, .515, .537, .558, .583, .664] + [
             round(.733 + .0205 * n, 4) for n in range(12)]
-        with patch("unison_snapshot.house_ptr_cell_observation_shadow._vertical_rules",
+        with patch("unison_snapshot.house_ptr_cell_observation._vertical_rules",
                    return_value=rules):
             columns = _column_boxes(region, None)
         self.assertEqual(columns["status"], "located_shadow")

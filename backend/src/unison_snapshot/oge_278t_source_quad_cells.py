@@ -126,7 +126,7 @@ def observe_saved_source_quad_cells(source_pdf_path: Path, *, slots_observation:
     unselected slots are placeholders, never additional reads or OCR votes.
     """
     import numpy as np
-    from .oge_278t_field_shadow import _validate_geometry_input,_secondary_slot_geometry,_date_shape,_amount_detection_reading,_ordered_amount_shape
+    from .oge_278t_fields import _validate_geometry_input,_secondary_slot_geometry,_date_shape,_amount_detection_reading,_ordered_amount_shape
     from .oge_278t_raster_slots import column_geometry_sha256,DUAL_MODE
     from .ocr_geometry import words_from_tesseract_tsv
     if detection_geometry_mode not in (None, DETECTION_QUAD_MODE):

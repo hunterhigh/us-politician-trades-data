@@ -15,7 +15,7 @@ except ImportError:
 
 from unison_snapshot.oge_278t_raster_slots import (
     _oge_2024_image_grid, _header_role_evidence, _image_rule_witness, observe_raster_slots)
-from unison_snapshot.oge_278t_page_shadow import probe_raster_row_bands, probe_oge_2024_alternate_bands
+from unison_snapshot.oge_278t_page_coverage import probe_raster_row_bands, probe_oge_2024_alternate_bands
 from unison_snapshot.ocr_geometry import ocr_pdf_pages
 
 EDGES = [104., 150., 473., 524., 581., 628., 686.]

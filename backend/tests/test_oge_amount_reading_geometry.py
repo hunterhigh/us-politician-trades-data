@@ -3,7 +3,7 @@ from copy import deepcopy
 import unittest
 from test_oge_dual_axis_fields import dual_input, bind_secondary
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes, _amount_shape
+from unison_snapshot.oge_278t_fields import observe_content_rows, observe_field_shapes, _amount_shape
 from unison_snapshot.whitehouse_278t import _saved_supported_fields
 from unison_snapshot.oge_reports import parse_table_rows
 
@@ -64,7 +64,7 @@ class AmountReadingGeometryTests(unittest.TestCase):
         self.assertIn('amount_observation_conflict',conflicting['slot_content'][0]['relation_evidence']['blocking_reasons'])
 
     def test_incomplete_nonstatutory_or_unproved_groups_are_not_interpreted(self):
-        from unison_snapshot.oge_278t_field_shadow import _ordered_amount_shape
+        from unison_snapshot.oge_278t_fields import _ordered_amount_shape
         texts=['$10 01 - $15 000','$100 001 - 250 000','100 001 - $250 000',
             '$100 001 $250 000','$100 001 - $300 000','$100 001 - $250 000 additional 2',
             '$100 001 - $250 000 note','$100,,001 - $250 000','$100 001 - $250 00',

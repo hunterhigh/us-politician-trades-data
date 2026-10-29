@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_field_shapes
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 
 
@@ -32,7 +32,7 @@ def original():
 
 
 def secondary(base, field="transaction_date", raw="01/02/2026"):
-    from unison_snapshot.oge_278t_field_shadow import _date_shape, _amount_shape
+    from unison_snapshot.oge_278t_fields import _date_shape, _amount_shape
     columns = base["pages"][0]["slots"][0]["column_observation"]
     names = {"transaction_date": ["transaction_date"], "type": ["type"],
              "amount": ["notification", "amount"]}[field]

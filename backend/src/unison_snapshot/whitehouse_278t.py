@@ -887,15 +887,16 @@ def _generic_cover_dates(text: str, sha: str, ocr: bool = False) -> dict:
 
 def _saved_source_cover_resolution(document, url, sha, count, dates):
     """Reuse already-verified immutable source profiles, retaining OCR conflicts."""
-    profile=reviewed_listing_profile(document,url,sha)
-    if profile is None:return None
+    correction=reviewed_ocr_profile(document,url,sha,mode="source_listing_evidence")
+    if correction is None:return None
+    profile=correction["source_profile"]
     if count != profile["page_count"]:
         raise OgeCatalogError("White House saved original page count differs from verified profile")
     name,position,agency,raw,identity_reasons=_generic_cover_identity(dates["cover_text"])
     reasons=[r for r in dates["document_reasons"] if r != "filer_signature_date_missing"]
     if dates["filed_at"] is not None and dates["filed_at"] != profile["report_date"]:
         reasons.append("ocr_source_filing_date_conflict")
-    if name is not None and _first_last(name) != _first_last("Donald J Trump"):
+    if name is not None and _first_last(name) != _first_last(correction["header"]["pdf_filer_name"]):
         reasons.append("ocr_source_filer_identity_conflict")
     if position is not None and re.sub(r"[^a-z]","",position.casefold()) not in {
             "president","presidentoftheunitedstates","presidentoftheunitedstatesofamerica"}:
@@ -978,9 +979,9 @@ def _saved_directory_identity(inputs: dict, metadata: dict, cover_text: str) -> 
         return None
     from .whitehouse_disclosures import parse_disclosure_index, _label_kind, PAGE_URL
     from .oge_whitehouse import coverage_from_archive
-    from .whitehouse_directory_identity_shadow import complete_name_tokens
+    from .whitehouse_directory_identity import complete_name_tokens
     from .oge_candidate import _identity_key
-    from .whitehouse_278t_audit import _role, _words, _OFFICE_LABELS
+    from .whitehouse_278t_qualification import _role, _words, _OFFICE_LABELS
     roots = _SAVED_OCR_ROOTS.get()
     if not roots or roots[0] is None:
         raise OgeCatalogError("White House directory identity requires a controlled evidence root")
@@ -1242,7 +1243,7 @@ def materialize_saved_whitehouse_278t(inputs: dict) -> dict:
         table_numbers = [n for n in numbers if n != 1]
         if table_numbers:
             from .oge_278t_raster_slots import observe_raster_slots
-            from .oge_278t_field_shadow import observe_content_rows
+            from .oge_278t_fields import observe_content_rows
             try:
                 observations = observe_raster_slots(Path(pdf),expected_sha256=sha,page_numbers=table_numbers,
                       saved_ocr_pages={n:ocr[n] for n in table_numbers},saved_ocr_engine=checkpoint["ocr_engine"],

@@ -19,7 +19,7 @@ from test_public_repo import FakeTransport
 from unison_snapshot.builder import build
 from unison_snapshot.disclosure_status import attach_disclosure_status
 from unison_snapshot.disclosure_status_oge import build_oge_status
-from unison_snapshot.oge_278t_page_shadow import inspect_pdf
+from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 from unison_snapshot.oge_278t_region_roles import replay_native_region
 from unison_snapshot.oge_saved_observations import prepare_saved_oge_observations

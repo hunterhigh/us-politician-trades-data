@@ -166,7 +166,7 @@ class WhiteHouseNativePartitionTests(unittest.TestCase):
             self.assertFalse(_native_sequence_gap_explained(proof,rows))
 
     def test_normal_source_rebuild_reuses_only_the_complete_current_fact(self):
-        from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+        from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
         from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
         for generic in (False,True):
             with self.subTest(generic=generic),tempfile.TemporaryDirectory() as folder:

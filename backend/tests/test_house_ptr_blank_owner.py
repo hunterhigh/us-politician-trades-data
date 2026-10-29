@@ -43,8 +43,8 @@ class HouseBlankPaperOwnerTests(unittest.TestCase):
         pdf = MagicMock()
         pdf.__enter__.return_value.pages = [SimpleNamespace(to_image=lambda **kw:SimpleNamespace(original=self.image))]
         return [patch('pdfplumber.open',return_value=pdf),
-                patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid',return_value=self.grid),
-                patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes',return_value={
+                patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid',return_value=self.grid),
+                patch('unison_snapshot.house_ptr_cell_observation._column_boxes',return_value={
                     'status':'located_shadow','owner':[.1,.2], 'asset':[.2,.6],
                     'event':[.6,.7], 'notification':[.7,.8]})]
 

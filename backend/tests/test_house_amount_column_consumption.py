@@ -101,8 +101,8 @@ class AmountColumnConsumptionTests(unittest.TestCase):
             return _bound_amount_column(b'unused', {**reading, 'bbox_pixels': box,
                 'crop_sha256': hashlib.sha256(stream.getvalue()).hexdigest(), **changes}, physical, 1, {1: image})
         self.assertIsNone(bind([102, 105, 198, 195]))  # White pixels have no located header.
-        with patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value=region), \
-             patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes', return_value=columns):
+        with patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value=region), \
+             patch('unison_snapshot.house_ptr_cell_observation._column_boxes', return_value=columns):
             self.assertEqual(bind([102, 105, 198, 195])['low'], 15001)
             self.assertIsNone(bind([102, 210, 198, 290]))
             self.assertIsNone(bind([102, 105, 198, 195], page=2))

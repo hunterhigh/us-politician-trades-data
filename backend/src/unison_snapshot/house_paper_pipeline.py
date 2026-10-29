@@ -16,7 +16,7 @@ from .house_paper_commit import (paper_review_access, commit_paper_materializati
     recover_paper_materialization, recover_pending_paper_materializations)
 from .house_ptr_amount_header import observe_amount_header
 from .house_ptr_amount_header_preparation import prepare_amount_headers
-from .house_ptr_cell_observation_shadow import observe_house_ptr_pdf
+from .house_ptr_cell_observation import observe_house_ptr_pdf
 from .house_asset_line_order import MODE as ASSET_LINE_MODE
 from .house_ptr_key_field_reread import (
     MATERIALIZATION_SELECTION, missing_key_field_rereads, plan_key_field_rereads,

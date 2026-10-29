@@ -7,7 +7,7 @@ from unittest.mock import patch
 import unittest
 import test_oge_source_quad_cells as quad_tests
 from unison_snapshot.oge_278t_raster_slots import slot_quad,_observe_slot_columns
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes,observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_field_shapes,observe_content_rows
 from unison_snapshot.oge_278t_source_quad_cells import observe_saved_source_quad_cells,canonical_sha
 from unison_snapshot.whitehouse_278t import _saved_supported_fields
 from unison_snapshot.oge_reports import parse_table_rows

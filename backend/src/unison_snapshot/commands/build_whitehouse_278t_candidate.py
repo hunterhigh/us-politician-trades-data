@@ -25,7 +25,7 @@ from urllib.parse import urlsplit
 
 from unison_snapshot.builder import normalize
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import (
     build_whitehouse_278t_review_candidate, audit_whitehouse_278t_exact_source_candidate,
     build_whitehouse_278t_exact_source_candidate, EXACT_COPY_SCHEMA,

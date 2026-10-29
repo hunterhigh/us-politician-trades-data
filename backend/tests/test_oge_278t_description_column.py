@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from test_oge_content_relations import saved
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_content_rows, observe_field_shapes
 
 
 def word(text, left=1, top=2, right=25, bottom=8):
@@ -41,7 +41,7 @@ class DescriptionColumnTests(unittest.TestCase):
 
 
     def test_numeric_series_and_long_text_diagnostics(self):
-        from unison_snapshot.oge_278t_field_shadow import _description_text_difference
+        from unison_snapshot.oge_278t_fields import _description_text_difference
         for left,right,kind in [("5.25% 2031", "5.75% 2031", "numeric_tokens_changed"),
                                 ("5.25% 2031", "5.25% 2032", "numeric_tokens_changed"),
                                 ("SERIES A", "SERIES B", "text_change")]:

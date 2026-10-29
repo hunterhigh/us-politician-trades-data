@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-from .oge_278t_field_shadow import _amount_shape
+from .oge_278t_fields import _amount_shape
 
 
 _BOUNDED = {

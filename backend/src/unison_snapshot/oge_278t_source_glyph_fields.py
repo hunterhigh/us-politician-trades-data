@@ -16,7 +16,7 @@ def attach_source_glyph_dates(result: dict, originals: list[dict], *, source_pdf
     Its baseline assignment is NOT used to relax the full Date quad condition.
     The normal relation consumer still compares every recognized date value.
     """
-    from .oge_278t_field_shadow import _date_shape, _known_value
+    from .oge_278t_fields import _date_shape, _known_value
     from .oge_278t_raster_slots import box_in_slot, slot_quad, column_geometry_sha256
     from .pdf_source_glyphs import observe_source_glyph_interpretations
     from .pdf_text_baselines import source_text_baseline_bindings

@@ -11,7 +11,7 @@ import re
 from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
 from .source_row_ledger import page_ledger, report_ledger
 from .house_ptr_amount_header import evaluate_amount_header_pages
-from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
+from .house_ptr_key_fields import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
 from .house_ptr_duplicate_observation import observe_repeated_trade_signatures
 from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
@@ -331,8 +331,8 @@ def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
     import hashlib
     import io
     import pdfplumber
-    from .house_ptr_region_shadow import locate_transaction_grid
-    from .house_ptr_cell_observation_shadow import _column_boxes
+    from .house_ptr_table_region import locate_transaction_grid
+    from .house_ptr_cell_observation import _column_boxes
 
     cells = physical.get("cells") or {}
     owner = cells.get("owner") or {}
@@ -393,8 +393,8 @@ def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict |
     """
     import io
     import pdfplumber
-    from .house_ptr_region_shadow import locate_transaction_grid
-    from .house_ptr_cell_observation_shadow import _column_boxes
+    from .house_ptr_table_region import locate_transaction_grid
+    from .house_ptr_cell_observation import _column_boxes
     from .house_ptr_fixed_source_core import check_source_cells
 
     pages = observation.get("pages", [])
@@ -541,7 +541,7 @@ def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata:
         page_count=len(observation["pages"]), allow_unobserved=True, verify_crop_hashes=True)
     # New printed-frame measurements are hints until recomputed from the
     # already hash-bound source crop. A changed hint cannot erase a real mark.
-    from .house_ptr_cell_observation_shadow import _printed_checkbox
+    from .house_ptr_cell_observation import _printed_checkbox
     box_pages = {}
     for (page, _), physical in source_slots.items():
         cells = physical.get("cells") or {}
@@ -758,8 +758,8 @@ def _bound_amount_column(pdf_bytes: bytes, reading: dict, physical: dict,
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             rendered[page] = pdf.pages[page - 1].to_image(resolution=300).original.convert("L")
     image = rendered[page]
-    from .house_ptr_region_shadow import locate_transaction_grid
-    from .house_ptr_cell_observation_shadow import _column_boxes
+    from .house_ptr_table_region import locate_transaction_grid
+    from .house_ptr_cell_observation import _column_boxes
     geometries = header_geometries if header_geometries is not None else {}
     if page not in geometries:
         region = locate_transaction_grid(image)

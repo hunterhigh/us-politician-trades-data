@@ -624,7 +624,7 @@ def _native_partition_counts(record, audit, review, evidence):
 
 def _legacy_amount_current_count(audit: dict) -> int | None:
     """Conserved predecessors are publication facts, not current OCR approvals."""
-    from .oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE
+    from .oge_278t_fields import LEGACY_AMOUNT_INTERPRETATION_MODE
     receipt = audit.get('observation_receipt') or {}
     mode = audit.get('field_interpretation_mode')
     if mode is None and receipt.get('field_interpretation_mode') is None:

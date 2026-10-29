@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 from test_oge_dual_axis_fields import dual_input,bind_secondary
 from unison_snapshot.oge_278t_source_quad_cells import source_quad_cell,observe_saved_source_quad_cells,canonical_sha
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes,_complete_secondary_geometry
+from unison_snapshot.oge_278t_fields import observe_field_shapes,_complete_secondary_geometry
 
 
 class SourceQuadCellTests(unittest.TestCase):

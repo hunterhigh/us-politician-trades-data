@@ -7,14 +7,10 @@ with an unreadable raster remains unknown unless table geometry is visible.
 from __future__ import annotations
 
 import hashlib
-import csv
-import io
 import math
 from pathlib import Path
 import re
-import shutil
 from statistics import median
-import subprocess
 
 
 _HEADERS = ("description", "type", "date", "notification", "amount")
@@ -385,73 +381,6 @@ def _number_suggestion(attempts: list[dict]) -> str | None:
     return value if len(independent_crops) >= 2 else None
 
 
-def probe_number_cells(path: Path, *, expected_sha256: str,
-                       requests: list[dict], executable: str) -> dict:
-    """Targeted, non-promoting OCR of known raster table number cells.
-
-    `requests` contains page_number and a physical band [top, bottom].  No
-    expected printed number enters OCR or suggestion selection.
-    """
-    try:
-        import pymupdf
-        from PIL import Image, ImageOps
-    except ImportError:
-        raise RuntimeError("pymupdf and Pillow are required for cell OCR") from None
-    engine = shutil.which(executable)
-    if not engine:
-        raise RuntimeError("Tesseract executable is unavailable")
-    source = Path(path)
-    source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
-    if source_sha256 != expected_sha256:
-        raise ValueError("PDF bytes do not match the fixed source SHA-256")
-    version = subprocess.run([engine, "--version"], capture_output=True,
-                             check=False, timeout=15).stdout.decode(
-                                 "utf-8", errors="replace").splitlines()[0]
-    results = []
-    with pymupdf.open(source) as document:
-        for request in requests:
-            number = int(request["page_number"])
-            top, bottom = map(float, request["band"])
-            if not 1 <= number <= len(document) or not 0 <= top < bottom <= \
-                    float(document[number - 1].rect.height):
-                raise ValueError("OCR cell is outside the PDF page")
-            page = document[number - 1]
-            original = [word[4] for word in page.get_text("words")
-                        if float(word[0]) < float(page.rect.width) * .2 and
-                        abs(float(word[1]) - top) <= 5]
-            attempts = []
-            for x_left in (81., 82., 83.):
-                for y_offset in (-1., 0.):
-                    rect = pymupdf.Rect(x_left, top + y_offset, 111., bottom - 1)
-                    rendered = page.get_pixmap(matrix=pymupdf.Matrix(5, 5),
-                                                clip=rect, alpha=False).tobytes("png")
-                    image = ImageOps.expand(Image.open(io.BytesIO(rendered)).convert("L"),
-                                            border=40, fill=255)
-                    stream = io.BytesIO()
-                    image.save(stream, format="PNG")
-                    crop = stream.getvalue()
-                    completed = subprocess.run(
-                        [engine, "stdin", "stdout", "--psm", "7", "--oem", "1", "tsv"],
-                        input=crop, capture_output=True, check=False, timeout=20)
-                    if completed.returncode:
-                        raise RuntimeError("Tesseract cell OCR failed")
-                    rows = csv.DictReader(
-                        io.StringIO(completed.stdout.decode("utf-8", errors="replace")),
-                        delimiter="\t")
-                    tokens = [(row["text"], float(row["conf"])) for row in rows
-                              if row.get("level") == "5" and row.get("text", "").strip()]
-                    attempts.append({"x_left": x_left, "y_offset": y_offset,
-                                     "crop_sha256": hashlib.sha256(crop).hexdigest(),
-                                     "text": " ".join(token for token, _ in tokens),
-                                     "confidence": min((confidence for _, confidence in tokens),
-                                                       default=0.)})
-            results.append({"page_number": number,
-                            "band": [top, bottom],
-                            "text_layer_tokens": original,
-                            "ocr_attempts": attempts,
-                            "ocr_suggestion": _number_suggestion(attempts),
-                            "status": "shadow_suggestion_only"})
-    return {"source_sha256": source_sha256, "engine": version, "results": results}
 
 
 def _raster_rule_centers(gray, *, points_per_pixel: float,

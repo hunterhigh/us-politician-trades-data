@@ -108,8 +108,8 @@ class RuledCellBlankTests(unittest.TestCase):
             physical['cells']['owner']['crop_sha256']=hashlib.sha256(encoded.getvalue()).hexdigest()
             columns={'status':'located_shadow','owner':[.1,.2],'asset':[.2,.6],
                      'event':[.6,.7],'notification':[.7,.8]}
-            with patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid',return_value=fixture.grid),patch(
-                    'unison_snapshot.house_ptr_cell_observation_shadow._column_boxes',return_value=columns):
+            with patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid',return_value=fixture.grid),patch(
+                    'unison_snapshot.house_ptr_cell_observation._column_boxes',return_value=columns):
                 first=_blank_paper_owner(raw,observation,physical,1,{})
                 second=_blank_paper_owner(raw,observation,physical,1,{})
             self.assertEqual(first,second)

@@ -13,7 +13,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations, adapt_oge_278t_extraction
 from unison_snapshot.disclosure_status_oge import _apply_audit
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_content_rows
 from unison_snapshot.builder import build
 
 
@@ -76,7 +76,7 @@ class ObservedCandidateTests(unittest.TestCase):
                 other = deepcopy(readings[0])
                 other["shape"]["value"] = second
                 readings.append(other)
-                with patch("unison_snapshot.oge_278t_field_shadow.observe_content_rows", return_value=decoded):
+                with patch("unison_snapshot.oge_278t_fields.observe_content_rows", return_value=decoded):
                     result, audit = candidate(inputs)
                 self.assertEqual(len(result["transactions"]), 1)
                 self.assertIn("owner_heading_observation_unresolved", audit["reports"][0]["observation_receipt"]["rows"][-1]["reasons"])

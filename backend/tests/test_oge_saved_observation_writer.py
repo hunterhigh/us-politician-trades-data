@@ -10,7 +10,7 @@ import unittest
 
 from test_oge_cover_consumption import fixture, write, DOCUMENT_ID
 from test_oge_content_relations import column_read
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_content_rows, observe_field_shapes
 from unison_snapshot.oge_saved_observations import MAX_JSON_BYTES, load_saved_oge_observations
 
 

@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from unison_snapshot.oge_278t_page_shadow import (
+from unison_snapshot.oge_278t_page_coverage import (
     _number_suggestion, _raster_rule_consensus, inspect_page, inspect_pdf,
     reconcile_raster_ocr_rows,
 )
@@ -254,7 +254,7 @@ class Oge278TPageShadowTests(unittest.TestCase):
             ]}
             with (patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(
                     open=lambda _: Document())}),
-                  patch("unison_snapshot.oge_278t_page_shadow.probe_raster_row_bands",
+                  patch("unison_snapshot.oge_278t_page_coverage.probe_raster_row_bands",
                         return_value=census) as probe,
                   patch("unison_snapshot.oge_278t_raster_inventory.audit_raster_source_inventory",
                         return_value={"report_completeness_attested": False}) as audit):

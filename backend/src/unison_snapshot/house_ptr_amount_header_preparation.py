@@ -10,7 +10,7 @@ import hashlib
 import re
 
 from .house_ptr_amount_header import evaluate_amount_header_pages, observe_amount_header
-from .house_ptr_key_fields_shadow import _amount_marks
+from .house_ptr_key_fields import _amount_marks
 
 
 def plan_amount_header_columns(observation: dict) -> dict:

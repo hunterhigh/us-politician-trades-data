@@ -14,7 +14,7 @@ from unittest.mock import patch
 from test_oge_dual_axis_reading import wide_description
 from unison_snapshot.oge_ocr_line_order import prepare_line_source, MODE
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns, observe_raster_slots, DUAL_MODE
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_field_shapes
 
 
 def bind(data, labels=None, extra=None):

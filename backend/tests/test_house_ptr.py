@@ -5,8 +5,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.house import HouseIndexError
-from unison_snapshot.house_ptr import (_words_from_tesseract_tsv, make_review_template,
-                                      parse_word_pages, promote_review, qualify_automatic,
+from unison_snapshot.house_ptr import (_words_from_tesseract_tsv,
+                                      parse_word_pages, qualify_automatic,
                                       _legacy_date)
 
 
@@ -420,11 +420,6 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual([row["extraction_id"] for row in extraction["transactions"]],
                          ["house-ptr:d2161cf0764a2b2e5f47b935", "house-ptr:2cbdaad69cadf38bb2bccbb2"])
 
-    def test_pending_review_cannot_be_promoted(self):
-        extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
-        review = make_review_template(extraction)
-        with self.assertRaises(HouseIndexError):
-            promote_review(extraction, review)
 
     def test_cross_page_row_preserves_evidence_and_continuation(self):
         result = parse_word_pages(META, "b" * 64, cross_page_fixture_pages(), copy_allowed=True)
@@ -678,49 +673,7 @@ class HousePtrTests(unittest.TestCase):
         self.assertEqual((row["transaction_type"], row["amount_low"], row["amount_high"]),
                          ("purchase", 15001, 50000))
 
-    def test_amended_row_requires_explicit_revision_resolution(self):
-        extraction = parse_word_pages(META, "c" * 64, amended_fixture_pages(), copy_allowed=True)
-        amended = extraction["transactions"][0]
-        self.assertEqual(amended["reported_transaction_id"], "2000140446")
-        self.assertEqual(amended["filing_status"], "Amended")
-        self.assertEqual((amended["amount_low"], amended["amount_high"]), (500001, 1000000))
-        self.assertEqual(amended["description"], "Corrected transaction")
-        review = make_review_template(extraction)
-        review["identity"] = {"person_id": "house:BIO123", "evidence_url": "https://bioguide.congress.gov/test"}
-        review["filing"]["filed_at"] = "2026-09-15T00:00:00Z"
-        review["source_use_clearance"] = {"status": "approved", "reference": "legal-review-001"}
-        review["review"] = {"decision": "approved", "reviewed_by": "Test Reviewer",
-                            "reviewed_at": "2026-09-18T10:00:00Z", "note": "Fixture review"}
-        review["rows"][0]["decision"] = "accepted"
-        with self.assertRaises(HouseIndexError):
-            promote_review(extraction, review)
-        review["rows"][0]["revision"] = {
-            "action": "replace_prior", "prior_record_id": "house-ptr:prior-record-001"}
-        result = promote_review(extraction, review)
-        self.assertEqual(result["audit"]["revision_count"], 1)
-        self.assertEqual(result["revisions"][0]["prior_record_id"], "house-ptr:prior-record-001")
 
-    def test_complete_review_promotes_only_accepted_rows(self):
-        extraction = parse_word_pages(META, "a" * 64, fixture_pages(), copy_allowed=False)
-        review = make_review_template(extraction)
-        review["identity"] = {"person_id": "house:BIO123", "evidence_url": "https://bioguide.congress.gov/test"}
-        review["filing"]["filed_at"] = "2026-09-15T00:00:00Z"
-        review["source_use_clearance"] = {"status": "approved", "reference": "legal-review-001"}
-        review["review"] = {"decision": "approved", "reviewed_by": "Test Reviewer",
-                            "reviewed_at": "2026-09-18T10:00:00Z", "note": "Fixture review"}
-        review["rows"][0].update(decision="accepted")
-        review["rows"][1].update(decision="rejected", note="Fixture rejection")
-        result = promote_review(extraction, review)
-        self.assertEqual(len(result["transactions"]), 1)
-        self.assertEqual(result["revisions"], [])
-        self.assertEqual(result["transactions"][0]["verification_status"], "official_matched")
-        self.assertEqual(result["audit"]["rejected_count"], 1)
-
-        extraction["transactions"][0]["notification_date"] = None
-        without_notice = promote_review(extraction, review)
-        self.assertEqual(len(without_notice["transactions"]), 1)
-        self.assertEqual(without_notice["advisories"][0]["issues"],
-                         ["notification_date_invalid"])
 
 
 if __name__ == "__main__":

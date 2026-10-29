@@ -12,7 +12,7 @@ from unittest.mock import patch
 from test_whitehouse_278t_candidate import _base, _catalog
 from unison_snapshot.whitehouse_278t import (parse_generic_whitehouse_278t_pdf,
     _generic_table_rows, validate_generic_whitehouse_report, GENERIC_PARSER_VERSION)
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate, _transaction
 from unison_snapshot.builder import build
 from unison_snapshot.oge_reports import parse_table_rows

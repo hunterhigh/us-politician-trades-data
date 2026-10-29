@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import test_house_ptr_paper_qualification as paper_tests
 from unison_snapshot.ocr_geometry import OcrPage
-from unison_snapshot.house_ptr_cell_observation_shadow import observe_house_ptr_pdf
+from unison_snapshot.house_ptr_cell_observation import observe_house_ptr_pdf
 from unison_snapshot.house_asset_line_order import MODE, project_asset_line_reading
 from unison_snapshot.house_ptr_paper_qualification import materialize_paper_observation
 
@@ -40,9 +40,9 @@ class HouseAssetLineOrderTests(unittest.TestCase):
         def observe(mode):
             # Mark decisions and cover eligibility are established contracts;
             # only original asset word/crop geometry is the subject here.
-            with patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value=region), \
-                 patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes', return_value=columns), \
-                 patch('unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages',
+            with patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value=region), \
+                 patch('unison_snapshot.house_ptr_cell_observation._column_boxes', return_value=columns), \
+                 patch('unison_snapshot.house_ptr_cell_observation.ocr_pdf_pages',
                        return_value=([OcrPage(width=100, height=100, words=words)], 'fixed words')), \
                  patch('unison_snapshot.house_ptr._legacy_filing_status', return_value='New'):
                 result = observe_house_ptr_pdf(raw, source_sha256=sha, asset_line_mode=mode)

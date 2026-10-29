@@ -1,6 +1,6 @@
 import unittest
 
-from unison_snapshot.whitehouse_directory_identity_shadow import bind_directory_entry
+from unison_snapshot.whitehouse_directory_identity import bind_directory_entry
 
 
 URL = "https://www.whitehouse.gov/wp-content/uploads/2025/11/Zinberg-Joel-Periodic-Transaction-Report.pdf"

@@ -24,7 +24,7 @@ from test_oge_summary_region import summary_pdf
 from unison_snapshot.disclosure_status_oge import build_oge_status
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_reports import parse_table_rows, selected_parser_version
-from unison_snapshot.oge_278t_page_shadow import inspect_pdf
+from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 from unison_snapshot.oge_transaction_adapter import (
     _cover_identity_context, adapt_oge_278t_extraction, materialize_oge_278t_observations,

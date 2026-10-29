@@ -4,7 +4,7 @@ import importlib.util
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from unison_snapshot.house_ptr_cell_observation_shadow import _cell
+from unison_snapshot.house_ptr_cell_observation import _cell
 from unison_snapshot.house_ptr_paper_qualification import _source_bound_no_transactions
 
 
@@ -43,8 +43,8 @@ class HousePaperNoTransactionsTests(unittest.TestCase):
         pdf.__enter__.return_value.pages = [SimpleNamespace(
             to_image=lambda **kw: SimpleNamespace(original=self.image))]
         with patch('pdfplumber.open', return_value=pdf), patch(
-                'unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value=self.grid), patch(
-                'unison_snapshot.house_ptr_cell_observation_shadow._column_boxes', return_value={
+                'unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value=self.grid), patch(
+                'unison_snapshot.house_ptr_cell_observation._column_boxes', return_value={
                     'status':'located_shadow','asset':[.1,.5],'owner':[.02,.08],
                     'event':[.51,.61],'notification':[.62,.72],'action':[.73,.8],'amount':[.81,.9]}), patch(
                 'unison_snapshot.house_ptr_fixed_source_core.check_source_cells') as check:

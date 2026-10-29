@@ -140,8 +140,8 @@ class AmountHeaderPreparationTests(unittest.TestCase):
 
     def test_selected_crop_reads_b_while_unrelated_whole_header_is_missing(self):
         raw, observed, header, region, columns = self.fixture()
-        with (patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value=region),
-              patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes', return_value=columns),
+        with (patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value=region),
+              patch('unison_snapshot.house_ptr_cell_observation._column_boxes', return_value=columns),
               patch('unison_snapshot.house_ptr_amount_header.subprocess.run',
                     return_value=SimpleNamespace(returncode=0, stdout=b'$15,001-$50,000')) as ocr):
             prepared = prepare_amount_headers(raw, observed, executable='fixed', existing_header=header)
@@ -158,8 +158,8 @@ class AmountHeaderPreparationTests(unittest.TestCase):
         from unison_snapshot.house_ptr_paper_qualification import _bound_amount_column
         physical = {'band': [.4, .5], 'cells': {'amount': [
             {'label': 'B', 'bbox_normalized': [columns['amount'][1], .4, columns['amount'][2], .5]}]}}
-        with (patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value=region),
-              patch('unison_snapshot.house_ptr_cell_observation_shadow._column_boxes', return_value=columns)):
+        with (patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value=region),
+              patch('unison_snapshot.house_ptr_cell_observation._column_boxes', return_value=columns)):
             consumed = _bound_amount_column(raw, reading, physical, 1, {})
             self.assertEqual(consumed['low'], 15001)
             self.assertIsNone(_bound_amount_column(raw, dict(reading, crop_sha256='0' * 64), physical, 1, {}))
@@ -209,7 +209,7 @@ class AmountHeaderPreparationTests(unittest.TestCase):
 
     def test_unresolved_geometry_has_no_invented_reading(self):
         raw, observed, header, _, _ = self.fixture()
-        with patch('unison_snapshot.house_ptr_region_shadow.locate_transaction_grid', return_value={'status': 'unknown'}):
+        with patch('unison_snapshot.house_ptr_table_region.locate_transaction_grid', return_value={'status': 'unknown'}):
             result = prepare_amount_headers(raw, observed, executable='fixed', existing_header=header)
         self.assertNotIn('column_readings', result)
         self.assertEqual(result['column_preparation']['missing_column_count'], 1)

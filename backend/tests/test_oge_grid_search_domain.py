@@ -19,7 +19,7 @@ try:
 except ImportError:
     np = Image = None
 
-from unison_snapshot.oge_278t_page_shadow import _raster_rule_centers
+from unison_snapshot.oge_278t_page_coverage import _raster_rule_centers
 from unison_snapshot.oge_278t_raster_slots import (
     DUAL_MODE, _dual_axis_image_grid, _dual_header_geometry, observe_raster_slots,census_with_2024_fallback)
 

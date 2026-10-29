@@ -7,7 +7,7 @@ import unittest
 
 from unison_snapshot.builder import FIELDS
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t_audit import (audit_whitehouse_278t)
+from unison_snapshot.whitehouse_278t_qualification import (audit_whitehouse_278t)
 from unison_snapshot.whitehouse_278t import REVIEWED_COVER_PARSER_VERSION
 from unison_snapshot.whitehouse_278t_candidate import (
     _person, build_whitehouse_278t_review_candidate,

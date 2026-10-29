@@ -216,7 +216,7 @@ def replay_native_account_display(sources, evidence, review, document, url):
 
 def _qualified_native_person(report, coverage, directory, key, source_people, prior, *, correction='owner'):
     """Ordinary qualification plus identity independently read from the directory."""
-    from .whitehouse_278t_audit import audit_whitehouse_278t, _source_bound_person_from_directory
+    from .whitehouse_278t_qualification import audit_whitehouse_278t, _source_bound_person_from_directory
     checked = audit_whitehouse_278t([report], coverage,
         {'meta': {'is_demo': False}, 'transactions': [prior],
          'people': source_people}, directory_index=directory)

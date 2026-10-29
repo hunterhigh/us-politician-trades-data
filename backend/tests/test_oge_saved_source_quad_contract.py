@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import test_oge_source_quad_cells as source_quad_tests
 from test_oge_saved_observations_cli import normal_fixture
-from unison_snapshot.oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE
+from unison_snapshot.oge_278t_fields import LEGACY_AMOUNT_INTERPRETATION_MODE
 from unison_snapshot.oge_reports import PARSER_VERSION
 from unison_snapshot.oge_saved_observations import (
     _request, load_saved_oge_observations, prepare_saved_oge_observations,
@@ -102,7 +102,7 @@ class SavedSourceQuadContractTests(unittest.TestCase):
         first={'page_role_conflicts':[{'page_number':2}]}
         for lane in ('materialize','relations'):
             with self.subTest(lane=lane), patch(
-                    'unison_snapshot.oge_278t_field_shadow.observe_content_rows',
+                    'unison_snapshot.oge_278t_fields.observe_content_rows',
                     side_effect=[deepcopy(first),StopAfterReplay()]) as replay, patch(
                     'unison_snapshot.oge_transaction_adapter._audit_content_source',return_value={}):
                 with self.assertRaises(StopAfterReplay):

@@ -31,7 +31,6 @@ ASSET_TYPES = {
     "RS": "Restricted Stock Unit", "AB": "Asset-Backed Security", "ET": "Exchange Traded Note",
     "MF": "Mutual Fund", "OT": "Other",
 }
-REVIEW_SCHEMA = "house-ptr-review/v1"
 QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
 DETERMINISTIC_IDENTITY_BASES = {
     "official_roster_exact_district_first_last_name",
@@ -39,10 +38,6 @@ DETERMINISTIC_IDENTITY_BASES = {
     "official_roster_same_state_unique_first_last_name_redistricted",
 }
 OCR_MINIMUM_ROW_CONFIDENCE = 85.0
-CORRECTION_FIELDS = {"owner", "asset_name", "ticker", "instrument_type", "transaction_type",
-                     "option_type", "strike_price", "expiration_date", "transaction_date",
-                     "notification_date", "amount_low", "amount_high"}
-REVISION_ACTIONS = {"replace_prior", "standalone_correction"}
 LEGACY_AMOUNT_BUCKETS = (
     (1001, 15000, "range"), (15001, 50000, "range"),
     (50001, 100000, "range"), (100001, 250000, "range"),
@@ -1372,176 +1367,6 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
                             ocr_engine=ocr_engine,
                             **({"page_text_methods":page_text_methods} if page_text_methods is not None else {}))
 
-
-def make_review_template(extraction: dict) -> dict:
-    if extraction.get("schema_version") != SCHEMA or extraction.get("review", {}).get("production_eligible") is not False:
-        raise HouseIndexError("House PTR extraction is not a review-queue document")
-    return {
-        "schema_version": REVIEW_SCHEMA,
-        "source_sha256": extraction.get("source_sha256"),
-        "parser_version": extraction.get("parser_version"),
-        "document_id": extraction.get("source", {}).get("document_id"),
-        "identity": {"person_id": None, "evidence_url": None},
-        "filing": {"filed_at": None},
-        "source_use_clearance": {"status": "pending", "reference": None},
-        "review": {"decision": "pending", "reviewed_by": None, "reviewed_at": None, "note": None},
-        "rows": [{"extraction_id": row["extraction_id"], "decision": "pending",
-                  "corrections": {}, "note": None,
-                  "revision": {
-                      "action": "pending" if row.get("reported_transaction_id") or
-                      str(row.get("filing_status", "")).lower() != "new" else "none",
-                      "prior_record_id": None,
-                  }}
-                 for row in extraction.get("transactions", [])],
-    }
-
-
-def _review_time(value: object, field: str) -> datetime:
-    if not isinstance(value, str):
-        raise HouseIndexError(f"House PTR review requires {field}")
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        raise HouseIndexError(f"House PTR review has invalid {field}") from None
-    if parsed.tzinfo is None:
-        raise HouseIndexError(f"House PTR review requires a timezone for {field}")
-    return parsed
-
-
-def promote_review(extraction: dict, review: dict) -> dict:
-    if review.get("schema_version") != REVIEW_SCHEMA or extraction.get("schema_version") != SCHEMA:
-        raise HouseIndexError("House PTR review schema is invalid")
-    for field, expected in (("source_sha256", extraction.get("source_sha256")),
-                            ("parser_version", extraction.get("parser_version")),
-                            ("document_id", extraction.get("source", {}).get("document_id"))):
-        if review.get(field) != expected:
-            raise HouseIndexError(f"House PTR review {field} does not match its extraction")
-    identity = review.get("identity") or {}
-    person_id, evidence_url = identity.get("person_id"), identity.get("evidence_url")
-    if not isinstance(person_id, str) or not re.fullmatch(r"house:[A-Za-z0-9._-]{2,80}", person_id):
-        raise HouseIndexError("House PTR review requires a stable House person ID")
-    parsed_url = urlsplit(evidence_url) if isinstance(evidence_url, str) else None
-    identity_hosts = {"bioguide.congress.gov", "clerk.house.gov", "www.house.gov", "house.gov", "congress.gov", "www.congress.gov"}
-    if not parsed_url or parsed_url.scheme != "https" or parsed_url.hostname not in identity_hosts:
-        raise HouseIndexError("House PTR review requires an official identity evidence URL")
-    clearance = review.get("source_use_clearance") or {}
-    if clearance.get("status") != "approved" or not isinstance(clearance.get("reference"), str) \
-            or not clearance["reference"].strip():
-        raise HouseIndexError("House PTR review requires recorded source-use clearance")
-    decision = review.get("review") or {}
-    if decision.get("decision") != "approved" or not isinstance(decision.get("reviewed_by"), str) \
-            or not decision["reviewed_by"].strip():
-        raise HouseIndexError("House PTR review is not approved by a named reviewer")
-    reviewed_at = _review_time(decision.get("reviewed_at"), "reviewed_at")
-    filed_at_text = (review.get("filing") or {}).get("filed_at")
-    filed_at = _review_time(filed_at_text, "filed_at")
-    if filed_at.date().isoformat() != extraction.get("source", {}).get("filed_date"):
-        raise HouseIndexError("House PTR reviewed filed_at must preserve the official filing date")
-    extracted = {row.get("extraction_id"): row for row in extraction.get("transactions", [])}
-    review_rows = review.get("rows")
-    if not isinstance(review_rows, list) or len(review_rows) != len(extracted):
-        raise HouseIndexError("House PTR review must decide every extracted row")
-    indexed_reviews = {row.get("extraction_id"): row for row in review_rows if isinstance(row, dict)}
-    if set(indexed_reviews) != set(extracted) or len(indexed_reviews) != len(review_rows):
-        raise HouseIndexError("House PTR review row identities do not match the extraction")
-    transactions = []
-    revisions = []
-    advisories = []
-    for extraction_id, source_row in extracted.items():
-        row_review = indexed_reviews[extraction_id]
-        row_decision = row_review.get("decision")
-        note = row_review.get("note")
-        if row_decision == "rejected":
-            if not isinstance(note, str) or not note.strip():
-                raise HouseIndexError("Rejected House PTR rows require a review note")
-            continue
-        if row_decision != "accepted":
-            raise HouseIndexError("Every House PTR row must be accepted or rejected")
-        corrections = row_review.get("corrections") or {}
-        if not isinstance(corrections, dict) or set(corrections) - CORRECTION_FIELDS:
-            raise HouseIndexError("House PTR row contains unsupported corrections")
-        if corrections and (not isinstance(note, str) or not note.strip()):
-            raise HouseIndexError("Corrected House PTR rows require a review note")
-        row = {**source_row, **corrections}
-        filing_status = row.get("filing_status")
-        if not isinstance(filing_status, str) or not filing_status.strip():
-            raise HouseIndexError("Accepted House PTR rows require a filing status")
-        revision = row_review.get("revision")
-        if not isinstance(revision, dict):
-            raise HouseIndexError("Accepted House PTR rows require a revision decision")
-        revision_action = revision.get("action")
-        prior_record_id = revision.get("prior_record_id")
-        requires_revision = bool(row.get("reported_transaction_id")) or filing_status.lower() != "new"
-        if requires_revision:
-            if revision_action not in REVISION_ACTIONS:
-                raise HouseIndexError("Amended House PTR rows require a resolved revision action")
-            if revision_action == "replace_prior":
-                if not isinstance(prior_record_id, str) or not re.fullmatch(
-                        r"[A-Za-z0-9][A-Za-z0-9:._/-]{2,199}", prior_record_id):
-                    raise HouseIndexError("House PTR replacement revisions require a prior record ID")
-            elif prior_record_id is not None:
-                raise HouseIndexError("Standalone House PTR corrections cannot name a prior record ID")
-            if revision_action == "standalone_correction" and (not isinstance(note, str) or not note.strip()):
-                raise HouseIndexError("Standalone House PTR corrections require a review note")
-            revisions.append({
-                "extraction_id": extraction_id,
-                "reported_transaction_id": row.get("reported_transaction_id"),
-                "filing_status": filing_status,
-                "action": revision_action,
-                "prior_record_id": prior_record_id,
-            })
-        elif revision_action != "none" or prior_record_id is not None:
-            raise HouseIndexError("New House PTR rows require revision action none")
-        if row.get("owner") not in set(OWNER_CODES.values()) or row.get("transaction_type") not in set(TYPE_CODES.values()):
-            raise HouseIndexError("House PTR reviewed row has an invalid owner or transaction type")
-        ticker = row.get("ticker")
-        if ticker is not None and (not isinstance(ticker, str) or not re.fullmatch(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
-            raise HouseIndexError("House PTR reviewed row has an invalid ticker")
-        try:
-            transaction_day = datetime.strptime(row["transaction_date"], "%Y-%m-%d").date()
-        except (KeyError, TypeError, ValueError):
-            raise HouseIndexError("House PTR reviewed row has an invalid transaction_date") from None
-        if transaction_day > filed_at.date():
-            raise HouseIndexError("House PTR reviewed transaction date is after filing date")
-        notice_issues = []
-        try:
-            notification_day = datetime.strptime(row["notification_date"], "%Y-%m-%d").date()
-        except (KeyError, TypeError, ValueError):
-            notification_day = None
-            notice_issues.append("notification_date_invalid")
-        if notification_day and not transaction_day <= notification_day <= filed_at.date():
-            notice_issues.append("notification_date_sequence_invalid")
-        if notice_issues:
-            advisories.append({"extraction_id": extraction_id, "issues": notice_issues,
-                               "source_sha256": extraction.get("source_sha256")})
-        low, high = row.get("amount_low"), row.get("amount_high")
-        if (type(low) is not int or low < 0 or
-                (high is None and type(row.get("amount_low_exclusive")) is not bool) or
-                (high is not None and (type(high) is not int or low > high))):
-            raise HouseIndexError("House PTR reviewed row has an invalid amount range")
-        transactions.append({
-            "id": extraction_id, "filing_id": review["document_id"], "person_id": person_id,
-            "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
-            "ticker_mapping_basis": "filing_explicit" if ticker else None,
-            "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
-            "transaction_date": row["transaction_date"], "filed_at": filed_at_text,
-            "amount_low": low, "amount_high": high,
-            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
-            "position_effect": "unknown",
-            "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
-            "source_url": extraction["source"]["source_url"], "verification_status": "official_matched",
-        })
-    if not transactions:
-        raise HouseIndexError("House PTR review accepted no transaction rows")
-    audit = {"schema_version": "house-ptr-reviewed/v1", "source_sha256": review["source_sha256"],
-             "parser_version": review["parser_version"], "document_id": review["document_id"],
-             "person_id": person_id, "identity_evidence_url": evidence_url,
-             "source_use_clearance_reference": clearance["reference"],
-             "reviewed_by": decision["reviewed_by"], "reviewed_at": reviewed_at.isoformat(),
-             "accepted_count": len(transactions), "rejected_count": len(extracted) - len(transactions),
-             "revision_count": len(revisions)}
-    return {"audit": audit, "transactions": transactions, "revisions": revisions,
-            "advisories": advisories}
 
 def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transactions: list[dict],
                                 *, prior_transactions: list[dict] | None = None,

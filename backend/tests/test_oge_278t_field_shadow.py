@@ -3,7 +3,7 @@
 from copy import deepcopy
 import unittest
 
-from unison_snapshot.oge_278t_field_shadow import _amount_shape, observe_field_shapes
+from unison_snapshot.oge_278t_fields import _amount_shape, observe_field_shapes
 
 
 def observation(words, raw="raw word order", indices=None):

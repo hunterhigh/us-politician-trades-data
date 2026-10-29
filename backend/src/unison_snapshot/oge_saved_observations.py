@@ -134,7 +134,7 @@ def _request(observations, secondary, page_count, sha, *, field_interpretation_m
     if secondary is not None:
         request["secondary_observations"] = deepcopy(secondary)
     if field_interpretation_mode is not None:
-        from .oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE
+        from .oge_278t_fields import LEGACY_AMOUNT_INTERPRETATION_MODE
         if field_interpretation_mode != LEGACY_AMOUNT_INTERPRETATION_MODE:
             raise ValueError("Saved OGE field interpretation mode is unsupported")
         request["field_interpretation_mode"] = field_interpretation_mode
@@ -142,7 +142,7 @@ def _request(observations, secondary, page_count, sha, *, field_interpretation_m
     source = _quad_source_path(secondary, source_pdf_path,
                               field_interpretation_mode=field_interpretation_mode)
     # The controlled path is a replay dependency, never portable saved data.
-    from .oge_278t_field_shadow import observe_content_rows
+    from .oge_278t_fields import observe_content_rows
     observe_content_rows(**request, **({"source_pdf_path": source} if source is not None else {}))
     return request
 

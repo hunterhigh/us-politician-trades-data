@@ -178,7 +178,7 @@ class HousePaperOwnerPublicationTests(unittest.TestCase):
                 row.pop('position_effect_basis')
                 row['ticker'] = 'EXM'; row['ticker_mapping_basis'] = 'market'
         before = deepcopy(data)
-        with patch('unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages',
+        with patch('unison_snapshot.house_ptr_cell_observation.ocr_pdf_pages',
                    side_effect=AssertionError('publication replay cannot start OCR')) as ocr:
             result = self.verify(data)
         self.assertEqual(len(result), 2)

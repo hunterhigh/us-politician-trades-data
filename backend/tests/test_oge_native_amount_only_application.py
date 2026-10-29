@@ -65,7 +65,7 @@ def fixture(root):
 
 def mocks(data):
     from contextlib import ExitStack
-    stack=ExitStack();stack.enter_context(patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page',side_effect=data['native']))
+    stack=ExitStack();stack.enter_context(patch('unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page',side_effect=data['native']))
     stack.enter_context(patch('pdfplumber.open',side_effect=lambda *a,**k:_Document([_Page('',[data['raw']])])))
     stack.enter_context(patch('unison_snapshot.oge_reports._extract_borderless_transaction_tables',return_value=[]))
     # These deliberately non-PDF bytes substitute the low-level parser and its

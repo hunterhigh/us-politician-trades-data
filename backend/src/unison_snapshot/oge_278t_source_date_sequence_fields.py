@@ -12,7 +12,7 @@ def attach_source_date_sequences(result: dict, originals: list[dict], *, source_
     from .pdf_source_date_sequences import observe_source_date_sequences,compare_auxiliary_date
     from .pdf_text_baselines import source_text_baseline_bindings
     from .oge_278t_raster_slots import box_in_slot,slot_quad,column_geometry_sha256
-    from .oge_278t_field_shadow import _known_value,_comparable_value,_date_shape
+    from .oge_278t_fields import _known_value,_comparable_value,_date_shape
     if source_pdf_path is None or not Path(source_pdf_path).is_file():
         raise ValueError("source date sequence mode requires controlled original PDF")
     source=Path(source_pdf_path);sha=result["source_sha256"]

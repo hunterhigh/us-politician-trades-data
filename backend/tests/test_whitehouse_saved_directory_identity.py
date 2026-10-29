@@ -16,7 +16,7 @@ from unison_snapshot.whitehouse_278t import (materialize_saved_whitehouse_278t,
     validate_generic_whitehouse_report, saved_ocr_source_roots, DUAL_AXIS_MODE)
 from unison_snapshot.whitehouse_disclosures import parse_disclosure_index
 from unison_snapshot.oge_whitehouse import coverage_from_archive
-from unison_snapshot.whitehouse_278t_audit import audit_whitehouse_278t
+from unison_snapshot.whitehouse_278t_qualification import audit_whitehouse_278t
 from unison_snapshot.whitehouse_278t_candidate import build_whitehouse_278t_review_candidate
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.builder import build

@@ -13,7 +13,7 @@ import unittest
 
 import pymupdf
 from PIL import Image
-from unison_snapshot.oge_278t_page_shadow import inspect_pdf
+from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.source_row_ledger import oge_278t_shadow_pages
 
 
