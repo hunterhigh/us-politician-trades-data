@@ -72,6 +72,6 @@ House归档应按时间预算推进积压并保存检查点，不能永久停在
 
 ## 限时与历史
 
-同一问题投入1天且产品指标无变化时停止该项，提交判断与建议由用户决定；独立工作继续。阶段给出日期，估计变化时给出新日期。普通小提交、测试和阶段记录都不是停止整个授权交付的理由。
+执行节奏、停止规则及待决事项统一以[status.md](status.md)的最新决定为准。本轮按授权连续推进；普通小提交、测试或PR完成不自动结束整个交付。
 
 原35项及旧技术研究材料通过[archive/pre-v1-docs](https://github.com/hunterhigh/us-politician-trades-data/tree/archive/pre-v1-docs/docs)查阅；不再复制到当前文档。初始候选`v1/candidate-20261028`固定不动，后续修正留在开发提交与PR。原本机成果还有`archive/pre-v1`与保存分支，以及`C:/Users/admin/.codex/backups/whitehouse-pre-v1-20261028`的恢复包；官方原件只从已校验的证据引用恢复。
