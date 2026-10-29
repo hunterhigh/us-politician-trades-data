@@ -24,7 +24,7 @@ from .materialize import materialize
 from .market_store import (build_market_bundle, load_published_market_cache,
                            load_published_twelve_data_cache, materialize_market)
 from .house import HouseDocumentClient, HouseIndexClient, HouseIndexError, archive_indexed_ptr, discover
-from .house_ptr import make_review_template, parse_archived_pdf, promote_review, qualify_automatic
+from .house_ptr import parse_archived_pdf, qualify_automatic
 from .house_ptr_paper_qualification import qualify_paper_observation
 from .house_ptr_amount_header import observe_amount_header
 from .house_paper_pipeline import bridge_paper_batch
@@ -177,13 +177,6 @@ def main() -> None:
     parse_ptr.add_argument("--archive", type=Path, required=True)
     parse_ptr.add_argument("--metadata", type=Path, required=True)
     parse_ptr.add_argument("--output", type=Path, required=True)
-    review_ptr = sub.add_parser("create-house-ptr-review")
-    review_ptr.add_argument("--extraction", type=Path, required=True)
-    review_ptr.add_argument("--output", type=Path, required=True)
-    promote_ptr = sub.add_parser("promote-house-ptr-review")
-    promote_ptr.add_argument("--extraction", type=Path, required=True)
-    promote_ptr.add_argument("--review", type=Path, required=True)
-    promote_ptr.add_argument("--output", type=Path, required=True)
     qualify_ptr = sub.add_parser("qualify-house-ptr")
     qualify_ptr.add_argument("--extraction", type=Path, required=True)
     qualify_ptr.add_argument("--identity", type=Path, required=True)
@@ -421,14 +414,6 @@ def main() -> None:
     sync.add_argument("--checkpoint", type=Path)
     sync.add_argument("--planned-at")
     sync.add_argument("--output", type=Path, required=True)
-    sync_result = sub.add_parser("record-house-ptr-result")
-    sync_result.add_argument("--checkpoint", type=Path, required=True)
-    sync_result.add_argument("--document-id", required=True)
-    sync_result.add_argument("--status", choices=["archived", "failed"], required=True)
-    sync_result.add_argument("--metadata", type=Path)
-    sync_result.add_argument("--error")
-    sync_result.add_argument("--result-at")
-    sync_result.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "publish-demo":
@@ -572,23 +557,6 @@ def main() -> None:
                               "transactions": len(result["transactions"]),
                               "status": result["review"]["status"],
                               "production_eligible": result["review"]["production_eligible"],
-                              "output": str(args.output.resolve())}))
-        elif args.command == "create-house-ptr-review":
-            extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
-            result = make_review_template(extraction)
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_bytes(encode(result))
-            print(json.dumps({"document_id": result["document_id"], "rows": len(result["rows"]),
-                              "decision": result["review"]["decision"],
-                              "output": str(args.output.resolve())}))
-        elif args.command == "promote-house-ptr-review":
-            extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
-            review = json.loads(args.review.read_text(encoding="utf-8"))
-            result = promote_review(extraction, review)
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_bytes(encode(result))
-            print(json.dumps({"document_id": result["audit"]["document_id"],
-                              "transactions": len(result["transactions"]),
                               "output": str(args.output.resolve())}))
         elif args.command == "qualify-house-ptr":
             extraction = json.loads(args.extraction.read_text(encoding="utf-8"))

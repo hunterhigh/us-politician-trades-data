@@ -107,8 +107,8 @@ class CliTests(unittest.TestCase):
         self.assertIn("discover-house-index", result.stdout)
         self.assertIn("archive-house-ptr", result.stdout)
         self.assertIn("parse-house-ptr", result.stdout)
-        self.assertIn("create-house-ptr-review", result.stdout)
-        self.assertIn("promote-house-ptr-review", result.stdout)
+        self.assertNotIn("create-house-ptr-review", result.stdout)
+        self.assertNotIn("promote-house-ptr-review", result.stdout)
         self.assertIn("qualify-house-ptr", result.stdout)
         self.assertIn("build-house-candidate", result.stdout)
         self.assertIn("build-senate-candidate", result.stdout)
@@ -135,7 +135,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("discover-house-members", result.stdout)
         self.assertIn("suggest-house-identity", result.stdout)
         self.assertIn("plan-house-ptr-sync", result.stdout)
-        self.assertIn("record-house-ptr-result", result.stdout)
+        self.assertNotIn("record-house-ptr-result", result.stdout)
         self.assertNotIn("publish-live", result.stdout)
 
     def test_oge_extract_cli_reports_a_verified_checkpoint_hit(self):

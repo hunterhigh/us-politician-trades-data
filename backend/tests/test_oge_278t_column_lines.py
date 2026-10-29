@@ -16,7 +16,6 @@ from unison_snapshot.oge_278t_raster_slots import (column_edges_at_y,column_crop
  _observe_slot_columns,_oge_2024_image_grid)
 from unison_snapshot.oge_278t_field_shadow import (_word_evidence,_complete_secondary_geometry,observe_field_shapes,
  compare_field_observations,observe_content_rows)
-from unison_snapshot.oge_278t_type_column_shadow import observe_description_column,observe_type_column
 
 
 def modeled(slope=.01):
@@ -127,38 +126,7 @@ class ColumnLineContractTests(unittest.TestCase):
   self.assertEqual(old['pages'],new['pages'])
   self.assertNotIn('column_line_model',saved()['pages'][0])
 
- def test_date_and_amount_wrappers_preserve_model_binding(self):
-  from unison_snapshot.oge_278t_date_column_shadow import observe_date_column
-  from unison_snapshot.oge_278t_amount_column_shadow import observe_amount_column
-  for field,raw,fn,module in [('transaction_date','01/02/2026',observe_date_column,'date'),
-                               ('amount','$1,001 - $15,000',observe_amount_column,'amount')]:
-   base=modeled();col=column_read(base,field,raw);slot=col['pages'][0]['slots'][0]
-   rapid={'source_sha256':base['source_sha256'],'ocr_engine':'synthetic',
-          'ocr_resolution_dpi':300,'input_ocr_resolution_dpi':200,
-          'input_column_geometry_sha256':{'2':column_geometry_sha256(base['pages'][0])},
-          'pages':[{'page_number':2,'status':'column_observed','slot_count':1,'detections_outside_slots':0,
-                    'slots':[{'slot_index':1,'band_pdf_points':[100,115],'raw_ocr_text':raw,
-                              'detections':slot['column_detections']}]}]}
-   with patch('unison_snapshot.oge_278t_'+module+'_column_shadow.observe_rapid_column',return_value=rapid):
-    out=fn(Path('unused'),slots_observation=base)
-   self.assertEqual(out['input_column_geometry_sha256'],rapid['input_column_geometry_sha256'])
-   observe_field_shapes([base],secondary_observations=[out])
 
- def test_type_and_description_producers_bind_model_and_use_envelope(self):
-  with tempfile.TemporaryDirectory() as folder:
-   pdf=Path(folder)/'source';pdf.write_bytes(b'synthetic');base=modeled()
-   base['source_sha256']=hashlib.sha256(b'synthetic').hexdigest()
-   page=SimpleNamespace(height=200,crop=Mock(return_value=SimpleNamespace(to_image=lambda **kw:SimpleNamespace(original=object()))))
-   opened=Mock();opened.__enter__=Mock(return_value=SimpleNamespace(pages=[page,page]));opened.__exit__=Mock()
-   for fn,text,index in [(observe_description_column,'ALPHA',1),(observe_type_column,'purchase',2)]:
-    word={'text':text,'x0':1,'x1':6,'top':2,'bottom':8,'ocr_confidence':90.}
-    with patch('pdfplumber.open',return_value=opened),patch(
-      'unison_snapshot.oge_278t_type_column_shadow.ocr_rendered_image',return_value=(SimpleNamespace(extract_words=lambda:[word]),'synthetic')):
-     out=fn(pdf,slots_observation=base)
-    left,right=column_crop_bounds(base['pages'][0],index,index+1,100,117)
-    self.assertEqual(page.crop.call_args.args[0],(left,100,right,117))
-    self.assertEqual(out['input_column_geometry_sha256'],{'2':column_geometry_sha256(base['pages'][0])})
-    observe_field_shapes([base],secondary_observations=[out])
 
 
 @unittest.skipUnless(np is not None and Image is not None,'optional raster dependencies unavailable')

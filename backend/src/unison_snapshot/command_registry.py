@@ -2,28 +2,27 @@
 import importlib
 import sys
 
-COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay', 'Check selected saved Senate replay conservation'),
-'publication-probes': ('publication_probes', 'Select fixed source-backed publication probes'),
-'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),
-'house-review': ('house_review', 'Select and account for normal House review artifacts'),
-'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
-'oge-source-state': ('oge_source_state', 'Preserve independent OGE source collection outcomes'),
-'observe-source-quality': ('observe_source_quality', 'Observe qualified source isolation metrics'),
-'report-integrity': ('report_integrity', 'Report explicit content failure receipts'),
-'publication-gate': ('publication_gate', 'Check current collection and qualification waterlines'),
-'replay-senate-history': ('replay_senate_history', 'Plan or resolve explicitly selected amendment predecessors'),
-'assemble-source': ('assemble_source', 'Save a qualified source and assemble current peer candidates'),
-'senate-source-state': ('senate_source_state', 'Persist Senate gate, failure, collection and review state'),
-'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
-'data-trees': ('data_trees', 'Prepare or publish fixed source data worktrees'),
-'build-cached-candidate': ('build_cached_candidate',
+COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay',
+                                'Check selected saved Senate replay conservation'),
+ 'publication-probes': ('publication_probes', 'Select fixed source-backed publication probes'),
+ 'oge-review': ('oge_review', 'Account for OGE and White House qualified source overlays'),
+ 'house-review': ('house_review', 'Select and account for normal House review artifacts'),
+ 'record-source-failure': ('record_source_failure', 'Preserve failed official collection attempts'),
+ 'oge-source-state': ('oge_source_state', 'Preserve independent OGE source collection outcomes'),
+ 'observe-source-quality': ('observe_source_quality', 'Observe qualified source isolation metrics'),
+ 'report-integrity': ('report_integrity', 'Report explicit content failure receipts'),
+ 'publication-gate': ('publication_gate', 'Check current collection and qualification waterlines'),
+ 'replay-senate-history': ('replay_senate_history',
+                           'Plan or resolve explicitly selected amendment predecessors'),
+ 'assemble-source': ('assemble_source', 'Save a qualified source and assemble current peer candidates'),
+ 'senate-source-state': ('senate_source_state', 'Persist Senate gate, failure, collection and review state'),
+ 'drain-house-ptr': ('drain_house_ptr', 'Archive indexed House PTRs within a recoverable time budget'),
+ 'data-trees': ('data_trees', 'Prepare or publish fixed source data worktrees'),
+ 'build-cached-candidate': ('build_cached_candidate',
                             'Publish current disclosures using existing or asynchronously prepared prices.'),
  'build-disclosure-status': ('build_disclosure_status',
                              'Build processing observations from frozen existing trees, without source '
                              'collection.'),
- 'build-oge-manual-cover-dates': ('build_oge_manual_cover_dates',
-                                  'Persist source-bound human cover-date readings without changing '
-                                  'qualification.'),
  'build-whitehouse-278t-candidate': ('build_whitehouse_278t_candidate',
                                      'Build a local OGE review candidate from complete White House 278-T '
                                      'evidence.'),
@@ -37,32 +36,12 @@ COMMANDS = {'verify-senate-saved-replay': ('verify_senate_saved_replay', 'Check 
  'enrich-whitehouse-annual-tickers': ('enrich_whitehouse_annual_tickers',
                                       'Persist unique Alpaca-name ticker mappings into the White House '
                                       'review candidate.'),
- 'observe-house-annual-sections': ('observe_house_annual_sections',
-                                   'Write a House annual Schedule A/B sidecar from archived PDF and '
-                                   'extraction.'),
- 'observe-oge-278t-amount-column': ('observe_oge_278t_amount_column',
-                                    'Probe notification and amount columns of saved 2024 OGE physical '
-                                    'slots.'),
- 'observe-oge-278t-date-column': ('observe_oge_278t_date_column',
-                                  'Probe the date column of saved 2024 OGE 278-T physical slots.'),
- 'observe-oge-278t-fields': ('observe_oge_278t_fields',
-                             'Read saved slot observations into a conservative, read-only field ledger.'),
- 'observe-oge-278t-printed-numbers': ('observe_oge_278t_printed_numbers',
-                                      'Conserve printed row numbers over saved 2024 OGE grid observations.'),
- 'observe-oge-278t-raster-slots': ('observe_oge_278t_raster_slots',
-                                   'Observe OCR words inside confirmed slots of selected archived 278-T '
-                                   'pages.'),
- 'observe-oge-278t-type-column': ('observe_oge_278t_type_column',
-                                  'Probe the Type column of saved 2024 OGE 278-T physical slots.'),
  'observe-oge-annual-scan-covers': ('observe_oge_annual_scan_covers',
                                     'Observe, but do not qualify, covers rejected by the strict annual '
                                     'parser.'),
  'observe-oge-annual-scan-dates': ('observe_oge_annual_scan_dates',
                                    'Replay six annual-catalog cover date blocks, including one amendment '
                                    'letter.'),
- 'observe-oge-annual-scan-sections': ('observe_oge_annual_scan_sections',
-                                      'Generate a read-only OGE scanned annual section ledger from an '
-                                      'archived PDF.'),
  'oge-annual-review': ('oge_annual_review',
                        'Publish review-only extraction audits for archived OGE annual reports.'),
  'oge-whitehouse': ('oge_whitehouse',

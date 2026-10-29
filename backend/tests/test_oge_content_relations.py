@@ -129,20 +129,6 @@ class OgeContentRelationsTests(unittest.TestCase):
         self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
         self.assertEqual(out["field_observations"]["pages"][0]["slots"][0]["field_readings"]["transaction_date"]["geometry_ambiguous_observation_count"], 1)
 
-    def test_existing_cli_consumes_content_ledger_without_changing_field_output(self):
-        data = saved()
-        with tempfile.TemporaryDirectory() as temp:
-            source, target = Path(temp) / "input.json", Path(temp) / "output.json"
-            source.write_text(json.dumps(data), encoding="utf-8")
-            backend = Path(__file__).resolve().parents[1]
-            subprocess.run([sys.executable, str(backend / "src/unison_snapshot/commands/observe_oge_278t_fields.py"),
-                            "--observations", str(source), "--document-page-count", "4", "--output", str(target)],
-                           cwd=backend, env={**os.environ, "PYTHONPATH": str(backend / "src")},
-                           check=True, capture_output=True)
-            out = json.loads(target.read_text(encoding="utf-8"))
-        previous = observe_field_shapes([data])
-        self.assertEqual({key: out[key] for key in previous}, previous)
-        self.assertEqual(out["source_report_ledger"]["logical_row_count"], 1)
 
     def test_bound_secondary_read_can_supply_missing_shape_without_rewriting_primary(self):
         for field, index, raw in [("type", 2, "purchase"), ("transaction_date", 3, "01/02/2026"),

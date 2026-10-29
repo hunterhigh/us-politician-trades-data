@@ -5,7 +5,6 @@ import unittest
 from unittest.mock import patch
 
 from test_oge_content_relations import saved
-from unison_snapshot.oge_278t_amount_column_shadow import observe_amount_column
 from unison_snapshot.oge_278t_field_shadow import (
     _amount_shape, observe_field_shapes, observe_content_rows,
     LEGACY_AMOUNT_INTERPRETATION_MODE as MODE, AMOUNT_SHAPE_RULES_VERSION,
@@ -200,23 +199,6 @@ class LegacyAmountInterpretationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'v3 requires'):
             self.content(primary, secondary)
 
-    def test_fresh_producer_emits_v3_current_rules_using_fixed_saved_rapid_read(self):
-        primary, secondary, _ = inputs()
-        page = secondary['pages'][0]
-        rapid = {'source_sha256': primary['source_sha256'], 'ocr_engine': secondary['ocr_engine'],
-            'ocr_resolution_dpi': 300, 'input_ocr_resolution_dpi': 200, 'pages': [{
-                'page_number': 2, 'status': 'columns_observed', 'detections_outside_slots': [],
-                'slots': [{'slot_index': row['slot_index'], 'band_pdf_points': row['band_pdf_points'],
-                           'raw_ocr_text': row['column_raw_ocr_text'], 'detections': row['column_detections']}
-                          for row in page['slots']]}]}
-        before = deepcopy((primary, rapid))
-        with patch('unison_snapshot.oge_278t_amount_column_shadow.observe_rapid_column', return_value=rapid):
-            fresh = observe_amount_column(Path('unused-no-OCR.pdf'), slots_observation=primary)
-        self.assertEqual((primary, rapid), before)
-        self.assertEqual(fresh['schema_version'], 'oge-278t-amount-column-observation/v3')
-        self.assertEqual(fresh['shape_rule_version'], AMOUNT_SHAPE_RULES_VERSION)
-        self.assertEqual(fresh['pages'][0]['slots'][0]['column_shape'], _amount_shape(RAW))
-        observe_field_shapes([primary], secondary_observations=[fresh])
 
 
 if __name__ == '__main__':

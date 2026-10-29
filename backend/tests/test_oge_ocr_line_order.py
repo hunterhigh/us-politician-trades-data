@@ -217,54 +217,6 @@ class OgeOcrLineOrderTests(unittest.TestCase):
                 with self.assertRaises(OgeCatalogError):
                     materialize_saved_whitehouse_278t({**inputs, **change})
 
-    def test_normal_producer_saved_replay_and_field_cli_preserve_the_same_line_partition(self):
-        import pymupdf
-        import pdfplumber
-        from test_oge_grid_search_domain import scene
-        from test_oge_278t_image_grid import header_words
-        from unison_snapshot.ocr_geometry import OcrPage, mediabox_render_receipt
-
-        generated, _ = scene(row_slope=-.006)
-        png = io.BytesIO(); generated.to_image().original.save(png, format='PNG')
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder); path = root/'source.pdf'
-            document = pymupdf.open(); page = document.new_page(width=792, height=612)
-            page.insert_image(page.rect, stream=png.getvalue()); document.save(path); document.close()
-            sha = hashlib.sha256(path.read_bytes()).hexdigest()
-            words = header_words()
-            for index, word in enumerate(words): word.update(block_num=1, par_num=1, line_num=index+1)
-            words.extend([
-                dict(text='BOND', x0=440., x1=465., top=120.4, bottom=122.4, ocr_confidence=95., block_num=2, par_num=1, line_num=1),
-                dict(text='ALPHA', x0=170., x1=195., top=122., bottom=128., ocr_confidence=95., block_num=2, par_num=1, line_num=1)])
-            with pdfplumber.open(path) as pdf:
-                frame = mediabox_render_receipt(pdf.pages[0], source_sha256=sha, page_number=1, resolution=200, words=words)
-            saved = OcrPage(width=792, height=612, words=words, render_frame=frame)
-            before = saved.extract_words()
-            with patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages', return_value=([saved], 'fixture OCR')):
-                legacy = observe_raster_slots(path, expected_sha256=sha, page_numbers=[1], geometry_mode=DUAL_MODE)
-                live = observe_raster_slots(path, expected_sha256=sha, page_numbers=[1], geometry_mode=DUAL_MODE,
-                                            description_line_mode=MODE)
-            with patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages', side_effect=AssertionError('replay must not OCR')):
-                replay = observe_raster_slots(path, expected_sha256=sha, page_numbers=[1], geometry_mode=DUAL_MODE,
-                    saved_ocr_pages={1: saved}, saved_ocr_engine='fixture OCR', description_line_mode=MODE)
-            self.assertNotIn('description_line_mode', legacy)
-            self.assertNotIn('ocr_line_source', legacy['pages'][0])
-            self.assertEqual(live, replay); self.assertEqual(saved.extract_words(), before)
-            row = self.row(live)
-            self.assertEqual(row['description_reading']['ordered_ocr_text'], 'ALPHA BOND')
-            self.assertEqual(row['raw_columns']['description'], 'BOND ALPHA')
-            source = root/'observation.json'; source.write_text(json.dumps(live), encoding='utf-8')
-            output = root/'fields.json'; repo = Path(__file__).resolve().parents[2]
-            command = [sys.executable, str(repo/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'),
-                       '--observations', str(source), '--output', str(output)]
-            env = dict(os.environ, PYTHONPATH=str(repo/'backend/src'))
-            done = subprocess.run(command, env=env, capture_output=True, text=True)
-            self.assertEqual(done.returncode, 0, done.stderr)
-            self.assertEqual(json.loads(output.read_bytes())['pages'][0]['slots'][0], row)
-            content = output.read_bytes()
-            done = subprocess.run(command, env=env, capture_output=True, text=True)
-            self.assertEqual(done.returncode, 0, done.stderr)
-            self.assertEqual(output.read_bytes(), content)
 
 
 if __name__ == '__main__': unittest.main()

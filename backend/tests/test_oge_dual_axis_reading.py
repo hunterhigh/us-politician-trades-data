@@ -219,23 +219,6 @@ class DualAxisReadingTests(unittest.TestCase):
         self.assertEqual(len(result['transactions']),2)
         self.assertEqual(data,before)
 
-    def test_secondary_producer_and_replay_keep_the_same_virtual_and_source_groups(self):
-        from test_oge_dual_axis_fields import DualAxisColumnTests
-        for slope in [-.01,.01]:
-            fixture=DualAxisColumnTests();fixture.setUp();self.addCleanup(fixture.temp.cleanup)
-            data=wide_description(slope);data['source_sha256']=fixture.data['source_sha256'];fixture.data=data
-            source=data['pages'][0]['slots'][0]
-            boxes=[(w['text'],w['bbox_pdf_points']) for w in source['words'] if w['text'] in {'A','B'}]
-            before=deepcopy(data)
-            aux=fixture.produce_word('description',boxes)
-            replay=observe_content_rows([data],document_page_count=3,secondary_observations=[aux])
-            primary=self.reading(data)
-            secondary=aux['pages'][0]['slots'][0]['column_reading']
-            self.assertEqual(primary['ordered_ocr_text'],secondary['ordered_ocr_text'])
-            self.assertIn('source_coordinate_grouping',secondary)
-            self.assertIn('row_relative_grouping',secondary)
-            self.assertEqual(replay['source_report_ledger']['logical_row_count'],0 if slope<0 else 1)
-            self.assertEqual(data,before)
 
 
 if __name__=='__main__':unittest.main()
