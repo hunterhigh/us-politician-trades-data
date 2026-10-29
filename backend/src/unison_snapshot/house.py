@@ -1,4 +1,5 @@
 """Official House Clerk bulk-index discovery; PDF parsing is a separate stage."""
+from .content_integrity import content_boundary
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -22,6 +23,13 @@ class HouseIndexError(RuntimeError):
     pass
 
 
+class HouseDownloadError(HouseIndexError):
+    """A transport result, separate from invalid or conflicting source bytes."""
+    def __init__(self, message, *, transient, http_status=None):
+        super().__init__(message)
+        self.transient, self.http_status = transient, http_status
+
+
 @dataclass(frozen=True)
 class HouseFilingCandidate:
     source_id: str
@@ -40,6 +48,7 @@ def document_url(year: int, filing_type: str, document_id: str) -> str:
     return f"https://disclosures-clerk.house.gov/public_disc/{folder}/{year}/{document_id}.pdf"
 
 
+@content_boundary('snapshot_contract')
 def parse_index(archive: bytes, year: int) -> list[HouseFilingCandidate]:
     if not 2008 <= year <= 2100 or len(archive) > MAX_ZIP_BYTES or not archive.startswith(b"PK"):
         raise HouseIndexError("Invalid House index archive")
@@ -152,9 +161,11 @@ class HouseDocumentClient:
                 headers = {name.lower(): value for name, value in response.headers.items()
                            if name.lower() in {"etag", "last-modified", "content-type"}}
         except urllib.error.HTTPError as exc:
-            raise HouseIndexError(f"House PTR returned HTTP {exc.code}") from None
+            raise HouseDownloadError(f"House PTR returned HTTP {exc.code}",
+                transient=exc.code in {408, 425, 429} or 500 <= exc.code < 600,
+                http_status=exc.code) from None
         except (urllib.error.URLError, TimeoutError):
-            raise HouseIndexError("House PTR is unavailable") from None
+            raise HouseDownloadError("House PTR is unavailable", transient=True) from None
         validate_pdf(content)
         return content, headers
 

@@ -12,10 +12,15 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 spec = importlib.util.spec_from_file_location(
-    "verify_prepared_publication", ROOT / "scripts/verify_prepared_publication.py")
+    "verify_prepared_publication", ROOT / "src/unison_snapshot/commands/verify_prepared_publication.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 
+
+from unison_snapshot.reviewed_oge_extraction import required_publication_sources
+from unison_snapshot.reviewed_annual_extraction import required_source_urls
+REQUIRED_OGE_SOURCE = required_publication_sources()[0]
+REQUIRED_ANNUAL_URL = next(iter(required_source_urls()))
 
 class Delegate:
     def __init__(self):
@@ -116,9 +121,9 @@ class PreparedPublicationTests(unittest.TestCase):
     def _oge_transaction():
         return {
             "id": "oge-278t:fixed", "person_id": "trump", "source_id": "oge",
-            "filing_id": script.TRUMP_SEPT_2026_DOCUMENT_ID,
+            "filing_id": REQUIRED_OGE_SOURCE["document_id"],
             "verification_status": "official_matched",
-            "source_url": script.TRUMP_SEPT_2026_SOURCE_URL,
+            "source_url": REQUIRED_OGE_SOURCE["assertions"]["metadata"]["document_url"],
         }
 
     def test_fixed_transport_resolves_candidate_without_forwarding_api_credentials(self):
@@ -152,7 +157,7 @@ class PreparedPublicationTests(unittest.TestCase):
             if mode == "person":
                 value["transactions"] = person_transactions
                 value["reported_holdings"] = [{
-                    "person_id": key, "source_url": script.TRUMP_2025_SOURCE_URL,
+                    "person_id": key, "source_url": REQUIRED_ANNUAL_URL,
                     "report_period_end": "2025-12-31",
                     "verification_status": "official_matched"}]
             if mode == omitted_from:
@@ -233,7 +238,7 @@ class PreparedPublicationTests(unittest.TestCase):
         for changed in (
                 {"filing_id": "other-document"},
                 {"source_url": "https://example.org/report.pdf"},
-                {"source_url": script.TRUMP_SEPT_2026_SOURCE_URL + "?copy=1"},
+                {"source_url": REQUIRED_OGE_SOURCE["assertions"]["metadata"]["document_url"] + "?copy=1"},
                 {"id": "other-row"},
                 {"person_id": "other-person"},
                 {"source_id": "house"},

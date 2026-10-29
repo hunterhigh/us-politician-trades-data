@@ -10,11 +10,14 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual_scan_sections import (
-    HARRIS_2023_DOCUMENT_ID, HARRIS_2023_SOURCE_SHA256, _row_blocks,
+    _row_blocks,
     _trade_observation, observe_scan_sections)
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+_SOURCE = json.loads((FIXTURES / 'oge_annual_harris_2023_part7_physical_rows.json').read_text(encoding='utf-8'))
+SOURCE_DOCUMENT_ID = _SOURCE['source_document_id']
+SOURCE_SHA256 = _SOURCE['source_sha256']
 
 
 class OgeAnnualScanSectionsTests(unittest.TestCase):
@@ -23,8 +26,6 @@ class OgeAnnualScanSectionsTests(unittest.TestCase):
                             .read_text(encoding="utf-8"))
         summary = json.loads((FIXTURES / "oge_annual_harris_2023_scan_sections_summary.json")
                              .read_text(encoding="utf-8"))
-        self.assertEqual(source["source_sha256"], HARRIS_2023_SOURCE_SHA256)
-        self.assertEqual(source["source_document_id"], HARRIS_2023_DOCUMENT_ID)
         counts: Counter[str] = Counter()
         for page in source["part7_pages"]:
             lines = [{"text": "# Description Type Date Amount", "x0": 20,
@@ -52,13 +53,25 @@ class OgeAnnualScanSectionsTests(unittest.TestCase):
         block = {"number": "1", "raw_lines": ["1. Example asset purchase unclear $1,001 - $15,000"]}
         self.assertEqual(_trade_observation(block)["classification"], "filled_unknown")
 
+    def test_actual_amount_dash_spellings_are_preserved_and_other_separators_rejected(self) -> None:
+        for separator in ("-", "\u2013"):
+            amount = "$1,001 " + separator + " $15,000"
+            result = _trade_observation({"number": "1", "raw_lines": [
+                "1. Example asset purchase 05/01/2025 " + amount]})
+            self.assertEqual(result["classification"], "filled_transaction")
+            self.assertEqual(result["amount_raw"], amount)
+        for separator in ("", "?", "\u9225\u63ee", "---"):
+            result = _trade_observation({"number": "1", "raw_lines": [
+                "1. Example asset purchase 05/01/2025 $1,001 " + separator + " $15,000"]})
+            self.assertEqual(result["classification"], "filled_unknown")
+
     def test_source_hash_mismatch_fails_before_page_reading(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             pdf = Path(folder) / "report.pdf"
             pdf.write_bytes(b"%PDF-1.7\nwrong bytes\n%%EOF")
             with self.assertRaisesRegex(OgeCatalogError, "archived hash"):
-                observe_scan_sections(pdf, source_sha256=HARRIS_2023_SOURCE_SHA256,
-                                      document_id=HARRIS_2023_DOCUMENT_ID)
+                observe_scan_sections(pdf, source_sha256=SOURCE_SHA256,
+                                      document_id=SOURCE_DOCUMENT_ID)
 
 
 if __name__ == "__main__":

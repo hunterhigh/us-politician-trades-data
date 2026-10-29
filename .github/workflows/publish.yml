@@ -1,117 +1,444 @@
-name: Publish bootstrap snapshot (pre-launch only)
+name: Publish complete production snapshot
+
 on:
+  schedule:
+    - cron: '31 22 * * 1-5'
+  workflow_run:
+    workflows: [Prepare licensed market data, House source pipeline, Senate source pipeline, OGE direct 278-T pipeline, White House source pipeline]
+    branches: [code]
+    types: [completed]
   workflow_dispatch:
     inputs:
-      normalized_path:
-        description: Fixed empty bootstrap input; complete production uses publish-complete.yml
-        required: true
-        default: ingest/current.json
-      allow_empty_production:
-        description: Publish an explicit empty production bootstrap while no rows are approved
-        required: true
+      skip_prepared_readback:
+        description: Browser checks use the local candidate instead of prepared remote commits
         type: boolean
         default: false
+      recovery_stop_before_publish:
+        description: Stop after verified preflight without moving production refs
+        type: boolean
+        default: false
+
 permissions:
+  packages: read
   contents: write
-concurrency:
-  group: publish-snapshot
-  cancel-in-progress: false
+  issues: write
+  actions: read
+
 jobs:
-  publish:
-    if: github.ref == 'refs/heads/code'
-    environment: production
+  assess:
+    if: >-
+      (github.ref == 'refs/heads/code' || (github.event_name == 'workflow_dispatch' && inputs.recovery_stop_before_publish)) &&
+      (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      preparation_ready: ${{ steps.gate.outputs.preparation_ready }}
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v7
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: ./.github/actions/setup-source
         with:
-          python-version: '3.11'
-      - name: Validate requested input path
+          integrity_scope: publication_gate
+      - name: Require a completed price handoff for market-triggered publication
+        id: upstream
         env:
-          INPUT_PATH: ${{ inputs.normalized_path }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          case "$INPUT_PATH" in
-            ingest/*.json) ;;
-            *) echo "Input must be a JSON file below ingest/" >&2; exit 2 ;;
-          esac
-          case "$INPUT_PATH" in
-            *..*) echo "Input path cannot contain .." >&2; exit 2 ;;
-          esac
-          test -f "$INPUT_PATH"
-      - name: Verify producer and contract
-        run: python scripts/verify.py
-        working-directory: backend
-      - name: Prepare complete snapshot tree
-        id: prepare
+          python - <<'PY'
+          import json, os
+          from unison_snapshot.production_health import GitHub
+          event = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          run = event.get('workflow_run', {})
+          ready = True
+          if run.get('name') == 'Prepare licensed market data':
+              jobs = GitHub(os.environ['GITHUB_REPOSITORY'], os.environ['GH_TOKEN']).request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
+              ready = any(job['name'] == 'refresh' and job['conclusion'] == 'success' for job in jobs['jobs'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('ready=' + str(ready).lower() + '\n')
+          PY
+      - name: Assess source waterlines without modifying any publication
+        if: steps.upstream.outputs.ready == 'true'
+        id: gate
         env:
-          INPUT_PATH: ${{ inputs.normalized_path }}
-          ALLOW_EMPTY_PRODUCTION: ${{ inputs.allow_empty_production }}
-          DATA_ROOT: ${{ runner.temp }}/production-main
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git fetch --no-tags origin main
-          base_sha="$(git rev-parse origin/main)"
-          test "$INPUT_PATH" = "ingest/current.json" || {
-            echo "Legacy publisher only accepts the fixed empty bootstrap input." >&2
-            exit 2
-          }
-          test "$ALLOW_EMPTY_PRODUCTION" = "true" || {
-            echo "Legacy publisher only exists for the explicit pre-launch bootstrap." >&2
-            exit 2
-          }
-          current_snapshot="$(git show "$base_sha:manifest.json" | python -c 'import json,sys; print(json.load(sys.stdin).get("snapshot_id", ""))')"
-          test "$current_snapshot" = "bootstrap_empty" || {
-            echo "A complete snapshot has already launched; refusing to downgrade main." >&2
-            exit 2
-          }
-          git worktree add --detach "$DATA_ROOT" "$base_sha"
-          generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          extra_args=()
-          if [ "$ALLOW_EMPTY_PRODUCTION" = "true" ]; then
-            extra_args+=(--allow-empty-production)
+          git fetch --no-tags --depth=1 --filter=blob:none origin review:refs/remotes/origin/review state:refs/remotes/origin/state
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY" \
+            --review-commit "$(git rev-parse origin/review)" --state-commit "$(git rev-parse origin/state)" \
+            --output "$RUNNER_TEMP/publication-source-gate.json" --github-output "$GITHUB_OUTPUT"
+      - name: Preserve publication hold evidence
+        if: steps.upstream.outputs.ready == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: publication-source-gate-${{ github.run_id }}
+          path: ${{ runner.temp }}/publication-source-gate.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
+  publish:
+    needs: assess
+    if: needs.assess.outputs.preparation_ready == 'true'
+    concurrency:
+      group: publish-snapshot
+      queue: max
+      cancel-in-progress: false
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Enforce scheduled publication switch
+        if: github.event_name == 'schedule'
+        env:
+          ENABLED: ${{ vars.COMPLETE_PUBLICATION_ENABLED }}
+        run: test "$ENABLED" = "true"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
+        with:
+          integrity_scope: publication
+      - name: Enforce licensed cache publication
+        env:
+          AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
+          TWELVE_AUTHORIZED: ${{ vars.TWELVE_DATA_DISTRIBUTION_AUTHORIZED }}
+        run: test "$AUTHORIZED" = true && test "$TWELVE_AUTHORIZED" = true
+      - name: Prepare fixed source and publication trees
+        id: trees
+        env:
+          CACHE_MAIN_OVERRIDE: ''
+          CACHE_MARKET_OVERRIDE: ''
+        run: bash .github/scripts/prepare-publication-trees.sh
+      - name: Recheck held sources against the fixed publication inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY"
+          --review-commit "${{ steps.trees.outputs.review_commit }}"
+          --state-commit "${{ steps.trees.outputs.state_commit }}"
+          --output "$RUNNER_TEMP/publication-source-gate.json" --require-preparation-ready
+      - name: Freeze prior board for HTML browser checks
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+        run: |
+          previous="$RUNNER_TEMP/previous-main"
+          mkdir -p "$previous/board"
+          cp "$MAIN_ROOT/manifest.json" "$previous/manifest.json"
+          board_sha="$(python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["board"])' "$previous/manifest.json")"
+          cp "$MAIN_ROOT/board/$board_sha.json" "$previous/board/$board_sha.json"
+      - name: Build canonical disclosure projection from qualified sources
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot build-disclosure-candidate \
+            --base backend/data/empty-disclosure.json --harmonize-cutoffs \
+            --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
+            --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
+            --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \
+            --output "$RUNNER_TEMP/governed-disclosure.json" \
+            --audit-output "$RUNNER_TEMP/governed-cutoff.json"
+      - name: Receive independently prepared prices
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: prepared-prices-${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/prepared-prices
+      - name: Join current disclosures with fixed prices without vendor requests
+        env:
+          PYTHONPATH: backend/src
+          REFRESHED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data' && 'success' || 'skipped' }}
+          CACHE_MAIN_ROOT: ${{ steps.trees.outputs.cache_main_root }}
+          CACHE_MARKET_ROOT: ${{ steps.trees.outputs.cache_market_root }}
+          CACHE_MARKET_COMMIT: ${{ steps.trees.outputs.cache_market_commit }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+        run: |
+          prepared_args=()
+          if [ "$REFRESHED" = success ]; then
+            prepared_args=(--prepared "$RUNNER_TEMP/prepared-prices")
+            CACHE_MARKET_COMMIT="$MARKET_BASE"
+            cp "$RUNNER_TEMP/prepared-prices/market-audit.json" "$RUNNER_TEMP/market-audit.json"
+            cp "$RUNNER_TEMP/prepared-prices/twelve-audit.json" "$RUNNER_TEMP/twelve-audit.json"
           fi
-          PYTHONPATH=backend/src python -m unison_snapshot prepare-publication \
-            --input "$INPUT_PATH" --root "$DATA_ROOT" --generated-at "$generated_at" "${extra_args[@]}"
-          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
-      - name: Commit and compare remote head
-        id: commit
-        env:
-          DATA_ROOT: ${{ runner.temp }}/production-main
+          python -m unison_snapshot build-cached-candidate \
+            --input "$RUNNER_TEMP/governed-disclosure.json" \
+            --main-root "$CACHE_MAIN_ROOT" --market-root "$CACHE_MARKET_ROOT" \
+            --market-commit "$CACHE_MARKET_COMMIT" \
+            "${prepared_args[@]}" --output-dir "$RUNNER_TEMP"
+      - name: Select fixed published readback probes
+        id: probes
         run: |
-          git -C "$DATA_ROOT" add -A -- manifest.json board
-          for path in people tickers; do
-            if [ -e "$DATA_ROOT/$path" ]; then
-              git -C "$DATA_ROOT" add -A -- "$path"
-            fi
-          done
-          if git -C "$DATA_ROOT" diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No snapshot or health change." >> "$GITHUB_STEP_SUMMARY"
+          python -m unison_snapshot publication-probes --input "$RUNNER_TEMP/complete-candidate.json" \
+            --person-id oge:076544f8ba0638cf --ticker MSFT
+      - name: Verify v1 disclosure accounting
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot verify-publication-readiness \
+            --review-root "$REVIEW_ROOT" \
+            --input "$RUNNER_TEMP/governed-disclosure.json" \
+            --output "$RUNNER_TEMP/release-readiness.json"
+      - name: Reconcile canonical publication changes
+        env:
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          PYTHONPATH: backend/src
+        run: |
+          board_sha="$(python -c 'import json,os; print(json.load(open(os.environ["MAIN_ROOT"] + "/manifest.json", encoding="utf-8"))["board"])')"
+          main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
+          review_sha="$(git -C "$REVIEW_ROOT" rev-parse HEAD)"
+          transition_args=(--repo . --evidence-commit "${{ steps.trees.outputs.evidence_commit }}")
+          if [ -f "$REVIEW_ROOT/status/publication_transitions.json" ]; then
+            transition_args+=(--transitions "$REVIEW_ROOT/status/publication_transitions.json")
+          fi
+          python -m unison_snapshot.fact_policy.publication_delta \
+            --previous-board "$MAIN_ROOT/board/$board_sha.json" \
+            --unified "$RUNNER_TEMP/governed-disclosure.json" \
+            --prepared "$RUNNER_TEMP/complete-candidate.json" \
+            --source-root "$REVIEW_ROOT/candidates/sources" \
+            --main-commit "$main_sha" --review-commit "$review_sha" \
+            "${transition_args[@]}" \
+            --output "$RUNNER_TEMP/publication-delta.json"
+      - name: Keep publication difference report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: publication-delta-${{ github.run_id }}
+          path: ${{ runner.temp }}/publication-delta.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Prepare and commit market branch
+        id: market
+        env:
+          MARKET_ROOT: ${{ steps.trees.outputs.market_root }}
+          REFRESHED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data' && 'success' || 'skipped' }}
+          CACHE_MARKET_COMMIT: ${{ steps.trees.outputs.cache_market_commit }}
+          PYTHONPATH: backend/src
+        run: |
+          if [ "$REFRESHED" != success ]; then
+            echo "market_sha=$CACHE_MARKET_COMMIT" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git -C "$DATA_ROOT" config user.name "github-actions[bot]"
-          git -C "$DATA_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          snapshot_id="$(python -c "import json; print(json.load(open('$DATA_ROOT/manifest.json', encoding='utf-8'))['snapshot_id'])")"
-          git -C "$DATA_ROOT" commit -m "snapshot ${snapshot_id}"
-          new_sha="$(git -C "$DATA_ROOT" rev-parse HEAD)"
-          git -C "$DATA_ROOT" tag "published/${new_sha}" "$new_sha"
-          git fetch --no-tags origin main
-          test "$(git rev-parse origin/main)" = "${{ steps.prepare.outputs.base_sha }}" || {
-            echo "Remote main changed during publication; nothing was pushed." >&2
-            exit 3
+          python -m unison_snapshot prepare-market-publication \
+            --input "$RUNNER_TEMP/complete-candidate.json" --root "$MARKET_ROOT" \
+            --audit "$RUNNER_TEMP/market-audit.json" \
+            --twelve-audit "$RUNNER_TEMP/twelve-audit.json" \
+            --metadata-output "$RUNNER_TEMP/market-publication.json"
+          git -C "$MARKET_ROOT" add -A -- market market-pages
+          if ! git -C "$MARKET_ROOT" diff --cached --quiet; then
+            git -C "$MARKET_ROOT" config user.name "github-actions[bot]"
+            git -C "$MARKET_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$MARKET_ROOT" commit -m "market: licensed Alpaca EOD ${{ github.run_id }}"
+          fi
+          market_sha="$(git -C "$MARKET_ROOT" rev-parse HEAD)"
+          echo "market_sha=$market_sha" >> "$GITHUB_OUTPUT"
+      - name: Prepare complete main snapshot
+        id: main
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          PYTHONPATH: backend/src
+        run: |
+          generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          python -m unison_snapshot build-disclosure-status \
+            --evidence-root "${{ steps.trees.outputs.evidence_root }}" \
+            --review-root "${{ steps.trees.outputs.review_root }}" \
+            --input "$RUNNER_TEMP/complete-candidate.json" \
+            --code-commit "$(git rev-parse HEAD)" \
+            --previous-main-commit "${{ steps.trees.outputs.main_base }}" \
+            --output "$RUNNER_TEMP/disclosure-status-input.json"
+          python -m unison_snapshot prepare-publication \
+            --input "$RUNNER_TEMP/complete-candidate.json" --root "$MAIN_ROOT" \
+            --generated-at "$generated_at" --allow-market --market-commit "$MARKET_SHA" \
+            --market-pages-file "$RUNNER_TEMP/market-publication.json" \
+            --consumer-validation-file "$RUNNER_TEMP/consumer-validation.json" \
+            --disclosure-status-input "$RUNNER_TEMP/disclosure-status-input.json"
+          git -C "$MAIN_ROOT" add -A -- manifest.json board people tickers status
+          if git -C "$MAIN_ROOT" diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git -C "$MAIN_ROOT" config user.name "github-actions[bot]"
+            git -C "$MAIN_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            snapshot_id="$(python -c "import json; print(json.load(open('$MAIN_ROOT/manifest.json'))['snapshot_id'])")"
+            git -C "$MAIN_ROOT" commit -m "snapshot $snapshot_id"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          main_sha="$(git -C "$MAIN_ROOT" rev-parse HEAD)"
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+      - name: Reject content already rejected by the published client
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          PYTHONPATH=backend/src python -m unison_snapshot.publication_smoke \
+            --manifest "$MAIN_ROOT/manifest.json" --repository "$REPOSITORY"
+      - name: Publish immutable preflight commits without moving production
+        id: preflight
+        env:
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+        run: |
+          remote_main="$(git ls-remote origin refs/heads/main | cut -f1)"
+          remote_market="$(git ls-remote origin refs/heads/market | cut -f1)"
+          test "$remote_main" = "$MAIN_BASE" || {
+            echo "main moved after the candidate was built; refusing stale publication" >&2
+            exit 1
           }
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "new_sha=$new_sha" >> "$GITHUB_OUTPUT"
-      - name: Atomically publish branch and authorization tag
-        if: steps.commit.outputs.changed == 'true'
+          test "$remote_market" = "$MARKET_BASE" || {
+            echo "market moved after the candidate was built; refusing stale publication" >&2
+            exit 1
+          }
+          main_ref="refs/heads/preflight/${{ github.run_id }}/main"
+          market_ref="refs/heads/preflight/${{ github.run_id }}/market"
+          git -C "$MAIN_ROOT" push --atomic origin \
+            "$MAIN_SHA:$main_ref" "$MARKET_SHA:$market_ref"
+          echo "main_ref=$main_ref" >> "$GITHUB_OUTPUT"
+          echo "market_ref=$market_ref" >> "$GITHUB_OUTPUT"
+      - name: Read back immutable prepared main and market commits
+        if: ${{ !inputs.skip_prepared_readback }}
         env:
-          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
-          DATA_ROOT: ${{ runner.temp }}/production-main
-        run: git -C "$DATA_ROOT" push --atomic origin HEAD:refs/heads/main "refs/tags/published/${NEW_SHA}"
-      - name: Record result
-        if: steps.commit.outputs.changed == 'true'
+          EXPECTED_MAIN: ${{ steps.main.outputs.main_sha }}
+          EXPECTED_MARKET: ${{ steps.market.outputs.market_sha }}
+          PERSON_ID: ${{ steps.probes.outputs.person_id }}
+          TICKER: ${{ steps.probes.outputs.ticker }}
+          TWELVE_TICKER: ${{ steps.probes.outputs.twelve_ticker }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONPATH: backend/src
+        run: |
+          python -m unison_snapshot verify-prepared-publication \
+            --owner hunterhigh --repo us-politician-trades-data \
+            --main-commit "$EXPECTED_MAIN" --market-commit "$EXPECTED_MARKET" \
+            --person-id "$PERSON_ID" --ticker "$TICKER" \
+            --twelve-ticker "$TWELVE_TICKER" \
+            --expected-people "${{ steps.probes.outputs.people_count }}" \
+            --expected-transactions "${{ steps.probes.outputs.transaction_count }}" \
+            --expected-holdings "${{ steps.probes.outputs.holding_count }}" \
+            --expected-market-rows "${{ steps.probes.outputs.market_row_count }}" \
+            --expected-source-health "${{ steps.probes.outputs.source_health_count }}" \
+            --expected-person-holdings "${{ steps.probes.outputs.person_holding_count }}" \
+            --expected-person-transactions "${{ steps.probes.outputs.person_transaction_count }}" \
+            --require-disclosure-status \
+            --expected-review-commit "${{ steps.trees.outputs.review_commit }}" \
+            --expected-evidence-commit "${{ steps.trees.outputs.evidence_commit }}" \
+            --published-main-root "${{ steps.trees.outputs.cache_main_root }}" \
+            --published-market-root "${{ steps.trees.outputs.cache_market_root }}" \
+            --published-market-commit "${{ steps.trees.outputs.cache_market_commit }}" \
+            --output-dir "$RUNNER_TEMP/prepared-readback"
+      - name: Install the pinned browser and client dependencies
+        uses: ./.github/actions/setup-browser
+      - name: Verify publication in both browser frontends
         env:
-          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
-        run: printf 'Published frozen commit `%s`.\n' "$NEW_SHA" >> "$GITHUB_STEP_SUMMARY"
+          SKIP_PREPARED_READBACK: ${{ inputs.skip_prepared_readback }}
+          PREVIOUS_MAIN_ROOT: ${{ runner.temp }}/previous-main
+        run: |
+          if [ "$SKIP_PREPARED_READBACK" = true ]; then
+            export PRODUCTION_DASHBOARD_HTML="$RUNNER_TEMP/complete-dashboard.html"
+          else
+            export PRODUCTION_DASHBOARD_HTML="$RUNNER_TEMP/prepared-readback/dashboard.html"
+          fi
+          echo "Browser input: $PRODUCTION_DASHBOARD_HTML"
+          npm run test:production
+          npm run test:latest-html
+        working-directory: frontend-e2e
+      - name: Record publication coverage and price age
+        env:
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+        run: |
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          audit = json.loads((root / 'publication-market-audit.json').read_text())
+          readiness = json.loads((root / 'release-readiness.json').read_text())
+          print(f"Main: `{os.environ['MAIN_SHA']}`; market: `{os.environ['MARKET_SHA']}`")
+          print(f"Price mode: {audit['mode']}; publication vendor requests: 0")
+          print(f"Disclosures: {readiness['people_count']} people, {readiness['transaction_count']} transactions, {readiness['reported_holding_count']} holdings")
+          print(f"Prices: {audit['market_row_count']} tickers, {audit['price_point_count']} points; pending {len(audit['pending_tickers'])}")
+          for row in audit['market_source_health']:
+              print(f"- {row['source_id']}: last successful sync {row.get('last_successful_sync_at')}; cutoff {row.get('data_cutoff_at')}")
+          print('Pending price tickers:', ', '.join(audit['pending_tickers']) or 'none')
+          path = root / 'twelve-audit.json'
+          if path.exists():
+              twelve = json.loads(path.read_text())
+              print(f"Twelve Data: new {twelve['new_accepted_count']}, cached {twelve['cached_accepted_count']}, deferred {twelve['backlog_count']}, deduplicated {twelve['deduplicated_row_count']}")
+              print('Refresh transport:', json.dumps(twelve['transport'], sort_keys=True))
+          PY
+      - name: Exercise late failure before publication
+        if: inputs.recovery_stop_before_publish
+        env:
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          PREFLIGHT_MAIN_REF: ${{ steps.preflight.outputs.main_ref }}
+          PREFLIGHT_MARKET_REF: ${{ steps.preflight.outputs.market_ref }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
+          test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
+          test "$(git ls-remote origin "$PREFLIGHT_MAIN_REF" | cut -f1)" = "$MAIN_SHA"
+          test "$(git ls-remote origin "$PREFLIGHT_MARKET_REF" | cut -f1)" = "$MARKET_SHA"
+          git push --atomic origin ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"
+          printf 'Controlled stop after verified preflight; main `%s` and market `%s` unchanged.\n' \
+            "$MAIN_BASE" "$MARKET_BASE" >> "$GITHUB_STEP_SUMMARY"
+          exit 86
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity
+      - name: Atomically publish the verified main, market, and tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFRESHED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Prepare licensed market data' && 'success' || 'skipped' }}
+          MAIN_ROOT: ${{ steps.trees.outputs.main_root }}
+          MAIN_SHA: ${{ steps.main.outputs.main_sha }}
+          MAIN_BASE: ${{ steps.trees.outputs.main_base }}
+          MARKET_SHA: ${{ steps.market.outputs.market_sha }}
+          MARKET_BASE: ${{ steps.trees.outputs.market_base }}
+          PREFLIGHT_MAIN_REF: ${{ steps.preflight.outputs.main_ref }}
+          PREFLIGHT_MARKET_REF: ${{ steps.preflight.outputs.market_ref }}
+        run: |
+          python -m unison_snapshot publication-gate --repo . --repository "$GITHUB_REPOSITORY" \
+            --review-commit "${{ steps.trees.outputs.review_commit }}" --state-commit "${{ steps.trees.outputs.state_commit }}" \
+            --output "$RUNNER_TEMP/final-publication-source-gate.json" --require-ready
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN_BASE"
+          test "$(git ls-remote origin refs/heads/market | cut -f1)" = "$MARKET_BASE"
+          test "$(git ls-remote origin "$PREFLIGHT_MAIN_REF" | cut -f1)" = "$MAIN_SHA"
+          test "$(git ls-remote origin "$PREFLIGHT_MARKET_REF" | cut -f1)" = "$MARKET_SHA"
+          git -C "$MAIN_ROOT" tag "published/$MAIN_SHA" "$MAIN_SHA"
+          git -C "$MAIN_ROOT" tag "published-market/$MARKET_SHA" "$MARKET_SHA"
+          market_ref=()
+          if [ "$REFRESHED" = success ]; then
+            market_ref=("$MARKET_SHA:refs/heads/market")
+          fi
+          git -C "$MAIN_ROOT" push --atomic origin \
+            "$MAIN_SHA:refs/heads/main" "${market_ref[@]}" \
+            "refs/tags/published/$MAIN_SHA" \
+            "refs/tags/published-market/$MARKET_SHA" \
+            ":$PREFLIGHT_MAIN_REF" ":$PREFLIGHT_MARKET_REF"

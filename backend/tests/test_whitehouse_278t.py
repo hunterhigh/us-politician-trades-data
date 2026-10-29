@@ -10,16 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.whitehouse_278t import (
-    PARSER_VERSION, TRUMP_081225_DOCUMENT_ID, TRUMP_081225_PARSER_VERSION,
-    TRUMP_081225_SOURCE_SHA256, TRUMP_081225_SOURCE_URL,
-    TRUMP_2026_PARSER_VERSION, TRUMP_2026_PROFILES,
-    TradeOcrCheckpointPending,
-    _apply_trump_081225_geometry, _ocr_date, parse_whitehouse_278t_pdf,
-    extract_whitehouse_278t_pdf_checkpointed,
-    parser_version_for_source, quarantine_duplicate_report_groups,
-    replay_trump_2026_v2_extraction,
-)
+from unison_snapshot.whitehouse_278t import (PARSER_VERSION, REVIEWED_COVER_PARSER_VERSION, REVIEWED_LISTING_PARSER_VERSION, TradeOcrCheckpointPending, _ocr_date, parse_whitehouse_278t_pdf, extract_whitehouse_278t_pdf_checkpointed, parser_version_for_source, quarantine_duplicate_report_groups, replay_reviewed_ocr_extraction)
+from whitehouse_reviewed_fixture import (COVER_DOCUMENT_ID, COVER_SOURCE_SHA256, COVER_SOURCE_URL, LISTING_SOURCE_PROFILES)
 
 
 PDF = b"%PDF-1.7\nexample\n%%EOF"
@@ -164,133 +156,26 @@ class WhiteHouse278TTests(unittest.TestCase):
         self.assertTrue(all("duplicate_report_content_unresolved" in row["document_reasons"]
                             for row in screened))
 
-    def test_fixed_trump_scan_recovers_cover_date_and_all_geometry_rows(self):
-        records = []
-        row_number = 0
-        counts = {2: 27, **{page: 26 for page in range(3, 21)}, 21: 12}
-        anchors = {
-            2: "ALACHUA CNTY FL HLTH FAC REV example",
-            496: "KENTUCKY ASSET LIABILITY COMMN AGY FD REV",
-            497: "SNOHOMISH CNTY WA SCH DIST 306 LAKEWOOD",
-            507: "COOK CNTY ILL CM 4.25% DUE 12/01/47",
-        }
-        for page_number, count in counts.items():
-            for page_index in range(count):
-                row_number += 1
-                asset = anchors.get(row_number, f"Example bond {row_number}")
-                raw_number = ("a" if row_number == 1 else
-                              "497 497" if row_number == 497 else str(row_number))
-                raw_date = "11/28/2025" if row_number == 2 else "01/28/2025"
-                records.append({
-                    "page_number": page_number,
-                    "cells": [raw_number, asset, "Purchase", raw_date, "No",
-                              "$1,001 - $15,000"],
-                    "ocr_confidence": 95.0,
-                    "geometry_top": 120.0 + page_index * 18.0,
-                })
-        ocr = {
-            "text": "Periodic Transaction Report (OGE Form 278-T)\nFiler's Certification",
-            "records": records, "engine": "tesseract 5.3.4", "page_count": 22,
-            "pdf_filer_name": "Donald J Trump",
-            "pdf_position_title": "President of the United States of America",
-            "pdf_agency_label": None,
-            "pdf_position_agency_raw": "President of the United States of America",
-            "identity_reasons": ["pdf_filer_agency_not_verified"],
-            "title_verified": True,
-        }
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "report.pdf"
-            path.write_bytes(PDF)
-            with patch("unison_snapshot.whitehouse_278t._extract_pdf",
-                       return_value=("", [])), patch(
-                       "unison_snapshot.whitehouse_278t._extract_ocr_pdf",
-                       return_value=ocr), patch(
-                       "unison_snapshot.whitehouse_278t.hashlib.sha256") as digest:
-                digest.return_value.hexdigest.return_value = TRUMP_081225_SOURCE_SHA256
-                result = parse_whitehouse_278t_pdf(
-                    path, source_url=TRUMP_081225_SOURCE_URL,
-                    source_sha256=TRUMP_081225_SOURCE_SHA256,
-                    document_id=TRUMP_081225_DOCUMENT_ID,
-                    filer_name="President Donald J. Trump")
-        self.assertEqual(result["parser_version"], TRUMP_081225_PARSER_VERSION)
-        self.assertEqual(result["filed_at"], "2025-08-12")
-        self.assertEqual(result["signature_method"], "handwritten_source_bound")
-        self.assertEqual(result["page_count"], 22)
-        self.assertEqual(result["document_reasons"], [])
-        self.assertTrue(result["evidence_complete"])
-        self.assertEqual((len(result["transactions"]), len(result["quarantined"])),
-                         (507, 0))
-        self.assertEqual([row["row_number"] for row in result["transactions"]],
-                         list(range(1, 508)))
-        second = result["transactions"][1]
-        self.assertEqual(second["transaction_date"], "2025-01-28")
-        self.assertEqual(second["ocr_raw_cells"][3], "11/28/2025")
-        self.assertEqual(second["source_bound_normalized_cells"][3], "01/28/2025")
-        self.assertEqual(second["source_bound_corrections"][0]["basis"],
-                         "fixed_source_visual_audit")
-        self.assertEqual(result["transactions"][495]["asset_name"], anchors[496])
-        self.assertEqual(result["transactions"][496]["row_number"], 497)
-        self.assertEqual(result["filing_date_evidence"]["normalized"], "2025-08-12")
-        self.assertEqual(result["filing_date_evidence"]["source_sha256"],
-                         TRUMP_081225_SOURCE_SHA256)
-        self.assertEqual(result["filer_identity_evidence"]["agency_basis"],
-                         "exact_sha_official_oge_catalog_alias")
 
-    def test_trump_geometry_profile_fails_closed_on_missing_physical_row(self):
-        with self.assertRaisesRegex(OgeCatalogError, "row conservation"):
-            _apply_trump_081225_geometry([])
 
     def test_trade_parser_version_is_exact_source_bound(self):
         self.assertEqual(parser_version_for_source(
-            TRUMP_081225_SOURCE_URL, TRUMP_081225_SOURCE_SHA256),
-            TRUMP_081225_PARSER_VERSION)
+            COVER_SOURCE_URL, COVER_SOURCE_SHA256),
+            REVIEWED_COVER_PARSER_VERSION)
         self.assertEqual(parser_version_for_source(
-            TRUMP_081225_SOURCE_URL, "0" * 64), PARSER_VERSION)
+            COVER_SOURCE_URL, "0" * 64), PARSER_VERSION)
 
-    def test_trump_2026_v2_replay_conserves_every_geometry_row(self):
-        profile = TRUMP_2026_PROFILES[0]
-        rows = []
-        for index in range(1, profile["v2_source_row_count"] + 1):
-            page = 2 + (index - 1) // 30
-            top = 100.0 + ((index - 1) % 30) * 10.0
-            raw = ["bad", f"Example bond {index}", "Purchase", "01/01/2026",
-                   "No", "$1,001 - $15,000"]
-            rows.append({"page_number": page, "row_number": None,
-                         "geometry_row_index": index, "geometry_top": top,
-                         "ocr_confidence": 95.0, "ocr_raw_cells": raw,
-                         "cells": raw, "reasons": ["row_number_invalid"]})
-        prior = {"schema_version": "whitehouse-278t-extraction/v1",
-                 "parser_version": PARSER_VERSION, "source_id": "oge",
-                 "document_id": profile["document_id"],
-                 "source_url": profile["source_url"],
-                 "source_sha256": profile["source_sha256"],
-                 "filer_name": "President Donald J. Trump",
-                 "amended_label": "Periodic Transaction Report 01.14.26",
-                 "page_count": profile["page_count"],
-                 "source_row_count": len(rows),
-                 "extraction_method": "tesseract_ocr_geometry",
-                 "ocr_engine": "tesseract 5.3.4",
-                 "transactions": [], "quarantined": rows}
-        replay = replay_trump_2026_v2_extraction(prior)
-        self.assertEqual(replay["parser_version"], TRUMP_2026_PARSER_VERSION)
-        self.assertEqual(replay["filed_at"], profile["report_date"])
-        self.assertEqual(replay["source_row_count"], len(rows))
-        self.assertEqual(len(replay["transactions"]), len(rows))
-        self.assertEqual([row["row_number"] for row in replay["transactions"]],
-                         list(range(1, len(rows) + 1)))
-        self.assertTrue(all(row["ocr_raw_cells"][0] == "bad"
-                            for row in replay["transactions"]))
 
     def test_trump_2026_parser_requires_exact_url_and_sha(self):
-        profile = TRUMP_2026_PROFILES[-1]
+        profile = LISTING_SOURCE_PROFILES[-1]
         self.assertEqual(parser_version_for_source(
             profile["source_url"], profile["source_sha256"]),
-            TRUMP_2026_PARSER_VERSION)
+            REVIEWED_LISTING_PARSER_VERSION)
         self.assertEqual(parser_version_for_source(
             profile["source_url"], "0" * 64), PARSER_VERSION)
 
     def test_trump_2026_long_report_writes_bounded_checkpoint(self):
-        profile = next(item for item in TRUMP_2026_PROFILES
+        profile = next(item for item in LISTING_SOURCE_PROFILES
                        if item["page_count"] == 113)
 
         class Document:

@@ -1,0 +1,1534 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-ocr-table/v1",
+  "source": "oge",
+  "document_id": "wh-url:62340683e32b0263e8f0eb20",
+  "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+  "reviewed_at": "2026-10-28",
+  "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf",
+  "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+  "output_mode": "source_listing_evidence",
+  "source_profile": {
+    "document_id": "wh-url:62340683e32b0263e8f0eb20",
+    "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf",
+    "report_date": "2026-01-14",
+    "report_date_raw": "01.14.26",
+    "page_count": 8,
+    "v2_source_row_count": 191
+  },
+  "source_review": {
+    "basis": "migrate_existing_qualified_ocr_behavior",
+    "code_commit": "e18dde7d55fc87b71a5a11cf7fcafac907cc78be"
+  },
+  "assertions": {
+    "row_inventory": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63",
+      "64",
+      "65",
+      "66",
+      "67",
+      "68",
+      "69",
+      "70",
+      "71",
+      "72",
+      "73",
+      "74",
+      "75",
+      "76",
+      "77",
+      "78",
+      "79",
+      "80",
+      "81",
+      "82",
+      "83",
+      "84",
+      "85",
+      "86",
+      "87",
+      "88",
+      "89",
+      "90",
+      "91",
+      "92",
+      "93",
+      "94",
+      "95",
+      "96",
+      "97",
+      "98",
+      "99",
+      "100",
+      "101",
+      "102",
+      "103",
+      "104",
+      "105",
+      "106",
+      "107",
+      "108",
+      "109",
+      "110",
+      "111",
+      "112",
+      "113",
+      "114",
+      "115",
+      "116",
+      "117",
+      "118",
+      "119",
+      "120",
+      "121",
+      "122",
+      "123",
+      "124",
+      "125",
+      "126",
+      "127",
+      "128",
+      "129",
+      "130",
+      "131",
+      "132",
+      "133",
+      "134",
+      "135",
+      "136",
+      "137",
+      "138",
+      "139",
+      "140",
+      "141",
+      "142",
+      "143",
+      "144",
+      "145",
+      "146",
+      "147",
+      "148",
+      "149",
+      "150",
+      "151",
+      "152",
+      "153",
+      "154",
+      "155",
+      "156",
+      "157",
+      "158",
+      "159",
+      "160",
+      "161",
+      "162",
+      "163",
+      "164",
+      "165",
+      "166",
+      "167",
+      "168",
+      "169",
+      "170",
+      "171",
+      "172",
+      "173",
+      "174",
+      "175",
+      "176",
+      "177",
+      "178",
+      "179",
+      "180",
+      "181",
+      "182",
+      "183",
+      "184",
+      "185",
+      "186",
+      "187",
+      "188",
+      "189",
+      "190",
+      "191"
+    ],
+    "input_rows_sha256": "c81512503fe4b657116150812be7ccae3c63aa93c7652c2e325c8b9835b991d4",
+    "output_rows_sha256": "7b3e97063706abd1f0f4abb46c23911c3c80d03237a6c43d5227a519d1abde5e",
+    "page_row_counts": {
+      "2": 30,
+      "3": 32,
+      "4": 33,
+      "5": 33,
+      "6": 33,
+      "7": 30
+    },
+    "approved_artifact_sha256": [
+      "8694f67a9e2c24bec9c41ee196e0c797afd80aff21f49997b1b1ebebf38a11ac",
+      "c23868525f46cbbc67065a4fec5c86c321f3979d0abe640d17353d9db1fdc84e"
+    ]
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "8",
+      "field": "printed_row_number",
+      "expect": "7 8",
+      "value": "8",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 270.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "9",
+      "field": "printed_row_number",
+      "expect": "8 9",
+      "value": "9",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 279.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "10",
+      "field": "printed_row_number",
+      "expect": "9 10",
+      "value": "10",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 298.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "11",
+      "field": "printed_row_number",
+      "expect": "10 1",
+      "value": "11",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 312.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "12",
+      "field": "printed_row_number",
+      "expect": "1 12",
+      "value": "12",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 326.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "13",
+      "field": "printed_row_number",
+      "expect": "12 13",
+      "value": "13",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 340.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "14",
+      "field": "printed_row_number",
+      "expect": "13 14",
+      "value": "14",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 354.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "15",
+      "field": "printed_row_number",
+      "expect": "415 14",
+      "value": "15",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 367.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "17",
+      "field": "printed_row_number",
+      "expect": "16 17",
+      "value": "17",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 395.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "18",
+      "field": "printed_row_number",
+      "expect": "17 18",
+      "value": "18",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 409.68
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "19",
+      "field": "printed_row_number",
+      "expect": "18 19",
+      "value": "19",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 423.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "20",
+      "field": "printed_row_number",
+      "expect": "20 19",
+      "value": "20",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 437.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "21",
+      "field": "printed_row_number",
+      "expect": "20 21",
+      "value": "21",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 451.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "22",
+      "field": "printed_row_number",
+      "expect": "22 21",
+      "value": "22",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 465.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "25",
+      "field": "printed_row_number",
+      "expect": "125 24",
+      "value": "25",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 506.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "27",
+      "field": "printed_row_number",
+      "expect": "26 27",
+      "value": "27",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 534.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "28",
+      "field": "printed_row_number",
+      "expect": "j28 27",
+      "value": "28",
+      "evidence": {
+        "page_number": 2,
+        "geometry_top": 548.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "31",
+      "field": "printed_row_number",
+      "expect": "1",
+      "value": "31",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 123.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "32",
+      "field": "printed_row_number",
+      "expect": "1 32",
+      "value": "32",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 137.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "33",
+      "field": "printed_row_number",
+      "expect": "33 32",
+      "value": "33",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 151.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "34",
+      "field": "printed_row_number",
+      "expect": "xu",
+      "value": "34",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 165.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "38",
+      "field": "printed_row_number",
+      "expect": "38 37",
+      "value": "38",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 220.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "41",
+      "field": "printed_row_number",
+      "expect": "40 41",
+      "value": "41",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 264.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "42",
+      "field": "printed_row_number",
+      "expect": "41 42",
+      "value": "42",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 278.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "43",
+      "field": "printed_row_number",
+      "expect": "43 42",
+      "value": "43",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 292.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "46",
+      "field": "printed_row_number",
+      "expect": "45 46",
+      "value": "46",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 338.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "48",
+      "field": "printed_row_number",
+      "expect": "48 47",
+      "value": "48",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 370.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "50",
+      "field": "printed_row_number",
+      "expect": "49 50",
+      "value": "50",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 398.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "51",
+      "field": "printed_row_number",
+      "expect": "50 51",
+      "value": "51",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 412.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "52",
+      "field": "printed_row_number",
+      "expect": "52 51",
+      "value": "52",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 426.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "54",
+      "field": "printed_row_number",
+      "expect": "53 54",
+      "value": "54",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 453.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "55",
+      "field": "printed_row_number",
+      "expect": "[55",
+      "value": "55",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 470.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "57",
+      "field": "printed_row_number",
+      "expect": "56 57",
+      "value": "57",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 498.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "58",
+      "field": "printed_row_number",
+      "expect": "58 57",
+      "value": "58",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 512.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "60",
+      "field": "printed_row_number",
+      "expect": "59 60",
+      "value": "60",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 545.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "61",
+      "field": "printed_row_number",
+      "expect": "60 61",
+      "value": "61",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 559.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "62",
+      "field": "printed_row_number",
+      "expect": "62 61",
+      "value": "62",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 573.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "65",
+      "field": "printed_row_number",
+      "expect": "6s",
+      "value": "65",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 154.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "66",
+      "field": "printed_row_number",
+      "expect": "66 6s",
+      "value": "66",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 168.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "67",
+      "field": "printed_row_number",
+      "expect": "66 67",
+      "value": "67",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 177.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "69",
+      "field": "printed_row_number",
+      "expect": "89 68",
+      "value": "69",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 209.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "71",
+      "field": "printed_row_number",
+      "expect": "70 71",
+      "value": "71",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 237.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "72",
+      "field": "printed_row_number",
+      "expect": "72 71",
+      "value": "72",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 251.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "75",
+      "field": "printed_row_number",
+      "expect": "74 75",
+      "value": "75",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 292.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "76",
+      "field": "printed_row_number",
+      "expect": "75 76",
+      "value": "76",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 306.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "77",
+      "field": "printed_row_number",
+      "expect": "76 7",
+      "value": "77",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 320.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "78",
+      "field": "printed_row_number",
+      "expect": "7 78",
+      "value": "78",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 334.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "79",
+      "field": "printed_row_number",
+      "expect": "78 79",
+      "value": "79",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 348.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "81",
+      "field": "printed_row_number",
+      "expect": "80 81",
+      "value": "81",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 375.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "82",
+      "field": "printed_row_number",
+      "expect": "82 81",
+      "value": "82",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 389.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "86",
+      "field": "printed_row_number",
+      "expect": "86 85",
+      "value": "86",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 444.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "88",
+      "field": "printed_row_number",
+      "expect": "188",
+      "value": "88",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 472.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "90",
+      "field": "printed_row_number",
+      "expect": "89 90",
+      "value": "90",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 500.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "91",
+      "field": "printed_row_number",
+      "expect": "90 91",
+      "value": "91",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 514.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "92",
+      "field": "printed_row_number",
+      "expect": "91 $2",
+      "value": "92",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 528.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "93",
+      "field": "printed_row_number",
+      "expect": "$2 93",
+      "value": "93",
+      "evidence": {
+        "page_number": 4,
+        "geometry_top": 536.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "97",
+      "field": "printed_row_number",
+      "expect": "97 96",
+      "value": "97",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 140.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "98",
+      "field": "printed_row_number",
+      "expect": "98 97",
+      "value": "98",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 152.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "101",
+      "field": "printed_row_number",
+      "expect": "100 101",
+      "value": "101",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 196.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "102",
+      "field": "printed_row_number",
+      "expect": "1102 101",
+      "value": "102",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 210.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "104",
+      "field": "printed_row_number",
+      "expect": "103 104",
+      "value": "104",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 237.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "105",
+      "field": "printed_row_number",
+      "expect": "104 105",
+      "value": "105",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 251.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "106",
+      "field": "printed_row_number",
+      "expect": "105 106",
+      "value": "106",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 265.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "107",
+      "field": "printed_row_number",
+      "expect": "106 107",
+      "value": "107",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 279.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "108",
+      "field": "printed_row_number",
+      "expect": "107 108",
+      "value": "108",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 293.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "109",
+      "field": "printed_row_number",
+      "expect": "108 109",
+      "value": "109",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 307.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "110",
+      "field": "printed_row_number",
+      "expect": "110 109",
+      "value": "110",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 320.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "111",
+      "field": "printed_row_number",
+      "expect": "110 111",
+      "value": "111",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 334.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "112",
+      "field": "printed_row_number",
+      "expect": "111 12",
+      "value": "112",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 348.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "113",
+      "field": "printed_row_number",
+      "expect": "12 113",
+      "value": "113",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 362.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "114",
+      "field": "printed_row_number",
+      "expect": "113 114",
+      "value": "114",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 376.08
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "115",
+      "field": "printed_row_number",
+      "expect": "114 15",
+      "value": "115",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 390.0
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "116",
+      "field": "printed_row_number",
+      "expect": "15 116",
+      "value": "116",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 403.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "117",
+      "field": "printed_row_number",
+      "expect": "116 17",
+      "value": "117",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 417.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "118",
+      "field": "printed_row_number",
+      "expect": "17 118",
+      "value": "118",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 431.52
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "119",
+      "field": "printed_row_number",
+      "expect": "118 119",
+      "value": "119",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 445.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "120",
+      "field": "printed_row_number",
+      "expect": "119 120",
+      "value": "120",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 459.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "122",
+      "field": "printed_row_number",
+      "expect": "121 122",
+      "value": "122",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 486.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "123",
+      "field": "printed_row_number",
+      "expect": "122 123",
+      "value": "123",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 501.12
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "124",
+      "field": "printed_row_number",
+      "expect": "123 124",
+      "value": "124",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 515.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "125",
+      "field": "printed_row_number",
+      "expect": "124 125",
+      "value": "125",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 529.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "126",
+      "field": "printed_row_number",
+      "expect": "125 126",
+      "value": "126",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 542.88
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "128",
+      "field": "printed_row_number",
+      "expect": "127 128",
+      "value": "128",
+      "evidence": {
+        "page_number": 5,
+        "geometry_top": 570.48
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "131",
+      "field": "printed_row_number",
+      "expect": "130 131",
+      "value": "131",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 152.16
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "132",
+      "field": "printed_row_number",
+      "expect": "131 132",
+      "value": "132",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 167.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "133",
+      "field": "printed_row_number",
+      "expect": "132 133",
+      "value": "133",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 179.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "134",
+      "field": "printed_row_number",
+      "expect": "133 134",
+      "value": "134",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 193.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "138",
+      "field": "printed_row_number",
+      "expect": "137 138",
+      "value": "138",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 249.6
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "140",
+      "field": "printed_row_number",
+      "expect": "139 140",
+      "value": "140",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 276.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "141",
+      "field": "printed_row_number",
+      "expect": "144 140",
+      "value": "141",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 290.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "142",
+      "field": "printed_row_number",
+      "expect": "144 142",
+      "value": "142",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 304.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "143",
+      "field": "printed_row_number",
+      "expect": "142 143",
+      "value": "143",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 318.96
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "146",
+      "field": "printed_row_number",
+      "expect": "145 146",
+      "value": "146",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 360.24
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "147",
+      "field": "printed_row_number",
+      "expect": "146 147",
+      "value": "147",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 374.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "148",
+      "field": "printed_row_number",
+      "expect": "147 148",
+      "value": "148",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 387.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "149",
+      "field": "printed_row_number",
+      "expect": "148 143",
+      "value": "149",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 401.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "150",
+      "field": "printed_row_number",
+      "expect": "143 150",
+      "value": "150",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 415.92
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "152",
+      "field": "printed_row_number",
+      "expect": "151 152",
+      "value": "152",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 443.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "155",
+      "field": "printed_row_number",
+      "expect": "154 155",
+      "value": "155",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 485.04
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "158",
+      "field": "printed_row_number",
+      "expect": "157 158",
+      "value": "158",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 529.44
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "159",
+      "field": "printed_row_number",
+      "expect": "158 159",
+      "value": "159",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 543.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "160",
+      "field": "printed_row_number",
+      "expect": "159 160",
+      "value": "160",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 557.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "161",
+      "field": "printed_row_number",
+      "expect": "164 160",
+      "value": "161",
+      "evidence": {
+        "page_number": 6,
+        "geometry_top": 568.56
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "166",
+      "field": "printed_row_number",
+      "expect": "| 165 166",
+      "value": "166",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 182.64
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "170",
+      "field": "printed_row_number",
+      "expect": "169 170",
+      "value": "170",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 237.84
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "171",
+      "field": "printed_row_number",
+      "expect": "170 174",
+      "value": "171",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 251.76
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "173",
+      "field": "printed_row_number",
+      "expect": "172 173",
+      "value": "173",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 279.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "175",
+      "field": "printed_row_number",
+      "expect": "174 175",
+      "value": "175",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 307.2
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "176",
+      "field": "printed_row_number",
+      "expect": "175 176",
+      "value": "176",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 321.36
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "177",
+      "field": "printed_row_number",
+      "expect": "176 477",
+      "value": "177",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 334.8
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "182",
+      "field": "printed_row_number",
+      "expect": "181 182",
+      "value": "182",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 404.4
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "183",
+      "field": "printed_row_number",
+      "expect": "182 183",
+      "value": "183",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 418.32
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "187",
+      "field": "printed_row_number",
+      "expect": "186 187",
+      "value": "187",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 473.28
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "190",
+      "field": "printed_row_number",
+      "expect": "189 190",
+      "value": "190",
+      "evidence": {
+        "page_number": 7,
+        "geometry_top": 515.04
+      }
+    }
+  ],
+  "header": {
+    "document_id": "wh-url:62340683e32b0263e8f0eb20",
+    "document_reasons": [],
+    "evidence_complete": true,
+    "filed_at": "2026-01-14",
+    "filer_identity_evidence": {
+      "agency_basis": "exact_sha_official_disclosure_catalog_alias",
+      "page_number": 1,
+      "pdf_filer_name": "Donald J Trump",
+      "pdf_position_title": "President of the United States of America",
+      "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf"
+    },
+    "filer_signature_evidence": null,
+    "filer_signature_name": "Donald J Trump",
+    "filing_date_evidence": {
+      "basis": "exact_sha_official_disclosure_link_label",
+      "label": "Official White House disclosure listing date",
+      "normalized": "2026-01-14",
+      "page_number": null,
+      "raw": "01.14.26",
+      "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf"
+    },
+    "page_count": 8,
+    "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+    "pdf_agency_label": null,
+    "pdf_filer_name": "Donald J Trump",
+    "pdf_position_agency_raw": "President of the United States of America",
+    "pdf_position_title": "President of the United States of America",
+    "schema_version": "whitehouse-278t-extraction/v1",
+    "signature_method": "official_disclosure_date_source_bound",
+    "source_id": "oge",
+    "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf"
+  },
+  "person": {
+    "id": "oge:076544f8ba0638cf",
+    "display_name": "Donald Trump",
+    "short_name": "Trump",
+    "role": "President of the United States of America"
+  },
+  "audit_constraints": {
+    "require_nonempty": true
+  }
+}

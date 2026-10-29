@@ -1,0 +1,2081 @@
+{
+  "annual_mapping_evidence": "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json",
+  "directory_checked_on": "2026-09-28",
+  "false_explicit": {
+    "e590116fc9631e9885258e7a002de209": {
+      "KROGER CO": "THE"
+    },
+    "wh-url:01475dee0bcffa4e79f7f58c": {
+      "KROGER CO": "THE"
+    },
+    "wh-url:7e17c4be2b42f563d37df173": {
+      "CIGNA GROUP": "THE",
+      "COCA COLA COMPANY": "THE",
+      "HARTFORD INSURANCE GROUP INC": "THE",
+      "HERSHEY COMPANY": "THE",
+      "JADOBE INC.": "DELAWARE"
+    }
+  },
+  "mapping_schema": "whitehouse-trump-2026-278t-ticker-mapping/v1",
+  "person_id": "oge:076544f8ba0638cf",
+  "prior_name_target_reports": [
+    "e590116fc9631e9885258e7a002de209"
+  ],
+  "reports": {
+    "e590116fc9631e9885258e7a002de209": {
+      "report_date": "2026-09-08",
+      "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/E590116FC9631E9885258E7A002DE209/$FILE/Donald-J-Trump-09.8.2026-278T.pdf"
+    },
+    "wh-url:01475dee0bcffa4e79f7f58c": {
+      "document_id": "wh-url:01475dee0bcffa4e79f7f58c",
+      "page_count": 37,
+      "report_date": "2026-06-25",
+      "report_date_raw": "06.25.26",
+      "source_sha256": "fca15b5424b1d4591373739aef12955e1375eff7bcac3443ee1d57d0fb610b0a",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf",
+      "v2_source_row_count": 1149
+    },
+    "wh-url:11b77506f8e46ae1a83b0531": {
+      "document_id": "wh-url:11b77506f8e46ae1a83b0531",
+      "page_count": 113,
+      "report_date": "2026-05-08",
+      "report_date_raw": "05.08.26",
+      "source_sha256": "b801eaa58cca980c9c9437ea712880c4c4ec612df1461013662c1f2bc58d3e85",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-1.pdf",
+      "v2_source_row_count": null
+    },
+    "wh-url:2e543c867ad080888580fa12": {
+      "document_id": "wh-url:2e543c867ad080888580fa12",
+      "page_count": 5,
+      "report_date": "2026-02-26",
+      "report_date_raw": "02.26.26",
+      "source_sha256": "795a8dd77ccbf70df3b907cb2b3130ee68a7b2a4d78ccd7b4b59ad0db1569db2",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-2.pdf",
+      "v2_source_row_count": 83
+    },
+    "wh-url:5e95b7609861d78aa29e3d13": {
+      "document_id": "wh-url:5e95b7609861d78aa29e3d13",
+      "page_count": 34,
+      "report_date": "2026-08-12",
+      "report_date_raw": "08.12.26",
+      "source_sha256": "e1ec58ef09d3046f6e2741533df80fe88a1210b3b5c2eaa7a7c74c850bda58ed",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
+      "v2_source_row_count": 1047
+    },
+    "wh-url:62340683e32b0263e8f0eb20": {
+      "document_id": "wh-url:62340683e32b0263e8f0eb20",
+      "page_count": 8,
+      "report_date": "2026-01-14",
+      "report_date_raw": "01.14.26",
+      "source_sha256": "3d2f74d9cc5f1a2a7819e90aea17357b40ddbca9839bf89c8b3f047c6f2e33ce",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-1.14.2026-.pdf",
+      "v2_source_row_count": 191
+    },
+    "wh-url:67a0a1742a0d66c5b2ac23c1": {
+      "document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
+      "page_count": 10,
+      "report_date": "2026-01-14",
+      "report_date_raw": "01.14.26",
+      "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
+      "v2_source_row_count": 2
+    },
+    "wh-url:6b1be988199005fdd79af8de": {
+      "document_id": "wh-url:6b1be988199005fdd79af8de",
+      "page_count": 5,
+      "report_date": "2026-05-08",
+      "report_date_raw": "05.08.26",
+      "source_sha256": "6985cb0f5c3139fc955dc4fe0b4b084b47fb6e97d3a82bc57903f9ce8a229fc9",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/05/President-Donald-J.-Trump-Periodic-Transaction-Report-05.08.26-2.pdf",
+      "v2_source_row_count": 34
+    },
+    "wh-url:7e17c4be2b42f563d37df173": {
+      "document_id": "wh-url:7e17c4be2b42f563d37df173",
+      "page_count": 44,
+      "report_date": "2026-06-25",
+      "report_date_raw": "06.25.26",
+      "source_sha256": "a058a3bfc12a1d4e0ab9cfd8b16ac98c1b92ec713ec9d09882319cb9f722668b",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf",
+      "v2_source_row_count": 1375
+    },
+    "wh-url:82a263659dcbd44a6522ecbc": {
+      "document_id": "wh-url:82a263659dcbd44a6522ecbc",
+      "page_count": 8,
+      "report_date": "2026-04-20",
+      "report_date_raw": "04.20.26",
+      "source_sha256": "ecadf5c04b463f4f96dbf01371282e4c0e24d57aee94a4e2cc723a6c87988c31",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/04/President-Donald-J.-Trump-Periodic-Transaction-Report-4.20.26.pdf",
+      "v2_source_row_count": 174
+    },
+    "wh-url:8a81a4571e085ccd51a0e4e6": {
+      "document_id": "wh-url:8a81a4571e085ccd51a0e4e6",
+      "page_count": 8,
+      "report_date": "2026-02-26",
+      "report_date_raw": "02.26.26",
+      "source_sha256": "3eab1c525446546dc921ef4bdc0a60867e7a7b184fc1a8a76cb7be8d4acbdab8",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf",
+      "v2_source_row_count": 38
+    }
+  },
+  "schema_version": "reviewed-security-ticker-rules/v1",
+  "security_directory": {
+    "ABM": [
+      "ABM Industries Incorporated Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ABT": [
+      "Abbott Laboratories Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ACN": [
+      "Accenture plc Class A Ordinary Shares (Ireland)",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AEO": [
+      "American Eagle Outfitters, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AGX": [
+      "Argan, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ALKS": [
+      "Alkermes plc - Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "ALL": [
+      "Allstate Corporation (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AMT": [
+      "American Tower Corporation (REIT) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AMTM": [
+      "Amentum Holdings, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AMZN": [
+      "Amazon.com, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "ANDE": [
+      "The Andersons, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "AOSL": [
+      "Alpha and Omega Semiconductor Limited - Common Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "APAM": [
+      "Artisan Partners Asset Management Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "APP": [
+      "Applovin Corporation - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "ARI": [
+      "Apollo Commercial Real Estate Finance, Inc",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ASO": [
+      "Academy Sports and Outdoors, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "AUB": [
+      "Atlantic Union Bankshares Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "AVGO": [
+      "Broadcom Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "AWI": [
+      "Armstrong World Industries Inc Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "BDX": [
+      "Becton, Dickinson and Company Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "BFS": [
+      "Saul Centers, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "BGC": [
+      "BGC Group, Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "BHE": [
+      "Benchmark Electronics, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "BRC": [
+      "Brady Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "BSX": [
+      "Boston Scientific Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CBRE": [
+      "CBRE Group Inc Common Stock Class A",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CCI": [
+      "Crown Castle Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CFG": [
+      "Citizens Financial Group, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CHEF": [
+      "The Chefs' Warehouse, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CHWY": [
+      "Chewy, Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CMCSA": [
+      "Comcast Corporation - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CME": [
+      "CME Group Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CMG": [
+      "Chipotle Mexican Grill, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CNMD": [
+      "CONMED Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "COST": [
+      "Costco Wholesale Corporation - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CRDO": [
+      "Credo Technology Group Holding Ltd - Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CRH": [
+      "CRH PLC Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CRK": [
+      "Comstock Resources, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "CRVL": [
+      "CorVel Corp. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CSCO": [
+      "Cisco Systems, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "CWK": [
+      "Cushman & Wakefield Ltd. Common Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "DAVE": [
+      "Dave Inc.  - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "DGX": [
+      "Quest Diagnostics Incorporated Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "DIS": [
+      "Walt Disney Company (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "DORM": [
+      "Dorman Products, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "DUK": [
+      "Duke Energy Corporation (Holding Company) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ECG": [
+      "Everus Construction Group, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "EFC": [
+      "Ellington Financial Inc. Common Stock ",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "EL": [
+      "Estee Lauder Companies, Inc. (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "EMN": [
+      "Eastman Chemical Company Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "EQT": [
+      "EQT Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "EZPW": [
+      "EZCORP, Inc. - Class A Non-Voting Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "F": [
+      "Ford Motor Company Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "FAST": [
+      "Fastenal Company - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "FOXA": [
+      "Fox Corporation - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "FUL": [
+      "H. B. Fuller Company Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "G": [
+      "Genpact Limited Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "GEHC": [
+      "GE HealthCare Technologies Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "GOGO": [
+      "Gogo Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "HCSG": [
+      "Healthcare Services Group, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "HD": [
+      "Home Depot, Inc. (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "HTZ": [
+      "Hertz Global Holdings, Inc - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "HUBS": [
+      "HubSpot, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "IBP": [
+      "Installed Building Products, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ICHR": [
+      "Ichor Holdings - Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "IDXX": [
+      "IDEXX Laboratories, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "ISRG": [
+      "Intuitive Surgical, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "KAI": [
+      "Kadant Inc Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "KR": [
+      "Kroger Company (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "LAUR": [
+      "Laureate Education, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "LHX": [
+      "L3Harris Technologies, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "LTC": [
+      "LTC Properties, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "LYFT": [
+      "Lyft, Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "MATW": [
+      "Matthews International Corporation - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "MDT": [
+      "Medtronic plc. Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "MO": [
+      "Altria Group, Inc.",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "MSFT": [
+      "Microsoft Corporation - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "MWA": [
+      "MUELLER WATER PRODUCTS Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "MXL": [
+      "MaxLinear, Inc - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "NBHC": [
+      "National Bank Holdings Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "NFLX": [
+      "Netflix, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "NKE": [
+      "Nike, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "NTAP": [
+      "NetApp, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "NVDA": [
+      "NVIDIA Corporation - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "NWN": [
+      "Northwest Natural Holding Company Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "NXPI": [
+      "NXP Semiconductors N.V. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "OFG": [
+      "OFG Bancorp Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "OI": [
+      "O-I Glass, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "OMCL": [
+      "Omnicell, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "OSIS": [
+      "OSI Systems, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "OWL": [
+      "Blue Owl Capital Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "OXM": [
+      "Oxford Industries, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "PATK": [
+      "Patrick Industries, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PFE": [
+      "Pfizer, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "PG": [
+      "Procter & Gamble Company (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "PI": [
+      "Impinj, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PLTR": [
+      "Palantir Technologies Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PLUS": [
+      "ePlus inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PM": [
+      "Philip Morris International Inc Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "POWL": [
+      "Powell Industries, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PRGO": [
+      "Perrigo Company plc Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "PTC": [
+      "PTC Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "PTEN": [
+      "Patterson-UTI Energy, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "RDNT": [
+      "RadNet, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "RXO": [
+      "RXO, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SAFE": [
+      "Safehold Inc. New Common Stock ",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SAH": [
+      "Sonic Automotive, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SEI": [
+      "Solaris Energy Infrastructure, Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SHEN": [
+      "Shenandoah Telecommunications Co - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "SKT": [
+      "Tanger Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SLB": [
+      "SLB Limited Common Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "SPGI": [
+      "S&P Global Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "STE": [
+      "STERIS plc (Ireland) Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "STZ": [
+      "Constellation Brands, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "TEL": [
+      "TE Connectivity plc Ordinary Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "TEM": [
+      "Tempus AI, Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "TER": [
+      "Teradyne, Inc. - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "TJX": [
+      "TJX Companies, Inc. (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "TKO": [
+      "TKO Group Holdings, Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "TXN": [
+      "Texas Instruments Incorporated - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "UA": [
+      "Under Armour, Inc. Class C Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "UBER": [
+      "Uber Technologies, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "UNFI": [
+      "United Natural Foods, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "UNH": [
+      "UnitedHealth Group Incorporated Common Stock (DE)",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "V": [
+      "Visa Inc.",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "VICI": [
+      "VICI Properties Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "VMC": [
+      "Vulcan Materials Company (Holding Company) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "VSNT": [
+      "Versant Media Group, Inc. - Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "VST": [
+      "Vistra Corp. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "VZ": [
+      "Verizon Communications Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "WEN": [
+      "Wendy's Company (The) - Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+    ],
+    "WOR": [
+      "Worthington Enterprises, Inc. Common Shares",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "WSO": [
+      "Watsco, Inc. Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "WU": [
+      "Western Union Company (The) Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "XOM": [
+      "ExxonMobil Holdings Corporation Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ],
+    "ZTS": [
+      "Zoetis Inc. Class A Common Stock",
+      "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+    ]
+  },
+  "semantic_aliases": {
+    "AIRBNB INC CLA": [
+      "ABNB",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "APPLOVIN CORP CLA": [
+      "APP",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "AST SPACEMOBILE INC CLA": [
+      "ASTS",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "Arista Networks Inc Com New.": [
+      "ANET",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "BLACKSTONE INC CLA": [
+      "BX",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "BLUE OWL CAPITAL INC CLA": [
+      "OWL",
+      "https://www.sec.gov/Archives/edgar/data/1823945/000182394526000009/owl-20251231.htm"
+    ],
+    "BOSTON SCIENTIFIC CORP COM": [
+      "BSX",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "BRIGHT HORIZONS FAMILY S": [
+      "BFAM",
+      "https://investors.brighthorizons.com/"
+    ],
+    "Boeing Co Com": [
+      "BA",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "CBRE GROUP INC CLASS CLASS A": [
+      "CBRE",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "CHARTER COMMUNICATIONS INC NEW CLA": [
+      "CHTR",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "CHARTER COMMUNICATIONS | CLASS A": [
+      "CHTR",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "CHESAPEAKE UTILS CORP": [
+      "CPK",
+      "https://www.chpk.com/investors/"
+    ],
+    "COGNIZANT TECHNOLOGY SOLUTIONS CORP CLA": [
+      "CTSH",
+      "https://investors.cognizant.com/investor-resources/stock-information/default.aspx"
+    ],
+    "CONSTELLATION BRANDS INC CLA": [
+      "STZ",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "COPART INC": [
+      "CPRT",
+      "https://www.copart.com/content/cprt-01-31-26-earnings-release.pdf"
+    ],
+    "DOORDASH INC CLA": [
+      "DASH",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "DOORDASH INC CLASS CLASS A": [
+      "DASH",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "EMERSON ELECTRIC COM": [
+      "EMR",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "EXXON MOBIL CORP": [
+      "XOM",
+      "https://investor.exxonmobil.com/company-information/press-releases/detail/1208/exxonmobil-announces-second-quarter-2026-results"
+    ],
+    "FOX CORP CLASS A": [
+      "FOXA",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "GALLAGHER ARTHUR J & CO": [
+      "AJG",
+      "https://investor.ajg.com/news/news-details/2026/Arthur-J--Gallagher--Co--Announces-Second-Quarter-2026-Financial-Results/default.aspx"
+    ],
+    "GLOBAL PMTS INC": [
+      "GPN",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "GODADDY INC CLASS CLASS A": [
+      "GDDY",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "ITRON INC EQUITY CLASS EQUITY": [
+      "ITRI",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "KINDER MORGAN INC DEL": [
+      "KMI",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "Lowes Cos Inc Com": [
+      "LOW",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "MARSH & MCLENNAN COS INC": [
+      "MRSH",
+      "https://www.marsh.com/en/corp/about/news/marsh-mclennan-to-change-nyse-symbol-to-mrsh.html"
+    ],
+    "MEDTRONIC PLC F.": [
+      "MDT",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "MERCK & CO INC COM": [
+      "MRK",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "META PLATFORMS INC CLASS CLASS A": [
+      "META",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "NIKE INC CLASS CLASS B": [
+      "NKE",
+      "https://investors.nike.com/investors/news-events-and-reports/investor-news/investor-news-details/2026/NIKE-Inc--Declares-0-41-Quarterly-Dividend-f1997578c/default.aspx"
+    ],
+    "PALANTIR TECHNOLOGIES IN CLASS A": [
+      "PLTR",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "PALANTIR TECHNOLOGIES INC CLA": [
+      "PLTR",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "SMURFIT WESTROCK PLC F": [
+      "SW",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "UNIVERSAL CORP VA": [
+      "UVV",
+      "https://investor.universalcorp.com/news/news-details/2026/Universal-Corporation-Reports-Fiscal-Year-and-Fourth-Quarter-2026-Results/"
+    ],
+    "VISA INC CLA": [
+      "V",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "WILLIAMS COS INC DEL": [
+      "WMB",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "WORKDAY INC CLA": [
+      "WDAY",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "WORKDAY INC CLASS CLASS A": [
+      "WDAY",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "ZOETIS INC CLA": [
+      "ZTS",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ],
+    "[SOUTHERN CO COM": [
+      "SO",
+      "https://github.com/hunterhigh/us-politician-trades-data/blob/10bd7a05b68ce52b9d8650a2a669639c4d46b314/whitehouse/annual/ticker-mapping-current.json"
+    ]
+  },
+  "source_alias_reports": {
+    "oge-278t:00527b9c66d6218daa28cf6d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:011db1a3b890f38d1d7410cf": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:06f0fc10e93a14c850d6e4fe": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:07db8e523ed93a0df6d69be6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:0d0720c7dc95de7293a46204": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:0d28d77025535d2a2e153796": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:0dddaaaea100dfe1c436f5ee": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:0fdd5f5bb4fdfd49e81f839c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:112ee0316021d8a85b79c2cb": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:11694cb2972870de492d03e6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:120ae3c89d3a86175400a421": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:13fd8424391c313280f9526a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:141fd0054d8d646bb146806d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:15141742f9a9d3d335e4cb1e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:15e0153498968421c47c9fe7": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:17e5aebbe6a4f2acfffc2278": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:1ef68d31c9d3f249f1d05fe6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:1fdf6bed65cef2663cb6f74a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:20d89ff422dab33d977eb920": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:21a875558a6727b4bd24cf28": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:227f7450b99ff9e31ca3179e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:23c98410d69fcf0038e25066": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:24d580c7fe2e60e4434a8dda": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:26778fda9bbe7b93d326ddd3": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:29692e04a5589bb6a7e5a9cf": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:29aae8a187f25c215555d594": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:2b6d6517628f22df998f0abc": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:2d10674fb4edd6281d71c093": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:30f506c27fd4ffa9c253811b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:317bdc3671714d9c6c4da2d8": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3322d2c8ea0feb47e8490cf9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:348f07f2bf7707f74a06c03d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:36c83acf45941578ac94c19c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:36ea9634e19facfa785753d2": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3746e0c2dc8d051d2fa54e4a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3964baae4842fa5ec3ee3f95": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3a91de09bb8ecf07895a2bff": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3abf11f5e817c2073fac4851": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3c02b1f259f5f882658a8181": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3ca89c4b06cb5b7ef84c8b66": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3cd37932c7dfcbc3af1f64e9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3d595c108c213babc4fed1d5": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:3d7cd58f0d79f36cf8f907ef": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:405a6b7a46fadfe90305bc1a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:44138f6ef9c36fcd83ad1dcf": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:44554bd2f68e7300153c8d62": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:4737da3fb3547c0a736fc033": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:4b6e94cba35887898ce3fee9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:4cedc372692338cbdc10c413": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:4e5366beae2e2bc5708f6d9e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:4e9fa32a2e06d6103b352447": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:528679fd0d6d9aae74f73d2d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:5304fbb4c2fb3503b44495cc": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:53ee1a66f5b26f2d6ed1a7ab": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:5524024a8d96413ad081557a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:578de95209e843fed0e25736": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:57fb5a552e51f7226f094c76": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:5e91e2714c8deca706659cae": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:5fd95629339329188e4c5fc4": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:608461166207f9b9f333241d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:64d1f52f9133deeef5712322": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:66537df312b02465ca96ca3c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:683dfb6b8e8d71a5a494899d": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:6a7cf21d35562c058f2d6a05": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:6c61768be2be46745375f278": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:6d4ba8d63acf8a207c4d012b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:6e7b127baeef19b0727fa7c2": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:6edb6800bfd420ed027f7f1c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:73ce53c22902d25e6a481101": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:73d5467195613aa39fac41f7": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:754ded874850c5e76ff2c0e7": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:7742ff55227eaa7447ee0916": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:7c8ffd7b6242a58c7d1a5032": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:817bbeaa9ad74f42d0c15291": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8389b9f25c36fd48a9d4910b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:86c3d3d90c13f4fa7aae4124": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:86e61da8fdf2907c2c945eda": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8aac3a79323a7895873e39e8": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8b3bb35e34734a1102b4e41e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8b4bfc4528754e78b9945c8b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8cced1376ffb161bd4d5d9f6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8e122d9d4c2020d293bed852": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:8f2bdc574feec76f7489106c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9108556a4892f40533bb952c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9320f3b0acfdad498cc9d378": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:93ab8dbab050af98b03596ad": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9432eaa8535a446e7e56e65a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9503dda2e40008218bfd5588": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:956775223c4e229d063b5e3b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9d601f38a1f99bc60c7da277": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:9ff0eea29f004b954f4da045": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a207586ed125a0c81e766a5c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a2cbf04260e5c3ee9b8d6557": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a4059df3778780d9ec15f032": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a5e8ea525773021d19148454": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a70ca3db3d3f59d76f4dd9ba": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a792d0f57b12f4d16c526bdd": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:a7b9036a2d9aff70f4e806c4": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:aa271fa48fca255468def560": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ad1cbd31e2eda01335913e7f": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:af1416d7d332cd8e665db18e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:b50f7576fc96b270351a4900": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:b51afb66eaa7fe7e575489ca": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:b6c9667b897b0d2dd8391e20": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:b7f611894cc6f9932f64adac": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:b943958da9dc84e6a68f9be8": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:bbaeac29d4e0be338447c0c3": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:bbdeec042b5efd70b77ae28f": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:bc1cbf4a8274fe9e6f381ea7": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:bd5906c0369ece848f87c75c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:bd8bd85ea7c4e0adf3801b88": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c08e7fa18cbe5b141b245563": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c0a200f444dc5799336121cd": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c0db9a2f9ee5aa4f17665a5b": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c256dc894365b20b4ba28da4": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c3186c0b77f76fb5d2ebf245": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c4baa50416748b28c6a9a4f4": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:c9e24f2e23a2e9d5e4d00373": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:caadbbfefc5a6789c00dd0c6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:cb385a57731f42c824055637": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ce049c6aa997d7dc1d7e8cfd": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:cf2fa32f7936391a3b435a56": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:cfffc04a152a316d1e5e6bfd": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d0d58e2dac760227ed87a108": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d2c79a953a4d4c8166be62ae": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d2fb936c42e3ac4f9131fd80": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d41a0c416fa27d94000e1104": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d59e41965b3e363eb9d8968e": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d5f0f712cc372b7084d259a6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d65288a73f556323be70a60a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d6b2a2e08d038b1164d20e1a": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d7c3af271c4c076417a51ae1": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:d85eb1033dcb46f6eae29dac": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:dae18c4e7baff3bcdfc8e7a9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:dc9c3bd96f985c0b0a3855a9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ddedcb6cc99ef30c64501fd0": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:e014412f18b4114243a167e3": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:e2d4bf1c0422725206c7fb97": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:e85ca2bab8ba56442e981af8": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ea1a3eb46fd18bca55e12f20": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ea83be0ab8b94c684188e5c9": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ed25ba9f99ce0a3adef4991c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:ef94d9e29f096e9ddea179a6": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f0e4d069bce95910e2b59901": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f0f92cd3e50de56ae12b825c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f248c1b0a9bbfe014a87e2fd": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f36c5e73803e09c2e922f9b2": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f38fde12830a4f04a9e224e0": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f4cc685d05109f65e40a5115": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f53b1de3dfd864df2300588c": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f71fd36274ad6e6478c22959": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f782d7f337210fc094bea6ff": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:f89a4fbea1b01afa6e2c545f": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:fb8db814ae185ef4c29e2dc0": "e590116fc9631e9885258e7a002de209",
+    "oge-278t:fc998ed361f00c1d98ed1bc8": "e590116fc9631e9885258e7a002de209"
+  },
+  "source_aliases": {
+    "oge-278t:00527b9c66d6218daa28cf6d": [
+      "FORD MOTOR CO COM",
+      "F",
+      30,
+      945,
+      "2026-07-08"
+    ],
+    "oge-278t:011db1a3b890f38d1d7410cf": [
+      "HUBSPOTINC",
+      "HUBS",
+      28,
+      867,
+      "2026-07-08"
+    ],
+    "oge-278t:06f0fc10e93a14c850d6e4fe": [
+      "EQtCorp",
+      "EQT",
+      6,
+      133,
+      "2026-07-17"
+    ],
+    "oge-278t:07db8e523ed93a0df6d69be6": [
+      ". Te Connectivitv Pie",
+      "TEL",
+      6,
+      149,
+      "2026-07-17"
+    ],
+    "oge-278t:0d0720c7dc95de7293a46204": [
+      "PERRIGO CO PLC F",
+      "PRGO",
+      14,
+      424,
+      "2026-07-29"
+    ],
+    "oge-278t:0d28d77025535d2a2e153796": [
+      "EXXONMOBIL HLDGS CORP",
+      "XOM",
+      7,
+      184,
+      "2026-07-31"
+    ],
+    "oge-278t:0dddaaaea100dfe1c436f5ee": [
+      "VICI PPTYS INC REIT",
+      "VICI",
+      28,
+      891,
+      "2026-07-08"
+    ],
+    "oge-278t:0fdd5f5bb4fdfd49e81f839c": [
+      "STERISPLCF",
+      "STE",
+      29,
+      897,
+      "2026-07-08"
+    ],
+    "oge-278t:112ee0316021d8a85b79c2cb": [
+      "ALISTATE CORP",
+      "ALL",
+      35,
+      1118,
+      "2026-07-23"
+    ],
+    "oge-278t:11694cb2972870de492d03e6": [
+      "ARMSTRONG WORLD INDS INC",
+      "AWI",
+      18,
+      560,
+      "2026-07-08"
+    ],
+    "oge-278t:120ae3c89d3a86175400a421": [
+      "EPLUSINC",
+      "PLUS",
+      19,
+      575,
+      "2026-07-29"
+    ],
+    "oge-278t:13fd8424391c313280f9526a": [
+      "Cme Grouo Inc",
+      "CME",
+      6,
+      151,
+      "2026-07-17"
+    ],
+    "oge-278t:141fd0054d8d646bb146806d": [
+      "UNITEDHEALTH GROUP INC",
+      "UNH",
+      7,
+      198,
+      "2026-07-31"
+    ],
+    "oge-278t:15141742f9a9d3d335e4cb1e": [
+      "APOLLO COML REAL ESTATE REIT",
+      "ARI",
+      17,
+      515,
+      "2026-07-29"
+    ],
+    "oge-278t:15e0153498968421c47c9fe7": [
+      "OXFORD INDS INC",
+      "OXM",
+      12,
+      351,
+      "2026-07-08"
+    ],
+    "oge-278t:17e5aebbe6a4f2acfffc2278": [
+      "LAUREATE ED INC",
+      "LAUR",
+      20,
+      595,
+      "2026-07-29"
+    ],
+    "oge-278t:1ef68d31c9d3f249f1d05fe6": [
+      "PATTERSON-UT! ENERGY INC",
+      "PTEN",
+      19,
+      565,
+      "2026-07-29"
+    ],
+    "oge-278t:1fdf6bed65cef2663cb6f74a": [
+      "MICROSOFT CORP I",
+      "MSFT",
+      29,
+      910,
+      "2026-07-08"
+    ],
+    "oge-278t:20d89ff422dab33d977eb920": [
+      "WESTERN UN CO",
+      "WU",
+      22,
+      665,
+      "2026-07-08"
+    ],
+    "oge-278t:21a875558a6727b4bd24cf28": [
+      "SLBLTD",
+      "SLB",
+      5,
+      106,
+      "2026-07-17"
+    ],
+    "oge-278t:227f7450b99ff9e31ca3179e": [
+      "EZCORP INC CLASS A",
+      "EZPW",
+      12,
+      335,
+      "2026-07-29"
+    ],
+    "oge-278t:23c98410d69fcf0038e25066": [
+      "FOX CORP CLASS CLASS A",
+      "FOXA",
+      26,
+      797,
+      "2026-07-24"
+    ],
+    "oge-278t:24d580c7fe2e60e4434a8dda": [
+      "L3harris Technoloales Inc",
+      "LHX",
+      6,
+      158,
+      "2026-07-17"
+    ],
+    "oge-278t:26778fda9bbe7b93d326ddd3": [
+      "CONSTELLATION BRANDS INC CLASS A",
+      "STZ",
+      25,
+      791,
+      "2026-07-24"
+    ],
+    "oge-278t:29692e04a5589bb6a7e5a9cf": [
+      "BECTON DICKINSON & CO",
+      "BDX",
+      7,
+      192,
+      "2026-07-31"
+    ],
+    "oge-278t:29aae8a187f25c215555d594": [
+      "Palantir Technolnnies Inc",
+      "PLTR",
+      6,
+      163,
+      "2026-07-17"
+    ],
+    "oge-278t:2b6d6517628f22df998f0abc": [
+      "KADANTINC",
+      "KAI",
+      15,
+      434,
+      "2026-07-29"
+    ],
+    "oge-278t:2d10674fb4edd6281d71c093": [
+      "Amazon Com Inc",
+      "AMZN",
+      7,
+      168,
+      "2026-07-17"
+    ],
+    "oge-278t:30f506c27fd4ffa9c253811b": [
+      "SONIC AUTOMOTIVE INC CLASS A",
+      "SAH",
+      17,
+      513,
+      "2026-07-29"
+    ],
+    "oge-278t:317bdc3671714d9c6c4da2d8": [
+      "MAXLINEAR INC CLASS A",
+      "MXL",
+      15,
+      454,
+      "2026-07-08"
+    ],
+    "oge-278t:3322d2c8ea0feb47e8490cf9": [
+      "VlSTRACORP",
+      "VST",
+      28,
+      885,
+      "2026-07-08"
+    ],
+    "oge-278t:348f07f2bf7707f74a06c03d": [
+      "ARGANINC",
+      "AGX",
+      19,
+      576,
+      "2026-07-08"
+    ],
+    "oge-278t:36c83acf45941578ac94c19c": [
+      "TANGER INC REIT",
+      "SKT",
+      12,
+      362,
+      "2026-07-29"
+    ],
+    "oge-278t:36ea9634e19facfa785753d2": [
+      "CHIPOTLE MEXICAN GRILL INC CL A",
+      "CMG",
+      30,
+      940,
+      "2026-07-08"
+    ],
+    "oge-278t:3746e0c2dc8d051d2fa54e4a": [
+      "UNITED NAT FOODS INC",
+      "UNFI",
+      18,
+      535,
+      "2026-07-29"
+    ],
+    "oge-278t:3964baae4842fa5ec3ee3f95": [
+      "BLUE OWL CAPITAL INC CL A",
+      "OWL",
+      5,
+      101,
+      "2026-07-17"
+    ],
+    "oge-278t:3a91de09bb8ecf07895a2bff": [
+      "CISCO SYS INC",
+      "CSCO",
+      7,
+      188,
+      "2026-07-31"
+    ],
+    "oge-278t:3abf11f5e817c2073fac4851": [
+      "GE HEALTHCARE TECHNOLOGI",
+      "GEHC",
+      25,
+      785,
+      "2026-07-24"
+    ],
+    "oge-278t:3c02b1f259f5f882658a8181": [
+      "VERIZON COMMUNICATIONS I",
+      "VZ",
+      26,
+      820,
+      "2026-07-24"
+    ],
+    "oge-278t:3ca89c4b06cb5b7ef84c8b66": [
+      "COMCAST CORP NEW CLASS CLASS A",
+      "CMCSA",
+      22,
+      693,
+      "2026-07-27"
+    ],
+    "oge-278t:3cd37932c7dfcbc3af1f64e9": [
+      "ALTRIA GROUP INC",
+      "MO",
+      7,
+      197,
+      "2026-07-31"
+    ],
+    "oge-278t:3d595c108c213babc4fed1d5": [
+      "DORMAN PRODS INC",
+      "DORM",
+      12,
+      347,
+      "2026-07-29"
+    ],
+    "oge-278t:3d7cd58f0d79f36cf8f907ef": [
+      "Disney Walt Co",
+      "DIS",
+      6,
+      145,
+      "2026-07-17"
+    ],
+    "oge-278t:405a6b7a46fadfe90305bc1a": [
+      "ABBOTT LABS",
+      "ABT",
+      7,
+      190,
+      "2026-07-31"
+    ],
+    "oge-278t:44138f6ef9c36fcd83ad1dcf": [
+      "MATTHEWS INTL CORP CLASS A",
+      "MATW",
+      15,
+      460,
+      "2026-07-29"
+    ],
+    "oge-278t:44554bd2f68e7300153c8d62": [
+      "VERSANT MEDIA GROUP INC CLASS CLASS A",
+      "VSNT",
+      15,
+      461,
+      "2026-07-08"
+    ],
+    "oge-278t:4737da3fb3547c0a736fc033": [
+      "Cbre Grouo Inc",
+      "CBRE",
+      6,
+      146,
+      "2026-07-17"
+    ],
+    "oge-278t:4b6e94cba35887898ce3fee9": [
+      "AMERICAN EAGLE OUTFITTER",
+      "AEO",
+      18,
+      556,
+      "2026-07-29"
+    ],
+    "oge-278t:4cedc372692338cbdc10c413": [
+      "PHILIP MORRIS INTL INC",
+      "PM",
+      7,
+      187,
+      "2026-07-31"
+    ],
+    "oge-278t:4e5366beae2e2bc5708f6d9e": [
+      "VULCAN MATERIALS CO",
+      "VMC",
+      36,
+      1133,
+      "2026-07-23"
+    ],
+    "oge-278t:4e9fa32a2e06d6103b352447": [
+      "• ACADEMY SPORTS & OUTDOOR",
+      "ASO",
+      18,
+      546,
+      "2026-07-29"
+    ],
+    "oge-278t:528679fd0d6d9aae74f73d2d": [
+      "CONSTELLATION BRANDS INC CLASS A",
+      "STZ",
+      9,
+      245,
+      "2026-07-08"
+    ],
+    "oge-278t:5304fbb4c2fb3503b44495cc": [
+      "OMNICELL INC",
+      "OMCL",
+      17,
+      516,
+      "2026-07-29"
+    ],
+    "oge-278t:53ee1a66f5b26f2d6ed1a7ab": [
+      "MUELLER WATER PRODUC CI.J\\SS SERIES A",
+      "MWA",
+      19,
+      580,
+      "2026-07-29"
+    ],
+    "oge-278t:5524024a8d96413ad081557a": [
+      "Microsoft Coro",
+      "MSFT",
+      7,
+      169,
+      "2026-07-17"
+    ],
+    "oge-278t:578de95209e843fed0e25736": [
+      "BRADY CORP CLASS A",
+      "BRC",
+      18,
+      538,
+      "2026-07-29"
+    ],
+    "oge-278t:57fb5a552e51f7226f094c76": [
+      "AMERICAN TOWER CORP NEW REIT",
+      "AMT",
+      29,
+      894,
+      "2026-07-08"
+    ],
+    "oge-278t:5e91e2714c8deca706659cae": [
+      "ATI.J\\NTIC UN BANKSHARES C",
+      "AUB",
+      19,
+      585,
+      "2026-07-29"
+    ],
+    "oge-278t:5fd95629339329188e4c5fc4": [
+      "Zoetislnc",
+      "ZTS",
+      6,
+      134,
+      "2026-07-17"
+    ],
+    "oge-278t:608461166207f9b9f333241d": [
+      "HOME DEPOT INC",
+      "HD",
+      7,
+      178,
+      "2026-07-31"
+    ],
+    "oge-278t:64d1f52f9133deeef5712322": [
+      "PATRICK INDS INC",
+      "PATK",
+      21,
+      629,
+      "2026-07-29"
+    ],
+    "oge-278t:66537df312b02465ca96ca3c": [
+      "EASTMAN CHEM CO",
+      "EMN",
+      12,
+      341,
+      "2026-07-08"
+    ],
+    "oge-278t:683dfb6b8e8d71a5a494899d": [
+      "RXOINC",
+      "RXO",
+      13,
+      381,
+      "2026-07-29"
+    ],
+    "oge-278t:6a7cf21d35562c058f2d6a05": [
+      "CROWN CASTlE IN C",
+      "CCI",
+      36,
+      1130,
+      "2026-07-23"
+    ],
+    "oge-278t:6c61768be2be46745375f278": [
+      "WATSCO INC CLASS A",
+      "WSO",
+      7,
+      191,
+      "2026-07-22"
+    ],
+    "oge-278t:6d4ba8d63acf8a207c4d012b": [
+      "AMENTIJM HLDGS INC EQUITY",
+      "AMTM",
+      14,
+      422,
+      "2026-07-08"
+    ],
+    "oge-278t:6e7b127baeef19b0727fa7c2": [
+      "CHEWY INC CLASS A",
+      "CHWY",
+      28,
+      873,
+      "2026-07-08"
+    ],
+    "oge-278t:6edb6800bfd420ed027f7f1c": [
+      "KROGER CO",
+      "KR",
+      36,
+      1129,
+      "2026-07-23"
+    ],
+    "oge-278t:73ce53c22902d25e6a481101": [
+      "HEALTHCARE SVCS GROUP IN",
+      "HCSG",
+      12,
+      348,
+      "2026-07-29"
+    ],
+    "oge-278t:73d5467195613aa39fac41f7": [
+      "ARTISAN PARTNERS ASSET M CLASS A",
+      "APAM",
+      11,
+      327,
+      "2026-07-08"
+    ],
+    "oge-278t:754ded874850c5e76ff2c0e7": [
+      "INSTALLED BLDG PRODS INC",
+      "IBP",
+      18,
+      549,
+      "2026-07-29"
+    ],
+    "oge-278t:7742ff55227eaa7447ee0916": [
+      "!DE.XX LABS INC",
+      "IDXX",
+      28,
+      883,
+      "2026-07-08"
+    ],
+    "oge-278t:7c8ffd7b6242a58c7d1a5032": [
+      "BROADCOM INC",
+      "AVGO",
+      7,
+      180,
+      "2026-07-31"
+    ],
+    "oge-278t:817bbeaa9ad74f42d0c15291": [
+      "BENCHMARK ELECTRS INC",
+      "BHE",
+      13,
+      394,
+      "2026-07-29"
+    ],
+    "oge-278t:8389b9f25c36fd48a9d4910b": [
+      "NORTHWEST NAT HLDG CO",
+      "NWN",
+      15,
+      452,
+      "2026-07-29"
+    ],
+    "oge-278t:86c3d3d90c13f4fa7aae4124": [
+      "SOLARI$ ENERGY INFRSTR CLASS A",
+      "SEI",
+      19,
+      579,
+      "2026-07-29"
+    ],
+    "oge-278t:86e61da8fdf2907c2c945eda": [
+      "BGC GROUP INC CI.J\\SS A",
+      "BGC",
+      19,
+      584,
+      "2026-07-29"
+    ],
+    "oge-278t:8aac3a79323a7895873e39e8": [
+      "CME GROUP INC CLASS A",
+      "CME",
+      7,
+      182,
+      "2026-07-16"
+    ],
+    "oge-278t:8b3bb35e34734a1102b4e41e": [
+      "WENDYS CO CLASS A",
+      "WEN",
+      12,
+      338,
+      "2026-07-29"
+    ],
+    "oge-278t:8b4bfc4528754e78b9945c8b": [
+      "ZOETIS INC CLASS A",
+      "ZTS",
+      25,
+      784,
+      "2026-07-24"
+    ],
+    "oge-278t:8cced1376ffb161bd4d5d9f6": [
+      "BOSTON SOENTIFIC CORP",
+      "BSX",
+      36,
+      1141,
+      "2026-07-23"
+    ],
+    "oge-278t:8e122d9d4c2020d293bed852": [
+      "TJX COS INC NEW",
+      "TJX",
+      25,
+      790,
+      "2026-07-24"
+    ],
+    "oge-278t:8f2bdc574feec76f7489106c": [
+      "GENPACT LTD F",
+      "G",
+      25,
+      782,
+      "2026-07-24"
+    ],
+    "oge-278t:9108556a4892f40533bb952c": [
+      "WORTHINGTON ENTERPRI",
+      "WOR",
+      14,
+      407,
+      "2026-07-29"
+    ],
+    "oge-278t:9320f3b0acfdad498cc9d378": [
+      "CHEFS WHSE INC",
+      "CHEF",
+      13,
+      386,
+      "2026-07-29"
+    ],
+    "oge-278t:93ab8dbab050af98b03596ad": [
+      "EVERUS CONSTR GROUP INC",
+      "ECG",
+      14,
+      420,
+      "2026-07-29"
+    ],
+    "oge-278t:9432eaa8535a446e7e56e65a": [
+      "ELLINGTON FINL INC REIT",
+      "EFC",
+      13,
+      391,
+      "2026-07-29"
+    ],
+    "oge-278t:9503dda2e40008218bfd5588": [
+      "ABMINDSINC",
+      "ABM",
+      18,
+      561,
+      "2026-07-29"
+    ],
+    "oge-278t:956775223c4e229d063b5e3b": [
+      "S&P GLOBAL INC",
+      "SPGI",
+      7,
+      181,
+      "2026-07-16"
+    ],
+    "oge-278t:9d601f38a1f99bc60c7da277": [
+      "CORVELCORP",
+      "CRVL",
+      12,
+      360,
+      "2026-07-29"
+    ],
+    "oge-278t:9ff0eea29f004b954f4da045": [
+      "CISCO SYSTEMS INC",
+      "CSCO",
+      30,
+      957,
+      "2026-07-08"
+    ],
+    "oge-278t:a207586ed125a0c81e766a5c": [
+      "OFG BANCORP F",
+      "OFG",
+      14,
+      421,
+      "2026-07-29"
+    ],
+    "oge-278t:a2cbf04260e5c3ee9b8d6557": [
+      "GOGOINC",
+      "GOGO",
+      15,
+      439,
+      "2026-07-08"
+    ],
+    "oge-278t:a4059df3778780d9ec15f032": [
+      "AMA2ONINC",
+      "AMZN",
+      33,
+      1039,
+      "2026-07-20"
+    ],
+    "oge-278t:a5e8ea525773021d19148454": [
+      "NXP SEMICONDUCTORS N V COM EUR",
+      "NXPI",
+      30,
+      950,
+      "2026-07-08"
+    ],
+    "oge-278t:a70ca3db3d3f59d76f4dd9ba": [
+      "INTlJITlVE SURGICAL INC",
+      "ISRG",
+      36,
+      1150,
+      "2026-07-23"
+    ],
+    "oge-278t:a792d0f57b12f4d16c526bdd": [
+      "MUELLER WATER PRODUC CLASS SERIES A",
+      "MWA",
+      15,
+      456,
+      "2026-07-08"
+    ],
+    "oge-278t:a7b9036a2d9aff70f4e806c4": [
+      "FASTENAL CO",
+      "FAST",
+      7,
+      194,
+      "2026-07-31"
+    ],
+    "oge-278t:aa271fa48fca255468def560": [
+      "PFIZER INC",
+      "PFE",
+      7,
+      195,
+      "2026-07-31"
+    ],
+    "oge-278t:ad1cbd31e2eda01335913e7f": [
+      "Accenture Pie Ireland",
+      "ACN",
+      6,
+      144,
+      "2026-07-17"
+    ],
+    "oge-278t:af1416d7d332cd8e665db18e": [
+      "MEDTRONIC PLC F I",
+      "MDT",
+      27,
+      840,
+      "2026-07-08"
+    ],
+    "oge-278t:b50f7576fc96b270351a4900": [
+      "SAUL CTRS INC REIT",
+      "BFS",
+      18,
+      557,
+      "2026-07-29"
+    ],
+    "oge-278t:b51afb66eaa7fe7e575489ca": [
+      "CROWN CASTLE INC REIT REIT",
+      "CCI",
+      24,
+      730,
+      "2026-07-27"
+    ],
+    "oge-278t:b6c9667b897b0d2dd8391e20": [
+      "LAUDER ESTEE COS CL A",
+      "EL",
+      30,
+      939,
+      "2026-07-08"
+    ],
+    "oge-278t:b7f611894cc6f9932f64adac": [
+      "DAVE INC CLASS CLASS A",
+      "DAVE",
+      11,
+      321,
+      "2026-07-29"
+    ],
+    "oge-278t:b943958da9dc84e6a68f9be8": [
+      "PROCTER & GAMBLE CO",
+      "PG",
+      7,
+      183,
+      "2026-07-31"
+    ],
+    "oge-278t:bbaeac29d4e0be338447c0c3": [
+      "ACCENTIJRE PLC",
+      "ACN",
+      36,
+      1148,
+      "2026-07-23"
+    ],
+    "oge-278t:bbdeec042b5efd70b77ae28f": [
+      "NETFLIXINC",
+      "NFLX",
+      36,
+      1153,
+      "2026-07-23"
+    ],
+    "oge-278t:bc1cbf4a8274fe9e6f381ea7": [
+      "QUEST DIAGNOSllCS INC",
+      "DGX",
+      35,
+      1122,
+      "2026-07-23"
+    ],
+    "oge-278t:bd5906c0369ece848f87c75c": [
+      "TERADYNEINC",
+      "TER",
+      5,
+      108,
+      "2026-07-17"
+    ],
+    "oge-278t:bd8bd85ea7c4e0adf3801b88": [
+      "DISNEY WALT CO",
+      "DIS",
+      26,
+      815,
+      "2026-07-24"
+    ],
+    "oge-278t:c08e7fa18cbe5b141b245563": [
+      "ALPHA & OMEGA SEMICOND F",
+      "AOSL",
+      15,
+      449,
+      "2026-07-29"
+    ],
+    "oge-278t:c0a200f444dc5799336121cd": [
+      "TEMPUS Al INC CLASS A",
+      "TEM",
+      24,
+      733,
+      "2026-07-27"
+    ],
+    "oge-278t:c0db9a2f9ee5aa4f17665a5b": [
+      "ICHOR HLDGS LTD F",
+      "ICHR",
+      17,
+      497,
+      "2026-07-08"
+    ],
+    "oge-278t:c256dc894365b20b4ba28da4": [
+      "NTNL BK HLDGS CORP A CLASS A",
+      "NBHC",
+      11,
+      316,
+      "2026-07-29"
+    ],
+    "oge-278t:c3186c0b77f76fb5d2ebf245": [
+      "CREDO TECHNOLOGY GROUP F",
+      "CRDO",
+      24,
+      731,
+      "2026-07-27"
+    ],
+    "oge-278t:c4baa50416748b28c6a9a4f4": [
+      "NIKE INC CLASS CLASS B",
+      "NKE",
+      7,
+      186,
+      "2026-07-22"
+    ],
+    "oge-278t:c9e24f2e23a2e9d5e4d00373": [
+      "Uber Techn<>k><lies Inc",
+      "UBER",
+      6,
+      147,
+      "2026-07-17"
+    ],
+    "oge-278t:caadbbfefc5a6789c00dd0c6": [
+      "TKO GROUP HLDGS INC CL A",
+      "TKO",
+      30,
+      944,
+      "2026-07-08"
+    ],
+    "oge-278t:cb385a57731f42c824055637": [
+      "Boston Scientific Coro",
+      "BSX",
+      6,
+      162,
+      "2026-07-17"
+    ],
+    "oge-278t:ce049c6aa997d7dc1d7e8cfd": [
+      "ANDERSONS INC",
+      "ANDE",
+      13,
+      396,
+      "2026-07-29"
+    ],
+    "oge-278t:cf2fa32f7936391a3b435a56": [
+      "ACCENTURE PLC IRELAND F CLASS A",
+      "ACN",
+      29,
+      899,
+      "2026-07-08"
+    ],
+    "oge-278t:cfffc04a152a316d1e5e6bfd": [
+      "OXFORD INDS INC",
+      "OXM",
+      14,
+      401,
+      "2026-07-29"
+    ],
+    "oge-278t:d0d58e2dac760227ed87a108": [
+      "POWELL INDS INC",
+      "POWL",
+      14,
+      426,
+      "2026-07-08"
+    ],
+    "oge-278t:d2c79a953a4d4c8166be62ae": [
+      "DISNEY WALT CO",
+      "DIS",
+      28,
+      863,
+      "2026-07-08"
+    ],
+    "oge-278t:d2fb936c42e3ac4f9131fd80": [
+      "DUKE ENERGY CORP NEW",
+      "DUK",
+      7,
+      193,
+      "2026-07-31"
+    ],
+    "oge-278t:d41a0c416fa27d94000e1104": [
+      "CUSHMAN & WAKEFIELD F",
+      "CWK",
+      15,
+      430,
+      "2026-07-29"
+    ],
+    "oge-278t:d59e41965b3e363eb9d8968e": [
+      "Nvidia Coll>",
+      "NVDA",
+      7,
+      170,
+      "2026-07-17"
+    ],
+    "oge-278t:d5f0f712cc372b7084d259a6": [
+      "ZOETIS INC CLASS A",
+      "ZTS",
+      9,
+      241,
+      "2026-07-08"
+    ],
+    "oge-278t:d65288a73f556323be70a60a": [
+      "CHIPOTLE MEXICAN GRILL I",
+      "CMG",
+      24,
+      732,
+      "2026-07-27"
+    ],
+    "oge-278t:d6b2a2e08d038b1164d20e1a": [
+      "RADNETINC",
+      "RDNT",
+      17,
+      523,
+      "2026-07-29"
+    ],
+    "oge-278t:d7c3af271c4c076417a51ae1": [
+      "CrhPlc",
+      "CRH",
+      6,
+      159,
+      "2026-07-17"
+    ],
+    "oge-278t:d85eb1033dcb46f6eae29dac": [
+      "TEXASINSTRSINC",
+      "TXN",
+      7,
+      179,
+      "2026-07-31"
+    ],
+    "oge-278t:dae18c4e7baff3bcdfc8e7a9": [
+      "SAFEHOLD INC REIT REIT",
+      "SAFE",
+      14,
+      400,
+      "2026-07-29"
+    ],
+    "oge-278t:dc9c3bd96f985c0b0a3855a9": [
+      "FULLERH BCO",
+      "FUL",
+      21,
+      646,
+      "2026-07-29"
+    ],
+    "oge-278t:ddedcb6cc99ef30c64501fd0": [
+      "OSI SYS INC",
+      "OSIS",
+      21,
+      634,
+      "2026-07-29"
+    ],
+    "oge-278t:e014412f18b4114243a167e3": [
+      "UNDER ARMOUR INC CLASS C",
+      "UA",
+      15,
+      433,
+      "2026-07-29"
+    ],
+    "oge-278t:e2d4bf1c0422725206c7fb97": [
+      "0-1 GLASS INC",
+      "OI",
+      10,
+      287,
+      "2026-07-08"
+    ],
+    "oge-278t:e85ca2bab8ba56442e981af8": [
+      "CITIZENS FINL GROCJP INC",
+      "CFG",
+      9,
+      234,
+      "2026-07-31"
+    ],
+    "oge-278t:ea1a3eb46fd18bca55e12f20": [
+      "LYFT INC CLASS CLASS A",
+      "LYFT",
+      13,
+      376,
+      "2026-07-08"
+    ],
+    "oge-278t:ea83be0ab8b94c684188e5c9": [
+      "PTCINC",
+      "PTC",
+      4,
+      98,
+      "2026-07-17"
+    ],
+    "oge-278t:ed25ba9f99ce0a3adef4991c": [
+      "Costco Whsl Coro",
+      "COST",
+      6,
+      142,
+      "2026-07-17"
+    ],
+    "oge-278t:ef94d9e29f096e9ddea179a6": [
+      "VISA INC CLASS A",
+      "V",
+      9,
+      243,
+      "2026-07-16"
+    ],
+    "oge-278t:f0e4d069bce95910e2b59901": [
+      "APPLOVIN CORP CLASS A",
+      "APP",
+      28,
+      880,
+      "2026-07-08"
+    ],
+    "oge-278t:f0f92cd3e50de56ae12b825c": [
+      "IMPINJINC",
+      "PI",
+      14,
+      403,
+      "2026-07-29"
+    ],
+    "oge-278t:f248c1b0a9bbfe014a87e2fd": [
+      "CONMEDCORP",
+      "CNMD",
+      20,
+      604,
+      "2026-07-08"
+    ],
+    "oge-278t:f36c5e73803e09c2e922f9b2": [
+      "VERIZON COMMUNICATIONS I",
+      "VZ",
+      7,
+      189,
+      "2026-07-31"
+    ],
+    "oge-278t:f38fde12830a4f04a9e224e0": [
+      "V,straCt>m",
+      "VST",
+      6,
+      136,
+      "2026-07-17"
+    ],
+    "oge-278t:f4cc685d05109f65e40a5115": [
+      "SHENANDOAH TELECOMMUNICA",
+      "SHEN",
+      11,
+      328,
+      "2026-07-29"
+    ],
+    "oge-278t:f53b1de3dfd864df2300588c": [
+      "ALKERMES PLC F",
+      "ALKS",
+      21,
+      657,
+      "2026-07-29"
+    ],
+    "oge-278t:f71fd36274ad6e6478c22959": [
+      "LTC PPTYS INC REIT",
+      "LTC",
+      14,
+      404,
+      "2026-07-29"
+    ],
+    "oge-278t:f782d7f337210fc094bea6ff": [
+      "COMSTOCK RES INC",
+      "CRK",
+      15,
+      453,
+      "2026-07-29"
+    ],
+    "oge-278t:f89a4fbea1b01afa6e2c545f": [
+      "HERTZ GLOBAL HLDGS INC N",
+      "HTZ",
+      12,
+      354,
+      "2026-07-08"
+    ],
+    "oge-278t:fb8db814ae185ef4c29e2dc0": [
+      "NETAPPINC",
+      "NTAP",
+      30,
+      954,
+      "2026-07-08"
+    ],
+    "oge-278t:fc998ed361f00c1d98ed1bc8": [
+      "CROWN CASTLE INC REIT REIT",
+      "CCI",
+      28,
+      874,
+      "2026-07-08"
+    ]
+  }
+}

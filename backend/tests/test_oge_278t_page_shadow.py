@@ -255,7 +255,9 @@ class Oge278TPageShadowTests(unittest.TestCase):
             with (patch.dict(sys.modules, {"pdfplumber": SimpleNamespace(
                     open=lambda _: Document())}),
                   patch("unison_snapshot.oge_278t_page_shadow.probe_raster_row_bands",
-                        return_value=census) as probe):
+                        return_value=census) as probe,
+                  patch("unison_snapshot.oge_278t_raster_inventory.audit_raster_source_inventory",
+                        return_value={"report_completeness_attested": False}) as audit):
                 with self.assertRaisesRegex(ValueError, "source differs"):
                     inspect_pdf(path, raster_ocr_records=[
                         {"page_number": 1, "geometry_top": 103}])
@@ -264,6 +266,8 @@ class Oge278TPageShadowTests(unittest.TestCase):
                     raster_ocr_source_sha256=sha)
             probe.assert_called_once_with(path, expected_sha256=sha,
                                           page_numbers=[1])
+            audit.assert_called_once_with(path, expected_sha256=sha, census=census,
+                                          document_page_count=1)
         self.assertEqual(result["raster_ocr_coverage"]["physical_slot_count"], 2)
         self.assertEqual(result["raster_ocr_coverage"]["slots"][1]["status"],
                          "physical_slot_without_ocr_row")
@@ -279,9 +283,10 @@ class Oge278TPageShadowTests(unittest.TestCase):
         self.assertEqual(result["row_coverage"], "unknown")
         self.assertEqual(result["candidate_row_bands"], [])
 
-    def test_native_endnotes_is_not_transaction_table(self):
+    def test_native_endnotes_heading_alone_is_not_a_non_table_proof(self):
         result = inspect_page(Page("Endnotes. Summary of Contents " * 5), 4)
-        self.assertEqual(result["coverage"], "non_table_section")
+        self.assertEqual(result["coverage"], "coverage_unknown")
+        self.assertEqual(result['page_role_proof']['status'],'unknown')
 
 
 if __name__ == "__main__":

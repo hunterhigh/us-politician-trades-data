@@ -18,6 +18,47 @@ def write(root: Path, name: str, value: dict):
 
 
 class SenateStatusTests(unittest.TestCase):
+    def test_no_known_rows_with_unknown_coverage_has_unknown_status_counts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence, review = self.fixture(Path(folder), ["report"])
+            self.archive(evidence, "report")
+            self.extract(review, "report", 0)
+            self.audit(review,
+                quarantined_reports=[{"document_id": "report", "source_sha256": SHA,
+                                      "reasons": ["source_row_coverage_incomplete"]}],
+                paper_pending_projection={"source_report_coverage": [
+                    {"document_id": "report", "source_sha256": SHA,
+                     "relation_coverage": "partial_unknown", "logical_row_count": 0,
+                     "unknown_slot_count": 8, "coverage_unknown_pages": [1]}]})
+            record = build_senate_status(evidence, review, [], [])[0]["reports"][0]
+            self.assertEqual(record["qualification_state"], "unknown")
+            self.assertIsNone(record["qualified_transaction_count"])
+            self.assertIsNone(record["quarantined_row_count"])
+
+    def test_bound_unknown_pages_keep_known_transactions_but_prevent_full_report_claim(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence, review = self.fixture(Path(folder), ["report"])
+            self.archive(evidence, "report")
+            self.extract(review, "report")
+            coverage = {"document_id": "report", "source_sha256": SHA,
+                        "relation_coverage": "partial_unknown", "logical_row_count": 1,
+                        "unknown_slot_count": 8, "coverage_unknown_pages": [1], "unobserved_pages": [1]}
+            self.audit(review, qualified_rows=[{"document_id": "report", "source_sha256": SHA,
+                                              "transaction_id": "q1"}],
+                       paper_pending_projection={"source_report_coverage": [coverage]})
+            row = build_senate_status(evidence, review, [], [])[0]["reports"][0]
+            self.assertEqual(row["qualification_state"], "partial")
+            self.assertEqual(row["qualified_transaction_count"], 1)
+            self.assertEqual(row["quarantined_row_count"], 0)
+            self.assertEqual(row["source_row_coverage"]["unknown_slot_count"], 8)
+            coverage["source_sha256"] = "f" * 64
+            self.audit(review, qualified_rows=[{"document_id": "report", "source_sha256": SHA,
+                                              "transaction_id": "q1"}],
+                       paper_pending_projection={"source_report_coverage": [coverage]})
+            row = build_senate_status(evidence, review, [], [])[0]["reports"][0]
+            self.assertEqual(row["qualification_state"], "qualified")
+            self.assertNotIn("source_row_coverage", row)
+
     def fixture(self, root: Path, current: list[str]):
         evidence, review = root / "evidence", root / "review"
         write(review, "status/senate_efd.json", {
@@ -164,18 +205,58 @@ class SenateStatusTests(unittest.TestCase):
             self.assertEqual(result["qualification_state"], "not_evaluated")
             self.assertIsNone(result["qualified_transaction_count"])
 
-    def test_empty_transaction_list_requires_evaluated_zero_report(self):
+    def test_empty_transaction_list_requires_source_bound_per_report_decision(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence, review = self.fixture(Path(folder), ["zero", "not-evaluated"])
+            for doc in ["zero", "not-evaluated"]:
+                self.archive(evidence, doc)
+                self.extract(review, doc, 0)
+            self.audit(review, empty_eligible_report_count=1)
+            records = build_senate_status(evidence, review, [], [])[0]["reports"]
+            self.assertTrue(all(r["qualification_state"] == "not_evaluated" for r in records))
+            zero_url = "https://efdsearch.senate.gov/search/view/ptr/zero/"
+            filed = "Filed 10/16/2026 @ 1:00 PM"
+            write(review, f"senate_efd/extractions/zero/{SHA}/{PARSER}.json", {
+                "document_id": "zero", "source_sha256": SHA, "transactions": [],
+                "source_url": zero_url, "filed_at_raw": filed})
+            decision = {"document_id": "zero", "source_sha256": SHA,
+                        "source_url": zero_url, "filed_at_raw": filed,
+                        "basis": "qualified_empty_transaction_table_with_complete_source_coverage"}
+            self.audit(review, empty_eligible_report_count=1, empty_eligible_reports=[decision])
+            records = {r["report_id"]: r for r in build_senate_status(evidence, review, [], [])[0]["reports"]}
+            self.assertEqual(records["zero"]["qualification_state"], "zero_transactions")
+            self.assertEqual(records["zero"]["qualified_transaction_count"], 0)
+            self.assertEqual(records["not-evaluated"]["qualification_state"], "not_evaluated")
+            self.assertIsNone(records["not-evaluated"]["qualified_transaction_count"])
+            for updates in ({"source_sha256": "f" * 64}, {"source_url": "https://wrong/"},
+                            {"filed_at_raw": "Filed 10/16/2026"}):
+                with self.subTest(updates=updates):
+                    changed = dict(decision, **updates)
+                    self.audit(review, empty_eligible_report_count=1, empty_eligible_reports=[changed])
+                    if "source_sha256" in updates:
+                        record = next(r for r in build_senate_status(evidence, review, [], [])[0]["reports"] if r["report_id"] == "zero")
+                        self.assertEqual(record["qualification_state"], "not_evaluated")
+                        self.assertIsNone(record["qualified_transaction_count"])
+                    else:
+                        with self.assertRaisesRegex(ValueError, "invalid|source extraction"):
+                            build_senate_status(evidence, review, [], [])
+
+    def test_empty_report_decisions_reject_count_duplicates_and_contradictory_rows(self):
         with tempfile.TemporaryDirectory() as folder:
             evidence, review = self.fixture(Path(folder), ["zero"])
             self.archive(evidence, "zero")
             self.extract(review, "zero", 0)
-            self.audit(review)
-            record = build_senate_status(evidence, review, [], [])[0]["reports"][0]
-            self.assertEqual(record["qualification_state"], "not_evaluated")
-            self.audit(review, empty_eligible_report_count=1)
-            record = build_senate_status(evidence, review, [], [])[0]["reports"][0]
-            self.assertEqual(record["qualification_state"], "zero_transactions")
-            self.assertEqual(record["qualified_transaction_count"], 0)
+            row = {"document_id": "zero", "source_sha256": SHA,
+                   "source_url": "https://efdsearch.senate.gov/search/view/ptr/zero/",
+                   "filed_at_raw": "Filed 10/16/2026",
+                   "basis": "qualified_empty_transaction_table_with_complete_source_coverage"}
+            for count, rows, qualified in ((2, [row], []), (2, [row, row], []),
+                                          (1, [row], [{"document_id": "zero", "source_sha256": SHA, "transaction_id": "one"}])):
+                with self.subTest(count=count, rows=len(rows), qualified=qualified):
+                    self.audit(review, empty_eligible_report_count=count, empty_eligible_reports=rows,
+                               qualified_rows=qualified)
+                    with self.assertRaises(ValueError):
+                        build_senate_status(evidence, review, [], [])
 
     def test_filed_date_uses_report_field_and_id_only_publication_can_bind(self):
         with tempfile.TemporaryDirectory() as folder:

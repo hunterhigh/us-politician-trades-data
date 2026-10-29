@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .oge_278t_field_shadow import _date_shape
 from .oge_278t_rapid_column_shadow import observe_rapid_column
+from .oge_278t_field_shadow import _dual_geometry, _secondary_slot_geometry
 
 
 SCHEMA = "oge-278t-date-column-observation/v1"
@@ -53,6 +54,7 @@ def observe_date_column(pdf_path: Path, *, slots_observation: dict,
             counts[comparison] += 1
             counts["observed_slots"] += 1
             row_results.append({"slot_index": raw_slot["slot_index"],
+                                **_secondary_slot_geometry(originals[number],slot),
                                 "band_pdf_points": raw_slot["band_pdf_points"],
                                 "column_raw_ocr_text": raw,
                                 "column_detections": items,
@@ -62,6 +64,8 @@ def observe_date_column(pdf_path: Path, *, slots_observation: dict,
                                 "comparison": comparison,
                                 "qualification": "not_assessed"})
         results.append({"page_number": number, "status": "date_column_observed",
+                        **({"geometry_mode":page["geometry_mode"],"crop_pdf_points":page["crop_pdf_points"],
+                            "unassigned_detections":page["unassigned_detections"]} if _dual_geometry(originals[number]) else {}),
                         "slot_count": len(row_results),
                         "detections_outside_slots": page["detections_outside_slots"],
                         "slots": row_results})

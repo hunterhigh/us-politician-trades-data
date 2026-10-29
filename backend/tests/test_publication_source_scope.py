@@ -4,11 +4,12 @@ from pathlib import Path
 import subprocess
 import tempfile
 import sys
+import json
 import unittest
 
 
 spec = importlib.util.spec_from_file_location("publication_source_scope",
-    Path(__file__).resolve().parents[1] / "scripts/publication_source_scope.py")
+    Path(__file__).resolve().parents[1] / "src/unison_snapshot/commands/publication_source_scope.py")
 scope = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scope)
 
@@ -83,14 +84,12 @@ class SourceScopeTests(unittest.TestCase):
                         self.assertEqual((worktree / path).read_bytes(), raw)
                 self.assertEqual(git(worktree, "status", "--porcelain"), "")
                 # Restore inputs needed by the new parser's status replay through
-                # its existing CLI flag. House receipts still suffice in this mode.
+                # its existing CLI flag. v1 House consumers also replay original PDFs.
                 output = subprocess.check_output([sys.executable, str(Path(scope.__file__)),
                     "--root", str(worktree), "--kind", kind, "--keep-parser-inputs"],
                     text=True, encoding="utf-8")
                 parser_result = json.loads(output.splitlines()[-1])
-                remaining = ({"house_clerk/documents/2026/123/a.pdf",
-                              "house_clerk/financial-reports/2026/124/a.pdf"}
-                             if kind == "evidence" else set())
+                remaining = set()
                 self.assertEqual(parser_result["profile"], "parser-safe")
                 self.assertEqual(parser_result["omitted_files"], len(remaining))
                 self.assertEqual(parser_result["omitted_blobs_already_present"], 0)
@@ -106,6 +105,52 @@ class SourceScopeTests(unittest.TestCase):
                 self.assertTrue(all((full / p).read_bytes() == raw for p, raw in files.items()))
                 self.assertTrue(all(not (worktree / p).exists() for p in remaining))
                 self.assertEqual(git(worktree, "status", "--porcelain"), "")
+
+
+    def test_parser_safe_cli_restores_replay_bytes_and_leaves_other_worktrees_unchanged(self):
+        with tempfile.TemporaryDirectory(prefix="parser-safe-scope-") as folder:
+            root = Path(folder).resolve()
+            repo = root / "repo"
+            repo.mkdir()
+            def git(cwd, *args):
+                return subprocess.check_output(["git", "-C", str(cwd), *args],
+                    stderr=subprocess.PIPE, text=True, encoding="utf-8").strip()
+            git(repo, "init")
+            files = {
+                "whitehouse/ocr-checkpoints/doc/saved.json": b'{"pages":[{"words":[]}]}',
+                "oge/catalog/pages/source.json": b'{"data":[],"recordsTotal":0}',
+                "oge/catalog/metadata.json": b'{"pages":[{"archive_path":"oge/catalog/pages/source.json"}]}',
+                "candidates/sources/oge-current.json": b'{"transactions":[]}',
+            }
+            for path, raw in files.items():
+                target = repo / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(raw)
+            git(repo, "add", ".")
+            git(repo, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "replay inputs")
+            commit = git(repo, "rev-parse", "HEAD")
+            untouched = root / "untouched"
+            git(repo, "worktree", "add", "--detach", str(untouched), commit)
+            for kind in ("review", "evidence"):
+                selected = root / kind
+                git(repo, "worktree", "add", "--detach", "--no-checkout", str(selected), commit)
+                # The unchanged default still omits the upstream collection paths.
+                result = scope.apply_scope(selected, kind)
+                self.assertEqual(result["profile"], "publication")
+                self.assertEqual(result["omitted_files"], 1)
+                output = subprocess.check_output([sys.executable, str(Path(scope.__file__)),
+                    "--root", str(selected), "--kind", kind, "--keep-parser-inputs"],
+                    text=True, encoding="utf-8")
+                result = json.loads(output.splitlines()[-1])
+                self.assertEqual(result["profile"], "parser-safe")
+                self.assertEqual(result["omitted_files"], 0)
+                self.assertEqual(result["selected_files"], len(files))
+                self.assertEqual(result["selected_bytes"], sum(map(len, files.values())))
+                self.assertEqual(git(selected, "rev-parse", "HEAD"), commit)
+                self.assertEqual(git(selected, "status", "--porcelain"), "")
+                self.assertTrue(all((selected / p).read_bytes() == raw for p, raw in files.items()))
+                self.assertTrue(all((untouched / p).read_bytes() == raw for p, raw in files.items()))
+                self.assertEqual(git(untouched, "status", "--porcelain"), "")
 
 
 if __name__ == "__main__":

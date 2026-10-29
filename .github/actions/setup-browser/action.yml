@@ -1,0 +1,11 @@
+name: Set up the pinned browser client
+description: Install locked npm dependencies and the browser revision paired with Playwright
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: frontend-e2e
+      run: |
+        npm ci
+        node node_modules/playwright-core/cli.js install --with-deps chromium
+        node --input-type=module -e "import {chromium} from 'playwright-core'; console.log('PLAYWRIGHT_CHROMIUM_EXECUTABLE=' + chromium.executablePath())" >> "$GITHUB_ENV"

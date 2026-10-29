@@ -1,0 +1,1444 @@
+{
+  "schema_version": "source-correction/v1",
+  "source": "house_clerk",
+  "document_id": "9115820",
+  "source_sha256": "e1254f953327174fe80a856137e386c3dea42aa58728d350105822bfabab6860",
+  "filing_year": 2026,
+  "reviewed_at": "2026-10-28",
+  "profile": "reviewed-printed-house-ptr/v1",
+  "assertions": {
+    "source_review_sha256": "26965538b444125c49ce33ea2b51fd51842af23252a7f40b23b53c9c49203107",
+    "filed_date": "2026-05-04",
+    "person_id": "house:M001157",
+    "printed_a_variant": "A1000",
+    "owner_codes": {
+      "SP": "Spouse"
+    },
+    "allowed_fields": [
+      "account_title",
+      "asset_name",
+      "owner"
+    ],
+    "row_inventory": [
+      "p1#2",
+      "p1#3",
+      "p1#4",
+      "p1#5",
+      "p1#6",
+      "p1#7",
+      "p1#8",
+      "p1#9",
+      "p1#10",
+      "p1#11",
+      "p1#12",
+      "p1#13",
+      "p1#14",
+      "p1#15",
+      "p1#16",
+      "p1#17",
+      "p1#18",
+      "p1#19",
+      "p1#20",
+      "p1#21",
+      "p1#22",
+      "p1#23",
+      "p1#24",
+      "p1#25",
+      "p1#26",
+      "p2#1",
+      "p2#2",
+      "p2#3",
+      "p2#4",
+      "p2#5",
+      "p2#6",
+      "p2#7",
+      "p2#8",
+      "p2#9",
+      "p2#10",
+      "p2#11",
+      "p2#12",
+      "p2#13",
+      "p2#14",
+      "p2#15",
+      "p2#16",
+      "p2#17",
+      "p2#18",
+      "p2#19",
+      "p2#20",
+      "p2#21",
+      "p2#22",
+      "p2#23",
+      "p2#24",
+      "p2#25",
+      "p2#26",
+      "p3#1",
+      "p3#2",
+      "p3#3",
+      "p3#4",
+      "p3#5",
+      "p3#6",
+      "p3#7",
+      "p3#8",
+      "p3#9",
+      "p3#10",
+      "p3#11",
+      "p3#12",
+      "p3#13",
+      "p3#14",
+      "p3#15",
+      "p3#16",
+      "p3#17",
+      "p3#18",
+      "p3#19",
+      "p3#20",
+      "p3#21",
+      "p3#22",
+      "p3#23",
+      "p3#24",
+      "p3#25",
+      "p3#26",
+      "p4#2",
+      "p4#4",
+      "p4#6",
+      "p4#8",
+      "p4#9",
+      "p4#11",
+      "p4#12",
+      "p4#14",
+      "p4#16"
+    ]
+  },
+  "source_review": {
+    "schema_version": "house-paper-fixed-source-review/v2",
+    "document_id": "9115820",
+    "source_sha256": "e1254f953327174fe80a856137e386c3dea42aa58728d350105822bfabab6860",
+    "prior_document_id": "9115728",
+    "prior_source_sha256": "38fd4e814542a1010e7df774145956510e37f0b6c2085bbf84c4a0077ef5d767",
+    "prior_filed_date": "2026-04-08",
+    "prior_page_count": 5,
+    "prior_page_data_counts": [
+      25,
+      26,
+      25,
+      21,
+      1
+    ],
+    "prior_rotated_pages": [
+      2,
+      5
+    ],
+    "prior_physical_counts": {
+      "data_candidate": 98,
+      "account_heading_or_unknown": 8,
+      "blank": 1
+    },
+    "prior_data_event_month": "2026-03",
+    "prior_latest_data_event_date": "2026-03-31",
+    "reviewed_page_count": 4,
+    "target_page_data_counts": [
+      25,
+      26,
+      26,
+      9
+    ],
+    "target_data_event_month": "2026-04",
+    "physical_counts": {
+      "data_candidate": 86,
+      "section_heading": 8,
+      "blank": 1
+    },
+    "observation_sha256": "6ccf9e3e02885643a96d6b212f2d6e7508acf86de7e948b12ab3af9870f65dd5",
+    "qualification_raw_sha256": "e757f8d0baee40a91e493f76512cf59ce168d481f1dc120f2f3c65b2d9767ca0",
+    "expected_eligible_count": 86,
+    "section_headings": [
+      {
+        "page": 1,
+        "band": 1,
+        "title": "LLM FAMILY INVESTMENTS LP",
+        "asset_crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      },
+      {
+        "page": 4,
+        "band": 1,
+        "title": "LLM FAMILY INVESTMENTS II LP",
+        "asset_crop_sha256": "a7dc23385147c2a6bc1855b7a5353231f9cd257cbef2def812565ca206819861"
+      },
+      {
+        "page": 4,
+        "band": 3,
+        "title": "LINDA MAYS MCCAUL 2005 DESCENDANT TRUST",
+        "asset_crop_sha256": "ea17f1f1c61505efb11b30f38718eb1411f7b68e5ddd68f3d332f0f1a7b7d707"
+      },
+      {
+        "page": 4,
+        "band": 5,
+        "title": "LINDA M MCCAUL 2005 GST EXEMPT DESC TRUST",
+        "asset_crop_sha256": "fe345dc6c44424fbfe61cab1b4d4e2ea5ab987e56f2202f22730f169c7a08c08"
+      },
+      {
+        "page": 4,
+        "band": 7,
+        "title": "LINDA MAYS MCCAUL 2006 DESCENDANT TRUST",
+        "asset_crop_sha256": "b7f1936c1226fe62349eda45e68c49e803b29c46e7633f40da732cbb40b8535b"
+      },
+      {
+        "page": 4,
+        "band": 10,
+        "title": "MAYS FAMILY TRUST #1",
+        "asset_crop_sha256": "6c6f76ce67a73f59b8edacf40a38f14ab47529e96b7f7372b71fb587841ef12d"
+      },
+      {
+        "page": 4,
+        "band": 13,
+        "title": "LINDA MAYS MCCAUL",
+        "asset_crop_sha256": "dc8c90f1d18fd0274a2707740f204330b7a09003c395546c25eec3492fd224e6"
+      },
+      {
+        "page": 4,
+        "band": 15,
+        "title": "MICHAEL MCCAUL",
+        "asset_crop_sha256": "34ae05c7ff0c650ee23d65aeab8659c84349ba06da6e88f5f107ffc30b15c7ff"
+      }
+    ],
+    "asset_corrections": [
+      {
+        "page": 1,
+        "band": 8,
+        "asset_name": "LONG BEACH CALIF UNI SCH DIST GO BDS",
+        "asset_crop_sha256": "62457794c01a1e8aaa16df560820f2a851489e068382200b69cca167560062a9"
+      },
+      {
+        "page": 2,
+        "band": 10,
+        "asset_name": "REDDIT INC CL A",
+        "asset_crop_sha256": "996c34eefc39368f8608e2b72964bdd7535e02a91eeb1686ebcee3e651266f35"
+      },
+      {
+        "page": 2,
+        "band": 24,
+        "asset_name": "Mays-Allocate 2025 LP",
+        "asset_crop_sha256": "c38f8b1aeaf694c46f055eae6dbe53d84b7afbb1aa5577c666660d1db427a302"
+      },
+      {
+        "page": 3,
+        "band": 23,
+        "asset_name": "NORTHERN TAX-ADVGT ULTRA-SHRT FIXED INC",
+        "asset_crop_sha256": "48887fa66e8b3a0b2ed0e6e14c4efc097d056e9040939009092e346d137009d6"
+      },
+      {
+        "page": 4,
+        "band": 11,
+        "asset_name": "CLIFFWATER CORPORATE LENDING FUND",
+        "asset_crop_sha256": "d6d28e0f3fe1118bcd2ab2079e23ac0696c1f2484351d540a4f0a1c3bc3d7132"
+      }
+    ],
+    "owner_corrections": [
+      {
+        "page": 4,
+        "band": 16,
+        "owner": "Self",
+        "owner_crop_sha256": "84e8a66079ee18526d93669e2b2718a6bcea199c361c2a9fbfcb095c33e57a43",
+        "account_heading_page": 4,
+        "account_heading_band": 15
+      }
+    ]
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "p1#2",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#3",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#4",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#5",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#6",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#7",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#8",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#8",
+      "field": "asset_name",
+      "expect": "LONG BEACH CALIF UNI SCH DIST GO BDS.",
+      "value": "LONG BEACH CALIF UNI SCH DIST GO BDS",
+      "evidence": {
+        "page": 1,
+        "band": 8,
+        "cell": "asset",
+        "crop_sha256": "62457794c01a1e8aaa16df560820f2a851489e068382200b69cca167560062a9"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#9",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#10",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#11",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#12",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#13",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#14",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#15",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#16",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#17",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#18",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#19",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#20",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#21",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#22",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#23",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#24",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#25",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p1#26",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#1",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#2",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#3",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#4",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#5",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#6",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#7",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#8",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#9",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#10",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#10",
+      "field": "asset_name",
+      "expect": "REDDIT {NCCLA",
+      "value": "REDDIT INC CL A",
+      "evidence": {
+        "page": 2,
+        "band": 10,
+        "cell": "asset",
+        "crop_sha256": "996c34eefc39368f8608e2b72964bdd7535e02a91eeb1686ebcee3e651266f35"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#11",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#12",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#13",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#14",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#15",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#16",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#17",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#18",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#19",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#20",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#21",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#22",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#23",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#24",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#24",
+      "field": "asset_name",
+      "expect": "Mays-Allocate 2025 LP .",
+      "value": "Mays-Allocate 2025 LP",
+      "evidence": {
+        "page": 2,
+        "band": 24,
+        "cell": "asset",
+        "crop_sha256": "c38f8b1aeaf694c46f055eae6dbe53d84b7afbb1aa5577c666660d1db427a302"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#25",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#26",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#1",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#2",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#3",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#4",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#5",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#6",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#7",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#8",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#9",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#10",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#11",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#12",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#13",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#14",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#15",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#16",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#17",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#18",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#19",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#20",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#21",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#22",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#23",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#23",
+      "field": "asset_name",
+      "expect": "NORTHERN TAX-ADVGT ULTRA-SHRT FIXED INC -",
+      "value": "NORTHERN TAX-ADVGT ULTRA-SHRT FIXED INC",
+      "evidence": {
+        "page": 3,
+        "band": 23,
+        "cell": "asset",
+        "crop_sha256": "48887fa66e8b3a0b2ed0e6e14c4efc097d056e9040939009092e346d137009d6"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#24",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#25",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#26",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS LP",
+      "evidence": {
+        "page": 1,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "eb3dbd348602ab9b62f9d3a2a93d83de75a330fa4a1377446fcb2e2e53065926"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#2",
+      "field": "account_title",
+      "expect": null,
+      "value": "LLM FAMILY INVESTMENTS II LP",
+      "evidence": {
+        "page": 4,
+        "band": 1,
+        "cell": "asset",
+        "crop_sha256": "a7dc23385147c2a6bc1855b7a5353231f9cd257cbef2def812565ca206819861"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#4",
+      "field": "account_title",
+      "expect": null,
+      "value": "LINDA MAYS MCCAUL 2005 DESCENDANT TRUST",
+      "evidence": {
+        "page": 4,
+        "band": 3,
+        "cell": "asset",
+        "crop_sha256": "ea17f1f1c61505efb11b30f38718eb1411f7b68e5ddd68f3d332f0f1a7b7d707"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#6",
+      "field": "account_title",
+      "expect": null,
+      "value": "LINDA M MCCAUL 2005 GST EXEMPT DESC TRUST",
+      "evidence": {
+        "page": 4,
+        "band": 5,
+        "cell": "asset",
+        "crop_sha256": "fe345dc6c44424fbfe61cab1b4d4e2ea5ab987e56f2202f22730f169c7a08c08"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#8",
+      "field": "account_title",
+      "expect": null,
+      "value": "LINDA MAYS MCCAUL 2006 DESCENDANT TRUST",
+      "evidence": {
+        "page": 4,
+        "band": 7,
+        "cell": "asset",
+        "crop_sha256": "b7f1936c1226fe62349eda45e68c49e803b29c46e7633f40da732cbb40b8535b"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#9",
+      "field": "account_title",
+      "expect": null,
+      "value": "LINDA MAYS MCCAUL 2006 DESCENDANT TRUST",
+      "evidence": {
+        "page": 4,
+        "band": 7,
+        "cell": "asset",
+        "crop_sha256": "b7f1936c1226fe62349eda45e68c49e803b29c46e7633f40da732cbb40b8535b"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#11",
+      "field": "account_title",
+      "expect": null,
+      "value": "MAYS FAMILY TRUST #1",
+      "evidence": {
+        "page": 4,
+        "band": 10,
+        "cell": "asset",
+        "crop_sha256": "6c6f76ce67a73f59b8edacf40a38f14ab47529e96b7f7372b71fb587841ef12d"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#11",
+      "field": "asset_name",
+      "expect": "CLIFFWATER CORPORATE LENDING FUND |",
+      "value": "CLIFFWATER CORPORATE LENDING FUND",
+      "evidence": {
+        "page": 4,
+        "band": 11,
+        "cell": "asset",
+        "crop_sha256": "d6d28e0f3fe1118bcd2ab2079e23ac0696c1f2484351d540a4f0a1c3bc3d7132"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#12",
+      "field": "account_title",
+      "expect": null,
+      "value": "MAYS FAMILY TRUST #1",
+      "evidence": {
+        "page": 4,
+        "band": 10,
+        "cell": "asset",
+        "crop_sha256": "6c6f76ce67a73f59b8edacf40a38f14ab47529e96b7f7372b71fb587841ef12d"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#14",
+      "field": "account_title",
+      "expect": null,
+      "value": "LINDA MAYS MCCAUL",
+      "evidence": {
+        "page": 4,
+        "band": 13,
+        "cell": "asset",
+        "crop_sha256": "dc8c90f1d18fd0274a2707740f204330b7a09003c395546c25eec3492fd224e6"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#16",
+      "field": "account_title",
+      "expect": null,
+      "value": "MICHAEL MCCAUL",
+      "evidence": {
+        "page": 4,
+        "band": 15,
+        "cell": "asset",
+        "crop_sha256": "34ae05c7ff0c650ee23d65aeab8659c84349ba06da6e88f5f107ffc30b15c7ff"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#16",
+      "field": "owner",
+      "expect": null,
+      "value": "Self",
+      "evidence": {
+        "page": 4,
+        "band": 16,
+        "cell": "owner",
+        "crop_sha256": "84e8a66079ee18526d93669e2b2718a6bcea199c361c2a9fbfcb095c33e57a43"
+      }
+    }
+  ]
+}

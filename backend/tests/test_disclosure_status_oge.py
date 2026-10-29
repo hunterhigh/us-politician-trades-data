@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from copy import deepcopy
 import json
 from pathlib import Path
 import sys
@@ -60,6 +61,94 @@ class OgeDisclosureStatusTests(unittest.TestCase):
 
     def build(self, transactions=None, holdings=None):
         return build_oge_status(self.evidence, self.review, transactions or [], holdings or [])
+
+    def observed_reference(self):
+        self.archive()
+        old = {"schema_version": "oge-278t-extraction/v1", "parser_version": "oge-278t-pdf/v2",
+            "source_id": "oge", "document_id": self.doc, "source_sha256": self.sha, "source_url": self.url,
+            "transactions": [{"extraction_id": "oge-278t:" + "1" * 24, "page_number": 2}],
+            "quarantined": [{"extraction_id": "oge-278t:" + str(i) * 24, "page_number": 2} for i in (2, 3)]}
+        self.write(self.review, f"oge/extractions/{self.doc}/{self.sha}/parser-v1.json", old)
+        digest = hashlib.sha256(json.dumps(old, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        slots = [{"source_sha256": self.sha, "page_number": 2, "slot_key": str(i),
+                  "disposition": "materialized" if i == 1 else "unresolved"} for i in (1, 2)]
+        slots[0]["extraction_id"] = "oge-278t:" + "b" * 24
+        return {"document_id": self.doc, "source_sha256": self.sha, "promoted_count": 0,
+            "quarantined_count": 2, "quarantine_count_unit": "observed_slots_not_whole_source_unique_rows",
+            "unique_source_quarantined_row_count": None,
+            "legacy_normalized_reference_count": 1, "legacy_quarantined_reference_count": 2,
+            "document_reasons": ["filed_at_invalid"], "quarantined": [
+                {"extraction_id": slots[0]["extraction_id"], "reasons": ["filed_at_invalid"]},
+                {"observation_reference": {key: slots[1][key] for key in ("source_sha256", "page_number", "slot_key")},
+                 "reasons": ["type_reading_unresolved"]}],
+            "observation_receipt": {"schema_version": "oge-278t-observed-facts/v1", "source_sha256": self.sha,
+                "coverage_complete": False, "legacy_inventory_basis": "normalized_disposition_reference_without_physical_inventory",
+                "legacy_normalized_not_sent_to_qualification": True, "unique_source_row_count": None,
+                "legacy_reference_sha256": digest, "legacy_normalized_transaction_count": 1,
+                "legacy_quarantined_reference_count": 2, "rows": slots, "observed_slot_count": 2,
+                "unknown_regions": [], "unobserved_pages": [1, 3], "geometry_unknown_pages": [],
+                "page_count_basis": "declared_only"}}
+
+    def test_bound_observed_counts_remain_separate_from_unknown_whole_source_total(self):
+        audit = self.observed_reference()
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        record = self.build()[0]["reports"][0]
+        self.assertIsNone(record["quarantined_row_count"])
+        self.assertIsNone(record["unique_source_quarantined_row_count"])
+        self.assertEqual(record["observed_quarantined_slot_count"], 2)
+        self.assertEqual(record["observed_slot_count"], 2)
+        self.assertEqual(record["legacy_normalized_reference_count"], 1)
+        self.assertEqual(record["legacy_quarantined_reference_count"], 2)
+        self.assertEqual(record["qualification_state"], "quarantined")
+        self.assertEqual(record["source_observation_coverage"]["unobserved_pages"], [1, 3])
+        audit["promoted_count"] = 1
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+        self.assertEqual(self.build()[0]["reports"][0]["qualification_state"], "partial")
+
+    def test_observation_unit_label_cannot_replace_receipt_and_reference_binding(self):
+        original = self.observed_reference()
+        cases = []
+        changed = deepcopy(original); changed.pop("observation_receipt"); cases.append(changed)
+        changed = deepcopy(original); changed.pop("quarantine_count_unit"); cases.append(changed)
+        changed = deepcopy(original); changed["legacy_normalized_reference_count"] = 146; cases.append(changed)
+        changed = deepcopy(original); changed["observation_receipt"]["legacy_reference_sha256"] = "f" * 64; cases.append(changed)
+        changed = deepcopy(original); changed["observation_receipt"]["rows"][1]["slot_key"] = "1"; cases.append(changed)
+        changed = deepcopy(original); changed["quarantined_count"] = 0; cases.append(changed)
+        changed = deepcopy(original); changed["quarantined"][1]["observation_reference"]["source_sha256"] = "b" * 64; cases.append(changed)
+        for index, audit in enumerate(cases):
+            with self.subTest(case=index):
+                self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+                with self.assertRaises(ValueError):
+                    self.build()
+
+    def test_unknown_regions_bind_unique_geometry_slots_without_inventing_source_sha(self):
+        original = self.observed_reference()
+        receipt = original["observation_receipt"]
+        receipt.update(unknown_regions=[{"page_number": 3, "slot_key": "1", "disposition": "unknown",
+            "reason": "column_geometry_unknown", "field_observation_ref": None}],
+            geometry_unknown_pages=[3], unobserved_pages=[1], observed_slot_count=3)
+        self.write(self.review, "oge/qualifications/current.json", {"reports": [original]})
+        self.assertEqual(self.build()[0]["reports"][0]["observed_slot_count"], 3)
+        for change in ("empty", "duplicate", "known", "source", "geometry", "unobserved"):
+            audit = deepcopy(original)
+            current = audit["observation_receipt"]
+            if change == "empty":
+                current["unknown_regions"] = [{}]
+            elif change == "duplicate":
+                current["unknown_regions"] *= 2
+                current["observed_slot_count"] = 4
+            elif change == "known":
+                current["unknown_regions"][0]["page_number"] = 2
+            elif change == "source":
+                current["unknown_regions"][0]["source_sha256"] = "f" * 64
+            elif change == "geometry":
+                current["geometry_unknown_pages"] = []
+            else:
+                current["unobserved_pages"] = [1, 3]
+            with self.subTest(change=change):
+                self.write(self.review, "oge/qualifications/current.json", {"reports": [audit]})
+                with self.assertRaises(ValueError):
+                    self.build()
 
     def test_manual_cover_date_is_visible_after_source_bound_qualification(self):
         self.catalog([{"access_method": "direct_pdf", "source_document_id": self.doc,
@@ -276,6 +365,93 @@ class OgeDisclosureStatusTests(unittest.TestCase):
         (self.evidence / f"oge/catalog/normalized/{digest}.json").write_text("{}", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "hash differs"):
             self.build()
+
+    def test_known_direct_annual_facts_do_not_create_a_false_278t_report(self):
+        self.catalog([])
+        self.write(self.evidence, f"oge/annual/reports/{self.doc}/{self.sha}.json", {
+            "document_id": self.doc, "document_url": self.url, "sha256": self.sha})
+        transaction = {"id": "annual-tx", "source_id": "oge", "source_url": self.url}
+        holding = {"id": "annual-holding", "source_id": "oge", "source_url": self.url}
+        direct, _, _, annual = self.build([transaction], [holding])
+        self.assertEqual(direct["reports"], [])
+        self.assertEqual(direct["unmatched_publication_transaction_ids"], [])
+        self.assertEqual(annual["scope_id"], "oge_direct_278e")
+        record = annual["reports"][0]
+        self.assertEqual(record["document_type"], "278e_annual")
+        self.assertEqual(record["publication_transaction_ids"], ["annual-tx"])
+        self.assertEqual(record["publication_holding_ids"], ["annual-holding"])
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIsNone(record["quarantined_row_count"])
+        self.archive()
+        with self.assertRaisesRegex(ValueError, "also classified"):
+            self.build([transaction], [holding])
+
+    def annual_audit(self):
+        self.write(self.evidence, f"oge/annual/reports/{self.doc}/{self.sha}.json", {
+            "document_id": self.doc, "document_url": self.url, "sha256": self.sha})
+        report = {"document_id": self.doc, "source_sha256": self.sha, "report_reasons": [],
+            "row_qualification": [
+                {"candidate_id": "t", "formal_id": "annual-tx", "section": "part7", "disposition": "qualified", "reasons": []},
+                {"candidate_id": "h", "formal_id": "annual-holding", "section": "part2", "disposition": "qualified", "reasons": []},
+                {"candidate_id": "gap", "section": "part2", "disposition": "quarantined", "reasons": ["holding_value_missing"]}]}
+        self.save_annual_audit(report)
+        return report
+
+    def save_annual_audit(self, report):
+        self.write(self.review, "whitehouse/annual/candidate-current.json", {"oge_annual": {
+            "schema_version": "oge-annual-candidate-audit/v1", "reports": [report]}})
+
+    def test_annual_observed_counts_keep_value_gaps_and_unknown_physical_total(self):
+        self.catalog([])
+        self.annual_audit()
+        tx = {"id": "annual-tx", "source_id": "oge", "source_url": self.url, "filed_at": "2023-05-08T00:00:00Z"}
+        holding = {"id": "annual-holding", "source_id": "oge", "source_url": self.url}
+        record = self.build([tx], [holding])[3]["reports"][0]
+        self.assertEqual(record["qualification_state"], "partial")
+        self.assertEqual((record["qualified_transaction_count"], record["qualified_holding_count"]), (1, 1))
+        self.assertEqual(record["observed_quarantined_annual_row_count"], 1)
+        self.assertIsNone(record["quarantined_row_count"])
+        self.assertEqual(record["filed_date"], "2023-05-08")
+        self.assertEqual(record["publication_binding"], "verified")
+        self.assertIn("holding_value_missing", record["reason_codes"])
+        self.assertFalse(any(key.startswith("_") for key in record))
+
+    def test_annual_audit_cannot_change_source_version_or_duplicate_formal_rows(self):
+        self.catalog([])
+        report = self.annual_audit()
+        report["source_sha256"] = "b" * 64
+        self.save_annual_audit(report)
+        record = self.build()[3]["reports"][0]
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIn("annual_qualification_source_binding_unresolved", record["reason_codes"])
+        report["source_sha256"] = self.sha
+        report["row_qualification"][1]["formal_id"] = "annual-tx"
+        self.save_annual_audit(report)
+        with self.assertRaisesRegex(ValueError, "formal identities"):
+            self.build()
+
+    def test_unqualified_annual_publication_id_has_no_verified_qualification_binding(self):
+        self.catalog([])
+        self.annual_audit()
+        record = self.build([{"id": "other", "source_id": "oge", "source_url": self.url}])[3]["reports"][0]
+        self.assertEqual(record["publication_binding"], "unknown")
+        self.assertIn("published_annual_id_not_in_bound_qualification", record["reason_codes"])
+
+    def test_existing_part7_source_identity_binds_without_minting_an_id(self):
+        self.catalog([])
+        report = self.annual_audit()
+        row = report["row_qualification"][0]
+        row.pop("formal_id")
+        row.update(candidate_id="oge-annual-row:" + "c" * 24, source_row_identity_sha256="c" * 64)
+        self.save_annual_audit(report)
+        fact = {"id": row["candidate_id"], "source_id": "oge", "source_url": self.url}
+        self.assertEqual(self.build([fact])[3]["reports"][0]["publication_binding"], "verified")
+        row.pop("source_row_identity_sha256")
+        self.save_annual_audit(report)
+        record = self.build([fact])[3]["reports"][0]
+        self.assertEqual(record["qualification_state"], "unknown")
+        self.assertIsNone(record["qualified_transaction_count"])
+        self.assertIn("annual_formal_identity_binding_unavailable", record["reason_codes"])
 
 
 if __name__ == "__main__":

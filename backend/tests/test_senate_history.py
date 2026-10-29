@@ -150,6 +150,25 @@ class SenateHistoryTests(unittest.TestCase):
         self.assertEqual(result["targets"][0]["candidate_predecessors"], [predecessor])
         self.assertRegex(result["historical_identities_sha256"], r"^[0-9a-f]{64}$")
 
+    def test_explicit_target_scope_does_not_include_other_current_amendments(self):
+        from copy import deepcopy
+        values=list(inputs([report("21111111-1111-4111-8111-111111111111")]))
+        history,historical,status,audit,identities,extractions=values
+        original=extractions[0]['document_id'];other='61111111-1111-4111-8111-111111111111'
+        extraction=deepcopy(extractions[0]);extraction['document_id']=other
+        extractions.append(extraction)
+        identity=deepcopy(identities['identities'][0]);identity['document_id']=other
+        identities['identities'].append(identity);identities['report_count']=2
+        status['catalog_record_count']=2;status['report_evidence_count']=2
+        item=deepcopy(audit['quarantined_reports'][0]);item['document_id']=other
+        audit['quarantined_reports'].append(item);audit['input_transaction_count']=2
+        plan=plan_amendment_predecessors(*values,expected_target_count=1,selected_document_ids=[original])
+        self.assertEqual([r['amendment_document_id'] for r in plan['targets']],[original])
+        self.assertEqual(plan['status'],'ready')
+        for selected in [[original,original],['71111111-1111-4111-8111-111111111111']]:
+            with self.assertRaisesRegex(SenateHistoryError,'Selected amendment targets'):
+                plan_amendment_predecessors(*values,expected_target_count=1,selected_document_ids=selected)
+
     def test_missing_or_ambiguous_predecessor_requires_attention(self):
         for reports, count in ([[], 0], ([
                 report("21111111-1111-4111-8111-111111111111"),

@@ -8,6 +8,7 @@ on:
     types: [completed]
     branches: [code]
 permissions:
+  packages: read
   contents: write
   issues: write
   actions: write
@@ -20,14 +21,21 @@ jobs:
     if: github.ref == 'refs/heads/code'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: code
           fetch-depth: 1
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
       - name: Read current data and independent source state
         run: |
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/state:refs/remotes/origin/state
@@ -55,12 +63,12 @@ jobs:
             --main-root "$RUNNER_TEMP/health-main" \
             --state-root "$RUNNER_TEMP/health-state" --health-root "$RUNNER_TEMP/health-output" \
             --repository "$REPOSITORY" \
-            --observe-publication-runs --observe-assembly --apply-alerts \
+            --observe-publication-runs --observe-assembly --observe-source-quality --apply-alerts \
             --smoke-client-root "$GITHUB_WORKSPACE" --apply-content-rollback
       - name: Publish independent health state without moving the formal snapshot
         run: |
           state_root="$RUNNER_TEMP/health-output"
-          git -C "$state_root" add status/production_health.json status/publication_smoke.json
+          git -C "$state_root" add status/production_health.json status/publication_smoke.json status/quality_history.json
           if ! git -C "$state_root" diff --cached --quiet; then
             git -C "$state_root" config user.name "github-actions[bot]"
             git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"

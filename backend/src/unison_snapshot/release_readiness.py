@@ -1,4 +1,4 @@
-"""Fail-closed first-launch checks for the fixed review candidate."""
+"""Validate candidate bindings and explicit dispositions for the v1 publication scope."""
 from __future__ import annotations
 
 import json
@@ -8,7 +8,7 @@ from .codec import digest, encode
 
 
 class ReleaseReadinessError(ValueError):
-    """The review branch does not yet account for the first-launch scope."""
+    """The review candidate has an inconsistent source or disposition binding."""
 
 
 def _read(path: Path, label: str) -> dict:
@@ -31,11 +31,11 @@ def _count(value: dict, key: str, label: str) -> int:
 def _zero(value: dict, keys: tuple[str, ...], label: str) -> None:
     nonzero = {key: _count(value, key, label) for key in keys if _count(value, key, label)}
     if nonzero:
-        raise ReleaseReadinessError(f"{label} still has pending first-launch work: {nonzero}")
+        raise ReleaseReadinessError(f"{label} still has inconsistent source state: {nonzero}")
 
 
-def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
-    """Validate that every in-scope official input is accounted for before market fetch."""
+def validate_publication(review_root: Path, candidate_path: Path) -> dict:
+    """Validate source accounting without requiring quarantines and declared queues to vanish."""
     review_root = review_root.resolve()
     candidate_path = candidate_path.resolve()
     candidate = _read(candidate_path, "unified disclosure candidate")
@@ -50,10 +50,11 @@ def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
     house = _read(review_root / "status" / "house_clerk.json", "House PTR status")
     if house.get("schema_version") != "house-review-run/v1":
         raise ReleaseReadinessError("House PTR status schema is unsupported")
-    _zero(house, ("pending_parse_count", "status_conflict_count"), "House PTR status")
+    _zero(house, ("status_conflict_count",), "House PTR status")
     if _count(house, "evidence_count", "House PTR status") != (
             _count(house, "extracted_count", "House PTR status")
-            + _count(house, "failure_count", "House PTR status")):
+            + _count(house, "failure_count", "House PTR status")
+            + _count(house, "pending_parse_count", "House PTR status")):
         raise ReleaseReadinessError("House PTR evidence is not fully accounted for")
     if _count(house, "qualification_count", "House PTR status") != \
             _count(house, "extracted_count", "House PTR status"):
@@ -62,14 +63,14 @@ def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
     holdings = _read(review_root / "status" / "house_holdings.json", "House holdings status")
     if holdings.get("schema_version") != "house-holding-run/v1":
         raise ReleaseReadinessError("House holdings status schema is unsupported")
-    _zero(holdings, ("remaining_archive_count", "pending_parse_count"),
-          "House holdings status")
-    if _count(holdings, "evidence_count", "House holdings status") != \
+    if _count(holdings, "evidence_count", "House holdings status") + \
+            _count(holdings, "remaining_archive_count", "House holdings status") < \
             _count(holdings, "current_member_annual_count", "House holdings status"):
-        raise ReleaseReadinessError("House annual-report archive is incomplete")
+        raise ReleaseReadinessError("House annual-report archive queue is not accounted for")
     if _count(holdings, "evidence_count", "House holdings status") != (
             _count(holdings, "extraction_count", "House holdings status")
-            + _count(holdings, "failure_count", "House holdings status")):
+            + _count(holdings, "failure_count", "House holdings status")
+            + _count(holdings, "pending_parse_count", "House holdings status")):
         raise ReleaseReadinessError("House annual reports are not fully accounted for")
     if _count(holdings, "qualification_count", "House holdings status") != \
             _count(holdings, "extraction_count", "House holdings status"):
@@ -78,32 +79,36 @@ def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
     oge = _read(review_root / "status" / "oge.json", "OGE status")
     if oge.get("schema_version") != "oge-review-run/v1":
         raise ReleaseReadinessError("OGE status schema is unsupported")
-    _zero(oge, ("pending_direct_count", "extraction_failure_count"), "OGE status")
     direct = _count(oge, "direct_pdf_count", "OGE status")
-    if direct != _count(oge, "archived_report_count", "OGE status") \
-            or direct != _count(oge, "extraction_count", "OGE status"):
-        raise ReleaseReadinessError("OGE direct-PDF first-launch scope is incomplete")
+    archived = _count(oge, "archived_report_count", "OGE status")
+    if direct != archived + _count(oge, "pending_direct_count", "OGE status"):
+        raise ReleaseReadinessError("OGE direct-PDF archive queue is not accounted for")
+    if archived != (_count(oge, "extraction_count", "OGE status") +
+                    _count(oge, "extraction_failure_count", "OGE status") +
+                    (_count(oge, 'pending_extraction_count', 'OGE status') if 'pending_extraction_count' in oge else 0)):
+        raise ReleaseReadinessError("OGE direct-PDF extraction dispositions are not fully accounted for")
 
     senate = _read(review_root / "status" / "senate_efd.json", "Senate status")
     if senate.get("schema_version") != "senate-review-run/v1":
         raise ReleaseReadinessError("Senate status schema is unsupported")
-    _zero(senate, ("report_entrypoint_pending_count", "report_entrypoint_failure_count"),
-          "Senate status")
+    _count(senate, "report_entrypoint_failure_count", "Senate status")
     catalog = _count(senate, "catalog_record_count", "Senate status")
-    if catalog != _count(senate, "report_entrypoint_count", "Senate status"):
-        raise ReleaseReadinessError("Senate PTR entrypoint archive is incomplete")
+    entrypoints = _count(senate, "report_entrypoint_count", "Senate status")
+    if catalog != entrypoints + _count(senate, "report_entrypoint_pending_count", "Senate status"):
+        raise ReleaseReadinessError("Senate PTR entrypoint archive queue is not accounted for")
     report_failures = _count(senate, "report_extraction_failure_count", "Senate status")
-    if catalog != _count(senate, "report_evidence_count", "Senate status") + report_failures:
+    paper_pending = _count(senate, "paper_report_pending_count", "Senate status") if 'paper_report_pending_count' in senate else 0
+    if entrypoints != _count(senate, "report_evidence_count", "Senate status") + report_failures + paper_pending:
         raise ReleaseReadinessError("Senate electronic and paper PTRs are not fully accounted for")
     for key in ("paper_report_pending_count", "paper_page_pending_count"):
-        if key in senate and _count(senate, key, "Senate status"):
-            raise ReleaseReadinessError(f"Senate status still has pending paper work: {key}")
+        if key in senate:
+            _count(senate, key, "Senate status")
 
     cutoff = _read(review_root / "status" / "disclosure_cutoff.json",
                    "unified cutoff audit")
     if cutoff.get("schema_version") != "disclosure-cutoff-audit/v1" \
             or set((cutoff.get("sources") or {})) != {"house_clerk", "oge", "senate_efd"}:
-        raise ReleaseReadinessError("Unified cutoff audit does not cover all launch sources")
+        raise ReleaseReadinessError("Unified cutoff audit does not cover all publication sources")
     if cutoff.get("candidate_sha256") != digest(encode(candidate)):
         raise ReleaseReadinessError("Unified candidate does not match its cutoff audit")
     retained_transactions = retained_holdings = 0
@@ -135,6 +140,16 @@ def validate_first_launch(review_root: Path, candidate_path: Path) -> dict:
         raise ReleaseReadinessError("Unified candidate row counts do not match cutoff audit")
 
     return {
+        "readiness_policy": "v1-accounted-dispositions",
+        "pending": {
+            "house_ptr": _count(house, "pending_parse_count", "House PTR status"),
+            "house_annual_archive": _count(holdings, "remaining_archive_count", "House holdings status"),
+            "house_annual_parse": _count(holdings, "pending_parse_count", "House holdings status"),
+            "oge_direct_archive": _count(oge, "pending_direct_count", "OGE status"),
+            "senate_entrypoints": _count(senate, "report_entrypoint_pending_count", "Senate status"),
+            "senate_paper": paper_pending,
+        },
+        "oge_extraction_failure_count": _count(oge, "extraction_failure_count", "OGE status"),
         "people_count": len(candidate["people"]),
         "transaction_count": len(candidate["transactions"]),
         "reported_holding_count": len(candidate["reported_holdings"]),

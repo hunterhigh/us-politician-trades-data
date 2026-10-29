@@ -60,7 +60,15 @@ def relate_house_ptr_sections(observation: dict) -> dict:
     unknown_rows = []
     legend_rows = []
     active = None
+    previous_page = None
+    unread_pages = {page["page"] for page in observation["pages"]
+                    if page.get("region_status") == "coverage_unknown" or
+                       page.get("cell_status") == "unobserved_not_selected"}
     for index, (key, row) in enumerate(physical):
+        if previous_page is not None and any(
+                number in unread_pages for number in range(previous_page + 1, key[0] + 1)):
+            active = None
+        previous_page = key[0]
         disposition = row.get("disposition")
         next_is_data = (index + 1 < len(physical)
                         and physical[index + 1][1].get("disposition") == "data_candidate")

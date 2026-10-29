@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 
 from .builder import LAYOUT, SCHEMA
-from .builder import timestamp
+from .builder import timestamp, restore_shard_disclosure_relations
 from .codec import bucket, encode
 from .disclosure_status import (MAX_STATUS_BYTES, validate_reference, validate_summary,
                                 validate_page, validate_scope_records)
@@ -207,6 +207,19 @@ class PublicSnapshotRepository:
         health = value.get("source_health", [])
         if not isinstance(health, list) or any(not isinstance(row, dict) for row in health):
             raise PublicSnapshotError("Manifest source_health must be an array")
+        if 'known_gaps' in value:
+            from .known_gaps import MAX_BYTES, REFERENCE_SCHEMA, validate, validate_reference as gaps_reference
+            try:
+                reference = value['known_gaps']
+                if isinstance(reference, dict) and reference.get('schema_version') == REFERENCE_SCHEMA:
+                    gaps_reference(reference)
+                    raw = self._read(commit, f"status/{reference['sha256']}.json", MAX_BYTES)
+                    if len(raw) != reference['byte_length'] or hashlib.sha256(raw).hexdigest() != reference['sha256']:
+                        raise ValueError('Known data gaps byte length or hash mismatch')
+                    value['known_gaps'] = self._json(raw, 'known data gaps')
+                validate(value['known_gaps'])
+            except ValueError as error:
+                raise PublicSnapshotError(str(error)) from error
         market = value.get("market_commit")
         if market is not None and (not isinstance(market, str) or not SHA1.fullmatch(market)):
             raise PublicSnapshotError("Manifest market_commit is invalid")
@@ -381,10 +394,12 @@ class PublicSnapshotRepository:
         manifest = self.manifest(commit)
         if mode in {"dashboard", "search"}:
             board = self._content(commit, "board", manifest["board"])
+            relation_shard=board
             board["security_market_data"] = self._market_pages(manifest)
         elif mode == "person" and key:
             key = self._resolve_person_key(commit, manifest, key)
             entity = self._entity(commit, "people", key)
+            relation_shard=entity
             person = entity.get("person")
             if person is None and isinstance(entity.get("people"), list) and len(entity["people"]) == 1:
                 person = entity["people"][0]
@@ -396,6 +411,7 @@ class PublicSnapshotRepository:
         elif mode == "ticker" and key:
             key = key.upper()
             entity = self._entity(commit, "tickers", key)
+            relation_shard=entity
             board = {"people": entity.get("people"), "transactions": entity.get("transactions"),
                      "reported_holdings": entity.get("reported_holdings"),
                      "security_market_data": self._market(manifest, entity.get("requires"))}
@@ -409,6 +425,8 @@ class PublicSnapshotRepository:
             raise PublicSnapshotError("Assembled disclosure references a missing person")
         excluded = {"board", "source_health"}
         meta = {name: value for name, value in manifest.items() if name not in excluded}
+        try:restore_shard_disclosure_relations(meta,relation_shard,subset=mode in {'person','ticker'})
+        except ValueError as exc:raise PublicSnapshotError(str(exc)) from exc
         meta.update(snapshot_commit=commit, selection_scope={"mode": mode, "key": key,
                     "universe_complete": manifest.get("coverage", {}).get("universe_complete", False)})
         snapshot = {"meta": meta, **board, "source_health": manifest.get("source_health", [])}

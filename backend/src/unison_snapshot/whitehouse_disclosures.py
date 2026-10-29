@@ -11,6 +11,8 @@ from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
+from .source_transport import read_with_retry, TRANSPORT_ERRORS
+from .content_integrity import content_boundary
 import re
 import tempfile
 import urllib.error
@@ -196,16 +198,19 @@ class WhiteHouseDisclosureClient:
             "Accept": accept,
             "User-Agent": "unison-whitehouse-public-evidence/0.1 (+https://github.com/hunterhigh/us-politician-trades-data)",
         }, method="GET")
-        try:
+        def receive():
             with self.opener.open(request, timeout=self.timeout) as response:
                 if response.status != 200 or response.geturl() != url:
                     raise WhiteHouseDisclosureError("White House source redirected or returned non-200")
                 content = response.read(maximum + 1)
                 headers = {name.lower(): value for name, value in response.headers.items()
                            if name.lower() in {"content-type", "etag", "last-modified"}}
+            return content, headers
+        try:
+            content, headers = read_with_retry(receive)
         except urllib.error.HTTPError as exc:
             raise WhiteHouseDisclosureError(f"White House source returned HTTP {exc.code}") from None
-        except (urllib.error.URLError, TimeoutError):
+        except TRANSPORT_ERRORS:
             raise WhiteHouseDisclosureError("White House source is unavailable") from None
         if len(content) > maximum:
             raise WhiteHouseDisclosureError("White House source exceeds its size limit")
@@ -257,6 +262,7 @@ def archive_public_index(root: Path, *, client: WhiteHouseDisclosureClient | Non
     return index
 
 
+@content_boundary('official_hash')
 def read_archived_pdf(root: Path, metadata: dict) -> bytes:
     """Reassemble and hash-check original bytes from one evidence metadata row."""
     if not isinstance(metadata, dict):

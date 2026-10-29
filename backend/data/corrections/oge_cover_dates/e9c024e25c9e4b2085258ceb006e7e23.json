@@ -1,0 +1,89 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-cover-date/v1",
+  "source": "oge",
+  "document_id": "e9c024e25c9e4b2085258ceb006e7e23",
+  "source_sha256": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043",
+  "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/E9C024E25C9E4B2085258CEB006E7E23/$FILE/Donald-J-Trump-08.12.2025-278T.pdf",
+  "reviewed_at": "2026-10-28",
+  "parser_version": "oge-278t-pdf/v2",
+  "observation": {
+    "schema_version": "oge-manual-cover-date/v1",
+    "status": "observation_only",
+    "qualification_effect": "none",
+    "source_id": "oge",
+    "document_id": "e9c024e25c9e4b2085258ceb006e7e23",
+    "source_sha256": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043",
+    "page_number": 1,
+    "field_role": "filer_signature_date",
+    "raw_reading": "8/12/25",
+    "observed_date": "2025-08-12",
+    "source_url": "https://extapps2.oge.gov/201/Presiden.nsf/PAS+Index/E9C024E25C9E4B2085258CEB006E7E23/$FILE/Donald-J-Trump-08.12.2025-278T.pdf",
+    "recognition_method": "human_visual_reading_of_pdf_cover",
+    "filed_at": "2025-08-12",
+    "extraction_parser_version": "oge-278t-pdf/v2"
+  },
+  "source_review": {
+    "method": "preserved_human_visual_cover_observation",
+    "manifest_sha256": "64b9f4d94c3631315062a519449e232ca1064c42a0004b2b9a8dd3809c82965d",
+    "review_path": "oge/manual_cover_dates/e9c024e25c9e4b2085258ceb006e7e23/4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043.json"
+  },
+  "assertions": {
+    "row_inventory": []
+  },
+  "actions": [
+    {
+      "op": "set_report",
+      "field": "filed_at",
+      "expect": null,
+      "value": "2025-08-12",
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "8/12/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "document_reasons",
+      "expect": [
+        "filer_signature_date_not_unique"
+      ],
+      "value": [],
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "8/12/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "evidence_complete",
+      "expect": false,
+      "value": true,
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "8/12/25"
+      }
+    },
+    {
+      "op": "set_report",
+      "field": "manual_filing_date_evidence",
+      "expect": null,
+      "value": {
+        "review_path": "oge/manual_cover_dates/e9c024e25c9e4b2085258ceb006e7e23/4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043.json",
+        "page_number": 1,
+        "source_sha256": "4ff1b0a3c85c346123aba556077327cf6df2d2fb3514a7f0dd591ab06c2d2043",
+        "raw_reading": "8/12/25",
+        "observed_date": "2025-08-12"
+      },
+      "evidence": {
+        "page": 1,
+        "field_role": "filer_signature_date",
+        "raw_reading": "8/12/25"
+      },
+      "expect_present": false
+    }
+  ]
+}

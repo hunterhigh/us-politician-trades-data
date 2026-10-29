@@ -7,13 +7,14 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge_278e_audit import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
 from unison_snapshot.whitehouse_annual_review import build_annual_review
-from unison_snapshot.whitehouse_scanned_annual import apply_scanned_annual_corrections
+from annual_reviewed_fixture import synthetic_reviewed_cover, synthetic_cover_valid
 
 
 TRUMP_SHA = "1cc7951c6f72fab008e921903c9a1d03d41a9910239f954e208b501d608553a3"
@@ -112,6 +113,11 @@ def _trump_partial(*, page_number: int, owner: str = "Unknown") -> dict:
 
 class WhiteHouseAnnualGateCounterexampleTests(unittest.TestCase):
     def setUp(self) -> None:
+        for target, helper in [
+                ('unison_snapshot.whitehouse_annual_review.apply_reviewed_annual_corrections', synthetic_reviewed_cover),
+                ('unison_snapshot.oge_278e_audit.scanned_signature_evidence_valid', synthetic_cover_valid)]:
+            boundary = patch(target, side_effect=helper)
+            boundary.start(); self.addCleanup(boundary.stop)
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
@@ -170,7 +176,7 @@ class WhiteHouseAnnualGateCounterexampleTests(unittest.TestCase):
         for page_number in (159, 845):
             with self.subTest(page_number=page_number):
                 extraction = _trump_partial(page_number=page_number)
-                corrected = apply_scanned_annual_corrections(extraction)
+                corrected = synthetic_reviewed_cover(extraction)
                 audit = audit_public_278e(corrected)
                 decision = audit["holding_row_audit"][0]
                 self.assertFalse(decision["source_candidate_eligible"])
@@ -194,7 +200,7 @@ class WhiteHouseAnnualGateCounterexampleTests(unittest.TestCase):
             "row_number": "2",
             "text": "Joint Brokerage Account #2",
         }]
-        corrected = apply_scanned_annual_corrections(extraction)
+        corrected = synthetic_reviewed_cover(extraction)
 
         audit = audit_public_278e(corrected)
 

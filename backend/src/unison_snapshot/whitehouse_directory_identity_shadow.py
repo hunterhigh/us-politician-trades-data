@@ -11,6 +11,12 @@ import re
 from urllib.parse import urlsplit
 
 
+def complete_name_tokens(value: str) -> tuple[str, ...]:
+    """Keep every name token; only an explicit official title prefix is removed."""
+    value = re.sub(r"^(?:Vice\s+President|President)\s+", "", value.strip(), flags=re.I)
+    return tuple(sorted(re.findall(r"[a-z]+", value.casefold())))
+
+
 def _name_tokens(name: str) -> tuple[str, str] | None:
     parts = re.findall(r"[a-z]+", name.casefold())
     if len(parts) < 2:

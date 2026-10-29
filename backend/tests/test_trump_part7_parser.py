@@ -72,7 +72,7 @@ def _extract(pages: list[OcrPage], *, other_source: bool = False,
     source_sha256 = "a" * 64 if other_source else TRUMP_SHA256
     return _extract_page_rows(pages, _meta(), initial_reasons=[],
                               source_url=source_url, source_sha256=source_sha256,
-                              enable_trump_part7_recovery=enabled)
+                              enable_scanned_part7_recovery=enabled)
 
 
 def _transaction_page(*rows, marker: str = "*") -> OcrPage:

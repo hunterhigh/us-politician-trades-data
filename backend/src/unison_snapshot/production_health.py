@@ -1,7 +1,8 @@
 """Independent production health and idempotent GitHub Issue alerts.
 
-This observer cannot publish or roll back a snapshot. Transport failures preserve
-the previous health record and never count as proof of corrupt snapshot content.
+Health stays independent of the formal snapshot. Only a verified content failure
+can request the existing expected-head-bound rollback workflow; transport errors
+never grant that authority.
 """
 import argparse
 import base64
@@ -35,19 +36,22 @@ def latest_publication_deadline(now):
     raise ValueError('No publication window')
 
 
-def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None):
+def evaluate(manifest, source_status, previous=None, *, now=None, publication_success_at=None, assembly=None, smoke=None, integrity_failures=None):
     now = now or datetime.now(UTC)
     previous = previous or {}
     prior_sources = previous.get('sources', {})
     sources, alerts, blockers = {}, [], []
+    for failure in integrity_failures or []:
+        blockers.append({'source': failure['scope'], 'reason': 'content_integrity',
+                         'category': failure['category'], 'issue': failure['issue']})
     for source, hours in SOURCES.items():
         run = source_status.get(source, {})
         prior = prior_sources.get(source, {})
         attempted = run.get('run_at')
-        catalog = run.get('catalog', {})
-        last_success = (catalog.get('retrieved_at') if source in {'senate_efd', 'oge'} else
-            (attempted if run.get('status') == 'ok' else None))
-        last_success = last_success or prior.get('last_successful_collection_at')
+        catalog = run.get('catalog') or {}
+        last_success = run.get('last_successful_collection_at') or (catalog.get('retrieved_at') if source in {'senate_efd', 'oge'} else
+            (attempted if run.get('status') in {'ok', 'attention'} else None))
+        last_success = last_success or run.get('last_successful_collection_at') or prior.get('last_successful_collection_at')
         last_attempt = run.get('last_collection_attempt', {})
         if not last_success:
             published_health = next((h for h in manifest.get('source_health', []) if h.get('source_id') == source), {})
@@ -73,14 +77,16 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
     if assembly is not None:
         if assembly.get('schema_version') != 'disclosure-assembly-status/v1' or assembly.get('status') not in {'ready', 'deferred'}:
             raise ValueError('Unsupported assembly status')
-        if assembly['status'] == 'deferred':
-            cutoffs = assembly.get('source_cutoffs', {})
+        cutoffs = assembly.get('source_cutoffs', {})
+        if assembly['status'] == 'deferred' or cutoffs:
             if set(cutoffs) != set(SOURCES):
                 raise ValueError('Deferred assembly lacks the source waterlines')
             newest = max(timestamp(v) for v in cutoffs.values())
             for source, value in cutoffs.items():
                 if newest - timestamp(value) > timedelta(days=2):
                     blockers.append({'source': source, 'reason': 'candidate_cutoff_lag', 'candidate_cutoff_at': value})
+                elif now - timestamp(value) > timedelta(hours=SOURCES[source]):
+                    blockers.append({'source': source, 'reason': 'candidate_stale', 'candidate_cutoff_at': value})
     published = manifest.get('generated_at')
     candidates = [v for v in (publication_success_at, previous.get('last_successful_publication_check_at'), published) if v]
     last_live = max(candidates, key=timestamp) if candidates else None
@@ -97,6 +103,7 @@ def evaluate(manifest, source_status, previous=None, *, now=None, publication_su
         'last_successful_publication_check_at': last_live,
         'publication': 'held' if blockers else 'sources_recovered', 'assembly': assembly,
         'blocking_sources': blockers, 'sources': sources, 'alerts': alerts,
+        'integrity_failures': integrity_failures or [],
         'snapshot_changed': manifest.get('snapshot_id') != previous.get('snapshot_id'), 'smoke':smoke}
 
 
@@ -166,23 +173,35 @@ def reconcile_issues(api, health):
         prefix = '<!-- production-health:'
         if body.startswith(prefix) and issue.get('state', 'open') == 'open':
             key = body[len(prefix):].split(' -->', 1)[0]
-            if key not in current and key in {'publication', 'smoke', *('source:' + s for s in SOURCES)}:
+            closable = (key in {'publication', 'smoke', *('source:' + s for s in SOURCES)} or
+                        key in health.get('quality_observed_scopes', []) or
+                        key.startswith('quality-summary:') and any(k.startswith('quality-summary:') for k in current))
+            if key not in current and closable:
                 api.request('/issues/' + str(issue['number']), 'PATCH', {'state': 'closed', 'state_reason': 'completed'})
                 results.append({'key': key, 'number': issue['number'], 'action': 'closed'})
     return results
 
 
 def successful_publication_at(api):
-    # A successful market-only job or canceled run is not a publication check.
-    runs = api.request('/actions/workflows/publish-complete.yml/runs?branch=code&status=completed&per_page=30')
-    for run in runs['workflow_runs']:
-        if run['conclusion'] != 'success':
+    # Held assessments, legacy bootstrap and market-only runs grant no freshness.
+    completed = []
+    for workflow in ('publish.yml', 'publish-complete.yml'):
+        try:
+            runs = api.request('/actions/workflows/' + workflow + '/runs?branch=code&status=completed&per_page=30')
+        except HTTPError as error:
+            if error.code != 404:
+                raise
             continue
-        jobs = api.request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
-        for job in jobs['jobs']:
-            if job['name'] == 'publish' and job['conclusion'] == 'success':
-                return job['completed_at']
-    return None
+        for run in runs['workflow_runs']:
+            if run['conclusion'] != 'success' or run.get('name') != 'Publish complete production snapshot':
+                continue
+            jobs = api.request('/actions/runs/' + str(run['id']) + '/jobs?per_page=100')
+            live = [job['completed_at'] for job in jobs['jobs']
+                    if job['name'] == 'publish' and job['conclusion'] == 'success']
+            if live:
+                completed.extend(live)
+                break
+    return max(completed, key=timestamp) if completed else None
 
 
 def main():
@@ -196,6 +215,7 @@ def main():
     parser.add_argument('--apply-alerts', action='store_true')
     parser.add_argument('--publication-success-at')
     parser.add_argument('--observe-publication-runs', action='store_true')
+    parser.add_argument('--observe-source-quality', action='store_true')
     parser.add_argument('--smoke-client-root', type=Path)
     parser.add_argument('--apply-content-rollback', action='store_true')
     args = parser.parse_args()
@@ -220,7 +240,37 @@ def main():
         smoke = observe_smoke(api, repository=args.repository, commit=commit, manifest=manifest,
             client_root=args.smoke_client_root, health_root=args.health_root or args.state_root,
             apply=args.apply_content_rollback)
-    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly, smoke=smoke)
+    from .content_integrity import open_failures
+    health = evaluate(manifest, statuses, prior, publication_success_at=live_at, assembly=assembly, smoke=smoke,
+                      integrity_failures=open_failures(api))
+    if args.observe_source_quality:
+        from .source_quality import weekly
+        current = {}
+        review_commit = api.request('/git/ref/heads/review')['object']['sha']
+        for source in SOURCES:
+            try:
+                saved = api.request('/contents/status/quality/' + source + '.json?ref=' + review_commit)
+            except HTTPError as error:
+                if error.code != 404:
+                    raise
+                continue
+            current[source] = json.loads(base64.b64decode(saved['content']))
+        history_path = (args.health_root or args.state_root) / 'status/quality_history.json'
+        history, alerts = weekly(current, read(history_path) if history_path.exists() else None)
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = history_path.with_suffix('.next.json')
+        temporary.write_text(json.dumps(history, sort_keys=True) + '\n', encoding='utf-8'); temporary.replace(history_path)
+        health['quality_review_commit'] = review_commit
+        health['quality_complete'] = (set(current) == set(SOURCES) and all(
+            datetime.now(UTC) - timestamp(value['observed_at']) <= timedelta(hours=48)
+            and timestamp(value['observed_at']).isocalendar()[:2] == datetime.now(UTC).isocalendar()[:2]
+            for value in current.values()))
+        health['quality_observed_scopes'] = ['quality:' + source + ':' + scope['scope_id']
+            for source, value in current.items()
+            if datetime.now(UTC) - timestamp(value['observed_at']) <= timedelta(hours=48)
+            and timestamp(value['observed_at']).isocalendar()[:2] == datetime.now(UTC).isocalendar()[:2]
+            for scope in value['scopes']]
+        health['alerts'].extend(alerts)
     if args.apply_alerts:
         health['issue_actions'] = reconcile_issues(api, health)
     target.parent.mkdir(parents=True, exist_ok=True)

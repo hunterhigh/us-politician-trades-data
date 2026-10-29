@@ -118,6 +118,51 @@ class HousePtrCellObservationShadowTests(unittest.TestCase):
         self.assertEqual(date["bbox_points"], [14.4, 7.2, 21.6, 21.6])
         self.assertIsNone(date["value"])
 
+    @unittest.skipUnless(HAS_RASTER, "raster libraries are optional in contract CI")
+    def test_rgb_source_is_converted_for_legacy_cover_checkbox_reader(self):
+        from PIL import Image
+        source = b"source-rgb"
+        pdf = MagicMock()
+        pdf.__enter__.return_value = pdf
+        pdf.pages = [SimpleNamespace(width=200, height=100, to_image=lambda **kw:
+                     SimpleNamespace(original=Image.new("RGB", (600, 300), "white")))]
+        region = {"status": "located_shadow", "orientation_degrees": 0,
+                  "coordinate_frame": "original_page",
+                  "physical_row_bands": [{"band": [.5, .6], "disposition": "unknown"}]}
+        columns = {"status": "located_shadow", "owner": [0, .1], "asset": [.1, .4],
+                   "event": [.4, .6], "notification": [.6, .8], "action": [.1, .2],
+                   "action_labels": ["purchase"], "amount": [.8, .9]}
+        words = [{"x0": 10, "x1": 20, "top": 10, "bottom": 20,
+                  "text": "Initial", "ocr_confidence": 95}]
+        def cover(page, *args):
+            self.assertEqual(page["_image"].mode, "L")
+            return "New"
+        with patch("pdfplumber.open", return_value=pdf), patch(
+                "unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value=region), patch(
+                "unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value=columns), patch(
+                "unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages",
+                return_value=([OcrPage(width=200, height=100, words=words)], "cached")), patch(
+                "unison_snapshot.house_ptr._legacy_filing_status", side_effect=cover):
+            observed = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest())
+        self.assertEqual(observed["pages"][0]["filing_status_observation"], "New")
+
+    def test_bounded_pages_preserve_original_census_without_rendering_skipped_pages(self):
+        source = b"source-bound-two-page-fixture"
+        pages = [MagicMock(), MagicMock()]
+        pages[1].to_image.return_value = SimpleNamespace(original=object())
+        pdf = MagicMock()
+        pdf.pages = pages
+        pdf.__enter__.return_value = pdf
+        with (patch("pdfplumber.open", return_value=pdf),
+              patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid",
+                    return_value={"status": "coverage_unknown", "reason": "unlocated"})):
+            result = observe_house_ptr_pdf(source, source_sha256=hashlib.sha256(source).hexdigest(),
+                                           page_numbers=[2])
+        pages[0].to_image.assert_not_called()
+        self.assertEqual(len(result["pages"]), 2)
+        self.assertEqual(result["pages"][0]["region_reason"], "page_not_selected")
+        self.assertEqual(result["pages"][1]["page"], 2)
+
     def test_short_grid_locates_asset_and_both_date_columns(self):
         region = {"bands": [{"upper": .1, "vertical_x": [.12, .35, .46, .53, .60]},
                             {"upper": .2}], "header_band": [.2, .25],

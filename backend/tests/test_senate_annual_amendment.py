@@ -7,8 +7,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta
 
 
 OLD_ID = "516c1638-5b26-4a14-99be-d89c1b426839"
@@ -70,23 +70,44 @@ def _fixture():
 
 
 class SenateAnnualAmendmentTests(unittest.TestCase):
+    def test_current_parser_uses_existing_source_bound_amendment_rule(self):
+        fixture = _fixture()
+        objects = fixture[0]
+        for key in list(objects):
+            commit, path = key
+            if commit != REVIEW or NEW_ID not in path:
+                continue
+            extraction = json.loads(objects.pop(key))
+            extraction["parser_version"] = "senate-efd-annual-html-2026-10-v3"
+            objects[(commit, path.replace("2026-09-v2", "2026-10-v3"))] = json.dumps(extraction).encode()
+        report = self._run(fixture)
+        self.assertEqual(report["counts"]["reported_holdings"]["rekey"], 1)
+
+    def test_bad_new_extraction_is_not_hidden_by_available_legacy_parse(self):
+        fixture = _fixture()
+        objects = fixture[0]
+        path = next(path for commit, path in objects if commit == REVIEW and NEW_ID in path)
+        objects[(REVIEW, path.replace("2026-09-v2", "2026-10-v3"))] = b"{broken"
+        with self.assertRaisesRegex(InventoryError, "invalid Senate annual extraction"):
+            self._run(fixture)
+
     def _run(self, fixture):
         objects, paths, previous, unified, prepared, sources = fixture
         def read_object(repo, commit, path):
             return objects[(commit, path)]
         def list_paths(repo, commit, directory):
             return paths[directory]
-        with patch("unison_snapshot.pipeline_qa.senate_annual_amendment.git_object",
+        with patch("unison_snapshot.fact_policy.senate_annual_amendment.git_object",
                    side_effect=read_object), patch(
-                   "unison_snapshot.pipeline_qa.senate_annual_amendment.git_tree_paths",
+                   "unison_snapshot.fact_policy.senate_annual_amendment.git_tree_paths",
                    side_effect=list_paths):
             # The function defaults bind at definition time, so patch the
             # publication boundary with a wrapper that supplies test readers.
-            from unison_snapshot.pipeline_qa import senate_annual_amendment as module
+            from unison_snapshot.fact_policy import senate_annual_amendment as module
             def verified(**kwargs):
                 return module.verified_amendment_rekeys(
                     **kwargs, read_object=read_object, list_paths=list_paths)
-            with patch("unison_snapshot.pipeline_qa.publication_delta.verified_amendment_rekeys",
+            with patch("unison_snapshot.fact_policy.publication_delta.verified_amendment_rekeys",
                        side_effect=verified):
                 return build_publication_delta(
                     previous_board=previous, unified=unified, prepared=prepared,

@@ -1,0 +1,60 @@
+{
+  "schema_version": "reviewed-annual-cover-observations/v1",
+  "qualification_effect": "none",
+  "reports": {
+    "1462ab8c5542e5e7852589b0007899fc": {
+      "source_sha256": "2d8f441b87c97812d2f7ab298657f834b636a14b78594b0cddffbefd8fa1de28",
+      "cover_kind": "annual_form",
+      "dates": {
+        "filer_signature": "2023-05-08",
+        "agency_ethics_review": "2023-05-12",
+        "oge_certification": "2023-05-15"
+      }
+    },
+    "59bcdfb898190fac8525884100747a4c": {
+      "source_sha256": "f39c873856f8efbc93b1c3885fd9354427adfb8b90636edecd206b72e5e1bb77",
+      "cover_kind": "annual_form",
+      "dates": {
+        "filer_signature": "2022-05-06",
+        "agency_ethics_review": "2022-05-10",
+        "oge_certification": "2022-05-12"
+      }
+    },
+    "98c022b90c25091e852586d9004a7bfc": {
+      "source_sha256": "4811d4c9e69e74730fd2354883907745f0939fc28875645ce816c6e447f61a08",
+      "cover_kind": "amendment_letter",
+      "dates": {
+        "filer_signature": "2021-05-18",
+        "agency_ethics_review": null,
+        "oge_certification": "2021-05-18"
+      }
+    },
+    "9a9b9318751632fa852586d9002ec0f9": {
+      "source_sha256": "3e66f57c0650c6e50250d32b5c822aa8460985cf5fb7934b96ce9db665b87238",
+      "cover_kind": "annual_form",
+      "dates": {
+        "filer_signature": "2021-05-17",
+        "agency_ethics_review": "2021-05-17",
+        "oge_certification": "2021-05-17"
+      }
+    },
+    "e0e994cfa156d7cf852589b000789259": {
+      "source_sha256": "8f7a606ddf0016b66b3e5a72bb4cc906b162c798c062ef163e0a2bf8b52974ea",
+      "cover_kind": "annual_form",
+      "dates": {
+        "filer_signature": "2023-05-14",
+        "agency_ethics_review": "2023-05-15",
+        "oge_certification": "2023-05-15"
+      }
+    },
+    "e53c72b0e534b2e7852588410074776c": {
+      "source_sha256": "3cffee2d61c1659fcc9d2845dec47cdd388cf0bc0c23e5ee48eec01a861fb4c3",
+      "cover_kind": "annual_form",
+      "dates": {
+        "filer_signature": null,
+        "agency_ethics_review": "2022-05-10",
+        "oge_certification": "2022-05-12"
+      }
+    }
+  }
+}

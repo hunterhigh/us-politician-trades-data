@@ -1,0 +1,8 @@
+{
+  "image": "ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4",
+  "build_commit": "45e711dbfeb1cd50ca6bbe9cb6a977024a87b135",
+  "inputs_sha256": "a2e354b2b93516437c6426056e38e81b2ed0a31dfd3c24d242ff5d4b10759804",
+  "requirements_sha256": "ffa6d45688e7d1404b3689fa8ef04efdafd9d295b4e898ba3205f0de66041296",
+  "schema_version": "source-runtime-image/v1",
+  "build_run": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/40735954771"
+}

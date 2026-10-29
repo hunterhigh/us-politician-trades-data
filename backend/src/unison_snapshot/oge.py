@@ -5,6 +5,7 @@ particular, its ``docDate`` field is the date an entry was added to the
 catalog.  It must never be treated as a filing date.
 """
 from __future__ import annotations
+from .content_integrity import content_boundary
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -41,6 +42,12 @@ MAX_CATALOG_ATTEMPTS = 3
 
 class OgeCatalogError(RuntimeError):
     """The official catalog response did not satisfy the expected contract."""
+
+
+class OgeHttpError(OgeCatalogError):
+    def __init__(self, status):
+        self.status = status
+        super().__init__(f'OGE catalog returned HTTP {status}')
 
 
 class _VisibleResponseText(HTMLParser):
@@ -261,6 +268,7 @@ def _classify_278(type_markup: str) -> tuple[str, str, str | None, bool] | None:
     raise OgeCatalogError("OGE 278 Transaction link has an unexpected label")
 
 
+@content_boundary('snapshot_contract')
 def parse_catalog_page(payload: object, *, start: int, length: int) -> OgeCatalogPage:
     """Validate one unfiltered official API page and retain all 278-T rows."""
 
@@ -307,6 +315,7 @@ def parse_catalog_page(payload: object, *, start: int, length: int) -> OgeCatalo
     return OgeCatalogPage(start, length, total, len(rows), tuple(transactions))
 
 
+@content_boundary('snapshot_contract')
 def build_catalog(pages: Iterable[OgeCatalogPage]) -> dict:
     """Join complete pages without deduplicating visible catalog rows."""
 
@@ -353,7 +362,7 @@ class OgeCatalogClient:
 
     def __init__(self, timeout: float = 30.0, opener=None, *,
                  max_attempts: int = MAX_CATALOG_ATTEMPTS, sleeper=time.sleep):
-        if type(max_attempts) is not int or not 1 <= max_attempts <= 5:
+        if type(max_attempts) is not int or not 1 <= max_attempts <= 3:
             raise OgeCatalogError("OGE catalog attempts are invalid")
         if not callable(sleeper):
             raise OgeCatalogError("OGE catalog sleeper is invalid")
@@ -413,7 +422,7 @@ class OgeCatalogClient:
                 # for an unchanged request and then succeeds on retry. Keep the
                 # retry bounded; response validation below still fails closed.
                 if exc.code not in {400, 429, 500, 502, 503, 504} or attempt + 1 == self.max_attempts:
-                    raise OgeCatalogError(f"OGE catalog returned HTTP {exc.code}") from None
+                    raise OgeHttpError(exc.code) from None
             except (urllib.error.URLError, TimeoutError, ConnectionError,
                     http.client.HTTPException):
                 if attempt + 1 == self.max_attempts:
@@ -547,4 +556,4 @@ def discover_catalog(root: Path, config: OgeSourceConfig, *, page_size: int = MA
         if verification.records_total != catalog["records_total"] or current["data"] != previous["data"]:
             raise OgeCatalogError("OGE catalog changed between pagination passes")
     metadata = archive_catalog(root, raw_pages, catalog)
-    return {"metadata": metadata, **catalog}
+    return {"metadata": metadata, **catalog, "observed_at": datetime.now(timezone.utc).isoformat()}

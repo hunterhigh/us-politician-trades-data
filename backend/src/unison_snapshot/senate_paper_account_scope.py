@@ -1,4 +1,4 @@
-"""Read-only account-heading scope audit for the fixed first Senate paper PTR.
+"""Source-bound account headings for saved printed Senate PTR observations.
 
 An identical asset/date/direction/band beneath two different printed section
 headings is not enough evidence to merge rows. This module records the heading
@@ -12,19 +12,20 @@ import hashlib
 from io import BytesIO
 from typing import Callable
 
-from .senate_slots_shadow import EVIDENCE_COMMIT
+from .senate_observation_data import load_bundle
 
 SCHEMA = "senate-paper-account-scope-audit/v1"
-DOCUMENT_ID = "068274e1-4b7a-4453-a242-563dde4c10d8"
 
 
 def confirmed_visual_review_from_fields(fields: dict, ledger: dict) -> dict:
     """Derive the fixed visual rows from their existing source-bound field audit."""
-    if (fields.get("schema_version") != "senate-paper-first-report-field-observations/v1" or
-            fields.get("document_id") != DOCUMENT_ID or
-            fields.get("evidence_commit") != EVIDENCE_COMMIT or
-            ledger.get("document_id") != DOCUMENT_ID or
-            ledger.get("evidence_commit") != EVIDENCE_COMMIT):
+    reference_commit = load_bundle()['evidence_commit']
+    document_id = ledger.get('document_id')
+    if (not isinstance(document_id,str) or not document_id or
+            fields.get("schema_version") != "senate-paper-first-report-field-observations/v1" or
+            fields.get("document_id") != document_id or
+            fields.get("evidence_commit") != reference_commit or
+            ledger.get("evidence_commit") != reference_commit):
         raise ValueError("Senate visual field audit source identity changed")
     source_rows = {(row["page_number"], row["grid_slot"]): row
                    for row in ledger["rows"]}
@@ -81,17 +82,19 @@ def confirmed_visual_review_from_fields(fields: dict, ledger: dict) -> dict:
         reviewed_headings.append(item)
     if seen_headings != set(source_headings):
         raise ValueError("Senate visual account headings do not conserve source")
-    return {"document_id": DOCUMENT_ID, "evidence_commit": EVIDENCE_COMMIT,
+    return {"document_id": document_id, "evidence_commit": reference_commit,
             "rows": reviewed, "account_headings": reviewed_headings}
 
 
-def audit_first_report_account_scopes(
+def observe_reviewed_account_scopes(
         ledger: dict, visual_review: dict,
         *, page_bytes: Callable[[str, int], bytes] | None = None) -> dict:
-    if (ledger.get("document_id") != DOCUMENT_ID or
-            visual_review.get("document_id") != DOCUMENT_ID or
-            ledger.get("evidence_commit") != EVIDENCE_COMMIT or
-            visual_review.get("evidence_commit") != EVIDENCE_COMMIT):
+    reference_commit = load_bundle()['evidence_commit']
+    document_id = ledger.get('document_id')
+    if (not isinstance(document_id,str) or not document_id or
+            visual_review.get("document_id") != document_id or
+            ledger.get("evidence_commit") != reference_commit or
+            visual_review.get("evidence_commit") != reference_commit):
         raise ValueError("Senate account-scope source identity changed")
     rows = ledger.get("rows")
     reviewed = visual_review.get("rows")
@@ -113,7 +116,7 @@ def audit_first_report_account_scopes(
         for key, row in sorted(by_slot.items()):
             number = key[0]
             if number not in by_page:
-                raw = page_bytes(DOCUMENT_ID, number)
+                raw = page_bytes(document_id, number)
                 page_digests[number] = hashlib.sha256(raw).hexdigest()
                 if page_digests[number] != row["page_sha256"]:
                     raise ValueError("Senate account-scope archived page differs")
@@ -184,7 +187,7 @@ def audit_first_report_account_scopes(
                      item["direction"], item["amount_band"])
         result = {
             "source_slot": {
-                "document_id": DOCUMENT_ID,
+                "document_id": document_id,
                 "entrypoint_source_sha256": ledger["entrypoint_source_sha256"],
                 "page_number": key[0],
                 "page_sha256": source_row["page_sha256"],
@@ -215,8 +218,8 @@ def audit_first_report_account_scopes(
     return {
         "schema_version": SCHEMA,
         "source_id": "senate_efd",
-        "document_id": DOCUMENT_ID,
-        "evidence_commit": EVIDENCE_COMMIT,
+        "document_id": document_id,
+        "evidence_commit": reference_commit,
         "entrypoint_source_sha256": ledger["entrypoint_source_sha256"],
         "archive_bytes_verified": page_bytes is not None,
         "interpretation": "account-heading relationships only; no qualified or published trades",

@@ -1,0 +1,4149 @@
+{
+  "schema_version": "source-correction/v1",
+  "source": "senate_efd",
+  "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+  "source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+  "reviewed_at": "2026-10-28",
+  "profile": "reviewed-senate-paper/v1",
+  "assertions": {
+    "source_review_sha256": "6486674554a0027edad59c61a2c191debead0ce080c44e723405ecdd8e0f8aa5",
+    "manifest_sha256": "44d5b9c4d5d6f303ec2884c74aa7b5ae2e4016f4d05db696ab249c8be9436314",
+    "person_id": "senate:B001277",
+    "row_inventory": [
+      "p2#2",
+      "p2#3",
+      "p2#4",
+      "p2#5",
+      "p2#8",
+      "p2#9",
+      "p2#10",
+      "p2#11",
+      "p2#12",
+      "p3#1",
+      "p3#2",
+      "p3#3",
+      "p3#4",
+      "p3#5",
+      "p3#6",
+      "p3#9",
+      "p3#10",
+      "p3#11",
+      "p3#12",
+      "p3#13",
+      "p3#14",
+      "p3#15",
+      "p3#16",
+      "p4#2",
+      "p4#3",
+      "p4#4",
+      "p4#5",
+      "p4#6",
+      "p4#7",
+      "p4#10",
+      "p4#11",
+      "p4#12",
+      "p4#13",
+      "p4#14",
+      "p4#15",
+      "p5#1",
+      "p5#4",
+      "p5#5",
+      "p5#6",
+      "p5#7",
+      "p5#10",
+      "p5#11",
+      "p5#12",
+      "p5#13",
+      "p5#14",
+      "p5#15"
+    ],
+    "pending_row_sha256": {
+      "p2#2": "ce7c86da7d4e49957ecc96481834dff040d269722437a8ce427f3a5ec6c1499c",
+      "p2#3": "a72d785ffd67fd59fa40f16c4c96fc8f307155d50529ebd80ced4c316babd055",
+      "p2#4": "f955554ddec0a13c41d4d6209459780c0c014e36804e30bc4d440d5db0ba2719",
+      "p2#5": "78cb9820acb63397e5a7f51bab81d68399cd66983aed03f11bd106cdae410fa7",
+      "p2#8": "507109ce2045fbcd3050e32e17e9fa66bdfc665fbedf48b8656bdbb93200a7f3",
+      "p2#9": "26fa5115bcc71ec2109d3d4c552c83127241f71522a0e23a2f9a3caee66f1ace",
+      "p2#10": "539f582bfc798725acd7e57c47e533a4967ab14d8bb38d1ee8d1100202bdf8db",
+      "p2#11": "db931c5220b0ce2ed4b8727b5853abb6a5e2bf4a6055c5036c6362545ef3dfaf",
+      "p2#12": "5ae7f319487a670dcfc9fceca8fb509693e3eabbd1abde0caba4677e7cdad343",
+      "p3#1": "9be8d6b9a2571a8ba851e669084aea32575cbd5e47549bac61357737f7ab1545",
+      "p3#2": "393d8d018e9e0ddb7d7685d6a8d7b79fdb259b53ebe0def00f245763888bd5f4",
+      "p3#3": "18decbc8ea69bab7f134d863f01d94a7d31ae652dbbcd0bda3202136af03e504",
+      "p3#4": "0f088b5055436d78558ebe4b5175c1d3b12251554551918f7afc37a179c3d63e",
+      "p3#5": "4fca7083a390bcc631c703357e008d0de92d7d6551254ad9384baf3603a191e2",
+      "p3#6": "a0f7e959aeb2d7c57bc1e35c2e3e07e593cca5917928f7190318aa4883c8a231",
+      "p3#9": "1f17b469a76805a10e2bd5f5e7206f1a50c962ee7cc0423384d8be9c7a206aaf",
+      "p3#10": "40b26e82f7326d7fc659245a8842ac21832c82740261bc3b152e53b2f401194a",
+      "p3#11": "c19f7523150a16478371a4baff58e6f65ddd6d23f4fb045952514b56cfdba892",
+      "p3#12": "207f995cfc09154bdc9e2a8cd81e8f5bb25975187854eeb0e377647bd9956921",
+      "p3#13": "6c58403bc2ca82add5f9121f136a679eae6944a4ef456b51b19151fbb0f70fbe",
+      "p3#14": "08a8b0a21442cb7ac65ef9c189590462f97f633be8a67d943ab9741460e6d6a3",
+      "p3#15": "eb0773705ff57f579ebec8a7d9a8f89b29b6350801cae3a4dc24287213954dd6",
+      "p3#16": "b2b8c7836303ff27ab803526882773f176913f5134f5b7e9d0937810a05e0c4a",
+      "p4#2": "dc6bdbc54dd98788f1db5bb584f40dfa79bcc3901418fd51ac9bb2b24f66a683",
+      "p4#3": "c5257ecb86269781efc0bc20a434ea45cde53746fba1ee5f1f5a4ef2d7da12c4",
+      "p4#4": "28f074ec96627379ec3289758a755528f98e4c31b2a31949bd2be823b0b497b9",
+      "p4#5": "a29d9c10fda9bf4fd037a54b49890bca65044695c3e1b5dee9d6e369bed00a88",
+      "p4#6": "baf264d1b3f85e8b0ccfc13f4cc532b4257b66c8643799d5ab9e2b0da80d0f7b",
+      "p4#7": "d744729a599ae6d57a609d57bc5a0b33e75d4a5ccacbe90368bafbc3a30c5a24",
+      "p4#10": "f36489b443967ecdc87f2ab9c96ce51f6f10320769010e414a68316a12f6a659",
+      "p4#11": "cc746242fb7c3c5802909e21ee81fcba041fb6cbef214f8b63610809c2c168f0",
+      "p4#12": "03c51bb37e3d699af5b64ec6a58e39fae42f9400148a658a4306e040de885706",
+      "p4#13": "5221c5e3c8f2936f32fa33db82c0d7db0ec9944ce6a306a72529c72ddd4abd7e",
+      "p4#14": "cd5e42a47e3a9095a89d039c3a7af863c67e3876069a3a90ea22ec42ffb1f8b4",
+      "p4#15": "626f2e4c28e5363156d83dbe315e274a646b369b29736b1d835c41744e1bfb30",
+      "p5#1": "aea8a089d42797edc79ab3071b74db15cbe37271de0ebd4abd75a44b6f28e291",
+      "p5#4": "25ff1ab01654aeabfac12579ab9b064e90315c388be8f6934c34f2f329203bc8",
+      "p5#5": "3118020dc471f7e03d03a054c9312155e79c7e7e69059f70d91ee50937eed18f",
+      "p5#6": "873b6b7b2d0ea7de9e178bdd2436a8c667390da68cb56403eb21b008a56e2dce",
+      "p5#7": "5e7bf6b13b5631b2a3e661f68977811f00f742ff3969887566dc7f555f2774f8",
+      "p5#10": "23ce98421d187ad5ce1b420358b68d4f03152647e69360044fce27968af0835d",
+      "p5#11": "7a89702cccc74f9990d6a6c6ec76dc23db0e98af31a8ed9cd1949031a5136987",
+      "p5#12": "545b9e198ed3c14aab0724b15175228e59a14b74aa4be2881a0e56f52b58a883",
+      "p5#13": "6fc305d7325c4e58bba72ed8e231e731812a9baf4ce867ef4164fdbc4c65fdc3",
+      "p5#14": "2049ff9fb1ea5b84ef6207896d19df2b530400d24d611c2b9ebe47ae32d9187c",
+      "p5#15": "b8abf994971ca035affb45d5f3facf100a926f21185818b45a9d08e2bee1386c"
+    },
+    "report": {
+      "catalog_title_date_matches": true,
+      "document_disposition": "transactions_parsed",
+      "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+      "eligible_transaction_count": 46,
+      "evidence_complete": true,
+      "filed_at_raw": "Filed 07/17/2026",
+      "filer_name": "RICHARD BLUMENTHAL",
+      "paper_rule_version": "senate-paper-form-geometry-2026-10-v2",
+      "parser_version": "senate-efd-report-parser-2026-09-v2",
+      "portal_listed_date": "2026-07-17",
+      "qualification_basis": "fixed_source_visual_review_v1",
+      "quarantined_transaction_count": 0,
+      "report_amendment_number": null,
+      "report_label_date": "2026-07-17",
+      "report_title_date": "2026-07-17",
+      "schema_version": "senate-efd-paper-ptr-extraction/v1",
+      "source_id": "senate_efd",
+      "source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+      "source_url": "https://efdsearch.senate.gov/search/view/paper/3a4c5095-028a-4614-a692-836719da4e63/",
+      "visual_corrections_sha256": "a4a2b56e8fec7b80aa6a6ea3fe436c48c9f4cec1e38a640ef5b06fabff4d37e4"
+    },
+    "page_crops": [
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2102,
+          2920,
+          2236
+        ],
+        "grayscale_sha256": "5780b848ba167fd7286cd11432d60150075438707e4402ccf89c6ce43b6cc83d"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2110,
+          1385,
+          2228
+        ],
+        "grayscale_sha256": "8c875131259089e667769804e230067860fd7d2d6dae76e174b9dc2d3aa3f605"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2110,
+          1940,
+          2228
+        ],
+        "grayscale_sha256": "e79a3db3b754b43ee82e890a1cc5d2ca9387ab5281c594decd4883b0a47d6d78"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2236,
+          2920,
+          2370
+        ],
+        "grayscale_sha256": "5be168ed3d499630c776289d906f95ee5a419d66871838c74a1de08299f2f365"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2244,
+          1385,
+          2362
+        ],
+        "grayscale_sha256": "59b1b78333d1f9b746efa4a5ea8663ba9b1d41a726ffd09737ecb1af43791b32"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2244,
+          1940,
+          2362
+        ],
+        "grayscale_sha256": "e1193eae65714899b3c15b66eba9e0939c2c5e32d233891012fff186a8ad21e7"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2370,
+          2920,
+          2504
+        ],
+        "grayscale_sha256": "3de3891733450107d4fe354d75031d2d9900339d2389d6dc6d159402e4f61723"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2378,
+          1385,
+          2496
+        ],
+        "grayscale_sha256": "b1059fcefe0cc09a07383155ee1355502bbef6a0f62554e4944b08569f30d300"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2378,
+          1940,
+          2496
+        ],
+        "grayscale_sha256": "9e19ce5b31f665ee48235d9302e9344500b9d38289c205baa2debb0333ae72e0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2504,
+          2920,
+          2638
+        ],
+        "grayscale_sha256": "3ef906d803ce7f49e0d94b024f30d94d7996bcc16cb9fc1b4f2b86479133a30c"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2512,
+          1385,
+          2630
+        ],
+        "grayscale_sha256": "d7753bc7ebe81bcea25fb343cb9b9373303c59027239b14990257f3eca846a6a"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2512,
+          1940,
+          2630
+        ],
+        "grayscale_sha256": "44e5eae15082a91125283a2f1863a87e16f47681c5b17bfc1afe8ea5ebc51cac"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2638,
+          2920,
+          2772
+        ],
+        "grayscale_sha256": "a2fb26112c4337eef93f9acb91b22d0174c71d442d5f8a6c33a1048241cd9943"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2646,
+          1385,
+          2764
+        ],
+        "grayscale_sha256": "e74467f07dee9df92732b7ef079e1f26086b4d49f27660ffb7ba2384ed470152"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2646,
+          1940,
+          2764
+        ],
+        "grayscale_sha256": "e381128af7b328e9d66333110b13c3e915a03ae355c2d59b95612ba33d7a8f3e"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2772,
+          2920,
+          2905
+        ],
+        "grayscale_sha256": "3e92f6c07c69bd2a4a5e17fb49a809bbdaa3134ecb3ce49f94f941666194e002"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2780,
+          1385,
+          2897
+        ],
+        "grayscale_sha256": "2c11ecd5ca77ccb40472abd91711aa05938846d507cddcccc868d31eef8fec59"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2780,
+          1940,
+          2897
+        ],
+        "grayscale_sha256": "6938ab618c442685dfc0094b0bf538936b3e35a7ad37650c482b0285a27a13d0"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          2905,
+          2920,
+          3039
+        ],
+        "grayscale_sha256": "0a9ea07c5cc1dcae960d9c3163c4f49295614af276c232e46bf82ae4ee85d72b"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          2913,
+          1385,
+          3031
+        ],
+        "grayscale_sha256": "dbc8dda311202ded385fb69f856db28a4f1b361062da64da4a393688070a5e07"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          2913,
+          1940,
+          3031
+        ],
+        "grayscale_sha256": "54a642c8aab2f7e8ebceace95fa1c36918d1d9804792e600fb10c70c4f0a6bb4"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3039,
+          2920,
+          3173
+        ],
+        "grayscale_sha256": "403f8b807030d24d950995d57220bc976187ca961bf33e2f8599a4e92ccf8f94"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3047,
+          1385,
+          3165
+        ],
+        "grayscale_sha256": "af5950f45498438c97e5e91ee26e00688c28257fe834ad26ba1080a330b7b5fc"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3047,
+          1940,
+          3165
+        ],
+        "grayscale_sha256": "f48b4c5c831434cc46bf58d56cd7b334afa9b1384bfcecc45a53ba7b6fe4daef"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3173,
+          2920,
+          3306
+        ],
+        "grayscale_sha256": "0884d288247e861ebfc74fe6abf723b16af9e4da44c2f792ccae1d0838e571ac"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3181,
+          1385,
+          3298
+        ],
+        "grayscale_sha256": "04d0cd6c3ba8918b34b0761412d307e9e111bd2664d299719427947602c6d634"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3181,
+          1940,
+          3298
+        ],
+        "grayscale_sha256": "59dd1c4daef490d42d3c8392a71f15e4beb2a3469e7eef66acf85573af0b9ca3"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3306,
+          2920,
+          3441
+        ],
+        "grayscale_sha256": "6fe431c22a779ab5efdaca42592f03b180e0021f2c30c3141eb656c8820a14fe"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3314,
+          1385,
+          3433
+        ],
+        "grayscale_sha256": "1abadb74a61b9a02ae9a7fa612aeb265e4891fb1b3707d23b7af525d2a3f28c4"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3314,
+          1940,
+          3433
+        ],
+        "grayscale_sha256": "a288abce045ff979f2056d2caa4faa9d1f5ff35c6e4a23a000f6f6e2404a72c3"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3441,
+          2920,
+          3574
+        ],
+        "grayscale_sha256": "f0828aa4f6bbdcb079862e3406f4a089960d307d56de590cc8f0744cdc609c1b"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3449,
+          1385,
+          3566
+        ],
+        "grayscale_sha256": "19c80f5cf22072668ea77842d8a838896c2c7081440950074d4dc4c32587b928"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3449,
+          1940,
+          3566
+        ],
+        "grayscale_sha256": "782fb09ebdf91a090b8328f034694788ec20502188e7df47b4df053f80433332"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3574,
+          2920,
+          3708
+        ],
+        "grayscale_sha256": "b440d908776270089e021bbb0d1a9163bd06c3cbab81d5212e723aaf04b81d59"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3582,
+          1385,
+          3700
+        ],
+        "grayscale_sha256": "674772b368a1142d259707ceb4a358903ba872fb4c193bf959c445802c3712e2"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3582,
+          1940,
+          3700
+        ],
+        "grayscale_sha256": "0b3cb4f57c95392be31555d4e500d126506099f8e0daf0f65e961dd5048c4558"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3708,
+          2920,
+          3842
+        ],
+        "grayscale_sha256": "87bcb62bc58134cc610a4c836f7c5b1d122048904f94fa898cceb0fa667164b7"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3716,
+          1385,
+          3834
+        ],
+        "grayscale_sha256": "f38ff5d81700c708db52833f5b36509c1862d1663dfce2aec325ad30102bba1f"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3716,
+          1940,
+          3834
+        ],
+        "grayscale_sha256": "835fb5973814b15bf8ca5bde40cf159676a09b49d9a806adbb718c89da903e93"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          525,
+          3842,
+          2920,
+          3976
+        ],
+        "grayscale_sha256": "800309ead65b829863303958f0be46b3984c7d587e4907ffec24b6f996027fcd"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          590,
+          3850,
+          1385,
+          3968
+        ],
+        "grayscale_sha256": "7726bc64584b5202197f26f7346befb8d3d92ce6788e4af06f1e39dfc4b7aae1"
+      },
+      {
+        "page": 2,
+        "box_px": [
+          1650,
+          3850,
+          1940,
+          3968
+        ],
+        "grayscale_sha256": "c141394952e138f87aa261108773b5aa2d839b3a4230709bc20a212e6e4b2256"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1337,
+          2920,
+          1488
+        ],
+        "grayscale_sha256": "56e42c96cd1c7495b9127018410b61a4cc168767c69e67db30a4cea62482c683"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1345,
+          1385,
+          1480
+        ],
+        "grayscale_sha256": "bc191501a8865cc60adbae3a347010e5265dbee558082e6e3701142bb8779c31"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1345,
+          1940,
+          1480
+        ],
+        "grayscale_sha256": "fd2860e707be4e238cdab89dd0239b23685f596593ae638aa9febdb3ccbb7392"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1488,
+          2920,
+          1640
+        ],
+        "grayscale_sha256": "d3d62091561c4a2992836af92d08744f762a79e5be4a9498544f1ee1c8f4aa31"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1496,
+          1385,
+          1632
+        ],
+        "grayscale_sha256": "953432ea1afb279b38e23b6781a18826c222fbb283f0014af2d6eeaf6f04034f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1496,
+          1940,
+          1632
+        ],
+        "grayscale_sha256": "d07b501c3894987bdf91d8b8df19001a22ea0f370dab07737ec638de380341c9"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1640,
+          2920,
+          1791
+        ],
+        "grayscale_sha256": "4a900325938f0c46d78357d0ee970bfe3a508026cb70b534ba28fd5e95c45ab8"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1648,
+          1385,
+          1783
+        ],
+        "grayscale_sha256": "ac49079993559892cd2034f3f46a0bd663f8a92f1bc4aae5c3b29e5afa49678a"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1648,
+          1940,
+          1783
+        ],
+        "grayscale_sha256": "69e05a1d33b7bd217b2a65740650277ff164059559d15a629721174aeebb49d8"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1791,
+          2920,
+          1942
+        ],
+        "grayscale_sha256": "109e9e2a5e4e73134ff9f452b213871410097113c639b06de7bd227fbe99b004"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1799,
+          1385,
+          1934
+        ],
+        "grayscale_sha256": "2d4c21f3174df9ce8f89464b2e1c7079203a4d629d2b1a187143d15f9c767cf0"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1799,
+          1940,
+          1934
+        ],
+        "grayscale_sha256": "459193e139c32cee188c04123005a2dc2fbb92e6153857a12f44e51a8839abe1"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          1942,
+          2920,
+          2094
+        ],
+        "grayscale_sha256": "c58d79ab84a31f9bba891a14436f57e074ff684dbb65a062ae0fdc5dd9d9784e"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          1950,
+          1385,
+          2086
+        ],
+        "grayscale_sha256": "b468b7c86a59f7952bd704f84fd4279a596debfc8e002800ea141acf9146c929"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          1950,
+          1940,
+          2086
+        ],
+        "grayscale_sha256": "4e91d14e4549db5b958aceb9f77020f870a7ae8c3c60e864b094107c00bb6c92"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2094,
+          2920,
+          2245
+        ],
+        "grayscale_sha256": "4ae6e37318d0241e9f08a04718f72739aa7df5e8229c8a44d2e42d50e601156e"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2102,
+          1385,
+          2237
+        ],
+        "grayscale_sha256": "c7dbf280e59649e235d3bae7a8955a894e47c518793b2de9be70a6ddd456f132"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2102,
+          1940,
+          2237
+        ],
+        "grayscale_sha256": "1dc4cf242d427f5b6c9b404c45cc4c28404ec23526d9d607e2642e2a5fe1c873"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2245,
+          2920,
+          2397
+        ],
+        "grayscale_sha256": "73ef0c8d6e0e0f1889fc79234e19ba2c19e535999214cce2415848635accb6b3"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2253,
+          1385,
+          2389
+        ],
+        "grayscale_sha256": "8aa381b66ee46e4b2261f1e56cd10d3a281ed246952b6d85cd2823a913a07092"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2253,
+          1940,
+          2389
+        ],
+        "grayscale_sha256": "46ae3c0102adc34feabe554fb51bca114af0eaf82c9122f72a1423c630e04cbb"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2397,
+          2920,
+          2548
+        ],
+        "grayscale_sha256": "d5cababff6b682bd0d9aefcbcb9a07b6696bf29f02bbe5b2872ece07c1e8a6d1"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2405,
+          1385,
+          2540
+        ],
+        "grayscale_sha256": "0528bf845849e49480b25871e8e12c6f6f0e0e3b254c8c14a15eba4b905beac3"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2405,
+          1940,
+          2540
+        ],
+        "grayscale_sha256": "1ea83a8693820a951114690bbf1e1dd08de87cd00c668d9f252afe8fb8f8bc76"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2548,
+          2920,
+          2700
+        ],
+        "grayscale_sha256": "06d2bb4ad0453c199d4e3684488ff6309c864785833a1a1dc9617da8084ce42d"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2556,
+          1385,
+          2692
+        ],
+        "grayscale_sha256": "e76e5f2087f6ef8547d2d42eaaf54dcaf2cc8b2d14afcf7c5b01a28193923038"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2556,
+          1940,
+          2692
+        ],
+        "grayscale_sha256": "e1f41fa7bf37ee4287181e9edd5dffca0d044f74c5210b11b00024c98197d4a0"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2700,
+          2920,
+          2851
+        ],
+        "grayscale_sha256": "4a9f8865093797a36b7d79f371c183c8340366e9af6afc5dc859edb7c5006665"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2708,
+          1385,
+          2843
+        ],
+        "grayscale_sha256": "5d0c3f7240d71578bd8e59b60ca4765699fc95fceb21d384ed80911b829812ed"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2708,
+          1940,
+          2843
+        ],
+        "grayscale_sha256": "9666d326630bf2dba93bbf98a3cf38f1430c8ac407ff608710534a3e2f1df58c"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          2851,
+          2920,
+          3002
+        ],
+        "grayscale_sha256": "53b99f1d7b16b282c02ee2de0efc1b3d07e58d9834a6066a950da9bda485918e"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          2859,
+          1385,
+          2994
+        ],
+        "grayscale_sha256": "9a15faca937347c971c928579e8571817b9acc983cd2efb5a3d8e41d535bf315"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          2859,
+          1940,
+          2994
+        ],
+        "grayscale_sha256": "cb5694e5a9137a35fb677b3a9844b8a37d22bb47a89b0fcdcde68b34df943329"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3002,
+          2920,
+          3154
+        ],
+        "grayscale_sha256": "ea203fffac4549b95b4112575bab838d2a54016324942d918ab879b950518f7c"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3010,
+          1385,
+          3146
+        ],
+        "grayscale_sha256": "d11bbf178260f03e1e7846a8a721e63c8fba366abb4f85aa701539293af38df8"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3010,
+          1940,
+          3146
+        ],
+        "grayscale_sha256": "3abe22910c24f4dbd3c22c856877393ef5c9ce24a240285f50f489bc810cbea0"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3154,
+          2920,
+          3305
+        ],
+        "grayscale_sha256": "e078907184135df0bb1ab639d7475b144b3dddcfeddcdbcd882b39aff3e26d0c"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3162,
+          1385,
+          3297
+        ],
+        "grayscale_sha256": "85b5db7b9adf04b5df498757c15b4a5b61eccea656fb450967ba805db110bf8c"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3162,
+          1940,
+          3297
+        ],
+        "grayscale_sha256": "d222bf30e284d3f0f43110f4d694b8077a6225da1cee863302ae25835a14e5b2"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3305,
+          2920,
+          3457
+        ],
+        "grayscale_sha256": "055e9a8cfc3fbf19126e2ee61897cc9f2e9940fa9ee195933d220d6fd7bbcaf9"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3313,
+          1385,
+          3449
+        ],
+        "grayscale_sha256": "ed2caee9c99a04efc2bcba2528df8726a823b37d6ad6e07aeff4c91947e13345"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3313,
+          1940,
+          3449
+        ],
+        "grayscale_sha256": "4e2a5de0bf5de9209aac65550605e18e9c8bfc88b902389c3647e132400474b8"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3457,
+          2920,
+          3608
+        ],
+        "grayscale_sha256": "71af941a980144fb78b0784ac1b8fc2c425602c9c9ba28e0b82262611e63bd2f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3465,
+          1385,
+          3600
+        ],
+        "grayscale_sha256": "5351b900899a2b33d85ed8c3400bad5cece527723c51172e1a8429325ebb44f1"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3465,
+          1940,
+          3600
+        ],
+        "grayscale_sha256": "bcad9137ab37773c7edf4a0ffa3bdafc9c1e76ed838d12d0407a175567470f8b"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3608,
+          2920,
+          3760
+        ],
+        "grayscale_sha256": "796d3315759504d63d3c2a38fec40cb392ad5c40e79eba2fcbce90777acb683f"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3616,
+          1385,
+          3752
+        ],
+        "grayscale_sha256": "f1724933470084b173a7f3f15be775f79d8c333cf3fd39e455a631e3451117a8"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3616,
+          1940,
+          3752
+        ],
+        "grayscale_sha256": "4fdf9e303d3b756dc96857e7a347065624086122dd7fd1504e6dab7ef7c0a00b"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          525,
+          3760,
+          2920,
+          3911
+        ],
+        "grayscale_sha256": "ed457a94533527740ad87364a2cb0e4c459aa59c43d4031587e0a07c350e8ac7"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          590,
+          3768,
+          1385,
+          3903
+        ],
+        "grayscale_sha256": "db01e23a5c73a5e440a1458c2ea717227313d89ba5f8bef71fc6aea3329646af"
+      },
+      {
+        "page": 3,
+        "box_px": [
+          1650,
+          3768,
+          1940,
+          3903
+        ],
+        "grayscale_sha256": "91feb92ce7c7d62669be2255c12e51c252b4d840691c39e438feabec4f3b1f0d"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1340,
+          2920,
+          1490
+        ],
+        "grayscale_sha256": "9627a2e67209113446a921d35365985e7e71117f0160456ec43e665b8dd99813"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1348,
+          1385,
+          1482
+        ],
+        "grayscale_sha256": "d417ac43e95b1d10f394a2f2bf08884af3edf5ed199b616e0d530ba3394a7eda"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1348,
+          1940,
+          1482
+        ],
+        "grayscale_sha256": "2c198c824140ffad17ebc8b28c62c492dc126ceb9e9c5c5f6f3194480c5ebf05"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1490,
+          2920,
+          1642
+        ],
+        "grayscale_sha256": "fadbebe35048e7a8d549d5ef51826773fb712bc6fc2607ce6839877dffdd0318"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1498,
+          1385,
+          1634
+        ],
+        "grayscale_sha256": "cfc9036c574bb2660dbddc5de4ec69aafcdaeb84e4d9555787683bd54008638b"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1498,
+          1940,
+          1634
+        ],
+        "grayscale_sha256": "f84fb920a568c37430a80a176c87411f23a76c2a35b54a66c04421df14af3085"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1642,
+          2920,
+          1794
+        ],
+        "grayscale_sha256": "d9f83e00c8eeb350a973e3b68b3abf641d99f2507b3899a3e01ef657b6bbfa94"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1650,
+          1385,
+          1786
+        ],
+        "grayscale_sha256": "c6bd0b6d45a96dc9ef41b3b5428b756ac5f1a780a457862f4c174d70ed78da37"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1650,
+          1940,
+          1786
+        ],
+        "grayscale_sha256": "1661d4267afc5ea298936c988f4701eb9a085ab32a12dd0b253ec44755e97181"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1794,
+          2920,
+          1945
+        ],
+        "grayscale_sha256": "149730de2571c11dd8f299077af102150c3da480cdf178997a6dd70b078d7d06"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1802,
+          1385,
+          1937
+        ],
+        "grayscale_sha256": "a34598b14d2d1b8788535bb0e988b5973d648c402dfda62491dfd0adf2ad2cba"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1802,
+          1940,
+          1937
+        ],
+        "grayscale_sha256": "b64185b7b32184bcb12c8736d585508778f2265b74698d83b0cd6ce4b9a4a76c"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          1945,
+          2920,
+          2096
+        ],
+        "grayscale_sha256": "c2d8bfff6e4e4146b8f1a0d39da40bff500c00c4d9152d72015db1d0d4f8a232"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          1953,
+          1385,
+          2088
+        ],
+        "grayscale_sha256": "f33d71be21c5e4365ce140fd436d009bd1e9f939223d9408d5de4136ff713433"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          1953,
+          1940,
+          2088
+        ],
+        "grayscale_sha256": "7be8bf45615607cb98a7aa9829bb7c6bb5f7d23a2571bb03384a0c4c58fe1853"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2096,
+          2920,
+          2248
+        ],
+        "grayscale_sha256": "b6fc44df4295bb889c0b2a173a647c8800006a2c14847ab9db52d25b6ed4363d"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2104,
+          1385,
+          2240
+        ],
+        "grayscale_sha256": "5d0266c830979dd9ab2ecf2dcf92016ca4f1035ce594f13b1a9918d81dcb571d"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2104,
+          1940,
+          2240
+        ],
+        "grayscale_sha256": "5300c03e6d6b47289db296d97d7560392470e71c3536895583b62cb44a89bfc8"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2248,
+          2920,
+          2399
+        ],
+        "grayscale_sha256": "09160add1cf5ad2dbca07f88f8abf56afde02d6417e6db274b2a3badee02bc11"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2256,
+          1385,
+          2391
+        ],
+        "grayscale_sha256": "ac435347492e39b9cb322c44f57f6b44f896b9a3289d3ae5c36c89d271c6bbd7"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2256,
+          1940,
+          2391
+        ],
+        "grayscale_sha256": "1ec5c712b583ffccd3b33ef3d109b27451e1ffef7e4044be1ea032d711916754"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2399,
+          2920,
+          2550
+        ],
+        "grayscale_sha256": "5850c914152a4e8f43d198930269ff94f2b0d86ad5c8f8d78b5b23b95af367b5"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2407,
+          1385,
+          2542
+        ],
+        "grayscale_sha256": "2df8daffb40d3442995305eb0f1939ddf2025e183c1894da1d84070a03219b8e"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2407,
+          1940,
+          2542
+        ],
+        "grayscale_sha256": "f2eeb23749a63ef56e414754d300dea4e8733a398508e22bb43af450fb541c13"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2550,
+          2920,
+          2702
+        ],
+        "grayscale_sha256": "6bef9878211f39d106e60c5c24fedaef81f7baec9fd50202987e61f88c858c03"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2558,
+          1385,
+          2694
+        ],
+        "grayscale_sha256": "cb5a8170762e447863f10a69cc517f16f3e50f4fc013ce26adf37507ff2e8f04"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2558,
+          1940,
+          2694
+        ],
+        "grayscale_sha256": "2f3d449e4e83369d3e57c9cff6aae6efd6b1728fd447bc8ddec84ef7ec3cbf04"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2702,
+          2920,
+          2854
+        ],
+        "grayscale_sha256": "733a9be6453cd7a2ee8f66b6c015e946f36cc6126a28571370cfe9f4a58d9ced"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2710,
+          1385,
+          2846
+        ],
+        "grayscale_sha256": "e9226a6d6f0213b5f8b12a121d7d6748e5420a22f81b72b1b7b139d792b6f32e"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2710,
+          1940,
+          2846
+        ],
+        "grayscale_sha256": "dcf01eefa8961fdd4ddeaf2b8704b7fb117b9819e9e1b7f57b4e32c66bc361ad"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          2854,
+          2920,
+          3005
+        ],
+        "grayscale_sha256": "ef0fb3eb084257aad0037db687d7f836b5ff0269f48674e6f0af8305af5056af"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          2862,
+          1385,
+          2997
+        ],
+        "grayscale_sha256": "ef01991411e9a414a0acfe9ad3b5d1e33bf6cdc06c314bd55c8bb06123319eb4"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          2862,
+          1940,
+          2997
+        ],
+        "grayscale_sha256": "af346d5d95cddbcdd14c76b08b151df4e2d53baee7557a55ae016819ae28c935"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3005,
+          2920,
+          3156
+        ],
+        "grayscale_sha256": "25035bdd2e53b4cca43b54f028cea6f55a4e20a9488cb2d8d32296779cdb06f4"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3013,
+          1385,
+          3148
+        ],
+        "grayscale_sha256": "71731187bb28f7fdd577afd5ba157881405b30d43a1c6258f725b2ea6710314e"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3013,
+          1940,
+          3148
+        ],
+        "grayscale_sha256": "9095944947b47c19d1de00b4052f59c014445a47edf975d505b546ca37296718"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3156,
+          2920,
+          3308
+        ],
+        "grayscale_sha256": "bf5b93d27708b6c3cf55bdcf194fcf6fa1cdfd58682a6fabf0d3ed3973cb6fa5"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3164,
+          1385,
+          3300
+        ],
+        "grayscale_sha256": "8a8ad539b0226e8d17aa000b5206023688432f005d17df46cbf9a0c883bb0a8a"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3164,
+          1940,
+          3300
+        ],
+        "grayscale_sha256": "819158dcce4756c3a8aa46423693af22b21b518329267e043efc531028014702"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3308,
+          2920,
+          3459
+        ],
+        "grayscale_sha256": "87123d9aed1f70e728f545c27fc1207d32ae01774bcddcea5eff61bc86c1076b"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3316,
+          1385,
+          3451
+        ],
+        "grayscale_sha256": "6ee154e17c19973e7631e753e14b1c638c30f330de0a3c2848bf21664ac5c973"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3316,
+          1940,
+          3451
+        ],
+        "grayscale_sha256": "28016ce5e919de997f2fc7f1a73f78ee9536669c34198a4de33cab7347246e39"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3459,
+          2920,
+          3611
+        ],
+        "grayscale_sha256": "9a8030a4a867c0ca9bafea3c501d87f898397009330372697e5c4d9ba1ead4a8"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3467,
+          1385,
+          3603
+        ],
+        "grayscale_sha256": "0926399a687b749653c74f363f1086144465a475900d7e174a69deef6d4f52c7"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3467,
+          1940,
+          3603
+        ],
+        "grayscale_sha256": "b8cdf51be7cc45180d99d6ea886a67918107aaef9b374818464052d5a55208e5"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3611,
+          2920,
+          3762
+        ],
+        "grayscale_sha256": "406b4aec6dc6385ce3b7a8b954edc10145f2e3b9a7a13b22b0655a573dadf6b3"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3619,
+          1385,
+          3754
+        ],
+        "grayscale_sha256": "c2391d672db3a01af7395c59a33bacb0607992c74139b94ec05e6469445ad76c"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3619,
+          1940,
+          3754
+        ],
+        "grayscale_sha256": "bf8ee9727655578b1eb9b2cc396913d4ce330c7a9cae7db739c293347eaccc22"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          525,
+          3762,
+          2920,
+          3914
+        ],
+        "grayscale_sha256": "27e7d6b227eaf6abda565ba874c8471f7d4aff158000e8f39b309e48bece902b"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          590,
+          3770,
+          1385,
+          3906
+        ],
+        "grayscale_sha256": "3cd9b2bd842ca0b6ff869ddec8bf9f0308cb56b36bed3fe25aeae6ad2f05972f"
+      },
+      {
+        "page": 4,
+        "box_px": [
+          1650,
+          3770,
+          1940,
+          3906
+        ],
+        "grayscale_sha256": "25f648597c4b4bf8b872b33126cde7e73ef24debee9e4d32051c1e9b2b515ec9"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1348,
+          2920,
+          1500
+        ],
+        "grayscale_sha256": "2f45185b07a73b575280a42ea59a511642f29d8d256f19075d6646cce2a0ea8e"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1356,
+          1385,
+          1492
+        ],
+        "grayscale_sha256": "71adbf51ab65ff5fe02a4975b760b0eab5728fc3c7c6659d8082300dbcb0bca5"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1356,
+          1940,
+          1492
+        ],
+        "grayscale_sha256": "f8c02982a3db3f8b12cbb1fa668bce7ce8db411d6d8b8592b1db22888973d36f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1500,
+          2920,
+          1651
+        ],
+        "grayscale_sha256": "b545b38868f52439c39ab5acd2afc20177f2ae67925e93ba53c3e7a94e8ded3f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1508,
+          1385,
+          1643
+        ],
+        "grayscale_sha256": "eff1222ee0e8a953d462fcf519b5508fcfcde94c919f68fce925db883f13fdb6"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1508,
+          1940,
+          1643
+        ],
+        "grayscale_sha256": "0d5167646807a1538e6f76ca327539117f754fff6d3eba530527910827a62ea8"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1651,
+          2920,
+          1802
+        ],
+        "grayscale_sha256": "b2a540facbc9218f08f4612b6c55b807eb465c2e7d6668cf7fb0606ccc866568"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1659,
+          1385,
+          1794
+        ],
+        "grayscale_sha256": "7d6035b2ec7a72317c8f6d14b6bf4f55ffebbc06e09adfc10018544835f0e179"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1659,
+          1940,
+          1794
+        ],
+        "grayscale_sha256": "e734dc5cd8703f7cd54068b31016542b4f3c880cc17080aa456a2602c79b30cc"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1802,
+          2920,
+          1954
+        ],
+        "grayscale_sha256": "9283dd5ea2e016d944a4924a43038388d2e85409ef42fb7221f4f296ee3cbe4c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1810,
+          1385,
+          1946
+        ],
+        "grayscale_sha256": "0d4dc5fa1fdf7a19430ee9c0499cce5387ce8855702734cfb915368e517cd5a1"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1810,
+          1940,
+          1946
+        ],
+        "grayscale_sha256": "cf023413789041f68e60a5e8b28c70666f2b06d1b80c1e7ce028a61617a3383e"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          1954,
+          2920,
+          2105
+        ],
+        "grayscale_sha256": "7cddae844bbb5390da8e3ebf12f540d6bf36d4a3c50f1a3ba5f3926971be093b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          1962,
+          1385,
+          2097
+        ],
+        "grayscale_sha256": "840e2494fb3efc641340ebf26525f4af7aba311689e7f0cc8816cf1296a75606"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          1962,
+          1940,
+          2097
+        ],
+        "grayscale_sha256": "9d21694d703ecf9a017f2bef54870ac783461755950ff5202ebcc4c86fc61d3d"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2105,
+          2920,
+          2257
+        ],
+        "grayscale_sha256": "4e7f303375f40b9d79a398c8b2853216dc4fd5117fa648248698117b94b575bb"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2113,
+          1385,
+          2249
+        ],
+        "grayscale_sha256": "17aba17bf40741c687cbb680ec4659badf37ec58411f951da989301a0c6ace7c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2113,
+          1940,
+          2249
+        ],
+        "grayscale_sha256": "e786a9a64602b33cb43e364701aaeeb6215d17dd42148d6d4277ad2e075c697f"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2257,
+          2920,
+          2408
+        ],
+        "grayscale_sha256": "e11917eeb30a3261a5e3983ee7b99bf221378a3d6b7cd717607fd0a068224158"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2265,
+          1385,
+          2400
+        ],
+        "grayscale_sha256": "02791e52e4d738a5bb33534bf57abea387fab9d6371d7ccdc9c1b1f9e08f21fc"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2265,
+          1940,
+          2400
+        ],
+        "grayscale_sha256": "1c3b2c42b367586ad064303c5ae0dcc9e3a5f06509c857c9a93a94dc6181c686"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2408,
+          2920,
+          2560
+        ],
+        "grayscale_sha256": "e8324b82a793e32f5ef9eb5c929643e4a8eeadaf4003cd14de4eac14670e046d"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2416,
+          1385,
+          2552
+        ],
+        "grayscale_sha256": "ed6e1abb2f7f8d3de0cb48b08cf6e0a6e582a45796b4ec134ae5017b2cca90a1"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2416,
+          1940,
+          2552
+        ],
+        "grayscale_sha256": "24efe13d6d44954900fb5054103c8cfd8c1959e6e6bb11779dfe98679e07734b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2560,
+          2920,
+          2711
+        ],
+        "grayscale_sha256": "d11c8102b771479ce1fbf1b8daacdae31ad8c9c77008e0f2128c85dc56343ea4"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2568,
+          1385,
+          2703
+        ],
+        "grayscale_sha256": "8ad273af81dcc41f6a8f053bd205648f2939b43dc530275a3047fc84ddb03265"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2568,
+          1940,
+          2703
+        ],
+        "grayscale_sha256": "af8bff4d0e1e7b782f62099d0007b6e8d8b96856343c7b53458dbeb99e98d492"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2711,
+          2920,
+          2862
+        ],
+        "grayscale_sha256": "655c09757b3a24c0b781b9f1438df5dc3c9ba55894f309e812e63fde6948c90c"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2719,
+          1385,
+          2854
+        ],
+        "grayscale_sha256": "411b283f28927811d5743a329de77be117761a366b4c025d1377370af28054bd"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2719,
+          1940,
+          2854
+        ],
+        "grayscale_sha256": "167d1a20bd1ad2ea4e406ee23744d3a72b1e04c1f3010863dd66881a521adb17"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          2862,
+          2920,
+          3014
+        ],
+        "grayscale_sha256": "ce1404a4ad170cef7cf843f3e9a6aa4ff6d6ea3d8926ddd8858b047af8c59613"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          2870,
+          1385,
+          3006
+        ],
+        "grayscale_sha256": "c407af9e1cd629d8e36e17247004baf13323f30cd0c83759aa74f8b36fb77963"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          2870,
+          1940,
+          3006
+        ],
+        "grayscale_sha256": "1839330162b80519b6943cbf1256d255960d00864c7eb78b87545f7895fd382a"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3014,
+          2920,
+          3165
+        ],
+        "grayscale_sha256": "7d386c6be86da2dd06428a77480ea74b547a3f3af5a25d4538446c4e84027e77"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3022,
+          1385,
+          3157
+        ],
+        "grayscale_sha256": "92d58c86c056bb6a342ec8ad0a2bc22862f1cf3fcd9f57abc78dd345c7b1c4d8"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3022,
+          1940,
+          3157
+        ],
+        "grayscale_sha256": "673dfe47265a6967a494bd18bbddd1621e8b5954e54d85a24b379eb5a00804fa"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3165,
+          2920,
+          3317
+        ],
+        "grayscale_sha256": "e503cddd30fbd0479ff7bc0a793c2ef0f9e153bfa0837f8d1e4a1a04e7f6ccce"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3173,
+          1385,
+          3309
+        ],
+        "grayscale_sha256": "d065d8f5649cc29e62ccd4504b40ac268b8117abfcef2b297fc293750faad124"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3173,
+          1940,
+          3309
+        ],
+        "grayscale_sha256": "22998de0556e256437b8eea096bfece5b125bf5f0769305fcfe4ff9a5bf60832"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3317,
+          2920,
+          3468
+        ],
+        "grayscale_sha256": "f52a27276c67ef0df1e2b7175757534dd207f34e938be786ca73f4220d4ed63b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3325,
+          1385,
+          3460
+        ],
+        "grayscale_sha256": "03dfb1ce4968bc9d71530584401a2e4b037beef7619c8981c4a77f3d15ab5c03"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3325,
+          1940,
+          3460
+        ],
+        "grayscale_sha256": "7f2cdf8c361cf72cb65cf9396d85622c7f91f11319f904f77995bac6e145841a"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3468,
+          2920,
+          3620
+        ],
+        "grayscale_sha256": "414dcf94df8db27f3b72afa3f94aa4b41cc80a1831fd6cde2dacd627a216fc0b"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3476,
+          1385,
+          3612
+        ],
+        "grayscale_sha256": "4635180b1811cc48e0ebae223cfa688754136ff85b58ca8a6953f10d11a33024"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3476,
+          1940,
+          3612
+        ],
+        "grayscale_sha256": "ebecd2811f850c3663507f73b93d104b209ea520cb6d451cffd14fa80a087fe6"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3620,
+          2920,
+          3771
+        ],
+        "grayscale_sha256": "7f57e140aca67e4cfa648e6b4ee075aa2132330f52de68339775ad4814a2cd75"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3628,
+          1385,
+          3763
+        ],
+        "grayscale_sha256": "51047a98ac65100a5d924b34e0e1eadcff46564e749aeb7b4ed7df442937ac51"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3628,
+          1940,
+          3763
+        ],
+        "grayscale_sha256": "0405ead6e829978718a8dc84cdec1df4b68a6915235b459d8ba67ab20a9538f8"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          525,
+          3771,
+          2920,
+          3922
+        ],
+        "grayscale_sha256": "72949943eff6126baa6a0648b0457b947b8d6dbf06495cc0877276616784f8c9"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          590,
+          3779,
+          1385,
+          3914
+        ],
+        "grayscale_sha256": "d456d261dc66325fcb71f10ced6f67bea0ba697b0891121c91eeeedaf00327be"
+      },
+      {
+        "page": 5,
+        "box_px": [
+          1650,
+          3779,
+          1940,
+          3914
+        ],
+        "grayscale_sha256": "92610df67b038bd6e81520b3d364cdf9d5087777c8dc4875bddafc71741082d0"
+      }
+    ],
+    "pixel_limits": [
+      {
+        "page": 2,
+        "box_px": [
+          1089,
+          829,
+          1105,
+          844
+        ],
+        "dark_below": 160,
+        "max_dark_pixels": 3
+      }
+    ]
+  },
+  "source_review": {
+    "schema_version": "senate-paper-fixed-visual-corrections/v1",
+    "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+    "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+    "manifest_sha256": "c283c01d61f0fde498c208c138f6056b18f09d00383bd64d667e32abb8827609",
+    "received_date": "2026-07-17",
+    "filer_name": "Richard Blumenthal",
+    "form_amendment_checkbox": "no_mark_detected",
+    "account_headings": [
+      {
+        "page_number": 2,
+        "grid_slot": 1,
+        "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+        "asset_crop_sha256": "8c875131259089e667769804e230067860fd7d2d6dae76e174b9dc2d3aa3f605",
+        "printed_text": "(S) 3M's Partners LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 2,
+        "grid_slot": 7,
+        "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+        "asset_crop_sha256": "dbc8dda311202ded385fb69f856db28a4f1b361062da64da4a393688070a5e07",
+        "printed_text": "(S) Peter L Malkin Family 9 LLC - 3M's Partners LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 3,
+        "grid_slot": 8,
+        "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+        "asset_crop_sha256": "0528bf845849e49480b25871e8e12c6f6f0e0e3b254c8c14a15eba4b905beac3",
+        "printed_text": "(S) Peter L Malkin Family 2000 LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 4,
+        "grid_slot": 17,
+        "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+        "asset_crop_sha256": "3cd9b2bd842ca0b6ff869ddec8bf9f0308cb56b36bed3fe25aeae6ad2f05972f",
+        "printed_text": "(S) New Things Partners",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 5,
+        "grid_slot": 9,
+        "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+        "asset_crop_sha256": "8ad273af81dcc41f6a8f053bd205648f2939b43dc530275a3047fc84ddb03265",
+        "printed_text": "(S) Summa I LLC",
+        "review_status": "confirmed_fixed_image"
+      }
+    ],
+    "asset_corrections": [
+      {
+        "page_number": 2,
+        "grid_slot": 10,
+        "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+        "asset_crop_sha256": "1abadb74a61b9a02ae9a7fa612aeb265e4891fb1b3707d23b7af525d2a3f28c4",
+        "printed_text": "(S) MH Built to Last LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 3,
+        "grid_slot": 9,
+        "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+        "asset_crop_sha256": "e76e5f2087f6ef8547d2d42eaaf54dcaf2cc8b2d14afcf7c5b01a28193923038",
+        "printed_text": "(S) MH Built to Last LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 3,
+        "grid_slot": 11,
+        "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+        "asset_crop_sha256": "9a15faca937347c971c928579e8571817b9acc983cd2efb5a3d8e41d535bf315",
+        "printed_text": "(S) Decibel Partners I LP",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 4,
+        "grid_slot": 7,
+        "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+        "asset_crop_sha256": "ac435347492e39b9cb322c44f57f6b44f896b9a3289d3ae5c36c89d271c6bbd7",
+        "printed_text": "(S) MH Built to Last LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 4,
+        "grid_slot": 12,
+        "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+        "asset_crop_sha256": "71731187bb28f7fdd577afd5ba157881405b30d43a1c6258f725b2ea6710314e",
+        "printed_text": "(S) MH Built to Last LLC",
+        "review_status": "confirmed_fixed_image"
+      },
+      {
+        "page_number": 4,
+        "grid_slot": 13,
+        "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+        "asset_crop_sha256": "8a8ad539b0226e8d17aa000b5206023688432f005d17df46cbf9a0c883bb0a8a",
+        "printed_text": "(S) MH Four Winds LLC",
+        "review_status": "confirmed_fixed_image"
+      }
+    ],
+    "page_continuations": [
+      {
+        "page_number": 3,
+        "previous_heading_page": 2,
+        "previous_heading_grid_slot": 7
+      },
+      {
+        "page_number": 4,
+        "previous_heading_page": 3,
+        "previous_heading_grid_slot": 8
+      },
+      {
+        "page_number": 5,
+        "previous_heading_page": 4,
+        "previous_heading_grid_slot": 17
+      }
+    ],
+    "expected_data_row_count": 46
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "p2#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ddf73f49d86e7c49a78baa95",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "5be168ed3d499630c776289d906f95ee5a419d66871838c74a1de08299f2f365"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "5be168ed3d499630c776289d906f95ee5a419d66871838c74a1de08299f2f365"
+        },
+        "pending_sha256": "ce7c86da7d4e49957ecc96481834dff040d269722437a8ce427f3a5ec6c1499c"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5deb9dd282b2be6af5d6c02d",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "3de3891733450107d4fe354d75031d2d9900339d2389d6dc6d159402e4f61723"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "3de3891733450107d4fe354d75031d2d9900339d2389d6dc6d159402e4f61723"
+        },
+        "pending_sha256": "a72d785ffd67fd59fa40f16c4c96fc8f307155d50529ebd80ced4c316babd055"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:d4c7e56797d4c04b5aabcd37",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "3ef906d803ce7f49e0d94b024f30d94d7996bcc16cb9fc1b4f2b86479133a30c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "3ef906d803ce7f49e0d94b024f30d94d7996bcc16cb9fc1b4f2b86479133a30c"
+        },
+        "pending_sha256": "f955554ddec0a13c41d4d6209459780c0c014e36804e30bc4d440d5db0ba2719"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:c80251aa210642b7462a5038",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "a2fb26112c4337eef93f9acb91b22d0174c71d442d5f8a6c33a1048241cd9943"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "a2fb26112c4337eef93f9acb91b22d0174c71d442d5f8a6c33a1048241cd9943"
+        },
+        "pending_sha256": "78cb9820acb63397e5a7f51bab81d68399cd66983aed03f11bd106cdae410fa7"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#8",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:879ffb27455f50d8bf047b6b",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 8,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 8,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "403f8b807030d24d950995d57220bc976187ca961bf33e2f8599a4e92ccf8f94"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 8,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "403f8b807030d24d950995d57220bc976187ca961bf33e2f8599a4e92ccf8f94"
+        },
+        "pending_sha256": "507109ce2045fbcd3050e32e17e9fa66bdfc665fbedf48b8656bdbb93200a7f3"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#9",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:eb6ef7767ffc72c280645be6",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 9,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 9,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "0884d288247e861ebfc74fe6abf723b16af9e4da44c2f792ccae1d0838e571ac"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 9,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "0884d288247e861ebfc74fe6abf723b16af9e4da44c2f792ccae1d0838e571ac"
+        },
+        "pending_sha256": "26fa5115bcc71ec2109d3d4c552c83127241f71522a0e23a2f9a3caee66f1ace"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:bf73eb1b9d6a60f48fca34fc",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "6fe431c22a779ab5efdaca42592f03b180e0021f2c30c3141eb656c8820a14fe"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-15",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "6fe431c22a779ab5efdaca42592f03b180e0021f2c30c3141eb656c8820a14fe"
+        },
+        "pending_sha256": "539f582bfc798725acd7e57c47e533a4967ab14d8bb38d1ee8d1100202bdf8db"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:75818ba10559133f0736d156",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "f0828aa4f6bbdcb079862e3406f4a089960d307d56de590cc8f0744cdc609c1b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "f0828aa4f6bbdcb079862e3406f4a089960d307d56de590cc8f0744cdc609c1b"
+        },
+        "pending_sha256": "db931c5220b0ce2ed4b8727b5853abb6a5e2bf4a6055c5036c6362545ef3dfaf"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p2#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:f8885f9b36cd9c029dc59d5b",
+        "owner_raw": "Spouse",
+        "page_number": 2,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "b440d908776270089e021bbb0d1a9163bd06c3cbab81d5212e723aaf04b81d59"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 2,
+          "page_sha256": "d2ebd6f8bd29de8986cd323b9efdea709e6774ecd69fa65b096c07b4e327ddf9",
+          "row_crop_sha256": "b440d908776270089e021bbb0d1a9163bd06c3cbab81d5212e723aaf04b81d59"
+        },
+        "pending_sha256": "5ae7f319487a670dcfc9fceca8fb509693e3eabbd1abde0caba4677e7cdad343"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#1",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$500,001 - $1,000,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5b28e66c1ec11871a0019b03",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 1,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 1,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "56e42c96cd1c7495b9127018410b61a4cc168767c69e67db30a4cea62482c683"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 1,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "56e42c96cd1c7495b9127018410b61a4cc168767c69e67db30a4cea62482c683"
+        },
+        "pending_sha256": "9be8d6b9a2571a8ba851e669084aea32575cbd5e47549bac61357737f7ab1545"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:712069838ab6efbf35ba9a54",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "d3d62091561c4a2992836af92d08744f762a79e5be4a9498544f1ee1c8f4aa31"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "d3d62091561c4a2992836af92d08744f762a79e5be4a9498544f1ee1c8f4aa31"
+        },
+        "pending_sha256": "393d8d018e9e0ddb7d7685d6a8d7b79fdb259b53ebe0def00f245763888bd5f4"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:6bf87becbeec8ee587a08ef4",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4a900325938f0c46d78357d0ee970bfe3a508026cb70b534ba28fd5e95c45ab8"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-15",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4a900325938f0c46d78357d0ee970bfe3a508026cb70b534ba28fd5e95c45ab8"
+        },
+        "pending_sha256": "18decbc8ea69bab7f134d863f01d94a7d31ae652dbbcd0bda3202136af03e504"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:1d3b5fed7471b0b69804de1a",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "109e9e2a5e4e73134ff9f452b213871410097113c639b06de7bd227fbe99b004"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "109e9e2a5e4e73134ff9f452b213871410097113c639b06de7bd227fbe99b004"
+        },
+        "pending_sha256": "0f088b5055436d78558ebe4b5175c1d3b12251554551918f7afc37a179c3d63e"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:d9e8bf4c342d14bc5edaf858",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "c58d79ab84a31f9bba891a14436f57e074ff684dbb65a062ae0fdc5dd9d9784e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "c58d79ab84a31f9bba891a14436f57e074ff684dbb65a062ae0fdc5dd9d9784e"
+        },
+        "pending_sha256": "4fca7083a390bcc631c703357e008d0de92d7d6551254ad9384baf3603a191e2"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#6",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 9 LLC - 3M's Partners LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:963f4e7a3c638d086ac7a999",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 6,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4ae6e37318d0241e9f08a04718f72739aa7df5e8229c8a44d2e42d50e601156e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-24",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4ae6e37318d0241e9f08a04718f72739aa7df5e8229c8a44d2e42d50e601156e"
+        },
+        "pending_sha256": "a0f7e959aeb2d7c57bc1e35c2e3e07e593cca5917928f7190318aa4883c8a231"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#9",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:bbd584c473e8e33b96be74ce",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 9,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 9,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "06d2bb4ad0453c199d4e3684488ff6309c864785833a1a1dc9617da8084ce42d"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 9,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "06d2bb4ad0453c199d4e3684488ff6309c864785833a1a1dc9617da8084ce42d"
+        },
+        "pending_sha256": "1f17b469a76805a10e2bd5f5e7206f1a50c962ee7cc0423384d8be9c7a206aaf"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:1655a477b8837811e7feb28e",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4a9f8865093797a36b7d79f371c183c8340366e9af6afc5dc859edb7c5006665"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "4a9f8865093797a36b7d79f371c183c8340366e9af6afc5dc859edb7c5006665"
+        },
+        "pending_sha256": "40b26e82f7326d7fc659245a8842ac21832c82740261bc3b152e53b2f401194a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$500,001 - $1,000,000",
+        "asset_name_raw": "Decibel Partners I LP (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:138c484139c8c93d9cebaa6e",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "53b99f1d7b16b282c02ee2de0efc1b3d07e58d9834a6066a950da9bda485918e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-11",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "53b99f1d7b16b282c02ee2de0efc1b3d07e58d9834a6066a950da9bda485918e"
+        },
+        "pending_sha256": "c19f7523150a16478371a4baff58e6f65ddd6d23f4fb045952514b56cfdba892"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5790d9dad65fa674d230989d",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "ea203fffac4549b95b4112575bab838d2a54016324942d918ab879b950518f7c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-15",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "ea203fffac4549b95b4112575bab838d2a54016324942d918ab879b950518f7c"
+        },
+        "pending_sha256": "207f995cfc09154bdc9e2a8cd81e8f5bb25975187854eeb0e377647bd9956921"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#13",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "Days Between LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:093549275619e354315bb367",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 13,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "e078907184135df0bb1ab639d7475b144b3dddcfeddcdbcd882b39aff3e26d0c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "e078907184135df0bb1ab639d7475b144b3dddcfeddcdbcd882b39aff3e26d0c"
+        },
+        "pending_sha256": "6c58403bc2ca82add5f9121f136a679eae6944a4ef456b51b19151fbb0f70fbe"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#14",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$250,001 - $500,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:4718a2f2a55824eefecf1bdc",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 14,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "055e9a8cfc3fbf19126e2ee61897cc9f2e9940fa9ee195933d220d6fd7bbcaf9"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "055e9a8cfc3fbf19126e2ee61897cc9f2e9940fa9ee195933d220d6fd7bbcaf9"
+        },
+        "pending_sha256": "08a8b0a21442cb7ac65ef9c189590462f97f633be8a67d943ab9741460e6d6a3"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#15",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:3b4bfdb04a4746d6755e6738",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 15,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "71af941a980144fb78b0784ac1b8fc2c425602c9c9ba28e0b82262611e63bd2f"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "71af941a980144fb78b0784ac1b8fc2c425602c9c9ba28e0b82262611e63bd2f"
+        },
+        "pending_sha256": "eb0773705ff57f579ebec8a7d9a8f89b29b6350801cae3a4dc24287213954dd6"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p3#16",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ac3db67c3a2f21dca943c2ff",
+        "owner_raw": "Spouse",
+        "page_number": 3,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 16,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 16,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "796d3315759504d63d3c2a38fec40cb392ad5c40e79eba2fcbce90777acb683f"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-24",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 16,
+          "page_number": 3,
+          "page_sha256": "475d8370c531fd198914cf648a6d2a894f447995d457f52ae24ff54d4c6e3d24",
+          "row_crop_sha256": "796d3315759504d63d3c2a38fec40cb392ad5c40e79eba2fcbce90777acb683f"
+        },
+        "pending_sha256": "b2b8c7836303ff27ab803526882773f176913f5134f5b7e9d0937810a05e0c4a"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#2",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:494827a6bbb7367ca11ca471",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 2,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "fadbebe35048e7a8d549d5ef51826773fb712bc6fc2607ce6839877dffdd0318"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 2,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "fadbebe35048e7a8d549d5ef51826773fb712bc6fc2607ce6839877dffdd0318"
+        },
+        "pending_sha256": "dc6bdbc54dd98788f1db5bb584f40dfa79bcc3901418fd51ac9bb2b24f66a683"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#3",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:0a4705025a2fe816347703e5",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 3,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "d9f83e00c8eeb350a973e3b68b3abf641d99f2507b3899a3e01ef657b6bbfa94"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 3,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "d9f83e00c8eeb350a973e3b68b3abf641d99f2507b3899a3e01ef657b6bbfa94"
+        },
+        "pending_sha256": "c5257ecb86269781efc0bc20a434ea45cde53746fba1ee5f1f5a4ef2d7da12c4"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:4e26638de048c17e014152bd",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "149730de2571c11dd8f299077af102150c3da480cdf178997a6dd70b078d7d06"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-15",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "149730de2571c11dd8f299077af102150c3da480cdf178997a6dd70b078d7d06"
+        },
+        "pending_sha256": "28f074ec96627379ec3289758a755528f98e4c31b2a31949bd2be823b0b497b9"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5d9d9cbe6c9b20702230d2a3",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "c2d8bfff6e4e4146b8f1a0d39da40bff500c00c4d9152d72015db1d0d4f8a232"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "c2d8bfff6e4e4146b8f1a0d39da40bff500c00c4d9152d72015db1d0d4f8a232"
+        },
+        "pending_sha256": "a29d9c10fda9bf4fd037a54b49890bca65044695c3e1b5dee9d6e369bed00a88"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#6",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:8517eaffa14e5811d0c281d5",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 6,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "b6fc44df4295bb889c0b2a173a647c8800006a2c14847ab9db52d25b6ed4363d"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "b6fc44df4295bb889c0b2a173a647c8800006a2c14847ab9db52d25b6ed4363d"
+        },
+        "pending_sha256": "baf264d1b3f85e8b0ccfc13f4cc532b4257b66c8643799d5ab9e2b0da80d0f7b"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#7",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:b2639fa1ae1f12baee795f32",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 7,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 7,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "09160add1cf5ad2dbca07f88f8abf56afde02d6417e6db274b2a3badee02bc11"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-24",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 7,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "09160add1cf5ad2dbca07f88f8abf56afde02d6417e6db274b2a3badee02bc11"
+        },
+        "pending_sha256": "d744729a599ae6d57a609d57bc5a0b33e75d4a5ccacbe90368bafbc3a30c5a24"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:fb42207e5db0fcf839801130",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "733a9be6453cd7a2ee8f66b6c015e946f36cc6126a28571370cfe9f4a58d9ced"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "733a9be6453cd7a2ee8f66b6c015e946f36cc6126a28571370cfe9f4a58d9ced"
+        },
+        "pending_sha256": "f36489b443967ecdc87f2ab9c96ce51f6f10320769010e414a68316a12f6a659"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:c0e6891174ba5861d42520be",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "ef0fb3eb084257aad0037db687d7f836b5ff0269f48674e6f0af8305af5056af"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "ef0fb3eb084257aad0037db687d7f836b5ff0269f48674e6f0af8305af5056af"
+        },
+        "pending_sha256": "cc746242fb7c3c5802909e21ee81fcba041fb6cbef214f8b63610809c2c168f0"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ee004f83e5de2e7a89678daf",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "25035bdd2e53b4cca43b54f028cea6f55a4e20a9488cb2d8d32296779cdb06f4"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-15",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "25035bdd2e53b4cca43b54f028cea6f55a4e20a9488cb2d8d32296779cdb06f4"
+        },
+        "pending_sha256": "03c51bb37e3d699af5b64ec6a58e39fae42f9400148a658a4306e040de885706"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#13",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:5c12b0d964e8fb802f7b9013",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 13,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "bf5b93d27708b6c3cf55bdcf194fcf6fa1cdfd58682a6fabf0d3ed3973cb6fa5"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "bf5b93d27708b6c3cf55bdcf194fcf6fa1cdfd58682a6fabf0d3ed3973cb6fa5"
+        },
+        "pending_sha256": "5221c5e3c8f2936f32fa33db82c0d7db0ec9944ce6a306a72529c72ddd4abd7e"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#14",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:f6b4136fcf7a02a05d57a201",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 14,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "87123d9aed1f70e728f545c27fc1207d32ae01774bcddcea5eff61bc86c1076b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "87123d9aed1f70e728f545c27fc1207d32ae01774bcddcea5eff61bc86c1076b"
+        },
+        "pending_sha256": "cd5e42a47e3a9095a89d039c3a7af863c67e3876069a3a90ea22ec42ffb1f8b4"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p4#15",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Peter L Malkin Family 2000 LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:9c702f516096cb1a79675c00",
+        "owner_raw": "Spouse",
+        "page_number": 4,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 15,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "9a8030a4a867c0ca9bafea3c501d87f898397009330372697e5c4d9ba1ead4a8"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-24",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 4,
+          "page_sha256": "ba8ff28a0c9737c57810c6dcd61e409eb0357d28a6d3bc147454340d9b792b19",
+          "row_crop_sha256": "9a8030a4a867c0ca9bafea3c501d87f898397009330372697e5c4d9ba1ead4a8"
+        },
+        "pending_sha256": "626f2e4c28e5363156d83dbe315e274a646b369b29736b1d835c41744e1bfb30"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#1",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$50,001 - $100,000",
+        "asset_name_raw": "Days Between LLC (Account: (S) New Things Partners)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:0f35812e21590c1fd28653e2",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 1,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 1,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "2f45185b07a73b575280a42ea59a511642f29d8d256f19075d6646cce2a0ea8e"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 1,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "2f45185b07a73b575280a42ea59a511642f29d8d256f19075d6646cce2a0ea8e"
+        },
+        "pending_sha256": "aea8a089d42797edc79ab3071b74db15cbe37271de0ebd4abd75a44b6f28e291"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#4",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) New Things Partners)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:30f1eb2de51a96691e5805d1",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 4,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "9283dd5ea2e016d944a4924a43038388d2e85409ef42fb7221f4f296ee3cbe4c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 4,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "9283dd5ea2e016d944a4924a43038388d2e85409ef42fb7221f4f296ee3cbe4c"
+        },
+        "pending_sha256": "25ff1ab01654aeabfac12579ab9b064e90315c388be8f6934c34f2f329203bc8"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#5",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) New Things Partners)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:030e60f2c991bb9f4163bd33",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 5,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "7cddae844bbb5390da8e3ebf12f540d6bf36d4a3c50f1a3ba5f3926971be093b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 5,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "7cddae844bbb5390da8e3ebf12f540d6bf36d4a3c50f1a3ba5f3926971be093b"
+        },
+        "pending_sha256": "3118020dc471f7e03d03a054c9312155e79c7e7e69059f70d91ee50937eed18f"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#6",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) New Things Partners)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:a52ec1492727bd6808fd2948",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 6,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "4e7f303375f40b9d79a398c8b2853216dc4fd5117fa648248698117b94b575bb"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 6,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "4e7f303375f40b9d79a398c8b2853216dc4fd5117fa648248698117b94b575bb"
+        },
+        "pending_sha256": "873b6b7b2d0ea7de9e178bdd2436a8c667390da68cb56403eb21b008a56e2dce"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#7",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) New Things Partners)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:3fa2170d9c1f95c75e16df95",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 7,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 7,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "e11917eeb30a3261a5e3983ee7b99bf221378a3d6b7cd717607fd0a068224158"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 7,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "e11917eeb30a3261a5e3983ee7b99bf221378a3d6b7cd717607fd0a068224158"
+        },
+        "pending_sha256": "5e7bf6b13b5631b2a3e661f68977811f00f742ff3969887566dc7f555f2774f8"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#10",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:38e99aa56e586bb5b057d872",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 10,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "655c09757b3a24c0b781b9f1438df5dc3c9ba55894f309e812e63fde6948c90c"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-08",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 10,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "655c09757b3a24c0b781b9f1438df5dc3c9ba55894f309e812e63fde6948c90c"
+        },
+        "pending_sha256": "23ce98421d187ad5ce1b420358b68d4f03152647e69360044fce27968af0835d"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#11",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:979a2719e9e3cc04d7b9391e",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 11,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "ce1404a4ad170cef7cf843f3e9a6aa4ff6d6ea3d8926ddd8858b047af8c59613"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-10",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 11,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "ce1404a4ad170cef7cf843f3e9a6aa4ff6d6ea3d8926ddd8858b047af8c59613"
+        },
+        "pending_sha256": "7a89702cccc74f9990d6a6c6ec76dc23db0e98af31a8ed9cd1949031a5136987"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#12",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$500,001 - $1,000,000",
+        "asset_name_raw": "Days Between LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:ec397215414e3106a9751e7e",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 12,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "7d386c6be86da2dd06428a77480ea74b547a3f3af5a25d4538446c4e84027e77"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 12,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "7d386c6be86da2dd06428a77480ea74b547a3f3af5a25d4538446c4e84027e77"
+        },
+        "pending_sha256": "545b9e198ed3c14aab0724b15175228e59a14b74aa4be2881a0e56f52b58a883"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#13",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$15,001 - $50,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:7676c8b2eb482c879404b39a",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 13,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "e503cddd30fbd0479ff7bc0a793c2ef0f9e153bfa0837f8d1e4a1a04e7f6ccce"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 13,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "e503cddd30fbd0479ff7bc0a793c2ef0f9e153bfa0837f8d1e4a1a04e7f6ccce"
+        },
+        "pending_sha256": "6fc305d7325c4e58bba72ed8e231e731812a9baf4ce867ef4164fdbc4c65fdc3"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#14",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Four Winds LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:508622e80827287dc3f3e5fc",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 14,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "f52a27276c67ef0df1e2b7175757534dd207f34e938be786ca73f4220d4ed63b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-23",
+        "transaction_type": "sale",
+        "transaction_type_raw": "Sale"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 14,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "f52a27276c67ef0df1e2b7175757534dd207f34e938be786ca73f4220d4ed63b"
+        },
+        "pending_sha256": "2049ff9fb1ea5b84ef6207896d19df2b530400d24d611c2b9ebe47ae32d9187c"
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "p5#15",
+      "field": "qualified_record",
+      "expect": null,
+      "value": {
+        "amount_raw": "$1,001 - $15,000",
+        "asset_name_raw": "MH Built to Last LLC (Account: (S) Summa I LLC)",
+        "asset_type_raw": null,
+        "comment_raw": null,
+        "extraction_id": "senate-ptr:999f4d78b242295e07aad7c9",
+        "owner_raw": "Spouse",
+        "page_number": 5,
+        "qualification_basis": "fixed_source_visual_review_v1",
+        "qualification_status": "eligible",
+        "quarantine_reasons": [],
+        "row_number": 15,
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "414dcf94df8db27f3b72afa3f94aa4b41cc80a1831fd6cde2dacd627a216fc0b"
+        },
+        "ticker_raw": null,
+        "transaction_date": "2026-06-24",
+        "transaction_type": "purchase",
+        "transaction_type_raw": "Purchase"
+      },
+      "evidence": {
+        "source_slot": {
+          "document_id": "3a4c5095-028a-4614-a692-836719da4e63",
+          "entrypoint_source_sha256": "332bf8d6b8398c55443935a091e3b3a40617ffd6148a377c6a20c4b6902d83a3",
+          "grid_slot": 15,
+          "page_number": 5,
+          "page_sha256": "b55f9f5002de42701564f8fc6fe2dfb4655e530284d19ba893febb77508de2c3",
+          "row_crop_sha256": "414dcf94df8db27f3b72afa3f94aa4b41cc80a1831fd6cde2dacd627a216fc0b"
+        },
+        "pending_sha256": "b8abf994971ca035affb45d5f3facf100a926f21185818b45a9d08e2bee1386c"
+      }
+    }
+  ]
+}

@@ -77,7 +77,7 @@ class UnicodeLinkTests(unittest.TestCase):
 
     def test_sync_cli_uses_one_expanded_index_for_batch_and_review(self):
         backend = Path(__file__).resolve().parents[1]
-        script = backend / "scripts/whitehouse_disclosures.py"
+        script = backend / "src/unison_snapshot/commands/whitehouse_disclosures.py"
         spec = importlib.util.spec_from_file_location("whitehouse_sync_cli_test", script)
         module = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
@@ -113,9 +113,9 @@ class UnicodeLinkTests(unittest.TestCase):
 
     def test_workflow_writes_iri_audit_to_review_in_same_sync(self):
         root = Path(__file__).resolve().parents[2]
-        workflow = (root / ".github/workflows/whitehouse-public-disclosures.yml")
+        workflow = (root / ".github/workflows/whitehouse.yml")
         content = workflow.read_text(encoding="utf-8")
-        self.assertIn("python backend/scripts/whitehouse_disclosures.py sync", content)
+        self.assertIn("python -m unison_snapshot whitehouse-disclosures sync", content)
         self.assertIn('--iri-audit-out "$REVIEW_ROOT/whitehouse/disclosures/iri-link-audit-current.json"',
                       content)
         self.assertIn('--batch-out "$REVIEW_ROOT/whitehouse/disclosures/batch-current.json"',
@@ -124,7 +124,8 @@ class UnicodeLinkTests(unittest.TestCase):
         self.assertIn('test "$EXTRACTION_BATCH_SIZE" -le 100', content)
         self.assertIn('--limit "$PDF_BATCH_SIZE" --start-after-id "$cursor"', content)
         self.assertIn('--limit "$EXTRACTION_BATCH_SIZE" --start-after-id "$cursor"', content)
-        self.assertIn('git -C "$REVIEW_ROOT" add whitehouse', content)
+        self.assertIn('name: Publish bounded review observations', content)
+        self.assertIn('uses: ./.github/actions/publish-data',content)
 
 
 if __name__ == "__main__":

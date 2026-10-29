@@ -6,6 +6,10 @@ already archived PDF to its expected hash before rendering any pages.
 from __future__ import annotations
 
 from pathlib import Path
+from copy import deepcopy
+import hashlib
+import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -18,15 +22,18 @@ class OcrGeometryError(ValueError):
 class OcrPage:
     """Small pdfplumber-compatible view over one OCR word page."""
 
-    def __init__(self, *, width: float, height: float, words: list[dict]):
+    def __init__(self, *, width: float, height: float, words: list[dict], render_frame: dict | None = None):
         self.width = width
         self.height = height
         self._words = words
+        self.render_frame = deepcopy(render_frame)
 
     def extract_words(self, **_kwargs) -> list[dict]:
         return [dict(word) for word in self._words]
 
     def extract_text_lines(self) -> list[dict]:
+        if any("source_object_index" in word for word in self._words):
+            raise OcrGeometryError("native text objects do not establish logical OCR lines")
         grouped: dict[tuple[int, int, int], list[dict]] = {}
         for word in self._words:
             key = (word["block_num"], word["par_num"], word["line_num"])
@@ -45,6 +52,50 @@ class OcrPage:
 
     def extract_text(self) -> str:
         return "\n".join(line["text"] for line in self.extract_text_lines())
+
+
+
+def _mediabox_frame(page, image, *, source_sha256: str, page_number: int,
+                    resolution: int, words: list[dict]) -> dict:
+    if (not isinstance(source_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256)
+            or type(page_number) is not int or page_number < 1
+            or type(resolution) is not int or not 150 <= resolution <= 400):
+        raise OcrGeometryError("Saved MediaBox render frame binding is invalid")
+    # TSV coordinates begin at zero. Nonzero displayed origins need a separate
+    # transform and are deliberately outside this proof's supported frame.
+    if tuple(page.bbox[:2]) != (0, 0):
+        raise OcrGeometryError("Saved MediaBox render origin is unsupported")
+    return {"schema_version":"source-pdf-mediabox-render/v1",
+        "source_sha256":source_sha256,"page_number":page_number,
+        "coordinate_frame":"displayed_mediabox","force_mediabox":True,
+        "media_box":list(page.mediabox),"crop_box":list(page.cropbox),
+        "displayed_page_bbox":list(page.bbox),"rotation":page.rotation,
+        "resolution":resolution,"antialias":True,"pixel_mode":"L",
+        "pixel_size":[image.width,image.height],
+        "pixel_sha256":hashlib.sha256(image.tobytes()).hexdigest(),
+        "words_sha256":hashlib.sha256(json.dumps(words,sort_keys=True,separators=(",",":"),
+            ensure_ascii=False,allow_nan=False).encode()).hexdigest()}
+
+
+def mediabox_render_receipt(page, *, source_sha256: str, page_number: int,
+                             resolution: int, words: list[dict]) -> dict:
+    """Freeze the actual original-PDF frame; never performs OCR or changes words."""
+    if type(resolution) is not int or not 150 <= resolution <= 400:
+        raise OcrGeometryError("Saved MediaBox render DPI is invalid")
+    image=page.to_image(resolution=resolution,antialias=True,force_mediabox=True).original.convert("L")
+    return _mediabox_frame(page,image,source_sha256=source_sha256,page_number=page_number,
+                          resolution=resolution,words=words)
+
+
+def validate_mediabox_render_receipt(page, saved: OcrPage, *, source_sha256: str,
+                                      page_number: int) -> None:
+    receipt=saved.render_frame
+    if not isinstance(receipt,dict):
+        raise OcrGeometryError("Saved OCR MediaBox render proof is missing")
+    expected=mediabox_render_receipt(page,source_sha256=source_sha256,page_number=page_number,
+        resolution=receipt.get("resolution"),words=saved.extract_words())
+    if json.dumps(receipt,sort_keys=True,allow_nan=False) != json.dumps(expected,sort_keys=True,allow_nan=False):
+        raise OcrGeometryError("Saved OCR MediaBox render proof differs from original page")
 
 
 def words_from_tesseract_tsv(value: bytes, *, points_per_pixel: float) -> list[dict]:
@@ -111,7 +162,8 @@ def _engine(executable: str | None) -> tuple[str, str]:
 
 def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 200,
                   page_numbers: list[int] | None = None,
-                  max_pages: int = 100, force_mediabox: bool = False) -> tuple[list[OcrPage], str]:
+                  max_pages: int = 100, force_mediabox: bool = False,
+                  source_sha256: str | None = None) -> tuple[list[OcrPage], str]:
     """Render and OCR a bounded, one-based page selection from an open PDF."""
 
     if type(resolution) is not int or not 150 <= resolution <= 400:
@@ -141,7 +193,9 @@ def ocr_pdf_pages(document, *, executable: str | None = None, resolution: int = 
                 raise OcrGeometryError(f"Tesseract OCR failed on page {page_number}")
             words = words_from_tesseract_tsv(
                 completed.stdout, points_per_pixel=72.0 / resolution)
-            pages.append(OcrPage(width=page.width, height=page.height, words=words))
+            frame = (_mediabox_frame(page,image,source_sha256=source_sha256,page_number=page_number,
+                resolution=resolution,words=words) if force_mediabox and source_sha256 is not None else None)
+            pages.append(OcrPage(width=page.width, height=page.height, words=words, render_frame=frame))
     return pages, engine
 
 

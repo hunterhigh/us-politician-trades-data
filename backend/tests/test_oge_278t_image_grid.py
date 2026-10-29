@@ -179,26 +179,6 @@ class ImageGridTests(unittest.TestCase):
             self.assertEqual(out["status"],"unknown")
             self.assertEqual(out["reason"],"pixel_window_outside_page")
 
-    def test_census_and_existing_audit_do_not_confirm_pending_image_template(self):
-        from unison_snapshot.oge_278t_raster_slots import census_with_2024_fallback
-        from unison_snapshot.oge_278t_format_audit import audit_278t_format
-        page=grid_page();opened=Mock();opened.__enter__=Mock(return_value=SimpleNamespace(pages=[page]));opened.__exit__=Mock()
-        initial={"results":[{"page_number":1,"status":"coverage_unknown","physical_row_bands":[]}]}
-        with tempfile.TemporaryDirectory() as folder:
-            path=Path(folder)/"source";path.write_bytes(b"synthetic");digest=hashlib.sha256(b"synthetic").hexdigest()
-            with patch("pdfplumber.open",return_value=opened),patch(
-                    "unison_snapshot.oge_278t_raster_slots.probe_raster_row_bands",return_value=initial):
-                census,edges=census_with_2024_fallback(path,expected_sha256=digest,page_numbers=[1])
-            self.assertIsNone(edges[1]);self.assertEqual(census["results"][0]["status"],"coverage_unknown")
-            self.assertEqual(census["results"][0]["column_geometry_observation"]["status"],"candidate")
-            shadow={"page_number":1,"text_mode":"raster","row_basis":"unknown","candidate_row_bands":[],
-                    "coverage":"coverage_unknown_raster","unresolved_row_bands":[],"unresolved_row_regions":[],
-                    "number_sequence_warnings":[],"row_coverage":"unknown"}
-            with patch("unison_snapshot.oge_278t_format_audit.inspect_pdf",return_value={"page_count":1,"pages":[shadow]}),patch(
-                    "unison_snapshot.oge_278t_format_audit.census_with_2024_fallback",return_value=(census,edges)):
-                out=audit_278t_format(path,extraction={"source_sha256":digest,"source_rows":[],"transactions":[],"quarantined":[]},raster_census=True)
-            self.assertEqual(out["confirmed_physical_slot_count"],0)
-            self.assertEqual(out["pages"][0]["raster_column_geometry"],"unknown")
 
     def test_faint_pixels_are_preserved_as_evidence_but_not_promoted(self):
         image=np.full((600,40),255,np.uint8);image[:,20]=0

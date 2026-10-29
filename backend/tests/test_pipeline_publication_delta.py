@@ -2,8 +2,8 @@ from copy import deepcopy
 import unittest
 from unittest.mock import patch
 
-from unison_snapshot.pipeline_qa.migration_inventory import InventoryError
-from unison_snapshot.pipeline_qa.publication_delta import build_publication_delta
+from unison_snapshot.fact_policy.source_objects import InventoryError
+from unison_snapshot.fact_policy.publication_delta import build_publication_delta
 
 MAIN = "a" * 40
 REVIEW = "b" * 40
@@ -72,8 +72,8 @@ class PublicationDeltaTests(unittest.TestCase):
         def archived(repo, commit, url, read_object, list_paths):
             return {"sha256": SOURCE_HASH, "filer_name_from_label": "Person",
                     "report_year_from_label": 2026, "url": url}
-        with patch("unison_snapshot.pipeline_qa.publication_delta._archive", side_effect=archived), \
-             patch("unison_snapshot.pipeline_qa.publication_delta._official_index_replacement", return_value=True):
+        with patch("unison_snapshot.fact_policy.publication_delta._archive", side_effect=archived), \
+             patch("unison_snapshot.fact_policy.publication_delta._official_index_replacement", return_value=True):
             report = self.run_gate(values, decision, repo="repo", evidence_commit="d" * 40)
             self.assertEqual(report["counts"]["reported_holdings"]["rekey"], 1)
             self.assertEqual(report["counts"]["reported_holdings"]["new"], 0)

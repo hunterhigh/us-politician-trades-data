@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import integrity_error, verified_original_hash
 import re
 import shutil
 import subprocess
@@ -14,9 +16,9 @@ from urllib.parse import urlsplit
 from .house import HouseIndexError
 
 SCHEMA = "house-ptr-extraction/v1"
-PARSER_VERSION = "house-ptr-2026-04"
+PARSER_VERSION = "house-ptr-2026-05"
 LEGACY_PARSER_VERSION = "house-legacy-checkbox-2026-09-date-normalization-v1"
-PARSER_RETRY_VERSION = "house-parser-suite-2026-08"
+PARSER_RETRY_VERSION = "house-parser-suite-native-opacity-v1"
 DATE_RE = re.compile(r"\d{2}/\d{2}/\d{4}")
 AMOUNT_RANGE_RE = re.compile(r"^\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)$")
 AMOUNT_EXACT_RE = re.compile(r"^\$(\d[\d,]*)(?:\.(\d{2}))?$")
@@ -154,33 +156,42 @@ def _parse_amount(value: str) -> tuple[int, int | None, str] | None:
         return exact, exact + (1 if cents and cents != "00" else 0), "exact"
     matched = AMOUNT_OVER_RE.fullmatch(value)
     if matched:
-        # Dollar values are integral in the frontend contract, so "over" starts at the next dollar.
-        return int(matched.group(1).replace(",", "")) + 1, None, "open_ended"
+        # Keep the disclosed threshold; an explicit exclusive marker carries "over".
+        return int(matched.group(1).replace(",", "")), None, "open_ended"
     return None
 
 
 def _modern_date_anchors(words: list[dict], width: float) -> list[float]:
-    """Find transaction-date rows without treating a notification date as an anchor."""
-    dates = [word for word in words if DATE_RE.fullmatch(_clean(str(word.get("text", ""))))]
-    anchors: list[float] = []
-    # pdfplumber can place a glyph fractionally left of the drawn cell border.  One point is
-    # intentionally smaller than the gap between the transaction and notification columns.
-    left = 0.53 * width - 1.0
-    split = 0.62 * width
-    right = 0.725 * width + 1.0
-    transactions = sorted((word for word in dates
-                           if left <= float(word["x0"]) < split),
-                          key=lambda word: float(word["top"]))
-    for transaction in transactions:
-        top = float(transaction["top"])
-        same_line = [word for word in dates
-                     if abs(float(word["top"]) - top) <= 2.0
-                     and left <= float(word["x0"]) < right]
-        # Requiring the second, rightward date prevents a slightly left-shifted notification
-        # date from being promoted to a transaction anchor by the boundary tolerance.
-        if not any(float(word["x0"]) >= split for word in same_line):
-            continue
-        anchors.append(top)
+    """Locate native rows without requiring the optional notification value.
+
+    A rightward notice date alone cannot anchor a row. Direction, an asset
+    cell and an amount also locate rows with a damaged/missing event date,
+    which must reach qualification rather than disappear.
+    """
+    left, split = 0.53 * width - 1.0, 0.62 * width
+    candidates = [word for word in words
+                  if (left <= float(word["x0"]) < split and
+                      DATE_RE.fullmatch(_clean(str(word.get("text", "")))))
+                  or (0.42 * width <= float(word["x0"]) < 0.53 * width and
+                      re.fullmatch(r"[PSE](?:\s*\(partial\))?",
+                                   _clean(str(word.get("text", ""))), re.I))]
+    anchors = []
+    for candidate in sorted(candidates, key=lambda item: float(item["top"])):
+        top = float(candidate["top"])
+        line = [word for word in words if abs(float(word["top"]) - top) <= 2.0]
+        has_asset = any(0.165 * width <= float(word["x0"]) < 0.42 * width for word in line)
+        has_type = any(0.42 * width <= float(word["x0"]) < 0.53 * width and
+                       re.fullmatch(r"[PSE](?:\s*\(partial\))?",
+                                    _clean(str(word.get("text", ""))), re.I) for word in line)
+        has_notice = any(split <= float(word["x0"]) < 0.725 * width + 1 and
+                         DATE_RE.fullmatch(_clean(str(word.get("text", "")))) for word in line)
+        has_amount = any(0.725 * width <= float(word["x0"]) < 0.90 * width and
+                         "$" in str(word.get("text", "")) for word in line)
+        event_token = left <= float(candidate["x0"]) < split
+        if has_asset and ((event_token and (has_type or has_notice)) or
+                          (has_type and has_amount)):
+            if not any(abs(top - existing) <= 2 for existing in anchors):
+                anchors.append(top)
     return anchors
 
 
@@ -423,6 +434,7 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
                 "transaction_type": transaction_type, "transaction_date": transaction_date,
                 "notification_date": notification_date, "amount_low": amount[0],
                 "amount_high": amount[1], "amount_kind": amount[2], "amount_raw": None,
+                **({"amount_low_exclusive": False} if amount[1] is None else {}),
                 "ocr_confidence": (round(sum(confidences) / len(confidences), 2) if confidences else None),
                 "subholding_of": None, "location": None, "description": None,
                 "evidence": {"page": page_index + 1, "pages": [page_index + 1],
@@ -453,7 +465,11 @@ def _parse_legacy_word_pages(metadata: dict, source_sha256: str, pages: list[dic
 
 
 def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
-                     copy_allowed: bool | None, ocr_engine: str | None = None) -> dict:
+                     copy_allowed: bool | None, ocr_engine: str | None = None,
+                     page_text_methods: list[str] | None = None,
+                     _row_member_sink: list | None = None) -> dict:
+    if _row_member_sink is not None and (not isinstance(_row_member_sink, list) or _row_member_sink):
+        raise HouseIndexError('House raw member collector must be an empty list')
     if not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
         raise HouseIndexError("House PTR source hash is invalid")
     document_id = str(metadata.get("document_id", ""))
@@ -462,9 +478,46 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         raise HouseIndexError("House PTR metadata is invalid")
     if not pages:
         raise HouseIndexError("House PTR contains no pages")
+    from .house_native_visibility import KEY as VISIBILITY_KEY, MODE as VISIBILITY_MODE, BLOCKER, validate_visibility, unknown, affects_row, format_anchors_visible
+    for number, page in enumerate(pages, 1):
+        validate_visibility(page, source_sha256, number)
+    visibility_unknown_pages = {number for number, page in enumerate(pages, 1) if unknown(page)}
+    visibility_format_blocked = not format_anchors_visible(pages[0], document_id)
+    if page_text_methods is None and any("text_reading_method" in page for page in pages):
+        raise HouseIndexError("House mixed page observations require their reading methods")
+    if page_text_methods is not None:
+        from .house_image_body_routing import METHOD as IMAGE_BODY_METHOD, WORD_TAG, validate_image_body_page
+        if (not isinstance(page_text_methods, list) or len(page_text_methods) != len(pages) or
+                any(not isinstance(method, str) for method in page_text_methods) or
+                not set(page_text_methods) <= {"native_pdf_text", "tesseract_ocr", IMAGE_BODY_METHOD} or
+                not set(page_text_methods) & {"tesseract_ocr", IMAGE_BODY_METHOD} or
+                page_text_methods[0] not in {"native_pdf_text", IMAGE_BODY_METHOD} or
+                not isinstance(ocr_engine, str) or not ocr_engine):
+            raise HouseIndexError("House mixed page reading methods are invalid")
+        for page_number, (method, page) in enumerate(zip(page_text_methods, pages), 1):
+            if page.get("text_reading_method", method) != method:
+                raise HouseIndexError("House mixed page reading method binding differs")
+            if method == IMAGE_BODY_METHOD:
+                geometry = page.get('native_page_geometry', {})
+                if geometry.get('source_sha256') != source_sha256 or geometry.get('page_number') != page_number:
+                    raise HouseIndexError('House image body source or page binding differs')
+                validate_image_body_page(page)
+            elif 'image_body_observation' in page or any(WORD_TAG in word for word in page['words']):
+                raise HouseIndexError("House image body observations require their reading method")
+            for word in page["words"]:
+                confidence = word.get("ocr_confidence")
+                native_word = method == "native_pdf_text" or (method == IMAGE_BODY_METHOD and not word.get(WORD_TAG))
+                ocr_word = method == "tesseract_ocr" or (method == IMAGE_BODY_METHOD and word.get(WORD_TAG))
+                if ((native_word and confidence is not None) or
+                        (ocr_word and (type(confidence) not in (int, float) or
+                         not 0 <= confidence <= 100))):
+                    raise HouseIndexError("House mixed page confidence differs from its reading method")
     if not any(page.get("words") for page in pages):
         raise HouseIndexError("House PTR requires OCR because it contains no extractable text")
-    first_text = _clean(" ".join(str(word["text"]) for word in pages[0].get("words", [])))
+    first_words = (pages[0]['image_body_observation']['native_words']
+                   if page_text_methods is not None and page_text_methods[0] == IMAGE_BODY_METHOD
+                   else pages[0].get('words', []))
+    first_text = _clean(" ".join(str(word["text"]) for word in first_words))
     all_text = _clean(" ".join(str(word["text"]) for page in pages
                                for word in page.get("words", [])))
     compact_first_text = re.sub(r"[^A-Z]", "", first_text.upper())
@@ -479,7 +532,11 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                                 for page in pages for word in page.get("words", [])))
     legacy_form = (f"#{document_id}" not in first_text and ocr_engine is not None
                    and ((title_matches and "HOUSE" in compact_first_text) or has_legacy_table))
+    if page_text_methods is not None and (not title_matches or f"#{document_id}" not in first_text):
+        raise HouseIndexError("House mixed pages require a native modern PTR header")
     if legacy_form:
+        if visibility_unknown_pages:
+            raise HouseIndexError('House legacy native visibility is unsupported; no zero claim can be made')
         declaration = _explicit_zero_transaction_declaration(pages)
         if declaration is not None:
             return _zero_transaction_extraction(
@@ -489,8 +546,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                                         copy_allowed=copy_allowed, ocr_engine=ocr_engine)
     if not title_matches or f"#{document_id}" not in first_text:
         raise HouseIndexError("House PTR header does not match its archived identity")
-    declaration = _explicit_zero_transaction_declaration(pages)
-    if declaration is not None:
+    declaration = None if visibility_unknown_pages else _explicit_zero_transaction_declaration(pages)
+    if page_text_methods is not None and declaration is not None:
+        raise HouseIndexError("House mixed zero-transaction declaration lacks independent page coverage")
+    if declaration is not None and not any(_unanchored_native_slots(page) for page in pages):
         return _zero_transaction_extraction(
             metadata, source_sha256, declaration, copy_allowed=copy_allowed,
             ocr_engine=ocr_engine, legacy_form=False)
@@ -503,7 +562,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         words = page.get("words")
         if width <= 0 or height <= 0 or not isinstance(words, list):
             raise HouseIndexError("House PTR page geometry is invalid")
-        page_data.append({"width": width, "height": height, "words": words})
+        page_data.append({"width": width, "height": height, "words": words,
+            **({VISIBILITY_KEY: page[VISIBILITY_KEY]} if VISIBILITY_KEY in page else {}),
+            **({"native_page_geometry": page["native_page_geometry"]}
+               if "native_page_geometry" in page else {})})
         for top in _modern_date_anchors(words, width):
             anchors.append({"page_index": page_index, "top": top})
 
@@ -525,6 +587,18 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         for segment_page_index in range(page_index, last_page_index + 1):
             segment = page_data[segment_page_index]
             start = top - 2 if segment_page_index == page_index else 0.14 * segment["height"]
+            if segment_page_index > page_index and unknown(pages[segment_page_index]):
+                from .house_native_coverage import _header_cells
+                observed = pages[segment_page_index]
+                cells = _header_cells({**observed, 'words': observed[VISIBILITY_KEY]['original_words']},
+                                      observed['native_page_geometry'])
+                if cells is not None:
+                    start = max(start, cells[0][3])
+            if (page_text_methods is not None and segment_page_index > page_index and
+                    page_text_methods[segment_page_index] == IMAGE_BODY_METHOD):
+                # The independently identified printed header is not a
+                # continuation of the preceding native transaction.
+                start = max(start, pages[segment_page_index]['image_body_observation']['region'][1])
             if following and segment_page_index == following["page_index"]:
                 end = following["top"] - 2
             elif segment_page_index == page_index and following is None:
@@ -547,7 +621,7 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             evidence_segments.append({"page": segment_page_index + 1,
                                       "bbox_points": [round(0.04 * segment["width"], 2), round(start, 2),
                                                        round(0.90 * segment["width"], 2), round(end, 2)]})
-        transaction_date = _line(words, x0=0.53 * width - 1.0, x1=0.62 * width, top=top)
+        transaction_date = _line(words, x0=0.53 * width - 1.0, x1=0.62 * width - 1.0, top=top)
         notification_date = _line(words, x0=0.62 * width, x1=0.725 * width, top=top)
         raw_type = _line(words, x0=0.42 * width, x1=0.53 * width, top=top)
         reported_transaction_id = _line(words, x0=0.04 * width, x1=0.105 * width, top=top)
@@ -569,8 +643,15 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             amount_words, key=lambda item: (item[0], round(float(item[1]["top"]), 1), float(item[1]["x0"])))))
         note_words = [(segment_page_index, word) for segment_page_index, word in block
                       if 0.165 * page_data[segment_page_index]["width"] <= float(word["x0"]) <
-                      0.90 * page_data[segment_page_index]["width"]
+                      page_data[segment_page_index]["width"]
                       and float(word.get("size", date_size)) < date_size - 0.2]
+        # The .90 edge belongs to the amount cell, not to full-width notes.
+        # Keep literal trailing note words and include them in source evidence;
+        # no financial column boundaries or identity inputs are changed.
+        for segment in evidence_segments:
+            right = max((float(w.get("x1", w["x0"])) for page_index, w in note_words
+                         if page_index + 1 == segment["page"]), default=0.)
+            segment["bbox_points"][2] = max(segment["bbox_points"][2], round(right, 2))
         note_lines: dict[tuple[int, float], list[dict]] = {}
         for segment_page_index, word in note_words:
             note_lines.setdefault((segment_page_index, round(float(word["top"]), 1)), []).append(word)
@@ -597,21 +678,27 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
                 details[last_detail] = (details[last_detail] + " " + line).strip()
         if "filing_status" in details:
             details["filing_status"] = _canonical_filing_status(details["filing_status"])
-        try:
-            transaction_iso = datetime.strptime(transaction_date, "%m/%d/%Y").date().isoformat()
-            notification_iso = datetime.strptime(notification_date, "%m/%d/%Y").date().isoformat()
-        except ValueError:
-            raise HouseIndexError("House PTR row has an invalid date") from None
+        field_problems = []
+        def event_iso(raw: str, field: str) -> str | None:
+            try:
+                return datetime.strptime(raw, "%m/%d/%Y").date().isoformat()
+            except ValueError:
+                if field == "transaction_date":
+                    field_problems.append("transaction_date_invalid")
+                return None
+        transaction_iso = event_iso(transaction_date, "transaction_date")
+        notification_iso = event_iso(notification_date, "notification_date")
         amount_value = _parse_amount(amount)
         asset_match = ASSET_RE.fullmatch(asset)
         type_code = raw_type[:1]
-        if not amount_value or not asset_match or type_code not in TYPE_CODES:
-            failures = ",".join(name for name, valid in (("amount", amount_value is not None),
-                ("asset", asset_match is not None), ("transaction_type", type_code in TYPE_CODES)) if not valid)
-            raise HouseIndexError(
-                f"House PTR page {page_number} row {position + 1} has unsupported {failures} layout")
-        asset_name, ticker, asset_type_code = asset_match.groups()
-        amount_low, amount_high, amount_kind = amount_value
+        if amount_value is None:
+            field_problems.append("amount_cell_unresolved")
+        if asset_match is None:
+            field_problems.append("asset_cell_unresolved")
+        if type_code not in TYPE_CODES:
+            field_problems.append("transaction_type_unresolved")
+        asset_name, ticker, asset_type_code = asset_match.groups() if asset_match else (asset, None, None)
+        amount_low, amount_high, amount_kind = amount_value if amount_value else (None, None, None)
         option_type, strike_price, expiration_date = _parse_option_details(details.get("description")) \
             if ASSET_TYPES.get(asset_type_code) == "Option" else (None, None, None)
         ocr_confidences = [float(word["ocr_confidence"]) for _, word in block
@@ -632,6 +719,10 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
         stable = "|".join((source_sha256, str(page_number), f"{top:.2f}", asset,
                            transaction_date, raw_type, raw_owner, amount,
                            reported_transaction_id, details.get("filing_status", "")))
+        if visibility_format_blocked or any(affects_row(pages[segment['page']-1], segment['bbox_points']) for segment in evidence_segments):
+            field_problems = sorted(set(field_problems + [BLOCKER]))
+        if visibility_format_blocked:
+            field_problems = sorted(set(field_problems + ['native_format_anchor_visibility_unknown']))
         extracted.append({
             "extraction_id": "house-ptr:" + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24],
             "reported_transaction_id": reported_transaction_id or None,
@@ -647,15 +738,24 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "strike_price": strike_price,
             "expiration_date": expiration_date,
             "transaction_type_raw": raw_type,
-            "transaction_type": TYPE_CODES[type_code],
+            "transaction_type": TYPE_CODES.get(type_code),
             "transaction_date": transaction_iso,
             "notification_date": notification_iso,
+            "field_problems": field_problems,
+            "raw_cells": {"asset": asset, "owner": raw_owner, "type": raw_type,
+                          "transaction_date": transaction_date, "notification_date": notification_date,
+                          "amount": amount},
             "amount_low": amount_low,
             "amount_high": amount_high,
             "amount_kind": amount_kind,
+            **({"amount_low_exclusive": True} if amount_kind == "open_ended" else {}),
             "amount_raw": amount,
             "ocr_confidence": (round(sum(ocr_confidences) / len(ocr_confidences), 2)
                                if ocr_confidences else None),
+            **({"ocr_source_pages": sorted({index + 1 for index, _ in block
+                 if page_text_methods[index] == "tesseract_ocr"} | {index + 1 for index, word in block
+                 if page_text_methods[index] == IMAGE_BODY_METHOD and word.get(WORD_TAG)})}
+               if page_text_methods is not None else {}),
             "subholding_of": details.get("subholding_of"),
             "location": details.get("location"),
             "description": details.get("description"),
@@ -664,32 +764,229 @@ def parse_word_pages(metadata: dict, source_sha256: str, pages: list[dict], *,
             "verification_status": "awaiting_automatic_qualification",
             "review_reasons": reasons,
         })
-    if not extracted:
+        if _row_member_sink is not None:
+            used = {id(word) for _, word in [*asset_words, *amount_words, *note_words]}
+            line_ranges = ((.04*width, .105*width), (.105*width, .165*width),
+                           (.42*width, .53*width), (.53*width-1., .62*width-1.),
+                           (.62*width, .725*width))
+            used.update(id(word) for word in words if abs(float(word['top'])-top) <= 2.0
+                        and any(left <= float(word['x0']) < right for left, right in line_ranges))
+            blocks = []
+            for pi in sorted({pi for pi, _ in block}):
+                selected = {id(word) for index, word in block if index == pi}
+                blocks.append({'page_number': pi+1,
+                    'word_indices': [i for i, word in enumerate(page_data[pi]['words']) if id(word) in selected],
+                    'field_word_indices': [i for i, word in enumerate(page_data[pi]['words'])
+                                           if id(word) in selected and id(word) in used]})
+            _row_member_sink.append({'raw_row_id': extracted[-1]['extraction_id'], 'blocks': blocks})
+    ledger = _modern_report_ledger(source_sha256, page_data, extracted)
+    if not extracted and not ledger["disposition_counts"].get("unknown") and not visibility_unknown_pages:
         raise HouseIndexError("House PTR contains no recognized transaction rows")
     if len({row["extraction_id"] for row in extracted}) != len(extracted):
         raise HouseIndexError("House PTR produced duplicate extraction IDs")
     review_reasons = ["automatic_qualification_required", "source_use_clearance_required"]
     if copy_allowed is False:
         review_reasons.append("source_pdf_copy_permission_disabled")
+    saved_pages = ([{**{key:value for key,value in page.items() if key != "_image"},
+                     "text_reading_method":page_text_methods[index]}
+                    for index,page in enumerate(pages)] if page_text_methods is not None else pages)
     return {
+        "source_report_ledger": ledger,
         "schema_version": SCHEMA,
         "parser_version": PARSER_VERSION,
         "source": {key: metadata.get(key) for key in ("source_id", "source_url", "document_id",
             "filer_name", "state_district", "filing_year", "filed_date", "archive_path")},
         "source_sha256": source_sha256,
         "source_pdf_copy_allowed": copy_allowed,
-        "extraction_method": "tesseract_ocr" if ocr_engine else "native_pdf_text",
+        "extraction_method": ("mixed_native_ocr" if page_text_methods is not None else
+                              "tesseract_ocr" if ocr_engine else "native_pdf_text"),
         "ocr_engine": ocr_engine,
+        **({'native_visibility_mode': VISIBILITY_MODE} if any(VISIBILITY_KEY in page for page in pages) else {}),
+        **({"page_text_methods": list(page_text_methods)} if page_text_methods is not None else {}),
+        **({"source_word_pages": deepcopy(saved_pages),
+            "source_word_pages_sha256": hashlib.sha256(json.dumps(
+                saved_pages, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()}
+           if ocr_engine is None or page_text_methods is not None else {}),
         "transactions": extracted,
         "review": {"status": "awaiting_automatic_qualification", "production_eligible": False,
                    "reasons": review_reasons},
     }
 
 
-def qualify_automatic(extraction: dict, identity: dict) -> dict:
+def _unanchored_native_slots(page: dict) -> list[dict]:
+    """Retain strong financial-line observations, never infer missing facts.
+
+    This is not a page census. A source asset-type cell, amount cell and
+    financial-column text must be followed by a local official status detail.
+    Ordinary notes, wrapped amounts and status mentions alone are insufficient.
+    """
+    words, width = page["words"], float(page["width"])
+    anchors = _modern_date_anchors(words, width)
+    lines: list[list[dict]] = []
+    for item in sorted(words, key=lambda w: (float(w["top"]), float(w["x0"]))):
+        if not lines or abs(float(item["top"]) - float(lines[-1][0]["top"])) > 2:
+            lines.append([])
+        lines[-1].append(item)
+    statuses = []
+    for line in lines:
+        detail = _clean(" ".join(str(w["text"]) for w in sorted(line, key=lambda w: float(w["x0"]))
+                         if .165 * width <= float(w["x0"]) < .42 * width))
+        if re.fullmatch(r"(?:F|Filing)\s+(?:S|Status):\s*(?:New|Amended)", detail, re.I):
+            statuses.append(float(line[0]["top"]))
+    slots = []
+    for line in lines:
+        top = float(line[0]["top"])
+        if any(abs(top - anchor) <= 2 for anchor in anchors):
+            continue
+        asset = [w for w in line if .165 * width <= float(w["x0"]) < .42 * width]
+        amount = [w for w in line if .725 * width <= float(w["x0"]) < .90 * width]
+        financial = [w for w in line if .42 * width <= float(w["x0"]) < .725 * width]
+        nearby_status = [status for status in statuses if 2 < status - top <= 40]
+        asset_cell = [w for w in words if nearby_status and top <= float(w["top"]) < min(nearby_status)
+                      and .165 * width <= float(w["x0"]) < .42 * width]
+        if not (asset and any(re.fullmatch(r"\[[A-Z]{2}[\]}]", _clean(str(w["text"]))) for w in asset_cell)
+                and any("$" in str(w["text"]) for w in amount)
+                and any(_clean(str(w["text"])) for w in financial)
+                and nearby_status):
+            continue
+        digest = hashlib.sha256(json.dumps(line, sort_keys=True, ensure_ascii=False,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        slots.append({"local_key": f"unanchored-financial-line-{len(slots) + 1}",
+            "bounds": [top, max(float(w.get("bottom", float(w["top"]) + float(w.get("size", 9))))
+                                for w in line)], "disposition": "unknown",
+            "observation_ref": f"native_financial_line_without_row_anchor:{digest}"})
+    return slots
+
+
+def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], *,
+                          include_unanchored: bool = True) -> dict:
+    from .source_row_ledger import page_ledger, report_ledger
+    page_slots = {number: [] for number in range(1, len(pages) + 1)}
+    logical = []
+    for index, row in enumerate(rows, start=1):
+        refs = []
+        for segment in row["evidence"]["segments"]:
+            number = segment["page"]
+            key = f"row-{index}-segment-{number}"
+            bounds = segment["bbox_points"]
+            page_slots[number].append({"local_key": key, "bounds": [bounds[1], bounds[3]],
+                                       "disposition": "data_candidate",
+                                       "observation_ref": row["extraction_id"]})
+            refs.append({"page_number": number, "slot_key": key})
+        logical.append({"local_key": f"row-{index}", "slot_refs": refs,
+                        "observation_ref": row["extraction_id"]})
+    if include_unanchored:
+        for number, page in enumerate(pages, start=1):
+            page_slots[number].extend(_unanchored_native_slots(page))
+    observed = [page_ledger(source_id="house_clerk", document_sha256=source_sha,
+                  page_number=number, adapter_version=PARSER_VERSION,
+                  coverage="unknown", coverage_reason="native_row_anchors_not_complete_page_census",
+                  coordinate_frame="source_page_pdf_points", slots=page_slots[number])
+                for number in page_slots]
+    ledger = report_ledger(source_id="house_clerk", document_sha256=source_sha,
+                         adapter_version=PARSER_VERSION, page_count=len(pages),
+                         pages=observed, logical_rows=logical)
+    if include_unanchored:
+        from .house_native_coverage import apply_native_coverage
+        ledger = apply_native_coverage(source_sha, pages, rows, ledger)
+        from .house_native_visibility import unknown, BLOCKER
+        if any(unknown(page) for page in pages):
+            for number, page in enumerate(pages, 1):
+                if unknown(page):
+                    ledger['pages'][number-1].update(coverage='unknown', coverage_reason=BLOCKER)
+            ledger = report_ledger(source_id='house_clerk', document_sha256=source_sha,
+                adapter_version=PARSER_VERSION, page_count=len(pages), pages=ledger['pages'],
+                logical_rows=[{key:value for key,value in row.items() if key != 'qualification'}
+                              for row in ledger['logical_rows']], unresolved_data_slots=ledger['unresolved_data_slots'])
+    return ledger
+
+
+def _native_account_context(extraction: dict) -> dict:
+    """Reproduce native source observations before deriving display context.
+
+    The word digest establishes cache consistency, not independent PDF truth.
+    Older caches without saved words keep their existing financial facts.
+    """
+    mixed = extraction.get("extraction_method") == "mixed_native_ocr"
+    if extraction.get("extraction_method") != "native_pdf_text" and not mixed:
+        return {}
+    titles = [r for r in extraction.get("transactions", []) if r.get("subholding_of")]
+    pages = extraction.get("source_word_pages")
+    if pages is None:
+        if mixed:
+            raise HouseIndexError("House mixed extraction requires saved page observations")
+        return {"status": "source_pages_unavailable", "rows": []} if titles else {}
+    try:
+        actual = hashlib.sha256(json.dumps(pages, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+        if actual != extraction.get("source_word_pages_sha256"):
+            raise HouseIndexError("House native account source words differ from digest")
+        source = extraction.get("source", {})
+        reproduced = parse_word_pages({**source, "filing_type": "P"}, extraction["source_sha256"],
+            pages, copy_allowed=extraction.get("source_pdf_copy_allowed"),
+            **({"ocr_engine": extraction.get("ocr_engine"),
+                "page_text_methods": extraction.get("page_text_methods")} if mixed else {}))
+        # Exact legacy anchor-only ledgers remain valid; no financial/source
+        # observation may differ. This accepts a recomputed old form, not a label.
+        legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
+            reproduced["transactions"], include_unanchored=False)
+        if (not any("native_page_geometry" in page for page in pages)
+                and extraction.get("source_report_ledger") == legacy_ledger):
+            reproduced["source_report_ledger"] = legacy_ledger
+        if any(extraction.get(key) != value for key, value in reproduced.items()):
+            raise HouseIndexError("House native account observations differ from saved source words")
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HouseIndexError("House native account source observations cannot be reproduced") from exc
+    if not titles:
+        return {}
+    return {"status": "source_words_reproduced", "source_sha256": extraction["source_sha256"],
+        "document_id": source["document_id"], "source_word_pages_sha256": actual,
+        "rows": [{"id": r["extraction_id"], "asset_name_raw": r["asset_name"],
+                  "subholding_of_raw": r["subholding_of"],
+                  "asset_name_display": f"{r['asset_name']} — {r['subholding_of']}"} for r in titles]}
+
+
+def qualify_automatic(extraction: dict, identity: dict, *,
+                      evidence_root: Path | None = None,
+                      verified_blank_paper_owner_ids: frozenset[str] = frozenset(),
+                      _source_bound_revision_ids: frozenset[str] = frozenset()) -> dict:
     """Promote deterministic standard rows and isolate every ambiguous row with explicit reasons."""
+    from .house_native_financial import PROFILE_KEY, qualify_source_financial
+    if PROFILE_KEY in extraction:
+        if verified_blank_paper_owner_ids:
+            raise HouseIndexError('House source financial proof cannot grant paper blank owners')
+        return qualify_source_financial(extraction, identity, evidence_root=evidence_root,
+                                        revision_ids=_source_bound_revision_ids)
+    from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS, qualify_native_contrast
+    if extraction.get('parser_version') in CONTRAST_VERSIONS or any(k.startswith('native_contrast_') for k in extraction):
+        if verified_blank_paper_owner_ids:
+            raise HouseIndexError('House native contrast cannot grant paper blank owners')
+        return qualify_native_contrast(extraction, identity, evidence_root=evidence_root,
+                                       revision_ids=_source_bound_revision_ids)
     if extraction.get("schema_version") != SCHEMA:
         raise HouseIndexError("House PTR extraction schema is invalid for automatic qualification")
+    if evidence_root is not None and extraction.get('extraction_method') in {'native_pdf_text', 'mixed_native_ocr'}:
+        from .house_native_contrast import plan_house_native_contrast
+        relative = extraction.get('source', {}).get('archive_path')
+        if not isinstance(relative, str):
+            raise HouseIndexError('House native qualification needs archived source metadata')
+        plan = plan_house_native_contrast(evidence_root, Path(evidence_root)/Path(relative).with_suffix('.json'))
+        if plan['activated'] is not False:
+            raise HouseIndexError('House native qualification cache differs from selected source version')
+    from .house_native_visibility import KEY as VISIBILITY_KEY, MODE as VISIBILITY_MODE
+    visibility_saved = any(VISIBILITY_KEY in page for page in (extraction.get('source_word_pages') or []))
+    if visibility_saved or 'native_visibility_mode' in extraction:
+        if (not visibility_saved or extraction.get('native_visibility_mode') != VISIBILITY_MODE or
+                extraction.get('extraction_method') not in {'native_pdf_text', 'mixed_native_ocr'}):
+            raise HouseIndexError('House native visibility observations require their saved native method')
+    if extraction.get("extraction_method") != "mixed_native_ocr" and (
+            "page_text_methods" in extraction or any("text_reading_method" in page
+                for page in (extraction.get("source_word_pages") or []))):
+        raise HouseIndexError("House mixed observations cannot change extraction method")
+    if (not isinstance(verified_blank_paper_owner_ids, frozenset) or
+            (verified_blank_paper_owner_ids and extraction.get("extraction_method") != "source_bound_paper_cells")):
+        raise HouseIndexError("House verified blank owners require source-bound paper interpretation")
     source = extraction.get("source") or {}
     document_id = source.get("document_id")
     if identity.get("document_id") != document_id:
@@ -716,21 +1013,48 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
     transactions: list[dict] = []
     quarantined: list[dict] = []
     advisories: list[dict] = []
+    revision_observations: list[dict] = []
+    account_context = _native_account_context(extraction)
+    display_names = {r["id"]: r["asset_name_display"] for r in account_context.get("rows", [])}
     for row in extraction.get("transactions", []):
-        reasons: list[str] = []
+        reasons: list[str] = list(row.get("field_problems", []))
         if not identity_valid:
             reasons.append("identity_not_deterministic")
-        if str(row.get("filing_status", "")).lower() != "new" or row.get("reported_transaction_id"):
-            reasons.append("revision_relationship_unresolved")
-        if row.get("amount_kind") == "open_ended" or row.get("amount_high") is None:
-            reasons.append("open_ended_amount_not_representable")
-        if str(extraction.get("extraction_method", "")).startswith("tesseract_") and (
+        # The ID column identifies a transaction, not a filing or an
+        # amendment target by itself. Filing Status establishes revision state.
+        official_id = row.get("reported_transaction_id")
+        if official_id is not None and (not isinstance(official_id, str) or
+                not re.fullmatch(r"[0-9]{1,30}", official_id)):
+            reasons.append("reported_transaction_id_invalid")
+        if str(row.get("filing_status", "")).lower() != "new":
+            if not (str(row.get("filing_status", "")).lower() == "amended" and
+                    row.get("extraction_id") in _source_bound_revision_ids):
+                reasons.append("revision_relationship_unresolved")
+            target = row.get("reported_transaction_id")
+            if str(row.get("filing_status", "")).lower() == "amended":
+                revision_observations.append({"extraction_id": row.get("extraction_id"),
+                    "reported_transaction_id": target,
+                    "reference_status": "official_target_id_observed" if isinstance(target, str) and
+                        re.fullmatch(r"[0-9]{1,30}", target) else "official_target_id_unavailable",
+                    "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+                    "description": row.get("description")})
+        if row.get("amount_high") is None:
+            if row.get("amount_kind") != "open_ended":
+                reasons.append("amount_upper_bound_missing")
+            elif type(row.get("amount_low_exclusive")) is not bool:
+                reasons.append("open_ended_amount_not_representable")
+        needs_ocr_confidence = str(extraction.get("extraction_method", "")).startswith("tesseract_")
+        if extraction.get("extraction_method") == "mixed_native_ocr":
+            needs_ocr_confidence = bool(row["ocr_source_pages"])
+        if needs_ocr_confidence and (
                 not isinstance(row.get("ocr_confidence"), (int, float))
                 or row["ocr_confidence"] < OCR_MINIMUM_ROW_CONFIDENCE):
             reasons.append("ocr_confidence_below_threshold")
         if not isinstance(row.get("asset_name"), str) or not row["asset_name"].strip():
             reasons.append("asset_name_invalid")
-        if row.get("owner") not in set(OWNER_CODES.values()):
+        blank_paper_owner = (row.get("owner") == "Undisclosed" and
+                             row.get("extraction_id") in verified_blank_paper_owner_ids)
+        if row.get("owner") not in set(OWNER_CODES.values()) and not blank_paper_owner:
             reasons.append("owner_not_normalized")
         if row.get("transaction_type") not in set(TYPE_CODES.values()):
             reasons.append("transaction_type_not_normalized")
@@ -739,7 +1063,7 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
                 r"[A-Z0-9][A-Z0-9.\-^/]{0,31}", ticker)):
             reasons.append("ticker_invalid")
         low, high = row.get("amount_low"), row.get("amount_high")
-        if type(low) is not int or (high is not None and type(high) is not int) or \
+        if type(low) is not int or low < 0 or (high is not None and type(high) is not int) or \
                 (type(high) is int and not 0 <= low <= high):
             reasons.append("amount_invalid")
         parsed_dates = {}
@@ -790,13 +1114,15 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
             continue
         transactions.append({
             "id": row["extraction_id"], "filing_id": document_id, "person_id": person_id,
-            "owner": row["owner"], "asset_name": row["asset_name"], "ticker": ticker,
+            "owner": row["owner"], "asset_name": display_names.get(row["extraction_id"], row["asset_name"]), "ticker": ticker,
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
             **({"option_type": option_type, "strike_price": strike_price,
                 "expiration_date": expiration_date} if row.get("instrument_type") == "Option" else {}),
             "transaction_date": row["transaction_date"], "filed_at": filed_at,
-            "amount_low": low, "amount_high": high, "position_effect": "unknown",
+            "amount_low": low, "amount_high": high,
+            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
+            "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": source["source_url"], "verification_status": "official_matched",
         })
@@ -815,9 +1141,13 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
         "document_id": document_id,
         "identity": identity,
         "document_disposition": disposition,
+        **({"source_report_ledger": extraction["source_report_ledger"]}
+           if "source_report_ledger" in extraction else {}),
         "transactions": transactions,
         "quarantined": quarantined,
         "advisories": advisories,
+        **({"native_account_context": account_context} if account_context else {}),
+        **({"revision_observations": revision_observations} if revision_observations else {}),
         "qualification": {
             "method": "deterministic_automatic_rules",
             "status": document_status,
@@ -831,7 +1161,46 @@ def qualify_automatic(extraction: dict, identity: dict) -> dict:
     }
 
 
-def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[dict]:
+def revision_reference_dispositions(qualification: dict, extraction: dict,
+                                   current_transactions: list[dict]) -> list[dict]:
+    """Keep official amendment targets distinct from absent predecessor inputs.
+
+    A filing ID, a hashed local ID, or equal financial fields cannot stand in
+    for the government's transaction identifier or a source-bound predecessor.
+    """
+    # Old source-reviewed formal paper qualifications can deliberately differ
+    # from their legacy extractor's status reading. Never reopen those facts.
+    if "revision_observations" not in qualification:
+        return []
+    amended = [row for row in extraction.get("transactions", [])
+               if str(row.get("filing_status", "")).lower() == "amended"]
+    if not amended:
+        if qualification.get("revision_observations"):
+            raise ValueError("House revision observations have no amended source rows")
+        return []
+    source = extraction.get("source") or {}
+    if (qualification.get("source_sha256") != extraction.get("source_sha256") or
+            qualification.get("document_id") != source.get("document_id")):
+        raise ValueError("House amendment source binding differs from qualification")
+    observed = [{"extraction_id": row.get("extraction_id"), "reported_transaction_id": row.get("reported_transaction_id"),
+        "reference_status": "official_target_id_observed" if isinstance(row.get("reported_transaction_id"), str) and
+            re.fullmatch(r"[0-9]{1,30}", row["reported_transaction_id"]) else "official_target_id_unavailable",
+        "source_sha256": extraction.get("source_sha256"), "evidence": row.get("evidence"),
+        "description": row.get("description")} for row in amended]
+    if qualification.get("revision_observations", observed) != observed:
+        raise ValueError("House amendment reference differs from its source row")
+    person = qualification.get("identity", {}).get("person_id")
+    existing = [row for row in current_transactions if row.get("source_id") == "house_clerk" and row.get("person_id") == person]
+    return [{**row, "disposition": "official_target_id_unavailable" if row["reference_status"] != "official_target_id_observed"
+                else "official_target_id_observed_predecessor_absent_from_candidate" if not existing
+                else "official_target_id_observed_predecessor_binding_unavailable",
+             "current_same_person_formal_row_count": len(existing),
+             "action": "not_applied_no_source_bound_predecessor", "formal_transaction_id": None}
+            for row in observed]
+
+
+def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float,
+                              include_word_bounds: bool = False) -> list[dict]:
     words: list[dict] = []
     try:
         lines = value.splitlines()
@@ -840,6 +1209,8 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
         columns = lines[0].split("\t")
         if not {"level", "text", "conf", "left", "top", "height"} <= set(columns):
             raise HouseIndexError("House PTR OCR returned invalid word geometry")
+        if include_word_bounds and 'width' not in columns:
+            raise HouseIndexError('House image body OCR requires complete word bounds')
         for line in lines[1:]:
             cells = line.split("\t", len(columns) - 1)
             if len(cells) != len(columns):
@@ -857,13 +1228,23 @@ def _words_from_tesseract_tsv(value: str, *, points_per_pixel: float) -> list[di
                 "top": float(row["top"]) * points_per_pixel,
                 "size": max(float(row["height"]) * points_per_pixel, 1.0),
                 "ocr_confidence": confidence,
+                **({'x1': (float(row['left']) + float(row['width'])) * points_per_pixel,
+                    'bottom': (float(row['top']) + float(row['height'])) * points_per_pixel}
+                   if include_word_bounds else {}),
             })
     except (KeyError, TypeError, ValueError):
         raise HouseIndexError("House PTR OCR returned invalid word geometry") from None
     return words
 
 
-def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]:
+def _ocr_pdf_pages(document, *, resolution: int = 200,
+                   page_numbers: list[int] | None = None,
+                   include_word_bounds: bool = False) -> tuple[list[dict], str]:
+    selected = list(range(1, len(document.pages) + 1)) if page_numbers is None else page_numbers
+    if (not isinstance(selected, list) or not selected or
+            any(type(number) is not int or not 1 <= number <= len(document.pages) for number in selected) or
+            len(set(selected)) != len(selected)):
+        raise HouseIndexError("House PTR OCR page selection is invalid")
     executable = shutil.which("tesseract")
     if not executable:
         raise HouseIndexError("House PTR requires OCR but the OCR engine is unavailable")
@@ -874,20 +1255,45 @@ def _ocr_pdf_pages(document, *, resolution: int = 200) -> tuple[list[dict], str]
         raise HouseIndexError("House PTR OCR engine version is unavailable")
     pages: list[dict] = []
     with tempfile.TemporaryDirectory(prefix="house-ptr-ocr-") as folder:
-        for index, page in enumerate(document.pages):
-            image_path = Path(folder) / f"page-{index + 1}.png"
-            image = page.to_image(resolution=resolution, antialias=True).original.convert("L")
+        for number in selected:
+            page = document.pages[number - 1]
+            image_path = Path(folder) / f"page-{number}.png"
+            if page_numbers is not None and tuple(page.bbox[:2]) != (0, 0):
+                raise HouseIndexError("House mixed OCR page origin is unsupported")
+            image = page.to_image(resolution=resolution, antialias=True,
+                **({"force_mediabox":True} if page_numbers is not None else {})).original.convert("L")
             image.save(image_path, format="PNG")
             completed = subprocess.run(
                 [executable, str(image_path), "stdout", "--dpi", str(resolution), "-l", "eng", "tsv"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120, check=False)
             if completed.returncode:
-                raise HouseIndexError(f"House PTR OCR failed on page {index + 1}")
+                raise HouseIndexError(f"House PTR OCR failed on page {number}")
             pages.append({"width": page.width, "height": page.height,
                           "_image": image,
                           "words": _words_from_tesseract_tsv(
-                              completed.stdout, points_per_pixel=72.0 / resolution)})
+                              completed.stdout, points_per_pixel=72.0 / resolution,
+                              include_word_bounds=include_word_bounds)})
     return pages, engine
+
+
+def observe_native_word_pages(document, source_sha256: str) -> list[dict]:
+    """Share the source inventory between runtime preparation and parsing."""
+    from .house_native_coverage import observe_native_geometry
+    from .house_native_visibility import observe_visibility
+    return [observe_visibility(page, {"width":page.width, "height":page.height,
+             "words":page.extract_words(x_tolerance=2,y_tolerance=2,extra_attrs=["size"]),
+             "native_page_geometry":observe_native_geometry(page,source_sha256,number)}, source_sha256, number)
+            for number,page in enumerate(document.pages,1)]
+
+
+def planned_ocr_pages(pages: list[dict]) -> list[int]:
+    """Select wordless content or an explicitly partitioned native table image."""
+    from .house_image_body_routing import image_body_region
+    if not any(page["words"] for page in pages):
+        return list(range(1,len(pages)+1))  # preserve the existing image-only path
+    return [number for number,page in enumerate(pages,1) if
+            (not page["words"] and any(page["native_page_geometry"][kind]
+                for kind in ("images","curves","rects","lines"))) or image_body_region(page) is not None]
 
 
 def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
@@ -908,26 +1314,63 @@ def parse_archived_pdf(archive_root: Path, metadata_path: Path) -> dict:
         raise HouseIndexError("Archived House PTR is unavailable") from None
     source_sha = hashlib.sha256(content).hexdigest()
     if source_sha != metadata.get("sha256"):
-        raise HouseIndexError("Archived House PTR hash does not match its metadata")
+        raise integrity_error(HouseIndexError, "Archived House PTR hash does not match its metadata", metadata=metadata)
+    verified_original_hash(metadata)
     try:
         import pdfplumber
     except ImportError:
         raise HouseIndexError("PTR extraction requires the optional pdfplumber package") from None
+    from .house_native_contrast import parse_selected_native_contrast, SourceInventoryUnavailable, bounded_legacy_unknown
+    try:
+        contrast = parse_selected_native_contrast(archive_root, metadata_path)
+    except SourceInventoryUnavailable:
+        return bounded_legacy_unknown(archive_root, metadata_path)
+    if contrast is not None:
+        from .house_native_financial import augment_selected_native_contrast
+        return augment_selected_native_contrast(archive_root, metadata_path, contrast)
     try:
         with pdfplumber.open(pdf_path) as document:
             copy_allowed = getattr(document.doc, "is_extractable", None)
-            pages = [{"width": page.width, "height": page.height,
-                      "words": page.extract_words(x_tolerance=2, y_tolerance=2, extra_attrs=["size"])}
-                     for page in document.pages]
+            pages = observe_native_word_pages(document,source_sha)
             ocr_engine = None
+            page_text_methods = None
             if not any(page["words"] for page in pages):
                 pages, ocr_engine = _ocr_pdf_pages(document)
+            else:
+                selected = planned_ocr_pages(pages)
+                if selected:
+                    if any(tuple(page.bbox[:2]) != (0, 0) for page in document.pages):
+                        raise HouseIndexError("House mixed PDF page origin is unsupported")
+                    first = _clean(" ".join(str(w["text"]) for w in pages[0]["words"]))
+                    compact = re.sub(r"[^A-Z]", "", first.upper())
+                    heading = [_clean(str(w["text"])) for w in pages[0]["words"] if float(w.get("size", 0)) >= 18]
+                    if (f"#{metadata.get('document_id')}" not in first or not (
+                            "PERIODICTRANSACTIONREPORT" in compact or heading[:3] == ["P", "T", "R"])):
+                        raise HouseIndexError("House mixed pages require a native modern PTR header")
+                    from .house_image_body_routing import image_body_region
+                    image_body_selected = any(image_body_region(pages[number-1]) is not None for number in selected)
+                    observed, ocr_engine = _ocr_pdf_pages(document, page_numbers=selected,
+                        **({'include_word_bounds': True} if image_body_selected else {}))
+                    if len(observed) != len(selected):
+                        raise HouseIndexError("House mixed OCR page count differs from its selection")
+                    page_text_methods = ["native_pdf_text"] * len(pages)
+                    for number, observed_page in zip(selected, observed):
+                        if any(observed_page.get(key) != pages[number-1][key] for key in ("width", "height")):
+                            raise HouseIndexError("House mixed OCR page dimensions differ")
+                        if pages[number-1]['words']:
+                            from .house_image_body_routing import METHOD as IMAGE_BODY_METHOD, merge_image_body_page
+                            pages[number-1] = merge_image_body_page(pages[number-1], observed_page)
+                            page_text_methods[number-1] = IMAGE_BODY_METHOD
+                        else:
+                            pages[number-1] = observed_page
+                            page_text_methods[number-1] = "tesseract_ocr"
     except HouseIndexError:
         raise
     except Exception as exc:
         raise HouseIndexError(f"House PTR extraction failed: {type(exc).__name__}") from None
     return parse_word_pages(metadata, source_sha, pages, copy_allowed=copy_allowed,
-                            ocr_engine=ocr_engine)
+                            ocr_engine=ocr_engine,
+                            **({"page_text_methods":page_text_methods} if page_text_methods is not None else {}))
 
 
 def make_review_template(extraction: dict) -> dict:
@@ -1072,7 +1515,9 @@ def promote_review(extraction: dict, review: dict) -> dict:
             advisories.append({"extraction_id": extraction_id, "issues": notice_issues,
                                "source_sha256": extraction.get("source_sha256")})
         low, high = row.get("amount_low"), row.get("amount_high")
-        if type(low) is not int or type(high) is not int or not 0 <= low <= high:
+        if (type(low) is not int or low < 0 or
+                (high is None and type(row.get("amount_low_exclusive")) is not bool) or
+                (high is not None and (type(high) is not int or low > high))):
             raise HouseIndexError("House PTR reviewed row has an invalid amount range")
         transactions.append({
             "id": extraction_id, "filing_id": review["document_id"], "person_id": person_id,
@@ -1080,7 +1525,9 @@ def promote_review(extraction: dict, review: dict) -> dict:
             "ticker_mapping_basis": "filing_explicit" if ticker else None,
             "instrument_type": row.get("instrument_type"), "transaction_type": row["transaction_type"],
             "transaction_date": row["transaction_date"], "filed_at": filed_at_text,
-            "amount_low": low, "amount_high": high, "position_effect": "unknown",
+            "amount_low": low, "amount_high": high,
+            **({"amount_low_exclusive": row["amount_low_exclusive"]} if high is None else {}),
+            "position_effect": "unknown",
             "position_effect_basis": None, "source_id": "house_clerk", "source": "U.S. House Clerk",
             "source_url": extraction["source"]["source_url"], "verification_status": "official_matched",
         })
@@ -1095,3 +1542,180 @@ def promote_review(extraction: dict, review: dict) -> dict:
              "revision_count": len(revisions)}
     return {"audit": audit, "transactions": transactions, "revisions": revisions,
             "advisories": advisories}
+
+def resolve_automatic_revisions(inputs: list[tuple[dict, dict]], current_transactions: list[dict],
+                                *, prior_transactions: list[dict] | None = None,
+                                evidence_root: Path | None = None) -> dict:
+    """Derive a bounded official-ID revision chain from replayable source rows.
+
+    Saved qualifications stay unchanged. This is a current-source interpretation
+    shared by candidate and status, never a free-standing approval receipt.
+    """
+    from copy import deepcopy
+    if not any(q.get('revision_observations') for q, _ in inputs):
+        return {'transactions': deepcopy(current_transactions), 'qualifications': {},
+                'identities': {}, 'dispositions': {}, 'replacements': []}
+    groups = {}
+    observations = {}
+    effective = {}
+    identities = {}
+    source_facts = {}
+    non_native_groups = set()
+    wanted_ids = {row.get('reported_transaction_id') for q, _ in inputs
+                  for row in q.get('revision_observations', [])
+                  if isinstance(row.get('reported_transaction_id'), str)}
+    source_versions = {}
+    for q, x in inputs:
+        source_versions.setdefault(str(q.get('document_id')), set()).add(x.get('source_sha256'))
+    for qualification, extraction in inputs:
+        document = str(qualification.get('document_id'))
+        if qualification.get('revision_observations'):
+            observations[document] = revision_reference_dispositions(qualification, extraction, current_transactions)
+        method = extraction.get('extraction_method')
+        mixed = method == 'mixed_native_ocr'
+        ocr_only = method == 'tesseract_ocr'
+        if method not in {'native_pdf_text', 'mixed_native_ocr', 'tesseract_ocr'} or (
+                not ocr_only and not extraction.get('source_word_pages')):
+            continue
+        if not any(row.get('reported_transaction_id') in wanted_ids for row in extraction.get('transactions', [])):
+            continue
+        if ocr_only and extraction.get('source_word_pages'):
+            replay = parse_word_pages({**extraction['source'], 'filing_type': 'P'}, extraction['source_sha256'],
+                extraction['source_word_pages'], copy_allowed=extraction.get('source_pdf_copy_allowed'),
+                ocr_engine=extraction.get('ocr_engine'))
+            if any(extraction.get(key) != value for key, value in replay.items()):
+                raise HouseIndexError('House related OCR revision source differs from saved words')
+        from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
+        source_roots = {'evidence_root': evidence_root} if extraction.get('parser_version') in CONTRAST_VERSIONS else {}
+        expected = qualify_automatic(extraction, qualification.get('identity', {}), **source_roots)
+        if expected != qualification:
+            if qualification.get('revision_observations') or ocr_only:
+                raise HouseIndexError('House amendment source qualification differs from replay')
+            continue  # Legacy reviewed facts cannot become automatic predecessors.
+        if ocr_only:
+            non_native_groups.update((qualification['identity'].get('person_id'), row.get('reported_transaction_id'))
+                for row in extraction['transactions'] if row.get('reported_transaction_id') in wanted_ids)
+            continue  # Source evidence blocks uniqueness; it never becomes an automatic predecessor.
+        effective[document] = expected
+        identities[document] = qualification['identity']
+        # The replay above verifies every row's saved provenance. An unrelated
+        # OCR page does not make an entirely native row unreadable; conversely
+        # no OCR-derived row becomes a predecessor merely from being mixed.
+        native_rows = [row for row in extraction['transactions']
+                       if not mixed or row.get('ocr_source_pages') == []]
+        contrast = extraction.get('parser_version') in CONTRAST_VERSIONS
+        if contrast:
+            native_rows = [item['current_projected'] for item in extraction['native_contrast_dispositions']
+                           if item['status'] == 'current_projected']
+        candidates = qualify_automatic(extraction, qualification['identity'], **source_roots,
+            _source_bound_revision_ids=frozenset(r['extraction_id'] for r in native_rows
+                if str(r.get('filing_status', '')).lower() == 'amended'))
+        qualified = {r['id']: r for r in candidates['transactions']}
+        source_facts[document] = qualified
+        for row in native_rows if contrast else extraction['transactions']:
+            official = row.get('reported_transaction_id')
+            status = str(row.get('filing_status', '')).lower()
+            if not isinstance(official, str) or not re.fullmatch(r'[0-9]{1,30}', official) or status not in {'new', 'amended'}:
+                continue
+            key = (qualification['identity'].get('person_id'), official)
+            if mixed and row.get('ocr_source_pages') != []:
+                non_native_groups.add(key)
+                continue
+            groups.setdefault(key, []).append({'row': row, 'fact': qualified.get(row['extraction_id']),
+                'status': status, 'extraction': extraction, 'qualification': qualification,
+                'document_id': document, 'date': extraction['source']['filed_date']})
+    facts = {r['id']: deepcopy(r) for r in current_transactions}
+    prior = {r['id']: r for r in prior_transactions or []}
+    def same_formal(left, right):
+        return (isinstance(left, dict) and isinstance(right, dict) and
+                all(left.get(key) == right.get(key) for key in set(left) | set(right)))
+    involved = [entry for entries in groups.values() if any(r['status'] == 'amended' for r in entries)
+                for entry in entries]
+    involved_documents = {r['document_id'] for r in involved}
+    blocked_documents = {str(row.get('filing_id')) for row in prior.values()
+        if str(row.get('filing_id')) in involved_documents and
+        not same_formal(source_facts.get(str(row.get('filing_id')), {}).get(row.get('id')), row)}
+    # Check IDs directly too: a changed filing/person/URL must not evade the
+    # full-field comparison by moving a colliding ID outside its source report.
+    blocked_documents.update(entry['document_id'] for entry in involved
+        if entry['row']['extraction_id'] in prior and
+        not same_formal(prior[entry['row']['extraction_id']], entry['fact']))
+    blocked_ids = {r['row']['extraction_id'] for r in involved if r['document_id'] in blocked_documents}
+    if blocked_documents:
+        facts = {key: row for key, row in facts.items()
+                 if str(row.get('filing_id')) not in blocked_documents and key not in blocked_ids}
+        facts.update({key: deepcopy(row) for key, row in prior.items()
+                      if str(row.get('filing_id')) in blocked_documents or key in blocked_ids})
+    mappings = []
+    resolved_ids = {}
+    resolved_sources = {}
+    for (person, official), entries in groups.items():
+        amended = [r for r in entries if r['status'] == 'amended']
+        if not amended:
+            continue
+        originals = [r for r in entries if r['status'] == 'new']
+        reason = None
+        if (person, official) in non_native_groups:
+            reason = 'revision_related_row_uses_ocr'
+        elif any(len(source_versions[r['document_id']]) != 1 for r in entries):
+            reason = 'revision_source_version_ambiguous'
+        elif len({tuple(r['qualification']['identity'].get(field) for field in
+                ('official_name', 'state', 'party', 'state_district')) for r in entries}) != 1:
+            reason = 'official_transaction_id_source_identity_context_conflict'
+        elif len(originals) != 1:
+            reason = 'official_transaction_id_predecessor_not_unique' if originals else 'official_transaction_id_predecessor_missing'
+        elif any(r['document_id'] in blocked_documents for r in entries):
+            reason = 'existing_revision_fact_diff_requires_source_reconciliation'
+        elif originals[0]['fact'] is None or facts.get(originals[0]['row']['extraction_id']) != originals[0]['fact']:
+            reason = 'official_transaction_id_predecessor_fact_not_source_bound'
+        elif len({r['date'] for r in entries}) != len(entries):
+            reason = 'revision_filing_chronology_ambiguous'
+        else:
+            ordered = sorted(entries, key=lambda r: r['date'])
+            if ordered[0] is not originals[0]:
+                reason = 'revision_precedes_original_filing'
+        if reason:
+            entry_ids = {r['row']['extraction_id'] for r in entries}
+            old_group = [row for row in prior.values() if row.get('id') in entry_ids]
+            if old_group:
+                for entry in entries:
+                    facts.pop(entry['row']['extraction_id'], None)
+                for row in old_group:
+                    facts[row['id']] = deepcopy(row)
+            for entry in amended:
+                for observation in observations.get(entry['document_id'], []):
+                    if observation['extraction_id'] == entry['row']['extraction_id']:
+                        observation.update(disposition=reason)
+            continue
+        predecessor = originals[0]
+        # A bad intermediate revision makes later target identity unresolved.
+        for entry in sorted(amended, key=lambda r: r['date']):
+            identifier = entry['row']['extraction_id']
+            if entry['fact'] is None:
+                break
+            before = predecessor['row']['extraction_id']
+            facts.pop(before, None)
+            facts[identifier] = deepcopy(prior.get(identifier, entry['fact']))
+            mapping = {'prior_transaction_id': before, 'transaction_id': identifier,
+                'person_id': person, 'reported_transaction_id': official,
+                'prior_document_id': predecessor['document_id'], 'document_id': entry['document_id'],
+                'prior_source_sha256': predecessor['extraction']['source_sha256'],
+                'source_sha256': entry['extraction']['source_sha256'],
+                'prior_filed_date': predecessor['date'], 'filed_date': entry['date'],
+                'basis': 'unique_official_transaction_id_same_person_replayed_full_formal_facts_and_strict_filing_chronology'}
+            mappings.append(mapping)
+            resolved_ids.setdefault(entry['document_id'], set()).add(identifier)
+            resolved_sources[entry['document_id']] = entry
+            for observation in observations.get(entry['document_id'], []):
+                if observation['extraction_id'] == identifier:
+                    observation.update(disposition='source_bound_revision_applied', action='replace_prior',
+                        formal_transaction_id=identifier, replacement=mapping)
+            predecessor = entry
+    for document, identifiers in resolved_ids.items():
+        entry = resolved_sources[document]
+        effective[document] = qualify_automatic(entry['extraction'], entry['qualification']['identity'],
+            **({'evidence_root': evidence_root}
+               if entry['extraction'].get('parser_version') in CONTRAST_VERSIONS else {}),
+            _source_bound_revision_ids=frozenset(identifiers))
+    return {'transactions': sorted(facts.values(), key=lambda r:r['id']), 'qualifications': effective,
+            'identities': identities, 'dispositions': observations, 'replacements': mappings}

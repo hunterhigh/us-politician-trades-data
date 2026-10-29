@@ -1,0 +1,25 @@
+name: Report explicit content failures
+description: Reuse publication-blocking integrity Issues; transport failures grant no rollback authority
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        JOB_STATUS: ${{ job.status }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: |
+        if [ "$JOB_STATUS" = failure ] && [ -n "${UNISON_SOURCE_WORKSPACE:-}" ]; then
+          python -m unison_snapshot record-source-failure --workspace "$UNISON_SOURCE_WORKSPACE" \
+            --directory "$RUNNER_TEMP/unison-source-failures"
+        fi
+    - shell: bash
+      if: always()
+      env:
+        GH_TOKEN: ${{ github.token }}
+        JOB_STATUS: ${{ job.status }}
+        PYTHONPATH: ${{ github.workspace }}/backend/src
+      run: |
+        successful=false
+        if [ "$JOB_STATUS" = success ]; then successful=true; fi
+        python -m unison_snapshot report-integrity --successful "$successful" \
+          --directory "$RUNNER_TEMP/unison-integrity" --repository "$GITHUB_REPOSITORY"

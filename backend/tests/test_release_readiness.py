@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from unison_snapshot.codec import digest, encode
-from unison_snapshot.release_readiness import ReleaseReadinessError, validate_first_launch
+from unison_snapshot.release_readiness import ReleaseReadinessError, validate_publication
 
 
 class ReleaseReadinessTests(unittest.TestCase):
@@ -82,30 +82,41 @@ class ReleaseReadinessTests(unittest.TestCase):
         })
 
     def test_accepts_accounted_scope_and_excludes_form_201(self):
-        result = validate_first_launch(self.root, self.candidate_path)
+        result = validate_publication(self.root, self.candidate_path)
         self.assertEqual(result["transaction_count"], 3)
         self.assertEqual(result["reported_holding_count"], 1)
         self.assertEqual(result["oge_form_201_excluded_count"], 99)
 
-    def test_rejects_unarchived_house_holdings(self):
-        value = json.loads((self.root / "status/house_holdings.json").read_text())
-        value["remaining_archive_count"] = 1
-        self._write("status/house_holdings.json", value)
-        with self.assertRaisesRegex(ReleaseReadinessError, "pending first-launch work"):
-            validate_first_launch(self.root, self.candidate_path)
+    def test_accepts_declared_queues_without_changing_candidate_facts(self):
+        value=json.loads((self.root/'status/house_holdings.json').read_bytes())
+        value['remaining_archive_count']=1;value['current_member_annual_count']+=1
+        self._write('status/house_holdings.json',value)
+        before=self.candidate_path.read_bytes()
+        result=validate_publication(self.root,self.candidate_path)
+        self.assertEqual(result['pending']['house_annual_archive'],1)
+        self.assertEqual(self.candidate_path.read_bytes(),before)
+
+    def test_oge_failed_report_is_an_explicit_disposition_and_missing_report_still_fails(self):
+        value=json.loads((self.root/'status/oge.json').read_bytes())
+        value['extraction_count']=1;value['extraction_failure_count']=1
+        self._write('status/oge.json',value)
+        self.assertEqual(validate_publication(self.root,self.candidate_path)['oge_extraction_failure_count'],1)
+        value['extraction_failure_count']=0;self._write('status/oge.json',value)
+        with self.assertRaisesRegex(ReleaseReadinessError,'not fully accounted'):
+            validate_publication(self.root,self.candidate_path)
 
     def test_rejects_unaccounted_senate_paper_report(self):
         value = json.loads((self.root / "status/senate_efd.json").read_text())
         value["report_evidence_count"] = 1
         self._write("status/senate_efd.json", value)
         with self.assertRaisesRegex(ReleaseReadinessError, "not fully accounted"):
-            validate_first_launch(self.root, self.candidate_path)
+            validate_publication(self.root, self.candidate_path)
 
     def test_rejects_stale_unified_candidate(self):
         self.candidate["transactions"].append({"id": "tampered"})
         self._write("candidates/disclosure-current.json", self.candidate)
         with self.assertRaisesRegex(ReleaseReadinessError, "does not match its cutoff audit"):
-            validate_first_launch(self.root, self.candidate_path)
+            validate_publication(self.root, self.candidate_path)
 
     def test_staged_source_cannot_publish_against_old_unified_audit(self):
         source = json.loads((self.root / "candidates/sources/senate_efd-current.json")
@@ -114,7 +125,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         self._write("candidates/sources/senate_efd-current.json", source)
         with self.assertRaisesRegex(ReleaseReadinessError,
                                     "source candidate does not match cutoff audit"):
-            validate_first_launch(self.root, self.candidate_path)
+            validate_publication(self.root, self.candidate_path)
 
     def test_rejects_oge_candidate_that_omits_reported_holdings(self):
         status = json.loads((self.root / "status/oge.json").read_text())
@@ -122,7 +133,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         self._write("status/oge.json", status)
         with self.assertRaisesRegex(ReleaseReadinessError,
                                     "holding count does not match its source candidate"):
-            validate_first_launch(self.root, self.candidate_path)
+            validate_publication(self.root, self.candidate_path)
 
 
 if __name__ == "__main__":

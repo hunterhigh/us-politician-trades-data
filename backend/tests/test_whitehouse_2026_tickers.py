@@ -5,14 +5,17 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from unison_snapshot.oge_reports import (
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_SOURCE_URL,
-)
-from unison_snapshot.whitehouse_2026_tickers import (
-    PRIOR_TRUMP_BASIS, SECURITY_DIRECTORY, SEPTEMBER_SOURCE_ALIASES,
-    SOURCE_DIRECTORY_BASIS, TRUMP_PERSON_ID, enrich_trump_2026_tickers,
+from unison_snapshot.reviewed_security_tickers import (
+    PRIOR_EXACT_NAME_BASIS, SOURCE_DIRECTORY_BASIS, enrich_reviewed_tickers, _rules,
     restore_pre_enrichment,
 )
+
+_RULES = _rules()
+TRUMP_SEPT_2026_DOCUMENT_ID = _RULES['prior_name_target_reports'][0]
+TRUMP_SEPT_2026_SOURCE_URL = _RULES['reports'][TRUMP_SEPT_2026_DOCUMENT_ID]['source_url']
+SECURITY_DIRECTORY = _RULES["security_directory"]
+SEPTEMBER_SOURCE_ALIASES = _RULES["source_aliases"]
+TRUMP_PERSON_ID = _RULES["person_id"]
 
 
 class TrumpSeptemberTickerTests(unittest.TestCase):
@@ -53,10 +56,10 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         }
         assets = [{"symbol": "EXM", "class": "us_equity", "exchange": "NYSE",
                    "status": "active", "name": "Example Holdings"}]
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
         self.assertEqual(result["transactions"][1]["ticker"], "EXM")
-        self.assertEqual(result["transactions"][1]["ticker_mapping_basis"], PRIOR_TRUMP_BASIS)
+        self.assertEqual(result["transactions"][1]["ticker_mapping_basis"], PRIOR_EXACT_NAME_BASIS)
         self.assertEqual(audit["new_mapping_count"], 1)
         self.assertEqual(audit["mappings"][0]["prior_record_ids"], ["wh-annual:prior"])
 
@@ -68,7 +71,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         candidate = {"meta": {"is_demo": False}, "transactions": transactions,
                      "reported_holdings": []}
 
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
 
         self.assertEqual(len(SEPTEMBER_SOURCE_ALIASES), 155)
@@ -90,7 +93,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         self.assertIn("nasdaqtrader.com", mapping["security_directory_url"])
 
         restored = restore_pre_enrichment(result, audit)
-        repeated, repeated_audit = enrich_trump_2026_tickers(
+        repeated, repeated_audit = enrich_reviewed_tickers(
             restored, assets, checked_at="2026-09-28T01:00:00Z", previous=audit)
         self.assertEqual(repeated["transactions"], result["transactions"])
         self.assertEqual(repeated_audit["retained_mapping_count"], 155)
@@ -102,13 +105,13 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
                      "transactions": [self.target(record_id, "LUMEN TECHNOLOGIES INC")],
                      "reported_holdings": []}
         old_assets = [self.asset("LUMN", "Lumen Technologies, Inc.")]
-        enriched, audit = enrich_trump_2026_tickers(
+        enriched, audit = enrich_reviewed_tickers(
             candidate, old_assets, checked_at="2026-09-28T00:00:00Z")
         self.assertEqual(audit["mappings"][0]["mapping_basis"],
                          "alpaca_unique_asset_name")
         restored = restore_pre_enrichment(enriched, audit)
         revised_assets = [self.asset("LUMN", "Lumen Technologies Inc")]
-        repeated, repeated_audit = enrich_trump_2026_tickers(
+        repeated, repeated_audit = enrich_reviewed_tickers(
             restored, revised_assets, checked_at="2026-10-08T00:00:00Z",
             previous=audit)
         self.assertEqual(repeated["transactions"], enriched["transactions"])
@@ -119,7 +122,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         original = {'meta': {'is_demo': False},
                     'transactions': [self.target(record_id, 'EXAMPLE TECHNOLOGIES INC')],
                     'reported_holdings': []}
-        old_result, old_audit = enrich_trump_2026_tickers(
+        old_result, old_audit = enrich_reviewed_tickers(
             original, [self.asset('OLD', 'Example Technologies Inc')],
             checked_at='2026-09-28T00:00:00Z')
         # A provider name match alone supplies no historical rename/split proof.
@@ -128,7 +131,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         rebuilt = restore_pre_enrichment(old_result, old_audit)
         rebuilt['transactions'].append(self.target('oge-278t:' + 'b' * 24, 'OTHER CORP'))
         before = deepcopy(rebuilt)
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             rebuilt, changed_assets, checked_at='2026-10-27T00:00:00Z', previous=old_audit)
         self.assertEqual(rebuilt, before)
         self.assertEqual(result['transactions'][0], old_result['transactions'][0])
@@ -141,7 +144,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
             'retained_ticker': 'OLD', 'proposed_ticker': 'NEW',
             'reason': 'provider_name_match_changed_ticker',
             'disposition': 'proposal_quarantined_prior_mapping_retained'})
-        repeated, repeated_audit = enrich_trump_2026_tickers(
+        repeated, repeated_audit = enrich_reviewed_tickers(
             restore_pre_enrichment(result, audit), changed_assets,
             checked_at='2026-10-27T00:00:00Z', previous=audit)
         self.assertEqual(repeated, result)
@@ -154,24 +157,24 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
         original = {'meta': {'is_demo': False},
                     'transactions': [self.target(record_id, 'EXAMPLE TECHNOLOGIES INC')],
                     'reported_holdings': []}
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             original, [self.asset('OLD', 'Example Technologies Inc')],
             checked_at='2026-09-28T00:00:00Z')
         restored = restore_pre_enrichment(result, audit)
         changed_basis = deepcopy(audit)
         changed_basis['mappings'][0]['mapping_basis'] = 'alpaca_unique_classless_asset_name'
         with self.assertRaisesRegex(ValueError, 'identity conflicts'):
-            enrich_trump_2026_tickers(restored,
+            enrich_reviewed_tickers(restored,
                 [self.asset('NEW', 'Example Technologies Inc')],
                 checked_at='2026-10-27T00:00:00Z', previous=changed_basis)
         with self.assertRaisesRegex(ValueError, 'now ambiguous'):
-            enrich_trump_2026_tickers(restored,
+            enrich_reviewed_tickers(restored,
                 [self.asset('NEW', 'Example Technologies Inc'),
                  self.asset('OTHER', 'Example Technologies Inc')],
                 checked_at='2026-10-27T00:00:00Z', previous=audit)
         restored['transactions'][0]['asset_name'] = 'UNRELATED INC'
         with self.assertRaisesRegex(ValueError, 'lost its source row'):
-            enrich_trump_2026_tickers(restored,
+            enrich_reviewed_tickers(restored,
                 [self.asset('NEW', 'Unrelated Inc')],
                 checked_at='2026-10-27T00:00:00Z', previous=audit)
 
@@ -186,7 +189,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
                      "reported_holdings": []}
         assets = [self.asset("KR", "The Kroger Co.", exchange="NYSE")]
 
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
         self.assertEqual(result["transactions"][0]["ticker"], "KR")
         self.assertEqual(result["transactions"][0]["ticker_mapping_basis"],
@@ -201,7 +204,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
 
         restored = restore_pre_enrichment(result, audit)
         self.assertEqual(restored["transactions"], candidate["transactions"])
-        repeated, repeated_audit = enrich_trump_2026_tickers(
+        repeated, repeated_audit = enrich_reviewed_tickers(
             restored, assets, checked_at="2026-09-28T01:00:00Z", previous=audit)
         self.assertEqual(repeated["transactions"], result["transactions"])
         self.assertEqual(repeated_audit["retained_mapping_count"], 1)
@@ -215,7 +218,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
                      "reported_holdings": []}
         for status, exchange in (("inactive", "NASDAQ"), ("active", "OTC")):
             with self.subTest(status=status, exchange=exchange):
-                result, audit = enrich_trump_2026_tickers(
+                result, audit = enrich_reviewed_tickers(
                     candidate, [self.asset("ACN", "Accenture plc", status=status,
                                            exchange=exchange)],
                     checked_at="2026-09-28T00:00:00Z")
@@ -227,7 +230,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
             self.asset("ACN", "Accenture plc", asset_id="asset-acn-1"),
             self.asset("ACN", "Accenture plc", asset_id="asset-acn-2"),
         ]
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             candidate, duplicate_assets, checked_at="2026-09-28T00:00:00Z")
         self.assertIsNone(result["transactions"][0]["ticker"])
         self.assertEqual(audit["new_mapping_count"], 0)
@@ -237,7 +240,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
                           record_id, "ACCENTIJRE PLC", "2026-07-22")],
                       "reported_holdings": []}
         with self.assertRaisesRegex(ValueError, "changed its transaction date"):
-            enrich_trump_2026_tickers(
+            enrich_reviewed_tickers(
                 wrong_date, [self.asset("ACN", "Accenture plc")],
                 checked_at="2026-09-28T00:00:00Z")
 
@@ -260,7 +263,7 @@ class TrumpSeptemberTickerTests(unittest.TestCase):
             self.asset("GOOGL", "Alphabet Inc Class A"),
             self.asset("VRSN", "Verisign Inc"),
         ]
-        result, audit = enrich_trump_2026_tickers(
+        result, audit = enrich_reviewed_tickers(
             candidate, assets, checked_at="2026-09-28T00:00:00Z")
         self.assertTrue(all(row["ticker"] is None for row in result["transactions"]))
         self.assertEqual(audit["new_mapping_count"], 0)

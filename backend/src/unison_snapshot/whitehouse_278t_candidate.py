@@ -10,15 +10,20 @@ from collections import Counter
 from copy import deepcopy
 from datetime import datetime, time
 import re
+import hashlib
+import json
 from urllib.parse import urlsplit
 
 from .builder import ARRAYS, FIELDS, normalize, timestamp
 from .oge import OgeCatalogError
+from .reviewed_whitehouse_ocr import person_for_id as reviewed_person_for_id
 from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
-from .whitehouse_278t import _ELECTRONIC_SIGNATURE, _first_last
+from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS,
+    generic_existing_fact, generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSIONS, DUAL_AXIS_PARSER_VERSION)
 from .whitehouse_278t_audit import (
-    AUDIT_SCHEMA, TRUMP_PERSON_ID, audit_whitehouse_278t, source_bound_filing_date,
+    AUDIT_SCHEMA, audit_whitehouse_278t, source_bound_filing_date,
+    resolve_exact_source_reports,
 )
 
 
@@ -26,6 +31,236 @@ SCHEMA = "whitehouse-278t-candidate-conservation/v1"
 _ID = re.compile(r"oge-278t:[0-9a-f]{24}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _TICKER = re.compile(r"[A-Z0-9][A-Z0-9.\-^/]{0,31}")
+
+
+EXACT_COPY_SCHEMA = "whitehouse-278t-exact-source-candidate/v1"
+
+
+def _cross_source_bindings(extractions, bindings):
+    """Validate archived same-byte receipts; missing old observations are not conflicts."""
+    if bindings is None:
+        return {}
+    if bindings.get("schema_version") != "whitehouse-278t-exact-source-bindings/v1":
+        raise OgeCatalogError("White House cross-source binding schema is unsupported")
+    reports = {report["document_id"]: report for report in extractions}
+    result = {}
+    for binding in bindings.get("reports", []):
+        wh, oge, parsed = (binding[key] for key in ("whitehouse_archive", "oge_archive", "oge_extraction"))
+        report = reports.get(wh.get("document_id"))
+        direct_url = urlsplit(oge.get("document_url") or "")
+        if (report is None or report["document_id"] in result or
+                wh.get("document_url") != report["source_url"] or
+                wh.get("sha256") != report["source_sha256"] or oge.get("sha256") != wh.get("sha256") or
+                direct_url.scheme != "https" or direct_url.netloc != "extapps2.oge.gov" or
+                direct_url.query or direct_url.fragment or not direct_url.path.lower().endswith(".pdf") or
+                not re.search(r"/" + re.escape(oge.get("document_id") or "INVALID") + r"/\$file/", direct_url.path, re.I) or
+                parsed.get("schema_version") != "oge-278t-extraction/v1" or
+                parsed.get("source_sha256") != oge.get("sha256") or
+                parsed.get("source_url") != oge.get("document_url") or
+                parsed.get("document_id") != oge.get("document_id") or
+                _first_last(parsed.get("catalog_filer_name") or "") is None or
+                _first_last(parsed.get("catalog_filer_name") or "") != _first_last(report.get("pdf_filer_name") or "")):
+            raise OgeCatalogError("White House cross-source alias is not bound to the same PDF and filer")
+        slots = {}
+        for row in [*parsed["transactions"], *parsed["quarantined"]]:
+            page, number = row.get("page_number"), row.get("row_number")
+            if type(page) is int and page > 0 and type(number) is int and number > 0:
+                slots.setdefault((page, number), []).append(row)
+        result[report["document_id"]] = {"archive": oge, "slots": slots,
+            "receipt": {"canonical_document_id": report["document_id"],
+                "source_sha256": report["source_sha256"], "oge_document_id": oge["document_id"],
+                "oge_source_url": oge["document_url"], "whitehouse_source_url": wh["document_url"],
+                "binding_sha256": hashlib.sha256(json.dumps(binding, sort_keys=True,
+                    ensure_ascii=False, separators=(",", ":")).encode()).hexdigest(),
+                "old_observed_transaction_count": len(parsed["transactions"]),
+                "old_quarantined_observation_count": len(parsed["quarantined"]), "rows": []}}
+    return result
+
+
+def _exact_source_inputs(base: dict, extractions: list[dict], coverage: dict,
+                         annual_extractions=None, directory_index=None, annual_identity_people=None,
+                         source_bindings=None, native_classification_sources=None,
+                         exact_duplicate_sources=None):
+    base = deepcopy(base)
+    removed_duplicates = []
+    cross = _cross_source_bindings(extractions, source_bindings)
+    canonical, aliases = resolve_exact_source_reports(extractions, coverage,
+        existing_transactions=base["transactions"], native_classification_sources=native_classification_sources)
+    complete = deepcopy(canonical)
+    groups = {group["canonical_document_id"]: group for group in aliases}
+    retained, receipts = [], []
+    for report in canonical:
+        group = groups.get(report["document_id"])
+        relation = cross.get(report["document_id"])
+        if group is None and relation is not None:
+            group = {"sources": [{"document_id": report["document_id"], "source_url": report["source_url"],
+                "source_sha256": report["source_sha256"], "rows": [
+                    {"row_number": row["row_number"], "extraction_id": row["extraction_id"]}
+                    for row in [*report["transactions"], *report["quarantined"]]]}]}
+        if group is None:
+            continue
+        # Independently assess the original rows, ignoring only existing facts
+        # whose URL is proven to refer to these exact bytes. No other original
+        # qualification reason is removed.
+        urls = {source["source_url"] for source in group["sources"]}
+        if relation:
+            urls.add(relation["archive"]["document_url"])
+        comparison_base = deepcopy(base)
+        comparison_base["transactions"] = [row for row in base["transactions"]
+                                            if row.get("source_url") not in urls]
+        checked = audit_whitehouse_278t([report], coverage, comparison_base,
+                                        annual_extractions, directory_index, annual_identity_people)
+        identity = checked["reports"][0]["matched_catalog_identity"]
+        remaining = []
+        for row, decision in zip(report["transactions"], checked["reports"][0]["rows"]):
+            matches = []
+            bound_old_ids = set()
+            if relation:
+                observed = relation["slots"].get((row.get("page_number"), row.get("row_number")), [])
+                if len(observed) == 1:
+                    bound_old_ids.add(observed[0]["extraction_id"])
+            if identity is not None and decision["status"] == "eligible" and _signature_date(report) == report.get("filed_at"):
+                proposed = _transaction(report, row, identity["person_id"])
+                core = {"person_id", "owner", "asset_name", "transaction_type", "transaction_date",
+                        "filed_at", "amount_low", "amount_high"}
+                matches = [old for old in base["transactions"]
+                           if old.get("source_url") in urls and
+                           (old.get("source_url") != (relation["archive"]["document_url"] if relation else None) or
+                            old.get("id") in bound_old_ids) and
+                           (row.get("ticker") is None or old.get("ticker") == row.get("ticker")) and
+                           all(old.get(key) == proposed[key] for key in core)]
+                direct_matches = [old for old in matches if old["id"] in bound_old_ids]
+                if len(direct_matches) == 1:
+                    keep = direct_matches[0]
+                    # Equal financial values can belong to other disclosed
+                    # rows. Only this row's actual WH ID can be removed, and
+                    # its complete source replay must prove that exact pair.
+                    duplicate_ids = {old["id"] for old in base['transactions']
+                                     if old is not keep and old['id'] == row['extraction_id']}
+                    proofs = [exact_duplicate_sources.resolve(report, row, canonical_fact=keep,
+                                duplicate_fact=old) if exact_duplicate_sources is not None else None
+                              for old in base['transactions'] if old["id"] in duplicate_ids]
+                    if proofs and all(proof is not None for proof in proofs):
+                        removed_duplicates.extend(proof['record'] for proof in proofs)
+                        base["transactions"] = [old for old in base["transactions"] if old["id"] not in duplicate_ids]
+                        matches = [keep]
+            classification_row = (native_classification_sources is not None and
+                native_classification_sources.includes_row(report, row) and
+                any(old.get('id') == row.get('extraction_id') and
+                    old.get('source_url') == report.get('source_url') and
+                    old.get('filing_id') == report.get('document_id') for old in matches))
+            if classification_row:
+                # This canonical row needs the ordinary retained consumer's
+                # complete source projection, including on a current repeat.
+                # Counting it here as well would duplicate the disposition.
+                remaining.append(row)
+            elif len(matches) == 1:
+                retained.append({"document_id": report["document_id"],
+                                 "extraction_id": row["extraction_id"],
+                                 "row_number": row["row_number"], "formal_transaction_id": matches[0]["id"],
+                                 "formal_source_url": matches[0]["source_url"],
+                                 "status": "retained_existing_exact_source"})
+            else:
+                existing_bound = [old for old in base["transactions"] if old["id"] in bound_old_ids]
+                if existing_bound:
+                    blocked = deepcopy(row)
+                    blocked["reasons"] = sorted(set(blocked.get("reasons", []) +
+                                                     ["existing_exact_source_row_interpretation_conflict"]))
+                    report["quarantined"].append(blocked)
+                else:
+                    remaining.append(row)
+            if relation:
+                existing = [old for old in base["transactions"] if old["id"] in bound_old_ids]
+                relation["receipt"]["rows"].append({"extraction_id": row["extraction_id"],
+                    "page_number": row.get("page_number"), "row_number": row["row_number"],
+                    "old_bound_extraction_ids": sorted(bound_old_ids),
+                    "status": "retained_existing_exact_source" if len(matches) == 1 else
+                        "old_formal_row_interpretation_differs" if existing else "no_old_formal_fact",
+                    "formal_transaction_id": matches[0]["id"] if len(matches) == 1 else None})
+                relation["receipt"]["oge_formal_transaction_count"] = sum(
+                    old.get("source_url") == relation["archive"]["document_url"] for old in base["transactions"])
+        report["transactions"] = remaining
+        receipts.append({"canonical_document_id": report["document_id"],
+                         "source_sha256": report["source_sha256"],
+                         "canonical_row_count": checked["source_row_count"],
+                         "aliases": group["sources"]})
+    # A fully retained source has no new facts to append. Its source rows are
+    # still recorded above; calling an empty extraction a new report is false.
+    retained_documents = {row["document_id"] for row in retained}
+    selected = [report for report in canonical if report["transactions"] or report["quarantined"] or
+                report["document_id"] not in retained_documents]
+    audit = audit_whitehouse_278t(selected, coverage, base,
+                                  annual_extractions, directory_index, annual_identity_people,
+                                  source_complete_extractions=complete)
+    return selected, {"schema_version": EXACT_COPY_SCHEMA, "exact_source_aliases": receipts,
+                      "retained_rows": retained, "retained_existing_transaction_count": len(retained),
+                      "canonical_eligibility": audit,
+                      **({"cross_source_relations": [value["receipt"] for value in cross.values()]} if cross else {}),
+                      **({"removed_duplicate_formal_rows": removed_duplicates} if removed_duplicates else {})}, complete, base
+
+
+def audit_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], coverage: dict,
+                                                *, annual_extractions=None, directory_index=None,
+                                                annual_identity_people=None, source_bindings=None,
+                                                native_classification_sources=None,
+                                                exact_duplicate_sources=None) -> dict:
+    """Explicit development entry; the existing production default is unchanged."""
+    return _exact_source_inputs(base, extractions, coverage, annual_extractions,
+                                directory_index, annual_identity_people, source_bindings,
+                                native_classification_sources, exact_duplicate_sources)[1]
+
+
+def build_whitehouse_278t_exact_source_candidate(base: dict, extractions: list[dict], audit: dict,
+                                                coverage: dict, *, data_cutoff_at: str,
+                                                annual_extractions=None, directory_index=None,
+                                                annual_identity_people=None, source_bindings=None,
+                                                native_classification_sources=None,
+                                                exact_duplicate_sources=None) -> tuple[dict, dict]:
+    """Consume exact PDF copies once and retain their source aliases and old IDs."""
+    selected, expected, complete, consumer_base = _exact_source_inputs(base, extractions, coverage, annual_extractions,
+                                              directory_index, annual_identity_people, source_bindings,
+                                              native_classification_sources, exact_duplicate_sources)
+    if audit != expected:
+        raise OgeCatalogError("White House exact-source qualification is stale or altered")
+    candidate, result = build_whitehouse_278t_review_candidate(
+        consumer_base, selected, expected["canonical_eligibility"], coverage, data_cutoff_at=data_cutoff_at,
+        annual_extractions=annual_extractions, directory_index=directory_index,
+        annual_identity_people=annual_identity_people, source_complete_extractions=complete,
+        native_classification_sources=native_classification_sources)
+    outcomes = {(report["document_id"], row["row_number"]): row
+                for report in result["reports"] for row in report["rows"]}
+    retained = {(row["document_id"], row["row_number"]): row for row in expected["retained_rows"]}
+    aliases = deepcopy(expected["exact_source_aliases"])
+    alias_row_count = 0
+    for group in aliases:
+        canonical = group["canonical_document_id"]
+        for source in group["aliases"]:
+            for row in source["rows"]:
+                old = retained.get((canonical, row["row_number"]))
+                outcome = outcomes.get((canonical, row["row_number"]))
+                row["formal_transaction_id"] = (old["formal_transaction_id"] if old else
+                    outcome["extraction_id"] if outcome and outcome["status"] in {"promoted", "retained_existing"} else None)
+                row["canonical_status"] = old["status"] if old else outcome["status"] if outcome else "unresolved"
+                row["reasons"] = outcome["reasons"] if outcome else []
+                if source["document_id"] != canonical:
+                    alias_row_count += 1
+    total = sum(len(report["transactions"]) + len(report["quarantined"]) for report in extractions)
+    if (result["promoted_transaction_count"] + result["quarantined_row_count"] +
+            len(expected["retained_rows"]) + len(result.get("retained_existing_transaction_ids", [])) + alias_row_count != total):
+        raise OgeCatalogError("White House exact-source row dispositions do not conserve")
+    result.update(schema_version=EXACT_COPY_SCHEMA,
+                  source_report_count=len(extractions), source_row_count=total,
+                  exact_source_alias_row_count=alias_row_count,
+                  exact_source_aliases=aliases,
+                  retained_rows=expected["retained_rows"],
+                  retained_existing_transaction_count=len(expected["retained_rows"])+len(result.get("retained_existing_transaction_ids", [])))
+    if "cross_source_relations" in expected:
+        result["cross_source_relations"] = expected["cross_source_relations"]
+    if "removed_duplicate_formal_rows" in expected:
+        result["removed_duplicate_formal_rows"] = expected["removed_duplicate_formal_rows"]
+        result["candidate_is_append_only"] = False
+        result["original_base_transaction_count"] = len(base["transactions"])
+    return candidate, result
 
 
 def _official_pdf_url(value: object) -> bool:
@@ -43,6 +278,8 @@ def _official_pdf_url(value: object) -> bool:
 
 def _signature_date(report: dict) -> str | None:
     """Use validated exact-source filing or official disclosure-date evidence."""
+    if report.get("parser_version") in GENERIC_PARSER_VERSIONS:
+        return generic_whitehouse_filing_date(report)
     source_bound = source_bound_filing_date(report)
     if source_bound is not None:
         return source_bound
@@ -68,15 +305,15 @@ def _person(identity: dict) -> dict:
     computed_id = _person_id(key)
     person_id = identity.get("person_id", computed_id)
     source_bound_new = identity.get("identity_basis") == "whitehouse_directory_new_oge_person"
-    if person_id not in {computed_id, TRUMP_PERSON_ID} and not (
+    reviewed_person = reviewed_person_for_id(person_id)
+    if person_id != computed_id and reviewed_person is None and not (
             source_bound_new and re.fullmatch(r"oge:[0-9a-f]{16}", person_id or "")):
         raise OgeCatalogError("White House 278-T person identity is unsupported")
-    is_trump = person_id == TRUMP_PERSON_ID
     person = {
         "id": person_id,
-        "display_name": "Donald Trump" if is_trump else identity["filer_name"],
-        "short_name": "Trump" if is_trump else _short_name(identity["filer_name"]),
-        "role": ("President of the United States of America" if is_trump else
+        "display_name": reviewed_person['display_name'] if reviewed_person else identity["filer_name"],
+        "short_name": reviewed_person['short_name'] if reviewed_person else _short_name(identity["filer_name"]),
+        "role": (reviewed_person['role'] if reviewed_person else
                  identity["position_title"]),
         "office_type": identity["agency"],
         "chamber": None, "party": None, "state": None,
@@ -106,7 +343,13 @@ def _transaction(report: dict, row: dict, person_id: str) -> dict:
         "source_url": report["source_url"],
         "verification_status": "official_matched",
     }
-    if set(fact) != FIELDS["transactions"]:
+    if report.get("parser_version") in GENERIC_PARSER_VERSIONS:
+        title = row.get("account_title")
+        if title:
+            fact["asset_name"] = f"{row['asset_name']} — {title}"
+        if "amount_low_exclusive" in row:
+            fact["amount_low_exclusive"] = row["amount_low_exclusive"]
+    if set(fact) != FIELDS["transactions"] | ({"amount_low_exclusive"} if "amount_low_exclusive" in fact else set()):
         raise OgeCatalogError("White House 278-T transaction field contract changed")
     return fact
 
@@ -116,7 +359,9 @@ def build_whitehouse_278t_review_candidate(
         oge_whitehouse_coverage: dict, *, data_cutoff_at: str,
         annual_extractions: list[dict] | None = None,
         directory_index: dict | None = None,
-        annual_identity_people: list[dict] | None = None) -> tuple[dict, dict]:
+        annual_identity_people: list[dict] | None = None,
+        source_complete_extractions: list[dict] | None = None,
+        native_classification_sources=None) -> tuple[dict, dict]:
     """Return an append-only OGE review candidate and every source row's fate.
 
     The supplied audit is recomputed from these exact inputs to reject stale or
@@ -153,7 +398,8 @@ def build_whitehouse_278t_review_candidate(
         raise OgeCatalogError(f"Existing OGE candidate is invalid: {exc}") from None
     expected_audit = audit_whitehouse_278t(
         extractions, oge_whitehouse_coverage, base_oge_candidate,
-        annual_extractions, directory_index, annual_identity_people)
+        annual_extractions, directory_index, annual_identity_people,
+        source_complete_extractions=source_complete_extractions)
     if eligibility_audit != expected_audit:
         raise OgeCatalogError("White House 278-T qualification audit is stale or altered")
     if len(extractions) != expected_audit["report_count"]:
@@ -175,6 +421,8 @@ def build_whitehouse_278t_review_candidate(
     seen_documents: set[str] = set()
     audit_reports = []
     added_transactions = []
+    corrected_existing = {}
+    retained_existing = []
     added_people = {}
     for report, qualified in zip(extractions, expected_audit["reports"], strict=True):
         document_id = report["document_id"]
@@ -242,10 +490,12 @@ def build_whitehouse_278t_review_candidate(
             if (row_id != decision["extraction_id"] or
                     source_row.get("row_number") != decision["row_number"]):
                 raise OgeCatalogError("White House 278-T audit row is misaligned")
+            retained = generic_existing_fact(report, source_row, candidate["transactions"],
+                expected_person_id=person["id"] if person else None)
             if decision["status"] == "eligible" and not reasons:
                 if not isinstance(row_id, str) or not _ID.fullmatch(row_id):
                     reasons.append("transaction_id_invalid")
-                elif row_id in existing_ids:
+                elif row_id in existing_ids and retained is None:
                     reasons.append("transaction_id_conflict_existing")
                 elif source_id_counts[row_id] > 1:
                     reasons.append("transaction_id_conflict_source")
@@ -256,19 +506,52 @@ def build_whitehouse_278t_review_candidate(
                         not _TICKER.fullmatch(source_row["ticker"])):
                     reasons.append("transaction_ticker_invalid")
             if decision["status"] == "eligible" and not reasons:
-                fact = _transaction(report, source_row, person["id"])
-                added_transactions.append(fact)
-                if person["id"] not in existing_people:
-                    added_people[person["id"]] = person
+                if retained is not None:
+                    retained_existing.append(row_id)
+                    inheritance = source_row.get("legacy_inheritance", {})
+                    corrections = [value for value in (inheritance.get("owner_correction"), inheritance.get("account_display_correction"))
+                                   if value and retained.get(value["field"]) != value["new_value"]]
+                    replacement = deepcopy(retained)
+                    for correction in corrections:
+                        replacement[correction["field"]] = correction["new_value"]
+                    if native_classification_sources is not None:
+                        from .whitehouse_native_correction import reconcile_native_classification
+                        original = [value for value in source_complete_extractions or []
+                                    if value.get('document_id') == report['document_id']]
+                        classification_report = original[0] if len(original) == 1 else report
+                        classified = reconcile_native_classification(classification_report, source_row, retained,
+                            person_id=person['id'], source_people=candidate['people'],
+                            sources=native_classification_sources)
+                        if classified is not None:
+                            if any(classified['fact'].get(value['field']) != value['new_value']
+                                   for value in corrections):
+                                raise OgeCatalogError('White House classification conflicts with a source field correction')
+                            replacement = classified['fact']
+                            by_field = {value['field']: value for value in corrections}
+                            by_field.update({value['field']: value for value in classified['corrections']})
+                            corrections = [by_field[key] for key in sorted(by_field)]
+                    if corrections:
+                        corrected_existing[row_id] = {"fact": replacement, "audit": [{**correction,
+                            "formal_id": row_id, "source_sha256": report["source_sha256"],
+                            "page_number": source_row["page_number"], "cells": source_row["cells"]} for correction in corrections]}
+                else:
+                    fact = _transaction(report, source_row, person["id"])
+                    added_transactions.append(fact)
+                    if person["id"] not in existing_people:
+                        added_people[person["id"]] = person
             row_results.append({
                 "extraction_id": row_id, "row_number": source_row.get("row_number"),
-                "status": "promoted" if decision["status"] == "eligible" and not reasons
-                          else "quarantined",
+                "status": ("retained_existing" if retained is not None else "promoted")
+                          if decision["status"] == "eligible" and not reasons else "quarantined",
                 "annual_part7_overlap": decision.get("annual_part7_overlap") is True,
                 "reasons": sorted(set(reasons)),
+                **({"field_interpretation_evidence":deepcopy(source_row["field_interpretation_evidence"])}
+                   if "field_interpretation_evidence" in source_row else {}),
             })
         promoted_count = sum(row["status"] == "promoted" for row in row_results)
-        quarantined_count = len(row_results) - promoted_count
+        retained_count = sum(row["status"] == "retained_existing" for row in row_results)
+        quarantined_count = len(row_results) - promoted_count - retained_count
+        from .native_partition_rows import partition_binding
         audit_reports.append({
             "document_id": document_id, "source_url": report["source_url"],
             "source_sha256": report["source_sha256"],
@@ -277,11 +560,51 @@ def build_whitehouse_278t_review_candidate(
             "identity_basis": identity.get("identity_basis") if identity else None,
             "source_row_count": len(source_rows), "promoted_count": promoted_count,
             "quarantined_count": quarantined_count,
+            **({'parser_version': report['parser_version'], 'retained_count': retained_count,
+                'retained_ids': [row['extraction_id'] for row in row_results if row['status'] == 'retained_existing'],
+                'native_source_partition_binding': partition_binding(report['native_text_partition'], report['parser_version'])}
+               if 'native_text_partition' in report else {}),
+            **({"parser_version": report["parser_version"], "retained_count": retained_count,
+                "retained_ids": [row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
+                "retained_source_bindings": {"schema_version": "whitehouse-generic-retained-source/v1",
+                    "source_sha256": report["source_sha256"],
+                    "legacy_extraction_canonical_sha256": report.get("legacy_source_binding",{}).get("legacy_extraction_sha256"),
+                    "legacy_cache_hash_is_reference_only": True,
+                    "rows": [{"formal_id": row["extraction_id"], "page_number": source["page_number"],
+                        "source_rows_index": source.get("source_rows_index"),
+                        "raw_cells_canonical_sha256": hashlib.sha256(json.dumps(source.get("cells"),ensure_ascii=False,
+                            sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "basis": "same_source_raw_cells_stable_id_replayed_and_formal_projection_bound"}
+                        for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
+               if report.get("parser_version") == GENERIC_PARSER_VERSION else {}),
+            **({"observation_receipt": deepcopy(report["observation_receipt"]),
+                **({"geometry_mode":report["geometry_mode"]} if report.get("geometry_mode") else {}),
+                **({"source_identity_resolution":deepcopy(report["source_identity_resolution"])}
+                   if report.get("source_identity_resolution") else {}),
+                "parser_version": report["parser_version"],
+                "saved_ocr_input": deepcopy(report["saved_ocr_input"]),
+                **({"partial_geometry_pages":deepcopy(report["content_observations"]["partial_geometry_pages"])}
+                   if (report.get("content_observations") or {}).get("partial_geometry_pages") else {}),
+                "quarantine_count_unit": "observed_ocr_rows_not_whole_source_unique_rows"}
+               if report.get("parser_version") in SAVED_OCR_PARSER_VERSIONS else {}),
+            **({"retained_count":retained_count,
+                "retained_ids":[row["extraction_id"] for row in row_results if row["status"] == "retained_existing"],
+                "current_source_retained_bindings":{
+                    "schema_version":"whitehouse-saved-current-retained/v1", "source_sha256":report["source_sha256"],
+                    "document_id":document_id,"parser_version":report["parser_version"],"geometry_mode":report["geometry_mode"],
+                    "rows":[{"formal_id":row["extraction_id"],"source_rows_index":source.get("source_rows_index"),
+                        "page_number":source["page_number"],"raw_cells_canonical_sha256":hashlib.sha256(json.dumps(
+                            source["cells"],ensure_ascii=False,sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                        "basis":"current_source_replayed_exact_formal_projection"}
+                        for row,source in zip(row_results,source_rows,strict=True) if row["status"] == "retained_existing"]}}
+               if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION else {}),
             "document_reasons": sorted(set(doc_reasons)), "rows": row_results,
         })
     if len(added_transactions) != sum(row["promoted_count"] for row in audit_reports):
         raise OgeCatalogError("White House 278-T promoted row count is inconsistent")
     candidate["people"].extend(added_people.values())
+    candidate["transactions"] = [corrected_existing[row["id"]]["fact"] if row["id"] in corrected_existing else row
+                                 for row in candidate["transactions"]]
     candidate["transactions"].extend(added_transactions)
     candidate["people"].sort(key=lambda row: row["id"])
     candidate["transactions"].sort(key=lambda row: row["id"])
@@ -289,7 +612,7 @@ def build_whitehouse_278t_review_candidate(
     total_rows = sum(row["source_row_count"] for row in audit_reports)
     promoted = sum(row["promoted_count"] for row in audit_reports)
     quarantined = sum(row["quarantined_count"] for row in audit_reports)
-    if promoted + quarantined != total_rows:
+    if promoted + quarantined + len(retained_existing) != total_rows:
         raise OgeCatalogError("White House 278-T row conservation failed")
     base_people = {row["id"]: row for row in base_oge_candidate["people"]}
     candidate_people = {row["id"]: row for row in candidate["people"]}
@@ -301,7 +624,7 @@ def build_whitehouse_278t_review_candidate(
         raise OgeCatalogError("White House 278-T candidate changed an existing person")
     if (len(base_transactions) != len(base_oge_candidate["transactions"]) or
             len(candidate_transactions) != len(candidate["transactions"]) or
-            any(candidate_transactions.get(key) != value
+            any(candidate_transactions.get(key) != corrected_existing.get(key, {}).get("fact", value)
                 for key, value in base_transactions.items())):
         raise OgeCatalogError("White House 278-T candidate changed an existing transaction")
     if (candidate["reported_holdings"] != base_oge_candidate["reported_holdings"] or
@@ -318,12 +641,17 @@ def build_whitehouse_278t_review_candidate(
     if len(oge_health) != 1 or not isinstance(oge_health[0].get("detail"), str):
         raise OgeCatalogError("White House 278-T requires one existing OGE source health record")
     prior_detail = oge_health[0]["detail"]
-    oge_health[0]["detail"] = (
-        f"Prior direct OGE status: {prior_detail}; "
+    summary = (
         f"White House public 278-T: {len(audit_reports)} PDFs audited, "
-        f"{promoted} new transactions qualified, {quarantined} rows quarantined; "
+        f"{promoted + len(retained_existing)} transactions qualified, {quarantined} rows quarantined; "
         f"{len(candidate['transactions'])} total OGE candidate transactions."
     )
+    # Health describes the resulting qualified set, not the per-run append
+    # count. Preserve all prior source text; never split/strip a similar-looking
+    # official detail to try to recover a presumed direct-source prefix.
+    if not (prior_detail.startswith("Prior direct OGE status: ") and
+            prior_detail.endswith("; " + summary)):
+        oge_health[0]["detail"] = f"Prior direct OGE status: {prior_detail}; {summary}"
     return candidate, {
         "schema_version": SCHEMA, "source_id": "oge",
         "catalog_sha256": expected_audit["catalog_sha256"],
@@ -339,8 +667,11 @@ def build_whitehouse_278t_review_candidate(
         "annual_part7_overlap_count": expected_audit["annual_part7_overlap_count"],
         "annual_part7_incomparable_row_count":
             expected_audit["annual_part7_incomparable_row_count"],
-        "existing_transaction_mutation_count": 0,
-        "candidate_is_append_only": True,
+        "existing_transaction_mutation_count": len(corrected_existing),
+        "candidate_is_append_only": not corrected_existing,
+        **({"retained_existing_transaction_ids": retained_existing,
+            "source_field_corrections": [correction for row in corrected_existing.values() for correction in row["audit"]],
+            "owner_field_corrections": [correction for row in corrected_existing.values() for correction in row["audit"] if correction["field"] == "owner"]} if retained_existing else {}),
         "source_row_conservation_complete": True,
         "reports": audit_reports,
     }

@@ -1,0 +1,20 @@
+{
+  "schema_version": "senate-source-observation-bundle/v1",
+  "evidence_commit": "80f086267677b8fde34314f24024bdc505d97cb0",
+  "ledgers": [
+    "senate-paper-first-report-rows.json",
+    "senate-paper-viewer-remainders.json",
+    "senate-paper-legacy-extracted-grid.json"
+  ],
+  "inventory": "senate-paper-52-page-inventory.json",
+  "account_reviews": {
+    "068274e1-4b7a-4453-a242-563dde4c10d8": "senate-paper-first-report-fields.json"
+  },
+  "file_sha256": {
+    "senate-paper-first-report-rows.json": "1653af8696a0a86b0e4f54277ab63caa6e5c9ddb638d463dfefa02dd2a438a70",
+    "senate-paper-first-report-fields.json": "da42b9770d401238bedaaca8d2632372f436d373e17272a8412aa336ce3331a1",
+    "senate-paper-viewer-remainders.json": "4f0368d6c03eae32dc664b7f66e2b5bf77e870d917f2dee259270f56d93d19a1",
+    "senate-paper-legacy-extracted-grid.json": "b3b0292f37216f5646cfc08fc5622694e6c6e7d9d5f280a29e7959257be80ec9",
+    "senate-paper-52-page-inventory.json": "c4500abba79e67fe7d8579ac8b378900f7177dd2ac6dc25b90203fcc2328ef8f"
+  }
+}

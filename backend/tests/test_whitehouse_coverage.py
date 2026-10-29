@@ -8,7 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 spec = importlib.util.spec_from_file_location(
-    "whitehouse_coverage_script", ROOT / "scripts/whitehouse_coverage.py")
+    "whitehouse_coverage_script", ROOT / "src/unison_snapshot/commands/whitehouse_coverage.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
 
@@ -101,8 +101,8 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
             legacy = next(version for version in script.TRADE_PARSER_VERSIONS
                           if version not in {script.TRADE_PARSER_VERSION,
-                                             script.TRUMP_081225_PARSER_VERSION,
-                                             script.TRUMP_2026_PARSER_VERSION})
+                                             script.REVIEWED_COVER_PARSER_VERSION,
+                                             script.REVIEWED_LISTING_PARSER_VERSION})
             directory = root / "whitehouse/extractions" / document_id[7:] / sha
             directory.mkdir(parents=True)
             legacy_path = directory / f"{legacy.replace('/', '-')}.json"
@@ -128,9 +128,9 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
         ordinary = script._trade_versions(
             "https://www.whitehouse.gov/wp-content/uploads/2026/09/trade.pdf",
             "d" * 64)
-        self.assertEqual(fixed[0], script.TRUMP_081225_PARSER_VERSION)
+        self.assertEqual(fixed[0], script.REVIEWED_COVER_PARSER_VERSION)
         self.assertEqual(ordinary[0], script.TRADE_PARSER_VERSION)
-        self.assertNotIn(script.TRUMP_081225_PARSER_VERSION, ordinary)
+        self.assertNotIn(script.REVIEWED_COVER_PARSER_VERSION, ordinary)
 
     def test_nonfixed_source_rejects_v3_trade_extraction(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -147,7 +147,7 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                      "indexed_count": 1, "failures": [], "reports": [{
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
             path = (root / "whitehouse/extractions" / document_id[7:] / sha /
-                    f"{script.TRUMP_081225_PARSER_VERSION.replace('/', '-')}.json")
+                    f"{script.REVIEWED_COVER_PARSER_VERSION.replace('/', '-')}.json")
             path.parent.mkdir(parents=True)
             path.write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "wrong source"):
@@ -161,8 +161,8 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
         ordinary = script._annual_versions(
             "https://www.whitehouse.gov/wp-content/uploads/2026/09/annual.pdf",
             "d" * 64)
-        self.assertEqual(fixed[0], script.TRUMP_2025_PARSER_VERSION)
-        self.assertNotIn(script.TRUMP_2025_PARSER_VERSION, ordinary)
+        self.assertEqual(fixed[0], script.CONSOLIDATED_SCANNED_PARSER_VERSION)
+        self.assertNotIn(script.CONSOLIDATED_SCANNED_PARSER_VERSION, ordinary)
 
     def test_nonfixed_source_rejects_v6_extraction(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -179,7 +179,7 @@ class WhiteHouseCoverageReportTests(unittest.TestCase):
                      "indexed_count": 1, "failures": [], "reports": [{
                          "document_id": document_id, "document_url": url, "sha256": sha}]}
             path = (root / "whitehouse/extractions" / document_id[7:] / sha /
-                    f"{script.TRUMP_2025_PARSER_VERSION.replace('/', '-')}.json")
+                    f"{script.CONSOLIDATED_SCANNED_PARSER_VERSION.replace('/', '-')}.json")
             path.parent.mkdir(parents=True)
             path.write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "wrong source"):

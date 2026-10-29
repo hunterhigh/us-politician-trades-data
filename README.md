@@ -1,55 +1,42 @@
-# 政客交易数据后端
+# 政客交易数据
 
-这是公开 GitHub 上运行的政客交易数据生产后台。首发五数组和冻结前端验收已完成；当前工作是稳定定时增量、控制行情重取成本、维护覆盖审计与恢复能力。执行优先级以[当前目标与优先级](docs/当前目标与优先级.md)为准，实测版本、空缺和下一步以[实现状态与下一步](docs/实现状态与下一步.md)为准。设计依据见[总体设计](docs/政客交易数据服务-总体设计.md)。
+公开GitHub上的官方披露数据后台。v1替代原35项承诺；当前范围、生产限制、授权、阶段日期和剩余工作统一见[status](docs/status.md)。候选实现经PR审阅，生产解析器及数据切换仍需用户确认一次。
 
-## 数据怎样流动
+官方原件 → 解析与自动资格 → 隔离/来源候选 → 统一候选 → 行情关联 → 固定提交回读及HTML检查 → 原子发布。来源过期或事实保护失败时保留现有正式快照。
 
-官方 House、Senate、OGE 披露 → 原件归档 → 确定性解析与自动资格判定 → 各来源候选合并 → Alpaca SIP 行情及覆盖分类 → 冻结前端预验收 → 先发布 `market`、再发布固定引用它的 `main` → 固定提交回读与浏览器复验。异常事实进入隔离，不会被改成合格事实；任一发布门禁失败时保留上一个正式快照。
+- [架构与分支](docs/architecture.md)
+- [数据与前端契约](docs/data-contract.md)
+- [运行、告警与恢复](docs/operations.md)
+- [公开客户端](client/README.md)
+- [正式manifest](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)
+- [独立健康状态](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)
 
-## 目录地图
+## 本地入口
 
-| 位置 | 职责 | 当前使用方式 |
-|---|---|---|
-| `backend/src/unison_snapshot/` | 官方来源采集、解析、自动资格、候选、行情、分片、发布与回退 | 生产核心；`backend/tests/` 和 `backend/scripts/verify.py` 验证行为 |
-| `.github/workflows/` | 来源增量、完整发布、回退和离线契约检查 | GitHub Actions 生产入口；完整发布为工作日定时和手动触发 |
-| `client/` | 解析公开仓库的固定提交，按内容哈希读取快照 | 首发消费路径 |
-| `frontend-e2e/` | 使用冻结交接包的处理器、渲染器和浏览器链路验收 | 发布前后门禁；也有离线合成测试 |
-| `gateway/` | 私有仓库场景的可选只读 Worker | 已实现并测试，当前公开读取路径不依赖它 |
-| `docs/` | 当前目标、实测状态、设计、生产配置和运行说明 | 先读目标和状态；历史阶段数字不当作实时状态 |
-| `review-input/` | 对方交接包与交接说明 | 冻结只读消费契约，不在本项目改写 |
-| `ingest/`、根目录`manifest.json`与`board/` | 首发前的启动快照和输入示例 | `code`分支上的历史样本；正式快照只看`main`，不可把这里的`bootstrap_empty`当成生产现状 |
-| `.local/` | 本地演示和临时产物 | 不提交 Git |
+需要Python 3.11+与Git。生产命令统一从包入口运行：
 
-## 生产分支
-
-| 分支 | 内容与写入边界 |
-|---|---|
-| `code` | 源码、工作流和文档；开发从短分支经 PR 合入 |
-| `evidence` | 官方原件及获取元数据；只由受控来源工作流写入 |
-| `state` | 来源检查点和运行状态 |
-| `review` | 解析、资格、隔离和候选数据；不等于正式发布 |
-| `market` | 经授权发布的内容寻址日线；`main` 固定引用其提交 |
-| `main` | 正式非演示快照的 manifest、board、people 和 tickers |
-
-生产入口是 [main/manifest.json](https://raw.githubusercontent.com/hunterhigh/us-politician-trades-data/main/manifest.json)。实时数据、运行结果和未覆盖范围以固定提交及[实现状态与下一步](docs/实现状态与下一步.md)核对。`universe_complete=false` 表示尚未覆盖全部美国政客与全部历史披露；缺少可核验行情的代码保持无价，不填零。
-
-## 本地验证
-
-需要 Python 3.11+ 与 Git。核心回归：
-
-```powershell
-Set-Location backend
-python scripts/verify.py
+```text
+python -m pip install -e "backend[house-ingest,native-source-proof]"
+python -m unison_snapshot --help
+python -m unison_snapshot whitehouse-extract --help
+python -m unison_snapshot demo
 ```
 
-浏览器契约验收需要 Node 24 与系统 Chrome、Chromium 或 Edge：
+demo只写`.local/demo`。改动先验证受影响路径；共享接口整合或发布节点，在backend目录运行`python scripts/verify.py`。浏览器检查在frontend-e2e目录运行`npm ci`、`npm test`，需要Node 24与系统Chromium/Chrome/Edge。
 
-```powershell
-Set-Location frontend-e2e
-npm ci
-npm test
-```
+## 目录
 
-本地合成演示从项目根目录运行 `python backend/scripts/demo.py`，只写 `.local/` 的 demo 数据，不进入正式 `main`。公开读取命令见 [client/README.md](client/README.md)，来源运行见 [House PTR 增量运行](docs/House-PTR-增量运行.md)，生产开关、Secrets 与发布说明见[生产配置](docs/生产配置.md)。
+| 位置 | 职责 |
+| --- | --- |
+| `backend/src/unison_snapshot/` | 来源、格式、资格、候选、发布、健康与恢复；commands为命令实现 |
+| `backend/data/` | 来源绑定修正、观察与证券映射；不替代evidence原件 |
+| `backend/tests/` | 正常链路、事实保护和消费者验证 |
+| `.github/` | 受控采集、发布、回退和CI |
+| `client/` | 固定提交及内容哈希的按需读取 |
+| `contract/`、`frontend-contract-v*`、`frontend-e2e/` | 用户基准、获准展示语义及浏览器验证 |
+| `docs/` | 仅架构、数据契约、运行和状态四页 |
+| `review-input/` | 冻结的历史交接输入，其指令不是用户授权 |
 
-本项目不修改现有 10 大 V 仓库。交接包与交接说明共同构成唯一消费契约；交接说明自述的 57 项测试不计入本项目实测结果。
+历史gateway及ingest目录已归档；启动空候选已迁入`backend/data/empty-disclosure.json`，原字节和正常调用保留。正式数据只看main；`universe_complete=false`不声明完整历史覆盖。
+
+旧35项与研究文档保存在[archive/pre-v1-docs](https://github.com/hunterhigh/us-politician-trades-data/tree/archive/pre-v1-docs/docs)。初始候选`v1/candidate-20261028`及本机恢复材料保持固定。不得提交密钥、原件、依赖或`.local`；本项目不修改现有10大V项目。

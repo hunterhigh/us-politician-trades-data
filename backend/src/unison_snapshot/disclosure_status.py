@@ -320,6 +320,8 @@ def attach_disclosure_status(bundle: Bundle, scopes: list[dict], *, transactions
     sha = digest(content)
     files[f"status/{sha}.json"] = content
     manifest["disclosure_status"] = {"schema_version": SCHEMA, "sha256": sha, "byte_length": len(content)}
+    from .known_gaps import attach, from_scopes
+    attach(manifest, files, from_scopes(scopes, board))
     files["manifest.json"] = encode(manifest)
     if len(files["manifest.json"]) > 16 * 1024:
         raise ValueError("Manifest with disclosure status exceeds its size budget")

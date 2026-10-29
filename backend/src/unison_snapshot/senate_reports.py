@@ -13,6 +13,7 @@ from html.parser import HTMLParser
 import hashlib
 import json
 from pathlib import Path
+from .content_integrity import integrity_error, verified_original_hash
 import re
 import tempfile
 from typing import Iterable
@@ -365,6 +366,7 @@ def archive_catalog_report_entrypoints(
 class _HtmlTable:
     headers: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
+    section: str | None = None
 
 
 class _PaperViewerParser(HTMLParser):
@@ -418,6 +420,8 @@ class _TableParser(HTMLParser):
         self._capture_text: list[str] = []
         self.headings: list[tuple[str, str]] = []
         self.text_segments: list[str] = []
+        self._section: str | None = None
+        self.section_paragraphs: dict[str, list[str]] = {}
 
     def handle_starttag(self, tag: str, attrs) -> None:
         tag = tag.lower()
@@ -435,7 +439,7 @@ class _TableParser(HTMLParser):
             self._cell, self._cell_kind = [], tag
         elif self._cell is not None and tag == "br":
             self._cell.append(" ")
-        if tag in {"h1", "h2", "p"} and self._capture_tag is None:
+        if tag in {"h1", "h2", "h3", "p"} and self._capture_tag is None:
             self._capture_tag = tag
             self._capture_text = []
 
@@ -468,13 +472,18 @@ class _TableParser(HTMLParser):
         elif tag == "table":
             if self._depth != 1 or self._row is not None:
                 raise SenateEfdError("Senate eFD report contains malformed tables")
-            self.tables.append(_HtmlTable(tuple(self._headers), tuple(self._rows)))
+            self.tables.append(_HtmlTable(tuple(self._headers), tuple(self._rows), self._section))
             self._headers, self._rows = [], []
             self._depth = 0
         if tag == self._capture_tag:
             captured = " ".join("".join(self._capture_text).replace("\xa0", " ").split())
-            if tag in {"h1", "h2"}:
+            if tag in {"h1", "h2", "h3"}:
                 self.headings.append((tag, captured))
+            if tag == "h3" and re.match(r"Part \d+[a-z]?\.", captured):
+                self._section = captured
+                self.section_paragraphs.setdefault(captured, [])
+            elif tag == "p" and self._section:
+                self.section_paragraphs[self._section].append(captured)
             self._capture_tag = None
             self._capture_text = []
 
@@ -517,7 +526,31 @@ def _transaction_rows(parser: _TableParser) -> Iterable[tuple[str, ...]]:
     return matches[0].rows
 
 
-def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
+def electronic_ptr_source_ledger(source_sha: str, transactions: list[dict]) -> dict:
+    """Bind exact HTML table positions to parsed rows without changing IDs.
+
+    An HTML document is one source unit, not a claimed printed PDF page.
+    Bounds use table-row ordinals and cannot be mistaken for pixel geometry.
+    """
+    from .source_row_ledger import page_ledger, report_ledger
+
+    slots = [{"local_key": f"transaction:{index}", "bounds": [index - 1, index],
+              "disposition": "data_candidate", "observation_ref": f"transactions/{index - 1}"}
+             for index, _ in enumerate(transactions, start=1)]
+    version = "senate-electronic-ptr-html-row-relations/v1"
+    page = page_ledger(
+        source_id="senate_efd", document_sha256=source_sha, page_number=1,
+        adapter_version=version, coverage="located", slots=slots,
+        coordinate_frame="html_transaction_table_row_ordinal")
+    return report_ledger(
+        source_id="senate_efd", document_sha256=source_sha, page_count=1,
+        adapter_version=version, pages=[page], logical_rows=[
+            {"local_key": slot["local_key"],
+             "slot_refs": [{"page_number": 1, "slot_key": slot["local_key"]}],
+             "observation_ref": slot["observation_ref"]} for slot in slots])
+
+
+def parse_electronic_ptr(metadata: dict, content: bytes, *, include_source_ledger: bool = False) -> dict:
     """Parse an archived electronic PTR without performing network access."""
 
     if metadata.get("schema_version") != REPORT_ARCHIVE_SCHEMA:
@@ -526,7 +559,8 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
         raise SenateEfdError("Senate eFD report is not an archived electronic PTR")
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
-        raise SenateEfdError("Senate eFD report bytes do not match archive metadata")
+        raise integrity_error(SenateEfdError, "Senate eFD report bytes do not match archive metadata", metadata=metadata)
+    verified_original_hash(metadata)
     parser = _report_parser(content)
     titles = [text for tag, text in parser.headings if tag == "h1"]
     if len(titles) != 1:
@@ -588,7 +622,7 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
     if totals[0] != len(transactions):
         raise SenateEfdError("Senate eFD transaction count does not match the table")
     disposition = "transactions_parsed" if transactions else "empty_table_requires_review"
-    return {
+    result = {
         "schema_version": ELECTRONIC_EXTRACTION_SCHEMA,
         "parser_version": PARSER_VERSION,
         "source_id": "senate_efd",
@@ -606,6 +640,9 @@ def parse_electronic_ptr(metadata: dict, content: bytes) -> dict:
         "evidence_complete": bool(transactions),
         "transactions": transactions,
     }
+    if include_source_ledger:
+        result["source_report_ledger"] = electronic_ptr_source_ledger(source_sha, transactions)
+    return result
 
 
 def parse_paper_viewer_manifest(metadata: dict, content: bytes) -> dict:
@@ -618,7 +655,8 @@ def parse_paper_viewer_manifest(metadata: dict, content: bytes) -> dict:
         raise SenateEfdError("Senate paper viewer metadata is invalid")
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
-        raise SenateEfdError("Senate paper viewer bytes do not match archive metadata")
+        raise integrity_error(SenateEfdError, "Senate paper viewer bytes do not match archive metadata", metadata=metadata)
+    verified_original_hash(metadata)
     try:
         text = content.decode("utf-8")
         parser = _PaperViewerParser()
@@ -816,7 +854,7 @@ def inspect_paper_entrypoint(metadata: dict, content: bytes) -> dict:
         raise SenateEfdError("Senate eFD report is not an archived paper PTR")
     source_sha = hashlib.sha256(content).hexdigest()
     if metadata.get("sha256") != source_sha or metadata.get("byte_length") != len(content):
-        raise SenateEfdError("Senate eFD report bytes do not match archive metadata")
+        raise integrity_error(SenateEfdError, "Senate eFD report bytes do not match archive metadata")
     media_kind = metadata.get("media_kind")
     if media_kind == "html":
         disposition = "paper_viewer_requires_page_collection"

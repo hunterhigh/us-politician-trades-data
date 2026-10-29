@@ -128,9 +128,28 @@ def build_senate_status(evidence_root: Path, review_root: Path,
     if audit and not audit_active:
         limitations.append("Qualification audit does not match the selected catalog/parser; its decisions are not applied.")
     qualified, row_quarantine, report_quarantine = defaultdict(list), defaultdict(list), defaultdict(list)
+    empty_eligible = {}
     superseded = set()
     superseded_versions = defaultdict(set)
     if audit_active:
+        if "empty_eligible_reports" in audit:
+            empty_rows = _rows(audit, "empty_eligible_reports")
+            if (type(audit.get("empty_eligible_report_count")) is not int or
+                    audit["empty_eligible_report_count"] != len(empty_rows)):
+                raise ValueError("Senate empty report count does not match its per-report decisions")
+            for row in empty_rows:
+                document_id, sha = row.get("document_id"), row.get("source_sha256")
+                if (not isinstance(document_id, str) or not document_id or document_id in empty_eligible or
+                        not isinstance(sha, str) or not _SHA.fullmatch(sha) or
+                        row.get("source_url") not in {
+                            f"https://efdsearch.senate.gov/search/view/ptr/{document_id}/",
+                            f"https://efdsearch.senate.gov/search/view/paper/{document_id}/"} or
+                        _filed_date(row.get("filed_at_raw")) is None or
+                        row.get("basis") != "qualified_empty_transaction_table_with_complete_source_coverage"):
+                    raise ValueError("Senate empty report decision is invalid or duplicated")
+                empty_eligible[document_id] = row
+        elif audit.get("empty_eligible_report_count", 0):
+            limitations.append("Legacy empty report total has no per-report decisions; no individual zero is inferred.")
         for key, target in (("qualified_rows", qualified), ("quarantined_rows", row_quarantine),
                             ("quarantined_reports", report_quarantine)):
             for row in _rows(audit, key):
@@ -148,7 +167,7 @@ def build_senate_status(evidence_root: Path, review_root: Path,
                     superseded_versions[link["previous_document_id"]].add(link["previous_source_sha256"])
 
     ids = set(current) | set(archived) | set(extractions) | set(failures)
-    ids |= set(qualified) | set(row_quarantine) | set(report_quarantine) | superseded
+    ids |= set(qualified) | set(row_quarantine) | set(report_quarantine) | set(empty_eligible) | superseded
     records = {}
     for document_id in sorted(ids):
         versions = sorted({item["sha256"] for item in archived[document_id]})
@@ -156,6 +175,11 @@ def build_senate_status(evidence_root: Path, review_root: Path,
         isolated_rows = row_quarantine[document_id]
         isolated_reports = report_quarantine[document_id]
         audited = qualified_rows + isolated_rows + isolated_reports
+        empty_decision = empty_eligible.get(document_id)
+        if empty_decision is not None:
+            if audited or document_id in superseded:
+                raise ValueError("Senate empty report decision conflicts with another qualification")
+            audited = [empty_decision]
         selected_versions = {row.get("source_sha256") for row in audited}
         selected_versions.update(superseded_versions[document_id])
         if not selected_versions and len(versions) == 1:
@@ -187,6 +211,14 @@ def build_senate_status(evidence_root: Path, review_root: Path,
         if audit_bound and document_id in superseded:
             qualification, qualified_count, quarantined_count = "superseded", 0, 0
             reasons.add("superseded_by_resolved_amendment")
+        elif audit_bound and empty_decision is not None:
+            if (extraction is None or extraction.get("transactions") != [] or
+                    empty_decision.get("source_url") != extraction.get("source_url") or
+                    empty_decision.get("filed_at_raw") != extraction.get("filed_at_raw") or
+                    (isinstance(extraction.get("source_report_ledger"), dict) and
+                     extraction["source_report_ledger"].get("relation_coverage") != "accounted")):
+                raise ValueError("Senate empty report decision does not match its source extraction")
+            qualification, qualified_count, quarantined_count = "zero_transactions", 0, 0
         elif audit_bound and audited:
             qualified_count = len(qualified_rows)
             if isolated_reports:
@@ -196,10 +228,6 @@ def build_senate_status(evidence_root: Path, review_root: Path,
                 quarantined_count = len(isolated_rows)
             qualification = ("partial" if qualified_rows and (isolated_rows or isolated_reports)
                              else "qualified" if qualified_rows else "quarantined")
-        elif (audit_bound and audit.get("empty_eligible_report_count", 0) > 0 and
-              document_id in current and extraction is not None and
-              extraction.get("transactions") == []):
-            qualification, qualified_count, quarantined_count = "zero_transactions", 0, 0
         if document_id not in current and document_id not in superseded:
             # Archived historical reports absent from this audit remain unknown.
             reasons.add("historical_catalog_relationship_unknown")
@@ -233,6 +261,49 @@ def build_senate_status(evidence_root: Path, review_root: Path,
             "reason_codes": sorted(reasons), "source_versions": versions,
             "publication_transaction_ids": [], "publication_binding": "unknown",
         }
+
+    # Apply only source-bound coverage produced by the candidate's verified
+    # pending projection. Physical slots never become quarantined row counts.
+    pending = audit.get("paper_pending_projection") if audit_active else None
+    coverage_rows = list(pending.get("source_report_coverage", [])) if isinstance(pending, dict) else []
+    if audit_active:
+        for item in audit.get("paper_source_report_ledgers", []):
+            ledger = item["ledger"]
+            coverage_rows.append({"document_id": item["document_id"],
+                                  "source_sha256": ledger["document_sha256"],
+                                  "relation_coverage": ledger["relation_coverage"],
+                                  "logical_row_count": ledger["logical_row_count"],
+                                  "unknown_slot_count": ledger["disposition_counts"].get("unknown", 0),
+                                  "coverage_unknown_pages": ledger["coverage_unknown_pages"],
+                                  "unobserved_pages": ledger["unobserved_pages"]})
+    seen_coverage = {}
+    for coverage in coverage_rows:
+        document_id = coverage.get("document_id")
+        sha = coverage.get("source_sha256")
+        if document_id in seen_coverage:
+            if seen_coverage[document_id] != coverage:
+                raise ValueError("Senate paper coverage disagrees for a report")
+            continue
+        seen_coverage[document_id] = coverage
+        record = records.get(document_id)
+        if record is None or sha not in record["source_versions"]:
+            continue
+        active_shas = {item["source_sha256"] for item in extractions[document_id]}
+        if active_shas and active_shas != {sha}:
+            continue
+        record["source_row_coverage"] = coverage
+        if coverage.get("relation_coverage") != "accounted":
+            record["reason_codes"] = sorted({*record["reason_codes"], "source_row_coverage_incomplete"})
+            if record["qualification_state"] == "qualified":
+                record["qualification_state"] = "partial"
+            elif record["qualification_state"] == "zero_transactions":
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+            elif (record["qualification_state"] == "quarantined" and
+                  record["qualified_transaction_count"] == record["quarantined_row_count"] == 0):
+                record["qualification_state"] = "unknown"
+                record["qualified_transaction_count"] = None
+                record["quarantined_row_count"] = None
 
     qualified_id_to_report = {}
     for document_id, rows in qualified.items():

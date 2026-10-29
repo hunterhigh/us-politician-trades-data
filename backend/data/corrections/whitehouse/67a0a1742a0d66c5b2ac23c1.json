@@ -1,0 +1,107 @@
+{
+  "schema_version": "source-correction/v1",
+  "profile": "reviewed-ocr-table/v1",
+  "source": "oge",
+  "document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
+  "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+  "reviewed_at": "2026-10-28",
+  "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
+  "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+  "output_mode": "source_listing_evidence",
+  "source_profile": {
+    "document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
+    "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf",
+    "report_date": "2026-01-14",
+    "report_date_raw": "01.14.26",
+    "page_count": 10,
+    "v2_source_row_count": 2
+  },
+  "source_review": {
+    "basis": "migrate_existing_qualified_ocr_behavior",
+    "code_commit": "e18dde7d55fc87b71a5a11cf7fcafac907cc78be"
+  },
+  "assertions": {
+    "row_inventory": [
+      "1",
+      "2"
+    ],
+    "input_rows_sha256": "7df1baeb2c288c34133cb464fecec80aa116a8e5c7378f56616706e48897529a",
+    "output_rows_sha256": "04f82e9530821d034b2819186403f1bca6f460e4b70a6f45a510adab5d91630e",
+    "page_row_counts": {
+      "3": 2
+    },
+    "approved_artifact_sha256": [
+      "314acdf57a50f2897c01469a6ce81a0b3d19bf8595657408e842529419bcd5b9"
+    ]
+  },
+  "actions": [
+    {
+      "op": "set_field",
+      "row": "1",
+      "field": "printed_row_number",
+      "expect": "27",
+      "value": "1",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 162.72
+      }
+    },
+    {
+      "op": "set_field",
+      "row": "2",
+      "field": "printed_row_number",
+      "expect": "| 23",
+      "value": "2",
+      "evidence": {
+        "page_number": 3,
+        "geometry_top": 557.64
+      }
+    }
+  ],
+  "header": {
+    "document_id": "wh-url:67a0a1742a0d66c5b2ac23c1",
+    "document_reasons": [],
+    "evidence_complete": true,
+    "filed_at": "2026-01-14",
+    "filer_identity_evidence": {
+      "agency_basis": "exact_sha_official_disclosure_catalog_alias",
+      "page_number": 1,
+      "pdf_filer_name": "Donald J Trump",
+      "pdf_position_title": "President of the United States of America",
+      "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf"
+    },
+    "filer_signature_evidence": null,
+    "filer_signature_name": "Donald J Trump",
+    "filing_date_evidence": {
+      "basis": "exact_sha_official_disclosure_link_label",
+      "label": "Official White House disclosure listing date",
+      "normalized": "2026-01-14",
+      "page_number": null,
+      "raw": "01.14.26",
+      "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+      "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf"
+    },
+    "page_count": 10,
+    "parser_version": "whitehouse-278t-hybrid-geometry/v4",
+    "pdf_agency_label": null,
+    "pdf_filer_name": "Donald J Trump",
+    "pdf_position_agency_raw": "President of the United States of America",
+    "pdf_position_title": "President of the United States of America",
+    "schema_version": "whitehouse-278t-extraction/v1",
+    "signature_method": "official_disclosure_date_source_bound",
+    "source_id": "oge",
+    "source_sha256": "ef2d7f9874d17dee879eae4c2b53d2100d78af42435048ab67f783242daae249",
+    "source_url": "https://www.whitehouse.gov/wp-content/uploads/2026/01/President-Donald-J.-Trump-Periodic-Transaction-Report-Amendment-1.14.26.pdf"
+  },
+  "person": {
+    "id": "oge:076544f8ba0638cf",
+    "display_name": "Donald Trump",
+    "short_name": "Trump",
+    "role": "President of the United States of America"
+  },
+  "audit_constraints": {
+    "require_nonempty": true
+  }
+}

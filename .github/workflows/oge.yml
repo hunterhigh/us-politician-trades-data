@@ -5,123 +5,115 @@ on:
     # their shared disclosure-source-writer concurrency group.
     - cron: '43 4,10,16,22 * * *'
   workflow_dispatch:
+    inputs:
+      oge_generic_document_id:
+        description: Optional existing ordinary native PTR document ID to prepare and interpret with the generic parser
+        required: false
+        default: ''
+      oge_ptr_document_source:
+        description: Optional DOC:SHA archived input selection for a prepared generic PTR; does not assert latest version or replacement
+        required: false
+        default: ''
+      include_saved_oge_observations:
+        description: Include an explicitly selected existing saved 278-T observation input in the review candidate
+        type: boolean
+        default: false
+      oge_saved_observations_path:
+        description: Existing portable saved-observations JSON path relative to the controlled review root
+        required: false
+        default: ''
+      include_saved_oge_annual:
+        description: Include existing saved OGE annual inputs in the review candidate
+        type: boolean
+        default: false
+      include_saved_oge_annual_scans:
+        description: Also include complete saved annual scan observations; requires saved annual preparation
+        type: boolean
+        default: false
+      oge_annual_document_id:
+        description: Optional saved annual document ID; empty uses the bounded available set
+        required: false
+        default: ''
+      oge_annual_parser_version:
+        description: Optional existing saved native annual parser version; requires saved annual preparation
+        required: false
+        default: ''
+      oge_annual_blue_date_document_id:
+        description: Optional saved scan document for the existing blue-date consumer; requires saved annual scans and a model directory
+        required: false
+        default: ''
+      oge_annual_blue_date_model_directory:
+        description: Existing canonical model directory relative to evidence; paired with the blue-date document ID
+        required: false
+        default: ''
+      verify_oge_annual_blank_slots:
+        description: Verify transaction blank slots from original pixels; requires saved annual scans
+        type: boolean
+        default: false
+      replay_oge_annual_cover_ocr:
+        description: Replay existing cover form/type/report-period OCR from source; requires saved annual scans and does not verify signature dates
+        type: boolean
+        default: false
 permissions:
+  packages: read
   contents: write
+  issues: write
 
+concurrency:
+  group: disclosure-source-writer
+  queue: max
+  cancel-in-progress: false
 jobs:
-  evaluate-gate:
-    concurrency:
-      group: disclosure-source-writer
-      cancel-in-progress: false
+  source:
+    if: github.ref == 'refs/heads/code'
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      status: ${{ steps.gate.outputs.status }}
-    env:
-      OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
-      OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: code
-          fetch-depth: 1
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-      - name: Evaluate default-closed source gate
-        id: gate
-        run: |
-          mkdir -p .local
-          PYTHONPATH=backend/src python -m unison_snapshot oge-gate --output .local/oge-gate.json
-          python - <<'PY' >> "$GITHUB_OUTPUT"
-          import json
-          from pathlib import Path
-          print(f"status={json.loads(Path('.local/oge-gate.json').read_text())['status']}")
-          PY
-      - name: Record authorization gate state
-        run: |
-          state_root="$RUNNER_TEMP/oge-state"
-          git fetch --no-tags --depth=1 origin state
-          git worktree add --detach "$state_root" FETCH_HEAD
-          STATE_ROOT="$state_root" python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-          gate = json.loads(Path('.local/oge-gate.json').read_text(encoding='utf-8'))
-          target = Path(os.environ['STATE_ROOT']) / 'status' / 'oge.json'
-          value = {
-              'schema_version': 'oge-source-run/v1', 'source_id': 'oge',
-              'run_at': datetime.now(timezone.utc).isoformat(), 'status': gate['status'],
-              'collection_enabled': gate['collection_enabled'],
-              'terms_acknowledged': gate['terms_acknowledged'], 'gate': gate,
-              'detail': ('OGE collection is authorized and pending.' if gate['status'] == 'enabled'
-                         else 'OGE collection did not run because both explicit production '
-                              'authorization variables were not true.'),
-          }
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                                       separators=(',', ':')), encoding='utf-8')
-          PY
-          git -C "$state_root" add status/oge.json
-          if ! git -C "$state_root" diff --cached --quiet; then
-            git -C "$state_root" config user.name "github-actions[bot]"
-            git -C "$state_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$state_root" commit -m "state: OGE gate ${{ github.run_id }}"
-            git -C "$state_root" push origin HEAD:refs/heads/state
-          fi
-      - name: Fail a partially enabled gate
-        if: ${{ vars.OGE_COLLECTION_ENABLED == 'true' && vars.OGE_TERMS_ACKNOWLEDGED != 'true' }}
-        run: |
-          echo "OGE collection was enabled without the required terms acknowledgement." >&2
-          exit 2
-
-  collect-direct-reports:
-    needs: evaluate-gate
-    if: ${{ needs.evaluate-gate.outputs.status == 'enabled' }}
-    outputs:
-      code_commit: ${{ steps.shadow_refs.outputs.code_commit }}
-      evidence_commit: ${{ steps.shadow_refs.outputs.evidence_commit }}
-      review_commit: ${{ steps.shadow_refs.outputs.review_commit }}
-      started_at: ${{ steps.collect.outputs.started_at }}
-    concurrency:
-      group: disclosure-source-writer
-      cancel-in-progress: false
-    environment: production
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     env:
       OGE_COLLECTION_ENABLED: ${{ vars.OGE_COLLECTION_ENABLED }}
       OGE_TERMS_ACKNOWLEDGED: ${{ vars.OGE_TERMS_ACKNOWLEDGED }}
       OGE_REPORT_BATCH_SIZE: ${{ vars.OGE_REPORT_BATCH_SIZE }}
+    container:
+      image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: code
+          ref: ${{ github.sha }}
           fetch-depth: 1
-      - uses: actions/setup-python@v7
+      - name: Activate fixed source runtime
+        uses: ./.github/actions/setup-source
         with:
-          python-version: '3.11'
-      - name: Install pinned PDF parser
-        run: python -m pip install -e 'backend[house-ingest]'
-      - name: Prepare evidence, review cache and state branches
+          integrity_scope: oge
+      - name: Prepare controlled source data
         id: trees
+        uses: ./.github/actions/data-trees
+        with:
+          scope: oge
+          workspace: ${{ runner.temp }}/oge-source
+      - name: Check the production collection gate
+        id: gate
         run: |
-          evidence_root="$RUNNER_TEMP/oge-evidence"
-          review_root="$RUNNER_TEMP/oge-review-cache"
-          state_root="$RUNNER_TEMP/oge-state"
-          git fetch --no-tags --depth=1 origin \
-            evidence:refs/remotes/origin/evidence \
-            review:refs/remotes/origin/review \
-            state:refs/remotes/origin/state
-          git worktree add --detach "$evidence_root" origin/evidence
-          git worktree add --detach "$review_root" origin/review
-          git worktree add --detach "$state_root" origin/state
-          echo "evidence_root=$evidence_root" >> "$GITHUB_OUTPUT"
-          echo "review_root=$review_root" >> "$GITHUB_OUTPUT"
-          echo "state_root=$state_root" >> "$GITHUB_OUTPUT"
+          mkdir -p .local
+          python -m unison_snapshot oge-gate --output .local/oge-gate.json
+          python -m unison_snapshot oge-source-state gate --state-root "$STATE_ROOT" \
+            --gate .local/oge-gate.json --github-output "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: state
+          message: OGE gate ${{ github.run_id }}
+      - name: Reject a partially authorized collection gate
+        if: vars.OGE_COLLECTION_ENABLED == 'true' && vars.OGE_TERMS_ACKNOWLEDGED != 'true'
+        run: echo 'OGE collection requires the existing terms acknowledgement' >&2; exit 2
       - name: Discover, archive and parse direct PDFs
         id: collect
+        if: steps.gate.outputs.status == 'enabled'
         env:
           EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
           REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
@@ -129,7 +121,7 @@ jobs:
           echo "started_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
           mkdir -p .local/oge-extractions
           PYTHONPATH=backend/src python -m unison_snapshot discover-oge \
-            --archive "$EVIDENCE_ROOT" --output .local/oge-catalog.json
+            --archive "$EVIDENCE_ROOT" --output .local/oge-catalog.json --failure-output .local/oge-collection-failure.json
           batch_size="${OGE_REPORT_BATCH_SIZE:-10}"
           PYTHONPATH=backend/src python -m unison_snapshot archive-oge-direct-pdfs \
             --catalog .local/oge-catalog.json --archive "$EVIDENCE_ROOT" \
@@ -138,415 +130,197 @@ jobs:
             --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
             --reuse-root "$REVIEW_ROOT/oge/extractions" \
             --output-dir .local/oge-extractions --output .local/oge-extraction-batch.json
-      - name: Observe fixed 278-T page coverage without changing extraction
-        if: ${{ steps.collect.outcome == 'success' }}
-        continue-on-error: true
-        env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-        run: |
-          python -m pip install pymupdf==1.28.2
-          PYTHONPATH=backend/src python backend/scripts/build_oge_278t_page_coverage.py \
-            --batch .local/oge-report-batch.json --archive "$EVIDENCE_ROOT" \
-            --extractions-dir .local/oge-extractions \
-            --review-root "$REVIEW_ROOT" \
-            --output-dir .local/oge-278t-page-sidecars \
-            --summary .local/oge-278t-page-sidecar-summary.json
       - name: Publish immutable official evidence
         id: publish_evidence
-        if: ${{ steps.collect.outcome == 'success' }}
+        if: always() && steps.gate.outputs.status == 'enabled'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/oge-source
+          roles: evidence
+          message: OGE originals ${{ github.run_id }}
+      - name: Preserve collection state independently of qualification
+        if: always() && steps.gate.outputs.status == 'enabled'
         env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          SUCCESSFUL: ${{ steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success' }}
         run: |
-          git -C "$EVIDENCE_ROOT" add oge/catalog oge/reports
-          if ! git -C "$EVIDENCE_ROOT" diff --cached --quiet; then
-            git -C "$EVIDENCE_ROOT" config user.name "github-actions[bot]"
-            git -C "$EVIDENCE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$EVIDENCE_ROOT" commit -m "evidence: OGE direct 278-T ${{ github.run_id }}"
-            git -C "$EVIDENCE_ROOT" push origin HEAD:refs/heads/evidence
-          fi
-      - name: Pin shadow input commits
-        id: shadow_refs
-        if: ${{ steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success' }}
-        env:
-          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
-          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
-        run: |
-          echo "code_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "evidence_commit=$(git -C "$EVIDENCE_ROOT" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "review_commit=$(git -C "$REVIEW_ROOT" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Record source state
-        if: ${{ always() }}
-        env:
-          STATE_ROOT: ${{ steps.trees.outputs.state_root }}
-          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
-          EVIDENCE_OUTCOME: ${{ steps.publish_evidence.outcome }}
-          WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          STATE_ROOT="$STATE_ROOT" python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-          def load(path):
-              return (json.loads(path.read_text(encoding='utf-8'))
-                      if path.is_file() else None)
-          catalog = load(Path('.local/oge-catalog.json'))
-          reports = load(Path('.local/oge-report-batch.json'))
-          extraction = load(Path('.local/oge-extraction-batch.json'))
-          succeeded = (
-              os.environ['COLLECT_OUTCOME'] == 'success'
-              and os.environ['EVIDENCE_OUTCOME'] == 'success'
-              and catalog is not None and reports is not None and extraction is not None
-          )
-          value = {
-              'schema_version': 'oge-source-run/v1', 'source_id': 'oge',
-              'run_at': datetime.now(timezone.utc).isoformat(),
-              'status': 'partial' if succeeded else 'failed',
-              'collection_enabled': True, 'terms_acknowledged': True,
-              'catalog': catalog['metadata'] if catalog is not None else None,
-              'reports': {
-                  'direct_count': reports['catalog_direct_count'] if reports else None,
-                  'archived_count': len(reports['reports']) if reports else None,
-                  'pending_count': reports['pending_count'] if reports else None,
-                  'failure_count': reports['failure_count'] if reports else None,
-                  'request_required_count': reports['request_required_count'] if reports else None,
-                  'extraction_count': extraction['extraction_count'] if extraction else None,
-                  'reused_extraction_count': (
-                      extraction['reused_extraction_count'] if extraction else None),
-                  'parsed_extraction_count': (
-                      extraction['parsed_extraction_count'] if extraction else None),
-                  'extraction_failure_count': extraction['failure_count'] if extraction else None,
-                  'transaction_count': extraction['transaction_count'] if extraction else None,
-                  'quarantined_row_count': extraction['quarantined_row_count'] if extraction else None,
-              },
-              'workflow_run_url': os.environ['WORKFLOW_RUN_URL'],
-              'detail': (
-                  'Only catalog-listed direct PDFs were collected. Form 201 request-required '
-                  'documents were counted but not requested.' if succeeded else
-                  'OGE collection failed before a complete evidence batch was published; inspect '
-                  'workflow_run_url for the failing source operation.'
-              ),
-          }
-          target = Path(os.environ['STATE_ROOT']) / 'status/oge.json'
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                                       separators=(',', ':')), encoding='utf-8')
-          PY
-          git -C "$STATE_ROOT" add status/oge.json
-          if ! git -C "$STATE_ROOT" diff --cached --quiet; then
-            git -C "$STATE_ROOT" config user.name "github-actions[bot]"
-            git -C "$STATE_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$STATE_ROOT" commit -m "state: OGE direct 278-T ${{ github.run_id }}"
-            git -C "$STATE_ROOT" push origin HEAD:refs/heads/state
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: oge-direct-${{ github.run_id }}
-          path: |
-            .local/oge-catalog.json
-            .local/oge-report-batch.json
-            .local/oge-extraction-batch.json
-            .local/oge-extractions
-            .local/oge-278t-page-sidecars
-            .local/oge-278t-page-sidecar-summary.json
-          include-hidden-files: true
-          retention-days: 1
-
-  build-shadow-ledger:
-    needs: collect-direct-reports
-    if: ${{ github.event_name == 'workflow_dispatch' && needs.collect-direct-reports.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.collect-direct-reports.outputs.code_commit }}
-          fetch-depth: 1
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-      - name: Install pinned PDF parser
-        run: python -m pip install -e 'backend[house-ingest]'
-      - uses: actions/download-artifact@v4
-        with:
-          name: oge-direct-${{ github.run_id }}
-          path: .local
-      - name: Check out the exact evidence commit read-only
-        env:
-          EVIDENCE_COMMIT: ${{ needs.collect-direct-reports.outputs.evidence_commit }}
-        run: |
-          git fetch --no-tags origin "$EVIDENCE_COMMIT"
-          git worktree add --detach "$RUNNER_TEMP/oge-shadow-evidence" "$EVIDENCE_COMMIT"
-      - name: Build fixed-input shadow row ledger
-        env:
-          CODE_COMMIT: ${{ needs.collect-direct-reports.outputs.code_commit }}
-          EVIDENCE_COMMIT: ${{ needs.collect-direct-reports.outputs.evidence_commit }}
-          REVIEW_COMMIT: ${{ needs.collect-direct-reports.outputs.review_commit }}
-          EVIDENCE_ROOT: ${{ runner.temp }}/oge-shadow-evidence
-          STARTED_AT: ${{ needs.collect-direct-reports.outputs.started_at }}
-        run: |
-          PYTHONPATH=backend/src python -m unison_snapshot.pipeline_qa.oge_run_cli \
-            --catalog .local/oge-catalog.json \
-            --archive-batch .local/oge-report-batch.json \
-            --extraction-batch .local/oge-extraction-batch.json \
-            --extractions-dir .local/oge-extractions \
-            --evidence-root "$EVIDENCE_ROOT" \
-            --output-dir .local/oge-shadow \
-            --run-id "oge-direct-${{ github.run_id }}" \
-            --workflow-run-id "${{ github.run_id }}" \
-            --code-commit "$CODE_COMMIT" \
-            --evidence-commit "$EVIDENCE_COMMIT" \
-            --review-commit "$REVIEW_COMMIT" \
-            --started-at "$STARTED_AT" \
-            --completed-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-            --trigger workflow_dispatch
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pipeline-ledger-oge-${{ github.run_id }}
-          path: .local/oge-shadow
-          include-hidden-files: true
-          retention-days: 7
-
-  publish-review:
-    needs: collect-direct-reports
-    concurrency:
-      group: disclosure-source-writer
-      cancel-in-progress: false
-    environment: production
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: code
-          fetch-depth: 1
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-      - uses: actions/download-artifact@v4
-        with:
-          name: oge-direct-${{ github.run_id }}
-          path: .local
-      - name: Prepare review branch
-        run: |
-          review_root="$RUNNER_TEMP/oge-review"
-          git fetch --no-tags --depth=1 origin review
-          git worktree add --detach "$review_root" FETCH_HEAD
+          python -m unison_snapshot oge-source-state collection --state-root "$STATE_ROOT" \
+            --gate .local/oge-gate.json --catalog .local/oge-catalog.json \
+            --reports .local/oge-report-batch.json --extraction .local/oge-extraction-batch.json \
+            --failure .local/oge-collection-failure.json --successful "$SUCCESSFUL" --run-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python -m unison_snapshot data-trees publish --workspace "$RUNNER_TEMP/oge-source" \
+            --role state --message 'OGE collection outcome'
       - name: Publish normalized review data and build source candidate
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
         env:
-          REVIEW_ROOT: ${{ runner.temp }}/oge-review
+          REVIEW_ROOT: ${{ steps.trees.outputs.review_root }}
+          EVIDENCE_ROOT: ${{ steps.trees.outputs.evidence_root }}
+          INCLUDE_SAVED_OGE_OBSERVATIONS: ${{ inputs.include_saved_oge_observations || false }}
+          OGE_SAVED_OBSERVATIONS_PATH: ${{ inputs.oge_saved_observations_path }}
+          OGE_GENERIC_DOCUMENT_ID: ${{ inputs.oge_generic_document_id }}
+          OGE_GENERIC_DOCUMENT_IDS: ${{ vars.OGE_GENERIC_DOCUMENT_IDS }}
+          OGE_PTR_DOCUMENT_SOURCE: ${{ inputs.oge_ptr_document_source }}
+          OGE_PTR_DOCUMENT_SOURCES: ${{ vars.OGE_PTR_DOCUMENT_SOURCES }}
+          INCLUDE_SAVED_OGE_ANNUAL: ${{ inputs.include_saved_oge_annual || false }}
+          INCLUDE_SAVED_OGE_ANNUAL_SCANS: ${{ inputs.include_saved_oge_annual_scans || false }}
+          OGE_ANNUAL_DOCUMENT_ID: ${{ inputs.oge_annual_document_id }}
+          OGE_ANNUAL_PARSER_VERSION: ${{ inputs.oge_annual_parser_version }}
+          OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID: ${{ inputs.oge_annual_blue_date_document_id }}
+          OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY: ${{ inputs.oge_annual_blue_date_model_directory }}
+          VERIFY_OGE_ANNUAL_BLANK_SLOTS: ${{ inputs.verify_oge_annual_blank_slots || false }}
+          REPLAY_OGE_ANNUAL_COVER_OCR: ${{ inputs.replay_oge_annual_cover_ocr || false }}
           ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
           ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           ALPACA_ASSETS_URL: ${{ vars.ALPACA_ASSETS_URL }}
           MARKET_DISTRIBUTION_AUTHORIZED: ${{ vars.MARKET_DISTRIBUTION_AUTHORIZED }}
         run: |
-          REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
-          import hashlib, json, os
-          from pathlib import Path
-          review = Path(os.environ['REVIEW_ROOT'])
-          catalog_path = Path('.local/oge-catalog.json')
-          catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
-          sha = catalog['metadata']['sha256']
-          target = review / 'oge' / 'discoveries' / f'{sha}.json'
-          target.parent.mkdir(parents=True, exist_ok=True)
-          content = catalog_path.read_bytes()
-          if target.is_file() and target.read_bytes() != content:
-              raise SystemExit('Immutable OGE catalog collision')
-          target.write_bytes(content)
-          for source in Path('.local/oge-extractions').glob('*.json'):
-              value = json.loads(source.read_text(encoding='utf-8'))
-              parser_file = value['parser_version'].replace('/', '-') + '.json'
-              target = (review / 'oge' / 'extractions' / value['document_id'] /
-                        value['source_sha256'] / parser_file)
-              target.parent.mkdir(parents=True, exist_ok=True)
-              if target.is_file() and target.read_bytes() != source.read_bytes():
-                  raise SystemExit('Immutable OGE extraction collision')
-              target.write_bytes(source.read_bytes())
-          for source in Path('.local/oge-278t-page-sidecars').glob('*/*.json'):
-              target = review / 'oge' / 'page_coverage' / source.parent.name / source.name
-              target.parent.mkdir(parents=True, exist_ok=True)
-              if target.is_file() and target.read_bytes() != source.read_bytes():
-                  digest = hashlib.sha256(source.read_bytes()).hexdigest()[:12]
-                  conflict = (review / 'oge' / 'page_coverage_conflicts' /
-                              source.parent.name / f'{source.name}.{digest}.json')
-                  conflict.parent.mkdir(parents=True, exist_ok=True)
-                  conflict.write_bytes(source.read_bytes())
-                  continue
-              target.write_bytes(source.read_bytes())
-          PY
-          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_replay.py \
-            --review-root "$REVIEW_ROOT"
-          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_v4.py \
-            --review-root "$REVIEW_ROOT"
-          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_v5.py \
-            --review-root "$REVIEW_ROOT"
-          PYTHONPATH=backend/src python backend/scripts/audit_trump_sept_oge_v6.py \
-            --review-root "$REVIEW_ROOT"
-          # Keep the OGE projection within the existing House/Senate native
-          # cutoffs. A lagging source must not strand an otherwise complete
-          # source-bound filing or make the unified snapshot appear fresher.
-          cutoff="$(REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
-          import json, os
-          from datetime import datetime, timedelta, timezone
-          from pathlib import Path
-          now = datetime.now(timezone.utc)
-          root = Path(os.environ['REVIEW_ROOT'])
-          others = []
-          for source in ('house_clerk', 'senate_efd'):
-              path = root / 'candidates/sources' / f'{source}-current.json'
-              if path.is_file():
-                  value = json.loads(path.read_text(encoding='utf-8'))
-                  others.append(datetime.fromisoformat(
-                      value['meta']['data_cutoff_at'].replace('Z', '+00:00')))
-          earliest = min(others) if others else now
-          cutoff = (earliest + timedelta(days=1)
-                    if now - earliest > timedelta(days=2) else now)
-          print(cutoff.isoformat(timespec='seconds').replace('+00:00', 'Z'))
-          PY
-          )"
+          python -m unison_snapshot oge-review stage --review-root "$REVIEW_ROOT"
+          git fetch --no-tags --depth=1 --filter=blob:none origin +main:refs/remotes/origin/main
+          cutoff="$(python -c 'import json; c=json.load(open(".local/oge-catalog.json")); print(c.get("observed_at", c["metadata"]["retrieved_at"]))')"
+          # BEGIN bounded saved PTR selection
+          saved_observation_args=()
+          case "${INCLUDE_SAVED_OGE_OBSERVATIONS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved PTR observation switch.' >&2; exit 2 ;;
+          esac
+          if [[ "${INCLUDE_SAVED_OGE_OBSERVATIONS:-false}" == true ]]; then
+            saved_observation_path="$(python -m unison_snapshot oge-review saved-input --review-root "$REVIEW_ROOT")"
+            saved_observation_args=(--saved-observations "$saved_observation_path")
+          elif [[ -n "${OGE_SAVED_OBSERVATIONS_PATH:-}" ]]; then
+            echo 'A saved PTR input requires its explicit switch.' >&2
+            exit 2
+          fi
+          # BEGIN scoped native PTR preparation
+          generic_document_args=()
+          document_source_args=()
+          generic_document_selection="$(python -m unison_snapshot oge-review selection --review-root "$REVIEW_ROOT")"
+          if [[ -n "$generic_document_selection" ]]; then
+            while IFS=: read -r document_id source_sha; do
+              source_prepare_args=()
+              if [[ -n "$source_sha" ]]; then
+                source_prepare_args=(--source-sha256 "$source_sha")
+                document_source_args+=(--document-source "$document_id:$source_sha")
+              fi
+              PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-ptr-generic \
+                --document-id "$document_id" \
+                --evidence-root "$EVIDENCE_ROOT" --review-root "$REVIEW_ROOT" \
+                --catalog .local/oge-catalog.json \
+                --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" "${source_prepare_args[@]}"
+              generic_document_args+=(--generic-document-id "$document_id")
+            done <<< "$generic_document_selection"
+          fi
+          # END scoped native PTR preparation
+          # END bounded saved PTR selection
           mkdir -p "$REVIEW_ROOT/candidates/sources" "$REVIEW_ROOT/oge/qualifications"
-          PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate \
+          PYTHONPATH=backend/src python -m unison_snapshot build-oge-candidate --allow-incomplete-reports \
             --catalog .local/oge-catalog.json \
             --catalog-history-dir "$REVIEW_ROOT/oge/discoveries" \
             --extractions-dir "$REVIEW_ROOT/oge/extractions" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --manual-cover-dates-dir "$REVIEW_ROOT/oge/manual_cover_dates" \
-            --base ingest/current.json --data-cutoff-at "$cutoff" \
+            --base backend/data/empty-disclosure.json --data-cutoff-at "$cutoff" \
             --output "$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --audit-output "$REVIEW_ROOT/oge/qualifications/current.json"
-          PYTHONPATH=backend/src python backend/scripts/build_whitehouse_278t_candidate.py \
+            --audit-output "$REVIEW_ROOT/oge/qualifications/current.json" \
+            "${saved_observation_args[@]}" "${generic_document_args[@]}" "${document_source_args[@]}"
+          PYTHONPATH=backend/src python -m unison_snapshot build-whitehouse-278t-candidate \
             --oge-candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --candidate-out "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --audit-out "$REVIEW_ROOT/whitehouse/qualifications/candidate-current.json"
-          PYTHONPATH=backend/src python backend/scripts/overlay_whitehouse_annual_candidate.py \
+          # BEGIN bounded saved annual preparation
+          annual_args=()
+          case "${INCLUDE_SAVED_OGE_ANNUAL:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual preparation switch.' >&2; exit 2 ;;
+          esac
+          case "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual scan preparation switch.' >&2; exit 2 ;;
+          esac
+          case "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual blank-slot switch.' >&2; exit 2 ;;
+          esac
+          case "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" in
+            true|false) ;;
+            *) echo 'Invalid saved annual cover replay switch.' >&2; exit 2 ;;
+          esac
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ] || [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ] || [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ] || [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" != true ]; then
+              echo 'Blue dates, blank slots and cover replay require saved annual scan preparation.' >&2
+              exit 2
+            fi
+          fi
+          if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}${OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY:-}" ]; then
+            [[ "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" =~ ^[0-9a-f]{32}$ ]] || exit 2
+            python - <<'PY'
+          import os
+          raw = os.environ.get('OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY', '')
+          if (not raw or len(raw) > 512 or raw != raw.strip() or raw.startswith('/') or
+                  chr(92) in raw or ':' in raw or any(ord(c) < 32 or ord(c) == 127 for c in raw) or
+                  any(part in ('', '.', '..') for part in raw.split('/'))):
+              raise SystemExit('Blue-date model directory must be a bounded canonical evidence-relative path')
+          PY
+          fi
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ] && [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" != true ]; then
+            echo 'Saved annual scans require the explicit annual preparation switch.' >&2
+            exit 2
+          fi
+          if [ "${INCLUDE_SAVED_OGE_ANNUAL:-false}" = true ]; then
+            selection_args=()
+            if [ -n "${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+              selection_args+=(--parser-version "$OGE_ANNUAL_PARSER_VERSION")
+            fi
+            if [ "${INCLUDE_SAVED_OGE_ANNUAL_SCANS:-false}" = true ]; then
+              selection_args+=(--include-saved-scans)
+            fi
+            if [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}" ]; then
+              [[ "$OGE_ANNUAL_DOCUMENT_ID" =~ ^[0-9a-f]{32}$ ]] || exit 2
+              selection_args+=(--document-id "$OGE_ANNUAL_DOCUMENT_ID")
+            fi
+            if [ -n "${OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID:-}" ]; then
+              selection_args+=(--blue-date-document-id "$OGE_ANNUAL_BLUE_DATE_DOCUMENT_ID" \
+                --blue-date-model-directory "$OGE_ANNUAL_BLUE_DATE_MODEL_DIRECTORY")
+            fi
+            if [ "${VERIFY_OGE_ANNUAL_BLANK_SLOTS:-false}" = true ]; then
+              selection_args+=(--verify-transaction-blank-slots)
+            fi
+            if [ "${REPLAY_OGE_ANNUAL_COVER_OCR:-false}" = true ]; then
+              command -v tesseract >/dev/null
+              selection_args+=(--replay-cover-ocr)
+            fi
+            PYTHONPATH=backend/src python -m unison_snapshot prepare-oge-annual-runtime \
+              --review-root "$REVIEW_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+              --output "$RUNNER_TEMP/oge-annual-input.json" \
+              --code-commit "$(git rev-parse HEAD)" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              "${selection_args[@]}"
+            annual_args+=(--oge-annual-input "$RUNNER_TEMP/oge-annual-input.json" \
+              --oge-annual-runtime-root "$EVIDENCE_ROOT")
+          elif [ -n "${OGE_ANNUAL_DOCUMENT_ID:-}${OGE_ANNUAL_PARSER_VERSION:-}" ]; then
+            echo 'Saved annual document/parser selection requires the explicit preparation switch.' >&2
+            exit 2
+          fi
+          # END bounded saved annual preparation
+          PYTHONPATH=backend/src python -m unison_snapshot overlay-whitehouse-annual-candidate \
             --review-root "$REVIEW_ROOT" \
+            --evidence-root "$EVIDENCE_ROOT" \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
-            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json"
+            --audit-out "$REVIEW_ROOT/whitehouse/annual/candidate-current.json" \
+            "${annual_args[@]}"
           test "$MARKET_DISTRIBUTION_AUTHORIZED" = true
           assets_url="${ALPACA_ASSETS_URL:-https://paper-api.alpaca.markets/v2/assets}"
-          PYTHONPATH=backend/src python backend/scripts/enrich_whitehouse_annual_tickers.py \
+          PYTHONPATH=backend/src python -m unison_snapshot enrich-whitehouse-annual-tickers \
             --candidate "$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --mapping-output "$REVIEW_ROOT/whitehouse/annual/ticker-mapping-current.json" \
             --trump-2026-mapping-output "$REVIEW_ROOT/whitehouse/278t/trump-2026-ticker-mapping-current.json" \
             --checked-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
             --assets-url "$assets_url" --distribution-authorized
-          REVIEW_ROOT="$REVIEW_ROOT" python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          from pathlib import Path
-          review = Path(os.environ['REVIEW_ROOT'])
-          catalog = json.loads(Path('.local/oge-catalog.json').read_text(encoding='utf-8'))
-          batch = json.loads(Path('.local/oge-report-batch.json').read_text(encoding='utf-8'))
-          extraction = json.loads(Path('.local/oge-extraction-batch.json').read_text(encoding='utf-8'))
-          audit = json.loads((review / 'oge/qualifications/current.json').read_text(encoding='utf-8'))
-          whitehouse = json.loads((review / 'whitehouse/qualifications/candidate-current.json').read_text(encoding='utf-8'))
-          annual = json.loads((review / 'whitehouse/annual/candidate-current.json').read_text(encoding='utf-8'))
-          combined = json.loads((review / 'candidates/sources/oge-current.json').read_text(encoding='utf-8'))
-          ticker_audit = json.loads((review / 'whitehouse/278t/trump-2026-ticker-mapping-current.json').read_text(encoding='utf-8'))
-          value = {
-              'schema_version': 'oge-review-run/v1', 'source_id': 'oge',
-              'generated_at': datetime.now(timezone.utc).isoformat(), 'status': 'partial',
-              'catalog_sha256': catalog['metadata']['sha256'],
-              'catalog_record_count': catalog['records_total'],
-              'direct_pdf_count': audit['catalog_direct_count'],
-              'direct_pdf_occurrence_count': batch['catalog_direct_occurrence_count'],
-              'duplicate_direct_occurrence_count': batch['duplicate_catalog_occurrence_count'],
-              'request_required_count': catalog['metadata']['request_required_count'],
-              'retained_historical_direct_count': audit['retained_historical_direct_count'],
-              'archived_report_count': audit['catalog_direct_count'],
-              'pending_direct_count': 0,
-              'extraction_count': audit['extraction_count'],
-              'extraction_failure_count': extraction['failure_count'],
-              'qualified_transaction_count': len(combined['transactions']),
-              'oge_direct_qualified_transaction_count': audit['promoted_transaction_count'],
-              'oge_direct_quarantined_row_count': audit['quarantined_row_count'],
-              'whitehouse_public_qualified_transaction_count': whitehouse['promoted_transaction_count'],
-              'whitehouse_public_qualified_annual_transaction_count': annual.get(
-                  'annual_transaction_count', 0),
-              'whitehouse_public_extraction_failure_count': whitehouse['extraction_failure_count'],
-              'whitehouse_public_qualified_annual_report_count': annual['annual_qualified_report_count'],
-              'whitehouse_public_qualified_holding_count': annual['annual_holding_count'],
-              'qualified_holding_count': len(combined['reported_holdings']),
-              'retained_ticker_conflict_count': ticker_audit['retained_ticker_conflict_count'],
-              'quarantined_row_count': (audit['quarantined_row_count'] +
-                                        whitehouse['quarantined_row_count']),
-          }
-          target = review / 'status/oge.json'
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                                       separators=(',', ':')), encoding='utf-8')
-          PY
-          # Persist the validated source before a stale peer can reject assembly.
-          git -C "$REVIEW_ROOT" add oge candidates/sources/oge-current.json \
-            whitehouse/qualifications whitehouse/annual/candidate-current.json \
-            whitehouse/annual/ticker-mapping-current.json \
-            whitehouse/278t/trump-2026-ticker-mapping-current.json status/oge.json
-          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
-            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
-            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$REVIEW_ROOT" commit -m "review: OGE source candidate ${{ github.run_id }}"
-            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
-          fi
-      - name: Rebuild unified candidate from saved source projections
-        env:
-          REVIEW_ROOT: ${{ runner.temp }}/oge-review
+          python -m unison_snapshot oge-review build --review-root "$REVIEW_ROOT"
+      - name: Save the valid source and assemble current peer projections
+        if: steps.collect.outcome == 'success' && steps.publish_evidence.outcome == 'success'
         run: |
-          source_args=(--source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json")
-          for source_id in house_clerk senate_efd; do
-            candidate="$REVIEW_ROOT/candidates/sources/$source_id-current.json"
-            if [ -f "$candidate" ]; then source_args+=(--source "$source_id=$candidate"); fi
-          done
-          PYTHONPATH=backend/src python -m unison_snapshot build-disclosure-candidate \
-            --defer-stale-sources \
-            --assembly-status-output "$REVIEW_ROOT/status/disclosure_assembly.json" \
-            --base ingest/current.json --harmonize-cutoffs "${source_args[@]}" \
-            --output "$REVIEW_ROOT/candidates/disclosure-current.json" \
-            --audit-output "$REVIEW_ROOT/status/disclosure_cutoff.json"
-          assembly_status="$(PYTHONPATH=backend/src python backend/scripts/source_assembly_status.py \
-            --status "$REVIEW_ROOT/status/disclosure_assembly.json")"
-          if [ "$assembly_status" = deferred ]; then
-            git -C "$REVIEW_ROOT" add status/disclosure_assembly.json
-            if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
-              git -C "$REVIEW_ROOT" config user.name 'github-actions[bot]'
-              git -C "$REVIEW_ROOT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-              git -C "$REVIEW_ROOT" commit -m "review: deferred source assembly ${{ github.run_id }}"
-              git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
-            fi
-            exit 0
-          fi
-          REVIEW_ROOT="$REVIEW_ROOT" BUILDER_COMMIT="${{ github.sha }}" python - <<'PY'
-          import json, os
-          from pathlib import Path
-          review = Path(os.environ['REVIEW_ROOT'])
-          candidate = json.loads((review / 'candidates/disclosure-current.json').read_text(
-              encoding='utf-8'))
-          disclosure_sources = {'house_clerk', 'senate_efd', 'oge'}
-          included = sorted(row['source_id'] for row in candidate['source_health']
-                            if row.get('source_id') in disclosure_sources
-                            and row.get('status') in {'ok', 'partial'})
-          disclosure_status = {
-              'schema_version': 'disclosure-candidate-run/v1',
-              'builder_commit': os.environ['BUILDER_COMMIT'],
-              'data_cutoff_at': candidate['meta']['data_cutoff_at'],
-              'included_sources': included,
-              'pending_sources': sorted(disclosure_sources - set(included)),
-              'people_count': len(candidate['people']),
-              'transaction_count': len(candidate['transactions']),
-              'reported_holding_count': len(candidate['reported_holdings']),
-              'status': 'partial',
-              'cutoff_audit': 'status/disclosure_cutoff.json',
-          }
-          (review / 'status/disclosure_candidate.json').write_text(
-              json.dumps(disclosure_status, ensure_ascii=False, sort_keys=True,
-                         separators=(',', ':')), encoding='utf-8')
-          PY
-          git -C "$REVIEW_ROOT" add candidates/disclosure-current.json \
-            status/disclosure_cutoff.json status/disclosure_candidate.json status/disclosure_assembly.json
-          if ! git -C "$REVIEW_ROOT" diff --cached --quiet; then
-            git -C "$REVIEW_ROOT" config user.name "github-actions[bot]"
-            git -C "$REVIEW_ROOT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$REVIEW_ROOT" commit -m "review: unified OGE candidate ${{ github.run_id }}"
-            git -C "$REVIEW_ROOT" push origin HEAD:refs/heads/review
-          fi
+          python -m unison_snapshot assemble-source --workspace "$RUNNER_TEMP/oge-source" --source oge \
+            --base backend/data/empty-disclosure.json --builder-commit "${{ github.sha }}"
+      - name: Reconcile explicit integrity failures
+        if: always()
+        uses: ./.github/actions/report-integrity

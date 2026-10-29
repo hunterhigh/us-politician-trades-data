@@ -7,11 +7,14 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import os
+import sys
 import unittest
 from unittest.mock import patch
 from contextlib import redirect_stdout
 
-from scripts.build_whitehouse_278t_candidate import main, run
+from unison_snapshot.commands.build_whitehouse_278t_candidate import main, run
 from tests.test_whitehouse_278t_candidate import _base, _catalog, _wiles
 from unison_snapshot.builder import SOURCE_HOSTS
 
@@ -83,6 +86,64 @@ class WhiteHouse278TCandidateCliTests(unittest.TestCase):
             return run(oge_candidate=self.oge, review_root=self.review,
                        candidate_out=self.oge, audit_out=self.audit_out,
                        expected_report_count=expected_report_count)
+
+    def _add_exact_alias(self, conflict=False):
+        alias = deepcopy(self.report)
+        alias["source_url"] = "https://www.whitehouse.gov/wp-content/uploads/2025/06/alias.pdf"
+        alias["document_id"] = "wh-url:" + hashlib.sha256(alias["source_url"].encode()).hexdigest()[:24]
+        if conflict:
+            alias["transactions"][0]["owner"] = "Spouse"
+        row = deepcopy(self.coverage["reports"][0])
+        row.update(document_id=alias["document_id"], document_url=alias["source_url"])
+        self.coverage["reports"].append(row)
+        self.coverage.update(report_link_count=2, counts_by_review_state={"extracted_review_only": 2})
+        self.status["archived_version_count"] = 2
+        self._write_inputs()
+        index_path = self.review / "whitehouse/disclosures/index-current.json"
+        index = json.loads(index_path.read_text(encoding="utf8"))
+        entry = deepcopy(index["reports"][0])
+        entry.update(source_document_id=alias["document_id"], document_url=alias["source_url"])
+        index["reports"].append(entry)
+        _write(index_path, index)
+        _write(self.review / "whitehouse/extractions" / alias["document_id"].split(":")[1] /
+               alias["source_sha256"] / "whitehouse-278t-pdf-v1.json", alias)
+
+    def _exact_command(self, expected_code=0):
+        root = Path(__file__).resolve().parents[2]
+        env = dict(os.environ, PYTHONPATH=str(root / "backend/src"))
+        result = subprocess.run([sys.executable, str(root / "backend/src/unison_snapshot/commands/build_whitehouse_278t_candidate.py"),
+            "--oge-candidate", str(self.oge), "--review-root", str(self.review),
+            "--candidate-out", str(self.oge), "--audit-out", str(self.audit_out),
+            "--expected-report-count", "2", "--exact-source-copies"],
+            cwd=root, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, expected_code, result.stderr)
+        return json.loads(result.stdout) if result.returncode == 0 else result.stderr
+
+    def test_exact_copy_command_consumes_once_and_is_idempotent(self):
+        self._add_exact_alias()
+        result = self._exact_command()
+        self.assertEqual(result["promoted_transaction_count"], 3)
+        self.assertEqual(result["audit_schema"], "whitehouse-278t-exact-source-candidate/v1")
+        self.assertEqual(len(result["exact_source_aliases"][0]["aliases"]), 2)
+        self.assertTrue(self._exact_command()["idempotent"])
+
+    def test_exact_copy_command_keeps_conflict_unresolved(self):
+        self._add_exact_alias(conflict=True)
+        before = self.oge.read_bytes()
+        result = self._exact_command(expected_code=1)
+        self.assertIn("Empty production publication requires", result)
+        self.assertEqual(self.oge.read_bytes(), before)
+        self.assertFalse(self.audit_out.exists())
+
+    def test_exact_copy_command_inherits_existing_formal_ids(self):
+        self._run()
+        before = json.loads(self.oge.read_text(encoding="utf8"))["transactions"]
+        self._add_exact_alias()
+        result = self._exact_command()
+        self.assertEqual(result["retained_existing_transaction_count"], 3)
+        self.assertEqual(result["promoted_transaction_count"], 0)
+        self.assertEqual(json.loads(self.oge.read_text(encoding="utf8"))["transactions"], before)
+
 
     def test_complete_local_batch_publishes_pair_and_is_idempotent(self):
         before_coverage = (self.review / "whitehouse/coverage-current.json").read_bytes()

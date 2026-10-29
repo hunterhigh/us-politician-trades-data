@@ -1,7 +1,7 @@
-"""Carry scanned House PTR observations into the existing qualification queue.
+"""House paper observations and opt-in source-bound fact interpretation.
 
-This bridge deliberately emits no formal transactions. A located paper row is
-not a verified filing fact, and its physical slot key is never a formal ID.
+The legacy observation entry retains its pending contract. Saved interpretation
+checks source crops and field conflicts before calling existing qualification.
 """
 
 from __future__ import annotations
@@ -9,12 +9,45 @@ from __future__ import annotations
 import re
 
 from .house_ptr import OWNER_CODES, QUALIFICATION_SCHEMA
+from .source_row_ledger import page_ledger, report_ledger
 from .house_ptr_amount_header import evaluate_amount_header_pages
 from .house_ptr_key_fields_shadow import read_house_ptr_key_fields
 from .house_ptr_section_context import relate_house_ptr_sections
 from .house_ptr_duplicate_observation import observe_repeated_trade_signatures
 from .house_ptr_paper_temporal import (PARSER_VERSION, audit_paper_temporal_relations,
                                       validate_paper_source_metadata)
+
+
+def _selected_amount_letter(fields: dict) -> str | None:
+    """Keep primary ranges separate from the independently marked K column."""
+    letter = fields.get("amount_letter")
+    supplemental = fields.get("spouse_dc_over_1000000_mark")
+    if supplemental is True:
+        return "K" if letter is None and fields.get("amount_status") == "no_strong_mark" else None
+    if supplemental is False or fields.get("spouse_dc_mark_status") == "supplemental_column_absent":
+        return letter
+    return None
+
+
+def _amount_bounds_key(amount: dict) -> tuple:
+    low, high, letter = amount.get("low"), amount.get("high"), amount.get("letter")
+    if high is None and letter in {"J", "K"}:
+        low = 50000000 if letter == "J" else 1000000
+    return letter, low, high
+
+
+def _page_a_header_conflicts(header: dict, page: int, amount: dict) -> bool:
+    """A missing unrelated label cannot erase an observed conflicting A range."""
+    if amount.get("letter") != "A":
+        return False
+    for item in header.get("pages", []):
+        if item.get("page") != page or item.get("status") != "header_ocr_observed":
+            continue
+        text = re.sub(r"\s+", "", item.get("raw_header_text", "")).replace("§", "$")
+        observed = {low for low in (1000, 1001) if f"${low:,}-$15,000" in text}
+        if observed and observed != {amount.get("low")}:
+            return True
+    return False
 
 
 def _pending_transaction_projection(result: dict, metadata: dict) -> dict:
@@ -64,6 +97,8 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                               identity: dict, *, amount_header: dict | None = None,
                               peer_metadata: list[dict] | None = None) -> dict:
     """Account for every physical row while blocking unverified promotion."""
+    from .house_asset_line_order import validate_asset_line_mode
+    validate_asset_line_mode(observation)
     source_sha = observation.get("source_sha256")
     if (not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", source_sha)
             or metadata.get("sha256") != source_sha):
@@ -84,7 +119,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             raise ValueError("House paper amount header interpretation changed")
         header_ranges = checked["ranges"]
         header_evidence = checked
-    reading = read_house_ptr_key_fields(observation)
+    reading = read_house_ptr_key_fields(observation, filing_year=metadata.get("filing_year"))
     section_context = relate_house_ptr_sections(observation)
     duplicates = observe_repeated_trade_signatures(reading, section_context)
     repeated_by_slot = {}
@@ -117,6 +152,10 @@ def qualify_paper_observation(observation: dict, metadata: dict,
                 raise ValueError("House paper physical slot is invalid or duplicated")
             seen.add(slot)
             disposition = physical.get("disposition")
+            # Geometry alone cannot prove a short first band is an example.
+            # Keep it unresolved until source-bound semantic classification.
+            if disposition == "title_legend":
+                disposition = "unknown"
             if disposition not in physical_counts:
                 raise ValueError("House paper physical disposition is unknown")
             physical_counts[disposition] += 1
@@ -138,12 +177,7 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             amount_observation = None
             if read and read["fields"] and header_ranges:
                 fields = read["fields"]
-                spouse_mark = fields["spouse_dc_over_1000000_mark"]
-                letter = fields["amount_letter"]
-                if spouse_mark is True and letter is None:
-                    letter = "K"
-                elif spouse_mark is True:
-                    letter = None
+                letter = _selected_amount_letter(fields)
                 if letter in header_ranges:
                     amount_observation = {
                         "status": "printed_bounds_unverified_transaction",
@@ -194,8 +228,567 @@ def qualify_paper_observation(observation: dict, metadata: dict,
             "document_reasons": document_reasons, "production_eligible": False,
         },
     }
+    pages = []
+    logical = []
+    for page in observation["pages"]:
+        slots = []
+        for physical in page["rows"]:
+            slot = (page["page"], physical["physical_band_index"])
+            state = "heading" if slot in heading_by_slot else physical["disposition"]
+            if state == "title_legend":
+                state = "unknown"
+            key = str(physical["physical_band_index"])
+            slots.append({"local_key": key, "bounds": physical["band"],
+                          "disposition": state, "observation_ref": f"pages/{page['page']}/bands/{key}"})
+            if state == "data_candidate":
+                logical.append({"local_key": f"p{page['page']}:band{key}",
+                                "slot_refs": [{"page_number": page["page"], "slot_key": key}]})
+        located = page.get("region_status") == "located_shadow"
+        pages.append(page_ledger(source_id="house_clerk", document_sha256=source_sha,
+            adapter_version=PARSER_VERSION, page_number=page["page"],
+            coverage="located" if located else "unknown", slots=slots,
+            coverage_reason=None if located else "paper_grid_coverage_unresolved",
+            coordinate_frame="normalized_source_page"))
+    result["source_report_ledger"] = report_ledger(source_id="house_clerk",
+        document_sha256=source_sha, adapter_version=PARSER_VERSION, page_count=len(pages),
+        pages=pages, logical_rows=logical)
     result["pending_transaction_projection"] = _pending_transaction_projection(result, metadata)
     if peer_metadata is not None:
         result["temporal_relation_observation"] = audit_paper_temporal_relations(
             result, metadata, peer_metadata)
     return result
+
+
+FACT_PARSER_VERSION = "house-paper-source-bound-qualification-v2"
+
+
+def paper_materialization_counts(qualification: dict, extraction: dict | None = None) -> dict | None:
+    """Account for saved paper slots without inventing a source-row denominator."""
+    receipt = qualification.get("observation_materialization")
+    if receipt is None:
+        return None
+    source = qualification.get("source_sha256")
+    materialized = qualification.get("materialized_extraction")
+    if (not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{64}", source) or
+            not isinstance(receipt, dict) or receipt.get("source_sha256") != source or
+            not re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("observation_sha256"))) or
+            not isinstance(materialized, dict) or materialized.get("source_sha256") != source or
+            materialized.get("extraction_method") != "source_bound_paper_cells" or
+            materialized.get("source", {}).get("document_id") != qualification.get("document_id") or
+            materialized.get("parser_version") != qualification.get("parser_version") or
+            any(type(receipt.get(key)) is not int for key in ("observed_data_row_count", "unresolved_physical_row_count")) or
+            extraction is not None and extraction != materialized):
+        raise ValueError("House paper materialization count binding is invalid")
+    rows = materialized.get("transactions")
+    published = qualification.get("transactions")
+    pending = qualification.get("quarantined")
+    ledger = qualification.get("source_report_ledger")
+    if (not all(isinstance(value, list) for value in (rows, published, pending)) or
+            not isinstance(ledger, dict) or ledger != materialized.get("source_report_ledger") or
+            ledger.get("document_sha256") != source or ledger.get("source_id") != "house_clerk"):
+        raise ValueError("House paper materialization ledger binding is invalid")
+    ids = {row.get("extraction_id") for row in rows}
+    from .house_paper_owner_correction import qualification_physical_ids
+    published_ids = qualification_physical_ids(qualification)
+    unknown_slots = {(page["page_number"], slot["local_key"]) for page in ledger.get("pages", [])
+                     for slot in page.get("slots", []) if slot.get("disposition") == "unknown"}
+    pending_ids, unresolved = set(), set()
+    for row in pending:
+        key = row.get("extraction_id")
+        if key in ids:
+            pending_ids.add(key)
+        else:
+            evidence = row.get("evidence") or {}
+            slot = (evidence.get("page"), str(evidence.get("physical_band_index")))
+            expected = f"paper-slot:{source}:{slot[0]}:{slot[1]}"
+            if key != expected or row.get("observation_key") != expected or slot not in unknown_slots:
+                raise ValueError("House paper unresolved slot has no ledger binding")
+            unresolved.add(slot)
+    if (None in ids or len(ids) != len(rows) or len(published_ids) != len(published) or
+            ledger.get("logical_row_count") != len(rows) or
+            published_ids & pending_ids or published_ids | pending_ids != ids or
+            len(pending_ids) + len(unresolved) != len(pending) or
+            unresolved != unknown_slots or receipt.get("observed_data_row_count") != len(rows) or
+            receipt.get("unresolved_physical_row_count") != len(unresolved) or
+            qualification.get("qualification", {}).get("quarantined_count") != len(pending)):
+        raise ValueError("House paper materialization counts do not conserve observed slots")
+    complete = not unknown_slots and ledger.get("relation_coverage") == "accounted" and not ledger.get("coverage_unknown_pages")
+    return {"quarantine_count_unit": "observed_paper_entries_not_whole_source_unique_rows",
+            "observed_transaction_row_count": len(rows),
+            "observed_transaction_quarantined_count": len(pending_ids),
+            "unresolved_physical_slot_count": len(unresolved),
+            "observed_quarantined_entry_count": len(pending),
+            "whole_source_unique_quarantined_row_count": len(pending_ids) if complete else None}
+
+
+def _blank_paper_owner(pdf_bytes: bytes, observation: dict, physical: dict,
+                       page_number: int, rendered: dict) -> dict | None:
+    """Verify the whole owner cell, allowing only evidenced printed rules.
+
+    Zero unexplained dark pixels is this detector's conservative evidence
+    boundary, not an official requirement for how House filers write a form.
+    """
+    import hashlib
+    import io
+    import pdfplumber
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+
+    cells = physical.get("cells") or {}
+    owner = cells.get("owner") or {}
+    if owner.get("raw_text") != "" or observation.get("render_dpi") != 200:
+        return None
+    record = next((item for item in observation.get("pages", []) if item.get("page") == page_number), {})
+    if (record.get("cell_status") != "raw_observed_unverified" or
+            record.get("coordinate_frame") != "original_page"):
+        return None
+    if page_number not in rendered:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            if len(pdf.pages) != len(observation["pages"]):
+                return None
+            image = pdf.pages[page_number - 1].to_image(resolution=200).original
+        region = locate_transaction_grid(image)
+        columns = _column_boxes(region, image)
+        rendered[page_number] = (image, region, columns)
+    image, region, columns = rendered[page_number]
+    index = physical.get("physical_band_index")
+    bands = region.get("physical_row_bands", [])
+    if (region.get("status") != "located_shadow" or columns.get("status") != "located_shadow" or
+            type(index) is not int or not 1 <= index <= len(bands) or
+            physical.get("band") != bands[index - 1]["band"]):
+        return None
+    left, right = columns["owner"]
+    top, bottom = physical["band"]
+    box = [int(left * image.width), int(top * image.height), int(right * image.width), int(bottom * image.height)]
+    if owner.get("bbox_pixels") != box or owner.get("bbox_normalized") != [left, top, right, bottom]:
+        return None
+    crop = image.crop(tuple(box))
+    encoded = io.BytesIO()
+    crop.save(encoded, format="PNG")
+    if hashlib.sha256(encoded.getvalue()).hexdigest() != owner.get("crop_sha256"):
+        raise ValueError("House blank owner crop differs from bound PDF")
+    from .ruled_cell_blank import inspect_ruled_cell_blank
+    horizontal = []
+    for name in ("asset","event","notification"):
+        span = columns.get(name)
+        if span and len(span)==2:
+            horizontal.append([int(span[0]*image.width),int(span[1]*image.width)])
+    vertical = [[int(item["band"][0]*image.height),int(item["band"][1]*image.height)]
+                for ordinal,item in enumerate(bands,1) if ordinal!=index]
+    blank = inspect_ruled_cell_blank(image,box,horizontal_witness_spans=horizontal,
+                                     vertical_witness_spans=vertical)
+    if blank["status"] != "blank":
+        return None
+    return {"rule": "source_bound_blank_paper_owner/v2", "source_sha256": observation["source_sha256"],
+            "page": page_number, "physical_band_index": index, "crop_sha256": owner["crop_sha256"],
+            "bbox_pixels": box, "measurement": blank["measurement"],
+            "unexplained_dark_pixel_count":0,"owner":"Undisclosed","source_blank_observation":blank}
+
+
+def _source_bound_no_transactions(pdf_bytes: bytes, observation: dict) -> dict | None:
+    """Prove an explicit statement on every complete physical source page.
+
+    Geometry is recomputed without OCR so omitted bands/pages cannot turn a
+    partial observation into a report-level zero. Empty OCR alone never counts.
+    """
+    import io
+    import pdfplumber
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+    from .house_ptr_fixed_source_core import check_source_cells
+
+    pages = observation.get("pages", [])
+    if not pages or any(page.get("region_status") != "located_shadow" or
+                        page.get("cell_status") != "raw_observed_unverified" or
+                        page.get("coordinate_frame") != "original_page" for page in pages):
+        return None
+    statement_pattern = (r"(?:Nothing to report|No transactions? to report)"
+                         r"(?: for [A-Za-z]+ 20\d{2})?\.?")
+    if not any(row.get("disposition") == "unknown" and re.fullmatch(statement_pattern,
+               str(((row.get("cells") or {}).get("asset") or {}).get("raw_text", "")).strip(), re.I)
+               for page in pages for row in page.get("rows", [])):
+        return None
+    import numpy as np
+    check_source_cells(pdf_bytes, observation, page_count=len(pages),
+                       allow_unobserved=False, verify_crop_hashes=True)
+    statements = []
+    ledgers = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page, source in zip(pages, pdf.pages):
+            image = source.to_image(resolution=200).original
+            grid = locate_transaction_grid(image)
+            columns = _column_boxes(grid, image)
+            if columns.get("status") != "located_shadow":
+                return None
+            physical = grid.get("physical_row_bands", [])
+            rows = page["rows"]
+            if len(rows) != len(physical) or not rows:
+                return None
+            slots = []
+            page_statements = []
+            for index, (row, band) in enumerate(zip(rows, physical), 1):
+                if (row["physical_band_index"] != index or row["band"] != band["band"] or
+                        row["disposition"] != band["disposition"]):
+                    return None
+                cells = row["cells"]
+                if not isinstance(cells, dict):
+                    return None
+                expected = [(cells[name], columns[column]) for name, column in (
+                    ("owner", "owner"), ("asset", "asset"),
+                    ("event_date", "event"), ("notification_date", "notification"))]
+                for name, column in (("direction", "action"), ("amount", "amount")):
+                    bounds = list(zip(columns[column], columns[column][1:]))
+                    if len(cells[name]) != len(bounds):
+                        return None
+                    expected.extend(zip(cells[name], bounds))
+                for cell, (left, right) in expected:
+                    top, bottom = band["band"]
+                    if (cell.get("bbox_normalized") != [left, top, right, bottom] or
+                            cell.get("bbox_pixels") != [int(left * image.width), int(top * image.height),
+                                                        int(right * image.width), int(bottom * image.height)]):
+                        return None
+                asset = cells["asset"].get("raw_text", "").strip()
+                others = [cells[k] for k in ("owner", "event_date", "notification_date")]
+                others += cells["direction"] + cells["amount"]
+                def empty(cell):
+                    if cell.get("raw_text", "").strip():
+                        return False
+                    pixels = np.asarray(image.crop(tuple(cell["bbox_pixels"])).convert("L"))
+                    py, px = max(1, pixels.shape[0] // 6), max(1, pixels.shape[1] // 6)
+                    interior = pixels[py:-py, px:-px]
+                    return bool(interior.size and not (interior < 100).any())
+                state = row["disposition"]
+                if state == "title_legend" and index == 1 and re.fullmatch(
+                        r"Example\s+Mega\s+Corp\s+Common\s+Stock", asset, re.I):
+                    disposition = "note"
+                elif state == "unknown" and all(empty(cell) for cell in others) and re.fullmatch(
+                        statement_pattern, asset, re.I):
+                    page_statements.append({"page": page["page"], "physical_band_index": index,
+                                            "statement": asset})
+                    disposition = "note"
+                elif state == "blank" and all(empty(cell) for cell in [cells["asset"], *others]):
+                    disposition = "blank"
+                else:
+                    return None
+                slots.append({"local_key": str(index), "bounds": row["band"],
+                              "disposition": disposition})
+            if len(page_statements) != 1:
+                return None
+            statements.extend(page_statements)
+            ledgers.append(page_ledger(source_id="house_clerk",
+                document_sha256=observation["source_sha256"], adapter_version=FACT_PARSER_VERSION,
+                page_number=page["page"], coverage="located", slots=slots,
+                coordinate_frame="normalized_source_page"))
+    return {"declaration": {"status": "explicit_no_transactions", "statements": statements,
+                            "method": "complete_source_bound_paper_statement/v1"},
+            "ledger": report_ledger(source_id="house_clerk",
+                document_sha256=observation["source_sha256"], adapter_version=FACT_PARSER_VERSION,
+                page_count=len(pages), pages=ledgers, logical_rows=[])}
+
+
+def materialize_paper_observation(pdf_bytes: bytes, observation: dict, metadata: dict,
+                                  identity: dict, *, amount_header: dict | None = None,
+                                  field_reread: dict | None = None,
+                                  prior_qualification: dict | None = None,
+                                  prior_extraction: dict | None = None) -> dict:
+    """Interpret saved source cells through existing House qualification.
+
+    Existing facts change only through complete legacy/source owner replay.
+    Unknown cover status, conflicting readings, and incomplete printed legends
+    remain specific row blockers. It does not rerun OCR or invent a ticker/name.
+    """
+    from copy import deepcopy
+    import hashlib
+    import io
+    import json
+    from .house_ptr import SCHEMA, qualify_automatic
+    from .house_ptr_fixed_source_core import check_source_cells, paper_disclosure_id
+
+    document_id, source_sha, _, _ = validate_paper_source_metadata(metadata)
+    if hashlib.sha256(pdf_bytes).hexdigest() != source_sha or observation.get("source_sha256") != source_sha:
+        raise ValueError("House paper materialization source mismatch")
+    if prior_qualification is not None:
+        if (prior_qualification.get("source_sha256") != source_sha or
+                prior_qualification.get("document_id") != document_id):
+            raise ValueError("House prior qualification source mismatch")
+        if prior_qualification.get("transactions"):
+            if prior_extraction is not None:
+                from .house_paper_owner_correction import prepare_paper_owner_correction
+                prepared = prepare_paper_owner_correction(pdf_bytes, observation, metadata, identity,
+                    amount_header=amount_header, field_reread=field_reread,
+                    prior_extraction=prior_extraction, prior_qualification=prior_qualification)
+                if prepared is not None:
+                    return prepared["final_qualification"]
+            return deepcopy(prior_qualification)
+    from .house_asset_line_order import validate_asset_line_pdf, project_asset_line_reading
+    validate_asset_line_pdf(pdf_bytes, observation)
+    zero = _source_bound_no_transactions(pdf_bytes, observation)
+    if zero is not None:
+        extraction = {"schema_version": SCHEMA, "parser_version": FACT_PARSER_VERSION,
+            "source_sha256": source_sha, "source": metadata,
+            "extraction_method": "source_bound_paper_cells", "transactions": [],
+            "document_disposition": zero["declaration"], "source_report_ledger": zero["ledger"]}
+        result = qualify_automatic(extraction, identity)
+        result["materialized_extraction"] = extraction
+        result["observation_materialization"] = {"source_sha256": source_sha,
+            "observation_sha256": hashlib.sha256(json.dumps(observation, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "observed_data_row_count": 0, "unresolved_physical_row_count": 0,
+            "production_mutation_authorized": False}
+        return result
+    baseline = qualify_paper_observation(observation, metadata, identity, amount_header=amount_header)
+    source_slots = check_source_cells(pdf_bytes, observation,
+        page_count=len(observation["pages"]), allow_unobserved=True, verify_crop_hashes=True)
+    # New printed-frame measurements are hints until recomputed from the
+    # already hash-bound source crop. A changed hint cannot erase a real mark.
+    from .house_ptr_cell_observation_shadow import _printed_checkbox
+    box_pages = {}
+    for (page, _), physical in source_slots.items():
+        cells = physical.get("cells") or {}
+        for cell in cells.get("direction", []) + cells.get("amount", []):
+            if "printed_checkbox" not in cell:
+                continue
+            if page not in box_pages:
+                import pdfplumber
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                    box_pages[page] = pdf.pages[page - 1].to_image(resolution=200).original
+            actual = _printed_checkbox(box_pages[page].crop(tuple(cell["bbox_pixels"])))
+            if actual != cell["printed_checkbox"]:
+                raise ValueError("House paper printed checkbox differs from bound PDF")
+    second = {}
+    if field_reread is not None:
+        if (field_reread.get("schema_version") != "house-paper-key-field-reread/v1" or
+                field_reread.get("source_sha256") != source_sha or
+                field_reread.get("qualification_status") != "unverified_shadow_only" or
+                not isinstance(field_reread.get("rereads"), list)):
+            raise ValueError("House paper secondary readings source mismatch")
+        for item in field_reread["rereads"]:
+            key = (item.get("page"), item.get("physical_band_index"), item.get("field"))
+            if key in second:
+                raise ValueError("House paper secondary reading duplicated")
+            second[key] = item
+    cover = observation["pages"][0].get("filing_status_observation")
+    extraction_rows = []
+    unresolved_physical = []
+    rendered_secondary = {}
+    header_geometries = {}
+    owner_images, owner_bindings = {}, []
+    from .house_ptr_source_glyphs import corroborate_asset_readings
+    asset_proofs = corroborate_asset_readings(
+        pdf_bytes, observation, field_reread, rendered_secondary)
+    asset_bindings = []
+    from .house_ptr_owner_reading import verified_owner_readings
+    owner_proofs = verified_owner_readings(pdf_bytes, observation, field_reread)
+    owner_reading_bindings = []
+
+    for pending in baseline["quarantined"]:
+        fields = pending.get("raw_fields")
+        evidence = pending["evidence"]
+        page, band = evidence["page"], evidence["physical_band_index"]
+        if not isinstance(fields, dict):
+            unresolved_physical.append(pending)
+            continue
+        physical = source_slots.get((page, band))
+        blockers = [reason for reason in pending["reasons"] if reason != "paper_source_fields_unverified"]
+        owner = OWNER_CODES.get(fields.get("owner_code"))
+        if fields.get("owner_code") is None and fields.get("owner_raw") == "" and physical:
+            proof = _blank_paper_owner(pdf_bytes, observation, physical, page, owner_images)
+            if proof is not None:
+                owner = "Undisclosed"
+                blockers = [reason for reason in blockers if reason != "owner_unreadable"]
+                owner_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
+        if cover != "New":
+            blockers.append("filing_status_unobserved" if cover is None else "revision_relationship_unresolved")
+        asset = fields.get("asset_raw") or ""
+        cell = physical["cells"]["asset"] if physical and physical.get("cells") else None
+        reread = second.get((page, band, "asset"))
+        if cell is None or reread is None:
+            blockers.append("asset_reading_not_corroborated")
+        elif not _asset_reading_is_bound(pdf_bytes, reread, cell, page, rendered_secondary):
+            blockers.append("asset_reading_evidence_unbound")
+        else:
+            normalize = lambda value: re.sub(r'[^a-z0-9]', '', value.casefold())
+            line_proof = project_asset_line_reading(observation, page, physical)
+            alternate = str(reread.get('second_ocr_raw', ''))
+            if line_proof is not None and normalize(line_proof['ordered_raw']) != normalize(asset):
+                if normalize(line_proof['ordered_raw']) == normalize(alternate):
+                    asset = ' '.join(line_proof['ordered_raw'].split())
+                    asset_bindings.append({'extraction_id': paper_disclosure_id(source_sha, page, band),
+                        **line_proof, 'second_raw': alternate,
+                        'second_crop_sha256': reread.get('second_crop_sha256')})
+                else:
+                    blockers.append('asset_reading_conflict')
+            elif normalize(asset) != normalize(alternate):
+                proof = asset_proofs.get((page, band))
+                if proof is None:
+                    blockers.append("asset_reading_conflict")
+                else:
+                    asset_bindings.append({"extraction_id": paper_disclosure_id(source_sha, page, band), **proof})
+        quality_blockers = {"event_date_ocr_confidence_below_70"}
+        owner_proof = owner_proofs.get((page, band))
+        if owner_proof is not None and owner == OWNER_CODES.get(owner_proof["owner_code"]):
+            owner_reading_bindings.append({"extraction_id":paper_disclosure_id(source_sha,page,band), **owner_proof})
+        else:
+            owner_proof = None
+        if owner != "Undisclosed" and owner_proof is None:
+            quality_blockers.add("owner_ocr_confidence_below_70")
+        if any(flag in quality_blockers
+               for flag in pending.get("source_quality_flags", [])):
+            blockers.append("key_source_reading_uncertain")
+        context = pending.get("account_section_observation") or {}
+        if context.get("section_key"):
+            blockers.append("account_title_reading_not_corroborated")
+        amount = pending.get("amount_range_observation")
+        if amount_header and amount_header.get("reading_mode") == "printed_columns/v1":
+            letter = _selected_amount_letter(fields)
+            readings = [item for item in amount_header.get("column_readings", [])
+                        if item.get("page") == page and item.get("label") == letter]
+            local_amount = None
+            if len(readings) == 1 and physical and physical.get("cells"):
+                local_amount = _bound_amount_column(pdf_bytes, readings[0], physical, page,
+                    rendered_secondary, header_geometries=header_geometries)
+            if len(readings) > 1:
+                blockers.append("amount_column_reading_duplicated")
+                amount = None
+            elif readings and local_amount is None:
+                blockers.append("amount_column_reading_unverified")
+                amount = None
+            elif local_amount is not None:
+                if ((isinstance(amount, dict) and _amount_bounds_key(amount) != _amount_bounds_key(local_amount))
+                        or _page_a_header_conflicts(amount_header, page, local_amount)):
+                    blockers.append("amount_header_reading_conflict")
+                    amount = None
+                elif not isinstance(amount, dict):
+                    amount = local_amount
+        if not isinstance(amount, dict):
+            blockers.append("amount_header_unresolved")
+            amount = {}
+        low, high = amount.get("low"), amount.get("high")
+        exclusive = None
+        if high is None and type(low) is int:
+            letter = amount.get("letter")
+            if letter == "J":
+                low, exclusive = 50000000, True
+            elif letter == "K" and OWNER_CODES.get(fields.get("owner_code")) in {"Spouse", "Dependent Child"}:
+                low, exclusive = 1000000, True
+                blockers = [reason for reason in blockers if reason not in {
+                    "amount_mark_unresolved", "spouse_dc_open_ended_amount_not_representable"}]
+        extraction_rows.append({
+            "extraction_id": paper_disclosure_id(source_sha, page, band),
+            "filing_status": cover, "reported_transaction_id": None,
+            "owner": owner, "asset_name": asset,
+            "ticker": None, "instrument_type": None,
+            "transaction_type": fields.get("direction_mark"),
+            "transaction_date": fields.get("event_date"),
+            "notification_date": fields.get("notification_date"),
+            "amount_low": low, "amount_high": high,
+            "amount_kind": "open_ended" if exclusive is not None else "range",
+            **({"amount_low_exclusive": exclusive} if exclusive is not None else {}),
+            "field_problems": sorted(set(blockers)), "evidence": evidence,
+        })
+    extraction = {"schema_version": SCHEMA, "parser_version": FACT_PARSER_VERSION,
+        "source_sha256": source_sha, "source": metadata,
+        "extraction_method": "source_bound_paper_cells", "transactions": extraction_rows,
+        "source_report_ledger": baseline["source_report_ledger"]}
+    result = qualify_automatic(extraction, identity,
+        verified_blank_paper_owner_ids=frozenset(item["extraction_id"] for item in owner_bindings))
+    if owner_bindings:
+        result["source_bound_owner_decisions"] = owner_bindings
+    if asset_bindings:
+        result["source_bound_asset_decisions"] = asset_bindings
+    if owner_reading_bindings:
+        result["source_bound_owner_reading_decisions"] = owner_reading_bindings
+    result["quarantined"].extend(unresolved_physical)
+    result["qualification"]["quarantined_count"] = len(result["quarantined"])
+    if result["quarantined"]:
+        result["qualification"]["status"] = "qualified_rows" if result["transactions"] else "quarantined_rows"
+    result["materialized_extraction"] = extraction
+    result["observation_materialization"] = {"source_sha256": source_sha,
+        "observation_sha256": hashlib.sha256(json.dumps(observation, ensure_ascii=False,
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+        "observed_data_row_count": len(extraction_rows),
+        "unresolved_physical_row_count": len(unresolved_physical),
+        "production_mutation_authorized": False}
+    return result
+
+
+def _asset_reading_is_bound(pdf_bytes: bytes, item: dict, cell: dict,
+                            page: int, rendered: dict) -> bool:
+    """Validate the existing second-reading crop without running OCR again."""
+    import hashlib
+    import io
+    if (item.get("first_crop_sha256") != cell.get("crop_sha256") or
+            item.get("first_ocr_raw") != cell.get("raw_text") or
+            item.get("second_crop_render_dpi") != 300):
+        return False
+    box = cell.get("bbox_normalized")
+    if (not isinstance(box, list) or len(box) != 4 or
+            not all(type(value) in {float, int} for value in box) or
+            not 0 <= box[0] < box[2] <= 1 or not 0 <= box[1] < box[3] <= 1):
+        return False
+    if page not in rendered:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            rendered[page] = pdf.pages[page - 1].to_image(resolution=300).original.convert("L")
+    image = rendered[page]
+    crop = image.crop((round(box[0] * image.width) + 3, round(box[1] * image.height) + 3,
+                       round(box[2] * image.width) - 3, round(box[3] * image.height) - 3))
+    encoded = io.BytesIO()
+    crop.save(encoded, format="PNG")
+    return hashlib.sha256(encoded.getvalue()).hexdigest() == item.get("second_crop_sha256")
+
+
+def _bound_amount_column(pdf_bytes: bytes, reading: dict, physical: dict,
+                          page: int, rendered: dict, *, header_geometries: dict | None = None) -> dict | None:
+    import hashlib
+    import io
+    from .house_ptr_amount_header import interpret_amount_column
+    amount = interpret_amount_column(reading)
+    if (amount is None or reading.get("page") != page or reading.get("render_dpi") != 300 or
+            reading.get("image_rotation_degrees") != 270 or
+            reading.get("coordinate_frame") != "original_page"):
+        return None
+    box = reading.get("bbox_pixels")
+    if (not isinstance(box, list) or len(box) != 4 or
+            not all(type(value) is int for value in box) or
+            not 0 <= box[0] < box[2] or not 0 <= box[1] < box[3]):
+        return None
+    if page not in rendered:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            rendered[page] = pdf.pages[page - 1].to_image(resolution=300).original.convert("L")
+    image = rendered[page]
+    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation_shadow import _column_boxes
+    geometries = header_geometries if header_geometries is not None else {}
+    if page not in geometries:
+        region = locate_transaction_grid(image)
+        columns = (_column_boxes(region, image) if region.get("status") == "located_shadow"
+                   and region.get("coordinate_frame") == "original_page" else {})
+        geometries[page] = region, columns
+    region, columns = geometries[page]
+    edges = columns.get("amount", [])
+    if columns.get("status") != "located_shadow" or len(edges) not in (11, 12):
+        return None
+    index = ord(reading["label"]) - ord("A")
+    if not 0 <= index < len(edges) - 1:
+        return None
+    if reading.get("amount_column_count", len(edges) - 1) != len(edges) - 1:
+        return None
+    upper, lower = region["header_band"]
+    expected = [int(edges[index] * image.width) + 2, int((upper + .005) * image.height),
+                int(edges[index + 1] * image.width) - 2, int((lower - .005) * image.height)]
+    if box != expected:
+        return None
+    cells = [cell for cell in physical["cells"]["amount"] if cell.get("label") == reading["label"]]
+    if len(cells) != 1 or box[2] > image.width or box[3] > image.height:
+        return None
+    bounds = cells[0]["bbox_normalized"]
+    if (abs(box[0] / image.width - bounds[0]) > .006 or
+            abs(box[2] / image.width - bounds[2]) > .006 or
+            box[3] / image.height >= physical["band"][0]):
+        return None
+    crop = image.crop(tuple(box)).rotate(270, expand=True)
+    encoded = io.BytesIO()
+    crop.save(encoded, format="PNG")
+    return amount if hashlib.sha256(encoded.getvalue()).hexdigest() == reading.get("crop_sha256") else None

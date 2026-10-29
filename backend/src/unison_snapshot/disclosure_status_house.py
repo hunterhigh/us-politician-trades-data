@@ -60,6 +60,17 @@ def _reasons(value: dict) -> set[str]:
 
 def build_house_status(evidence_root: Path, review_root: Path,
                        transactions: list[dict], holdings: list[dict]) -> list[dict]:
+    """Read report status only from a complete, idle House review directory."""
+    from .house_paper_commit import paper_review_access
+    with paper_review_access(review_root,require_complete=True):
+        from .disclosure_status_house_annual import build_house_annual_status, is_annual_transaction
+        ptr_transactions = [row for row in transactions if not is_annual_transaction(row)]
+        return (_build_house_status(evidence_root,review_root,ptr_transactions,holdings) +
+                build_house_annual_status(Path(evidence_root),Path(review_root),transactions,holdings))
+
+
+def _build_house_status(evidence_root: Path, review_root: Path,
+                        transactions: list[dict], holdings: list[dict]) -> list[dict]:
     """Account for every discovered PTR and bind supplied publication rows.
 
     Each year's most recently retrieved index defines its current catalog.
@@ -146,6 +157,31 @@ def build_house_status(evidence_root: Path, review_root: Path,
                 raise ValueError(f"House review source binding mismatch: {path}")
             artifacts[kind][key] = value
             discovered.add(key[:2])
+    from .house_source_revisions import resolve_source_bound_house_revisions
+    from .house_paper_owner_inputs import replay_house_paper_owner_correction
+    for key, qualification in artifacts['qualifications'].items():
+        if 'source_bound_paper_owner_correction' in qualification:
+            replay_house_paper_owner_correction(evidence_root, review_root,
+                qualification=qualification, extraction=artifacts['extractions'].get(key))
+    from .house_native_contrast import PARSER_VERSIONS as CONTRAST_VERSIONS
+    for key, qualification in artifacts['qualifications'].items():
+        if qualification.get('parser_version') not in CONTRAST_VERSIONS:
+            continue
+        extraction = artifacts['extractions'].get(key)
+        if extraction is None:
+            raise ValueError('House contrast status requires its original selected extraction')
+        from .house_ptr import qualify_automatic
+        expected = qualify_automatic(extraction, qualification.get('identity', {}), evidence_root=evidence_root)
+        if qualification != expected:
+            raise ValueError('House contrast status qualification differs from complete original replay')
+    revision_inputs = [(qualification, artifacts["extractions"][key])
+        for key, qualification in artifacts["qualifications"].items()
+        if key in artifacts["extractions"] and len(versions.get(key[:2], {})) == 1
+        and key[2] in versions[key[:2]]]
+    revision_resolution = resolve_source_bound_house_revisions(revision_inputs,
+        [row for q, _ in revision_inputs for row in q.get("transactions", [])],
+        prior_transactions=transactions, evidence_root=evidence_root, review_root=review_root)
+    superseded = {r["prior_transaction_id"]: r for r in revision_resolution["replacements"]}
     keys = discovered | set(versions)
     records = []
     for year, docid in sorted(keys):
@@ -195,6 +231,7 @@ def build_house_status(evidence_root: Path, review_root: Path,
             extraction = artifacts["extractions"].get(version)
             failure = artifacts["failures"].get(version)
             qualification = artifacts["qualifications"].get(version)
+            qualification = revision_resolution["qualifications"].get(docid, qualification)
             if extraction is not None:
                 record["extraction_state"] = "extracted"
                 if failure is not None:
@@ -215,16 +252,50 @@ def build_house_status(evidence_root: Path, review_root: Path,
                     reasons.add("qualification_without_extraction")
                     record["qualification_state"] = "unknown"
                 else:
+                    replaced = [row["id"] for row in rows if row["id"] in superseded]
+                    rows = [row for row in rows if row["id"] not in superseded]
                     record["qualified_transaction_count"] = len(rows)
+                    if replaced:
+                        record["superseded_transaction_ids"] = sorted(replaced)
+                        record["revision_replacements"] = [superseded[key] for key in sorted(replaced)]
                     record["quarantined_row_count"] = len(quarantined)
+                    from .house_ptr_paper_qualification import paper_materialization_counts
+                    paper_counts = paper_materialization_counts(qualification, extraction)
+                    if paper_counts is not None:
+                        record.update(paper_counts)
+                        record["quarantined_row_count"] = paper_counts["whole_source_unique_quarantined_row_count"]
                     reasons.update(_reasons(summary))
                     for row in quarantined:
                         if isinstance(row, dict):
                             reasons.update(_reasons(row))
                     state = ("partial" if rows and quarantined else "qualified" if rows else
                              "quarantined" if quarantined else "zero_transactions"
-                             if summary.get("zero_transaction_document_count") == 1 else "unknown")
+                             if summary.get("zero_transaction_document_count") == 1 else "superseded" if replaced else "unknown")
+                    ledger = qualification.get("source_report_ledger")
+                    if ledger is not None:
+                        if (not isinstance(ledger, dict) or
+                                ledger.get("document_sha256") != selected or
+                                ledger.get("source_id") != "house_clerk"):
+                            raise ValueError("House source ledger provenance mismatch")
+                        if ledger.get("relation_coverage") != "accounted":
+                            reasons.add("source_row_coverage_incomplete")
+                            if state != "superseded":
+                                state = "partial" if rows else "quarantined" if quarantined else "unknown"
                     record["qualification_state"] = state
+                    if qualification.get('parser_version') in CONTRAST_VERSIONS:
+                        record['source_observation_coverage'] = {
+                            'coverage_complete':False, 'basis':'same_sha_original_native_contrast',
+                            'unknown_row_ids':[item['raw_row_id'] for item in qualification['native_contrast_dispositions']
+                                               if item['status'] == 'unknown']}
+                        if state != 'superseded':
+                            record['qualification_state'] = 'partial' if rows else 'quarantined' if quarantined else 'unknown'
+                        reasons.add('source_row_coverage_incomplete')
+                    from .house_ptr import revision_reference_dispositions
+                    revisions = revision_resolution["dispositions"].get(docid,
+                        revision_reference_dispositions(qualification, extraction, transactions))
+                    if revisions:
+                        record["revision_reference_dispositions"] = revisions
+                        reasons.update(item["disposition"] for item in revisions)
                     if state == "unknown":
                         reasons.add("empty_qualification_without_zero_declaration")
             elif extraction is not None:
@@ -263,6 +334,24 @@ def build_house_status(evidence_root: Path, review_root: Path,
         if record is None:
             unmatched.append(txid)
         else:
+            version = record.get('selected_source_version')
+            selected_qualification = artifacts['qualifications'].get(
+                (int(record['report_id'].split(':')[1]),record['document_id'],version))
+            selected_qualification = revision_resolution['qualifications'].get(record['document_id'], selected_qualification)
+            if selected_qualification is not None and selected_qualification.get('parser_version') in CONTRAST_VERSIONS:
+                current = {item['id']:item for item in selected_qualification['transactions']}
+                if txid in current and row != current[txid]:
+                    raise ValueError('House contrast publication changed a current source-qualified fact')
+                if txid not in current:
+                    known = {item['raw_row_id'] for item in selected_qualification['native_contrast_dispositions']}
+                    if txid not in known:
+                        raise ValueError('House contrast publication has no original physical row')
+                    record.setdefault('retained_source_unqualified_transaction_ids', []).append(txid)
+            if selected_qualification is not None and 'source_bound_paper_owner_correction' in selected_qualification:
+                from .house_paper_owner_inputs import represented_paper_owner_fact
+                current = {item['id']: item for item in selected_qualification['transactions']}
+                if txid not in current or represented_paper_owner_fact(current[txid], row) is None:
+                    raise ValueError('House paper owner publication differs from the source-qualified fact')
             record["publication_transaction_ids"].append(txid)
     for record in records:
         record["publication_transaction_ids"].sort()

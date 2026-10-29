@@ -1,9 +1,11 @@
 import unittest
 import json
 import tempfile
+import hashlib
+from unittest.mock import patch
 from pathlib import Path
 
-from unison_snapshot.house_ptr_paper_qualification import qualify_paper_observation
+from unison_snapshot.house_ptr_paper_qualification import qualify_paper_observation, materialize_paper_observation
 from unison_snapshot.house_candidate import build_house_candidate
 from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_ptr_amount_header import LABELS, evaluate_amount_header_pages
@@ -62,6 +64,98 @@ class HousePaperQualificationTests(unittest.TestCase):
         self.assertEqual(pending["rows"][0]["owner"], "Spouse")
         self.assertEqual(pending["rows"][0]["transaction_date"], "2026-05-01")
         self.assertNotIn("id", pending["rows"][0])
+
+    def _source_bound_fixture(self):
+        raw = b"synthetic-paper-source"
+        self.sha = hashlib.sha256(raw).hexdigest()
+        self.metadata["sha256"] = self.observation["source_sha256"] = self.sha
+        self.observation["pages"][0]["filing_status_observation"] = "New"
+        self.identity.update(status="matched_automatically", official_name="Michael T. McCaul",
+            state="TX", state_district="TX10", party="R", roster_sha256="b" * 64,
+            evidence_url="https://bioguide.congress.gov/search/bio/M001157",
+            match_basis="official_roster_exact_district_first_last_name")
+        printed = "\n".join(["$1,000-$15,000", *LABELS.values()])
+        header = evaluate_amount_header_pages(self.sha, [{"page": 1,
+            "status": "header_ocr_observed", "raw_header_text": printed}])
+        reread = {"schema_version": "house-paper-key-field-reread/v1",
+            "source_sha256": self.sha, "qualification_status": "unverified_shadow_only",
+            "rereads": [{"page": 1, "physical_band_index": 1, "field": "asset",
+                         "second_ocr_raw": "EXAMPLE INC"}]}
+        slots = {(1, row["physical_band_index"]): row for row in self.observation["pages"][0]["rows"]}
+        return raw, header, reread, slots
+
+    def test_source_bound_fact_path_uses_existing_qualification_and_candidate(self):
+        from test_house_candidate import BASE
+        raw, header, reread, slots = self._source_bound_fixture()
+        # These mocks isolate interpretation/consumer contracts; real crop
+        # provenance and OCR accuracy are separate fixed-source evidence.
+        with (patch("unison_snapshot.house_ptr_fixed_source_core.check_source_cells", return_value=slots),
+              patch("unison_snapshot.house_ptr_paper_qualification._asset_reading_is_bound", return_value=True)):
+            result = materialize_paper_observation(raw, self.observation, self.metadata,
+                self.identity, amount_header=header, field_reread=reread)
+        self.assertEqual((len(result["transactions"]), len(result["quarantined"])), (1, 1))
+        self.assertNotIn("pending_transaction_projection", result)
+        self.assertEqual(result["transactions"][0]["id"],
+            "house-ptr:" + hashlib.sha256(f"{self.sha}:1:1".encode()).hexdigest()[:24])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / "house_clerk/qualifications/2026/9116141/source.json"
+            target.parent.mkdir(parents=True)
+            target.write_text(json.dumps(result), encoding="utf-8")
+            status = root / "status/summary.json"
+            status.parent.mkdir(parents=True)
+            status.write_text(json.dumps({"parser_commit": "a" * 40, "pending_parse_count": 0,
+                "qualification_count": 1, "qualified_transaction_count": 1,
+                "quarantined_row_count": 1, "evidence_count": 1, "extracted_count": 1,
+                "failure_count": 0}), encoding="utf-8")
+            candidate = build_house_candidate(root, {"status": "ok", "run_at": "2026-09-18T00:00:00Z",
+                "counts": {"archived": 1, "pending": 0, "failed": 0}}, BASE)
+            self.assertEqual(candidate["transactions"], result["transactions"])
+        preserved = materialize_paper_observation(raw, self.observation, self.metadata,
+            self.identity, prior_qualification=result)
+        self.assertEqual(preserved, result)
+
+    def test_conflicting_asset_and_unread_cover_remain_specific_blockers(self):
+        raw, header, reread, slots = self._source_bound_fixture()
+        self.observation["pages"][0]["filing_status_observation"] = None
+        reread["rereads"][0]["second_ocr_raw"] = "OTHER ASSET"
+        with (patch("unison_snapshot.house_ptr_fixed_source_core.check_source_cells", return_value=slots),
+              patch("unison_snapshot.house_ptr_paper_qualification._asset_reading_is_bound", return_value=True)):
+            result = materialize_paper_observation(raw, self.observation, self.metadata,
+                self.identity, amount_header=header, field_reread=reread)
+        self.assertEqual(result["transactions"], [])
+        self.assertIn("asset_reading_conflict", result["quarantined"][0]["reasons"])
+        self.assertIn("filing_status_unobserved", result["quarantined"][0]["reasons"])
+        self.assertNotIn("paper_source_fields_unverified", result["quarantined"][0]["reasons"])
+        with self.assertRaisesRegex(ValueError, "source mismatch"):
+            materialize_paper_observation(b"other source", self.observation, self.metadata, self.identity)
+
+    def test_amount_header_cannot_reuse_the_neighbor_column_crop(self):
+        import importlib.util
+        if importlib.util.find_spec("PIL") is None:
+            self.skipTest("optional raster dependency")
+        import io
+        from PIL import Image
+        from unison_snapshot.house_ptr_paper_qualification import _bound_amount_column
+        image = Image.new("L", (1000, 1000), "white")
+        crop = image.crop((102, 105, 198, 195)).rotate(270, expand=True)
+        encoded = io.BytesIO()
+        crop.save(encoded, format="PNG")
+        reading = {"page": 1, "label": "B", "status": "raw_column_observed",
+            "raw": "$15,001\n$50,000", "bbox_pixels": [102, 105, 198, 195],
+            "render_dpi": 300, "image_rotation_degrees": 270, "coordinate_frame": "original_page",
+            "crop_sha256": hashlib.sha256(encoded.getvalue()).hexdigest()}
+        physical = {"band": [.3, .4], "cells": {"amount": [
+            {"label": "B", "bbox_normalized": [.1, .3, .2, .4]}]}}
+        # This test isolates the column/crop contract; a blank image itself
+        # supplies no evidence that a printed header exists.
+        with patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value={
+                "status": "located_shadow", "coordinate_frame": "original_page", "header_band": [.1, .2]}), \
+             patch("unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value={
+                "status": "located_shadow", "amount": [i / 10 for i in range(11)]}):
+            self.assertEqual(_bound_amount_column(b"unused", reading, physical, 1, {1: image})["low"], 15001)
+            reading["bbox_pixels"] = [300, 105, 400, 195]
+            self.assertIsNone(_bound_amount_column(b"unused", reading, physical, 1, {1: image}))
 
     def test_peer_filing_dates_add_observation_without_promoting_rows(self):
         def official(document_id, filed_date, sha):

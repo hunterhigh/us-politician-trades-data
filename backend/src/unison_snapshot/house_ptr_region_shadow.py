@@ -156,7 +156,10 @@ def _locate_upright_grid(image) -> dict:
         if discontinuous:
             rejections.append("discontinuous_asset_rows")
             continue
-        if not filled:
+        # A statement-only report still has a complete ruled transaction grid.
+        # Keep its ink-bearing unknown slot for semantic classification; an
+        # empty grid alone is never evidence of a zero-transaction report.
+        if not filled and not any(item["disposition"] == "unknown" for item in physical):
             rejections.append("no_filled_asset_rows")
             continue
         candidate = {"table_top": filled[0]["upper"] if filled else rows[0]["upper"],

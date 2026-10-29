@@ -8,13 +8,14 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from observe_oge_annual_scan_dates import observe_fixed_batch
+from unison_snapshot.commands.observe_oge_annual_scan_dates import observe_fixed_batch
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_annual_scan_dates import (FIXED_COVERS,
+from unison_snapshot.oge_annual_scan_dates import (cover_observations,
                                                     observe_scan_date_blocks)
 
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "oge_annual_scanned_cover_dates_summary.json"
+FIXED_COVERS = cover_observations()
 
 
 class OgeAnnualScanDatesTests(unittest.TestCase):

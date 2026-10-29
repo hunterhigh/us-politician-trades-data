@@ -14,7 +14,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_annual_scan_cover import observe_scan_cover
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from observe_oge_annual_scan_covers import observe_failed_covers
+from unison_snapshot.commands.observe_oge_annual_scan_covers import observe_failed_covers
 
 
 class OgeAnnualScanCoverTests(unittest.TestCase):
@@ -87,7 +87,7 @@ class OgeAnnualScanCoverTests(unittest.TestCase):
             target = review / "oge/annual/extraction-status.json"
             target.parent.mkdir(parents=True)
             target.write_text(json.dumps({"failures": failures}), encoding="utf-8")
-            with patch("observe_oge_annual_scan_covers.observe_scan_cover",
+            with patch("unison_snapshot.commands.observe_oge_annual_scan_covers.observe_scan_cover",
                        side_effect=[ValueError("OCR unavailable"),
                                     {"schema_version": "oge-278e-scan-cover-observation/v1",
                                      "source_sha256": sha,

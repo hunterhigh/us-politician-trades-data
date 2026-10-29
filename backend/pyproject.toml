@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==84.2.1", "wheel==0.48.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,8 +9,14 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
+native-source-proof = ["pdfplumber==0.11.9", "PyMuPDF==1.28.2", "fonttools==4.62.1"]
+oge-source-quad = ["pypdfium2==5.13.0", "numpy==2.4.4", "Pillow==12.3.0", "opencv-python==5.0.0.93"]
 house-ingest = ["pdfplumber==0.11.9", "numpy==2.4.4"]
-oge-raster-ocr = ["pdfplumber==0.11.9", "numpy==2.4.4", "rapidocr-onnxruntime==1.4.4"]
+oge-raster-ocr = ["pdfplumber==0.11.9", "numpy==2.4.4", "rapidocr-onnxruntime==1.4.4", "PyMuPDF==1.28.2"]
+oge-handwritten-date = ["PyMuPDF==1.28.2", "numpy==2.4.4", "Pillow==12.3.0", "opencv-python==5.0.0.93", "onnxruntime==1.30.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+unison_snapshot = ["*.js"]

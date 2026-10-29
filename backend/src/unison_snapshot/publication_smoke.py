@@ -20,7 +20,7 @@ def client_identity(root):
     """Reuse a passing smoke only while both publication and consumer stay fixed."""
     root = Path(root)
     paths = set()
-    for pattern in ('backend/src/unison_snapshot/**/*.py', 'client/*.py',
+    for pattern in ('backend/src/unison_snapshot/**/*.py', 'backend/src/unison_snapshot/**/*.js', 'client/*.py',
             'frontend-contract-v*/scripts/*.py', 'review-input/us-politician-trades-watch/scripts/*.py'):
         paths.update(root.glob(pattern))
     paths.add(root/'backend/data/publication_smoke.json')

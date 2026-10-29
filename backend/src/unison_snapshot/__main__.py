@@ -1,9 +1,19 @@
 import argparse
+import sys
+from .command_registry import dispatch
+
+# A selected command owns its parser and dependencies. Avoid importing every
+# source adapter merely to run a small status command or request its --help.
+if __name__ == '__main__' and dispatch(sys.argv[1:]):
+    raise SystemExit(0)
+
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 
 from .alpaca_market import AlpacaMarketClient, AlpacaMarketError, build_market_validation
@@ -29,7 +39,7 @@ from .congress_members import (
     CongressMemberClient, CongressMemberError, DEFAULT_CONGRESS,
     discover_congress_senate_members,
 )
-from .legacy import load, PROCESSOR_V2_SHA256
+from .legacy import load, processor_version_for, PROCESSOR_V2_SHA256, PROCESSOR_V3_SHA256
 from .senate import SenateEfdError, SenateHttpError, SenateTransportError, collection_gate_status, discover_ptrs, parse_search_page, \
     source_config_from_environment
 from .senate_members import SenateMemberClient, SenateRosterError, build_roster, \
@@ -47,24 +57,22 @@ from .senate_history import (
 )
 from .oge import (
     MAX_CATALOG_PAGE_SIZE as OGE_MAX_CATALOG_PAGE_SIZE,
-    OgeCatalogError, collection_gate_status as oge_collection_gate_status,
+    OgeCatalogError, OgeHttpError, collection_gate_status as oge_collection_gate_status,
     discover_catalog as discover_oge_catalog,
     source_config_from_environment as oge_source_config_from_environment,
 )
 from .oge_reports import (
     PARSER_VERSION as OGE_REPORT_PARSER_VERSION,
-    TRUMP_SEPT_2026_DOCUMENT_ID, TRUMP_SEPT_2026_PARSER_VERSION,
-    TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-    TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-    TRUMP_SEPT_2026_PAGE7_PASS_VERSION,
-    TRUMP_SEPT_2026_SOURCE_SHA256, TRUMP_SEPT_2026_SOURCE_URL,
+    GENERIC_PARSER_VERSION as OGE_GENERIC_PARSER_VERSION,
     archive_direct_batch as archive_oge_direct_batch,
     load_reusable_extraction as load_reusable_oge_extraction,
     parse_archived_pdf as parse_oge_archived_pdf,
 )
 from .oge_candidate import build_oge_candidate
+from .reviewed_oge_extraction import (approved_extraction as approved_oge_extraction,
+    parser_versions as reviewed_oge_versions, version_priority as oge_version_priority)
 from .public_repo import HTTPTransport, PublicSnapshotRepository
-from .release_readiness import ReleaseReadinessError, validate_first_launch
+from .release_readiness import ReleaseReadinessError, validate_publication
 from .store import GitStore, assemble
 
 
@@ -79,8 +87,13 @@ def _write_atomic(path: Path, payload: dict) -> None:
 
 
 def main() -> None:
+    import sys
+    from .command_registry import dispatch, register
+    if dispatch(sys.argv[1:]):
+        return
     parser = argparse.ArgumentParser(description="Snapshot production, public reading and official-source discovery")
     sub = parser.add_subparsers(dest="command", required=True)
+    register(sub)
     publish = sub.add_parser("publish-demo")
     publish.add_argument("--input", type=Path, required=True)
     publish.add_argument("--store", type=Path, required=True)
@@ -128,7 +141,7 @@ def main() -> None:
     fetch_status.add_argument("--token-env", default="GITHUB_TOKEN")
     fetch_status.add_argument("--output", type=Path, required=True)
     readiness = sub.add_parser(
-        "verify-first-launch",
+        "verify-publication-readiness",
         help="Fail closed unless every in-scope disclosure source is fully accounted for")
     readiness.add_argument("--review-root", type=Path, required=True)
     readiness.add_argument("--input", type=Path, required=True)
@@ -174,6 +187,7 @@ def main() -> None:
     qualify_ptr = sub.add_parser("qualify-house-ptr")
     qualify_ptr.add_argument("--extraction", type=Path, required=True)
     qualify_ptr.add_argument("--identity", type=Path, required=True)
+    qualify_ptr.add_argument("--evidence-root", type=Path)
     qualify_ptr.add_argument("--output", type=Path, required=True)
     qualify_paper = sub.add_parser("qualify-house-paper-observation")
     qualify_paper.add_argument("--observation", type=Path, required=True)
@@ -183,18 +197,33 @@ def main() -> None:
     qualify_paper.add_argument("--tesseract")
     qualify_paper.add_argument("--peer-metadata", type=Path, nargs="+")
     qualify_paper.add_argument("--output", type=Path, required=True)
+    reviewed_paper = sub.add_parser("correct-reviewed-house-paper")
+    reviewed_paper.add_argument("--evidence-root", type=Path, required=True)
+    reviewed_paper.add_argument("--review-root", type=Path, required=True)
+    reviewed_paper.add_argument("--correction", type=Path, required=True)
     bridge_paper = sub.add_parser("bridge-house-paper-batch")
     bridge_paper.add_argument("--evidence-root", type=Path, required=True)
     bridge_paper.add_argument("--review-root", type=Path, required=True)
     bridge_paper.add_argument("--parse-batch", type=Path, required=True)
     bridge_paper.add_argument("--tesseract", required=True)
     bridge_paper.add_argument("--document-id")
+    bridge_paper.add_argument("--materialize-saved", action="store_true",
+                              help="Interpret saved paper evidence without starting OCR")
+    senate_observation = sub.add_parser('observe-senate-paper-slots')
+    from .senate_paper_observation_cli import configure_parser as configure_senate_observation
+    configure_senate_observation(senate_observation)
+    senate_correction = sub.add_parser('correct-reviewed-senate-paper')
+    for name in ('batch', 'pending', 'correction', 'evidence-root', 'output'):
+        senate_correction.add_argument('--'+name, type=Path, required=True)
     candidate = sub.add_parser("build-house-candidate")
     candidate.add_argument("--review-root", type=Path, required=True)
+    candidate.add_argument("--evidence-root", type=Path)
     candidate.add_argument("--state-status", type=Path, required=True)
     candidate.add_argument("--base", type=Path, required=True)
     candidate.add_argument("--output", type=Path, required=True)
     candidate.add_argument("--html-output", type=Path)
+    candidate.add_argument("--annual-transaction-audit-out", type=Path,
+                           help="Save source-bound annual transaction relationship decisions")
     senate_candidate = sub.add_parser("build-senate-candidate")
     senate_candidate.add_argument("--review-root", type=Path, required=True)
     senate_candidate.add_argument("--evidence-root", type=Path)
@@ -312,12 +341,15 @@ def main() -> None:
     senate_paper_extract.add_argument("--evidence-root", type=Path, required=True)
     senate_paper_extract.add_argument("--review-root", type=Path, required=True)
     senate_paper_extract.add_argument("--tesseract", default="tesseract")
+    senate_paper_extract.add_argument("--saved-grid-observations", type=Path)
+    senate_paper_extract.add_argument("--saved-word-pages", type=Path)
     senate_paper_extract.add_argument("--output", type=Path, required=True)
     senate_history = sub.add_parser("plan-senate-amendment-backfill")
     senate_history.add_argument("--review-root", type=Path, required=True)
     senate_history.add_argument("--historical-discovery", type=Path, required=True)
     senate_history.add_argument("--historical-identities", type=Path, required=True)
     senate_history.add_argument("--expected-target-count", type=int, required=True)
+    senate_history.add_argument("--document-id", action="append")
     senate_history.add_argument("--output", type=Path, required=True)
     senate_history_resolve = sub.add_parser("resolve-senate-amendment-backfill")
     senate_history_resolve.add_argument("--review-root", type=Path, required=True)
@@ -336,6 +368,7 @@ def main() -> None:
     oge_discovery = sub.add_parser("discover-oge")
     oge_discovery.add_argument("--archive", type=Path, required=True)
     oge_discovery.add_argument("--output", type=Path, required=True)
+    oge_discovery.add_argument("--failure-output", type=Path)
     oge_discovery.add_argument("--page-size", type=int, default=OGE_MAX_CATALOG_PAGE_SIZE)
     oge_discovery.add_argument("--enabled-env", default="OGE_COLLECTION_ENABLED")
     oge_discovery.add_argument("--terms-env", default="OGE_TERMS_ACKNOWLEDGED")
@@ -350,13 +383,26 @@ def main() -> None:
     oge_extract.add_argument("--batch", type=Path, required=True)
     oge_extract.add_argument("--archive", type=Path, required=True)
     oge_extract.add_argument("--reuse-root", type=Path)
+    oge_extract.add_argument("--generic", action="store_true")
     oge_extract.add_argument("--output-dir", type=Path, required=True)
     oge_extract.add_argument("--output", type=Path, required=True)
     oge_candidate = sub.add_parser("build-oge-candidate")
+    oge_candidate.add_argument('--allow-incomplete-reports', action='store_true')
     oge_candidate.add_argument("--catalog", type=Path, required=True)
     oge_candidate.add_argument("--catalog-history-dir", type=Path)
     oge_candidate.add_argument("--extractions-dir", type=Path, required=True)
+    oge_candidate.add_argument("--evidence-root", type=Path)
     oge_candidate.add_argument("--manual-cover-dates-dir", type=Path)
+    oge_candidate_mode = oge_candidate.add_mutually_exclusive_group()
+    oge_candidate_mode.add_argument("--generic", action="store_true")
+    oge_candidate_mode.add_argument("--generic-document-id", action="append", default=[],
+        help="Select this document's existing source-planned generic cache only; repeat up to 32 times (native v7 requires its v2 pair)")
+    oge_candidate.add_argument("--document-source", action="append", default=[], metavar="DOC:SHA",
+        help="Select one archived ordinary native input by document and SHA; repeat up to 32 times, without asserting recency or replacement")
+    oge_candidate.add_argument("--legacy-extractions-dir", type=Path)
+    oge_candidate.add_argument("--saved-exhibit-observations", type=Path)
+    oge_candidate.add_argument("--saved-observations", type=Path,
+                               help="Explicit portable saved 278-T readings; requires --evidence-root")
     oge_candidate.add_argument("--base", type=Path, required=True)
     oge_candidate.add_argument("--data-cutoff-at", required=True)
     oge_candidate.add_argument("--output", type=Path, required=True)
@@ -410,7 +456,7 @@ def main() -> None:
             if args.consumer_validation_file:
                 receipt = json.loads(args.consumer_validation_file.read_bytes())
                 if receipt != {"input_sha256": digest(input_bytes),
-                               "processor_sha256": PROCESSOR_V2_SHA256}:
+                               "processor_sha256": PROCESSOR_V3_SHA256 if processor_version_for(payload) == "v3" else PROCESSOR_V2_SHA256}:
                     raise ValueError("Consumer validation receipt does not match the input and processor")
             if payload.get("meta", {}).get("is_demo") is not False:
                 raise ValueError("Public production publication requires is_demo=false")
@@ -471,8 +517,8 @@ def main() -> None:
                                            "disclosure_status": status}))
             print(json.dumps({"commit": args.commit, "provided": status is not None,
                               "output": str(args.output.resolve())}))
-        elif args.command == "verify-first-launch":
-            result = validate_first_launch(args.review_root, args.input)
+        elif args.command == "verify-publication-readiness":
+            result = validate_publication(args.review_root, args.input)
             if args.output:
                 _write_atomic(args.output, result)
             print(json.dumps({**result, "status": "ready",
@@ -547,7 +593,8 @@ def main() -> None:
         elif args.command == "qualify-house-ptr":
             extraction = json.loads(args.extraction.read_text(encoding="utf-8"))
             identity = json.loads(args.identity.read_text(encoding="utf-8"))
-            result = qualify_automatic(extraction, identity)
+            result = qualify_automatic(extraction, identity,
+                **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_bytes(encode(result))
             print(json.dumps({"document_id": result["document_id"],
@@ -574,21 +621,49 @@ def main() -> None:
                               "qualified": 0,
                               "quarantined": result["qualification"]["quarantined_count"],
                               "output": str(args.output.resolve())}))
+        elif args.command == "correct-reviewed-house-paper":
+            from .reviewed_house_paper import qualify_reviewed_paper_paths
+            result = qualify_reviewed_paper_paths(args.evidence_root, args.review_root, args.correction)
+            print(json.dumps(result, sort_keys=True))
+        elif args.command == 'observe-senate-paper-slots':
+            from .senate_paper_observation_cli import run
+            run(args)
+        elif args.command == 'correct-reviewed-senate-paper':
+            from .reviewed_senate_paper import qualify_reviewed_senate_paths
+            result = qualify_reviewed_senate_paths(batch_path=args.batch, pending_path=args.pending,
+                correction_path=args.correction, evidence_root=args.evidence_root)
+            _write_atomic(args.output, result)
+            print(json.dumps({'transaction_count':result['transaction_count'], 'failure_count':result['failure_count']}))
         elif args.command == "bridge-house-paper-batch":
             result = bridge_paper_batch(
                 evidence_root=args.evidence_root, review_root=args.review_root,
                 parse_batch=args.parse_batch, tesseract=args.tesseract,
-                document_id=args.document_id)
+                document_id=args.document_id,
+                **({"materialize_saved": True} if args.materialize_saved else {}))
             print(json.dumps(result, sort_keys=True))
         elif args.command == "build-house-candidate":
-            result = load_house_candidate(args.review_root, args.state_status, args.base)
+            annual_audit = None
+            if args.annual_transaction_audit_out:
+                if args.annual_transaction_audit_out.resolve() in {
+                        path.resolve() for path in (args.output, args.html_output, args.base, args.state_status)
+                        if path is not None}:
+                    raise ValueError("Annual transaction audit must have its own output path")
+                annual_audit = {}
+                result = load_house_candidate(args.review_root, args.state_status, args.base,
+                    annual_transaction_audit=annual_audit,
+                    **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
+            else:
+                result = load_house_candidate(args.review_root, args.state_status, args.base,
+                    **({'evidence_root':args.evidence_root} if args.evidence_root is not None else {}))
             generated_at = result["meta"]["data_cutoff_at"]
             bundle = build(result, generated_at=generated_at, allow_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
                                   generated_at=generated_at)
             _write_atomic(args.output, result)
+            if annual_audit is not None:
+                _write_atomic(args.annual_transaction_audit_out, annual_audit)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -610,7 +685,7 @@ def main() -> None:
             _write_atomic(args.output, result)
             _write_atomic(args.audit_output, audit)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -683,7 +758,7 @@ def main() -> None:
                 cutoff_audit["candidate_sha256"] = digest(encode(result))
                 _write_atomic(args.audit_output, cutoff_audit)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -692,6 +767,8 @@ def main() -> None:
                     'schema_version': 'disclosure-assembly-status/v1', 'status': 'ready',
                     'attempted_at': datetime.now(timezone.utc).isoformat(),
                     'data_cutoff_at': generated_at,
+                    'source_cutoffs': {key: value['meta']['data_cutoff_at']
+                                       for key, value in sorted(sources.items())},
                     'candidate_sha256': digest(encode(result)),
                 })
             print(json.dumps({"sources": sorted(sources), "people": len(result["people"]),
@@ -723,7 +800,7 @@ def main() -> None:
                                                    previous_market=previous_market)
             result["meta"].update(generated_at=checked_at,
                                   snapshot_id="prepublication-validation")
-            version = ("v2" if audit["accepted_count"] else "v1")
+            version = ("v3" if processor_version_for(result) == "v3" else "v2" if audit["accepted_count"] else "v1")
             processor = load("process_snapshot", version=version)
             identity = dict(result, meta={key: value for key, value in result["meta"].items()
                                           if key != "snapshot_id"})
@@ -771,7 +848,7 @@ def main() -> None:
             result = validation.snapshot
             result["meta"]["generated_at"] = checked_at
             result["meta"]["snapshot_id"] = "prepublication-validation"
-            processor = load("process_snapshot")
+            processor = load("process_snapshot", version="v3" if processor_version_for(result) == "v3" else "v1")
             identity = dict(result, meta={key: value for key, value in result["meta"].items()
                                           if key != "snapshot_id"})
             result["meta"]["snapshot_id"] = digest(encode(identity))
@@ -783,7 +860,7 @@ def main() -> None:
             if args.processed_output:
                 _write_atomic(args.processed_output, processed)
             if args.html_output:
-                renderer = load("render_dashboard")
+                renderer = load("render_dashboard", version="v3" if processor_version_for(result) == "v3" else "v1")
                 html = renderer.render_html(renderer.load_dashboard_data(args.output))
                 args.html_output.parent.mkdir(parents=True, exist_ok=True)
                 args.html_output.write_text(html, encoding="utf-8")
@@ -923,7 +1000,7 @@ def main() -> None:
         elif args.command == "plan-senate-amendment-backfill":
             result = load_amendment_predecessor_plan(
                 args.review_root, args.historical_discovery, args.historical_identities,
-                expected_target_count=args.expected_target_count)
+                expected_target_count=args.expected_target_count, selected_document_ids=args.document_id)
             _write_atomic(args.output, result)
             print(json.dumps({"status": result["status"],
                               "targets": result["target_count"],
@@ -970,8 +1047,18 @@ def main() -> None:
                               "evidence_complete": result["evidence_complete"],
                               "output": str(args.output.resolve())}))
         elif args.command == "extract-senate-paper-pages":
+            if bool(args.saved_grid_observations) != bool(args.saved_word_pages):
+                raise SenateEfdError("Saved grid observations and word pages must be provided together")
+            saved = {}
+            if args.saved_grid_observations:
+                grids = json.loads(args.saved_grid_observations.read_text(encoding="utf-8"))
+                words = json.loads(args.saved_word_pages.read_text(encoding="utf-8"))
+                if not isinstance(grids, dict) or not isinstance(words, dict) or not grids or set(grids) != set(words):
+                    raise SenateEfdError("Saved Senate inputs require matching nonempty document maps")
+                saved = {"grid_observations": grids, "cached_word_pages": words,
+                         "selected_document_ids": sorted(grids)}
             result = extract_archived_paper_reports(
-                args.evidence_root, args.review_root, executable=args.tesseract)
+                args.evidence_root, args.review_root, executable=args.tesseract, **saved)
             _write_atomic(args.output, result)
             print(json.dumps({"reports": result["report_count"],
                               "extractions": result["extraction_count"],
@@ -1023,16 +1110,20 @@ def main() -> None:
             failures = []
             reused_count = parsed_count = 0
             for metadata in reports:
-                if not isinstance(metadata, dict) or not isinstance(metadata.get("document_id"), str):
+                if (not isinstance(metadata, dict) or
+                        not re.fullmatch('[0-9a-f]{32}',str(metadata.get('document_id',''))) or
+                        not re.fullmatch('[0-9a-f]{64}',str(metadata.get('sha256','')))):
                     raise OgeCatalogError("OGE archive batch report is invalid")
                 metadata_path = args.archive / "oge" / "reports" / metadata["document_id"] / \
                     f"{metadata.get('sha256')}.json"
                 try:
                     result = (load_reusable_oge_extraction(
-                        args.archive, metadata_path, args.reuse_root)
+                        args.archive, metadata_path, args.reuse_root,
+                        **({"generic": True} if args.generic else {}))
                         if args.reuse_root else None)
                     if result is None:
-                        result = parse_oge_archived_pdf(args.archive, metadata_path)
+                        result = parse_oge_archived_pdf(args.archive, metadata_path,
+                                                       **({"generic": True} if args.generic else {}))
                         parsed_count += 1
                     else:
                         reused_count += 1
@@ -1040,6 +1131,10 @@ def main() -> None:
                     extracted.append(result)
                 except (OgeCatalogError, OSError, json.JSONDecodeError) as exc:
                     failures.append({"document_id": metadata["document_id"], "error": str(exc)})
+                    _write_atomic(args.output_dir / (metadata['document_id'] + '.failure.json'), {
+                        'schema_version': 'oge-278t-extraction-failure/v1', 'source_id': 'oge',
+                        'document_id': metadata['document_id'], 'source_sha256': metadata.get('sha256'),
+                        'reason': 'extraction_failed', 'error_type': type(exc).__name__})
             summary = {
                 "schema_version": "oge-278t-extraction-batch/v1", "source_id": "oge",
                 "report_count": len(reports), "extraction_count": len(extracted),
@@ -1056,63 +1151,220 @@ def main() -> None:
                 "parsed_extraction_count", "failure_count", "transaction_count",
                 "quarantined_row_count")}, "output": str(args.output.resolve())}))
         elif args.command == "build-oge-candidate":
+            from .oge_source_selection import parse_document_sources, verify_selected_native_cache
+            document_sources = parse_document_sources(args.document_source)
+            if document_sources and args.evidence_root is None:
+                raise OgeCatalogError('Explicit OGE document sources require --evidence-root')
+            pinned_source_inputs = [args.catalog, args.base]
+            if document_sources:
+                from .oge_saved_observations import guard_saved_oge_outputs
+                guard_saved_oge_outputs([args.output, args.audit_output],
+                    inputs=pinned_source_inputs,
+                    protected_roots=[args.evidence_root, args.extractions_dir,
+                                     args.legacy_extractions_dir, args.catalog_history_dir,
+                                     args.manual_cover_dates_dir])
+            from .oge_native_partition import DEFAULT_VERSIONS as VISIBLE_DEFAULTS, GENERIC_VERSIONS as VISIBLE_GENERICS
+            from .oge_reports import selected_parser_version, _read_archived_source
+            scoped_generic_ids = args.generic_document_id
+            if (len(scoped_generic_ids) > 32 or len(set(scoped_generic_ids)) != len(scoped_generic_ids)
+                    or any(re.fullmatch(r'[0-9a-f]{32}', value) is None for value in scoped_generic_ids)):
+                raise OgeCatalogError('Scoped generic document IDs must be unique canonical IDs, at most 32')
+            scoped_generic_ids = set(scoped_generic_ids)
+            if scoped_generic_ids and args.evidence_root is None:
+                raise OgeCatalogError('Scoped generic selection requires --evidence-root')
+            if args.saved_observations is not None:
+                from .oge_saved_observations import guard_saved_oge_outputs
+                if args.evidence_root is None:
+                    raise OgeCatalogError("Saved OGE observations require --evidence-root")
+                guard_saved_oge_outputs([args.output, args.audit_output],
+                    inputs=[args.saved_observations, args.catalog, args.base,
+                            *([args.saved_exhibit_observations] if args.saved_exhibit_observations else [])],
+                    protected_roots=[args.evidence_root, args.extractions_dir,
+                                     args.legacy_extractions_dir, args.catalog_history_dir,
+                                     args.manual_cover_dates_dir])
             catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
             selected_extractions = {}
+            required_current_documents = set()
+            legacy_extractions = {}
+            supplemented = set()
+            for path in (args.saved_observations, args.saved_exhibit_observations):
+                if path is not None:
+                    supplied = json.loads(path.read_bytes())
+                    if not isinstance(supplied, dict):
+                        raise OgeCatalogError('OGE saved source inputs must be document mappings')
+                    supplemented.update(supplied)
+            if args.legacy_extractions_dir and not scoped_generic_ids:
+                if not args.generic:
+                    raise OgeCatalogError("Legacy inheritance input requires explicit generic mode")
+                for path in sorted(args.legacy_extractions_dir.rglob("*.json")):
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    if value.get("parser_version") != OGE_REPORT_PARSER_VERSION:
+                        continue
+                    key = value.get("document_id")
+                    if isinstance(key, str) and key in document_sources:
+                        if value.get('source_sha256') != document_sources[key]:
+                            continue
+                        pinned_source_inputs.extend(verify_selected_native_cache(
+                            path, args.legacy_extractions_dir, value, args.evidence_root))
+                    if not isinstance(key, str) or key in legacy_extractions:
+                        raise OgeCatalogError("Legacy extraction document identity is missing or duplicated")
+                    legacy_extractions[key] = value
             for path in sorted(args.extractions_dir.rglob("*.json")):
                 value = json.loads(path.read_text(encoding="utf-8"))
                 version = value.get("parser_version")
                 document_id = value.get("document_id")
-                if version not in {OGE_REPORT_PARSER_VERSION,
-                                   TRUMP_SEPT_2026_PARSER_VERSION,
-                                   TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-                                   TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                                   TRUMP_SEPT_2026_PAGE7_PASS_VERSION}:
+                if isinstance(document_id, str) and document_id in document_sources:
+                    if value.get('source_sha256') != document_sources[document_id]:
+                        continue
+                use_generic = args.generic or document_id in scoped_generic_ids
+                if version not in {OGE_REPORT_PARSER_VERSION, *VISIBLE_DEFAULTS,
+                                   *reviewed_oge_versions()} and not (
+                        use_generic and version in {OGE_GENERIC_PARSER_VERSION, *VISIBLE_GENERICS}):
                     continue
-                if version in {TRUMP_SEPT_2026_PARSER_VERSION,
-                               TRUMP_SEPT_2026_SECOND_PASS_VERSION,
-                               TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION,
-                               TRUMP_SEPT_2026_PAGE7_PASS_VERSION} and not (
-                        document_id == TRUMP_SEPT_2026_DOCUMENT_ID and
-                        value.get("source_url") == TRUMP_SEPT_2026_SOURCE_URL and
-                        value.get("source_sha256") == TRUMP_SEPT_2026_SOURCE_SHA256):
-                    raise OgeCatalogError("Source-bound OGE extraction is not the fixed report")
+                if args.evidence_root is not None:
+                    metadata_path = args.evidence_root / f"oge/reports/{document_id}/{value.get('source_sha256')}.json"
+                    metadata, source_path, source_sha = _read_archived_source(args.evidence_root, metadata_path)
+                    expected = selected_parser_version(metadata, source_path, source_sha, generic=use_generic)
+                    required_current_documents.add(document_id)
+                    if version != expected:
+                        continue
+                if (args.allow_incomplete_reports and document_id not in supplemented
+                        and version == OGE_REPORT_PARSER_VERSION and (
+                        not isinstance(value.get('source_rows'), list) or
+                        any(not isinstance(row, dict) or 'cells' not in row
+                            for row in value.get('transactions', [])))):
+                    # Pre-inventory native caches are historical observations.
+                    # They cannot establish a current execution selection or
+                    # owner migration. Keep exact formal facts via pending
+                    # report admission instead of replaying or guessing proof.
+                    continue
+                if document_id in document_sources:
+                    pinned_source_inputs.extend(verify_selected_native_cache(
+                        path, args.extractions_dir, value, args.evidence_root))
+                if version in reviewed_oge_versions() and not approved_oge_extraction(value):
+                    raise OgeCatalogError("Reviewed OGE extraction differs from its approved source output")
                 previous = selected_extractions.get(document_id)
                 if previous is not None:
-                    if (document_id != TRUMP_SEPT_2026_DOCUMENT_ID or
+                    if use_generic and OGE_GENERIC_PARSER_VERSION in {version, previous.get("parser_version")}:
+                        if version == previous.get("parser_version") or any(
+                                value.get(field) != previous.get(field)
+                                for field in ("source_sha256", "source_url", "document_id")):
+                            raise OgeCatalogError("Generic and legacy source versions are ambiguous")
+                        older = previous if version == OGE_GENERIC_PARSER_VERSION else value
+                        if older.get("parser_version") == OGE_REPORT_PARSER_VERSION:
+                            supplied = legacy_extractions.get(document_id)
+                            if supplied is not None and supplied != older:
+                                raise OgeCatalogError("Conflicting bound legacy extractions")
+                            legacy_extractions[document_id] = older
+                        if version == OGE_GENERIC_PARSER_VERSION:
+                            selected_extractions[document_id] = value
+                        continue
+                    priority = oge_version_priority(document_id, OGE_REPORT_PARSER_VERSION)
+                    if (not priority or version not in priority or
+                            previous.get("parser_version") not in priority or
                             version == previous.get("parser_version")):
                         raise OgeCatalogError("OGE extraction document ID is duplicated")
-                    priority = {
-                        OGE_REPORT_PARSER_VERSION: 0,
-                        TRUMP_SEPT_2026_PARSER_VERSION: 1,
-                        TRUMP_SEPT_2026_SECOND_PASS_VERSION: 2,
-                        TRUMP_SEPT_2026_STRUCTURAL_PASS_VERSION: 3,
-                        TRUMP_SEPT_2026_PAGE7_PASS_VERSION: 4,
-                    }
                     if priority[version] < priority[previous.get("parser_version")]:
                         continue
                 selected_extractions[document_id] = value
+            if required_current_documents - set(selected_extractions) and not args.allow_incomplete_reports:
+                raise OgeCatalogError('A current source-selected OGE extraction is missing')
+            if document_sources.keys() - selected_extractions.keys():
+                raise OgeCatalogError('A requested archived OGE document source was not selected')
+            if scoped_generic_ids - set(selected_extractions):
+                raise OgeCatalogError('A requested scoped generic document was not selected')
+            for document_id in sorted(scoped_generic_ids):
+                selected = selected_extractions[document_id]
+                sha = selected.get('source_sha256')
+                metadata, source_path, actual_sha = _read_archived_source(args.evidence_root,
+                    args.evidence_root / f'oge/reports/{document_id}/{sha}.json')
+                if (selected.get('parser_version') != OGE_GENERIC_PARSER_VERSION
+                        or selected_parser_version(metadata, source_path, actual_sha) != OGE_REPORT_PARSER_VERSION):
+                    # Other cached families retain their existing source-plan
+                    # contract; do not manufacture an ordinary v2 predecessor.
+                    continue
+                legacy_root = args.legacy_extractions_dir or args.extractions_dir
+                legacy_path = legacy_root / document_id / str(sha) / (OGE_REPORT_PARSER_VERSION.replace('/', '-') + '.json')
+                if not legacy_path.is_file():
+                    raise OgeCatalogError('Scoped generic selection lacks its canonical same-SHA v2 predecessor')
+                older = json.loads(legacy_path.read_text(encoding='utf-8'))
+                if document_id in document_sources:
+                    pinned_source_inputs.extend(verify_selected_native_cache(
+                        legacy_path, legacy_root, older, args.evidence_root))
+                if (older.get('parser_version') != OGE_REPORT_PARSER_VERSION or any(
+                        older.get(field) != selected.get(field) for field in
+                        ('document_id', 'source_sha256', 'source_url', 'source_id',
+                         'catalog_filer_name', 'agency', 'position_title', 'catalog_added_date'))):
+                    raise OgeCatalogError('Scoped generic v2 predecessor differs from the selected source')
+                legacy_extractions[document_id] = older
             extractions = list(selected_extractions.values())
+            # Bind the selected cache before an existing interpretation layer
+            # (such as the manual cover-date sidecar) changes the receiver view.
+            source_extractions = {row['document_id']: deepcopy(row) for row in extractions}
             if args.manual_cover_dates_dir:
                 from .oge_manual_dates import apply_manual_cover_dates
                 extractions = apply_manual_cover_dates(
                     extractions, args.manual_cover_dates_dir)
             catalog_history = []
             if args.catalog_history_dir:
-                current_bytes = encode(catalog)
+                current_bytes = encode({key:value for key,value in catalog.items() if key!='observed_at'})
                 for path in sorted(args.catalog_history_dir.glob("*.json")):
                     value = json.loads(path.read_text(encoding="utf-8"))
                     if encode(value) != current_bytes:
                         catalog_history.append(value)
             base = json.loads(args.base.read_text(encoding="utf-8"))
+            saved_observations = {}
+            if args.saved_observations is not None:
+                from .oge_saved_observations import load_saved_oge_observations
+                saved_observations = load_saved_oge_observations(args.saved_observations,
+                    evidence_root=args.evidence_root, extractions=extractions)
+                source_inputs = []
+                for document, request in saved_observations.items():
+                    source_inputs.extend([Path(request["archived_pdf_path"]),
+                        args.evidence_root / f"oge/reports/{document}/{request['observations'][0]['source_sha256']}.json"])
+                guard_saved_oge_outputs([args.output, args.audit_output], inputs=source_inputs)
+            incomplete_publication = None
+            if args.allow_incomplete_reports:
+                if args.evidence_root is None:
+                    raise OgeCatalogError('Incomplete OGE admission requires archived-source verification')
+                from .oge_pending import published_main
+                publication_cache = None
+                def load_publication():
+                    nonlocal publication_cache
+                    if publication_cache is None:
+                        publication_cache = published_main(Path.cwd())
+                    return publication_cache
+                incomplete_publication = load_publication
+                # Owner/classification conservation needs the actual formal
+                # predecessor even for reports that do have current inputs.
+                # The source builder emits only its own qualified scope.
+                if not base.get('transactions'):
+                    board = load_publication()['board']
+                    base['transactions'] = [deepcopy(row) for row in board['transactions']
+                                            if row.get('source_id') == 'oge']
+                    people = {row['person_id'] for row in base['transactions']}
+                    base['people'] = [deepcopy(row) for row in board['people'] if row['id'] in people]
             result, audit = build_oge_candidate(
                 catalog, extractions, base, data_cutoff_at=args.data_cutoff_at,
-                catalog_history=catalog_history)
+                evidence_root=args.evidence_root,
+                source_extractions_by_document=source_extractions,
+                catalog_history=catalog_history,
+                **({'incomplete_publication': incomplete_publication} if args.allow_incomplete_reports else {}),
+                **({"saved_observations_by_document": saved_observations} if args.saved_observations is not None else {}),
+                **({"legacy_extractions_by_document": legacy_extractions} if args.generic or scoped_generic_ids else {}),
+                **({"saved_exhibit_observations_by_document": json.loads(args.saved_exhibit_observations.read_text(encoding="utf-8"))}
+                   if args.saved_exhibit_observations else {}))
+            if args.allow_incomplete_reports and publication_cache is not None:
+                audit['prior_publication'] = {key: publication_cache[key]
+                    for key in ('main_commit', 'board_sha256', 'snapshot_id')}
             bundle = build(result, generated_at=args.data_cutoff_at, allow_production=True,
                            allow_empty_production=True)
             result["meta"].update(snapshot_id=bundle.manifest["snapshot_id"],
                                   generated_at=args.data_cutoff_at)
             audit["candidate_snapshot_id"] = bundle.manifest["snapshot_id"]
             audit["candidate_sha256"] = digest(encode(result))
+            if document_sources:
+                guard_saved_oge_outputs([args.output, args.audit_output], inputs=pinned_source_inputs)
             _write_atomic(args.output, result)
             _write_atomic(args.audit_output, audit)
             print(json.dumps({"people": len(result["people"]),
@@ -1161,6 +1413,12 @@ def main() -> None:
             CongressMemberError, OgeCatalogError, ReleaseReadinessError,
             KeyError, OSError,
             json.JSONDecodeError) as exc:
+        from .source_failures import record as record_source_failure
+        record_source_failure(args.command,exc,filing_year=getattr(args,'year',None))
+        if args.command == 'discover-oge' and args.failure_output:
+            _write_atomic(args.failure_output, {'schema_version': 'oge-collection-failure/v1',
+                'source_id': 'oge', 'http_status': exc.status if isinstance(exc, OgeHttpError) else None,
+                'failed_step': 'collect_catalog', 'recorded_at': datetime.now(timezone.utc).isoformat()})
         if (args.command == "discover-senate-efd" and args.failure_output and
                 isinstance(exc, SenateHttpError)):
             _write_atomic(args.failure_output, {

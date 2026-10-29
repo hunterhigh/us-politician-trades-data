@@ -6,20 +6,16 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows,
-                                              _ocr_cover, _parse_row, _raw_text_columns,
-                                              OCR_SHARD_SCHEMA, OcrCheckpointPending,
-                                              PARSER_VERSION, TRUMP_2025_PARSER_VERSION,
-                                              TRUMP_2025_SOURCE_SHA256, TRUMP_2025_SOURCE_URL,
-                                              extract_public_278e_pdf,
-                                              extract_public_278e_pdf_checkpointed)
+from unison_snapshot.oge_278e_public import (_assign_part6_owners, _cover, _extract_page_rows, _ocr_cover, _parse_row, _raw_text_columns, OCR_SHARD_SCHEMA, OcrCheckpointPending, PARSER_VERSION, CONSOLIDATED_SCANNED_PARSER_VERSION, extract_public_278e_pdf, extract_public_278e_pdf_checkpointed)
 from unison_snapshot.ocr_geometry import OcrPage
+from annual_reviewed_fixture import (ANNUAL_SAMPLE_SHA256, ANNUAL_SAMPLE_URL)
 
 
 def _cover_text(report: str, year: str = "", date_label: str = "Date of Appointment",
@@ -290,6 +286,7 @@ class Public278eTests(unittest.TestCase):
     def test_trump_v6_reuses_complete_v5_geometry_without_writing_shards(self):
         pages = [_Page([""]) for _ in range(927)]
         content = b"%PDF-1.7\nfixture\n%%EOF"
+        real_digest = hashlib.sha256
         meta = {"filer_name": "Donald Trump", "report_type": "Annual",
                 "report_period_end": "2025-12-31",
                 "holding_valuation_date": "2025-12-31"}
@@ -307,8 +304,8 @@ class Public278eTests(unittest.TestCase):
                 end = min(start + 24, 927)
                 shard = {"schema_version": OCR_SHARD_SCHEMA,
                          "parser_version": PARSER_VERSION,
-                         "source_url": TRUMP_2025_SOURCE_URL,
-                         "source_sha256": TRUMP_2025_SOURCE_SHA256,
+                         "source_url": ANNUAL_SAMPLE_URL,
+                         "source_sha256": ANNUAL_SAMPLE_SHA256,
                          "ocr_engine": "tesseract 5.3.4", "page_start": start,
                          "page_end": end,
                          "pages": [{"page_number": number, "width": 684,
@@ -324,13 +321,14 @@ class Public278eTests(unittest.TestCase):
                     "unison_snapshot.oge_278e_public._extract_page_rows",
                     return_value=rows), patch(
                     "unison_snapshot.oge_278e_public.ocr_pdf_pages") as ocr:
-                digest.return_value.hexdigest.return_value = TRUMP_2025_SOURCE_SHA256
+                digest.side_effect = lambda data=b'': (SimpleNamespace(hexdigest=lambda: ANNUAL_SAMPLE_SHA256)
+                    if data == content else real_digest(data))
                 result = extract_public_278e_pdf_checkpointed(
-                    pdf, source_url=TRUMP_2025_SOURCE_URL,
-                    source_sha256=TRUMP_2025_SOURCE_SHA256,
+                    pdf, source_url=ANNUAL_SAMPLE_URL,
+                    source_sha256=ANNUAL_SAMPLE_SHA256,
                     expected_filer="Donald Trump", checkpoint_root=root / "v6",
                     legacy_checkpoint_root=legacy)
-                self.assertEqual(result["parser_version"], TRUMP_2025_PARSER_VERSION)
+                self.assertEqual(result["parser_version"], CONSOLIDATED_SCANNED_PARSER_VERSION)
                 self.assertEqual(result["ocr_checkpoint"]["reused_shard_count"], 38)
                 self.assertEqual(result["ocr_checkpoint"]["reused_parser_version"],
                                  PARSER_VERSION)
@@ -340,8 +338,8 @@ class Public278eTests(unittest.TestCase):
                 (legacy / "pages-0901-0925.json").unlink()
                 with self.assertRaisesRegex(OgeCatalogError, "legacy OCR checkpoint is incomplete"):
                     extract_public_278e_pdf_checkpointed(
-                        pdf, source_url=TRUMP_2025_SOURCE_URL,
-                        source_sha256=TRUMP_2025_SOURCE_SHA256,
+                        pdf, source_url=ANNUAL_SAMPLE_URL,
+                        source_sha256=ANNUAL_SAMPLE_SHA256,
                         expected_filer="Donald Trump", checkpoint_root=root / "v6",
                         legacy_checkpoint_root=legacy)
 

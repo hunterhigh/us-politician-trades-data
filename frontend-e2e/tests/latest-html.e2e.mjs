@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 // Read-only interaction audit for the user-designated HTML baseline.
-const html = process.argv[2] ?? 'C:\\Users\\admin\\Downloads\\politician-disclosures (3).html';
+const html = process.argv[2] ?? fileURLToPath(new URL('../../contract/politician-disclosures.html', import.meta.url));
 const expectedSha256 = 'D60282832DC0E38E47BE900FDD37AA386DB474DF404989467FFB8B55367EFAA4';
 const chrome = process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const htmlBytes = readFileSync(html);

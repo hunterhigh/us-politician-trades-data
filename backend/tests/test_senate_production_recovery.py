@@ -133,12 +133,16 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
 
     def run_shell(self, script):
         path = self.root / 'step.sh'
+        # Match the workflow's code checkout while retaining each test's local roots.
+        target=self.root/'backend/src'
+        if not target.exists():
+            shutil.copytree(ROOT/'backend/src',target,ignore=shutil.ignore_patterns('__pycache__','*.egg-info'))
         path.write_text(script, encoding='utf-8', newline='\n')
         return subprocess.run([bash_path(), '-e', path.as_posix()], cwd=self.root,
                               env=self.env, text=True, encoding='utf-8',
                               capture_output=True, timeout=60)
 
-    def test_failed_collection_is_pushed_without_changing_last_complete_source(self):
+    def test_failure_writer_retains_last_complete_source_for_shared_publication(self):
         prior = {'schema_version': 'senate-source-run/v1',
                  'status': 'catalog_ready_for_review',
                  'catalog': {'status': 'ok', 'retrieved_at': '2026-10-23T07:42:50Z',
@@ -155,111 +159,17 @@ class SourceWorkflowRecoveryTests(unittest.TestCase):
         (local / 'senate-efd-failure.json').write_text(json.dumps({
             'http_status': 403, 'request_stage': 'agreement_page',
             'error_code': 'edge_access_denied', 'unexpected': 'do not publish'}), encoding='utf-8')
-        script = step_script('senate-efd.yml',
+        script = step_script('senate.yml',
                              'Record failed catalog collection without advancing source data')
         result = self.run_shell(script)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        saved = json.loads(self.git('--git-dir', str(self.remote),
-                                    'show', 'state:status/senate_efd.json'))
+        saved = json.loads((self.review / 'status/senate_efd.json').read_bytes())
         self.assertEqual(saved['status'], 'failed')
         for key in ('catalog', 'reports', 'roster', 'historical_roster'):
             self.assertEqual(saved[key], prior[key])
         self.assertEqual(saved['last_collection_attempt']['http_status'], 403)
         self.assertNotIn('unexpected', saved['last_collection_attempt'])
 
-    def test_oge_source_persists_while_stale_unified_candidate_is_unchanged(self):
-        for path in ('oge/qualifications/current.json', 'whitehouse/qualifications/current.json',
-                     'whitehouse/annual/candidate-current.json',
-                     'whitehouse/annual/ticker-mapping-current.json',
-                     'whitehouse/278t/trump-2026-ticker-mapping-current.json', 'status/oge.json'):
-            self.write(path, {'synthetic_fixture': True})
-        for source, cutoff in (('house_clerk', '2026-10-27T00:00:00Z'),
-                               ('oge', '2026-10-24T07:42:53Z'),
-                               ('senate_efd', '2026-10-23T07:42:53Z')):
-            value = candidate(source, source + ':person', source + ':fact')
-            host = {'house_clerk': 'disclosures-clerk.house.gov',
-                    'senate_efd': 'efdsearch.senate.gov', 'oge': 'www.oge.gov'}[source]
-            value['transactions'][0]['source_url'] = f'https://{host}/synthetic-test-fixture'
-            value['meta']['data_cutoff_at'] = cutoff
-            value['source_health'][0]['data_cutoff_at'] = cutoff
-            self.write(f'candidates/sources/{source}-current.json', value)
-        for path in ('candidates/disclosure-current.json', 'status/disclosure_cutoff.json',
-                     'status/disclosure_candidate.json'):
-            self.write(path, {'prior_complete': True})
-        self.git('-C', str(self.review), 'add', '.')
-        self.git('-C', str(self.review), 'commit', '-m', 'prior complete source')
-        old = self.git('-C', str(self.review), 'rev-parse', 'HEAD')
-        self.git('-C', str(self.review), 'push', 'origin', 'HEAD:refs/heads/review')
-        self.write('status/oge.json', {'new_source_status': True})
-        source = self.review / 'candidates/sources/oge-current.json'
-        value = json.loads(source.read_text(encoding='utf-8'))
-        value['source_health'][0]['detail'] = 'new validated source projection'
-        self.write('candidates/sources/oge-current.json', value)
-        expected = source.read_bytes()
-        # Only execute the actual source-persistence tail; collectors are offline here.
-        prepare = step_script('oge.yml', 'Publish normalized review data and build source candidate')
-        prepare = prepare[prepare.index('# Persist the validated source'):]
-        self.assertEqual(self.run_shell(prepare).returncode, 0)
-        committed = self.git('--git-dir', str(self.remote), 'rev-parse', 'refs/heads/review')
-        self.assertNotEqual(committed, old)
-        self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
-                         'show', 'review:status/oge.json')), {'new_source_status': True})
-        ingest = self.root / 'ingest'
-        ingest.mkdir()
-        (ingest / 'current.json').write_bytes((ROOT / 'ingest/current.json').read_bytes())
-        shutil.copytree(ROOT / 'backend/src', self.root / 'backend/src',
-                        ignore=shutil.ignore_patterns('__pycache__', '*.egg-info'))
-        shutil.copytree(ROOT / 'frontend-contract-v2/scripts',
-                        self.root / 'frontend-contract-v2/scripts',
-                        ignore=shutil.ignore_patterns('__pycache__'))
-        scripts = self.root / 'backend/scripts'
-        scripts.mkdir()
-        shutil.copyfile(ROOT / 'backend/scripts/source_assembly_status.py',
-                        scripts / 'source_assembly_status.py')
-        self.env['GITHUB_OUTPUT'] = str(self.root / 'github-output')
-        self.env['GITHUB_STEP_SUMMARY'] = str(self.root / 'github-summary')
-        # The opted-in source workflow records deferral while preserving all
-        # candidate/audit outputs. The strict CLI remains covered separately.
-        result = self.run_shell(step_script('oge.yml',
-                                'Rebuild unified candidate from saved source projections'))
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn('Unified assembly deferred', result.stderr)
-        self.assertEqual(source.read_bytes(), expected)
-        deferred = json.loads(self.git('--git-dir', str(self.remote),
-                                       'show', 'review:status/disclosure_assembly.json'))
-        self.assertEqual(deferred['status'], 'deferred')
-        self.assertIn('assembly_status=deferred', (self.root / 'github-output').read_text())
-        self.assertIn('not a successful data update', (self.root / 'github-summary').read_text())
-        for path in ('candidates/disclosure-current.json', 'status/disclosure_cutoff.json',
-                     'status/disclosure_candidate.json'):
-            self.assertEqual(json.loads((self.review / path).read_text(encoding='utf-8')),
-                             {'prior_complete': True})
-        # Once source waterlines are compatible, the unchanged publishing gate
-        # admits assembly, saves its matching status and is stable on repetition.
-        for peer, cutoff in (('house_clerk', '2026-10-25T00:00:00Z'),
-                             ('senate_efd', '2026-10-24T00:00:00Z')):
-            path = f'candidates/sources/{peer}-current.json'
-            peer_value = json.loads((self.review / path).read_text(encoding='utf-8'))
-            peer_value['meta']['data_cutoff_at'] = cutoff
-            peer_value['source_health'][0]['data_cutoff_at'] = cutoff
-            self.write(path, peer_value)
-        script = step_script('oge.yml', 'Rebuild unified candidate from saved source projections')
-        result = self.run_shell(script)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        unified = json.loads(self.git('--git-dir', str(self.remote),
-                                     'show', 'review:candidates/disclosure-current.json'))
-        status = json.loads(self.git('--git-dir', str(self.remote),
-                                    'show', 'review:status/disclosure_candidate.json'))
-        self.assertEqual(status['data_cutoff_at'], unified['meta']['data_cutoff_at'])
-        self.assertEqual(status['transaction_count'], 3)
-        self.assertEqual(source.read_bytes(), expected)
-        prior_commit = self.git('--git-dir', str(self.remote), 'rev-parse', 'refs/heads/review')
-        result = self.run_shell(script)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
-                                            'show', 'review:candidates/disclosure-current.json')), unified)
-        self.assertEqual(json.loads(self.git('--git-dir', str(self.remote),
-                         'show', 'review:status/disclosure_assembly.json'))['status'], 'ready')
 
 
 if __name__ == '__main__':

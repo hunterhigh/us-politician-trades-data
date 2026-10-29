@@ -1,6 +1,7 @@
 set -euo pipefail
 git fetch --no-tags --depth=1 --filter=blob:none origin \
   review:refs/remotes/origin/review \
+  state:refs/remotes/origin/state \
   main:refs/remotes/origin/main \
   market:refs/remotes/origin/market \
   evidence:refs/remotes/origin/evidence
@@ -12,8 +13,9 @@ cache_main_root="$RUNNER_TEMP/cache-main"
 cache_market_root="$RUNNER_TEMP/cache-market"
 git worktree add --detach --no-checkout "$review_root" origin/review
 git worktree add --detach --no-checkout "$evidence_root" origin/evidence
-python backend/scripts/publication_source_scope.py --root "$review_root" --kind review
-python backend/scripts/publication_source_scope.py --root "$evidence_root" --kind evidence
+# Status replays saved observations, including checkpoint and catalog-page bytes.
+python -m unison_snapshot publication-source-scope --root "$review_root" --kind review --keep-parser-inputs
+python -m unison_snapshot publication-source-scope --root "$evidence_root" --kind evidence --keep-parser-inputs
 git worktree add --detach "$market_root" origin/market
 git worktree add --detach "$main_root" origin/main
 if [ -n "$CACHE_MAIN_OVERRIDE" ]; then
@@ -59,3 +61,4 @@ echo "cache_market_root=$cache_market_root" >> "$GITHUB_OUTPUT"
 echo "cache_market_commit=$cache_market_ref" >> "$GITHUB_OUTPUT"
 echo "market_base=$(git -C "$market_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 echo "main_base=$(git -C "$main_root" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+echo "state_commit=$(git rev-parse origin/state)" >> "$GITHUB_OUTPUT"
