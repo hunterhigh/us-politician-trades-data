@@ -2,7 +2,16 @@
 
 All notable changes follow Semantic Versioning.
 
-## Unreleased
+## v1 — 2026-10-29
+
+- Enable v1 on code after the approved PR293 merge; publication remains held while Senate is blocked, without moving main.
+- Replace source-specific corrections with hash-bound, assertion-checked correction data and retain source qualification and publication conservation guards.
+- Add recoverable source workflows, health and integrity reporting, content-only rollback, and fixed 2025 House PTR backfill.
+- Retire unused command entries and diagnostic modules, remove nine archived documents from docs, and move this changelog to the repository root.
+
+## Before v1
+
+Historical implementation notes; the current contract and limitations are in docs/data-contract.md and docs/status.md.
 
 - Route all snapshots through the current v2 processor so pre-history returns are null, retaining separate market-source coverage routing.
 - Add an offline OGE 278-T adapter that maps archived extraction rows to the shared evidence ledger and fails closed when row inventory or exact catalog identity is missing.

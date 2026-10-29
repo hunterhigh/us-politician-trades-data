@@ -99,46 +99,6 @@ class SavedOgeWorkflowTests(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertEqual(outside.read_text(encoding='utf-8'), '{}')
 
-    def test_actual_writer_and_workflow_cli_consume_new_fact_then_repeat_and_reject_bad_source(self):
-        fixture_root = self.root/'source-fixture'; fixture_root.mkdir()
-        data = fixture(fixture_root)
-        self.review = data['review']
-        observation = saved([data['old']['transactions'][0]['cells'],
-            ['', 'Filer assets', '', '', '', ''],
-            ['2', 'ALPHA', 'purchase', '05/02/2025', 'No', '$1,001 - $15,000']])
-        observation['source_sha256'] = data['sha']
-        primary = self.root/'primary.json'; write(primary, observation)
-        ledger = self.root/'field-ledger.json'
-        writer = subprocess.run([sys.executable, str(ROOT/'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py'),
-            '--observations', str(primary), '--review-root', str(self.review),
-            '--evidence-root', str(data['evidence']), '--metadata', str(data['source'].with_suffix('.json')),
-            '--output', str(ledger)], cwd=ROOT,
-            env={**os.environ, 'PYTHONPATH': str(ROOT/'backend/src')}, capture_output=True, text=True)
-        self.assertEqual(writer.returncode, 0, writer.stderr)
-        selected = json.loads(writer.stdout)['saved_observations_path']
-        write(self.root/'.local/oge-catalog.json', data['catalog'])
-        write(self.root/'backend/data/empty-disclosure.json', data['formal'])
-        result, _ = self.execute('true', selected, real=True, evidence=data['evidence'])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        candidate_path = self.review/'candidates/sources/oge-current.json'
-        audit_path = self.review/'oge/qualifications/current.json'
-        candidate = json.loads(candidate_path.read_text(encoding='utf-8'))
-        audit = json.loads(audit_path.read_text(encoding='utf-8'))
-        self.assertEqual(len(candidate['transactions']), 2)
-        self.assertIn(data['formal']['transactions'][0], candidate['transactions'])
-        self.assertIn('ALPHA', [row['asset_name'] for row in candidate['transactions']])
-        self.assertFalse(audit['reports'][0]['observation_receipt']['coverage_complete'])
-        before = (candidate_path.read_bytes(), audit_path.read_bytes(), data['source'].read_bytes())
-        result, _ = self.execute('true', selected, real=True, evidence=data['evidence'])
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(before, (candidate_path.read_bytes(), audit_path.read_bytes(), data['source'].read_bytes()))
-        package = self.review/selected
-        payload = json.loads(package.read_text(encoding='utf-8'))
-        payload[DOCUMENT_ID]['observations'][0]['source_sha256'] = '0'*64
-        write(package, payload)
-        result, _ = self.execute('true', selected, real=True, evidence=data['evidence'])
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(before, (candidate_path.read_bytes(), audit_path.read_bytes(), data['source'].read_bytes()))
 
     def test_opt_in_and_native_dependencies_exist_only_in_normal_publish_job(self):
         content = WORKFLOW.read_text(encoding='utf-8')

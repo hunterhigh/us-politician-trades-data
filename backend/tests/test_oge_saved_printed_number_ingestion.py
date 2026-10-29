@@ -118,49 +118,7 @@ class SavedPrintedNumberIngestionTests(unittest.TestCase):
             env={**os.environ, 'PYTHONPATH': str(ROOT / 'backend/src'), 'PYTHONIOENCODING': 'utf-8'},
             capture_output=True, text=True)
 
-    def consume(self, primary, secondary=None):
-        write(self.primary_path, primary)
-        arguments = [ROOT / 'backend/src/unison_snapshot/commands/observe_oge_278t_fields.py',
-            '--observations', self.primary_path, '--review-root', self.review,
-            '--evidence-root', self.data['evidence'], '--metadata', self.data['metadata_path'],
-            '--output', self.ledger]
-        if secondary is not None:
-            write(self.secondary_path, secondary)
-            arguments += ['--secondary-observations', self.secondary_path]
-        writer = self.command(*arguments)
-        self.assertEqual(writer.returncode, 0, writer.stderr)
-        candidate = self.command('-m', 'unison_snapshot', 'build-oge-candidate',
-            '--catalog', self.case / 'catalog.json', '--extractions-dir', self.review / 'oge/extractions',
-            '--evidence-root', self.data['evidence'], '--saved-observations', self.package,
-            '--base', self.case / 'base.json', '--data-cutoff-at', CUTOFF,
-            '--output', self.output, '--audit-output', self.audit)
-        self.assertEqual(candidate.returncode, 0, candidate.stderr)
-        return json.loads(self.output.read_bytes()), json.loads(self.audit.read_bytes())
 
-    def test_unknown_primary_number_restores_exact_baseline_fact_through_writer_and_candidate_cli(self):
-        self.assertEqual(self.data['old']['transactions'], [])
-        source_bytes = self.data['source'].read_bytes()
-        baseline, baseline_audit = self.consume(self.baseline)
-        candidate, audit = self.consume(self.unknown, self.number)
-        self.assertEqual(len(candidate['transactions']), 1)
-        self.assertEqual(candidate['transactions'], baseline['transactions'])
-        fact = candidate['transactions'][0]
-        self.assertEqual((fact['asset_name'], fact['transaction_type'], fact['owner'],
-                          fact['amount_low'], fact['amount_high'], fact['transaction_date']),
-                         ('ALPHA Fund', 'purchase', 'Undisclosed', 50001, 100000, '2026-06-01'))
-        self.assertEqual(fact['source_url'], self.data['record']['document_url'])
-        receipt = audit['reports'][0]['observation_receipt']
-        self.assertFalse(receipt['coverage_complete'])
-        self.assertEqual(receipt['observed_slot_count'], 31)
-        self.assertEqual(receipt['unresolved_slot_count'], 30)
-        self.assertEqual(receipt['unresolved_slot_count'],
-                         baseline_audit['reports'][0]['observation_receipt']['unresolved_slot_count'])
-        ledger = json.loads(self.ledger.read_bytes())
-        reads = ledger['pages'][0]['slots'][0]['field_readings']['printed_number']['observations']
-        self.assertIsNone(reads[0]['shape']['value'])
-        self.assertEqual(reads[1]['shape']['value'], 1)
-        self.assertEqual(reads[1]['geometry_status'], 'source_bound')
-        self.assertEqual(self.data['source'].read_bytes(), source_bytes)
 
     def test_zero_or_repeated_number_read_never_qualifies_the_affected_row(self):
         for reading in self.bad_numbers:

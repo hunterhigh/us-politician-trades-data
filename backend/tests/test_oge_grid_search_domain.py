@@ -141,58 +141,6 @@ class GridSearchDomainTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         census_with_2024_fallback(source,expected_sha256=digest,page_numbers=numbers,geometry_mode=DUAL_MODE)
 
-    @unittest.skipUnless(importlib.util.find_spec('pymupdf') and importlib.util.find_spec('pdfplumber'),
-                         'optional PDF fixture dependencies unavailable')
-    def test_actual_cropbox_rotation_and_cli_geometry_route_require_no_ocr(self):
-        import pymupdf
-        import pdfplumber
-        from unison_snapshot.ocr_geometry import OcrPage,mediabox_render_receipt
-        from test_oge_278t_image_grid import header_words
-        generated,_=scene();source_image=generated.to_image().original
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory)
-            for rotation in (0,90):
-                document=pymupdf.open()
-                image=source_image if rotation==0 else source_image.rotate(90,expand=True)
-                size=(792,612) if rotation==0 else (612,792)
-                page=document.new_page(width=size[0],height=size[1])
-                png=io.BytesIO();image.save(png,format='PNG')
-                page.insert_image(page.rect,stream=png.getvalue())
-                page.set_cropbox(pymupdf.Rect(2,3,size[0]-2,size[1]-3));page.set_rotation(rotation)
-                path=root/f'grid-{rotation}.pdf';document.save(path);document.close()
-                digest=hashlib.sha256(path.read_bytes()).hexdigest()
-                with pdfplumber.open(path) as pdf:
-                    geometry=_dual_axis_image_grid(pdf.pages[0])
-                    self.assertEqual(geometry['status'],'candidate',str(geometry)[:1200])
-                    self.assertAlmostEqual(geometry['row_line_model']['intercepts_y_pdf_points'][0],55,delta=.7)
-                    words=header_words()
-                    words.append({'text':'unchanged source body','x0':170,'x1':220,'top':122,'bottom':126,'ocr_confidence':95})
-                    original=deepcopy(words)
-                    receipt=mediabox_render_receipt(pdf.pages[0],source_sha256=digest,page_number=1,resolution=300,words=words)
-                    observed=OcrPage(width=792,height=612,words=words,render_frame=receipt)
-                with patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages',return_value=([observed],'fixture OCR')):
-                    result=observe_raster_slots(path,expected_sha256=digest,page_numbers=[1],resolution=300,geometry_mode=DUAL_MODE)
-                with patch('unison_snapshot.oge_278t_raster_slots.ocr_pdf_pages',side_effect=AssertionError('saved replay must not OCR')):
-                    replay=observe_raster_slots(path,expected_sha256=digest,page_numbers=[1],resolution=300,
-                        geometry_mode=DUAL_MODE,saved_ocr_pages={1:observed},saved_ocr_engine='fixture OCR')
-                self.assertEqual(replay,result)
-                self.assertEqual(observed.extract_words(),original)
-                output=result['pages'][0]
-                self.assertEqual(output['render_frame'],receipt)
-                self.assertEqual(output['column_geometry'],'oge_2024_six_column_grid')
-                self.assertEqual(output['column_geometry_observation']['geometric_boundary_status'],'candidate')
-                self.assertEqual(sum(len(s['words']) for s in output['slots'])+len(output['unbound_page_ocr_words']),len(words))
-                if rotation==90:
-                    repo=Path(__file__).resolve().parents[2];target=root/'geometry.json'
-                    command=[sys.executable,str(repo/'backend/src/unison_snapshot/commands/observe_oge_278t_raster_slots.py'),
-                        '--pdf',str(path),'--expected-sha256',digest,'--pages','1','--geometry-mode',DUAL_MODE,
-                        '--geometry-only','--tesseract','NO_OCR_ALLOWED','--output',str(target)]
-                    done=subprocess.run(command,capture_output=True,env=dict(os.environ,PYTHONPATH=str(repo/'backend/src')))
-                    self.assertEqual(done.returncode,0,done.stderr.decode(errors='replace'))
-                    census=json.loads(target.read_bytes())
-                    self.assertTrue(census['geometry_only'])
-                    self.assertEqual(census['results'][0]['column_geometry_observation']['status'],'candidate')
-                    self.assertFalse(census['production_mutation_authorized'])
 
 
 if __name__=='__main__':unittest.main()

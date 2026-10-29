@@ -210,23 +210,6 @@ class LinkedFieldEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown secondary geometry"):
             self.row(base, [read])
 
-    def test_existing_cli_consumes_saved_secondary_inputs_without_ocr(self):
-        repo = Path(__file__).resolve().parents[2]
-        base = original()
-        read = secondary(base)
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            first, second, output = [root / name for name in ("first.json", "second.json", "output.json")]
-            first.write_text(json.dumps(base), encoding="utf-8")
-            second.write_text(json.dumps(read), encoding="utf-8")
-            process = subprocess.run([sys.executable, str(repo / "backend/src/unison_snapshot/commands/observe_oge_278t_fields.py"),
-                "--observations", str(first), "--secondary-observations", str(second),
-                "--output", str(output)], capture_output=True, text=True,
-                env=dict(os.environ, PYTHONPATH=str(repo / "backend/src")))
-            self.assertEqual(process.returncode, 0, process.stderr)
-            self.assertEqual(json.loads(output.read_text(encoding="utf-8")),
-                             observe_field_shapes([base], secondary_observations=[read]))
-            self.assertIn("secondary_field_summary", json.loads(process.stdout))
 
 
 if __name__ == "__main__":
