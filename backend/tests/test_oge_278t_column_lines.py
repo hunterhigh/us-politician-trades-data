@@ -14,7 +14,7 @@ except ImportError:
 from test_oge_content_relations import saved,column_read,EDGES
 from unison_snapshot.oge_278t_raster_slots import (column_edges_at_y,column_crop_bounds,column_geometry_sha256,
  _observe_slot_columns,_oge_2024_image_grid)
-from unison_snapshot.oge_278t_field_shadow import (_word_evidence,_complete_secondary_geometry,observe_field_shapes,
+from unison_snapshot.oge_278t_fields import (_word_evidence,_complete_secondary_geometry,observe_field_shapes,
  compare_field_observations,observe_content_rows)
 
 

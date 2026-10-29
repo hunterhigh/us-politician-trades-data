@@ -28,7 +28,7 @@ class WhiteHouseAnnualReviewTests(unittest.TestCase):
     def setUp(self) -> None:
         for target, helper in [
                 ('unison_snapshot.whitehouse_annual_review.apply_reviewed_annual_corrections', synthetic_reviewed_cover),
-                ('unison_snapshot.oge_278e_audit.scanned_signature_evidence_valid', synthetic_cover_valid)]:
+                ('unison_snapshot.oge_278e_qualification.scanned_signature_evidence_valid', synthetic_cover_valid)]:
             boundary = patch(target, side_effect=helper)
             boundary.start(); self.addCleanup(boundary.stop)
         temp = tempfile.TemporaryDirectory()

@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 from test_oge_content_relations import saved, column_read, EDGES
 from test_oge_observed_candidate import candidate, bundle, ROW
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows, observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_content_rows, observe_field_shapes
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_page_shadow import reconcile_raster_ocr_rows
+from unison_snapshot.oge_278t_page_coverage import reconcile_raster_ocr_rows
 
 
 DATA = ["1", "ALPHA", "purchase", "01/02/2026", "No", "$1,001 - $15,000"]
@@ -38,7 +38,7 @@ class ContentFragmentTests(unittest.TestCase):
         reading = deepcopy(row["field_readings"]["description"]["observations"][0])
         reading["shape"]["value"] = "Retirement account #3"
         row["field_readings"]["description"]["observations"].append(reading)
-        with patch("unison_snapshot.oge_278t_field_shadow.observe_field_shapes", return_value=fields):
+        with patch("unison_snapshot.oge_278t_fields.observe_field_shapes", return_value=fields):
             out = self.observe([data])
         label, disclosure = out["slot_content"]
         self.assertEqual(label["disposition"], "unknown")

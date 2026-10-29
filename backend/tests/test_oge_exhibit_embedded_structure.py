@@ -15,7 +15,7 @@ from test_oge_candidate import direct
 from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_278t_exhibit_structure import (
     PARAMETERS, SCHEMA, detect_column_tracks, observe_embedded_exhibit_columns)
-from unison_snapshot.oge_278t_page_shadow import interpret_native_exhibit_page
+from unison_snapshot.oge_278t_page_coverage import interpret_native_exhibit_page
 from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits
 
 
@@ -101,7 +101,7 @@ class EmbeddedStructureTests(unittest.TestCase):
 
     def test_materializer_reobserves_opt_in_structure_and_rejects_tampering(self):
         obs=structured();old=empty_source()
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs) as reopen:
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs) as reopen:
             result=materialize_saved_oge_278t_exhibits(old,direct(),**bundle(obs))
         self.assertTrue(reopen.call_args.kwargs["embedded_column_structure"])
         self.assertEqual(result["observation_receipt"]["observed_slot_count"],1)
@@ -109,12 +109,12 @@ class EmbeddedStructureTests(unittest.TestCase):
         self.assertEqual(result["transactions"],[])
         for field in ("decoded_pixels_sha256","parameters","table_bounds"):
             bad=deepcopy(obs);bad["embedded_column_structure"][field]="tampered"
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),self.assertRaises(OgeCatalogError):
+            with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs),self.assertRaises(OgeCatalogError):
                 materialize_saved_oge_278t_exhibits(old,direct(),**bundle(bad))
 
     def test_unknown_structure_does_not_fallback_or_become_zero(self):
         obs=structured();obs["embedded_column_structure"].update(status="unknown",blocks=[],reason="unique_embedded_image_not_available")
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs):
             result=materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(obs))
         receipt=result["observation_receipt"]
         self.assertEqual(receipt["observed_slot_count"],1)

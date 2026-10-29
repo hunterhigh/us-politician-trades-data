@@ -1,4 +1,4 @@
-"""Read-only eligibility audit for public White House OGE 278-T extractions.
+"""Source eligibility qualification for public White House OGE 278-T extractions.
 
 The official OGE catalog proves a filer identity, not an individual filing's
 date or the equivalence of two PDFs.  This module never publishes facts.
@@ -17,7 +17,7 @@ from .oge import OgeCatalogError
 from .reviewed_whitehouse_ocr import profile_for as reviewed_ocr_profile
 from .oge_candidate import _identity_key, _person_id
 from .oge_whitehouse import AGENCIES, SCHEMA as COVERAGE_SCHEMA
-from .whitehouse_directory_identity_shadow import bind_directory_entry
+from .whitehouse_directory_identity import bind_directory_entry
 from .whitehouse_278t import (
     EXTRACTION_SCHEMA, MIN_OCR_ROW_CONFIDENCE, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS, SAVED_OCR_PARSER_VERSIONS,
     validate_generic_whitehouse_report, generic_existing_fact, DUAL_AXIS_PARSER_VERSION,
@@ -251,7 +251,7 @@ def _row_reasons(row: dict, filing_day: date | None, *, generic: bool = False) -
 def _catalog_identity(report: dict, catalog_rows: list[dict]) -> tuple[dict | None, list[str]]:
     resolution = report.get("source_identity_resolution")
     if report.get("parser_version") == DUAL_AXIS_PARSER_VERSION and resolution:
-        from .whitehouse_directory_identity_shadow import complete_name_tokens
+        from .whitehouse_directory_identity import complete_name_tokens
         if resolution.get("status") != "resolved":
             return None, list(resolution.get("reasons") or ["source_directory_identity_unresolved"])
         expected = resolution["catalog_identity"]
@@ -551,7 +551,7 @@ def audit_whitehouse_278t(extractions: list[dict], oge_whitehouse_coverage: dict
     for report in screened:
         identity, identity_reasons = _catalog_identity(report, catalog_rows)
         if identity and identity.get("identity_basis") == "whitehouse_source_directory_catalog":
-            from .whitehouse_directory_identity_shadow import complete_name_tokens
+            from .whitehouse_directory_identity import complete_name_tokens
             close = [person for person in existing_oge_candidate.get("people", []) if
                      _first_last(person.get("display_name") or "") == _first_last(identity["filer_name"])]
             matches = [person for person in close if person.get("disclosure_authority") == "oge" and

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import unittest
 import test_oge_source_quad_cells as quad_tests
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes
+from unison_snapshot.oge_278t_fields import observe_field_shapes
 from unison_snapshot.oge_278t_source_quad_cells import observe_saved_source_quad_cells
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
 from unison_snapshot.oge_reports import parse_table_rows
@@ -64,7 +64,7 @@ class SourceQuadAmountTests(unittest.TestCase):
                 if token=='Yes':
                     self.assertEqual(observation['geometry_status'],'source_bound')
                     self.assertEqual(len(observation['nonfinancial_notification_geometry_issues']),1)
-                    from unison_snapshot.oge_278t_field_shadow import _complete_secondary_geometry
+                    from unison_snapshot.oge_278t_fields import _complete_secondary_geometry
                     self.assertTrue(_complete_secondary_geometry(observation,field='amount',slot=data['pages'][0]['slots'][0],page=data['pages'][0]))
                 else:
                     self.assertEqual(observation['geometry_status'],'ambiguous')

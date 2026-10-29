@@ -190,7 +190,7 @@ class AccountDisplayCorrectionTests(unittest.TestCase):
                 return real_open(path, *args, **kwargs)
             return _Document([_Page('', [d['raw']])])
         with patch('pdfplumber.open', side_effect=opened), \
-                patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page', side_effect=d['native']), \
+                patch('unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page', side_effect=d['native']), \
                 patch('unison_snapshot.oge_reports._extract_borderless_transaction_tables', return_value=[]):
             candidate, _, _ = cross._bound_whitehouse_candidate(inputs, self.evidence, self.review)
             result, proof = cross.apply_cross_source_native_replacements(candidate,

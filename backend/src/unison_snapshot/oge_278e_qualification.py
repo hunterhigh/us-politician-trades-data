@@ -1,4 +1,4 @@
-"""Read-only admission audit for public White House Form 278e extractions.
+"""Source qualification for public White House Form 278e extractions.
 
 This audit separates complete source extraction from a canonical publication.
 It never assigns a person ID, resolves amendments, or performs 278e/278-T

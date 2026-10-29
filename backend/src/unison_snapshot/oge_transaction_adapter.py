@@ -174,7 +174,7 @@ def materialize_oge_278t_observations(extraction: dict, catalog_record: dict, *,
     The candidate builder calls this function itself. A serialized version label
     is not sufficient authority to bypass its original extraction checks.
     """
-    from .oge_278t_field_shadow import observe_content_rows
+    from .oge_278t_fields import observe_content_rows
     from .oge_reports import PARSER_VERSION, _owner_heading, parse_table_rows
 
     if extraction.get("parser_version") not in {PARSER_VERSION, GENERIC_PARSER_VERSION}:
@@ -1066,8 +1066,8 @@ def _source_content_relations(extraction: dict, observations: list[dict], *,
                               archived_pdf_path: str | Path | None = None,
                               cover_identity_context: dict | None = None) -> dict:
     """Connect original grids to the existing adapter without changing its facts."""
-    from .oge_278t_field_shadow import observe_content_rows
-    from .oge_278t_page_shadow import reconcile_raster_ocr_rows
+    from .oge_278t_fields import observe_content_rows
+    from .oge_278t_page_coverage import reconcile_raster_ocr_rows
 
     if any(item.get("source_sha256") != extraction["source_sha256"] for item in observations):
         raise OgeCatalogError("content observations differ from extraction source")

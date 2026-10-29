@@ -1,6 +1,6 @@
 import unittest
 from unison_snapshot.oge_amount_literal import interpret_grouped_statutory_amount
-from unison_snapshot.oge_278t_field_shadow import _ordered_amount_shape
+from unison_snapshot.oge_278t_fields import _ordered_amount_shape
 
 
 class StatutoryLiteralTests(unittest.TestCase):

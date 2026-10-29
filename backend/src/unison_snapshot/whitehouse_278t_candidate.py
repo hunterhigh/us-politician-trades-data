@@ -21,7 +21,7 @@ from .oge_candidate import _identity_key, _instrument, _person_id, _short_name
 from .oge_reports import _iso_date
 from .whitehouse_278t import (_ELECTRONIC_SIGNATURE, _first_last, GENERIC_PARSER_VERSION, GENERIC_PARSER_VERSIONS,
     generic_existing_fact, generic_whitehouse_filing_date, SAVED_OCR_PARSER_VERSIONS, DUAL_AXIS_PARSER_VERSION)
-from .whitehouse_278t_audit import (
+from .whitehouse_278t_qualification import (
     AUDIT_SCHEMA, audit_whitehouse_278t, source_bound_filing_date,
     resolve_exact_source_reports,
 )

@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from unison_snapshot.oge_278t_page_shadow import inspect_pdf, probe_raster_row_bands
+from unison_snapshot.oge_278t_page_coverage import inspect_pdf, probe_raster_row_bands
 from unison_snapshot.oge_278t_raster_inventory import audit_raster_source_inventory
 
 

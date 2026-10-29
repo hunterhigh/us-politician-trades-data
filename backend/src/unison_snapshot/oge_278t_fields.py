@@ -1608,7 +1608,7 @@ def observe_content_rows(observations: list[dict], *, document_page_count: int,
         source_id="oge", document_sha256=sha, adapter_version=content_rules,
         page_count=document_page_count, pages=pages, logical_rows=rows,
         unresolved_data_slots=unresolved)
-    from .oge_278t_printed_number_shadow import observe_printed_number_sequence
+    from .oge_278t_printed_numbers import observe_printed_number_sequence
     printed = observe_printed_number_sequence(observations)
     return {"field_observations": fields, "slot_content": content,
             **({"field_interpretation_mode": field_interpretation_mode} if field_interpretation_mode else {}),

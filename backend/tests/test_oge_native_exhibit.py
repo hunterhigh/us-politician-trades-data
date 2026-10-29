@@ -13,7 +13,7 @@ from unittest.mock import patch
 from test_oge_candidate import extraction, direct, catalog, base, DOCUMENT_ID, URL
 from test_oge_annual import _Document,_Page
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278t_page_shadow import interpret_native_exhibit_page
+from unison_snapshot.oge_278t_page_coverage import interpret_native_exhibit_page
 from unison_snapshot.oge_reports import materialize_saved_oge_278t_exhibits,parse_table_rows
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction
 from unison_snapshot.oge_candidate import build_oge_candidate
@@ -62,7 +62,7 @@ class NativeExhibitTests(unittest.TestCase):
 
     def test_real_candidate_and_row_ledger_consume_pending_replacement(self):
         old=empty_source();before=deepcopy(old);obs=observation()
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs):
             materialized=materialize_saved_oge_278t_exhibits(old,direct(),**bundle(obs))
             ledger=adapt_oge_278t_extraction(materialized,direct())
             candidate,audit=build_oge_candidate(catalog(),[old],base(),data_cutoff_at="2025-06-04T00:00:00Z",
@@ -85,7 +85,7 @@ class NativeExhibitTests(unittest.TestCase):
             evidence_complete=True,document_reasons=[])
         production,_=build_oge_candidate(catalog(),[old],base(),data_cutoff_at="2025-06-04T00:00:00Z")
         obs=observation()
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs):
             result=materialize_saved_oge_278t_exhibits(old,direct(),**bundle(obs))
             candidate,audit=build_oge_candidate(catalog(),[old],production,data_cutoff_at="2025-06-04T00:00:00Z",
                 saved_exhibit_observations_by_document={DOCUMENT_ID:bundle(obs)})
@@ -101,13 +101,13 @@ class NativeExhibitTests(unittest.TestCase):
         for mutate in [lambda v:v["words"][8].update(text="FAKE"),
                 lambda v:v["table_bounds"][0].__setitem__(2,589),lambda v:v.update(page_number=2)]:
             changed=deepcopy(original);mutate(changed)
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=original),self.assertRaises(OgeCatalogError):
+            with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=original),self.assertRaises(OgeCatalogError):
                 materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(changed))
 
     def test_report_status_keeps_block_count_separate_from_unknown_source_total(self):
         from unison_snapshot.disclosure_status_oge import _apply_audit
         obs=observation()
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs):
             _,audit=build_oge_candidate(catalog(),[empty_source()],base(),data_cutoff_at="2025-06-04T00:00:00Z",
                 saved_exhibit_observations_by_document={DOCUMENT_ID:bundle(obs)})
         report=audit["reports"][0]
@@ -132,7 +132,7 @@ class NativeExhibitTests(unittest.TestCase):
 
     def test_printed_number_payload_is_not_authority_for_a_predecessor(self):
         obs=observation()
-        with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs):
+        with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs):
             result=materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(obs,[{"target_document_id":"b"*32,"target_printed_number":27}]))
         relation=result["quarantined"][0]["native_exhibit_reference"]["replacement_relation"]
         self.assertEqual(relation["status"],"pending")
@@ -149,7 +149,7 @@ class NativeExhibitTests(unittest.TestCase):
             meta_path=source.with_suffix(".json");meta_path.write_text(json.dumps(meta),encoding="utf-8")
             target=extraction();target.update(source_sha256=sha,transactions=good,quarantined=[])
             targets=[{"evidence_root":str(root),"archive_metadata_path":str(meta_path),"extraction":target}]
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),patch(
+            with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs),patch(
                     "pdfplumber.open",return_value=_Document([_Page("",[raw])])),patch(
                     "unison_snapshot.oge_reports._extract_borderless_transaction_tables",return_value=[]):
                 result=materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(obs,targets))
@@ -159,7 +159,7 @@ class NativeExhibitTests(unittest.TestCase):
             self.assertEqual(relation["target"]["target_extraction_id"],good[0]["extraction_id"])
             self.assertIn("replacement_application_requires_source_reconciliation",result["quarantined"][0]["reasons"])
             meta["sha256"]="f"*64;meta_path.write_text(json.dumps(meta),encoding="utf-8")
-            with patch("unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page",return_value=obs),self.assertRaisesRegex(OgeCatalogError,"archive metadata"):
+            with patch("unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page",return_value=obs),self.assertRaisesRegex(OgeCatalogError,"archive metadata"):
                 materialize_saved_oge_278t_exhibits(empty_source(),direct(),**bundle(obs,targets))
 
 

@@ -16,7 +16,7 @@ from unison_snapshot.house_asset_line_order import MODE
 from unison_snapshot.house_paper_owner_correction import PROFILE_KEY, prepare_paper_owner_correction
 from unison_snapshot.house_ptr import parse_word_pages, qualify_automatic
 from unison_snapshot.house_ptr_amount_header import evaluate_amount_header_pages, LABELS
-from unison_snapshot.house_ptr_cell_observation_shadow import observe_house_ptr_pdf
+from unison_snapshot.house_ptr_cell_observation import observe_house_ptr_pdf
 from unison_snapshot.house_ptr_paper_qualification import materialize_paper_observation, paper_materialization_counts
 from unison_snapshot.ocr_geometry import OcrPage
 
@@ -65,7 +65,7 @@ def paper_owner_fixture(root, *, owner_text='', row_tops=(600,700)):
         [{'width':1000,'height':1000,'words':deepcopy(words)}],
         copy_allowed=True,ocr_engine='fixed saved control words')
     legacy_qualification=qualify_automatic(legacy_extraction,identity)
-    with patch('unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages',
+    with patch('unison_snapshot.house_ptr_cell_observation.ocr_pdf_pages',
                return_value=([OcrPage(width=1000,height=1000,words=deepcopy(words))],
                              'fixed saved control words')):
         observation=observe_house_ptr_pdf(raw,source_sha256=sha,asset_line_mode=MODE)

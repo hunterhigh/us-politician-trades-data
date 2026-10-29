@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 from unison_snapshot.oge import OgeCatalogError
-from unison_snapshot.oge_278t_field_shadow import (
+from unison_snapshot.oge_278t_fields import (
     _amount_shape, _date_shape, observe_content_rows, observe_field_shapes,
 )
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns

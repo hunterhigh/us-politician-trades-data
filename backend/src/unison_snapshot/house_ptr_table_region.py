@@ -1,4 +1,4 @@
-"""Experimental, audit-only House scanned PTR transaction table locator.
+"""Source-bound House scanned PTR transaction table locator.
 
 This module deliberately does not qualify transactions. It returns unknown when
 the page topology does not unambiguously separate the transaction grid from
@@ -215,10 +215,3 @@ def locate_transaction_grid(image) -> dict:
     if len(rotated) > 1:
         original["reason"] = "ambiguous_orientation"
     return original
-
-
-def inspect_pdf(pdf_bytes: bytes, *, dpi: int = 150) -> list[dict]:
-    """Render an already archived PDF and inspect each page, without mutation."""
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        return [locate_transaction_grid(page.to_image(resolution=dpi).original)
-                for page in pdf.pages]

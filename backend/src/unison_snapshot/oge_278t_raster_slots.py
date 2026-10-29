@@ -11,7 +11,7 @@ from pathlib import Path
 from statistics import median
 
 from .ocr_geometry import ocr_pdf_pages, validate_mediabox_render_receipt
-from .oge_278t_page_shadow import (probe_oge_2024_alternate_bands,
+from .oge_278t_page_coverage import (probe_oge_2024_alternate_bands,
                                    probe_raster_row_bands, _raster_rule_centers)
 
 

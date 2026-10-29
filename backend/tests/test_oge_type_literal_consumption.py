@@ -4,7 +4,7 @@ import unittest
 
 from test_oge_dual_axis_fields import dual_input, bind_secondary
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_field_shadow import observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_content_rows
 from unison_snapshot.oge_reports import parse_table_rows
 from unison_snapshot.whitehouse_278t import _saved_supported_fields
 

@@ -13,7 +13,7 @@ from unison_snapshot.oge import OgeCatalogError
 from unison_snapshot.oge_reports import parse_table_rows
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_transaction_adapter import materialize_oge_278t_observations
-from unison_snapshot.oge_278t_field_shadow import (
+from unison_snapshot.oge_278t_fields import (
     _amount_shape, LEGACY_AMOUNT_INTERPRETATION_MODE as MODE,
 )
 from unison_snapshot.disclosure_status_oge import _apply_audit

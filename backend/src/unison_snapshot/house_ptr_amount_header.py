@@ -91,8 +91,8 @@ def observe_amount_header(pdf_bytes: bytes, *, source_sha256: str,
         raise ValueError("House paper amount header DPI is unsupported")
     import pdfplumber
 
-    from .house_ptr_cell_observation_shadow import _column_boxes
-    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_cell_observation import _column_boxes
+    from .house_ptr_table_region import locate_transaction_grid
 
     if column_labels is not None and (not isinstance(column_labels, list) or not column_labels or
             len(column_labels) > 2 or any(not isinstance(label, str) or len(label) != 1 or

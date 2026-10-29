@@ -3,7 +3,7 @@ from copy import deepcopy
 import unittest
 from test_oge_dual_axis_fields import dual_input
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns, slot_quad
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes, observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_field_shapes, observe_content_rows
 
 
 def wide_description(slope=-.01, *, horizontal=False, two_lines=False, tall=False):

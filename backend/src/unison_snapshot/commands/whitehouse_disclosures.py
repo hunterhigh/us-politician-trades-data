@@ -16,7 +16,7 @@ from pathlib import Path
 import sys
 import tempfile
 
-from unison_snapshot.whitehouse_disclosure_audit import build_oge_public_crosswalk
+from unison_snapshot.whitehouse_disclosure_crosswalk import build_oge_public_crosswalk
 from unison_snapshot.whitehouse_disclosures import (
     WhiteHouseDisclosureError, archive_public_batch, archive_public_index,
 )

@@ -71,7 +71,7 @@ class NativeAmendmentContextTests(unittest.TestCase):
             inputs={'observations':[obs],'archived_pdf_path':'mock.pdf','replacement_targets':[bundle],
                     'amendment_context_page_number':1}
             def native(path,*,source_sha256,page_number):return cover() if page_number==1 else obs
-            with patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page',side_effect=native),patch(
+            with patch('unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page',side_effect=native),patch(
                     'unison_snapshot.oge_reports._native_original_printed_anchors',side_effect=anchors):
                 result=materialize_saved_oge_278t_exhibits(source,record,**inputs)
                 row=result['quarantined'][0]
@@ -146,7 +146,7 @@ class NativeAmendmentContextTests(unittest.TestCase):
             bundle,_=target(Path(folder));source=empty_source();source['source_url']=SOURCE_URL
             record=direct();record['document_url']=SOURCE_URL;obs=observation()
             def native(path,*,source_sha256,page_number):return cover() if page_number==1 else obs
-            with patch('unison_snapshot.oge_278t_page_shadow.observe_native_exhibit_page',side_effect=native),patch(
+            with patch('unison_snapshot.oge_278t_page_coverage.observe_native_exhibit_page',side_effect=native),patch(
                     'unison_snapshot.oge_reports._native_original_printed_anchors',side_effect=anchors) as anchor_reader:
                 materialized=materialize_saved_oge_278t_exhibits(source,record,observations=[obs],archived_pdf_path='mock.pdf',
                     replacement_targets=[bundle],amendment_context_page_number=1)

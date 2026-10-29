@@ -18,7 +18,7 @@ from test_oge_observed_candidate import original
 from unison_snapshot.oge_candidate import build_oge_candidate
 from unison_snapshot.oge_transaction_adapter import adapt_oge_278t_extraction, materialize_oge_278t_observations, _cover_identity_context
 from unison_snapshot.disclosure_status_oge import build_oge_status
-from unison_snapshot.oge_278t_page_shadow import inspect_pdf
+from unison_snapshot.oge_278t_page_coverage import inspect_pdf
 from unison_snapshot.source_row_ledger import oge_278t_shadow_pages
 
 CUTOFF = '2026-06-20T00:00:00Z'

@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from unison_snapshot.oge_278e_audit import audit_public_278e
+from unison_snapshot.oge_278e_qualification import audit_public_278e
 from unison_snapshot.oge_278e_public import PARSER_VERSION, SCHEMA
 from unison_snapshot.oge_278e_public import (CONSOLIDATED_SCANNED_PARSER_VERSION, CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION)
 from annual_reviewed_fixture import synthetic_reviewed_cover, synthetic_cover_valid
@@ -147,7 +147,7 @@ def _trump_v8_transaction() -> dict:
 
 class Public278eAuditTests(unittest.TestCase):
     def setUp(self):
-        boundary = patch('unison_snapshot.oge_278e_audit.scanned_signature_evidence_valid',
+        boundary = patch('unison_snapshot.oge_278e_qualification.scanned_signature_evidence_valid',
             side_effect=synthetic_cover_valid)
         boundary.start(); self.addCleanup(boundary.stop)
 
@@ -307,7 +307,7 @@ class Public278eAuditTests(unittest.TestCase):
         supported = {PARSER_VERSION, CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION}
         wrong_source = _annual()
         wrong_source["parser_version"] = CONSOLIDATED_SCANNED_PREVIOUS_PARSER_VERSION
-        with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
+        with patch("unison_snapshot.oge_278e_qualification.SUPPORTED_PARSER_VERSIONS", supported):
             self.assertIn("untrusted_extraction_version",
                           audit_public_278e(wrong_source)["report_blocking_reasons"])
 
@@ -337,7 +337,7 @@ class Public278eAuditTests(unittest.TestCase):
         from unison_snapshot.reviewed_annual_extraction import profile_for_source
         source_review = profile_for_source(fixed['source_sha256'])
         fixed['holdings'] = [deepcopy(source_review['variants'][fixed['parser_version']]['existing_holding_approvals'][0])]
-        with patch("unison_snapshot.oge_278e_audit.SUPPORTED_PARSER_VERSIONS", supported):
+        with patch("unison_snapshot.oge_278e_qualification.SUPPORTED_PARSER_VERSIONS", supported):
             audit = audit_public_278e(fixed)
             self.assertNotIn("untrusted_extraction_version", audit["report_blocking_reasons"])
             self.assertTrue(audit["holding_row_audit"][0]["source_candidate_eligible"])

@@ -13,7 +13,7 @@ from test_oge_278t_column_lines import modeled
 from test_oge_content_relations import column_read, EDGES, saved
 from unison_snapshot.oge_278t_raster_slots import (
     DUAL_MODE, _observe_slot_columns, slot_quad, table_crop_bounds, column_geometry_sha256)
-from unison_snapshot.oge_278t_field_shadow import (observe_field_shapes, observe_content_rows,
+from unison_snapshot.oge_278t_fields import (observe_field_shapes, observe_content_rows,
     compare_field_observations, _secondary_slot_geometry, _type_cell_pdf_bounds)
 
 

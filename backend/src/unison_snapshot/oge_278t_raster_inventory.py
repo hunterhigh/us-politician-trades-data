@@ -47,7 +47,7 @@ def audit_raster_source_inventory(path: Path, *, expected_sha256: str, census: d
     """
     import numpy as np
     import pdfplumber
-    from .oge_278t_page_shadow import _raster_rule_centers, reconcile_raster_ocr_rows
+    from .oge_278t_page_coverage import _raster_rule_centers, reconcile_raster_ocr_rows
 
     # Reuse shape/source validation, but never use the resulting OCR mapping as
     # source evidence: the independent witness below comes only from PDF pixels.

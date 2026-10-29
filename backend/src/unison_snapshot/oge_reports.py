@@ -948,7 +948,7 @@ def parse_archived_pdf(root: Path, metadata_path: Path, *, generic: bool = False
 
 def _native_amendment_context(observation: dict, source_url: str) -> dict:
     """Interpret a report reference, never a filer signature or an effective date."""
-    from .oge_278t_page_shadow import interpret_native_exhibit_page
+    from .oge_278t_page_coverage import interpret_native_exhibit_page
     interpret_native_exhibit_page(observation)  # Same source-word/page validation.
     text = observation["page_text"]
     month_date = r"[A-Za-z]+\s+[0-9]{1,2},\s+[0-9]{4}"
@@ -1250,7 +1250,7 @@ def materialize_saved_oge_278t_exhibits(extraction: dict, catalog_record: dict, 
     targets stay unknown; replacement rows never become additive new trades.
     """
     from copy import deepcopy
-    from .oge_278t_page_shadow import observe_native_exhibit_page,interpret_native_exhibit_page
+    from .oge_278t_page_coverage import observe_native_exhibit_page,interpret_native_exhibit_page
     from .oge_transaction_adapter import (OBSERVED_PARSER_VERSION,_observation_input_extraction,
         legacy_disposition_reference,adapt_oge_278t_extraction)
     if not isinstance(extraction,dict) or extraction.get("parser_version") not in {PARSER_VERSION,GENERIC_PARSER_VERSION}:

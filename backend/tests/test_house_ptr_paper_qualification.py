@@ -149,9 +149,9 @@ class HousePaperQualificationTests(unittest.TestCase):
             {"label": "B", "bbox_normalized": [.1, .3, .2, .4]}]}}
         # This test isolates the column/crop contract; a blank image itself
         # supplies no evidence that a printed header exists.
-        with patch("unison_snapshot.house_ptr_region_shadow.locate_transaction_grid", return_value={
+        with patch("unison_snapshot.house_ptr_table_region.locate_transaction_grid", return_value={
                 "status": "located_shadow", "coordinate_frame": "original_page", "header_band": [.1, .2]}), \
-             patch("unison_snapshot.house_ptr_cell_observation_shadow._column_boxes", return_value={
+             patch("unison_snapshot.house_ptr_cell_observation._column_boxes", return_value={
                 "status": "located_shadow", "amount": [i / 10 for i in range(11)]}):
             self.assertEqual(_bound_amount_column(b"unused", reading, physical, 1, {1: image})["low"], 15001)
             reading["bbox_pixels"] = [300, 105, 400, 195]

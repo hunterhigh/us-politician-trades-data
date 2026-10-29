@@ -1,4 +1,4 @@
-"""Audit-only cell observations for already archived scanned House PTR pages.
+"""Source-bound cell observations for already archived scanned House PTR pages.
 
 This module never turns OCR text or checkbox ink into qualified facts. It
 preserves the physical band disposition, cell crop hash, raw OCR tokens, and
@@ -19,7 +19,7 @@ from .ocr_geometry import OcrGeometryError, ocr_pdf_pages, ocr_rendered_image
 def _vertical_rules(image, upper: float, lower: float) -> list[float]:
     import numpy as np
 
-    from .house_ptr_region_shadow import _clusters
+    from .house_ptr_table_region import _clusters
 
     gray = np.asarray(image.convert("L"))
     height, width = gray.shape
@@ -94,7 +94,7 @@ def _printed_checkbox(crop) -> dict | None:
     This detects geometry, never an OCR X or a relative winner among boxes.
     """
     import numpy as np
-    from .house_ptr_region_shadow import _clusters
+    from .house_ptr_table_region import _clusters
 
     dark = np.asarray(crop.convert("L")) < 100
     height, width = dark.shape
@@ -190,7 +190,7 @@ def observe_house_ptr_pdf(pdf_bytes: bytes, *, source_sha256: str,
         raise ValueError('House asset OCR line mode is unsupported')
     import pdfplumber
 
-    from .house_ptr_region_shadow import locate_transaction_grid
+    from .house_ptr_table_region import locate_transaction_grid
 
     pages_out = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:

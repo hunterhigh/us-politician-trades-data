@@ -94,7 +94,7 @@ class HousePaperOwnerConsumptionTests(unittest.TestCase):
 
     def bridge(self):
         # Any accidental acquisition or OCR is a test failure, not a fallback.
-        with (patch('unison_snapshot.house_ptr_cell_observation_shadow.ocr_pdf_pages',
+        with (patch('unison_snapshot.house_ptr_cell_observation.ocr_pdf_pages',
                     side_effect=AssertionError('No OCR in saved owner consumption')),
               patch('unison_snapshot.house_paper_pipeline.reread_doubtful_key_cells',
                     side_effect=AssertionError('No new secondary read in saved consumption'))):

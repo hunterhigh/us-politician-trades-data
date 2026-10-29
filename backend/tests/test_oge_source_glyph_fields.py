@@ -11,7 +11,7 @@ from unittest.mock import patch
 from test_oge_dual_axis_fields import dual_input, bind_secondary
 from test_oge_content_relations import EDGES
 from unison_snapshot.oge_278t_raster_slots import _observe_slot_columns
-from unison_snapshot.oge_278t_field_shadow import observe_field_shapes, observe_content_rows
+from unison_snapshot.oge_278t_fields import observe_field_shapes, observe_content_rows
 from unison_snapshot.oge_278t_source_glyph_fields import SOURCE_GLYPH_MODE
 
 

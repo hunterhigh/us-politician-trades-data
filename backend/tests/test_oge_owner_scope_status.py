@@ -173,7 +173,7 @@ class OwnerScopeStatusTests(unittest.TestCase):
         result, audit = self.candidate(values)
         old_id = values[0]['id']
         new_id = next(row['id'] for row in result['transactions'] if row['id'] != old_id)
-        from unison_snapshot.oge_278t_field_shadow import LEGACY_AMOUNT_INTERPRETATION_MODE as mode
+        from unison_snapshot.oge_278t_fields import LEGACY_AMOUNT_INTERPRETATION_MODE as mode
         report = audit['reports'][0]
         report.pop('owner_scope_view')  # The final receiver is not ordinary native.
         report.update(field_interpretation_mode=mode,
