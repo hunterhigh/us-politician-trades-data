@@ -48,11 +48,10 @@ class SavedScanRuntimeTests(unittest.TestCase):
             env=dict(os.environ,PYTHONPATH=str(self.repo/'backend/src')),capture_output=True)
 
     def seed(self, *, native_cover=False):
-        result=self.cli('observe_oge_annual_scan_sections.py',['--pdf',self.pdf,'--source-sha256',self.sha,
-            '--document-id',DOC,'--review-root',self.review])
-        self.assertEqual(result.returncode,0,result.stderr)
+        from unison_snapshot.oge_annual_scan_sections import observe_scan_sections
+        sections=observe_scan_sections(self.pdf,source_sha256=self.sha,document_id=DOC)
         section_path=controlled_scan_output_path(self.review,'section_observation',DOC,self.sha)
-        sections=json.loads(section_path.read_bytes())
+        self.write(section_path,sections)
         cover={'schema_version':'oge-278e-scan-cover-observation/v1','document_id':DOC,'source_sha256':self.sha,
             'page_count':sections['page_count'],'native_text_sha256':sections['pages'][0]['page_text_sha256'],
             'form_278e_text_observed':True,'annual_type_text_observed':True,'annual_year_text_candidates':[2025]}
@@ -244,10 +243,10 @@ class SavedScanRuntimeTests(unittest.TestCase):
         self.metadata.update(sha256=self.sha,archive_path=self.pdf_relative)
         self.write(self.pdf.with_suffix('.json'),self.metadata)
         self.seed(native_cover=True)
-        result=self.cli('observe_oge_annual_scan_sections.py',['--pdf',self.pdf,'--source-sha256',self.sha,
-            '--document-id',DOC,'--holding-pages','2','--review-root',self.review])
-        self.assertEqual(result.returncode,0,result.stderr)
+        from unison_snapshot.oge_annual_scan_sections import observe_holding_pages
+        observations=observe_holding_pages(self.pdf,source_sha256=self.sha,document_id=DOC,page_numbers=[2])
         path=controlled_scan_output_path(self.review,'holding_page_observations',DOC,self.sha)
+        self.write(path,observations)
         self.assertEqual(json.loads(path.read_bytes())['schema_version'],'oge-278e-native-holding-pages/v2')
         result=self.prepare();self.assertEqual(result.returncode,0,result.stderr)
         package=json.loads(self.input.read_bytes())
@@ -292,32 +291,7 @@ class SavedScanRuntimeTests(unittest.TestCase):
         self.assertIn(b'ambiguous versions',result.stderr)
         self.assertEqual(self.input.read_bytes(),b'input sentinel')
 
-    def test_writer_standard_output_and_legacy_output_are_mutually_exclusive(self):
-        output=self.root/'legacy-sections.json'
-        arguments=['--pdf',self.pdf,'--source-sha256',self.sha,'--document-id',DOC]
-        result=self.cli('observe_oge_annual_scan_sections.py',[*arguments,'--output',output])
-        self.assertEqual(result.returncode,0,result.stderr)
-        original=output.read_bytes()
-        result=self.cli('observe_oge_annual_scan_sections.py',[*arguments,'--output',output,'--review-root',self.review])
-        self.assertNotEqual(result.returncode,0);self.assertEqual(output.read_bytes(),original)
-        result=self.cli('observe_oge_annual_scan_covers.py',['--native-cover-pdf',self.pdf,'--source-sha256',self.sha,
-            '--document-id',DOC,'--output',output,'--review-root',self.review])
-        self.assertNotEqual(result.returncode,0);self.assertEqual(output.read_bytes(),original)
 
-    def test_observation_writers_never_overwrite_pdf_through_same_path_or_hardlink(self):
-        original=self.pdf.read_bytes()
-        for writer,args in (
-            ('observe_oge_annual_scan_sections.py',['--pdf',self.pdf]),
-            ('observe_oge_annual_scan_covers.py',['--native-cover-pdf',self.pdf])):
-            with self.subTest(writer=writer):
-                result=self.cli(writer,[*args,'--source-sha256',self.sha,'--document-id',DOC,'--output',self.pdf])
-                self.assertNotEqual(result.returncode,0);self.assertEqual(self.pdf.read_bytes(),original)
-        linked=controlled_scan_output_path(self.review,'section_observation',DOC,self.sha)
-        linked.parent.mkdir(parents=True)
-        os.link(self.pdf,linked)
-        result=self.cli('observe_oge_annual_scan_sections.py',['--pdf',self.pdf,'--source-sha256',self.sha,
-            '--document-id',DOC,'--review-root',self.review])
-        self.assertNotEqual(result.returncode,0);self.assertEqual(self.pdf.read_bytes(),original)
 
 
 if __name__=='__main__':unittest.main()

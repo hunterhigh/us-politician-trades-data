@@ -1,10 +1,14 @@
 # v1 状态
 
-2026-10-29：v1替代原35项交付，历史见archive/pre-v1-docs。用户已确认切换；PR293合入code（d796df52），main未移动，Senate受阻期间全站继续停发。
+2026-10-29：v1替代原35项交付，历史见archive/pre-v1-docs。PR293已获用户确认并合入code（d796df52）；Senate受阻，全站继续停发，正式main未移动。
 
 ## 范围与授权
 
-Senate停止访问诊断，每日一次正常采集发现恢复。允许告警Issue、内容失败自动回退；网络仅重试。2025 House PTR固定范围回填已启动，不扩年份、年报或供应商。字段与支持范围见[data-contract.md](data-contract.md)。
+Senate停止访问诊断，每日一次正常采集发现恢复。允许告警Issue、内容失败自动回退；网络仅重试。只回填固定2025 House PTR，不扩年份、年报或供应商。字段及支持范围见[data-contract.md](data-contract.md)。
+
+最新安排：取消v1.1日期和稳定一周条件，相关定时检查已删除。本轮连续完成：PR296完整CI通过并合入、2025回填解析/资格判断→人物级可靠绑定未解析计数→代码瘦身（backend/src<50k，测试同比缩减）→code冻结输入全链路、冒烟与回退演练。不按日期或每日节奏推进，中途无需逐步汇报。
+
+同一问题连续两种方法均未推进验收：在待决事项记问题、方法、判断与建议，继续独立步骤；仅产品范围、付费资源、删除生产数据须询问。最后一次汇报不超过10行。
 
 ## 已知限制
 
@@ -21,18 +25,12 @@ Senate停止访问诊断，每日一次正常采集发现恢复。允许告警Is
 
 ## 当前结果与下一步
 
-本机成果已备份；初始候选v1/candidate-20261028及最终候选v1/rc-20261029-a3082fdc固定。[PR293](https://github.com/hunterhigh/us-politician-trades-data/pull/293)整合CI通过并已合入。统一修正层与对应专用代码删除同PR完成。
+本机成果已备份；初始候选v1/candidate-20261028、最终候选v1/rc-20261029-a3082fdc固定。[PR293](https://github.com/hunterhigh/us-politician-trades-data/pull/293)完整CI及整合演练通过：403人、19357交易、5595持仓，公开读取/渲染正常。
 
-[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)已上线，公开读取与渲染冒烟通过。内容失败仅回退至已验证前版。来源门禁含48小时期限、内容告警及周隔离指标。
+[健康入口](https://github.com/hunterhigh/us-politician-trades-data/blob/health/status/production_health.json)切换后检查通过。10条工作流、3115行YAML接受，不再压缩。[PR296](https://github.com/hunterhigh/us-politician-trades-data/pull/296)删除9旧文档、闲置模块和12命令注册，CHANGELOG移根目录；冻结候选、截点及状态逐字节相等，完整CI修正测试夹具中。
 
-冻结输入整合演练：403人、19357条交易、5595条持仓；6992份报告的缺口摘要覆盖205位已绑定人物。四种公开读取、正常渲染及最高HTML浏览器检查通过，无行情请求。人物级“N份未解析”转v1.1。10条工作流、3115行YAML接受，不再压缩。
+2025回填[40810521752](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/40810521752)：515原件已归档，归档队列0。首批解析完成，资格阶段被非2025旧缓存版本拦截，正在修正固定年份的处理边界。验收：2025待处理队列0、每份报告有状态及原因、旧正式事实守恒。
 
-| 阶段 | 台北日期 | 状态 |
-| --- | --- | --- |
-| 候选固定、告警、修正迁移、整合演练 | 10-29 | 完成 |
-| v1切换code | 10-29 | 完成；正式main保持停发 |
-| 尾项独立PR | 10-29 | 删除9旧文档、闲置代码和命令，CHANGELOG移根目录；冻结候选及处理状态逐字节相等，CI待完成 |
-| 固定2025回填 | 10-31 暂估 | [运行40810521752](https://github.com/hunterhigh/us-politician-trades-data/actions/runs/40810521752)515份原件已归档，检查点已保存；解析推进中，首批后校准 |
-| v1.1代码瘦身 | 11-05最早开始，11-12目标 | 切换连续稳定一周后开始；生产shadow/audit按职责改名或合并，src<50k行；稳定不足则给新日期 |
+## 待决事项
 
-同一问题投入1天而产品指标无变化：停止该项，附判断和建议交用户决定；独立工作继续。阶段日期可修正，须给新日期。
+无；剩余工作继续执行。
