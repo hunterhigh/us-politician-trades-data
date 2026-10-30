@@ -51,7 +51,8 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
                 check=True)
         candidate=json.loads((review/'candidates/disclosure-current.json').read_bytes())
         included=sorted(row['source_id'] for row in candidate['source_health']
-            if row.get('source_id') in SOURCES and row.get('status') in {'ok','partial'})
+            if row.get('source_id') in SOURCES and (row.get('status') in {'ok','partial'} or
+                row.get('source_id') == 'senate_efd' and row.get('status') == 'stale' and row.get('stale') is True))
         run={'schema_version':'disclosure-candidate-run/v1','builder_commit':builder_commit,
              'data_cutoff_at':candidate['meta']['data_cutoff_at'],'included_sources':included,
              'pending_sources':sorted(set(SOURCES)-set(included)),'people_count':len(candidate['people']),

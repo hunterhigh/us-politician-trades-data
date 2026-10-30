@@ -18,11 +18,12 @@ from test_source_freshness import freshness_fixture
 from test_public_repo import FakeTransport
 from unison_snapshot.public_repo import PublicSnapshotRepository
 from unison_snapshot.legacy import load
-for stale in (True,False):
- _,bundle=freshness_fixture(stale)
- snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch().snapshot
- data=load('process_snapshot',version='v3').build_snapshot(snapshot)
- Path(sys.argv[2],str(stale)+'.html').write_text(load('render_dashboard',version='v3').render_html(data),encoding='utf-8')`,root,temporary],{cwd:root,encoding:'utf8'});
+for version in ('v2','v3'):
+ for stale in (True,False):
+  _,bundle=freshness_fixture(stale)
+  snapshot=PublicSnapshotRepository('example','data',transport=FakeTransport(bundle.files)).fetch().snapshot
+  data=load('process_snapshot',version=version).build_snapshot(snapshot)
+  Path(sys.argv[2],version+'-'+str(stale)+'.html').write_text(load('render_dashboard',version=version).render_html(data),encoding='utf-8')`,root,temporary],{cwd:root,encoding:'utf8'});
   assert.equal(generated.status,0,generated.stdout+generated.stderr);
   const executablePath=[process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,process.env.CHROME_PATH,
     '/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium',
@@ -33,7 +34,8 @@ for stale in (True,False):
   const page=await browser.newPage();const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.route(/^https?:/,route=>route.abort());
-  await page.goto(pathToFileURL(join(temporary,'True.html')).href,{waitUntil:'domcontentloaded'});
+  for (const version of ['v2','v3']) {
+  await page.goto(pathToFileURL(join(temporary,version+'-True.html')).href,{waitUntil:'domcontentloaded'});
   const footer=page.locator('footer [data-source-freshness="report"]');
   assert.equal(await footer.count(),1);
   assert.match(await footer.innerText(),/Senate 数据截至 2026-09-18，官方站点暂时无法访问/);
@@ -47,9 +49,10 @@ for stale in (True,False):
   assert.equal(await person.isVisible(),true);assert.match(await person.innerText(),/2026-09-18/);
   await page.evaluate(()=>renderPersonPage());assert.equal(await person.count(),1);
   await page.evaluate(id=>openPerson(id),ids.house);assert.equal(await person.count(),0);
-  await page.goto(pathToFileURL(join(temporary,'False.html')).href,{waitUntil:'domcontentloaded'});
+  await page.goto(pathToFileURL(join(temporary,version+'-False.html')).href,{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('[data-source-freshness]').count(),0);
+  }
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({source_freshness:'passed',footer:true,senate_person:true,
-    house_person_unchanged:true,windows:[30,90],automatic_recovery:true}));
+    house_person_unchanged:true,windows:[30,90],automatic_recovery:true,frontends:['v2','v3']}));
 } finally {if(browser)await browser.close();rmSync(temporary,{recursive:true,force:true});}
