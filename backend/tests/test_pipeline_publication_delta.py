@@ -44,6 +44,25 @@ class PublicationDeltaTests(unittest.TestCase):
         self.assertEqual(report["counts"]["reported_holdings"]["unchanged"], 1)
         self.assertEqual(report["transition_verification_level"], "not_applicable_no_rekeys")
 
+    def test_stale_senate_facts_cannot_change_even_for_market_enrichment(self):
+        values=self.fixture()
+        for value in values:
+            collection=[value['oge']] if value is values[3] else [value]
+            for candidate in collection:
+                for person in candidate.get('people',[]):person['disclosure_authority']='senate_efd'
+                for row in candidate.get('reported_holdings',[]):row['source_id']='senate_efd'
+        values[3]['senate_efd']=values[3].pop('oge')
+        values[3]['oge']={'meta':{'is_demo':False},'people':[],'transactions':[],'reported_holdings':[]}
+        values[1]['source_health']=[{'source_id':'senate_efd','stale':True}]
+        self.assertFalse(self.run_gate(values)['changes'])
+        for kind in ('ticker','owner','missing'):
+            changed=deepcopy(values)
+            row=changed[2]['reported_holdings'][0]
+            if kind=='missing':changed[1]['reported_holdings']=[];changed[2]['reported_holdings']=[]
+            else:row[kind]='EXM' if kind=='ticker' else 'Spouse'
+            with self.assertRaisesRegex(InventoryError,'retain every previous fact exactly'):
+                self.run_gate(changed)
+
     def test_new_source_fact_is_reported_once(self):
         values = self.fixture()
         new = {**values[1]["reported_holdings"][0], "id": "new-fact", "asset_name": "Other"}

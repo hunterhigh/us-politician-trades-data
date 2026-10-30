@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/dashboard.e2e.mjs && node tests/known-gaps.e2e.mjs",
+    "test": "node tests/dashboard.e2e.mjs && node tests/known-gaps.e2e.mjs && node tests/source-freshness.e2e.mjs",
     "test:production": "node tests/production.e2e.mjs",
     "test:latest-html": "node tests/latest-html-production.e2e.mjs"
   },

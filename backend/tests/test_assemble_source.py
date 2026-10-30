@@ -16,7 +16,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 class AssembleSourceTests(SourceTreeFixture, unittest.TestCase):
-    def test_oge_scope_saves_its_projection_before_deferring_stale_peers(self):
+    def test_oge_scope_keeps_each_native_cutoff_when_peer_dates_differ(self):
         control=trees.prepare(self.repo,self.workspace,'oge',('review',))
         review=Path(control['trees']['review']['root'])
         for source,cutoff in [('house_clerk','2026-10-27T00:00:00Z'),
@@ -35,10 +35,13 @@ class AssembleSourceTests(SourceTreeFixture, unittest.TestCase):
         value=json.loads(source.read_bytes());value['source_health'][0]['detail']='new validated projection'
         source.write_bytes(encode(value));expected=source.read_bytes()
         with patch.dict(os.environ,{'PYTHONPATH':str(ROOT/'backend/src')}):
-            self.assertEqual(assembly.assemble(self.workspace,'oge',ROOT/'backend/data/empty-disclosure.json',None,self.code),'deferred')
+            self.assertEqual(assembly.assemble(self.workspace,'oge',ROOT/'backend/data/empty-disclosure.json',None,self.code),'ready')
         self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:candidates/sources/oge-current.json')),json.loads(expected))
-        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:candidates/disclosure-current.json')),{'prior_complete':True})
-        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:status/disclosure_assembly.json'))['status'],'deferred')
+        merged=json.loads(trees.git(self.repo,'show','origin/review:candidates/disclosure-current.json'))
+        self.assertEqual(len(merged['transactions']),3)
+        self.assertEqual(next(r for r in merged['source_health'] if r['source_id']=='oge')['data_cutoff_at'],
+                         '2026-10-24T00:00:00Z')
+        self.assertEqual(json.loads(trees.git(self.repo,'show','origin/review:status/disclosure_assembly.json'))['status'],'ready')
 
     def seed(self, cutoff):
         prepared=self.prepare(('review',));review=Path(prepared['trees']['review']['root'])
@@ -65,17 +68,21 @@ class AssembleSourceTests(SourceTreeFixture, unittest.TestCase):
             return assembly.assemble(self.workspace,'house_clerk',ROOT/'backend/data/empty-disclosure.json',
                 self.root/'report.html',self.code)
 
-    def test_deferred_peer_retains_unified_bytes_but_saves_the_valid_source(self):
+    def test_stale_senate_is_included_without_truncating_the_valid_source(self):
         review=self.seed('2026-10-23T00:00:00Z')
         prior={relative:(review/relative).read_bytes() for relative in [
             'candidates/disclosure-current.json','status/disclosure_cutoff.json','status/disclosure_candidate.json']}
-        self.assertEqual(self.invoke(),'deferred')
-        for relative,raw in prior.items():self.assertEqual((review/relative).read_bytes(),raw)
-        self.assertEqual(json.loads((review/'status/disclosure_assembly.json').read_bytes())['status'],'deferred')
+        self.assertEqual(self.invoke(),'ready')
+        for relative,raw in prior.items():self.assertNotEqual((review/relative).read_bytes(),raw)
+        self.assertEqual(json.loads((review/'status/disclosure_assembly.json').read_bytes())['status'],'ready')
+        run=json.loads((review/'status/disclosure_candidate.json').read_bytes())
+        self.assertEqual(run['included_sources'],['house_clerk','senate_efd'])
+        merged=json.loads((review/'candidates/disclosure-current.json').read_bytes())
+        self.assertTrue(next(r for r in merged['source_health'] if r['source_id']=='senate_efd')['stale'])
         remote=trees.git(self.repo,'--git-dir',self.remote,'show','review:candidates/sources/house_clerk-current.json')
         self.assertEqual(json.loads(remote)['transactions'][0]['id'],'house_clerk:fact')
         self.assertEqual(trees.git(self.repo,'rev-parse','HEAD'),self.code)
-        self.assertFalse((self.root/'report.html').exists())
+        self.assertTrue((self.root/'report.html').exists())
 
     def test_readiness_failure_keeps_prior_unified_remote_after_saving_valid_source(self):
         import subprocess

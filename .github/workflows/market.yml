@@ -26,6 +26,9 @@ on:
         description: Matching published market commit for cache recovery
         default: ''
 
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: read

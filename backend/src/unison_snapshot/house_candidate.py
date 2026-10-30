@@ -33,6 +33,29 @@ def _short_name(value: str) -> str:
     return parts[-2] if len(parts) > 1 and parts[-1].lower() in suffixes else parts[-1]
 
 
+def _archive_count_matches(summary, state_status, evidence_root):
+    archived = state_status.get('counts', {}).get('archived')
+    if archived == summary.get('evidence_count'):
+        return True
+    # Normal collection state is year-scoped. A complete candidate also contains
+    # the fixed archived 2025 inventory; verify both real inventories explicitly.
+    year = state_status.get('filing_year')
+    if type(year) is not int or evidence_root is None:
+        return False
+    from collections import Counter
+    counts = Counter()
+    for path in Path(evidence_root).glob('house_clerk/documents/*/*/*.json'):
+        metadata = _read_json(path, 'House archive metadata')
+        selected_year = metadata.get('filing_year')
+        if (type(selected_year) is not int or selected_year not in {2025, year} or
+                path.parent.parent.name != str(selected_year) or
+                path.parent.name != str(metadata.get('document_id')) or
+                path.stem != metadata.get('sha256')):
+            raise HouseIndexError('House archive inventory differs from its year and source identity')
+        counts[selected_year] += 1
+    return (counts[year] == archived and sum(counts.values()) == summary.get('evidence_count'))
+
+
 def _person(identity: dict) -> dict:
     person_id = identity.get("person_id")
     name = identity.get("official_name")
@@ -386,7 +409,7 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 identities[row["person_id"]] = {field: identity.get(field) for field in PERSON_FIELDS}
     if len(state_status.get("counts", {})) == 0 or state_status.get("status") != "ok":
         raise HouseIndexError("House source state is not healthy enough to build a candidate")
-    if state_status.get("counts", {}).get("archived") != summary.get("evidence_count"):
+    if not _archive_count_matches(summary, state_status, evidence_root):
         raise HouseIndexError("House source and qualification evidence counts disagree")
     cutoff = state_status.get("run_at")
     if not isinstance(cutoff, str):

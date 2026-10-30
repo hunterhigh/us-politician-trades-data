@@ -1,20 +1,15 @@
-"""Keep formal publication held when any source collection or qualification is stale."""
+"""Gate each source against its own collection and qualified waterlines."""
 from datetime import datetime,timedelta,timezone
 from .content_integrity import content_boundary
+from .source_freshness import (collection_at, maximum_age, source_blocked,
+                               source_unavailable, timestamp, senate_grace_allowed)
 
 SOURCES=('house_clerk','senate_efd','oge')
 MAX_AGE=timedelta(hours=48)
 
 
-def timestamp(value):
-    if not isinstance(value,str):raise ValueError('Source waterline must be an explicit timestamp')
-    result=datetime.fromisoformat(value.replace('Z','+00:00'))
-    if result.tzinfo is None:raise ValueError('Source waterline requires a timezone')
-    return result.astimezone(timezone.utc)
-
-
 @content_boundary('snapshot_contract')
-def evaluate(candidates,statuses,*,now=None):
+def evaluate(candidates,statuses,*,now=None,senate_days=None):
     now=now or datetime.now(timezone.utc)
     if now.tzinfo is None:raise ValueError('Publication clock requires a timezone')
     blockers=[];waterlines={}
@@ -28,20 +23,23 @@ def evaluate(candidates,statuses,*,now=None):
         if len(health)!=1 or health[0].get('data_cutoff_at')!=candidate['meta'].get('data_cutoff_at'):
             raise ValueError('Qualified source waterline is not bound to its candidate')
         qualified=candidate['meta']['data_cutoff_at']
-        collection=status.get('last_successful_collection_at') or ((status.get('catalog') or {}).get('retrieved_at') if source in {'senate_efd','oge'} else
-            status.get('run_at') if status.get('status') in {'ok','attention'} else
-            status.get('last_successful_collection_at'))
-        waterlines[source]={'collection_at':collection,'qualified_at':qualified}
-        blocked=(status.get('status') in {'blocked','disabled','authorization_required'} or
-            status.get('status')=='failed' and status.get('last_collection_attempt',{}).get('http_status')==403)
-        if blocked:blockers.append({'source':source,'reason':'source_blocked'})
-        if health[0].get('status') not in {'ok','partial'}:
+        collection=collection_at(source,status)
+        age_limit=maximum_age(source,senate_days)
+        waterlines[source]={'collection_at':collection,'qualified_at':qualified,
+                           'max_age_hours':age_limit.total_seconds()/3600,
+                           'unavailable':source_unavailable(status)}
+        blocked=source_blocked(status)
+        grace_source=source=='senate_efd' and senate_grace_allowed(status)
+        if blocked and not grace_source:blockers.append({'source':source,'reason':'source_blocked'})
+        ready_health=health[0].get('status') in {'ok','partial'} or (
+            source=='senate_efd' and health[0].get('status')=='stale' and health[0].get('stale') is True)
+        if not ready_health:
             blockers.append({'source':source,'reason':'qualified_source_not_ready'})
         for phase,value in [('collection',collection),('qualified',qualified)]:
             if value is None:
                 blockers.append({'source':source,'reason':phase+'_waterline_missing'});continue
             instant=timestamp(value)
             if instant>now+timedelta(minutes=5):raise ValueError('Source waterline is in the future')
-            if now-instant>MAX_AGE:blockers.append({'source':source,'reason':phase+'_stale','waterline_at':value})
+            if now-instant>age_limit:blockers.append({'source':source,'reason':phase+'_stale','waterline_at':value})
     return {'schema_version':'publication-source-gate/v1','checked_at':now.isoformat(),
             'ready':not blockers,'blocking_sources':blockers,'waterlines':waterlines}

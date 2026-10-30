@@ -2,7 +2,7 @@
 import argparse
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 
@@ -11,6 +11,29 @@ def write_text(path, content):
     temporary=path.with_name(path.name+".next")
     temporary.write_text(content, encoding="utf-8")
     temporary.replace(path)
+
+
+def collection_start(prior, configured='', *, now=None, qualified_at=None, earliest_known_date=None):
+    """Never skip a recovery interval because a configured window moved forward."""
+    now = now or datetime.now(timezone.utc)
+    try: fallback = now.date().replace(year=now.year - 6).isoformat()
+    except ValueError: fallback = date(now.year - 6, 2, 28).isoformat()
+    selected = configured or fallback
+    if date.fromisoformat(selected).isoformat() != selected:
+        raise ValueError('Senate collection start requires an ISO date')
+    waterlines = [prior.get('last_successful_collection_at'),
+                  (prior.get('catalog') or {}).get('retrieved_at'), qualified_at]
+    from unison_snapshot.source_freshness import timestamp
+    for value in waterlines:
+        if value:
+            selected = min(selected, timestamp(value).date().isoformat())
+    if earliest_known_date:
+        if date.fromisoformat(earliest_known_date).isoformat() != earliest_known_date:
+            raise ValueError('Prior Senate catalog date is invalid')
+        selected = min(selected, earliest_known_date)
+    if selected > now.date().isoformat():
+        raise ValueError('Senate collection start cannot be in the future')
+    return selected
 
 def record_gate(state, run, now):
     gate = json.loads((run / 'senate-efd-gate.json').read_text(encoding='utf-8'))
@@ -240,7 +263,8 @@ def record_review(review, run, now):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('gate','failure','collected','review','roster'))
+    parser.add_argument('operation', choices=('gate','failure','collected','review','roster','start-date'))
+    parser.add_argument('--configured-start', default='')
     parser.add_argument('--run-root', type=Path, default=Path('.local'))
     parser.add_argument('--state-root', type=Path)
     parser.add_argument('--review-root', type=Path)
@@ -256,7 +280,34 @@ def main():
             record_review(args.review_root, args.run_root, now)
         else:
             if not args.state_root:parser.error('state operations require --state-root')
-            if args.operation == 'failure':
+            if args.operation == 'start-date':
+                path = args.state_root / 'status/senate_efd.json'
+                prior = json.loads(path.read_bytes()) if path.is_file() else {}
+                qualified, earliest = None, None
+                if args.review_root:
+                    candidate = args.review_root / 'candidates/sources/senate_efd-current.json'
+                    if candidate.is_file():
+                        qualified = json.loads(candidate.read_bytes())['meta']['data_cutoff_at']
+                    status = args.review_root / 'status/senate_efd.json'
+                    if status.is_file():
+                        status_value = json.loads(status.read_bytes())
+                        sha = status_value.get('catalog_sha256')
+                        import re
+                        if sha is None and status_value.get('schema_version') != 'senate-review-run/v1':
+                            sha = None  # Bootstrap state has no normalized review catalog yet.
+                        elif not isinstance(sha,str) or not re.fullmatch('[0-9a-f]{64}',sha):
+                            raise ValueError('Prior Senate catalog lacks its content binding')
+                        if sha is not None:
+                            discovery = json.loads((args.review_root / 'senate_efd/discoveries' / (sha+'.json')).read_bytes())
+                            content = {key:value for key,value in discovery.items() if key != 'metadata'}
+                            if hashlib.sha256(json.dumps(content,ensure_ascii=False,sort_keys=True,
+                                    separators=(',', ':')).encode('utf-8')).hexdigest() != sha:
+                                raise ValueError('Prior Senate catalog content differs from its binding')
+                            dates = [r['portal_listed_date'] for r in discovery['reports']]
+                            earliest = min(dates) if dates else None
+                print(collection_start(prior, args.configured_start,
+                    qualified_at=qualified, earliest_known_date=earliest))
+            elif args.operation == 'failure':
                 record_failure(args.state_root, args.run_root, now, args.source_status,
                     args.collect_outcome, args.run_url, args.summary)
             else:

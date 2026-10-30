@@ -25,6 +25,9 @@ on:
         description: Activate existing independent annual Part 4b disclosures
         type: boolean
         default: false
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write
@@ -91,6 +94,7 @@ jobs:
           roles: state
           message: Senate Persist authorization state ${{ github.run_id }}
       - name: Fail a partially enabled gate
+        if: steps.gate.outputs.status == 'blocked'
         run: |
           echo "Senate eFD collection was enabled without the required terms acknowledgement." >&2
           exit 2
@@ -104,10 +108,9 @@ jobs:
           mkdir -p .local
           PYTHONPATH=backend/src python -m unison_snapshot senate-efd-gate \
             --output .local/senate-efd-gate.json
-          start_date="$SENATE_EFD_START_DATE"
-          if [ -z "$start_date" ]; then
-            start_date="$(date -u -d '6 years ago' +%F)"
-          fi
+          start_date="$(python -m unison_snapshot senate-source-state start-date \
+            --state-root "$STATE_ROOT" --review-root "$REVIEW_ROOT" \
+            --configured-start "$SENATE_EFD_START_DATE")"
           PYTHONPATH=backend/src python -m unison_snapshot discover-senate-efd \
             --archive "$EVIDENCE_ROOT" \
             --submitted-start-date "$start_date" \
@@ -217,6 +220,13 @@ jobs:
           PYTHONPATH=backend/src python -m unison_snapshot senate-source-state review \
             --run-root .local --review-root "$REVIEW_ROOT"
 
+      - name: Persist recovered report observations before qualification completes
+        if: ${{ steps.collect.outputs.source_status == 'ready' }}
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/senate-source
+          roles: review
+          message: Senate Persist recovered report observations ${{ github.run_id }}
       - name: Build and validate frontend candidate
         if: ${{ steps.collect.outputs.source_status == 'ready' }}
         id: candidate

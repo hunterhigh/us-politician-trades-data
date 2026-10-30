@@ -157,15 +157,16 @@ class DisclosureCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(DisclosureCandidateError, "not ready"):
             build_disclosure_candidate(deepcopy(BASE), {"house_clerk": house})
 
-    def test_cutoff_disagreement_fails_closed(self):
+    def test_source_cutoffs_are_independent_and_health_binding_stays_required(self):
         with self.subTest("source candidates"):
             senate = deepcopy(self.senate)
             senate["meta"]["data_cutoff_at"] = "2026-09-19T00:00:00Z"
             senate["source_health"][0]["data_cutoff_at"] = "2026-09-19T00:00:00Z"
-            with self.assertRaisesRegex(DisclosureCandidateError, "cutoffs do not match"):
-                build_disclosure_candidate(
-                    deepcopy(BASE), {"house_clerk": self.house, "senate_efd": senate}
-                )
+            result = build_disclosure_candidate(
+                deepcopy(BASE), {"house_clerk": self.house, "senate_efd": senate}
+            )
+
+            self.assertEqual(result["meta"]["data_cutoff_at"], CUTOFF)
 
         with self.subTest("health and candidate"):
             house = deepcopy(self.house)
@@ -173,7 +174,7 @@ class DisclosureCandidateTests(unittest.TestCase):
             with self.assertRaisesRegex(DisclosureCandidateError, "health cutoff"):
                 build_disclosure_candidate(deepcopy(BASE), {"house_clerk": house})
 
-    def test_explicit_harmonization_uses_earliest_waterline_and_filters_later_facts(self):
+    def test_legacy_flag_keeps_native_waterlines_and_every_fact(self):
         house = deepcopy(self.house)
         house["transactions"][0]["filed_at"] = "2026-09-19T12:00:00Z"
         senate = deepcopy(self.senate)
@@ -193,26 +194,25 @@ class DisclosureCandidateTests(unittest.TestCase):
             harmonization_audit=audit,
         )
 
-        self.assertEqual(result["meta"]["data_cutoff_at"], "2026-09-18T23:59:59Z")
-        self.assertEqual(result["transactions"], [])
+        self.assertEqual(result["meta"]["data_cutoff_at"], CUTOFF)
+        self.assertEqual(result["transactions"], house["transactions"])
         self.assertEqual(result["reported_holdings"], senate["reported_holdings"])
-        self.assertEqual([row["id"] for row in result["people"]], ["senate:M001153"])
+        self.assertEqual([row["id"] for row in result["people"]], ["house:P000197", "senate:M001153"])
         health = {row["source_id"]: row for row in result["source_health"]}
-        self.assertEqual(health["house_clerk"]["data_cutoff_at"], "2026-09-18T23:59:59Z")
+        self.assertEqual(health["house_clerk"]["data_cutoff_at"], CUTOFF)
+        self.assertEqual(health["senate_efd"]["data_cutoff_at"], senate_cutoff)
         self.assertEqual(health["house_clerk"]["last_successful_sync_at"], CUTOFF)
         self.assertEqual(encode({"house": house, "senate": senate}), before)
-        self.assertEqual(audit["mode"], "last_complete_shared_utc_day")
-        self.assertEqual(audit["sources"]["house_clerk"]["filtered_transaction_count"], 1)
+        self.assertEqual(audit["mode"], "per_source_cutoff")
+        self.assertEqual(audit["sources"]["house_clerk"]["filtered_transaction_count"], 0)
         self.assertRegex(audit["sources"]["house_clerk"]["candidate_sha256"], r"^[0-9a-f]{64}$")
 
-    def test_harmonization_rejects_market_data_without_a_market_cutoff_policy(self):
-        with self.assertRaisesRegex(DisclosureCandidateError, "Market data"):
-            build_disclosure_candidate(
-                deepcopy(BASE), {"house_clerk": self.house, "senate_efd": self.senate},
-                harmonize_cutoffs=True,
-            )
+    def test_native_cutoffs_do_not_change_market_data(self):
+        result = build_disclosure_candidate(deepcopy(BASE),
+            {"house_clerk":self.house, "senate_efd":self.senate}, harmonize_cutoffs=True)
+        self.assertEqual(result['security_market_data'], BASE['security_market_data'])
 
-    def test_harmonization_rejects_stale_sources_and_native_cutoff_violations(self):
+    def test_older_senate_is_retained_but_native_cutoff_violations_are_rejected(self):
         with self.subTest("stale source"):
             senate = deepcopy(self.senate)
             stale = "2026-09-17T00:00:00Z"
@@ -221,11 +221,10 @@ class DisclosureCandidateTests(unittest.TestCase):
             senate["reported_holdings"][0]["filed_at"] = "2026-09-16T00:00:00Z"
             base = deepcopy(BASE)
             base["security_market_data"] = []
-            with self.assertRaisesRegex(DisclosureCandidateError, "too stale"):
-                build_disclosure_candidate(
-                    base, {"house_clerk": self.house, "senate_efd": senate},
-                    harmonize_cutoffs=True,
-                )
+            result = build_disclosure_candidate(base,
+                {"house_clerk":self.house, "senate_efd":senate}, harmonize_cutoffs=True)
+            self.assertEqual(result['reported_holdings'], senate['reported_holdings'])
+            self.assertTrue(next(r for r in result['source_health'] if r['source_id']=='senate_efd')['stale'])
         with self.subTest("native cutoff"):
             house = deepcopy(self.house)
             house["transactions"][0]["filed_at"] = "2026-09-21T00:00:00Z"

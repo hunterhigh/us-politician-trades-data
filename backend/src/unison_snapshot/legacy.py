@@ -54,6 +54,7 @@ def load(name: str, *, version: str = "v1"):
         spec.loader.exec_module(module)
     if name == 'render_dashboard':
         from .known_gaps import render
+        from .source_freshness import render as render_freshness
         original = module.render_html
-        module.render_html = lambda data: render(original(data), data)
+        module.render_html = lambda data: render_freshness(render(original(data), data), data)
     return module

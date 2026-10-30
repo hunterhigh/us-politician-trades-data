@@ -18,8 +18,9 @@ class HealthTests(unittest.TestCase):
 
     def test_blocked_source_visible_while_formal_snapshot_unchanged(self):
         h = evaluate(self.manifest, self.sources, now=self.now)
-        self.assertEqual(h['publication'], 'held')
-        self.assertEqual(h['blocking_sources'], [{'source': 'senate_efd', 'reason': 'source_blocked'}])
+        self.assertEqual(h['publication'], 'sources_recovered')
+        self.assertEqual(h['blocking_sources'], [])
+        self.assertTrue(h['sources']['senate_efd']['grace_active'])
         self.assertEqual({a['key'] for a in h['alerts']}, {'publication', 'source:senate_efd'})
         self.assertEqual(h['sources']['senate_efd']['http_status'], 403)
         self.assertNotIn('unhealthy_since', self.sources['senate_efd'])
@@ -89,7 +90,7 @@ class HealthTests(unittest.TestCase):
                 'senate_efd': '2026-10-23T07:00:00Z'}}
         h = evaluate(self.manifest, self.sources, now=self.now, assembly=assembly)
         self.assertEqual(h['sources']['oge']['status'], 'ok')
-        self.assertIn({'source': 'oge', 'reason': 'candidate_cutoff_lag',
+        self.assertIn({'source': 'oge', 'reason': 'candidate_stale',
             'candidate_cutoff_at': '2026-10-24T07:00:00Z'}, h['blocking_sources'])
         self.assertEqual(h['publication'], 'held')
 
@@ -103,7 +104,7 @@ class HealthTests(unittest.TestCase):
         assembly = {'schema_version': 'disclosure-assembly-status/v1', 'status': 'ready',
                     'source_cutoffs': {source: '2026-10-23T07:00:00Z' for source in self.sources}}
         health = evaluate(self.manifest, self.sources, now=self.now, assembly=assembly)
-        self.assertEqual({row['source'] for row in health['blocking_sources']}, set(self.sources))
+        self.assertEqual({row['source'] for row in health['blocking_sources']}, {'house_clerk','oge'})
         self.assertTrue(all(row['reason'] == 'candidate_stale' for row in health['blocking_sources']))
 
     def test_publication_history_excludes_bootstrap_and_held_assessment_and_keeps_legacy_success(self):

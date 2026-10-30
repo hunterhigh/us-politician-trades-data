@@ -234,11 +234,14 @@ def main() -> None:
     disclosure_candidate.add_argument("--audit-output", type=Path)
     disclosure_candidate.add_argument("--html-output", type=Path)
     disclosure_candidate.add_argument("--assembly-status-output", type=Path)
+    source_state = disclosure_candidate.add_mutually_exclusive_group()
+    source_state.add_argument('--source-state-root', type=Path)
+    source_state.add_argument('--source-gate-file', type=Path)
     disclosure_candidate.add_argument("--defer-stale-sources", action="store_true",
                                       help="Record stale-source assembly as deferred; never replace the candidate")
     disclosure_candidate.add_argument(
         "--harmonize-cutoffs", action="store_true",
-        help="Align source candidates to their earliest cutoff and exclude later-filed facts")
+        help="Compatibility flag; sources retain their own cutoffs and all qualified facts")
     market_validation = sub.add_parser(
         "build-alpaca-market-validation",
         help="Build a local Alpaca Basic candidate without enabling production publication")
@@ -683,10 +686,26 @@ def main() -> None:
                 sources[source_id] = json.loads(Path(source_path).read_text(encoding="utf-8"))
             base = json.loads(args.base.read_text(encoding="utf-8"))
             cutoff_audit = {} if args.audit_output else None
+            source_statuses = None
+            if args.source_state_root:
+                source_statuses = {source: json.loads((args.source_state_root / 'status' /
+                    (source + '.json')).read_bytes()) for source in sources}
+            elif args.source_gate_file:
+                gate = json.loads(args.source_gate_file.read_bytes())
+                if gate.get('schema_version') != 'publication-source-gate/v1':
+                    raise DisclosureCandidateError('Unsupported source gate metadata')
+                source_statuses = {}
+                for source, candidate in sources.items():
+                    waterline = gate.get('waterlines', {}).get(source, {})
+                    if waterline.get('qualified_at') != candidate['meta']['data_cutoff_at']:
+                        raise DisclosureCandidateError('Source gate metadata differs from its candidate')
+                    source_statuses[source] = {
+                        'status': 'unavailable' if waterline.get('unavailable') else 'ok',
+                        'last_successful_collection_at': waterline.get('collection_at')}
             try:
                 result = build_disclosure_candidate(
                     base, sources, harmonize_cutoffs=args.harmonize_cutoffs,
-                    harmonization_audit=cutoff_audit)
+                    harmonization_audit=cutoff_audit, source_statuses=source_statuses)
             except SourceCutoffsStaleError as exc:
                 if not args.defer_stale_sources:
                     raise

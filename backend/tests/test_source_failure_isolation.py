@@ -80,7 +80,7 @@ class SourceFailureCliTests(unittest.TestCase):
                 self.assertEqual(invoke(args), 2)
             self.assertFalse((root / 'discovery.json').exists())
 
-    def test_deferred_assembly_keeps_prior_outputs_and_default_remains_strict(self):
+    def test_assembly_keeps_independent_source_cutoffs_and_rejects_malformed_inputs(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             sources = []
@@ -104,12 +104,16 @@ class SourceFailureCliTests(unittest.TestCase):
                     *sources, '--harmonize-cutoffs', '--output', str(out),
                     '--audit-output', str(audit), '--html-output', str(html),
                     '--assembly-status-output', str(status)]
-            self.assertEqual(invoke(args), 2)
-            self.assertFalse(status.exists())
+            self.assertEqual(invoke(args), 0)
             self.assertEqual(invoke([*args, '--defer-stale-sources']), 0)
-            self.assertEqual(json.loads(status.read_text())['status'], 'deferred')
+            self.assertEqual(json.loads(status.read_text())['status'], 'ready')
+            selected=json.loads(out.read_bytes())
+            self.assertEqual(len(selected['transactions']),2)
+            self.assertEqual(selected['meta']['data_cutoff_at'],'2026-10-27T00:00:00Z')
+            self.assertEqual({r['source_id']:r['data_cutoff_at'] for r in selected['source_health']
+                if r['source_id'] in values},{s:v['meta']['data_cutoff_at'] for s,v in values.items()})
             for file in (out, audit, html):
-                self.assertEqual(file.read_bytes(), b'prior immutable output')
+                self.assertNotEqual(file.read_bytes(), b'prior immutable output')
             # Even with stale cutoffs, malformed facts and cross-source ID
             # collisions remain hard errors instead of being deferred.
             for mode in ('bad_amount', 'duplicate_fact', 'bad_source',
