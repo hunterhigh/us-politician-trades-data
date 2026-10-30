@@ -111,19 +111,23 @@ def _segment(row, number):
     return [s["bbox_points"] for s in row["evidence"]["segments"] if s["page"]==number]
 
 
-def _source_status_unique(row, pages):
+def _source_status_unique(row, pages, *, legacy=False):
     statuses=[]
+    allowed = 'New|Amended' if legacy else 'New|Amended|Deleted'
     for number,page in enumerate(pages,1):
         for b in _segment(row,number):
             for line in _lines([w for w in page["words"] if _in(w,b)]):
                 text=_text(line)
-                if re.fullmatch(r"(?:F|Filing) (?:S|Status): (?:New|Amended|Deleted)",text,re.I):
+                if re.fullmatch(rf"(?:F|Filing) (?:S|Status): (?:{allowed})",text,re.I):
                     statuses.append(text.rsplit(":",1)[1].strip())
     return len(statuses)==1 and statuses[0].casefold()==str(row.get("filing_status","")).casefold()
 
 
-def _table_page(page, geometry, rows, *, number, all_pages):
+def _table_page(page, geometry, rows, *, number, all_pages, legacy=False):
     width, height, words = page["width"], page["height"], page["words"]
+    statuses = 'New|Amended' if legacy else 'New|Amended|Deleted'
+    descriptions = 'D|Description' if legacy else 'D|Description|C|Comments'
+    member_statuses = {'Status: Member'} if legacy else {'Status: Member', 'Status: Former Member'}
     cells=_header_cells(page,geometry)
     if cells is None:
         return None
@@ -159,7 +163,7 @@ def _table_page(page, geometry, rows, *, number, all_pages):
             return None
         ownership[id(w)]=matches[0];owned[matches[0]].append(w)
     for index,row in rows:
-        if (not owned[index] or not _source_status_unique(row,all_pages) or
+        if (not owned[index] or not _source_status_unique(row,all_pages,legacy=legacy) or
                 (number>row["evidence"]["page"] and not any(w.get("size",9)>=8.8 for w in owned[index]))):
             return None
         detail_kind=None
@@ -170,7 +174,7 @@ def _table_page(page, geometry, rows, *, number, all_pages):
                 # Notes have their own source detail-band witness. A prior D:
                 # cannot turn a later aligned financial row into free prose.
                 detail_bands=[(t,z) for t,z in bands if all(_in(w,[left,t,right,z]) for w in line)
-                    and any(re.match(r"^(?:(?:F|Filing) (?:S|Status):|(?:S|Subholding) (?:O|Of):|(?:L|Location):|(?:D|Description|C|Comments):)",_text(other),re.I)
+                    and any(re.match(rf"^(?:(?:F|Filing) (?:S|Status):|(?:S|Subholding) (?:O|Of):|(?:L|Location):|(?:{descriptions}):)",_text(other),re.I)
                         for other in _lines([w for w in owned[index] if _in(w,[left,t,right,z])]))]
                 has_amount=any(cells[6][0]<=w["x0"]<cells[6][2] and "$" in str(w["text"]) for w in line)
                 has_direction=any(cells[3][0]<=w["x0"]<cells[3][2] and re.fullmatch(r"[PSE]",_clean(w["text"]),re.I) for w in line)
@@ -178,9 +182,9 @@ def _table_page(page, geometry, rows, *, number, all_pages):
                 if (not detail_bands or not cells[2][0]-.8<=min(w["x0"] for w in line)<cells[2][2]
                         or (has_amount and (has_direction or has_event))):
                     return None
-                match=re.match(r"^(?:(F|Filing) (S|Status): (New|Amended|Deleted)|(S|Subholding) (O|Of): .+|(L|Location): .+|(D|Description|C|Comments): .+)$",text,re.I)
+                match=re.match(rf"^(?:(F|Filing) (S|Status): ({statuses})|(S|Subholding) (O|Of): .+|(L|Location): .+|({descriptions}): .+)$",text,re.I)
                 if match:
-                    detail_kind=("description" if re.match(r"^(?:D|Description|C|Comments):",text,re.I) else "other")
+                    detail_kind=("description" if re.match(rf"^(?:{descriptions}):",text,re.I) else "other")
                 elif detail_kind!="description":
                     return None
             elif number==row["evidence"]["page"] and abs(line[0]["top"]-primary_top)<=2:
@@ -213,11 +217,11 @@ def _table_page(page, geometry, rows, *, number, all_pages):
         if _financial(before) or not (any(text in {"P T R","Periodic Transaction Report"} for text in lines)
             and any(re.fullmatch(r"Filing ID #[0-9]+",text) for text in lines)
             and any(text.startswith("Name: ") for text in lines)
-            and any(text in {"Status: Member", "Status: Former Member"} for text in lines)
+            and any(text in member_statuses for text in lines)
             and any(re.fullmatch(r"State/District: [A-Z]{2}[0-9]{2}",text) for text in lines)):
             return None
         for text in lines:
-            if not (text in {"P T R","Periodic Transaction Report","F I","Filer Information","T","Transactions","Status: Member","Status: Former Member"}
+            if not (text in {"P T R","Periodic Transaction Report","F I","Filer Information","T","Transactions"} or text in member_statuses
                 or re.fullmatch(r"Filing ID #[0-9]+",text) or text.startswith("Name: ")
                 or re.fullmatch(r"State/District: [A-Z]{2}[0-9]{2}",text)
                 or (text.startswith("Clerk of the House of Representatives") and "Legislative Resource Center" in text)):
@@ -268,7 +272,7 @@ def _box_inside(b, region, pad=.8):
     return region[0]-pad <= b[0] <= b[2] <= region[2]+pad and region[1]-pad <= b[1] <= b[3] <= region[3]+pad
 
 
-def _closing_page(page, geometry):
+def _closing_page(page, geometry, *, legacy=False):
     words=page["words"];lines=_lines(words)
     headings=[(line,_text(line)) for line in lines if all(11.5 <= w.get("size",0) <= 12.5 for w in line)]
     aliases={"I V D":"vehicle", "Investment Vehicle Details":"vehicle",
@@ -276,9 +280,10 @@ def _closing_page(page, geometry):
         "Initial Public Offering":"ipo", "C S":"certification",
         "Certification and Signature":"certification"}
     roles=[aliases.get(text) for _,text in headings]
-    if roles not in (["vehicle","comments","ipo","certification"],
-                     ["vehicle","ipo","certification"],
-                     ["comments","ipo","certification"], ["ipo","certification"]):
+    allowed_roles = [["vehicle","comments","ipo","certification"], ["vehicle","ipo","certification"]]
+    if not legacy:
+        allowed_roles += [["comments","ipo","certification"], ["ipo","certification"]]
+    if roles not in allowed_roles:
         return False
     tops={role:line[0]["top"] for role,(line,_) in zip(roles,headings)}
     regions={role:[] for role in ["footnote",*roles]}
@@ -351,11 +356,11 @@ def _split_closing_region(page, geometry):
     return table,table_g,closing,closing_g
 
 
-def apply_native_coverage(source_sha, pages, rows, fallback):
+def apply_native_coverage(source_sha, pages, rows, fallback, *, legacy=False):
     """Compose table/closing roles without losing multi-page logical refs."""
     observed=deepcopy(fallback["pages"]);logical=deepcopy(fallback["logical_rows"])
     changed=False
-    closing_roles = closing_role_pages(source_sha, pages)
+    closing_roles = closing_role_pages(source_sha, pages) if not legacy else set()
     for number,page in enumerate(pages,1):
         geometry=_geometry(page,source_sha,number)
         if geometry is None:
@@ -366,9 +371,10 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
             if pieces is None:
                 continue
             table,table_g,closing,closing_g=pieces
-            if closing is not None and number not in closing_roles:
+            if closing is not None and not (_closing_page(closing,closing_g,legacy=True)
+                                           if legacy else number in closing_roles):
                 continue
-            result=_table_page(table,table_g,local,number=number,all_pages=pages)
+            result=_table_page(table,table_g,local,number=number,all_pages=pages,legacy=legacy)
             if result is None:
                 continue
             slots,mapping=result
@@ -387,7 +393,7 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
                 logical[index-1]["slot_refs"]=[r for r in logical[index-1]["slot_refs"] if r["page_number"]!=number]+[
                     {"page_number":number,"slot_key":key} for key in keys]
             changed=True
-        elif number in closing_roles:
+        elif (_closing_page(page,geometry,legacy=True) if legacy else number in closing_roles):
             observed[number-1]=page_ledger(source_id="house_clerk",document_sha256=source_sha,
                 page_number=number,adapter_version=fallback["adapter_version"],coverage="non_table",
                 coverage_reason=f"{BASIS}:observed_closing_section_roles:{_digest([page['words'],geometry])}",
