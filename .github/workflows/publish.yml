@@ -18,6 +18,9 @@ on:
         type: boolean
         default: false
 
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write
@@ -153,7 +156,8 @@ jobs:
           PYTHONPATH: backend/src
         run: |
           python -m unison_snapshot build-disclosure-candidate \
-            --base backend/data/empty-disclosure.json --harmonize-cutoffs \
+            --base backend/data/empty-disclosure.json \
+            --source-gate-file "$RUNNER_TEMP/publication-source-gate.json" \
             --source "house_clerk=$REVIEW_ROOT/candidates/sources/house_clerk-current.json" \
             --source "oge=$REVIEW_ROOT/candidates/sources/oge-current.json" \
             --source "senate_efd=$REVIEW_ROOT/candidates/sources/senate_efd-current.json" \

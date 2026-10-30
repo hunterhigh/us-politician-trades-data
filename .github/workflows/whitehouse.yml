@@ -32,6 +32,9 @@ on:
       ocr_page_limit:
         type: string
         default: '50'
+env:
+  SENATE_MAX_STALE_DAYS: ${{ vars.SENATE_MAX_STALE_DAYS || '30' }}
+
 permissions:
   packages: read
   contents: write

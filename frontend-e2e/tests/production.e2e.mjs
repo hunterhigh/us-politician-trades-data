@@ -74,6 +74,22 @@ try {
   assert.equal(await page.locator('[data-window-block]').count(), 2);
   assert.ok(await page.locator('[data-person-link]').count() > 0);
   assert.ok(await page.locator('[data-ticker-link]').count() > 0);
+  const senateHealth = data.source_health.find(row => row.source_id === 'senate_efd');
+  if (senateHealth?.stale) {
+    const footer = page.locator('footer [data-source-freshness="report"]');
+    assert.equal(await footer.count(), 1);
+    assert.ok((await footer.innerText()).includes(senateHealth.data_cutoff_at.slice(0, 10)));
+    assert.match(await footer.innerText(), /Senate 部分不完整/);
+    if (senateHealth.unavailable) assert.match(await footer.innerText(), /官方站点暂时无法访问/);
+    const person = data.people.find(p => p.disclosure_authority === 'senate_efd');
+    assert.ok(person);
+    await page.evaluate(id => openPerson(id), person.id);
+    assert.equal(await page.locator('[data-source-freshness="person"]').isVisible(), true);
+    await page.locator('#personBack').click();
+    for (const days of [30, 90]) {
+      assert.match(await page.locator(`#window-${days} [data-source-freshness]`).innerText(), /Senate 部分不完整/);
+    }
+  }
 
   await page.locator('[data-window-view="timeline"]').first().click();
   assert.ok(await page.locator('#window-30 .timeline-row, #window-90 .timeline-row').count() > 0);

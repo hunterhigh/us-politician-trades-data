@@ -76,6 +76,9 @@ def normalize(payload: dict, *, allow_production: bool = False,
     if not demo and not allow_production:
         raise ValueError("Production admission requires the explicit production publication path")
     timestamp(data["meta"].get("data_cutoff_at"))
+    cutoff_policy = data['meta'].get('source_cutoff_policy')
+    if cutoff_policy not in {None, 'per_source/v1'}:
+        raise ValueError('Unsupported source cutoff policy')
     for kind in ARRAYS:
         rows = data.get(kind)
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
@@ -99,6 +102,11 @@ def normalize(payload: dict, *, allow_production: bool = False,
             seen.add(key)
         rows.sort(key=lambda row: row["id"])
     people = {row["id"] for row in data["people"]}
+    if not isinstance(data.get('source_health'), list):
+        raise ValueError('source_health must be an array of objects')
+    source_cutoffs = {row.get('source_id'): row.get('data_cutoff_at')
+                      for row in data.get('source_health', []) if isinstance(row, dict)
+                      and row.get('data_cutoff_at')}
     for row in data["people"]:
         required(row, "display_name")
     for kind, prefix, day_field in (("transactions", "amount", "transaction_date"),
@@ -130,6 +138,11 @@ def normalize(payload: dict, *, allow_production: bool = False,
                 raise ValueError("Filing precedes disclosed event")
             if filed > timestamp(data["meta"]["data_cutoff_at"]):
                 raise ValueError("Filing exceeds coverage cutoff")
+            if cutoff_policy == 'per_source/v1':
+                if source_id not in source_cutoffs:
+                    raise ValueError('Disclosure source coverage cutoff is missing')
+                if filed > timestamp(source_cutoffs[source_id]):
+                    raise ValueError('Filing exceeds its source coverage cutoff')
             validate_amount(row, prefix)
             if kind == "transactions":
                 option_fields = (row.get("option_type"), row.get("strike_price"),
@@ -152,7 +165,7 @@ def normalize(payload: dict, *, allow_production: bool = False,
     if not isinstance(health, list) or any(not isinstance(row, dict) for row in health):
         raise ValueError("source_health must be an array of objects")
     seen = set()
-    allowed = set("source_id source source_type source_url status last_checked_at last_successful_sync_at data_cutoff_at detail".split())
+    allowed = set("source_id source source_type source_url status last_checked_at last_successful_sync_at data_cutoff_at detail stale unavailable max_stale_days".split())
     for row in health:
         if set(row) - allowed or row.get("source_id") not in HEALTH_SOURCES or row["source_id"] in seen:
             raise ValueError("Invalid or duplicated source health")
@@ -160,6 +173,12 @@ def normalize(payload: dict, *, allow_production: bool = False,
             raise ValueError("Production source health cannot be simulated")
         seen.add(row["source_id"])
         timestamp(row.get("last_checked_at"))
+        for flag in ('stale', 'unavailable'):
+            if flag in row and type(row[flag]) is not bool:
+                raise ValueError('Source health freshness flags must be boolean')
+        if 'max_stale_days' in row and (row['source_id'] != 'senate_efd' or
+                type(row['max_stale_days']) is not int or row['max_stale_days'] < 1):
+            raise ValueError('Invalid Senate freshness allowance')
     health.sort(key=lambda row: row["source_id"])
     if not demo:
         empty = not data["people"] and not data["transactions"] and not data["reported_holdings"]
@@ -400,7 +419,7 @@ def build(payload: dict, *, generated_at: str, max_index_bytes: int = 8192,
             raise ValueError(f"Index size budget exceeded: {path}; no truncation performed")
         files[path] = content
     # Include business time and presentation configuration: both affect processor output.
-    settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days", "holding_report_coverage")
+    settings = {key: data["meta"][key] for key in ("title", "subtitle", "timezone", "default_window_days", "holding_report_coverage", "source_cutoff_policy")
                 if key in data["meta"]}
     if relations is not None:settings['transaction_disclosure_relation_policy']=TRANSACTION_RELATION_POLICY
     coverage = {"scope": "all_input_records", "universe_complete": False,

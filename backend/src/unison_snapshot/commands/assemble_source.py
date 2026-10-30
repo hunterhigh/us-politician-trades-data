@@ -33,6 +33,8 @@ def assemble(workspace, source_id, base, html_output, builder_commit, *, verify_
         '--base',str(base),'--harmonize-cutoffs','--output',str(review/'candidates/disclosure-current.json'),
         '--audit-output',str(review/'status/disclosure_cutoff.json')]
     if html_output:arguments+=['--html-output',str(html_output)]
+    if 'state' in control['trees']:
+        arguments+=['--source-state-root',str(control['trees']['state']['root'])]
     for source in SOURCES:
         path=review/'candidates/sources'/f'{source}-current.json'
         if path.is_file():arguments+=['--source',source+'='+str(path)]
