@@ -64,4 +64,3 @@ class HistoricalProfileTests(unittest.TestCase):
             self.assertFalse(needs_electronic_repair({**row,'electronic_repair_version':ELECTRONIC_REPAIR_VERSION}))
         for reason in ('paper_source_fields_unverified','OCR parsing failed','amended_without_prior'):
             self.assertFalse(needs_electronic_repair({'reasons':[reason]}))
-

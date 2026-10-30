@@ -170,6 +170,38 @@ def _references():
     return REFERENCE
 
 
+def _arrow_reference(profile):
+    """Recognize the trusted implication glyph used in account hierarchies.
+
+    Skia subsets recompute maxPoints. It is a bound, not an instruction or a
+    glyph meaning: all design/hint bytes and the actual selected glyph still
+    require the existing exact comparisons. Other Georgia reference hashes and
+    resulting proofs remain unchanged.
+    """
+    from pathlib import Path
+    reference = json.loads((Path(__file__).resolve().parents[2] /
+        'data/font_references/cambria_math_arrow.json').read_bytes())
+    if _sha(_canonical(reference)) != '5bb4a7bd95edb077f7cc8c0b9cb005ea6a249a3c75951a10e933c0eab0f671fb':
+        raise SourceFontError('trusted_arrow_reference_corrupted')
+    family = reference['families'][0]
+    expected = family['global_profile']
+    observed = json.loads(_canonical(profile))
+    points = observed['maxp']['maxPoints']
+    if not 0 < points <= expected['maxp']['maxPoints']:
+        return None
+    observed['maxp']['maxPoints'] = expected['maxp']['maxPoints']
+    return reference if observed == expected else None
+
+
+def _punctuation_reference(profile):
+    from pathlib import Path
+    reference = json.loads((Path(__file__).resolve().parents[2] /
+        'data/font_references/georgia_en_dash.json').read_bytes())
+    if _sha(_canonical(reference)) != '51d6a93ab67ec962d9611d73a64119ba0d778692e054533d4d763933b2e50b33':
+        raise SourceFontError('trusted_punctuation_reference_corrupted')
+    return reference if reference['families'][0]['global_profile'] == profile else None
+
+
 def _unicode_map(data):
     from pdfminer.cmapdb import FileUnicodeMap, CMapParser
 
@@ -264,6 +296,11 @@ def observe_house_id_font(font_spec, font_file_bytes: bytes, used_cids) -> dict:
             font.setGlyphOrder([f"gid{gid:05}" for gid in range(glyph_count)])
             profile = _global_profile(font, tables)
             families = [item for item in reference["families"] if item["global_profile"] == profile]
+            if not families:
+                additional = _arrow_reference(profile)
+                if additional is not None:
+                    reference = additional
+                    families = reference['families']
             if len(families) != 1:
                 raise SourceFontError("trusted_font_global_program_unmatched")
             family = families[0]
@@ -280,6 +317,18 @@ def observe_house_id_font(font_spec, font_file_bytes: bytes, used_cids) -> dict:
                     remaining -= len(by_gid[gid]["points"])
                 glyph = by_gid[gid]
                 entry = indexed.get(glyph["fingerprint"])
+                if entry is None:
+                    supplement = _punctuation_reference(profile)
+                    if supplement is not None:
+                        extra = {v['fingerprint']: v for v in supplement['families'][0]['glyphs']}
+                        entry = extra.get(glyph['fingerprint'])
+                        if entry is not None:
+                            # Extend only this fresh reading. An unchanged
+                            # Georgia font retains its original proof hash.
+                            reference = json.loads(_canonical(reference))
+                            family = next(v for v in reference['families'] if v['global_profile'] == profile)
+                            family['glyphs'].extend(extra.values())
+                            indexed.update(extra)
                 if entry is None:
                     raise SourceFontError("trusted_used_glyph_unmatched_or_ambiguous")
                 source_unicode = unicode_map.get(cid)
