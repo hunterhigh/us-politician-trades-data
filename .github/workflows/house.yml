@@ -58,7 +58,8 @@ jobs:
     if: inputs.mode != 'annual' && (github.event_name != 'schedule' || github.ref == 'refs/heads/code')
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Fixed historical projection replays every original, including long forms.
+    timeout-minutes: ${{ inputs.filing_year == '2025' && 180 || 60 }}
     container: &source_runtime
       image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
       credentials:
