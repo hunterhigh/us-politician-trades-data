@@ -9,6 +9,22 @@ from unison_snapshot.house_native_coverage import closing_role_pages
 
 
 class RowBackgroundTests(unittest.TestCase):
+    def test_long_native_inventory_still_has_a_hard_page_limit(self):
+        import pymupdf
+        import pdfplumber
+        import io
+        from unison_snapshot.house_native_contrast import _inventory
+        from unison_snapshot.house import HouseIndexError
+        for count in (33,97):
+            with pymupdf.open() as document:
+                for _ in range(count):document.new_page()
+                content = document.tobytes()
+            with pdfplumber.open(io.BytesIO(content)) as document:
+                if count==97:
+                    with self.assertRaisesRegex(HouseIndexError,'page budget'):_inventory(document,'a'*64)
+                else:
+                    self.assertEqual(len(_inventory(document,'a'*64)[0]),count)
+
     def paint(self, body, *, required=True):
         fixture = source.HouseRevisionSourceCompositionTests()
         self.addCleanup(fixture.doCleanups)

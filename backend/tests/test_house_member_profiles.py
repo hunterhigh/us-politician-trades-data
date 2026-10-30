@@ -14,6 +14,21 @@ HTML = b'''<a href="https://bioguide.congress.gov/search/bio/G000590">Biography<
 
 
 class HistoricalProfileTests(unittest.TestCase):
+    def test_qualification_accepts_profile_digest_without_mislabeling_it_as_a_roster(self):
+        from test_house_ptr import IDENTITY, META, fixture_pages
+        from unison_snapshot.house_ptr import parse_word_pages, qualify_automatic
+        raw = parse_word_pages(META, 'a'*64, fixture_pages(), copy_allowed=True)
+        identity = {**IDENTITY, 'match_basis':BASIS, 'profile_sha256':'b'*64,
+                    'profile_source_url':'https://clerk.house.gov/Members/'+IDENTITY['person_id'][6:]}
+        identity.pop('roster_sha256')
+        expected = qualify_automatic(raw, IDENTITY)
+        actual = qualify_automatic(raw, identity)
+        self.assertTrue(expected['transactions'])
+        self.assertEqual(actual['transactions'], expected['transactions'])
+        for changed in ({**identity,'profile_sha256':None},
+                        {**identity,'profile_source_url':'https://clerk.house.gov/Members/G000590-wrong'}):
+            self.assertFalse(qualify_automatic(raw,changed)['transactions'])
+
     def test_official_profile_fields_are_bound_to_original_identifier(self):
         member = parse_profile(HTML, 'G000590')
         self.assertEqual((member['person_id'],member['state_district'],member['party']),
@@ -49,3 +64,4 @@ class HistoricalProfileTests(unittest.TestCase):
             self.assertFalse(needs_electronic_repair({**row,'electronic_repair_version':ELECTRONIC_REPAIR_VERSION}))
         for reason in ('paper_source_fields_unverified','OCR parsing failed','amended_without_prior'):
             self.assertFalse(needs_electronic_repair({'reasons':[reason]}))
+

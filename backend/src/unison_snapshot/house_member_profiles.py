@@ -13,7 +13,7 @@ from .house_members import _name_key
 
 # Lookup hints only. Every field, including the identifier, is read back from
 # the official original; these identifiers cannot grant a report an identity.
-BACKFILL_PROFILE_IDS = ('G000590', 'G000596', 'W000823', 'C001078')
+BACKFILL_PROFILE_IDS = ('G000590', 'G000596', 'W000823', 'C001078', 'S001207')
 MAX_BYTES = 2_000_000
 BASIS = 'official_historical_profile_exact_name_state'
 

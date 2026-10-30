@@ -987,11 +987,13 @@ def qualify_automatic(extraction: dict, identity: dict, *,
     document_id = source.get("document_id")
     if identity.get("document_id") != document_id:
         raise HouseIndexError("House PTR identity does not match its extraction")
+    historical = identity.get('match_basis') == 'official_historical_profile_exact_name_state'
+    identity_digest = identity.get('profile_sha256' if historical else 'roster_sha256')
     identity_valid = (
         identity.get("status") in {"matched_automatically", "suggested_requires_review"}
         and identity.get("match_basis") in DETERMINISTIC_IDENTITY_BASES
-        and isinstance(identity.get("roster_sha256"), str)
-        and re.fullmatch(r"[0-9a-f]{64}", identity["roster_sha256"])
+        and isinstance(identity_digest, str)
+        and re.fullmatch(r"[0-9a-f]{64}", identity_digest)
     )
     person_id = identity.get("person_id")
     evidence_url = identity.get("evidence_url")
@@ -1000,6 +1002,9 @@ def qualify_automatic(extraction: dict, identity: dict, *,
         and re.fullmatch(r"house:[A-Z][0-9]{6}", person_id)
         and parsed_identity_url and parsed_identity_url.scheme == "https"
         and parsed_identity_url.hostname == "bioguide.congress.gov")
+    if historical:
+        identity_valid = bool(identity_valid and identity.get('profile_source_url')
+            == 'https://clerk.house.gov/Members/'+str(person_id).removeprefix('house:'))
     filed_date = source.get("filed_date")
     try:
         filed_day = datetime.strptime(filed_date, "%Y-%m-%d").date()
