@@ -9,7 +9,9 @@ from __future__ import annotations
 import math
 
 from .house_native_coverage import _geometry, _header_cells, _in
-from .house_revision_source_scope import _Unknown, _charge, _inside, _need, _overlaps
+from .house_revision_source_scope import (
+    _Unknown, _charge, _inside, _light_row_background, _need, _overlaps,
+)
 
 
 VERSION = 'house-native-owner-cell-source-members/v1'
@@ -130,6 +132,13 @@ def prove_native_owner_cell(page, number, row, block, chars, occurrences, invent
                      or round(rect[3],2) == round(cell[3],2))):
                 grid.append((rect, [math.floor(rect[0]),math.floor(rect[1]),
                                     math.ceil(rect[2]),math.ceil(rect[3])]))
+        # The independently closed table census supplies these rectangles.
+        # Background paint cannot choose a region in which to ignore glyphs:
+        # the entire owner cell has already passed the character/glyph census.
+        backgrounds = [(rect, [math.floor(rect[0]), math.floor(rect[1]),
+                               math.ceil(rect[2]), math.ceil(rect[3])])
+                       for rect in geometry['rects'] if rect[3]-rect[1] > 2]
+        first_glyph = min(v['paint_event'] for v in occurrences)
         borders = []
         _charge(budget, len(inventory) * max(1, len(grid)))
         for event in inventory:
@@ -141,6 +150,12 @@ def prove_native_owner_cell(page, number, row, block, chars, occurrences, invent
             if event['event'] in own_events or not _overlaps(cell, domain):
                 continue
             matches = [rect for rect, boundary in grid if boundary == domain]
+            underlays = [rect for rect, boundary in backgrounds if boundary == domain]
+            if (_light_row_background(event) and event['event'] < first_glyph
+                    and len(underlays) == 1):
+                borders.append({'event': event['event'], 'source_rect': underlays[0],
+                                'outer_device_pixels': domain, 'role': 'row_background'})
+                continue
             _need(event.get('kind') == 'path' and event.get('source_ops') == ['re']
                   and event.get('stroke') is False and len(matches) == 1,
                   'unexplained_source_paint_in_owner_cell')

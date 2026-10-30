@@ -11,6 +11,17 @@ import time
 from .codec import encode
 from .house import HouseIndexError
 
+ELECTRONIC_REPAIR_VERSION = 'house-2025-source-backgrounds-v1'
+
+
+def needs_electronic_repair(previous):
+    if not previous or previous.get('electronic_repair_version') == ELECTRONIC_REPAIR_VERSION:
+        return False
+    reasons = previous.get('reasons', [])
+    return ('native_bichrome_row_visibility_unknown' in reasons
+            or 'identity_not_deterministic' in reasons
+            or reasons == ['House native contrast page budget exceeded'])
+
 
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,6 +90,11 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
     receipt=json.loads(receipt_path.read_bytes()) if receipt_path.is_file() else {}
     records={r['document_id']:r for r in receipt.get('reports',[])}
     if set(records)-set(checkpoint['documents']):raise HouseIndexError('House review contains reports outside the fixed index')
+    profile_errors = receipt.get('historical_identity_source_errors', [])
+    if any(needs_electronic_repair(row) for row in records.values()):
+        from .house_member_profiles import collect_backfill_profiles
+        profile_errors = collect_backfill_profiles(evidence)
+        publish(workspace, ('evidence',), 'Archive official former House member profiles')
     deadline=clock()+budget_seconds;completed=0
     for metadata_path in paths:
         if clock()>=deadline:break
@@ -94,14 +110,19 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
         destinations={key:review/'house_clerk'/key/relative for key in ('extractions','identities','qualifications','failures')}
         previous=records.get(document)
         if (previous and previous.get('source_sha256')==sha and previous.get('parser_version')==PARSER_RETRY_VERSION
+                and not needs_electronic_repair(previous)
                 and (destinations['qualifications'] if previous['status']!='parse_failed' else destinations['failures']).is_file()):
             continue
         row={'document_id':document,'source_sha256':sha,'parser_version':PARSER_RETRY_VERSION,
+             'electronic_repair_version':ELECTRONIC_REPAIR_VERSION,
              'source_url':source_url,'qualified_row_count':0,'quarantined_row_count':None,
              'person_id':None,'reasons':[]}
         try:
             extraction=parse_archived_pdf(evidence,metadata_path)
             identity=suggest_identity(extraction,roster)
+            if identity.get('match_basis') not in DETERMINISTIC_IDENTITY_BASES:
+                from .house_member_profiles import suggest_historical_identity
+                identity = suggest_historical_identity(extraction, evidence) or identity
             qualified=qualify_automatic(extraction,identity,evidence_root=evidence)
             for key,value in [('extractions',extraction),('identities',identity),('qualifications',qualified)]:
                 write(destinations[key],value)
@@ -126,6 +147,8 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
                 'attempts':1,'error':str(error)[:480]})
         records[document]=row;completed+=1
         receipt={'schema_version':'house-archive-review/v1','filing_year':year,'index_sha256':checkpoint['index_sha256'],
+            'historical_identity_source_errors':profile_errors,
+            'repair_pending_count':sum(needs_electronic_repair(r) for r in records.values()),
             'report_count':len(paths),'processed_count':len(records),'queue_count':len(paths)-len(records),
             'qualified_row_count':sum(r['qualified_row_count'] for r in records.values()),
             'quarantined_row_count':sum(r['quarantined_row_count'] or 0 for r in records.values()),
@@ -137,7 +160,7 @@ def consume(workspace, *, year, batch_size=25, budget_seconds=2700, clock=time.m
         write(receipt_path,receipt)
         if completed%batch_size==0:publish(workspace,('review',),'Fixed House PTR archive review')
     publish(workspace,('review',),'Fixed House PTR archive review checkpoint')
-    if receipt.get('queue_count')==0:
+    if receipt.get('queue_count')==0 and receipt.get('repair_pending_count',0)==0:
         source=review/'candidates/sources/house_clerk-current.json'
         prior=json.loads(source.read_bytes())
         historical_state=json.loads((state/f'status/house_backfill_{year}.json').read_bytes())

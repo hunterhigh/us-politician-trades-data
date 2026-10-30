@@ -33,6 +33,7 @@ ASSET_TYPES = {
 }
 QUALIFICATION_SCHEMA = "house-ptr-qualification/v1"
 DETERMINISTIC_IDENTITY_BASES = {
+    "official_historical_profile_exact_name_state",
     "official_roster_exact_district_first_last_name",
     "official_roster_exact_district_unique_surname",
     "official_roster_same_state_unique_first_last_name_redistricted",

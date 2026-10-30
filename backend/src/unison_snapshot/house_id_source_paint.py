@@ -1043,9 +1043,14 @@ def _pages(objects, max_pages):
                 visit(child, inherited, depth + 1)
             _need(len(result) - before == _int(value["Count"]), "page_tree_count_mismatch")
         else:
-            _keys(value, {"Type", "Parent", "Contents", "MediaBox", "CropBox", "Resources", "Rotate", "Group", "Annots"},
+            _keys(value, {"Type", "Parent", "Contents", "MediaBox", "CropBox", "Resources", "Rotate", "Group", "Annots", "StructParents"},
                   {"Type", "Contents", "Parent"})
             _need(value["Type"] == _Name("Page"), "page_type_unsupported")
+            if 'StructParents' in value:
+                # Logical structure-tree indices do not paint. Keep the field
+                # bounded and reject indirect/program-valued alternatives.
+                _need(0 <= _int(value['StructParents']) <= 1_000_000,
+                      'page_structure_index_unsupported')
             result.append((reference, {**(inherited or {}), **value}))
             _need(len(result) <= max_pages, "document_page_budget_exceeded")
 

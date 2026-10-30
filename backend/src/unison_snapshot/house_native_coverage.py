@@ -117,7 +117,7 @@ def _source_status_unique(row, pages):
         for b in _segment(row,number):
             for line in _lines([w for w in page["words"] if _in(w,b)]):
                 text=_text(line)
-                if re.fullmatch(r"(?:F|Filing) (?:S|Status): (?:New|Amended)",text,re.I):
+                if re.fullmatch(r"(?:F|Filing) (?:S|Status): (?:New|Amended|Deleted)",text,re.I):
                     statuses.append(text.rsplit(":",1)[1].strip())
     return len(statuses)==1 and statuses[0].casefold()==str(row.get("filing_status","")).casefold()
 
@@ -170,7 +170,7 @@ def _table_page(page, geometry, rows, *, number, all_pages):
                 # Notes have their own source detail-band witness. A prior D:
                 # cannot turn a later aligned financial row into free prose.
                 detail_bands=[(t,z) for t,z in bands if all(_in(w,[left,t,right,z]) for w in line)
-                    and any(re.match(r"^(?:(?:F|Filing) (?:S|Status):|(?:S|Subholding) (?:O|Of):|(?:L|Location):|(?:D|Description):)",_text(other),re.I)
+                    and any(re.match(r"^(?:(?:F|Filing) (?:S|Status):|(?:S|Subholding) (?:O|Of):|(?:L|Location):|(?:D|Description|C|Comments):)",_text(other),re.I)
                         for other in _lines([w for w in owned[index] if _in(w,[left,t,right,z])]))]
                 has_amount=any(cells[6][0]<=w["x0"]<cells[6][2] and "$" in str(w["text"]) for w in line)
                 has_direction=any(cells[3][0]<=w["x0"]<cells[3][2] and re.fullmatch(r"[PSE]",_clean(w["text"]),re.I) for w in line)
@@ -178,9 +178,9 @@ def _table_page(page, geometry, rows, *, number, all_pages):
                 if (not detail_bands or not cells[2][0]-.8<=min(w["x0"] for w in line)<cells[2][2]
                         or (has_amount and (has_direction or has_event))):
                     return None
-                match=re.match(r"^(?:(F|Filing) (S|Status): (New|Amended)|(S|Subholding) (O|Of): .+|(L|Location): .+|(D|Description): .+)$",text,re.I)
+                match=re.match(r"^(?:(F|Filing) (S|Status): (New|Amended|Deleted)|(S|Subholding) (O|Of): .+|(L|Location): .+|(D|Description|C|Comments): .+)$",text,re.I)
                 if match:
-                    detail_kind=("description" if re.match(r"^(?:D|Description):",text,re.I) else "other")
+                    detail_kind=("description" if re.match(r"^(?:D|Description|C|Comments):",text,re.I) else "other")
                 elif detail_kind!="description":
                     return None
             elif number==row["evidence"]["page"] and abs(line[0]["top"]-primary_top)<=2:
@@ -213,11 +213,11 @@ def _table_page(page, geometry, rows, *, number, all_pages):
         if _financial(before) or not (any(text in {"P T R","Periodic Transaction Report"} for text in lines)
             and any(re.fullmatch(r"Filing ID #[0-9]+",text) for text in lines)
             and any(text.startswith("Name: ") for text in lines)
-            and "Status: Member" in lines
+            and any(text in {"Status: Member", "Status: Former Member"} for text in lines)
             and any(re.fullmatch(r"State/District: [A-Z]{2}[0-9]{2}",text) for text in lines)):
             return None
         for text in lines:
-            if not (text in {"P T R","Periodic Transaction Report","F I","Filer Information","T","Transactions","Status: Member"}
+            if not (text in {"P T R","Periodic Transaction Report","F I","Filer Information","T","Transactions","Status: Member","Status: Former Member"}
                 or re.fullmatch(r"Filing ID #[0-9]+",text) or text.startswith("Name: ")
                 or re.fullmatch(r"State/District: [A-Z]{2}[0-9]{2}",text)
                 or (text.startswith("Clerk of the House of Representatives") and "Legislative Resource Center" in text)):
@@ -277,7 +277,8 @@ def _closing_page(page, geometry):
         "Certification and Signature":"certification"}
     roles=[aliases.get(text) for _,text in headings]
     if roles not in (["vehicle","comments","ipo","certification"],
-                     ["vehicle","ipo","certification"]):
+                     ["vehicle","ipo","certification"],
+                     ["comments","ipo","certification"], ["ipo","certification"]):
         return False
     tops={role:line[0]["top"] for role,(line,_) in zip(roles,headings)}
     regions={role:[] for role in ["footnote",*roles]}
@@ -292,7 +293,8 @@ def _closing_page(page, geometry):
     # The official native template omits an empty Comments section entirely.
     # Explicit present-but-empty Comments likewise has no unassigned words;
     # no other closing heading may disappear or change order.
-    if not regions["vehicle"] or _financial(regions["vehicle"]+regions.get("comments",[])):
+    if (("vehicle" in roles and not regions["vehicle"])
+            or _financial(regions.get("vehicle",[])+regions.get("comments",[]))):
         return False
     if _text(regions["ipo"]) != "Yes No":
         return False
@@ -306,14 +308,17 @@ def _closing_page(page, geometry):
     vehicle_end=tops.get("comments",tops["ipo"])
     # Only source controls/bullets and account-detail enclosure belong here;
     # another table/border or drawing is not silently called a comment.
-    if any(not any(_box_inside(b,region) for region in (
-        [0,tops["vehicle"],page["width"],vehicle_end],
+    control_regions = ([
+        [0,tops["vehicle"],page["width"],vehicle_end]] if "vehicle" in roles else []) + [
         [0,tops["ipo"],.20*page["width"],tops["certification"]],
-        [0,tops["certification"],.08*page["width"],max(w.get("bottom",w["top"]+9) for w in regions["certification"])]))
+        [0,tops["certification"],.08*page["width"],max(w.get("bottom",w["top"]+9) for w in regions["certification"])]]
+    if any(not any(_box_inside(b,region) for region in control_regions)
         for b in geometry["curves"]):
         return False
     enclosures=[b for b in geometry["rects"] if b[3]-b[1]>2]
-    if (len(enclosures)!=2 or any(abs(a-b)>1 for a,b in zip(*enclosures))
+    if "vehicle" not in roles and enclosures:
+        return False
+    if "vehicle" in roles and (len(enclosures)!=2 or any(abs(a-b)>1 for a,b in zip(*enclosures))
             or any(not _box_inside(b,[0,tops["vehicle"],page["width"],vehicle_end]) for b in enclosures)
             or any(not _in(w,enclosures[0]) for w in regions["vehicle"])):
         return False
@@ -350,6 +355,7 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
     """Compose table/closing roles without losing multi-page logical refs."""
     observed=deepcopy(fallback["pages"]);logical=deepcopy(fallback["logical_rows"])
     changed=False
+    closing_roles = closing_role_pages(source_sha, pages)
     for number,page in enumerate(pages,1):
         geometry=_geometry(page,source_sha,number)
         if geometry is None:
@@ -360,7 +366,7 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
             if pieces is None:
                 continue
             table,table_g,closing,closing_g=pieces
-            if closing is not None and not _closing_page(closing,closing_g):
+            if closing is not None and number not in closing_roles:
                 continue
             result=_table_page(table,table_g,local,number=number,all_pages=pages)
             if result is None:
@@ -381,7 +387,7 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
                 logical[index-1]["slot_refs"]=[r for r in logical[index-1]["slot_refs"] if r["page_number"]!=number]+[
                     {"page_number":number,"slot_key":key} for key in keys]
             changed=True
-        elif _closing_page(page,geometry):
+        elif number in closing_roles:
             observed[number-1]=page_ledger(source_id="house_clerk",document_sha256=source_sha,
                 page_number=number,adapter_version=fallback["adapter_version"],coverage="non_table",
                 coverage_reason=f"{BASIS}:observed_closing_section_roles:{_digest([page['words'],geometry])}",
@@ -392,3 +398,42 @@ def apply_native_coverage(source_sha, pages, rows, fallback):
     for row in logical:row.pop("qualification",None)
     return report_ledger(source_id="house_clerk",document_sha256=source_sha,
         adapter_version=fallback["adapter_version"],page_count=len(pages),pages=observed,logical_rows=logical)
+
+
+def closing_role_pages(source_sha, pages):
+    """Account for one complete closing grammar, including page continuations.
+
+    Concatenate only the document's closing tail, preserving every word and
+    primitive. A signature fragment, extra table or missing certification line
+    cannot pass independently. Original observations and coordinates stay intact.
+    """
+    for start, page in enumerate(pages):
+        geometry = _geometry(page, source_sha, start+1)
+        if geometry is None:
+            continue
+        pieces = _split_closing_region(page, geometry)
+        if pieces is None or pieces[2] is None:
+            continue
+        closing, closing_g = pieces[2:]
+        merged = {**closing, 'words': deepcopy(closing['words'])}
+        merged_g = deepcopy(closing_g)
+        offset = page['height']
+        roles = {start+1}
+        for index in range(start+1, len(pages)):
+            following = pages[index]
+            g = _geometry(following, source_sha, index+1)
+            if g is None or following['width'] != page['width']:
+                return set()
+            for word in following['words']:
+                word = deepcopy(word)
+                word['top'] += offset
+                if 'bottom' in word:
+                    word['bottom'] += offset
+                merged['words'].append(word)
+            for kind in ('lines', 'rects', 'curves', 'images'):
+                merged_g[kind].extend([b[0], b[1]+offset, b[2], b[3]+offset] for b in g[kind])
+            offset += following['height']
+            roles.add(index+1)
+        merged['height'] = offset
+        return roles if _closing_page(merged, merged_g) else set()
+    return set()
