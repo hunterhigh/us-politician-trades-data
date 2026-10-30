@@ -92,7 +92,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-30T06:04:43.911559+00:00",
+  "checked_at": "2026-10-30T07:10:08.220758+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -122,7 +122,7 @@
   "quality_review_commit": "3e163512e791b2982b2c103d2412857cd173ea23",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-10-30T05:22:31.121530+00:00",
+    "checked_at": "2026-10-30T07:10:07.767669+00:00",
     "checks": [
       {
         "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -157,7 +157,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "3115345eeb62ab3e4d338b759b0c1903aa16f13e255aeb521282a119578ddba8",
+    "client_sha256": "ad7847ad44a38b7ea5a5a3268b5f132938fde58bad63a480e2fcf99211fecddf",
     "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
     "failed_snapshots": {},
     "last_good_commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
