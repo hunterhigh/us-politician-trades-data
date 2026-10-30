@@ -856,7 +856,7 @@ def _unanchored_native_slots(page: dict) -> list[dict]:
 
 
 def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], *,
-                          include_unanchored: bool = True) -> dict:
+                          include_unanchored: bool = True, legacy_census: bool = False) -> dict:
     from .source_row_ledger import page_ledger, report_ledger
     page_slots = {number: [] for number in range(1, len(pages) + 1)}
     logical = []
@@ -885,7 +885,8 @@ def _modern_report_ledger(source_sha: str, pages: list[dict], rows: list[dict], 
                          pages=observed, logical_rows=logical)
     if include_unanchored:
         from .house_native_coverage import apply_native_coverage
-        ledger = apply_native_coverage(source_sha, pages, rows, ledger)
+        ledger = apply_native_coverage(source_sha, pages, rows, ledger,
+                                      **({'legacy': True} if legacy_census else {}))
         from .house_native_visibility import unknown, BLOCKER
         if any(unknown(page) for page in pages):
             for number, page in enumerate(pages, 1):
@@ -923,13 +924,22 @@ def _native_account_context(extraction: dict) -> dict:
             pages, copy_allowed=extraction.get("source_pdf_copy_allowed"),
             **({"ocr_engine": extraction.get("ocr_engine"),
                 "page_text_methods": extraction.get("page_text_methods")} if mixed else {}))
-        # Exact legacy anchor-only ledgers remain valid; no financial/source
-        # observation may differ. This accepts a recomputed old form, not a label.
+        # Recompute former anchor/page ledgers, preserving their old coverage.
+        # Every other financial/source observation must still match exactly.
         legacy_ledger = _modern_report_ledger(extraction["source_sha256"], pages,
             reproduced["transactions"], include_unanchored=False)
         if (not any("native_page_geometry" in page for page in pages)
                 and extraction.get("source_report_ledger") == legacy_ledger):
             reproduced["source_report_ledger"] = legacy_ledger
+        elif (any('native_page_geometry' in page for page in pages)
+                and extraction.get('source_report_ledger') != reproduced.get('source_report_ledger')):
+            # Recompute the exact former grammar from the same words/geometry.
+            # Keep its old (possibly unknown) coverage; neither a saved label
+            # nor an arbitrary ledger can bypass the complete comparison below.
+            former = _modern_report_ledger(extraction['source_sha256'], pages,
+                reproduced['transactions'], legacy_census=True)
+            if extraction.get('source_report_ledger') == former:
+                reproduced['source_report_ledger'] = former
         if any(extraction.get(key) != value for key, value in reproduced.items()):
             raise HouseIndexError("House native account observations differ from saved source words")
     except (KeyError, TypeError, ValueError) as exc:

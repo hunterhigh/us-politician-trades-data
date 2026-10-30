@@ -42,6 +42,41 @@ def fixture(root,x,q):
 
 
 class NativeAccountContextTests(unittest.TestCase):
+    def test_exact_former_page_census_is_replayed_without_granting_new_coverage(self):
+        from test_house_native_coverage import template
+        from unison_snapshot.source_row_ledger import page_ledger, report_ledger
+        from unison_snapshot.house_ptr import PARSER_VERSION
+        source = template()
+        closing = source[1]
+        closing['words'] = [w for w in closing['words'] if w['top'] not in (104,131,200,220)]
+        closing['native_page_geometry']['rects'] = []
+        fresh = parse_word_pages(META,SHA,source,copy_allowed=True)
+        current = fresh['source_report_ledger']
+        self.assertEqual(current['relation_coverage'],'accounted')
+        # The former grammar did not recognize a closing without a vehicle
+        # section. Construct its stored unknown page independently, rather
+        # than asking the compatibility implementation for its own expected value.
+        former = report_ledger(source_id='house_clerk',document_sha256=SHA,
+            adapter_version=PARSER_VERSION,page_count=2,
+            pages=[deepcopy(current['pages'][0]),page_ledger(source_id='house_clerk',
+                document_sha256=SHA,page_number=2,adapter_version=PARSER_VERSION,
+                coverage='unknown',coverage_reason='native_row_anchors_not_complete_page_census',
+                coordinate_frame='source_page_pdf_points',slots=[])],
+            logical_rows=[{k:deepcopy(v) for k,v in row.items() if k!='qualification'}
+                          for row in current['logical_rows']])
+        self.assertEqual(former['relation_coverage'],'partial_unknown')
+        saved = deepcopy(fresh);saved['source_report_ledger'] = former
+        qualified = qualify_automatic(saved,IDENTITY)
+        self.assertEqual(qualified['transactions'],qualify_automatic(fresh,IDENTITY)['transactions'])
+        self.assertEqual(qualified['source_report_ledger']['relation_coverage'],'partial_unknown')
+        self.assertEqual(saved['source_report_ledger'],former)
+        for mutation in ('ledger','finance','words_digest'):
+            changed = deepcopy(saved)
+            if mutation=='ledger':changed['source_report_ledger']['pages'][1]['coverage_reason']='claimed_old'
+            if mutation=='finance':changed['transactions'][0]['asset_name']='Forged'
+            if mutation=='words_digest':changed['source_word_pages_sha256']='0'*64
+            with self.assertRaises(HouseIndexError):qualify_automatic(changed,IDENTITY)
+
     def test_same_asset_different_official_accounts_are_two_source_rows_with_unchanged_ids(self):
         source=pages();before=deepcopy(source);x=parse_word_pages(META,SHA,source,copy_allowed=True)
         q=qualify_automatic(x,IDENTITY)
