@@ -99,7 +99,8 @@ jobs:
       cancel-in-progress: false
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Replay the full archived 2025 House contrast corpus before any branch move.
+    timeout-minutes: 180
     container:
       image: ghcr.io/hunterhigh/us-politician-trades-data-runtime@sha256:c15f99ffa11f27a814aee26328977ab5691954b469baa4932d56706aef1cd9e4
       credentials:
