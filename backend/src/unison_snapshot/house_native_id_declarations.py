@@ -42,7 +42,8 @@ def _intersects(a, b):
 
 
 def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
-                                         page_number, source_rows):
+                                         page_number, source_rows, allow_unnumbered=False,
+                                         source_pages=None):
     """Retain all declarations in an independently observed eight-column ID strip.
 
     Inventory selection uses original words/geometry, never successful financial
@@ -160,8 +161,11 @@ def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
         geometry, header = None, None
     if geometry is None:
         reasons.add("bound_native_geometry_unavailable")
+    from .house_native_coverage import closing_role_pages
+    closing_proven = (page_number in closing_role_pages(source_sha256, source_pages)
+                      if source_pages is not None else False)
     if header is None:
-        if geometry is not None and _closing_page(page, geometry):
+        if geometry is not None and (closing_proven or _closing_page(page, geometry)):
             result["role_evidence"] = {"page_kind": "closing_only", "closing_role_observed": True,
                 "geometry_schema": geometry["schema_version"], "closing_word_indices": list(range(len(words)))}
             represented = set()
@@ -201,7 +205,7 @@ def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
         table, closing, closing_geometry = page, None, None
     else:
         table, _, closing, closing_geometry = split
-    closing_closed = closing is not None and _closing_page(closing, closing_geometry)
+    closing_closed = closing is not None and (closing_proven or _closing_page(closing, closing_geometry))
     result["role_evidence"]["closing_role_observed"] = closing_closed
     closing_word_ids = {id(word) for word in closing["words"]} if closing is not None else set()
     result["role_evidence"]["closing_word_indices"] = [i for i, word in enumerate(words)
@@ -273,7 +277,10 @@ def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
             result["unnumbered_source_rows"].append({"source_row_index": row_index,
                 "extraction_id": row.get("extraction_id"), "boxes": valid_boxes,
                 "filing_status": row.get("filing_status")})
-            reasons.add("native_source_row_id_unavailable")
+            if not (allow_unnumbered and number in (None, '') and not any(
+                    _intersects(box, declaration['box']) for box in valid_boxes
+                    for declaration in result['declarations'])):
+                reasons.add("native_source_row_id_unavailable")
             continue
         matches = []
         for declaration in result["declarations"]:
@@ -298,7 +305,7 @@ def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
         if len(declaration["source_row_indices"]) != 1:
             result["unbound_declarations"].append(declaration["local_key"])
             reasons.add("native_declaration_not_uniquely_bound_to_source_row")
-    if not id_words and any(w["top"] >= header_bottom for w in table["words"]):
+    if not allow_unnumbered and not id_words and any(w["top"] >= header_bottom for w in table["words"]):
         reasons.add("native_body_without_accounted_id_declaration")
 
     lines = _lines(words)
@@ -323,6 +330,12 @@ def observe_native_house_id_declarations(page, source_chars, *, source_sha256,
                 "role": "clerk_contact_postcode", "source_line": line_text})
         elif any(_contains(box, _box(word)) for box in header):
             result["known_numeric_roles"].append({**numeric_ref, "role": "table_header"})
+        elif allow_unnumbered and ((closing_closed and id(word) in closing_word_ids)
+                or (word['x0'] >= header[1][0] and sum(any(
+                    s.get('page') == page_number and _contains(s['bbox_points'], _box(word))
+                    for s in segments) for segments in row_segments) == 1)):
+            result['known_numeric_roles'].append({**numeric_ref,
+                'role': 'financial_or_closed_closing_text'})
         else:
             result["outside_numeric_words"].append(numeric_ref)
             reasons.add("numeric_word_outside_explained_id_role")

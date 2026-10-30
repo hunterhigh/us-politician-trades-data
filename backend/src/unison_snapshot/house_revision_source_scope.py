@@ -68,12 +68,13 @@ def _validate_source_character_bindings(occurrences, binding_result, fonts):
 
 
 def _group_domain(occurrences, indices, inventory, *, allow_header_background=False,
-                  allow_status_color=False, budget=None):
+                  allow_status_color=False, allow_row_background=False, budget=None):
     """Exclude only the independently bound declaration's own source events."""
     _charge(budget, len(indices) + len(inventory))
     selected = [occurrences[i] for i in indices]
     _need(bool(selected) and len(set(indices)) == len(indices), "declaration_glyph_membership_invalid")
-    conditional = ({"nonglyph_paint_domain_intersects"} if allow_header_background else set())
+    conditional = ({"nonglyph_paint_domain_intersects"}
+                   if allow_header_background or allow_row_background else set())
     if allow_status_color:
         conditional.add("target_fill_not_black")
     _need(all(v["outer_device_pixels"] is not None
@@ -98,13 +99,28 @@ def _group_domain(occurrences, indices, inventory, *, allow_header_background=Fa
         if event["event"] in own_events or not _overlaps(box, event["outer_device_pixels"]):
             continue
         background = event.get("uniform_background")
-        _need(allow_header_background and event["event"] < min(own_events)
+        _need((allow_header_background or allow_row_background) and event["event"] < min(own_events)
               and isinstance(background, dict) and background.get("status") == "observed"
               and background.get("opaque") is True
               and _inside(background.get("inner_device_pixels", []), box)
               and background.get("display_bytes") not in (None, color),
               "declaration_intersects_other_source_paint")
+        if allow_row_background and not allow_header_background:
+            _need(_light_row_background(event), "row_background_not_source_proven_light_neutral")
     return box
+
+
+def _light_row_background(event):
+    """An opaque source/renderer-agreed paper or light-gray rectangular fill."""
+    background = event.get('uniform_background') or {}
+    color = background.get('display_bytes')
+    return (event.get('kind') == 'path' and event.get('source_ops') == ['re']
+            and event.get('stroke') is False and background.get('status') == 'observed'
+            and background.get('opaque') is True
+            and background.get('engine_source_color_verified') is True
+            and isinstance(color, list) and len(color) == 3
+            and all(type(v) is int for v in color) and 220 <= color[0] <= 255
+            and color[0] == color[1] == color[2])
 
 
 def inspect_native_house_revision_source(source):
@@ -224,7 +240,8 @@ def _inspect_native_house_source(source, *, financial):
                 ordinals = {id(char): i for i, char in enumerate(chars["chars"])}
                 members = [[ordinals[id(char)] for char in word_chars] for _, word_chars in tuples]
                 declaration = observe_native_house_id_declarations(page, chars["chars"],
-                    source_sha256=source.source_sha256, page_number=number, source_rows=replay["transactions"])
+                    source_sha256=source.source_sha256, page_number=number, source_rows=replay["transactions"],
+                    **({'allow_unnumbered': True, 'source_pages': pages} if financial else {}))
                 _need(declaration["status"] in {"observed_declarations", "observed_role"},
                       "source_ID_declaration_roles_unknown")
                 # An invisible header cannot assign an ID-column role. These
@@ -259,7 +276,8 @@ def _inspect_native_house_source(source, *, financial):
                               and glyph["source_unicode"] in "0123456789", "official_ID_glyph_not_proven_digit")
                         digits.append(glyph["source_unicode"])
                     _need("".join(digits) == item["reported_transaction_id"], "official_ID_source_text_differs")
-                    domain = _group_domain(occurrences, indices, paint["paint_inventory"], budget=budget)
+                    domain = _group_domain(occurrences, indices, paint["paint_inventory"],
+                                           allow_row_background=financial, budget=budget)
                     header = declaration["role_evidence"]["header_cells"][0]
                     _need(header[0] <= domain[0] < domain[2] <= header[2] and domain[1] >= header[3],
                           "official_ID_actual_paint_outside_declared_column")
@@ -268,7 +286,7 @@ def _inspect_native_house_source(source, *, financial):
                              if s["page"] == number]
                     _need(any(_inside(box, domain) for box in boxes), "official_ID_actual_paint_outside_source_row")
                     declarations.append({**item, "source_paint_domain": domain})
-                if declarations:
+                if declarations or (financial and cells):
                     # Numerical text shifted into the real ID strip cannot
                     # disappear merely because a different text-layout engine
                     # assigned it to a date/amount/asset word.
@@ -292,7 +310,7 @@ def _inspect_native_house_source(source, *, financial):
                         # full native ledger checks its uniqueness across pages.
                         for index in status_words:
                             domain = _group_domain(occurrences, members[index], paint["paint_inventory"],
-                                                   allow_status_color=True, budget=budget)
+                                                   allow_status_color=True, allow_row_background=financial, budget=budget)
                             _need(any(_inside(box, domain) for box in boxes), "filing_status_actual_paint_outside_source_row")
                             anchors.append({"word_index": index, "source_paint_domain": domain})
                 result["pages"].append({"page_number": number, "status": "observed",
@@ -341,7 +359,7 @@ def _financial_page_rows(page, number, replay, row_members, members, chars,
                 # This is the existing source color primitive, with its exact
                 # glyph, clip and other-paint guards; no new color heuristic.
                 domain = _group_domain(occurrences, members[index], inventory,
-                                       allow_status_color=True, budget=budget)
+                                       allow_status_color=True, allow_row_background=True, budget=budget)
                 proven.append({'word_index': index, 'source_character_indices': members[index],
                                'source_paint_domain': domain})
             owner = prove_native_owner_cell(page, number, row, blocks[0], chars,

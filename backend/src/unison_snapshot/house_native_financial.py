@@ -201,11 +201,14 @@ def qualify_source_financial(extraction, identity, evidence_root, revision_ids=f
             bad.pop(identifier)
             disposition.update(status='current_projected', current_projected=fact, reasons=[])
         else:
-            # Retain every existing bad-row reason as well as independent
-            # financial failures, including unresolved amendment relationships.
+            # Fresh source proof resolves only these old contrast blockers;
+            # independent identity/financial/revision failures still apply.
             failure = new_bad[identifier]
+            resolved = {'native_bichrome_row_visibility_unknown',
+                        'native_bichrome_effective_row_correspondence_unresolved'}
             bad[identifier] = {**deepcopy(bad[identifier]),
-                'reasons': sorted(set(bad[identifier].get('reasons', [])) | set(failure.get('reasons', [])))}
+                'reasons': sorted((set(bad[identifier].get('reasons', [])) - resolved)
+                                  | set(failure.get('reasons', [])))}
             disposition.update(status='unknown', current_projected=None,
                                reasons=deepcopy(bad[identifier]['reasons']))
         disposition[PROFILE_KEY] = {'profile_version': PROFILE_VERSION, 'raw_row_id': identifier}

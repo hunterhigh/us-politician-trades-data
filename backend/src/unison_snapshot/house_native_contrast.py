@@ -25,8 +25,10 @@ PARSER_VERSIONS = frozenset({PARSER_VERSION, OPACITY_PARSER_VERSION})
 DISPLAY_DOMAIN = 'opaque_white_paper/v1'
 MAX_BYTES = 50 * 1024 * 1024
 MAX_PAGES = 32
+MAX_ARCHIVED_PAGES = 96
 MAX_CHARACTERS = 25_000
 MAX_TOTAL_CHARACTERS = 100_000
+MAX_ARCHIVED_CHARACTERS = 400_000
 MAX_DOCUMENT_GRAPHICS_STATE_EVENTS = 10_000
 MAX_DOCUMENT_PAINT_EVENTS = 100_000
 MAX_ROW_WORK = 2_000_000
@@ -119,12 +121,14 @@ def _black(char):
     return mono(char.get('ncs'), char.get('non_stroking_color')) == 0
 
 
-def _inventory(pdf, sha, *, include_opacity=False):
+def _inventory(pdf, sha, *, include_opacity=False, allow_long=False):
     from .house_native_visibility import _source_characters, _words
     from .house_native_coverage import observe_native_geometry
     from .house_ptr import _modern_date_anchors, _explicit_zero_transaction_declaration
-    if not 0 < len(pdf.pages) <= MAX_PAGES:
+    if not 0 < len(pdf.pages) <= (MAX_ARCHIVED_PAGES if allow_long else MAX_PAGES):
         raise HouseIndexError('House native contrast page budget exceeded')
+    character_limit = (MAX_ARCHIVED_CHARACTERS
+                       if allow_long and len(pdf.pages) > MAX_PAGES else MAX_TOTAL_CHARACTERS)
     pages, observed, hints, total_characters = [], [], [], 0
     graphics = []
     total_graphics_events = total_paint_events = 0
@@ -143,7 +147,7 @@ def _inventory(pdf, sha, *, include_opacity=False):
         except Exception as exc:
             raise SourceInventoryUnavailable('House native contrast source inventory is unavailable') from exc
         total_characters += len(chars)
-        if total_characters > MAX_TOTAL_CHARACTERS:
+        if total_characters > character_limit:
             raise HouseIndexError('House native contrast document character budget exceeded')
         if include_opacity:
             if _json((cc, mm, ff)) != _json((chars, modes, flags)):
@@ -203,7 +207,9 @@ def _selection(metadata, inventory):
         'parser_version': (OPACITY_PARSER_VERSION if opacity else PARSER_VERSION) if active is not False else None,
         'source_sha256': metadata['sha256'], 'document_id': str(metadata['document_id']),
         'observed_character_count': sum(len(old[0]) for old in inventory[1]),
-        'character_budget': MAX_TOTAL_CHARACTERS,
+        'character_budget': (MAX_ARCHIVED_CHARACTERS
+            if metadata.get('filing_year') == 2025 and len(inventory[0]) > MAX_PAGES
+            else MAX_TOTAL_CHARACTERS),
         'route': 'modern_native' if modern and native else 'existing_paper_image_or_legacy',
         'reasons': ['native_bichrome_selection_budget_exceeded'] if active is None else []}
 
@@ -214,7 +220,8 @@ def plan_house_native_contrast(archive_root, metadata_path):
     metadata, path, content = _load(archive_root, metadata_path)
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            plan = _selection(metadata, _inventory(pdf, metadata['sha256'], include_opacity=True))
+            plan = _selection(metadata, _inventory(pdf, metadata['sha256'], include_opacity=True,
+                                                   allow_long=metadata.get('filing_year') == 2025))
             if plan['activated'] is not False:
                 _selected_source(metadata, archive_root, metadata_path, path, content)
             return plan
@@ -417,7 +424,8 @@ def parse_selected_native_contrast(archive_root, metadata_path, *, required=Fals
     metadata, path, content = _load(archive_root, metadata_path)
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            inventory = _inventory(pdf, metadata['sha256'], include_opacity=True)
+            inventory = _inventory(pdf, metadata['sha256'], include_opacity=True,
+                                   allow_long=metadata.get('filing_year') == 2025)
             plan = _selection(metadata, inventory)
             if plan['activated'] is False:
                 if required:
@@ -451,7 +459,8 @@ def _replay(extraction, evidence_root):
         raise HouseIndexError('House native contrast replay source hash differs')
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            inventory = _inventory(pdf, metadata['sha256'], include_opacity=version == OPACITY_PARSER_VERSION)
+            inventory = _inventory(pdf, metadata['sha256'], include_opacity=version == OPACITY_PARSER_VERSION,
+                                   allow_long=metadata.get('filing_year') == 2025)
             if _selection(metadata, inventory)['activated'] is False:
                 raise HouseIndexError('House native contrast source no longer selects this parser')
             fresh, runtime = _build(metadata, pdf, inventory, parser_version=version)
@@ -483,13 +492,13 @@ def bounded_legacy_unknown(archive_root, metadata_path):
     metadata, _, content = _load(archive_root, metadata_path)
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
-            if not 0 < len(pdf.pages) <= MAX_PAGES:
+            if not 0 < len(pdf.pages) <= (MAX_ARCHIVED_PAGES if metadata.get('filing_year') == 2025 else MAX_PAGES):
                 raise ValueError('page budget')
             total = 0
             for page in pdf.pages:
                 chars, _, _, _ = observe_source_characters(page, max_characters=MAX_CHARACTERS, max_tokens=100_000)
                 total += len(chars)
-                if total > MAX_TOTAL_CHARACTERS:
+                if total > (MAX_ARCHIVED_CHARACTERS if metadata.get('filing_year') == 2025 else MAX_TOTAL_CHARACTERS):
                     raise ValueError('document character budget')
             pages = observe_native_word_pages(pdf, metadata['sha256'])
             if not pages or not all(unknown(p) for p in pages):
