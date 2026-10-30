@@ -6,7 +6,7 @@
       "title": "[Health] senate_efd collection blocked or stale"
     },
     {
-      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"senate_efd\", \"reason\": \"source_blocked\"}, {\"source\": \"oge\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-24T07:42:53Z\"}, {\"source\": \"senate_efd\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\"}]",
+      "detail": "Latest snapshot: 2026-10-24T01:16:50Z\nBlocking sources: [{\"source\": \"senate_efd\", \"reason\": \"source_blocked\"}, {\"source\": \"house_clerk\", \"reason\": \"candidate_stale\", \"candidate_cutoff_at\": \"2026-10-28T22:42:19+00:00\"}, {\"source\": \"oge\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-24T07:42:53Z\"}, {\"source\": \"senate_efd\", \"reason\": \"candidate_cutoff_lag\", \"candidate_cutoff_at\": \"2026-10-23T07:42:53.699480+00:00\"}]",
       "key": "publication",
       "title": "[Health] Production publication missed its expected window"
     },
@@ -82,6 +82,11 @@
       "source": "senate_efd"
     },
     {
+      "candidate_cutoff_at": "2026-10-28T22:42:19+00:00",
+      "reason": "candidate_stale",
+      "source": "house_clerk"
+    },
+    {
       "candidate_cutoff_at": "2026-10-24T07:42:53Z",
       "reason": "candidate_cutoff_lag",
       "source": "oge"
@@ -92,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-30T21:45:05.013631+00:00",
+  "checked_at": "2026-10-30T23:16:13.962606+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -101,7 +106,7 @@
       "number": 290
     },
     {
-      "action": "already_open",
+      "action": "updated_condition",
       "key": "publication",
       "number": 291
     },
@@ -177,8 +182,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-10-30T12:57:18+00:00",
-      "last_successful_collection_at": "2026-10-30T12:57:18+00:00",
+      "last_attempt_at": "2026-10-30T22:21:35+00:00",
+      "last_successful_collection_at": "2026-10-30T22:21:35+00:00",
       "status": "ok",
       "unhealthy_since": null,
       "workflow_run_url": null
