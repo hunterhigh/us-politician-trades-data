@@ -21,9 +21,10 @@ class RowBackgroundTests(unittest.TestCase):
                 content = document.tobytes()
             with pdfplumber.open(io.BytesIO(content)) as document:
                 if count==97:
-                    with self.assertRaisesRegex(HouseIndexError,'page budget'):_inventory(document,'a'*64)
+                    with self.assertRaisesRegex(HouseIndexError,'page budget'):_inventory(document,'a'*64,allow_long=True)
                 else:
-                    self.assertEqual(len(_inventory(document,'a'*64)[0]),count)
+                    with self.assertRaisesRegex(HouseIndexError,'page budget'):_inventory(document,'a'*64)
+                    self.assertEqual(len(_inventory(document,'a'*64,allow_long=True)[0]),count)
 
     def paint(self, body, *, required=True):
         fixture = source.HouseRevisionSourceCompositionTests()
