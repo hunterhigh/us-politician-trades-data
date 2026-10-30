@@ -12,6 +12,15 @@ from .codec import encode
 from .house import HouseIndexError
 
 ELECTRONIC_REPAIR_VERSION = 'house-2025-source-backgrounds-v1'
+# The page-budget error alone does not establish an electronic form: two
+# retained paper failures have the same message. These three authenticated
+# originals were independently observed as native electronic tables. This is
+# a retry selection, never a qualification exception.
+LONG_ELECTRONIC_SOURCES = {
+    '20030387':'f96b24ba647c43bed680b256edc545059a62274d4785abe3ba36c94d653ce220',
+    '20030891':'0efe2f40dab7bf661c8f8dcfd7c9f172fae488e2cb1aea78613736cca1cc2239',
+    '20033446':'cb950a09bdec0d1158236cfa4e573e67dbaefa0b770b09f4a6dd8d2339d5effa',
+}
 
 
 def needs_electronic_repair(previous):
@@ -20,7 +29,10 @@ def needs_electronic_repair(previous):
     reasons = previous.get('reasons', [])
     return ('native_bichrome_row_visibility_unknown' in reasons
             or 'identity_not_deterministic' in reasons
-            or reasons == ['House native contrast page budget exceeded'])
+            or (reasons == ['House native contrast page budget exceeded']
+                and previous.get('document_id') in LONG_ELECTRONIC_SOURCES
+                and LONG_ELECTRONIC_SOURCES[previous['document_id']]
+                    == previous.get('source_sha256')))
 
 
 def write(path, value):
