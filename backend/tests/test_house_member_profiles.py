@@ -6,7 +6,9 @@ import unittest
 
 from unison_snapshot.house import HouseIndexError
 from unison_snapshot.house_member_profiles import parse_profile, suggest_historical_identity, BASIS
-from unison_snapshot.house_archive_queue import needs_electronic_repair, ELECTRONIC_REPAIR_VERSION
+from unison_snapshot.house_archive_queue import (
+    needs_electronic_repair, ELECTRONIC_REPAIR_VERSION, LONG_ELECTRONIC_SOURCES,
+)
 
 HTML = b'''<a href="https://bioguide.congress.gov/search/bio/G000590">Biography</a>
 <div class="about_bio-copy"><h1>[Mark E. Green]</h1>
@@ -57,10 +59,17 @@ class HistoricalProfileTests(unittest.TestCase):
             with self.assertRaises(HouseIndexError):suggest_historical_identity(report,root)
 
     def test_repair_resume_never_selects_paper_failures_other_isolation_or_2026_parser_bump(self):
-        for reason in ('native_bichrome_row_visibility_unknown','identity_not_deterministic',
-                       'House native contrast page budget exceeded'):
+        for reason in ('native_bichrome_row_visibility_unknown','identity_not_deterministic'):
             row = {'reasons':[reason]}
             self.assertTrue(needs_electronic_repair(row))
             self.assertFalse(needs_electronic_repair({**row,'electronic_repair_version':ELECTRONIC_REPAIR_VERSION}))
         for reason in ('paper_source_fields_unverified','OCR parsing failed','amended_without_prior'):
             self.assertFalse(needs_electronic_repair({'reasons':[reason]}))
+        for document,digest in LONG_ELECTRONIC_SOURCES.items():
+            row = {'document_id':document,'source_sha256':digest,
+                   'reasons':['House native contrast page budget exceeded']}
+            self.assertTrue(needs_electronic_repair(row))
+            self.assertFalse(needs_electronic_repair({**row,'source_sha256':'0'*64}))
+        for document in ('8220750','8220906'):
+            self.assertFalse(needs_electronic_repair({'document_id':document,
+                'source_sha256':'a'*64,'reasons':['House native contrast page budget exceeded']}))
