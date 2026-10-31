@@ -97,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-31T01:46:35.123627+00:00",
+  "checked_at": "2026-10-31T02:20:49.997858+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -192,11 +192,11 @@
       "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-10-30T21:22:20.916907+00:00",
-      "last_successful_collection_at": "2026-10-30T21:06:31.204180+00:00",
+      "last_attempt_at": "2026-10-31T02:04:39.185318+00:00",
+      "last_successful_collection_at": "2026-10-31T01:53:20.833134+00:00",
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/41128111516"
+      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/41157223797"
     },
     "senate_efd": {
       "detail": "eFD authorization gate is enabled; catalog collection is pending.",
