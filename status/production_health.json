@@ -1,7 +1,7 @@
 {
   "alerts": [
     {
-      "detail": "{\"detail\": \"eFD authorization gate is enabled; catalog collection is pending.\", \"failed_step\": null, \"http_status\": null, \"last_attempt_at\": \"2026-10-30T08:44:30.968553+00:00\", \"last_successful_collection_at\": \"2026-10-23T07:42:50.940663+00:00\", \"status\": \"blocked\", \"unhealthy_since\": \"2026-10-23T07:42:50.940663+00:00\", \"workflow_run_url\": null}",
+      "detail": "{\"detail\": \"eFD authorization gate is enabled; catalog collection is pending.\", \"failed_step\": null, \"http_status\": null, \"last_attempt_at\": \"2026-10-31T08:26:07.543262+00:00\", \"last_successful_collection_at\": \"2026-10-23T07:42:50.940663+00:00\", \"status\": \"blocked\", \"unhealthy_since\": \"2026-10-23T07:42:50.940663+00:00\", \"workflow_run_url\": null}",
       "key": "source:senate_efd",
       "title": "[Health] senate_efd collection blocked or stale"
     },
@@ -97,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-31T06:57:34.219145+00:00",
+  "checked_at": "2026-10-31T08:26:59.608432+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -202,7 +202,7 @@
       "detail": "eFD authorization gate is enabled; catalog collection is pending.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-10-30T08:44:30.968553+00:00",
+      "last_attempt_at": "2026-10-31T08:26:07.543262+00:00",
       "last_successful_collection_at": "2026-10-23T07:42:50.940663+00:00",
       "status": "blocked",
       "unhealthy_since": "2026-10-23T07:42:50.940663+00:00",
