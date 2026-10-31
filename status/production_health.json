@@ -97,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-10-30T23:16:13.962606+00:00",
+  "checked_at": "2026-10-31T00:44:51.292765+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -106,7 +106,7 @@
       "number": 290
     },
     {
-      "action": "updated_condition",
+      "action": "already_open",
       "key": "publication",
       "number": 291
     },
