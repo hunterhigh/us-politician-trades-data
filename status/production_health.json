@@ -1,7 +1,7 @@
 {
   "alerts": [
     {
-      "detail": "{\"detail\": \"eFD authorization gate is enabled; catalog collection is pending.\", \"failed_step\": null, \"http_status\": null, \"last_attempt_at\": \"2026-10-31T08:26:07.543262+00:00\", \"last_successful_collection_at\": \"2026-10-23T07:42:50.940663+00:00\", \"status\": \"blocked\", \"unhealthy_since\": \"2026-10-23T07:42:50.940663+00:00\", \"workflow_run_url\": null}",
+      "detail": "{\"detail\": \"eFD authorization gate is enabled; catalog collection is pending.\", \"failed_step\": null, \"http_status\": null, \"last_attempt_at\": \"2026-11-01T09:15:11.917930+00:00\", \"last_successful_collection_at\": \"2026-10-23T07:42:50.940663+00:00\", \"status\": \"blocked\", \"unhealthy_since\": \"2026-10-23T07:42:50.940663+00:00\", \"workflow_run_url\": null}",
       "key": "source:senate_efd",
       "title": "[Health] senate_efd collection blocked or stale"
     },
@@ -97,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-11-01T06:56:49.903220+00:00",
+  "checked_at": "2026-11-01T09:16:07.582850+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -120,10 +120,7 @@
   "publication": "held",
   "published_at": "2026-10-24T01:16:50Z",
   "quality_complete": false,
-  "quality_observed_scopes": [
-    "quality:house_clerk:house_ptr",
-    "quality:house_clerk:house_annual"
-  ],
+  "quality_observed_scopes": [],
   "quality_review_commit": "01539bcf5440827aeb259f04e41cfbf7aeeac02b",
   "schema_version": "production-health/v1",
   "smoke": {
@@ -202,7 +199,7 @@
       "detail": "eFD authorization gate is enabled; catalog collection is pending.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-10-31T08:26:07.543262+00:00",
+      "last_attempt_at": "2026-11-01T09:15:11.917930+00:00",
       "last_successful_collection_at": "2026-10-23T07:42:50.940663+00:00",
       "status": "blocked",
       "unhealthy_since": "2026-10-23T07:42:50.940663+00:00",
