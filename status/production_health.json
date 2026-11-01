@@ -97,7 +97,7 @@
       "source": "senate_efd"
     }
   ],
-  "checked_at": "2026-11-01T02:10:45.255290+00:00",
+  "checked_at": "2026-11-01T06:56:49.903220+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -182,8 +182,8 @@
       "detail": null,
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-10-31T21:36:01+00:00",
-      "last_successful_collection_at": "2026-10-31T21:36:01+00:00",
+      "last_attempt_at": "2026-11-01T06:06:18+00:00",
+      "last_successful_collection_at": "2026-11-01T06:06:18+00:00",
       "status": "ok",
       "unhealthy_since": null,
       "workflow_run_url": null
