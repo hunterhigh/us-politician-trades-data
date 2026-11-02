@@ -39,7 +39,7 @@
       "source": "oge"
     }
   ],
-  "checked_at": "2026-11-02T07:16:48.825403+00:00",
+  "checked_at": "2026-11-02T07:41:39.808639+00:00",
   "integrity_failures": [],
   "issue_actions": [
     {
@@ -61,7 +61,7 @@
   "quality_review_commit": "4290d4a8be097aa63d0cc2c2601380f5829c108f",
   "schema_version": "production-health/v1",
   "smoke": {
-    "checked_at": "2026-11-02T06:14:44.597353+00:00",
+    "checked_at": "2026-11-02T07:41:39.448213+00:00",
     "checks": [
       {
         "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -96,7 +96,7 @@
         "status": "passed"
       }
     ],
-    "client_sha256": "41bd05e5eb5a9d8a1911b4691bc32cdc97dab04af311151d289a3bb1c6944add",
+    "client_sha256": "76da63c26345c0962c539c8e9b9d47f5aa9a257e0c6b595c3256ec8947cd82fc",
     "commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
     "failed_snapshots": {},
     "last_good_commit": "13918a8c86cdd97d9f32c00fd99c4e9b1dc0a576",
@@ -125,16 +125,16 @@
       "workflow_run_url": null
     },
     "oge": {
-      "detail": "Only catalog-listed direct PDFs were collected; Form 201 requests remain excluded.",
+      "detail": "OGE collection pending.",
       "failed_step": null,
       "http_status": null,
-      "last_attempt_at": "2026-11-02T06:28:44.573287+00:00",
+      "last_attempt_at": "2026-11-02T07:29:06.890731+00:00",
       "last_successful_collection_at": "2026-11-02T06:13:58.302687+00:00",
       "qualified_cutoff_at": "2026-10-24T07:42:53Z",
       "stale": false,
       "status": "ok",
       "unhealthy_since": null,
-      "workflow_run_url": "https://github.com/hunterhigh/us-politician-trades-data/actions/runs/41396770274"
+      "workflow_run_url": null
     },
     "senate_efd": {
       "detail": "eFD authorization gate is enabled; catalog collection is pending.",
