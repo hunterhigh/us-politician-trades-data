@@ -127,7 +127,7 @@
       "source": "house_clerk"
     }
   ],
-  "checked_at": "2026-11-02T18:16:32.587743+00:00",
+  "checked_at": "2026-11-02T18:43:52.456854+00:00",
   "integrity_failures": [
     {
       "category": "snapshot_contract",
@@ -172,7 +172,7 @@
     "quality:oge:whitehouse_public",
     "quality:oge:oge_direct_278e"
   ],
-  "quality_review_commit": "ab7c59a3ecb526f9c49d111bfb2024d36c79a5af",
+  "quality_review_commit": "31d42ab6053e88a78915cec6dea39012587e1aa1",
   "schema_version": "production-health/v1",
   "smoke": {
     "checked_at": "2026-11-02T15:58:39.361809+00:00",
