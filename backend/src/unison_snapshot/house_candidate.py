@@ -395,8 +395,12 @@ def _build_house_candidate(review_root: Path, state_status: dict, base: dict, *,
                 raise HouseIndexError('Existing House contrast fact has no unique current physical source row')
             if identifier in superseded_ids:
                 continue
-            if identifier in selected and selected[identifier] != prior:
-                raise HouseIndexError('Changed House contrast fact requires a separate source correction')
+            if identifier in selected:
+                from .house_native_contrast import represents_source_fact
+                if not represents_source_fact(selected[identifier], prior, extraction):
+                    fields = sorted(key for key in selected[identifier].keys() | prior.keys()
+                                    if selected[identifier].get(key) != prior.get(key))
+                    raise HouseIndexError(f'Changed House contrast fact {identifier} requires a separate source correction: {fields}')
             selected[identifier] = deepcopy(prior)
     transactions = sorted(selected.values(), key=lambda row:row['id'])
     quarantined_count -= sum(len(q["quarantined"]) - len(revision_resolution["qualifications"].get(

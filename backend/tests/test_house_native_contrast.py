@@ -46,7 +46,7 @@ class HouseNativeContrastTests(unittest.TestCase):
             if kind in {'white_black', 'black_white'}:
                 p.insert_text((105, 335), 'Example', fontsize=9,
                               color=(0, 0, 0) if kind == 'white_black' else (1, 1, 1))
-            if kind in {'white_account', 'visible_account'}:
+            if kind in {'white_account', 'visible_account', 'visible_account_contrast'}:
                 p.insert_text((105, 374), 'Subholding Of: Investment account #7', fontsize=8.5,
                               color=(1, 1, 1) if kind == 'white_account' else (0, 0, 0))
             if kind == 'date_erased':
@@ -57,7 +57,7 @@ class HouseNativeContrastTests(unittest.TestCase):
             if cross and number == 1:
                 p.insert_text((105, 158.5), 'Subholding Of: Investment account #7', fontsize=8.5,
                               color=(1, 1, 1) if kind == 'cross_white' else (0, 0, 0))
-            if kind == 'unrelated_white_footer':
+            if kind in {'unrelated_white_footer', 'visible_account_contrast'}:
                 p.insert_text((5, 740), 'UNRELATED', fontsize=8, color=(1, 1, 1))
         raw = doc.tobytes(); doc.close()
         sha = hashlib.sha256(raw).hexdigest()

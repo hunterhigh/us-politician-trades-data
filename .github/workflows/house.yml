@@ -385,6 +385,13 @@ jobs:
           PARSER_COMMIT: ${{ github.sha }}
         run: |
           python -m unison_snapshot house-review status
+      - name: Persist qualified House review before candidate assembly
+        if: inputs.materialize_saved_paper != true && inputs.filing_year != '2025' && steps.selection.outputs.cache_ready == 'true'
+        uses: ./.github/actions/publish-data
+        with:
+          workspace: ${{ runner.temp }}/house-source
+          roles: review
+          message: House Persist source-qualified progress ${{ github.run_id }}
       - name: Build and validate frontend candidate
         if: inputs.filing_year != '2025' && (inputs.materialize_saved_paper == true || steps.selection.outputs.cache_ready == 'true')
         id: candidate

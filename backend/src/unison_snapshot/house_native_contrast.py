@@ -62,6 +62,29 @@ def _json(value):
     return json.loads(_encoded(value))
 
 
+def represents_source_fact(expected, represented, extraction):
+    """Accept the original asset label alongside its optional account suffix.
+
+    Callers must authenticate the complete extraction/qualification first.
+    This changes no financial value or identity and grants no unqualified row.
+    """
+    if expected == represented:
+        return True
+    if not isinstance(expected, dict) or not isinstance(represented, dict):
+        return False
+    if {k:v for k,v in expected.items() if k != 'asset_name'} != {
+            k:v for k,v in represented.items() if k != 'asset_name'}:
+        return False
+    raw = [row for row in extraction.get('transactions', [])
+           if row.get('extraction_id') == expected.get('id')]
+    if len(raw) != 1:
+        return False
+    name, account = raw[0].get('asset_name'), raw[0].get('subholding_of')
+    return (isinstance(name, str) and isinstance(account, str) and bool(account.strip()) and
+            represented.get('asset_name') == name and
+            expected.get('asset_name') == f'{name} — {account}')
+
+
 def _digest(value):
     return hashlib.sha256(_encoded(value)).hexdigest()
 

@@ -340,8 +340,12 @@ def _build_house_status(evidence_root: Path, review_root: Path,
             selected_qualification = revision_resolution['qualifications'].get(record['document_id'], selected_qualification)
             if selected_qualification is not None and selected_qualification.get('parser_version') in CONTRAST_VERSIONS:
                 current = {item['id']:item for item in selected_qualification['transactions']}
-                if txid in current and row != current[txid]:
-                    raise ValueError('House contrast publication changed a current source-qualified fact')
+                if txid in current:
+                    from .house_native_contrast import represents_source_fact
+                    selected_extraction = artifacts['extractions'].get(
+                        (int(record['report_id'].split(':')[1]),record['document_id'],version))
+                    if not represents_source_fact(current[txid], row, selected_extraction or {}):
+                        raise ValueError('House contrast publication changed a current source-qualified fact')
                 if txid not in current:
                     known = {item['raw_row_id'] for item in selected_qualification['native_contrast_dispositions']}
                     if txid not in known:
